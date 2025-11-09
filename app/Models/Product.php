@@ -1,0 +1,72 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Product extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'sku',
+        'name',
+        'description',
+        'brand_id',
+        'category_id',
+        'material_id',
+        'gross_weight',
+        'net_weight',
+        'base_price',
+        'making_charge',
+        'is_jobwork_allowed',
+        'visibility',
+        'is_active',
+        'metadata',
+        'material_type',
+        'style',
+        'standard_pricing',
+        'variant_options',
+    ];
+
+    protected $casts = [
+        'is_jobwork_allowed' => 'boolean',
+        'is_active' => 'boolean',
+        'metadata' => 'array',
+        'standard_pricing' => 'array',
+        'variant_options' => 'array',
+    ];
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function material(): BelongsTo
+    {
+        return $this->belongsTo(Material::class);
+    }
+
+    public function media(): HasMany
+    {
+        return $this->hasMany(ProductMedia::class);
+    }
+
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+}
