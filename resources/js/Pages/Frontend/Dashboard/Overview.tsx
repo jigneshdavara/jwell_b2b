@@ -25,12 +25,15 @@ type DashboardProps = {
     }>;
     jobworkTimeline: Array<{
         id: number;
-        status: string;
-        metal: string;
-        purity: string | null;
+        status?: string | null;
+        product?: string | null;
         quantity: number;
-        deadline: string | null;
         submitted_on: string | null;
+    }>;
+    dueOrders: Array<{
+        reference: string;
+        total: number;
+        placed_on: string | null;
     }>;
 };
 
@@ -45,10 +48,16 @@ const statusColors: Record<string, string> = {
     completed: 'bg-emerald-100 text-emerald-700',
     cancelled: 'bg-rose-100 text-rose-700',
     submitted: 'bg-slate-100 text-slate-700',
+    material_sending: 'bg-slate-100 text-slate-700',
+    material_received: 'bg-sky-100 text-sky-700',
+    under_preparation: 'bg-indigo-100 text-indigo-700',
+    awaiting_billing: 'bg-amber-100 text-amber-700',
+    billing_confirmed: 'bg-emerald-100 text-emerald-700',
+    ready_to_ship: 'bg-slate-900 text-white',
 };
 
 export default function FrontendDashboardOverview() {
-    const { stats, recentOrders, jobworkTimeline } = usePage<PageProps<DashboardProps>>().props;
+    const { stats, recentOrders, jobworkTimeline, dueOrders } = usePage<PageProps<DashboardProps>>().props;
 
     return (
         <AuthenticatedLayout>
@@ -157,52 +166,77 @@ export default function FrontendDashboardOverview() {
                         </div>
                     </div>
 
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                        <h2 className="text-lg font-semibold text-slate-900">Jobwork Timeline</h2>
-                        <p className="mt-1 text-xs uppercase tracking-[0.35em] text-slate-400">
-                            Live production updates
-                        </p>
-                        <div className="mt-6 space-y-5">
-                            {jobworkTimeline.map((job) => (
-                                <div key={job.id} className="rounded-2xl border border-slate-200 p-4">
-                                    <div className="flex items-center justify-between">
-                                        <p className="font-semibold text-slate-800">Request #{job.id}</p>
-                                        <span
-                                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                                statusColors[job.status] ?? 'bg-slate-100 text-slate-700'
-                                            }`}
-                                        >
-                                            {job.status.replace(/_/g, ' ')}
-                                        </span>
-                                    </div>
-                                    <p className="mt-2 text-sm text-slate-600">
-                                        {job.metal} · {job.purity ?? 'Custom purity'} · {job.quantity} pcs
-                                    </p>
-                                    <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                                        <span>
-                                            Submitted {job.submitted_on
+                    <div className="space-y-6">
+                        <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
+                            <h2 className="text-lg font-semibold text-slate-900">Jobwork Timeline</h2>
+                            <p className="mt-1 text-xs uppercase tracking-[0.35em] text-slate-400">Live production updates</p>
+                            <div className="mt-6 space-y-5">
+                                {jobworkTimeline.map((job) => (
+                                    <div key={job.id} className="rounded-2xl border border-slate-200 p-4">
+                                        <div className="flex items-center justify-between">
+                                            <p className="font-semibold text-slate-800">Quotation #{job.id}</p>
+                                            <span
+                                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                                    (job.status && statusColors[job.status]) ??
+                                                    'bg-slate-100 text-slate-700'
+                                                }`}
+                                            >
+                                                {(job.status ?? 'pending').replace(/_/g, ' ')}
+                                            </span>
+                                        </div>
+                                        <p className="mt-2 text-sm text-slate-600">
+                                            {job.product ?? 'Catalogue design'} · {job.quantity} pcs
+                                        </p>
+                                        <div className="mt-3 text-xs text-slate-500">
+                                            Submitted{' '}
+                                            {job.submitted_on
                                                 ? new Date(job.submitted_on).toLocaleDateString('en-IN', {
                                                       day: '2-digit',
                                                       month: 'short',
+                                                      year: 'numeric',
                                                   })
                                                 : 'N/A'}
-                                        </span>
-                                        <span>
-                                            Deadline {job.deadline
-                                                ? new Date(job.deadline).toLocaleDateString('en-IN', {
+                                        </div>
+                                    </div>
+                                ))}
+                                {jobworkTimeline.length === 0 && (
+                                    <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+                                        No jobwork submitted yet. Launch a custom request directly from any product page.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
+                            <h2 className="text-lg font-semibold text-slate-900">Due payments</h2>
+                            <p className="mt-1 text-xs uppercase tracking-[0.35em] text-slate-400">Awaiting confirmation</p>
+                            <div className="mt-4 space-y-4">
+                                {dueOrders.map((order) => (
+                                    <div key={order.reference} className="rounded-2xl border border-slate-200 p-4">
+                                        <div className="flex items-center justify-between">
+                                            <p className="font-semibold text-slate-800">{order.reference}</p>
+                                            <span className="text-sm font-semibold text-slate-900">
+                                                {currencyFormatter.format(order.total)}
+                                            </span>
+                                        </div>
+                                        <p className="mt-2 text-xs text-slate-500">
+                                            Raised{' '}
+                                            {order.placed_on
+                                                ? new Date(order.placed_on).toLocaleDateString('en-IN', {
                                                       day: '2-digit',
                                                       month: 'short',
+                                                      year: 'numeric',
                                                   })
-                                                : 'TBD'}
-                                        </span>
+                                                : 'N/A'}
+                                        </p>
                                     </div>
-                                </div>
-                            ))}
-                            {jobworkTimeline.length === 0 && (
-                                <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
-                                    No jobwork submitted yet. Launch a custom request directly from any product page.
-                                </div>
-                            )}
+                                ))}
+                                {dueOrders.length === 0 && (
+                                    <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+                                        No pending payments right now.
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

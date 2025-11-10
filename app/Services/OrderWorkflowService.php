@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Enums\WorkOrderStatus;
 use App\Events\OrderStatusUpdated;
 use App\Models\Order;
+use App\Models\OrderStatusHistory;
 use App\Models\WorkOrder;
 use Illuminate\Support\Facades\DB;
 
@@ -24,6 +25,13 @@ class OrderWorkflowService
             $order->status = $status;
             $order->status_meta = array_merge($order->status_meta ?? [], $meta);
             $order->save();
+
+            OrderStatusHistory::create([
+                'order_id' => $order->id,
+                'user_id' => auth()->id(),
+                'status' => $status->value,
+                'meta' => $meta,
+            ]);
 
             OrderStatusUpdated::dispatch($order, $status, $meta);
         });

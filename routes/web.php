@@ -22,12 +22,15 @@ use App\Http\Controllers\Admin\SilverPurityController;
 use App\Http\Controllers\Admin\CustomerTypeController;
 use App\Http\Controllers\Admin\CustomerGroupController;
 use App\Http\Controllers\Admin\OrderStatusController;
+use App\Http\Controllers\Admin\QuotationController as AdminQuotationController;
 use App\Http\Controllers\Frontend\CartController;
 use App\Http\Controllers\Frontend\CatalogController;
 use App\Http\Controllers\Frontend\CheckoutController;
 use App\Http\Controllers\Frontend\DashboardController as FrontendDashboardController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\JobworkController;
+use App\Http\Controllers\Frontend\QuotationController;
+use App\Http\Controllers\Frontend\OrderController as FrontendOrderController;
 use App\Http\Controllers\Frontend\KycOnboardingController;
 use App\Http\Controllers\Production\DashboardController as ProductionDashboardController;
 use App\Http\Controllers\Production\WorkOrderController;
@@ -83,6 +86,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/jobwork', [JobworkController::class, 'store'])
             ->middleware('ensure.kyc.approved')
             ->name('frontend.jobwork.store');
+
+        Route::get('/orders', [FrontendOrderController::class, 'index'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.orders.index');
+        Route::get('/orders/{order}', [FrontendOrderController::class, 'show'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.orders.show');
+
+        Route::get('/quotations', [QuotationController::class, 'index'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.quotations.index');
+        Route::post('/quotations', [QuotationController::class, 'store'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.quotations.store');
+        Route::delete('/quotations/{quotation}', [QuotationController::class, 'destroy'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.quotations.destroy');
+        Route::post('/quotations/{quotation}/messages', [QuotationController::class, 'message'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.quotations.messages.store');
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -161,6 +184,15 @@ Route::prefix('admin')
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
         Route::post('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
+
+        Route::get('/quotations', [AdminQuotationController::class, 'index'])->name('quotations.index');
+        Route::get('/quotations/jewellery', [AdminQuotationController::class, 'index'])->name('quotations.jewellery')->defaults('mode', 'purchase');
+        Route::get('/quotations/jobwork', [AdminQuotationController::class, 'index'])->name('quotations.jobwork')->defaults('mode', 'jobwork');
+        Route::get('/quotations/{quotation}', [AdminQuotationController::class, 'show'])->name('quotations.show');
+        Route::post('/quotations/{quotation}/approve', [AdminQuotationController::class, 'approve'])->name('quotations.approve');
+        Route::post('/quotations/{quotation}/reject', [AdminQuotationController::class, 'reject'])->name('quotations.reject');
+        Route::post('/quotations/{quotation}/jobwork-status', [AdminQuotationController::class, 'updateJobworkStatus'])->name('quotations.jobwork-status');
+        Route::post('/quotations/{quotation}/messages', [AdminQuotationController::class, 'message'])->name('quotations.messages.store');
 
         Route::get('/offers', [OfferController::class, 'index'])->name('offers.index');
         Route::post('/offers', [OfferController::class, 'store'])->name('offers.store');

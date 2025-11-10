@@ -14,15 +14,22 @@ export default function Authenticated({
     header,
     children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
-    const user = usePage().props.auth.user as {
+    const page = usePage();
+    const user = page.props.auth.user as {
         name: string;
         email: string;
         type?: string;
     };
     const userType = (user?.type ?? '').toLowerCase();
     const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
-    const cart = (usePage().props as { cart?: { count?: number } }).cart;
+    const cart = (page.props as { cart?: { count?: number } }).cart;
     const cartCount = cart?.count ?? 0;
+    const currentUrl = page.url;
+    const catalogMode = useMemo(() => {
+        const query = currentUrl.split('?')[1] ?? '';
+        const params = new URLSearchParams(query);
+        return params.get('mode') ?? 'purchase';
+    }, [currentUrl]);
 
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -37,6 +44,11 @@ export default function Authenticated({
                 href: route('dashboard'),
                 active: route().current('dashboard'),
             },
+            {
+                label: 'Quotations',
+                href: route('frontend.quotations.index'),
+                active: route().current('frontend.quotations.*'),
+            },
         ];
     }, [isCustomer]);
 
@@ -50,18 +62,28 @@ export default function Authenticated({
                 label: 'Jewellery Purchase',
                 href: route('frontend.catalog.index'),
                 active:
-                    route().current('frontend.catalog.*') ||
+                    (route().current('frontend.catalog.*') && catalogMode !== 'jobwork') ||
                     route().current('frontend.cart.*') ||
                     route().current('frontend.checkout.*'),
                 badge: cartCount > 0 ? cartCount : undefined,
             },
             {
                 label: 'Job Work',
-                href: route('frontend.jobwork.index'),
-                active: route().current('frontend.jobwork.*'),
+                href: route('frontend.catalog.index', { mode: 'jobwork' }),
+                active: route().current('frontend.catalog.*') && catalogMode === 'jobwork',
+            },
+            {
+                label: 'My Orders',
+                href: route('frontend.orders.index'),
+                active: route().current('frontend.orders.*'),
+            },
+            {
+                label: 'Quotations',
+                href: route('frontend.quotations.index'),
+                active: route().current('frontend.quotations.*'),
             },
         ];
-    }, [cartCount, isCustomer]);
+    }, [cartCount, isCustomer, catalogMode]);
 
     const adminNav: NavigationItem[] =
         userType && ['admin', 'super-admin'].includes(userType)

@@ -40,6 +40,16 @@ class OrderStatusSeeder extends Seeder
                 'color' => '#ef4444',
                 'position' => 4,
             ],
+            [
+                'name' => 'Awaiting materials',
+                'color' => '#6366f1',
+                'position' => 5,
+            ],
+            [
+                'name' => 'Under production',
+                'color' => '#1d4ed8',
+                'position' => 6,
+            ],
         ];
 
         foreach ($statuses as $index => $status) {

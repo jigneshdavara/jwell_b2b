@@ -74,6 +74,14 @@ const adminNavigation: NavItem[] = [
             { label: 'Order statuses', route: 'admin.orders.statuses.index', match: 'admin.orders.statuses.*' },
         ],
     },
+    {
+        label: 'Quotations',
+        icon: 'inbox',
+        children: [
+            { label: 'Jewellery', route: 'admin.quotations.jewellery', match: 'admin.quotations.jewellery' },
+            { label: 'Jobwork', route: 'admin.quotations.jobwork', match: 'admin.quotations.jobwork' },
+        ],
+    },
     { label: 'Offers', route: 'admin.offers.index', match: 'admin.offers.*', icon: 'tag' },
     { label: 'Rates', route: 'admin.rates.index', match: 'admin.rates.*', icon: 'activity' },
     { label: 'Payments', route: 'admin.settings.payments.edit', match: 'admin.settings.payments.*', icon: 'credit-card' },
@@ -159,6 +167,12 @@ const iconMap: Record<string, JSX.Element> = {
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 9h18M7.5 15h3" />
         </svg>
     ),
+    inbox: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4l-1 9a2 2 0 002 2h14a2 2 0 002-2l-1-9z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 11h6m-7 5l2-2h4l2 2" />
+        </svg>
+    ),
 };
 
 export default function AdminLayout({ children }: PropsWithChildren) {
@@ -169,7 +183,10 @@ export default function AdminLayout({ children }: PropsWithChildren) {
 
         adminNavigation.forEach((item) => {
             if ('children' in item && item.children) {
-                initial[item.label] = item.children.some((child) => route().current(child.match));
+                const isQuotationGroup = item.label === 'Quotations';
+                const anyActive = item.children.some((child) => route().current(child.match));
+                const additionalActive = isQuotationGroup && route().current('admin.quotations.*');
+                initial[item.label] = anyActive || additionalActive;
             }
         });
 

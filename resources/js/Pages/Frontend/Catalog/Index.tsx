@@ -3,6 +3,13 @@ import type { PageProps } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { FormEvent, useMemo, useState } from 'react';
 
+const FILTER_LABELS: Record<string, string> = {
+    brand: 'Brand',
+    gold_purity: 'Gold purity',
+    silver_purity: 'Silver purity',
+    search: 'Search',
+};
+
 type Product = {
     id: number;
     name: string;
@@ -16,24 +23,26 @@ type Product = {
     base_price: number;
     making_charge: number;
     is_jobwork_allowed: boolean;
+    uses_gold: boolean;
+    uses_silver: boolean;
+    uses_diamond: boolean;
     thumbnail?: string | null;
     media?: Array<{ url: string; alt: string }>;
     variants: Array<{
         id: number;
         label: string;
-        metal_tone?: string | null;
-        stone_quality?: string | null;
-        size?: string | null;
         price_adjustment: number;
         is_default: boolean;
+        metadata?: Record<string, unknown>;
     }>;
 };
 
 type CatalogProps = {
+    mode: 'purchase' | 'jobwork';
     filters: {
         brand?: string;
-        material?: string;
-        purity?: string;
+        gold_purity?: string;
+        silver_purity?: string;
         search?: string;
     };
     products: {
@@ -42,9 +51,9 @@ type CatalogProps = {
     };
     facets: {
         brands: string[];
-        materials: string[];
-        purities: string[];
         categories: string[];
+        goldPurities: Array<{ id: number; name: string }>;
+        silverPurities: Array<{ id: number; name: string }>;
     };
 };
 
@@ -55,8 +64,16 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
 });
 
 export default function CatalogIndex() {
-    const { filters, products, facets } = usePage<PageProps<CatalogProps>>().props;
+    const { mode, filters, products, facets } = usePage<PageProps<CatalogProps>>().props;
     const [search, setSearch] = useState(filters.search ?? '');
+
+    const valueNameMap = useMemo(() => {
+        const map = new Map<string, string>();
+        facets.goldPurities.forEach((purity) => map.set(`gold_purity:${purity.id}`, purity.name));
+        facets.silverPurities.forEach((purity) => map.set(`silver_purity:${purity.id}`, purity.name));
+        facets.brands.forEach((brand) => map.set(`brand:${brand}`, brand));
+        return map;
+    }, [facets]);
 
     const applyFilter = (key: keyof CatalogProps['filters'], value?: string) => {
         router.get(
@@ -64,6 +81,7 @@ export default function CatalogIndex() {
             {
                 ...filters,
                 [key]: value ?? undefined,
+                mode,
                 page: undefined,
             },
             {
@@ -74,7 +92,7 @@ export default function CatalogIndex() {
     };
 
     const resetFilters = () => {
-        router.get(route('frontend.catalog.index'));
+        router.get(route('frontend.catalog.index'), { mode });
     };
 
     const onSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -82,20 +100,16 @@ export default function CatalogIndex() {
         applyFilter('search', search.trim() || undefined);
     };
 
-    const addToCart = (productId: number, variantId?: number) => {
-        router.post(
-            route('frontend.cart.items.store'),
-            { product_id: productId, product_variant_id: variantId, quantity: 1 },
-            { preserveScroll: true },
-        );
-    };
-
     const activeFilters = useMemo(
         () =>
             Object.entries(filters)
                 .filter(([, value]) => value)
-                .map(([key, value]) => ({ key, value })),
-        [filters],
+                .map(([key, value]) => {
+                    const label = FILTER_LABELS[key] ?? key.replace(/_/g, ' ');
+                    const valueLabel = valueNameMap.get(`${key}:${value}`) ?? String(value);
+                    return { key, value, label, valueLabel };
+                }),
+        [filters, valueNameMap],
     );
 
     return (
@@ -105,10 +119,13 @@ export default function CatalogIndex() {
             <div className="space-y-10" id="catalog">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
-                        <h1 className="text-3xl font-semibold text-slate-900">Showcase Collection</h1>
+                        <h1 className="text-3xl font-semibold text-slate-900">
+                            {mode === 'jobwork' ? 'Jobwork-ready Designs' : 'Showcase Collection'}
+                        </h1>
                         <p className="mt-2 text-sm text-slate-500">
-                            Filter by brand, material, or purity. Prices reflect live bullion rates locked at
-                            checkout.
+                            {mode === 'jobwork'
+                                ? 'Explore pieces eligible for custom manufacturing. Select a design to raise a jobwork quotation.'
+                                : 'Filter by brand, material, or purity. Review variants and request a quotation for wholesale purchase.'}
                         </p>
                     </div>
                     <div>
@@ -149,13 +166,13 @@ export default function CatalogIndex() {
                 </div>
 
                 <div className="flex flex-wrap gap-3 text-xs">
-                    {activeFilters.map(({ key, value }) => (
+                    {activeFilters.map(({ key, label, valueLabel }) => (
                         <button
                             key={key}
                             onClick={() => applyFilter(key as keyof CatalogProps['filters'])}
                             className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-300"
                         >
-                            {key.replace(/_/g, ' ')}: <span className="font-semibold">{value}</span>
+                            {label}: <span className="font-semibold">{valueLabel}</span>
                             <span aria-hidden>×</span>
                         </button>
                     ))}
@@ -183,38 +200,38 @@ export default function CatalogIndex() {
                         </div>
 
                         <div>
-                            <h2 className="text-sm font-semibold text-slate-800">Materials</h2>
+                            <h2 className="text-sm font-semibold text-slate-800">Gold purities</h2>
                             <div className="mt-3 space-y-2 text-sm">
-                                {facets.materials.map((material) => (
+                                {facets.goldPurities.map((purity) => (
                                     <button
-                                        key={material}
-                                        onClick={() => applyFilter('material', material)}
+                                        key={purity.id}
+                                        onClick={() => applyFilter('gold_purity', String(purity.id))}
                                         className={`w-full rounded-xl px-3 py-2 text-left transition ${
-                                            filters.material === material
+                                            filters.gold_purity === String(purity.id)
                                                 ? 'bg-sky-600/10 font-medium text-sky-700 ring-1 ring-sky-500/40'
                                                 : 'text-slate-600 hover:bg-slate-100'
                                         }`}
                                     >
-                                        {material}
+                                        {purity.name}
                                     </button>
                                 ))}
                             </div>
                         </div>
 
                         <div>
-                            <h2 className="text-sm font-semibold text-slate-800">Purity</h2>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {facets.purities.map((purity) => (
+                            <h2 className="text-sm font-semibold text-slate-800">Silver purities</h2>
+                            <div className="mt-3 space-y-2 text-sm">
+                                {facets.silverPurities.map((purity) => (
                                     <button
-                                        key={purity}
-                                        onClick={() => applyFilter('purity', purity)}
-                                        className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                                            filters.purity === purity
-                                                ? 'bg-sky-600 text-white'
-                                                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                        key={purity.id}
+                                        onClick={() => applyFilter('silver_purity', String(purity.id))}
+                                        className={`w-full rounded-xl px-3 py-2 text-left transition ${
+                                            filters.silver_purity === String(purity.id)
+                                                ? 'bg-sky-600/10 font-medium text-sky-700 ring-1 ring-sky-500/40'
+                                                : 'text-slate-600 hover:bg-slate-100'
                                         }`}
                                     >
-                                        {purity}
+                                        {purity.name}
                                     </button>
                                 ))}
                             </div>
@@ -234,25 +251,32 @@ export default function CatalogIndex() {
                                         className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg transition hover:-translate-y-1 hover:shadow-2xl"
                                     >
                                         {product.thumbnail && (
-                                            <div className="relative h-56 w-full overflow-hidden bg-slate-100">
-                                                <img
-                                                    src={product.thumbnail}
-                                                    alt={product.name}
-                                                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                                                />
-                                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
-                                                <div className="absolute bottom-4 left-4 flex flex-col text-white">
-                                                    <span className="text-xs uppercase tracking-[0.35em] text-white/80">
-                                                        {product.category ?? 'Signature' }
-                                                    </span>
-                                                    <span className="text-sm font-semibold">{product.brand ?? 'AurumCraft Atelier'}</span>
+                                            <Link href={route('frontend.catalog.show', { product: product.id, mode })} className="block">
+                                                <div className="relative h-56 w-full overflow-hidden bg-slate-100">
+                                                    <img
+                                                        src={product.thumbnail}
+                                                        alt={product.name}
+                                                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
+                                                    <div className="absolute bottom-4 left-4 flex flex-col text-white">
+                                                        <span className="text-xs uppercase tracking-[0.35em] text-white/80">
+                                                            {product.category ?? 'Signature'}
+                                                        </span>
+                                                        <span className="text-sm font-semibold">
+                                                            {product.brand ?? 'AurumCraft Atelier'}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            </Link>
                                         )}
                                         <div className="space-y-3 p-6">
-                                            <h3 className="text-lg font-semibold text-slate-900 group-hover:text-sky-600">
+                                            <Link
+                                                href={route('frontend.catalog.show', { product: product.id, mode })}
+                                                className="text-lg font-semibold text-slate-900 transition hover:text-sky-600"
+                                            >
                                                 {product.name}
-                                            </h3>
+                                            </Link>
                                             <p className="text-xs uppercase tracking-wide text-slate-400">
                                                 SKU {product.sku}
                                             </p>
@@ -266,7 +290,7 @@ export default function CatalogIndex() {
                                                                 : 'bg-slate-100 text-slate-600'
                                                         }`}
                                                     >
-                                                        {variant.label}
+                                                        {(variant.metadata?.auto_label as string | undefined) ?? variant.label}
                                                     </span>
                                                 ))}
                                             </div>
@@ -275,10 +299,6 @@ export default function CatalogIndex() {
                                                     <div>
                                                         <dt className="font-medium text-slate-600">Material</dt>
                                                         <dd>{product.material ?? 'Custom blend'}</dd>
-                                                    </div>
-                                                    <div>
-                                                        <dt className="font-medium text-slate-600">Purity</dt>
-                                                        <dd>{product.purity ?? 'On request'}</dd>
                                                     </div>
                                                     <div>
                                                         <dt className="font-medium text-slate-600">Gross</dt>
@@ -303,36 +323,17 @@ export default function CatalogIndex() {
                                                     </p>
                                                 </div>
                                                 <div className="flex flex-col gap-2">
-                                                    {product.is_jobwork_allowed ? (
-                                                        <Link
-                                                            href={`${route('frontend.jobwork.index')}?product=${product.id}`}
-                                                            className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-600 hover:border-slate-400 hover:text-slate-800"
-                                                        >
-                                                            Request jobwork
-                                                        </Link>
-                                                    ) : (
-                                                        <span className="rounded-full border border-slate-200 px-4 py-2 text-xs font-medium text-slate-400">
-                                                            Catalogue only
-                                                        </span>
-                                                    )}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            addToCart(
-                                                                product.id,
-                                                                product.variants.find((variant) => variant.is_default)?.id ?? product.variants[0]?.id,
-                                                            )
-                                                        }
-                                                        className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-slate-900/30 transition hover:bg-slate-700"
-                                                    >
-                                                        Add to cart
-                                                    </button>
                                                     <Link
-                                                        href={route('frontend.catalog.show', product.id)}
+                                                        href={route('frontend.catalog.show', { product: product.id, mode })}
                                                         className="rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500"
                                                     >
                                                         View details
                                                     </Link>
+                                                    {mode === 'jobwork' && product.is_jobwork_allowed && (
+                                                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1 text-center text-[11px] font-semibold text-emerald-700">
+                                                            Available for jobwork
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

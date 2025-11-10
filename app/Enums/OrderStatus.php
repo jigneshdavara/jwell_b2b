@@ -14,5 +14,6 @@ enum OrderStatus: string
     case Cancelled = 'cancelled';
     case PendingPayment = 'pending_payment';
     case PaymentFailed = 'payment_failed';
+    case AwaitingMaterials = 'awaiting_materials';
 }
 
