@@ -1,0 +1,331 @@
+import AdminLayout from '@/Layouts/AdminLayout';
+import type { PageProps } from '@/types';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+
+type DiamondShapeRow = {
+    id: number;
+    name: string;
+    slug: string;
+    description?: string | null;
+    is_active: boolean;
+    position: number;
+};
+
+type Pagination<T> = {
+    data: T[];
+};
+
+type DiamondShapesPageProps = PageProps<{
+    shapes: Pagination<DiamondShapeRow>;
+}>;
+
+export default function AdminDiamondShapesIndex() {
+    const { shapes } = usePage<DiamondShapesPageProps>().props;
+    const [editingShape, setEditingShape] = useState<DiamondShapeRow | null>(null);
+    const [selectedShapes, setSelectedShapes] = useState<number[]>([]);
+
+    const form = useForm({
+        name: '',
+        description: '',
+        is_active: true,
+        position: 0,
+    });
+
+    const resetForm = () => {
+        setEditingShape(null);
+        form.reset();
+        form.setData('is_active', true);
+        form.setData('position', 0);
+    };
+
+    const populateForm = (shape: DiamondShapeRow) => {
+        setEditingShape(shape);
+        form.setData({
+            name: shape.name,
+            description: shape.description ?? '',
+            is_active: shape.is_active,
+            position: shape.position,
+        });
+    };
+
+    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        if (editingShape) {
+            form.post(route('admin.diamond.shapes.update', editingShape.id), {
+                preserveScroll: true,
+                onSuccess: () => resetForm(),
+                method: 'put',
+            });
+        } else {
+            form.post(route('admin.diamond.shapes.store'), {
+                preserveScroll: true,
+                onSuccess: () => resetForm(),
+            });
+        }
+    };
+
+    const toggleShape = (shape: DiamondShapeRow) => {
+        router.put(route('admin.diamond.shapes.update', shape.id), {
+            name: shape.name,
+            description: shape.description,
+            is_active: !shape.is_active,
+            position: shape.position,
+        }, {
+            preserveScroll: true,
+        });
+    };
+
+    const deleteShape = (shape: DiamondShapeRow) => {
+        if (!window.confirm(`Remove diamond shape ${shape.name}?`)) {
+            return;
+        }
+
+        router.delete(route('admin.diamond.shapes.destroy', shape.id), {
+            preserveScroll: true,
+        });
+    };
+
+    const toggleSelection = (id: number) => {
+        setSelectedShapes((current) => {
+            if (current.includes(id)) {
+                return current.filter((shapeId) => shapeId !== id);
+            }
+
+            return [...current, id];
+        });
+    };
+
+    const allSelected = shapes.data.length > 0 && selectedShapes.length === shapes.data.length;
+
+    const toggleSelectAll = () => {
+        if (allSelected) {
+            setSelectedShapes([]);
+
+            return;
+        }
+
+        setSelectedShapes(shapes.data.map((shape) => shape.id));
+    };
+
+    const bulkDelete = () => {
+        if (selectedShapes.length === 0) {
+            return;
+        }
+
+        if (!window.confirm(`Delete ${selectedShapes.length} selected diamond shape(s)?`)) {
+            return;
+        }
+
+        router.delete(route('admin.diamond.shapes.bulk-destroy'), {
+            data: { ids: selectedShapes },
+            preserveScroll: true,
+            onSuccess: () => setSelectedShapes([]),
+        });
+    };
+
+    useEffect(() => {
+        setSelectedShapes((current) => current.filter((id) => shapes.data.some((shape) => shape.id === id)));
+    }, [shapes.data]);
+
+    return (
+        <AdminLayout>
+            <Head title="Diamond shapes" />
+
+            <div className="space-y-8">
+                <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                    <h1 className="text-2xl font-semibold text-slate-900">Diamond shapes</h1>
+                    <p className="mt-2 text-sm text-slate-500">Manage allowable diamond outlines for catalogue specifications.</p>
+                </div>
+
+                <form
+                    onSubmit={submit}
+                    className="space-y-6 rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80"
+                >
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <h2 className="text-lg font-semibold text-slate-900">
+                            {editingShape ? `Edit diamond shape ${editingShape.name}` : 'Create new diamond shape'}
+                        </h2>
+                        {editingShape && (
+                            <button
+                                type="button"
+                                onClick={resetForm}
+                                className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400 hover:text-slate-600"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                            <span>Name</span>
+                            <input
+                                type="text"
+                                value={form.data.name}
+                                onChange={(event) => form.setData('name', event.target.value)}
+                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                required
+                            />
+                            {form.errors.name && <span className="text-xs text-rose-500">{form.errors.name}</span>}
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                            <span>Display order</span>
+                            <input
+                                type="number"
+                                value={form.data.position}
+                                onChange={(event) => form.setData('position', Number(event.target.value))}
+                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                min={0}
+                            />
+                            {form.errors.position && <span className="text-xs text-rose-500">{form.errors.position}</span>}
+                        </label>
+                    </div>
+
+                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                        <span>Description</span>
+                        <textarea
+                            value={form.data.description}
+                            onChange={(event) => form.setData('description', event.target.value)}
+                            className="min-h-[120px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                            placeholder="Optional notes for team (e.g. facets, category usage)."
+                        />
+                        {form.errors.description && <span className="text-xs text-rose-500">{form.errors.description}</span>}
+                    </label>
+
+                    <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                        <input
+                            type="checkbox"
+                            checked={form.data.is_active}
+                            onChange={(event) => form.setData('is_active', event.target.checked)}
+                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                        />
+                        Active for selection
+                    </label>
+
+                    <div className="flex justify-end gap-3">
+                        {editingShape && (
+                            <button
+                                type="button"
+                                onClick={resetForm}
+                                className="rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                            >
+                                Cancel edit
+                            </button>
+                        )}
+                        <button
+                            type="submit"
+                            disabled={form.processing}
+                            className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {editingShape ? 'Update diamond shape' : 'Create diamond shape'}
+                        </button>
+                    </div>
+                </form>
+
+                <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                    <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 text-sm md:flex-row md:items-center md:justify-between">
+                        <div className="font-semibold text-slate-700">Results ({shapes.data.length})</div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                            <span>{selectedShapes.length} selected</span>
+                            <button
+                                type="button"
+                                onClick={bulkDelete}
+                                disabled={selectedShapes.length === 0}
+                                className="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                Bulk delete
+                            </button>
+                        </div>
+                    </div>
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
+                            <tr>
+                                <th className="px-5 py-3">
+                                    <input
+                                        type="checkbox"
+                                        checked={allSelected}
+                                        onChange={toggleSelectAll}
+                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        aria-label="Select all diamond shapes"
+                                    />
+                                </th>
+                                <th className="px-5 py-3 text-left">Name</th>
+                                <th className="px-5 py-3 text-left">Slug</th>
+                                <th className="px-5 py-3 text-left">Order</th>
+                                <th className="px-5 py-3 text-left">Status</th>
+                                <th className="px-5 py-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                            {shapes.data.map((shape) => (
+                                <tr key={shape.id} className="hover:bg-slate-50">
+                                    <td className="px-5 py-3">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedShapes.includes(shape.id)}
+                                            onChange={() => toggleSelection(shape.id)}
+                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            aria-label={`Select diamond shape ${shape.name}`}
+                                        />
+                                    </td>
+                                    <td className="px-5 py-3 font-semibold text-slate-900">
+                                        <div className="flex flex-col gap-1">
+                                            <span>{shape.name}</span>
+                                            {shape.description && <span className="text-xs text-slate-500">{shape.description}</span>}
+                                        </div>
+                                    </td>
+                                    <td className="px-5 py-3 text-slate-500">{shape.slug}</td>
+                                    <td className="px-5 py-3 text-slate-500">{shape.position}</td>
+                                    <td className="px-5 py-3">
+                                        <span
+                                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                                shape.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                                            }`}
+                                        >
+                                            {shape.is_active ? 'Active' : 'Archived'}
+                                        </span>
+                                    </td>
+                                    <td className="px-5 py-3 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => populateForm(shape)}
+                                                className="rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleShape(shape)}
+                                                className="rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                            >
+                                                {shape.is_active ? 'Pause' : 'Activate'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => deleteShape(shape)}
+                                                className="rounded-full border border-rose-200 px-4 py-1 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {shapes.data.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="px-5 py-6 text-center text-sm text-slate-500">
+                                        No diamond shapes defined yet.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </AdminLayout>
+    );
+}
+

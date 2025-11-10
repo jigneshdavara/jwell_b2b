@@ -29,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('access admin portal', fn (User $user) => in_array($user->type, ['admin', 'super-admin'], true));
         Gate::define('approve kyc', fn (User $user) => in_array($user->type, ['admin', 'super-admin'], true));
         Gate::define('manage products', fn (User $user) => in_array($user->type, ['admin', 'super-admin'], true));
+        Gate::define('manage customers', fn (User $user) => in_array($user->type, ['admin', 'super-admin'], true));
         Gate::define('manage orders', fn (User $user) => in_array($user->type, ['admin', 'super-admin'], true));
         Gate::define('manage offers', fn (User $user) => in_array($user->type, ['admin', 'super-admin'], true));
         Gate::define('manage rates', fn (User $user) => in_array($user->type, ['admin', 'super-admin'], true));

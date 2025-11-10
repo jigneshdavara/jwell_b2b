@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use Illuminate\Validation\Rules\File;
 
 class StoreProductRequest extends FormRequest
 {
@@ -27,6 +28,14 @@ class StoreProductRequest extends FormRequest
      */
     protected function baseRules(?int $productId = null): array
     {
+        $removedMediaRule = Rule::exists('product_media', 'id');
+
+        if ($productId) {
+            $removedMediaRule = $removedMediaRule->where('product_id', $productId);
+        }
+
+        $isVariantProduct = $this->boolean('is_variant_product', true);
+
         return [
             'sku' => [
                 'required',
@@ -38,7 +47,6 @@ class StoreProductRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'brand_id' => ['required', 'exists:brands,id'],
             'category_id' => ['required', 'exists:categories,id'],
-            'material_id' => ['required', 'exists:materials,id'],
             'gross_weight' => ['nullable', 'numeric', 'min:0'],
             'net_weight' => ['nullable', 'numeric', 'min:0'],
             'base_price' => ['required', 'numeric', 'min:0'],
@@ -51,28 +59,56 @@ class StoreProductRequest extends FormRequest
             'is_jobwork_allowed' => ['boolean'],
             'visibility' => ['nullable', 'string', 'max:50'],
             'is_active' => ['boolean'],
-            'variant_options' => ['nullable', 'array'],
-            'variant_options.metal_tone' => ['nullable', 'array'],
-            'variant_options.metal_tone.*' => ['nullable', 'string', 'max:100'],
-            'variant_options.stone_quality' => ['nullable', 'array'],
-            'variant_options.stone_quality.*' => ['nullable', 'string', 'max:100'],
-            'variant_options.size' => ['nullable', 'array'],
-            'variant_options.size.*' => ['nullable', 'string', 'max:100'],
-            'variants' => ['required', 'array', 'min:1'],
+            'is_variant_product' => ['boolean'],
+            'uses_gold' => ['boolean'],
+            'uses_silver' => ['boolean'],
+            'uses_diamond' => ['boolean'],
+            'gold_purity_ids' => ['nullable', 'array'],
+            'gold_purity_ids.*' => ['integer', 'exists:gold_purities,id'],
+            'silver_purity_ids' => ['nullable', 'array'],
+            'silver_purity_ids.*' => ['integer', 'exists:silver_purities,id'],
+            'diamond_options' => ['nullable', 'array'],
+            'diamond_options.*.key' => ['required', 'string'],
+            'diamond_options.*.type_id' => ['nullable', 'integer', 'exists:diamond_types,id'],
+            'diamond_options.*.shape_id' => ['nullable', 'integer', 'exists:diamond_shapes,id'],
+            'diamond_options.*.color_id' => ['nullable', 'integer', 'exists:diamond_colors,id'],
+            'diamond_options.*.clarity_id' => ['nullable', 'integer', 'exists:diamond_clarities,id'],
+            'diamond_options.*.cut_id' => ['nullable', 'integer', 'exists:diamond_cuts,id'],
+            'diamond_options.*.weight' => ['nullable', 'numeric', 'min:0'],
+            'variants' => [
+                Rule::requiredIf($isVariantProduct),
+                'array',
+                Rule::when($isVariantProduct, ['min:1']),
+            ],
             'variants.*.id' => ['nullable', 'integer', 'exists:product_variants,id'],
             'variants.*.sku' => ['nullable', 'string', 'max:100'],
-            'variants.*.label' => ['required', 'string', 'max:255'],
+            'variants.*.label' => [Rule::requiredIf($isVariantProduct), 'string', 'max:255'],
             'variants.*.metal_tone' => ['nullable', 'string', 'max:100'],
             'variants.*.stone_quality' => ['nullable', 'string', 'max:100'],
             'variants.*.size' => ['nullable', 'string', 'max:100'],
             'variants.*.price_adjustment' => ['nullable', 'numeric'],
             'variants.*.is_default' => ['boolean'],
+            'variants.*.gold_purity_id' => ['nullable', 'integer', 'exists:gold_purities,id'],
+            'variants.*.silver_purity_id' => ['nullable', 'integer', 'exists:silver_purities,id'],
+            'variants.*.diamond_option_key' => ['nullable', 'string'],
+            'variants.*.size_cm' => ['nullable', 'numeric', 'min:0'],
+            'variants.*.metadata' => ['nullable', 'array'],
+            'media_uploads' => ['nullable', 'array'],
+            'media_uploads.*' => [
+                File::types(['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'mov', 'm4v', 'webm'])->max(51200),
+            ],
+            'removed_media_ids' => ['nullable', 'array'],
+            'removed_media_ids.*' => ['integer', $removedMediaRule],
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            if (! $this->boolean('is_variant_product', true)) {
+                return;
+            }
+
             $variants = collect($this->input('variants', []));
 
             if ($variants->isEmpty()) {

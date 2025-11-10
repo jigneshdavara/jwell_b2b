@@ -1,0 +1,109 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\BulkDestroyDiamondClaritiesRequest;
+use App\Http\Requests\Admin\StoreDiamondClarityRequest;
+use App\Http\Requests\Admin\UpdateDiamondClarityRequest;
+use App\Models\DiamondClarity;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class DiamondClarityController extends Controller
+{
+    public function index(): Response
+    {
+        $clarities = DiamondClarity::query()
+            ->orderBy('position')
+            ->orderBy('name')
+            ->paginate(20)
+            ->through(function (DiamondClarity $clarity) {
+                return [
+                    'id' => $clarity->id,
+                    'name' => $clarity->name,
+                    'slug' => $clarity->slug,
+                    'description' => $clarity->description,
+                    'is_active' => $clarity->is_active,
+                    'position' => $clarity->position,
+                ];
+            });
+
+        return Inertia::render('Admin/Diamond/Clarities/Index', [
+            'clarities' => $clarities,
+        ]);
+    }
+
+    public function store(StoreDiamondClarityRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+
+        DiamondClarity::create([
+            'name' => $data['name'],
+            'slug' => $this->uniqueSlug($data['name']),
+            'description' => $data['description'] ?? null,
+            'is_active' => $request->boolean('is_active', true),
+            'position' => $data['position'] ?? 0,
+        ]);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Diamond clarity grade created successfully.');
+    }
+
+    public function update(UpdateDiamondClarityRequest $request, DiamondClarity $diamondClarity): RedirectResponse
+    {
+        $data = $request->validated();
+
+        $diamondClarity->update([
+            'name' => $data['name'],
+            'slug' => $diamondClarity->name === $data['name'] ? $diamondClarity->slug : $this->uniqueSlug($data['name'], $diamondClarity->id),
+            'description' => $data['description'] ?? null,
+            'is_active' => $request->boolean('is_active', true),
+            'position' => $data['position'] ?? 0,
+        ]);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Diamond clarity grade updated successfully.');
+    }
+
+    public function destroy(DiamondClarity $diamondClarity): RedirectResponse
+    {
+        $diamondClarity->delete();
+
+        return redirect()
+            ->back()
+            ->with('success', 'Diamond clarity grade removed.');
+    }
+
+    public function bulkDestroy(BulkDestroyDiamondClaritiesRequest $request): RedirectResponse
+    {
+        DiamondClarity::whereIn('id', $request->validated('ids'))->delete();
+
+        return redirect()
+            ->back()
+            ->with('success', 'Selected diamond clarity grades deleted successfully.');
+    }
+
+    protected function uniqueSlug(string $name, ?int $ignoreId = null): string
+    {
+        $base = Str::slug($name);
+        $slug = $base;
+        $counter = 1;
+
+        while (
+            DiamondClarity::query()
+                ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
+                ->where('slug', $slug)
+                ->exists()
+        ) {
+            $slug = sprintf('%s-%d', $base, $counter++);
+        }
+
+        return $slug;
+    }
+}
+

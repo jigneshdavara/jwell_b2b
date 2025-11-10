@@ -1,15 +1,79 @@
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import type { PageProps } from '@/types';
 
-const adminNavigation = [
+type NavChild = {
+    label: string;
+    route: string;
+    match: string;
+    icon?: string;
+};
+
+type NavItem =
+    | {
+          label: string;
+          route: string;
+          match: string;
+          icon?: string;
+          children?: never;
+      }
+    | {
+          label: string;
+          icon?: string;
+          route?: never;
+          match?: string;
+          children: NavChild[];
+      };
+
+const adminNavigation: NavItem[] = [
     { label: 'Overview', route: 'admin.dashboard', match: 'admin.dashboard', icon: 'grid' },
-    { label: 'Customers', route: 'admin.users.index', match: 'admin.users.*', icon: 'users' },
-    { label: 'Brands', route: 'admin.catalog.brands.index', match: 'admin.catalog.brands.*', icon: 'sparkle' },
-    { label: 'Categories', route: 'admin.catalog.categories.index', match: 'admin.catalog.categories.*', icon: 'layers' },
-    { label: 'Materials', route: 'admin.catalog.materials.index', match: 'admin.catalog.materials.*', icon: 'beaker' },
-    { label: 'Products', route: 'admin.products.index', match: 'admin.products.*', icon: 'diamond' },
-    { label: 'Orders', route: 'admin.orders.index', match: 'admin.orders.*', icon: 'clipboard' },
+    {
+        label: 'Customers',
+        icon: 'users',
+        children: [
+            { label: 'Customer list', route: 'admin.users.index', match: 'admin.users.*' },
+            { label: 'Customer types', route: 'admin.customers.types.index', match: 'admin.customers.types.*' },
+            { label: 'Customer groups', route: 'admin.customers.groups.index', match: 'admin.customers.groups.*' },
+        ],
+    },
+    {
+        label: 'Catalog',
+        icon: 'collection',
+        children: [
+            { label: 'Brands', route: 'admin.catalog.brands.index', match: 'admin.catalog.brands.*', icon: 'sparkle' },
+            { label: 'Categories', route: 'admin.catalog.categories.index', match: 'admin.catalog.categories.*', icon: 'layers' },
+            { label: 'Products', route: 'admin.products.index', match: 'admin.products.*', icon: 'diamond' },
+        ],
+    },
+    {
+        label: 'Diamonds',
+        icon: 'gem',
+        children: [
+            { label: 'Shapes', route: 'admin.diamond.shapes.index', match: 'admin.diamond.shapes.*' },
+            { label: 'Colors', route: 'admin.diamond.colors.index', match: 'admin.diamond.colors.*' },
+            { label: 'Clarity', route: 'admin.diamond.clarities.index', match: 'admin.diamond.clarities.*' },
+            { label: 'Cut', route: 'admin.diamond.cuts.index', match: 'admin.diamond.cuts.*' },
+            { label: 'Types', route: 'admin.diamond.types.index', match: 'admin.diamond.types.*' },
+        ],
+    },
+    {
+        label: 'Gold',
+        icon: 'coin',
+        children: [{ label: 'Purity', route: 'admin.gold.purities.index', match: 'admin.gold.purities.*' }],
+    },
+    {
+        label: 'Silver',
+        icon: 'ingot',
+        children: [{ label: 'Purity', route: 'admin.silver.purities.index', match: 'admin.silver.purities.*' }],
+    },
+    {
+        label: 'Orders',
+        icon: 'clipboard',
+        children: [
+            { label: 'Order list', route: 'admin.orders.index', match: 'admin.orders.*' },
+            { label: 'Order statuses', route: 'admin.orders.statuses.index', match: 'admin.orders.statuses.*' },
+        ],
+    },
     { label: 'Offers', route: 'admin.offers.index', match: 'admin.offers.*', icon: 'tag' },
     { label: 'Rates', route: 'admin.rates.index', match: 'admin.rates.*', icon: 'activity' },
     { label: 'Payments', route: 'admin.settings.payments.edit', match: 'admin.settings.payments.*', icon: 'credit-card' },
@@ -45,6 +109,29 @@ const iconMap: Record<string, JSX.Element> = {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 3h12M9 3v6.75l-4.5 7.5A2 2 0 006.25 21h11.5a2 2 0 001.75-3.75L15 9.75V3" />
         </svg>
     ),
+    collection: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+    ),
+    coin: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <circle cx="12" cy="12" r="9" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v10m-3-3h6" />
+        </svg>
+    ),
+    ingot: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 15.5 7 8h10l4 7.5-4 2.5H7l-4-2.5z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 8l5 10" />
+        </svg>
+    ),
+    gem: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 3h12l4 6-10 12L2 9l4-6z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 3l6 12 6-12" />
+        </svg>
+    ),
     diamond: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3l-4.5 6 9.75 12 9.75-12-4.5-6h-10.5z" />
@@ -77,6 +164,17 @@ const iconMap: Record<string, JSX.Element> = {
 export default function AdminLayout({ children }: PropsWithChildren) {
     const { auth, flash } = usePage<PageProps>().props;
     const user = auth?.user;
+    const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>(() => {
+        const initial: Record<string, boolean> = {};
+
+        adminNavigation.forEach((item) => {
+            if ('children' in item && item.children) {
+                initial[item.label] = item.children.some((child) => route().current(child.match));
+            }
+        });
+
+        return initial;
+    });
 
     return (
         <div className="flex min-h-screen bg-slate-100">
@@ -91,10 +189,70 @@ export default function AdminLayout({ children }: PropsWithChildren) {
                     </div>
                 </div>
 
-                <nav className="mt-8 space-y-1 text-sm">
+                <nav className="mt-8 space-y-3 text-sm">
                     {adminNavigation.map((item) => {
+                        if ('children' in item && item.children) {
+                            const anyActive = item.children.some((child) => route().current(child.match));
+                            const icon = item.icon ? iconMap[item.icon] : null;
+                            const isOpen = openNavGroups[item.label] ?? anyActive;
+                            const toggleGroup = () =>
+                                setOpenNavGroups((previous) => ({
+                                    ...previous,
+                                    [item.label]: !isOpen,
+                                }));
+
+                            return (
+                                <div key={item.label}>
+                                    <button
+                                        type="button"
+                                        onClick={toggleGroup}
+                                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.3em] transition ${
+                                            isOpen ? 'bg-slate-100 text-slate-700' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                                        }`}
+                                        aria-expanded={isOpen}
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            {icon}
+                                            <span className={anyActive ? 'text-slate-600' : undefined}>{item.label}</span>
+                                        </span>
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className={`h-3 w-3 transition-transform ${isOpen ? 'rotate-0' : '-rotate-90'}`}
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth={1.5}
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                                        </svg>
+                                    </button>
+                                    <div className={`space-y-1 pl-2 ${isOpen ? 'mt-2' : 'hidden'}`}>
+                                        {item.children.map((child) => {
+                                            const isActive = route().current(child.match);
+                                            const childIcon = child.icon ? iconMap[child.icon] : null;
+
+                                            return (
+                                                <Link
+                                                    key={child.route}
+                                                    href={route(child.route)}
+                                                    className={`ml-3 flex items-center gap-2 rounded-xl px-3 py-2 font-medium transition ${
+                                                        isActive
+                                                            ? 'bg-slate-900 text-white shadow shadow-slate-900/20'
+                                                            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+                                                    }`}
+                                                >
+                                                    {childIcon}
+                                                    <span>{child.label}</span>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        }
+
                         const isActive = route().current(item.match);
-                        const icon = iconMap[item.icon];
+                        const icon = item.icon ? iconMap[item.icon] : null;
 
                         return (
                             <Link

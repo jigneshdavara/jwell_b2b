@@ -5,6 +5,7 @@ namespace App\Services\Catalog;
 use App\Models\Product;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class ProductVariantSyncService
 {
@@ -62,9 +63,11 @@ class ProductVariantSyncService
 
         $options = $this->prepareVariantOptions($variantsCollection, $variantOptions ?? []);
 
-        $product->update([
-            'variant_options' => $options,
-        ]);
+        if (Schema::hasColumn('products', 'variant_options')) {
+            $product->update([
+                'variant_options' => $options,
+            ]);
+        }
     }
 
     protected function prepareVariantOptions(Collection $variants, array $provided): array

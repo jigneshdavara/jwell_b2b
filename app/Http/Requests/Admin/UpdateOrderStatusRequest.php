@@ -2,26 +2,23 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Enums\OrderStatus;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateOrderStatusRequest extends FormRequest
+class UpdateOrderStatusRequest extends StoreOrderStatusRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->can('manage orders') ?? false;
-    }
-
     /**
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
+        $orderStatus = $this->route('order_status');
+
         return [
-            'status' => ['required', Rule::in(collect(OrderStatus::cases())->pluck('value')->all())],
-            'meta' => ['sometimes', 'array'],
-            'meta.comment' => ['nullable', 'string', 'max:500'],
+            'name' => ['required', 'string', 'max:255', Rule::unique('order_statuses', 'name')->ignore($orderStatus?->id)],
+            'color' => ['nullable', 'string', 'max:7'],
+            'is_default' => ['boolean'],
+            'is_active' => ['boolean'],
+            'position' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

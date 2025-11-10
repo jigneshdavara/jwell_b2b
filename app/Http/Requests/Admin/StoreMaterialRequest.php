@@ -18,6 +18,7 @@ class StoreMaterialRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'material_type_id' => ['nullable', 'integer', 'exists:material_types,id'],
             'type' => ['nullable', 'string', 'max:255'],
             'purity' => ['nullable', 'string', 'max:255'],
             'unit' => ['nullable', 'string', 'max:50'],

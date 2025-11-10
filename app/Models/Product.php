@@ -30,6 +30,13 @@ class Product extends Model
         'style',
         'standard_pricing',
         'variant_options',
+        'is_variant_product',
+        'uses_gold',
+        'uses_silver',
+        'uses_diamond',
+        'gold_purity_ids',
+        'silver_purity_ids',
+        'diamond_options',
     ];
 
     protected $casts = [
@@ -38,6 +45,13 @@ class Product extends Model
         'metadata' => 'array',
         'standard_pricing' => 'array',
         'variant_options' => 'array',
+        'is_variant_product' => 'boolean',
+        'uses_gold' => 'boolean',
+        'uses_silver' => 'boolean',
+        'uses_diamond' => 'boolean',
+        'gold_purity_ids' => 'array',
+        'silver_purity_ids' => 'array',
+        'diamond_options' => 'array',
     ];
 
     public function brand(): BelongsTo

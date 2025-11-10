@@ -1,19 +1,19 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps as AppPageProps } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { FormEvent, useMemo, useState } from 'react';
-
-type VariantOptionKey = 'metal_tone' | 'stone_quality' | 'size';
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 type VariantForm = {
     id?: number;
     sku: string;
     label: string;
-    metal_tone: string;
-    stone_quality: string;
-    size: string;
+    gold_purity_id: number | '';
+    silver_purity_id: number | '';
+    diamond_option_key: string | null;
+    size_cm: string;
     price_adjustment: string;
     is_default: boolean;
+    metadata?: Record<string, unknown>;
 };
 
 type Product = {
@@ -23,7 +23,6 @@ type Product = {
     description?: string;
     brand_id?: number;
     category_id?: number;
-    material_id?: number;
     gross_weight?: number | string;
     net_weight?: number | string;
     base_price?: number | string;
@@ -31,8 +30,28 @@ type Product = {
     is_jobwork_allowed?: boolean;
     visibility?: string | null;
     standard_pricing?: Record<string, number | string | null> | null;
-    variant_options?: Record<VariantOptionKey, string[]> | null;
     variants?: VariantForm[];
+    is_variant_product?: boolean;
+    uses_gold?: boolean;
+    uses_silver?: boolean;
+    uses_diamond?: boolean;
+    gold_purity_ids?: number[];
+    silver_purity_ids?: number[];
+    diamond_options?: DiamondOptionForm[];
+    media?: ProductMedia[];
+};
+
+type OptionListItem = {
+    id: number;
+    name: string;
+};
+
+type DiamondCatalog = {
+    types: OptionListItem[];
+    shapes: OptionListItem[];
+    colors: OptionListItem[];
+    clarities: OptionListItem[];
+    cuts: OptionListItem[];
 };
 
 type OptionList = Record<string, string>;
@@ -41,8 +60,9 @@ type AdminProductEditPageProps = AppPageProps<{
     product: Product | null;
     brands: OptionList;
     categories: OptionList;
-    materials: OptionList;
-    variantLibrary: Record<VariantOptionKey, string[]>;
+    goldPurities: OptionListItem[];
+    silverPurities: OptionListItem[];
+    diamondCatalog: DiamondCatalog;
     errors: Record<string, string>;
 }>;
 
@@ -59,7 +79,6 @@ type FormData = {
     description: string;
     brand_id: string;
     category_id: string;
-    material_id: string;
     gross_weight: string;
     net_weight: string;
     base_price: string;
@@ -67,67 +86,91 @@ type FormData = {
     is_jobwork_allowed: boolean;
     visibility: string;
     standard_pricing: StandardPricingForm;
-    variant_options: Record<VariantOptionKey, string[]>;
     variants: VariantForm[];
+    is_variant_product: boolean;
+    uses_gold: boolean;
+    uses_silver: boolean;
+    uses_diamond: boolean;
+    gold_purity_ids: number[];
+    silver_purity_ids: number[];
+    diamond_options: DiamondOptionForm[];
+    media_uploads: File[];
+    removed_media_ids: number[];
+};
+
+type DiamondOptionForm = {
+    key: string;
+    type_id: number | '';
+    shape_id: number | '';
+    color_id: number | '';
+    clarity_id: number | '';
+    cut_id: number | '';
+    weight: string;
+};
+
+type ProductMedia = {
+    id: number;
+    type: string;
+    url: string;
+    position: number;
+    metadata?: Record<string, unknown> | null;
 };
 
 const emptyVariant = (isDefault = false): VariantForm => ({
     sku: '',
     label: '',
-    metal_tone: '',
-    stone_quality: '',
-    size: '',
+    gold_purity_id: '',
+    silver_purity_id: '',
+    diamond_option_key: null,
+    size_cm: '',
     price_adjustment: '0',
     is_default: isDefault,
+    metadata: {},
 });
 
-const mergeOptionValues = (
-    ...lists: Array<Array<string | number | null | undefined>>
-): string[] => {
-    const bucket = new Set<string>();
+const generateLocalKey = () => {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+        return crypto.randomUUID();
+    }
 
-    lists.forEach((list) => {
-        list.forEach((value) => {
-            if (value === undefined || value === null) return;
-            const stringified = String(value).trim();
-            if (stringified.length === 0) return;
-            bucket.add(stringified);
-        });
-    });
-
-    return Array.from(bucket);
+    return `local-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 };
+
+const createDiamondOption = (): DiamondOptionForm => ({
+    key: generateLocalKey(),
+    type_id: '',
+    shape_id: '',
+    color_id: '',
+    clarity_id: '',
+    cut_id: '',
+    weight: '',
+});
 
 export default function AdminProductEdit() {
     const { props } = usePage<AdminProductEditPageProps>();
-    const { product, brands, categories, materials, variantLibrary, errors } = props;
+    const { product, brands, categories, goldPurities, silverPurities, diamondCatalog, errors } = props;
 
     const initialVariants: VariantForm[] = product?.variants?.length
         ? product.variants.map((variant, index) => ({
               id: variant.id,
               sku: variant.sku ?? '',
               label: variant.label ?? '',
-              metal_tone: variant.metal_tone ?? '',
-              stone_quality: variant.stone_quality ?? '',
-              size: variant.size ?? '',
+              gold_purity_id: (variant.gold_purity_id as number | '') ?? '',
+              silver_purity_id: (variant.silver_purity_id as number | '') ?? '',
+              diamond_option_key: (variant.diamond_option_key as string | null) ?? null,
+              size_cm: variant.size_cm ? String(variant.size_cm) : '',
               price_adjustment: String(variant.price_adjustment ?? 0),
               is_default: variant.is_default ?? index === 0,
+              metadata: variant.metadata ?? {},
           }))
         : [emptyVariant(true)];
 
-    const initialVariantOptions: Record<VariantOptionKey, string[]> = {
-        metal_tone: mergeOptionValues(product?.variant_options?.metal_tone ?? [], variantLibrary.metal_tone ?? []),
-        stone_quality: mergeOptionValues(product?.variant_options?.stone_quality ?? [], variantLibrary.stone_quality ?? []),
-        size: mergeOptionValues(product?.variant_options?.size ?? [], variantLibrary.size ?? []),
-    };
-
-    const { data, setData, post, put, processing } = useForm<FormData>(() => ({
+    const form = useForm<FormData>(() => ({
         sku: product?.sku ?? '',
         name: product?.name ?? '',
         description: product?.description ?? '',
         brand_id: String(product?.brand_id ?? ''),
         category_id: String(product?.category_id ?? ''),
-        material_id: String(product?.material_id ?? ''),
         gross_weight: product?.gross_weight ? String(product.gross_weight) : '',
         net_weight: product?.net_weight ? String(product.net_weight) : '',
         base_price: product?.base_price ? String(product.base_price) : '',
@@ -142,54 +185,366 @@ export default function AdminProductEdit() {
                 ? String(product.standard_pricing.colourstone_rate)
                 : '',
         },
-        variant_options: initialVariantOptions,
         variants: initialVariants,
+        is_variant_product: product?.is_variant_product ?? true,
+        uses_gold: product?.uses_gold ?? false,
+        uses_silver: product?.uses_silver ?? false,
+        uses_diamond: product?.uses_diamond ?? false,
+        gold_purity_ids: product?.gold_purity_ids ?? [],
+        silver_purity_ids: product?.silver_purity_ids ?? [],
+        diamond_options: product?.diamond_options?.length
+            ? product.diamond_options
+            : [],
+        media_uploads: [],
+        removed_media_ids: [],
     }));
+    const { data, setData, post, put, processing } = form;
 
-    const [optionDrafts, setOptionDrafts] = useState<Record<VariantOptionKey, string>>({
-        metal_tone: '',
-        stone_quality: '',
-        size: '',
-    });
+    const goldPurityMap = useMemo(
+        () => Object.fromEntries(goldPurities.map((item) => [item.id, item.name])),
+        [goldPurities],
+    );
+    const silverPurityMap = useMemo(
+        () => Object.fromEntries(silverPurities.map((item) => [item.id, item.name])),
+        [silverPurities],
+    );
+    const diamondNameMaps = useMemo(
+        () => ({
+            types: Object.fromEntries(diamondCatalog.types.map((item) => [item.id, item.name])),
+            shapes: Object.fromEntries(diamondCatalog.shapes.map((item) => [item.id, item.name])),
+            colors: Object.fromEntries(diamondCatalog.colors.map((item) => [item.id, item.name])),
+            clarities: Object.fromEntries(diamondCatalog.clarities.map((item) => [item.id, item.name])),
+            cuts: Object.fromEntries(diamondCatalog.cuts.map((item) => [item.id, item.name])),
+        }),
+        [diamondCatalog],
+    );
 
-    const optionKeys: Array<{ key: VariantOptionKey; label: string }> = [
-        { key: 'metal_tone', label: 'Metal tone' },
-        { key: 'stone_quality', label: 'Stone quality' },
-        { key: 'size', label: 'Size' },
-    ];
-
-    const addOption = (key: VariantOptionKey) => {
-        const value = optionDrafts[key].trim();
-        if (!value) return;
-
-        setData((prev) => {
-            const existing = prev.variant_options?.[key] ?? [];
-            if (existing.includes(value)) {
-                return prev;
+    const buildDiamondOptionLabel = useCallback(
+        (option?: DiamondOptionForm | null) => {
+            if (!option) {
+                return '';
             }
 
-            return {
-                ...prev,
-                variant_options: {
-                    ...prev.variant_options,
-                    [key]: [...existing, value],
-                },
-            };
-        });
+            const parts: string[] = [];
+            if (option.weight) {
+                parts.push(`${option.weight} Ct`);
+            }
+            if (option.shape_id) {
+                parts.push(diamondNameMaps.shapes[Number(option.shape_id)] ?? '');
+            }
+            if (option.clarity_id) {
+                parts.push(diamondNameMaps.clarities[Number(option.clarity_id)] ?? '');
+            }
+            if (option.color_id) {
+                parts.push(diamondNameMaps.colors[Number(option.color_id)] ?? '');
+            }
+            if (option.type_id) {
+                parts.push(diamondNameMaps.types[Number(option.type_id)] ?? '');
+            }
+            if (option.cut_id) {
+                parts.push(diamondNameMaps.cuts[Number(option.cut_id)] ?? '');
+            }
 
-        setOptionDrafts({ ...optionDrafts, [key]: '' });
+            return parts.filter(Boolean).join(' - ');
+        },
+        [diamondNameMaps],
+    );
+
+    const buildVariantMeta = useCallback(
+        (variant: VariantForm, state: FormData) => {
+            const goldName =
+                variant.gold_purity_id !== '' && variant.gold_purity_id !== null
+                    ? goldPurityMap[Number(variant.gold_purity_id)] ?? ''
+                    : '';
+            const silverName =
+                variant.silver_purity_id !== '' && variant.silver_purity_id !== null
+                    ? silverPurityMap[Number(variant.silver_purity_id)] ?? ''
+                    : '';
+            const diamondOption = state.diamond_options.find((option) => option.key === variant.diamond_option_key) ?? null;
+            const diamondLabel = buildDiamondOptionLabel(diamondOption);
+            const sizeLabel = variant.size_cm ? `${variant.size_cm} cm` : '';
+
+            const autoLabelParts = [diamondLabel, goldName, silverName, sizeLabel].filter(Boolean);
+            const autoLabel = autoLabelParts.length ? autoLabelParts.join(' / ') : 'Variant';
+            const metalTone = [goldName, silverName].filter(Boolean).join(' + ');
+            const stoneQuality = diamondLabel;
+
+            const metadata = {
+                gold_purity_id:
+                    variant.gold_purity_id !== '' && variant.gold_purity_id !== null ? Number(variant.gold_purity_id) : null,
+                silver_purity_id:
+                    variant.silver_purity_id !== '' && variant.silver_purity_id !== null ? Number(variant.silver_purity_id) : null,
+                diamond_option_key: variant.diamond_option_key ?? null,
+                diamond: diamondOption
+                    ? {
+                          key: diamondOption.key,
+                          type_id: diamondOption.type_id !== '' ? Number(diamondOption.type_id) : null,
+                          shape_id: diamondOption.shape_id !== '' ? Number(diamondOption.shape_id) : null,
+                          color_id: diamondOption.color_id !== '' ? Number(diamondOption.color_id) : null,
+                          clarity_id: diamondOption.clarity_id !== '' ? Number(diamondOption.clarity_id) : null,
+                          cut_id: diamondOption.cut_id !== '' ? Number(diamondOption.cut_id) : null,
+                          weight: diamondOption.weight ? Number(diamondOption.weight) : null,
+                      }
+                    : null,
+                size_cm: variant.size_cm ? Number(variant.size_cm) : null,
+                auto_label: autoLabel,
+            };
+
+            return {
+                autoLabel,
+                metalTone,
+                stoneQuality,
+                sizeText: sizeLabel,
+                metadata,
+            };
+        },
+        [buildDiamondOptionLabel, goldPurityMap, silverPurityMap],
+    );
+
+    const recalculateVariants = useCallback(
+        (draft: FormData) =>
+            draft.variants.map((variant, index) => {
+                const meta = buildVariantMeta(variant, draft);
+                const previousAutoLabel = (variant.metadata?.auto_label as string | undefined) ?? '';
+                const shouldReplaceLabel = !variant.label || variant.label === previousAutoLabel;
+
+                return {
+                    ...variant,
+                    label: shouldReplaceLabel ? meta.autoLabel : variant.label,
+                    metadata: meta.metadata,
+                    is_default: variant.is_default ?? index === 0,
+                };
+            }),
+        [buildVariantMeta],
+    );
+
+    const selectedGoldPurities = useMemo(
+        () => goldPurities.filter((purity) => data.gold_purity_ids.includes(purity.id)),
+        [data.gold_purity_ids, goldPurities],
+    );
+
+    const selectedSilverPurities = useMemo(
+        () => silverPurities.filter((purity) => data.silver_purity_ids.includes(purity.id)),
+        [data.silver_purity_ids, silverPurities],
+    );
+
+    const diamondOptionLabels = useMemo(
+        () =>
+            data.diamond_options.map((option) => ({
+                key: option.key,
+                label: buildDiamondOptionLabel(option) || `Option ${option.key.slice(-4)}`,
+            })),
+        [buildDiamondOptionLabel, data.diamond_options],
+    );
+
+    const toggleVariantProduct = (checked: boolean) => {
+        setData((prev) => {
+            const draft: FormData = {
+                ...prev,
+                is_variant_product: checked,
+                uses_gold: checked ? prev.uses_gold : false,
+                uses_silver: checked ? prev.uses_silver : false,
+                uses_diamond: checked ? prev.uses_diamond : false,
+                gold_purity_ids: checked ? prev.gold_purity_ids : [],
+                silver_purity_ids: checked ? prev.silver_purity_ids : [],
+                diamond_options: checked ? prev.diamond_options : [],
+                variants: checked
+                    ? prev.variants.length > 0
+                        ? prev.variants
+                        : [emptyVariant(true)]
+                    : [],
+            };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
+        });
     };
 
-    const removeOption = (key: VariantOptionKey, value: string) => {
+    const toggleUsesGold = (checked: boolean) => {
         setData((prev) => {
-            const current = prev.variant_options?.[key] ?? [];
-            return {
+            const draft: FormData = {
                 ...prev,
-                variant_options: {
-                    ...prev.variant_options,
-                    [key]: current.filter((option) => option !== value),
-                },
+                uses_gold: checked,
+                gold_purity_ids: checked ? prev.gold_purity_ids : [],
+                variants: checked
+                    ? prev.variants
+                    : prev.variants.map((variant) => ({
+                          ...variant,
+                          gold_purity_id: '',
+                      })),
             };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
+        });
+    };
+
+    const toggleUsesSilver = (checked: boolean) => {
+        setData((prev) => {
+            const draft: FormData = {
+                ...prev,
+                uses_silver: checked,
+                silver_purity_ids: checked ? prev.silver_purity_ids : [],
+                variants: checked
+                    ? prev.variants
+                    : prev.variants.map((variant) => ({
+                          ...variant,
+                          silver_purity_id: '',
+                      })),
+            };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
+        });
+    };
+
+    const toggleUsesDiamond = (checked: boolean) => {
+        setData((prev) => {
+            const nextOptions =
+                checked && prev.diamond_options.length === 0 ? [createDiamondOption()] : checked ? prev.diamond_options : [];
+
+            const draft: FormData = {
+                ...prev,
+                uses_diamond: checked,
+                diamond_options: nextOptions,
+                variants: checked
+                    ? prev.variants
+                    : prev.variants.map((variant) => ({
+                          ...variant,
+                          diamond_option_key: null,
+                      })),
+            };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
+        });
+    };
+
+    const toggleGoldPuritySelection = (purityId: number) => {
+        setData((prev) => {
+            const exists = prev.gold_purity_ids.includes(purityId);
+            const nextIds = exists
+                ? prev.gold_purity_ids.filter((id) => id !== purityId)
+                : [...prev.gold_purity_ids, purityId];
+
+            const draft: FormData = {
+                ...prev,
+                gold_purity_ids: nextIds,
+                variants: prev.variants.map((variant) => {
+                    if (typeof variant.gold_purity_id === 'number' && !nextIds.includes(variant.gold_purity_id)) {
+                        return {
+                            ...variant,
+                            gold_purity_id: '',
+                        };
+                    }
+
+                    return variant;
+                }),
+            };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
+        });
+    };
+
+    const toggleSilverPuritySelection = (purityId: number) => {
+        setData((prev) => {
+            const exists = prev.silver_purity_ids.includes(purityId);
+            const nextIds = exists
+                ? prev.silver_purity_ids.filter((id) => id !== purityId)
+                : [...prev.silver_purity_ids, purityId];
+
+            const draft: FormData = {
+                ...prev,
+                silver_purity_ids: nextIds,
+                variants: prev.variants.map((variant) => {
+                    if (typeof variant.silver_purity_id === 'number' && !nextIds.includes(variant.silver_purity_id)) {
+                        return {
+                            ...variant,
+                            silver_purity_id: '',
+                        };
+                    }
+
+                    return variant;
+                }),
+            };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
+        });
+    };
+
+    const addDiamondOptionRow = () => {
+        setData((prev) => {
+            const draft: FormData = {
+                ...prev,
+                diamond_options: [...prev.diamond_options, createDiamondOption()],
+            };
+            draft.variants = recalculateVariants(draft);
+            return draft;
+        });
+    };
+
+    const updateDiamondOption = (key: string, field: keyof DiamondOptionForm, value: string | number) => {
+        setData((prev) => {
+            const diamond_options = prev.diamond_options.map((option) => {
+                if (option.key !== key) {
+                    return option;
+                }
+
+                const nextOption: DiamondOptionForm = { ...option };
+
+                if (field === 'weight' && typeof value === 'string') {
+                    nextOption.weight = value;
+                } else if (field !== 'weight') {
+                    if (value === '' || value === null) {
+                        nextOption[field] = '';
+                    } else if (typeof value === 'number') {
+                        nextOption[field] = value;
+                    } else if (typeof value === 'string') {
+                        nextOption[field] = value === '' ? '' : Number(value);
+                    }
+                }
+
+                return nextOption;
+            });
+
+            const draft: FormData = {
+                ...prev,
+                diamond_options,
+            };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
+        });
+    };
+
+    const removeDiamondOptionRow = (key: string) => {
+        setData((prev) => {
+            const diamond_options = prev.diamond_options.filter((option) => option.key !== key);
+            const draft: FormData = {
+                ...prev,
+                diamond_options,
+                variants: prev.variants.map((variant) =>
+                    variant.diamond_option_key === key
+                        ? {
+                              ...variant,
+                              diamond_option_key: null,
+                          }
+                        : variant,
+                ),
+            };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
         });
     };
 
@@ -199,66 +554,81 @@ export default function AdminProductEdit() {
                 return prev;
             }
 
-            const next = prev.variants.filter((_, idx) => idx !== index);
-            if (next.every((variant) => !variant.is_default)) {
-                next[0].is_default = true;
+            const remaining = prev.variants.filter((_, idx) => idx !== index);
+            if (remaining.every((variant) => !variant.is_default) && remaining.length > 0) {
+                remaining[0].is_default = true;
             }
 
-            return {
+            const draft: FormData = {
                 ...prev,
-                variants: next,
+                variants: remaining,
             };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
         });
     };
 
-    const updateVariant = (index: number, field: keyof VariantForm, value: string | boolean) => {
+    const updateVariant = (index: number, field: keyof VariantForm, value: string | boolean | number | null) => {
         setData((prev) => {
             const variants = prev.variants.map((variant, idx) => {
-                if (idx !== index) return variant;
-
-                const updated = {
-                    ...variant,
-                    [field]: value,
-                } as VariantForm;
-
-                if (['metal_tone', 'stone_quality', 'size'].includes(field as string)) {
-                    const typedValue = typeof value === 'string' ? value : '';
-                    const autoLabel = [
-                        field === 'metal_tone' ? typedValue : updated.metal_tone,
-                        field === 'stone_quality' ? typedValue : updated.stone_quality,
-                        field === 'size' ? typedValue : updated.size,
-                    ]
-                        .filter((part) => part && part.length)
-                        .join(' / ');
-
-                    if (!variant.label || variant.label === autoLabel) {
-                        updated.label = autoLabel;
-                    }
+                if (idx !== index) {
+                    return variant;
                 }
 
-                return updated;
+                const nextVariant: VariantForm = { ...variant };
+
+                switch (field) {
+                    case 'is_default':
+                        if (typeof value === 'boolean') {
+                            nextVariant.is_default = value;
+                        }
+                        break;
+                    case 'gold_purity_id':
+                        if (value === '' || typeof value === 'number') {
+                            nextVariant.gold_purity_id = value as VariantForm['gold_purity_id'];
+                        }
+                        break;
+                    case 'silver_purity_id':
+                        if (value === '' || typeof value === 'number') {
+                            nextVariant.silver_purity_id = value as VariantForm['silver_purity_id'];
+                        }
+                        break;
+                    case 'diamond_option_key':
+                        nextVariant.diamond_option_key = value ? String(value) : null;
+                        break;
+                    case 'size_cm':
+                        if (typeof value === 'string') {
+                            nextVariant.size_cm = value;
+                        }
+                        break;
+                    case 'price_adjustment':
+                        if (typeof value === 'string') {
+                            nextVariant.price_adjustment = value;
+                        }
+                        break;
+                    case 'sku':
+                    case 'label':
+                        if (typeof value === 'string') {
+                            nextVariant[field] = value;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+
+                return nextVariant;
             });
 
-            let variantOptions = prev.variant_options;
-            if (['metal_tone', 'stone_quality', 'size'].includes(field as string) && typeof value === 'string') {
-                const key = field as VariantOptionKey;
-                const trimmed = value.trim();
-                if (trimmed.length) {
-                    const existing = new Set(variantOptions[key] ?? []);
-                    if (!existing.has(trimmed)) {
-                        variantOptions = {
-                            ...variantOptions,
-                            [key]: [...existing, trimmed],
-                        };
-                    }
-                }
-            }
-
-            return {
+            const draft: FormData = {
                 ...prev,
                 variants,
-                variant_options: variantOptions,
             };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
         });
     };
 
@@ -273,23 +643,151 @@ export default function AdminProductEdit() {
     };
 
     const addVariantRow = () => {
-        setData((prev) => ({
-            ...prev,
-            variants: [...prev.variants, emptyVariant(prev.variants.length === 0)],
-        }));
+        setData((prev) => {
+            const draft: FormData = {
+                ...prev,
+                variants: [...prev.variants, emptyVariant(prev.variants.length === 0)],
+            };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
+        });
     };
+
+    useEffect(() => {
+        if (data.uses_diamond && data.diamond_options.length === 0) {
+            setData((prev) => {
+                const draft: FormData = {
+                    ...prev,
+                    diamond_options: [createDiamondOption()],
+                };
+
+                draft.variants = recalculateVariants(draft);
+
+                return draft;
+            });
+        }
+    }, [data.uses_diamond, data.diamond_options.length, recalculateVariants, setData]);
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
+        form.transform((current) => {
+            const payload = { ...current };
+            payload.uses_gold = current.uses_gold;
+            payload.uses_silver = current.uses_silver;
+            payload.uses_diamond = current.uses_diamond;
+
+            payload.gold_purity_ids = current.uses_gold ? [...current.gold_purity_ids] : [];
+            payload.silver_purity_ids = current.uses_silver ? [...current.silver_purity_ids] : [];
+
+            payload.diamond_options = current.uses_diamond
+                ? current.diamond_options.map((option) => ({
+                      key: option.key,
+                      type_id: option.type_id !== '' ? Number(option.type_id) : null,
+                      shape_id: option.shape_id !== '' ? Number(option.shape_id) : null,
+                      color_id: option.color_id !== '' ? Number(option.color_id) : null,
+                      clarity_id: option.clarity_id !== '' ? Number(option.clarity_id) : null,
+                      cut_id: option.cut_id !== '' ? Number(option.cut_id) : null,
+                      weight: option.weight ? Number(option.weight) : null,
+                  }))
+                : [];
+
+            payload.variants = current.is_variant_product
+                ? current.variants.map((variant) => {
+                      const meta = buildVariantMeta(variant, current);
+
+                      return {
+                          id: variant.id,
+                          sku: variant.sku,
+                          label: variant.label || meta.autoLabel,
+                          metal_tone: meta.metalTone || null,
+                          stone_quality: meta.stoneQuality || null,
+                          size: meta.sizeText || null,
+                          price_adjustment: variant.price_adjustment,
+                          is_default: variant.is_default,
+                          metadata: meta.metadata,
+                      };
+                  })
+                : [];
+
+            if (!current.is_variant_product) {
+                payload.uses_gold = false;
+                payload.uses_silver = false;
+                payload.uses_diamond = false;
+            }
+
+            if ((payload.media_uploads?.length ?? 0) === 0) {
+                delete payload.media_uploads;
+            }
+            if ((payload.removed_media_ids?.length ?? 0) === 0) {
+                delete payload.removed_media_ids;
+            }
+
+            return payload;
+        });
+
         if (product?.id) {
-            put(route('admin.products.update', product.id));
+            if ((data.media_uploads?.length ?? 0) > 0) {
+                put(route('admin.products.update', product.id), { forceFormData: true });
+            } else {
+                put(route('admin.products.update', product.id));
+            }
         } else {
-            post(route('admin.products.store'));
+            if ((data.media_uploads?.length ?? 0) > 0) {
+                post(route('admin.products.store'), { forceFormData: true });
+            } else {
+                post(route('admin.products.store'));
+            }
         }
     };
 
     const variantError = errors.variants;
+
+    const mediaErrors = useMemo(
+        () =>
+            Object.entries(errors ?? {})
+                .filter(([key]) => key.startsWith('media_uploads'))
+                .map(([, message]) => message),
+        [errors],
+    );
+
+    const currentMedia = useMemo(() => {
+        if (!product?.media) {
+            return [];
+        }
+
+        return [...product.media].sort((a, b) => a.position - b.position);
+    }, [product?.media]);
+
+    const toggleRemoveMedia = (id: number) => {
+        const current = data.removed_media_ids ?? [];
+        const exists = current.includes(id);
+        const updated = exists ? current.filter((mediaId) => mediaId !== id) : [...current, id];
+        setData('removed_media_ids', updated);
+    };
+
+    const handleMediaSelect = (event: ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files ? Array.from(event.target.files) : [];
+        if (files.length === 0) {
+            return;
+        }
+
+        setData('media_uploads', [...(data.media_uploads ?? []), ...files]);
+        event.target.value = '';
+    };
+
+    const removePendingUpload = (index: number) => {
+        setData(
+            'media_uploads',
+            (data.media_uploads ?? []).filter((_, uploadIndex) => uploadIndex !== index),
+        );
+    };
+
+    const isMarkedForRemoval = (id: number) => {
+        return (data.removed_media_ids ?? []).includes(id);
+    };
 
     const standardPricingFields: Array<{ key: keyof StandardPricingForm; label: string; type: 'text' | 'number' }> = useMemo(
         () => [
@@ -393,23 +891,6 @@ export default function AdminProductEdit() {
                                     {errors.category_id && <span className="text-xs text-rose-500">{errors.category_id}</span>}
                                 </label>
                             </div>
-                            <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                <span>Material *</span>
-                                <select
-                                    value={data.material_id}
-                                    onChange={(event) => setData('material_id', event.target.value)}
-                                    className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                >
-                                    <option value="">Select material</option>
-                                    {Object.entries(materials).map(([id, name]) => (
-                                        <option key={id} value={id}>
-                                            {name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {errors.material_id && <span className="text-xs text-rose-500">{errors.material_id}</span>}
-                            </label>
-
                             <div className="grid gap-4 md:grid-cols-2">
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
                                     <span>Gross weight (g)</span>
@@ -473,64 +954,411 @@ export default function AdminProductEdit() {
                     </div>
                 </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                        <div>
-                            <h2 className="text-xl font-semibold text-slate-900">Variant option library</h2>
-                            <p className="text-sm text-slate-500">Populate dropdown values for metal tones, stone grids, and sizes.</p>
-                        </div>
-                    </div>
-
-                    <div className="mt-6 grid gap-6 lg:grid-cols-3">
-                        {optionKeys.map(({ key, label }) => (
-                            <div key={key} className="space-y-3">
-                                <div className="flex items-center justify-between text-sm text-slate-600">
-                                    <span>{label}</span>
-                                    <span className="text-xs text-slate-400">{(data.variant_options?.[key] ?? []).length} options</span>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {(data.variant_options?.[key] ?? []).map((value) => (
-                                        <span
-                                            key={value}
-                                            className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
-                                        >
-                                            {value}
-                                            <button
-                                                type="button"
-                                                onClick={() => removeOption(key, value)}
-                                                className="text-slate-400 transition hover:text-rose-500"
-                                                aria-label={`Remove ${label} ${value}`}
-                                            >
-                                                ×
-                                            </button>
-                                        </span>
-                                    ))}
-                                    {(data.variant_options?.[key] ?? []).length === 0 && (
-                                        <span className="text-xs text-slate-400">No entries yet</span>
-                                    )}
-                                </div>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={optionDrafts[key]}
-                                        onChange={(event) => setOptionDrafts({ ...optionDrafts, [key]: event.target.value })}
-                                        className="flex-1 rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        placeholder={`Add ${label.toLowerCase()}`}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => addOption(key)}
-                                        className="rounded-2xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow hover:bg-slate-700"
-                                    >
-                                        Add
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
+                <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <h2 className="text-xl font-semibold text-slate-900">Product media</h2>
+                        <p className="text-sm text-slate-500">
+                            Upload product images or videos for catalogue displays. You can also remove outdated media assets.
+                        </p>
                     </div>
                 </div>
 
+                <div className="mt-6 space-y-6">
+                    <div>
+                        <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Current media</h3>
+                        <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {currentMedia.length > 0 ? (
+                                currentMedia.map((mediaItem) => (
+                                        <div
+                                            key={mediaItem.id}
+                                            className={`relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-50 shadow-sm transition ${
+                                                isMarkedForRemoval(mediaItem.id) ? 'opacity-50 ring-2 ring-rose-200' : ''
+                                            }`}
+                                        >
+                                            {mediaItem.type === 'video' ? (
+                                                <video
+                                                    src={mediaItem.url}
+                                                    className="h-48 w-full rounded-t-3xl bg-black object-cover"
+                                                    controls
+                                                >
+                                                    Your browser does not support the video tag.
+                                                </video>
+                                            ) : (
+                                                <img
+                                                    src={mediaItem.url}
+                                                    alt="Product media"
+                                                    className="h-48 w-full rounded-t-3xl object-cover"
+                                                />
+                                            )}
+                                            <div className="flex items-center justify-between px-4 py-3 text-xs text-slate-500">
+                                                <span className="rounded-full bg-white/70 px-3 py-1 font-semibold text-slate-700">
+                                                    {mediaItem.type.toUpperCase()}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleRemoveMedia(mediaItem.id)}
+                                                    className="text-rose-500 transition hover:text-rose-600"
+                                                >
+                                                    {isMarkedForRemoval(mediaItem.id) ? 'Undo removal' : 'Remove'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                            ) : (
+                                <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+                                    No media uploaded yet.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Upload new files</h3>
+                        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-slate-500 transition hover:border-slate-400 hover:bg-slate-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 014-4h10a4 4 0 014 4v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l5-5m0 0l5 5m-5-5v12" />
+                            </svg>
+                            <div>
+                                <p className="text-sm font-semibold text-slate-700">Click to upload</p>
+                                <p className="mt-1 text-xs text-slate-400">JPEG, PNG, WebP, MP4 up to 50MB each.</p>
+                            </div>
+                            <input
+                                type="file"
+                                multiple
+                                accept="image/*,video/*"
+                                onChange={handleMediaSelect}
+                                className="hidden"
+                            />
+                        </label>
+                        {mediaErrors.length > 0 && (
+                            <ul className="mt-3 space-y-1">
+                                {mediaErrors.map((message, index) => (
+                                    <li key={`${index}-${message}`} className="text-xs text-rose-500">
+                                        {message}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        {(data.media_uploads ?? []).length > 0 && (
+                            <ul className="mt-4 space-y-2">
+                                {(data.media_uploads ?? []).map((file, index) => (
+                                    <li
+                                        key={`${file.name}-${index}`}
+                                        className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-600"
+                                    >
+                                        <span className="truncate">{file.name}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => removePendingUpload(index)}
+                                            className="text-rose-500 transition hover:text-rose-600"
+                                        >
+                                            Remove
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </div>
+            </div>
+
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
+                    <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <h2 className="text-xl font-semibold text-slate-900">Variant configuration</h2>
+                            <p className="text-sm text-slate-500">
+                                Decide whether this product uses a single price or multiple combinations across metals and diamonds.
+                            </p>
+                        </div>
+                        <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                            <input
+                                type="checkbox"
+                                checked={data.is_variant_product}
+                                onChange={(event) => toggleVariantProduct(event.target.checked)}
+                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                            />
+                            Variant product (multi-option catalogue)
+                        </label>
+                    </div>
+
+                    {!data.is_variant_product ? (
+                        <p className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                            Variants are disabled. Customers will see the base price and making charge defined above.
+                        </p>
+                    ) : (
+                        <div className="mt-6 space-y-6">
+                            <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+                                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Gold purities</h3>
+                                        <p className="text-xs text-slate-500">Choose which gold purities can appear in your variant matrix.</p>
+                                    </div>
+                                    <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.uses_gold}
+                                            onChange={(event) => toggleUsesGold(event.target.checked)}
+                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        />
+                                        Use gold in variants
+                                    </label>
+                                </div>
+                                {data.uses_gold && (
+                                    <div className="rounded-2xl bg-slate-50 p-4">
+                                        {goldPurities.length > 0 ? (
+                                            <div className="flex flex-wrap gap-3">
+                                                {goldPurities.map((purity) => {
+                                                    const checked = data.gold_purity_ids.includes(purity.id);
+                                                    return (
+                                                        <label
+                                                            key={purity.id}
+                                                            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                                                                checked
+                                                                    ? 'border-sky-400 bg-white text-sky-700'
+                                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                                                            }`}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={checked}
+                                                                onChange={() => toggleGoldPuritySelection(purity.id)}
+                                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                            />
+                                                            {purity.name}
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-slate-400">No gold purities available yet.</p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+                                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Silver purities</h3>
+                                        <p className="text-xs text-slate-500">Optional silver fineness values that can pair with your variants.</p>
+                                    </div>
+                                    <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.uses_silver}
+                                            onChange={(event) => toggleUsesSilver(event.target.checked)}
+                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        />
+                                        Use silver in variants
+                                    </label>
+                                </div>
+                                {data.uses_silver && (
+                                    <div className="rounded-2xl bg-slate-50 p-4">
+                                        {silverPurities.length > 0 ? (
+                                            <div className="flex flex-wrap gap-3">
+                                                {silverPurities.map((purity) => {
+                                                    const checked = data.silver_purity_ids.includes(purity.id);
+                                                    return (
+                                                        <label
+                                                            key={purity.id}
+                                                            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                                                                checked
+                                                                    ? 'border-sky-400 bg-white text-sky-700'
+                                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                                                            }`}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={checked}
+                                                                onChange={() => toggleSilverPuritySelection(purity.id)}
+                                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                            />
+                                                            {purity.name}
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-slate-400">No silver purities available yet.</p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+                                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Diamond mixes</h3>
+                                        <p className="text-xs text-slate-500">
+                                            Define reusable diamond combinations that variants can reference (type, shape, clarity, weight, etc.).
+                                        </p>
+                                    </div>
+                                    <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.uses_diamond}
+                                            onChange={(event) => toggleUsesDiamond(event.target.checked)}
+                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        />
+                                        Use diamonds in variants
+                                    </label>
+                                </div>
+                                {data.uses_diamond && (
+                                    <div className="space-y-4">
+                                        {data.diamond_options.map((option, index) => (
+                                            <div key={option.key} className="rounded-2xl border border-slate-200 p-4">
+                                                <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400">
+                                                    <span>Configuration #{index + 1}</span>
+                                                    {data.diamond_options.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeDiamondOptionRow(option.key)}
+                                                            className="text-rose-500 hover:text-rose-600"
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                                                    <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.3em] text-slate-500">
+                                                        Type
+                                                        <select
+                                                            value={option.type_id}
+                                                            onChange={(event) =>
+                                                                updateDiamondOption(
+                                                                    option.key,
+                                                                    'type_id',
+                                                                    event.target.value === '' ? '' : Number(event.target.value),
+                                                                )
+                                                            }
+                                                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                        >
+                                                            <option value="">No type</option>
+                                                            {diamondCatalog.types.map((item) => (
+                                                                <option key={item.id} value={item.id}>
+                                                                    {item.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </label>
+                                                    <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.3em] text-slate-500">
+                                                        Shape
+                                                        <select
+                                                            value={option.shape_id}
+                                                            onChange={(event) =>
+                                                                updateDiamondOption(
+                                                                    option.key,
+                                                                    'shape_id',
+                                                                    event.target.value === '' ? '' : Number(event.target.value),
+                                                                )
+                                                            }
+                                                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                        >
+                                                            <option value="">No shape</option>
+                                                            {diamondCatalog.shapes.map((item) => (
+                                                                <option key={item.id} value={item.id}>
+                                                                    {item.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </label>
+                                                    <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.3em] text-slate-500">
+                                                        Color
+                                                        <select
+                                                            value={option.color_id}
+                                                            onChange={(event) =>
+                                                                updateDiamondOption(
+                                                                    option.key,
+                                                                    'color_id',
+                                                                    event.target.value === '' ? '' : Number(event.target.value),
+                                                                )
+                                                            }
+                                                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                        >
+                                                            <option value="">No color</option>
+                                                            {diamondCatalog.colors.map((item) => (
+                                                                <option key={item.id} value={item.id}>
+                                                                    {item.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </label>
+                                                    <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.3em] text-slate-500">
+                                                        Clarity
+                                                        <select
+                                                            value={option.clarity_id}
+                                                            onChange={(event) =>
+                                                                updateDiamondOption(
+                                                                    option.key,
+                                                                    'clarity_id',
+                                                                    event.target.value === '' ? '' : Number(event.target.value),
+                                                                )
+                                                            }
+                                                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                        >
+                                                            <option value="">No clarity</option>
+                                                            {diamondCatalog.clarities.map((item) => (
+                                                                <option key={item.id} value={item.id}>
+                                                                    {item.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </label>
+                                                    <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.3em] text-slate-500">
+                                                        Cut
+                                                        <select
+                                                            value={option.cut_id}
+                                                            onChange={(event) =>
+                                                                updateDiamondOption(
+                                                                    option.key,
+                                                                    'cut_id',
+                                                                    event.target.value === '' ? '' : Number(event.target.value),
+                                                                )
+                                                            }
+                                                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                        >
+                                                            <option value="">No cut</option>
+                                                            {diamondCatalog.cuts.map((item) => (
+                                                                <option key={item.id} value={item.id}>
+                                                                    {item.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </label>
+                                                    <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.3em] text-slate-500">
+                                                        Weight (Ct)
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            value={option.weight}
+                                                            onChange={(event) => updateDiamondOption(option.key, 'weight', event.target.value)}
+                                                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={addDiamondOptionRow}
+                                            className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+                                            </svg>
+                                            Add diamond option
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {data.is_variant_product && (
+                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
                     <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                             <h2 className="text-xl font-semibold text-slate-900">Variant matrix</h2>
@@ -555,7 +1383,7 @@ export default function AdminProductEdit() {
                     <div className="mt-6 space-y-4">
                         {data.variants.map((variant, index) => (
                             <div key={variant.id ?? `row-${index}`} className="rounded-2xl border border-slate-200 p-4 shadow-sm">
-                                <div className="grid gap-4 md:grid-cols-5">
+                                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                                     <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
                                         SKU
                                         <input
@@ -569,30 +1397,96 @@ export default function AdminProductEdit() {
                                             <span className="text-xs text-rose-500">{errors[`variants.${index}.sku`]}</span>
                                         )}
                                     </label>
-                                    {optionKeys.map(({ key, label }) => (
-                                        <label
-                                            key={`${variant.id ?? index}-${key}`}
-                                            className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-500"
-                                        >
-                                            {label}
-                                            <input
-                                                type="text"
-                                                list={`variant-${key}-${index}`}
-                                                value={variant[key] as string}
-                                                onChange={(event) => updateVariant(index, key, event.target.value)}
-                                                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                placeholder={`Enter ${label.toLowerCase()}`}
-                                            />
-                                            <datalist id={`variant-${key}-${index}`}>
-                                                {(data.variant_options?.[key] ?? []).map((value) => (
-                                                    <option key={value} value={value} />
+                                    {data.uses_gold && (
+                                        <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
+                                            Gold purity
+                                            <select
+                                                value={variant.gold_purity_id === '' ? '' : variant.gold_purity_id}
+                                                onChange={(event) =>
+                                                    updateVariant(
+                                                        index,
+                                                        'gold_purity_id',
+                                                        event.target.value === '' ? '' : Number(event.target.value),
+                                                    )
+                                                }
+                                                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            >
+                                                <option value="">Select gold purity</option>
+                                                {selectedGoldPurities.map((purity) => (
+                                                    <option key={purity.id} value={purity.id}>
+                                                        {purity.name}
+                                                    </option>
                                                 ))}
-                                            </datalist>
-                                            {errors[`variants.${index}.${key}`] && (
-                                                <span className="text-xs text-rose-500">{errors[`variants.${index}.${key}`]}</span>
+                                            </select>
+                                            {errors[`variants.${index}.gold_purity_id`] && (
+                                                <span className="text-xs text-rose-500">{errors[`variants.${index}.gold_purity_id`]}</span>
                                             )}
                                         </label>
-                                    ))}
+                                    )}
+                                    {data.uses_silver && (
+                                        <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
+                                            Silver purity
+                                            <select
+                                                value={variant.silver_purity_id === '' ? '' : variant.silver_purity_id}
+                                                onChange={(event) =>
+                                                    updateVariant(
+                                                        index,
+                                                        'silver_purity_id',
+                                                        event.target.value === '' ? '' : Number(event.target.value),
+                                                    )
+                                                }
+                                                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            >
+                                                <option value="">Select silver purity</option>
+                                                {selectedSilverPurities.map((purity) => (
+                                                    <option key={purity.id} value={purity.id}>
+                                                        {purity.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {errors[`variants.${index}.silver_purity_id`] && (
+                                                <span className="text-xs text-rose-500">{errors[`variants.${index}.silver_purity_id`]}</span>
+                                            )}
+                                        </label>
+                                    )}
+                                    {data.uses_diamond && (
+                                        <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
+                                            Diamond mix
+                                            <select
+                                                value={variant.diamond_option_key ?? ''}
+                                                onChange={(event) =>
+                                                    updateVariant(index, 'diamond_option_key', event.target.value || '')
+                                                }
+                                                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            >
+                                                <option value="">Select diamond option</option>
+                                                {diamondOptionLabels.length === 0 && <option value="" disabled>No options configured</option>}
+                                                {diamondOptionLabels.map((option) => (
+                                                    <option key={option.key} value={option.key}>
+                                                        {option.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {errors[`variants.${index}.diamond_option_key`] && (
+                                                <span className="text-xs text-rose-500">
+                                                    {errors[`variants.${index}.diamond_option_key`]}
+                                                </span>
+                                            )}
+                                        </label>
+                                    )}
+                                    <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
+                                        Size (cm)
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={variant.size_cm}
+                                            onChange={(event) => updateVariant(index, 'size_cm', event.target.value)}
+                                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        />
+                                        {errors[`variants.${index}.size_cm`] && (
+                                            <span className="text-xs text-rose-500">{errors[`variants.${index}.size_cm`]}</span>
+                                        )}
+                                    </label>
                                 </div>
 
                                 <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -621,7 +1515,7 @@ export default function AdminProductEdit() {
                                             <span className="text-xs text-rose-500">{errors[`variants.${index}.label`]}</span>
                                         )}
                                         <span className="text-[10px] uppercase tracking-[0.3em] text-slate-400">
-                                            Suggested: {[variant.metal_tone, variant.stone_quality, variant.size].filter(Boolean).join(' / ')}
+                                            Suggested: {buildVariantMeta(variant, data).autoLabel}
                                         </span>
                                     </label>
                                     <div className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3">
@@ -652,7 +1546,8 @@ export default function AdminProductEdit() {
                             </div>
                         ))}
                     </div>
-                </div>
+                    </div>
+                )}
 
                 <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-4">

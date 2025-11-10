@@ -11,14 +11,22 @@ use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Brand;
 use App\Models\Category;
-use App\Models\Material;
+use App\Models\DiamondClarity;
+use App\Models\DiamondColor;
+use App\Models\DiamondCut;
+use App\Models\DiamondShape;
+use App\Models\DiamondType;
+use App\Models\GoldPurity;
 use App\Models\Product;
 use App\Models\ProductMedia;
 use App\Models\ProductVariant;
+use App\Models\SilverPurity;
 use App\Services\Catalog\ProductVariantSyncService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -80,8 +88,9 @@ class ProductController extends Controller
             'product' => null,
             'brands' => Brand::query()->pluck('name', 'id'),
             'categories' => Category::query()->pluck('name', 'id'),
-            'materials' => Material::query()->pluck('name', 'id'),
-            'variantLibrary' => $this->variantLibrary(),
+            'goldPurities' => $this->goldPurityOptions(),
+            'silverPurities' => $this->silverPurityOptions(),
+            'diamondCatalog' => $this->diamondCatalog(),
         ]);
     }
 
@@ -90,11 +99,16 @@ class ProductController extends Controller
         $data = $request->validated();
         $variants = Arr::pull($data, 'variants', []);
         $variantOptions = Arr::pull($data, 'variant_options', []);
+        $mediaUploads = Arr::pull($data, 'media_uploads', []);
+        $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
 
-        return DB::transaction(function () use ($data, $variants, $variantOptions, $variantSync) {
+        $data = $this->prepareProductPayload($data);
+
+        return DB::transaction(function () use ($data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds) {
             $product = Product::create($data);
 
             $variantSync->sync($product, $variants, $variantOptions);
+            $this->syncMedia($product, $mediaUploads, $removedMediaIds);
 
             return redirect()
                 ->route('admin.products.edit', $product)
@@ -104,7 +118,7 @@ class ProductController extends Controller
 
     public function edit(Product $product): Response
     {
-        $product->load(['brand', 'category', 'material', 'media', 'variants' => function ($query) {
+        $product->load(['brand', 'category', 'material', 'media' => fn ($query) => $query->orderBy('position'), 'variants' => function ($query) {
             $query->orderByDesc('is_default')->orderBy('label');
         }]);
 
@@ -116,7 +130,6 @@ class ProductController extends Controller
                 'description' => $product->description,
                 'brand_id' => $product->brand_id,
                 'category_id' => $product->category_id,
-                'material_id' => $product->material_id,
                 'gross_weight' => $product->gross_weight,
                 'net_weight' => $product->net_weight,
                 'base_price' => $product->base_price,
@@ -125,6 +138,25 @@ class ProductController extends Controller
                 'visibility' => $product->visibility,
                 'standard_pricing' => $product->standard_pricing,
                 'variant_options' => $product->variant_options,
+                'is_variant_product' => $product->is_variant_product,
+                'uses_gold' => $product->uses_gold,
+                'uses_silver' => $product->uses_silver,
+                'uses_diamond' => $product->uses_diamond,
+                'gold_purity_ids' => $product->gold_purity_ids ?? [],
+                'silver_purity_ids' => $product->silver_purity_ids ?? [],
+                'diamond_options' => collect($product->diamond_options ?? [])
+                    ->map(function (array $option) {
+                        return [
+                            'key' => $option['key'] ?? (string) Str::uuid(),
+                            'type_id' => $option['type_id'] ?? null,
+                            'shape_id' => $option['shape_id'] ?? null,
+                            'color_id' => $option['color_id'] ?? null,
+                            'clarity_id' => $option['clarity_id'] ?? null,
+                            'cut_id' => $option['cut_id'] ?? null,
+                            'weight' => isset($option['weight']) ? (string) $option['weight'] : '',
+                        ];
+                    })
+                    ->all(),
                 'variants' => $product->variants->map(fn (ProductVariant $variant) => [
                     'id' => $variant->id,
                     'sku' => $variant->sku,
@@ -134,12 +166,25 @@ class ProductController extends Controller
                     'size' => $variant->size,
                     'price_adjustment' => $variant->price_adjustment,
                     'is_default' => $variant->is_default,
+                    'metadata' => $variant->metadata,
+                    'gold_purity_id' => $variant->metadata['gold_purity_id'] ?? null,
+                    'silver_purity_id' => $variant->metadata['silver_purity_id'] ?? null,
+                    'diamond_option_key' => $variant->metadata['diamond_option_key'] ?? null,
+                    'size_cm' => $variant->metadata['size_cm'] ?? null,
+                ]),
+                'media' => $product->media->map(fn (ProductMedia $media) => [
+                    'id' => $media->id,
+                    'type' => $media->type,
+                    'url' => $media->url,
+                    'position' => $media->position,
+                    'metadata' => $media->metadata,
                 ]),
             ],
             'brands' => Brand::query()->pluck('name', 'id'),
             'categories' => Category::query()->pluck('name', 'id'),
-            'materials' => Material::query()->pluck('name', 'id'),
-            'variantLibrary' => $this->variantLibrary(),
+            'goldPurities' => $this->goldPurityOptions(),
+            'silverPurities' => $this->silverPurityOptions(),
+            'diamondCatalog' => $this->diamondCatalog(),
         ]);
     }
 
@@ -148,10 +193,15 @@ class ProductController extends Controller
         $data = $request->validated();
         $variants = Arr::pull($data, 'variants', []);
         $variantOptions = Arr::pull($data, 'variant_options', []);
+        $mediaUploads = Arr::pull($data, 'media_uploads', []);
+        $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
 
-        DB::transaction(function () use ($product, $data, $variants, $variantOptions, $variantSync): void {
+        $data = $this->prepareProductPayload($data);
+
+        DB::transaction(function () use ($product, $data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds): void {
             $product->update($data);
             $variantSync->sync($product, $variants, $variantOptions);
+            $this->syncMedia($product, $mediaUploads, $removedMediaIds);
         });
 
         return redirect()
@@ -253,6 +303,121 @@ class ProductController extends Controller
         ];
     }
 
+    protected function goldPurityOptions(): array
+    {
+        return GoldPurity::query()
+            ->where('is_active', true)
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (GoldPurity $purity) => [
+                'id' => $purity->id,
+                'name' => $purity->name,
+            ])
+            ->all();
+    }
+
+    protected function silverPurityOptions(): array
+    {
+        return SilverPurity::query()
+            ->where('is_active', true)
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (SilverPurity $purity) => [
+                'id' => $purity->id,
+                'name' => $purity->name,
+            ])
+            ->all();
+    }
+
+    protected function diamondCatalog(): array
+    {
+        return [
+            'types' => DiamondType::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn (DiamondType $type) => [
+                'id' => $type->id,
+                'name' => $type->name,
+            ])->all(),
+            'shapes' => DiamondShape::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn (DiamondShape $shape) => [
+                'id' => $shape->id,
+                'name' => $shape->name,
+            ])->all(),
+            'colors' => DiamondColor::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn (DiamondColor $color) => [
+                'id' => $color->id,
+                'name' => $color->name,
+            ])->all(),
+            'clarities' => DiamondClarity::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn (DiamondClarity $clarity) => [
+                'id' => $clarity->id,
+                'name' => $clarity->name,
+            ])->all(),
+            'cuts' => DiamondCut::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn (DiamondCut $cut) => [
+                'id' => $cut->id,
+                'name' => $cut->name,
+            ])->all(),
+        ];
+    }
+
+    protected function prepareProductPayload(array $data): array
+    {
+        $data['is_variant_product'] = (bool) ($data['is_variant_product'] ?? true);
+        $data['uses_gold'] = (bool) ($data['uses_gold'] ?? false);
+        $data['uses_silver'] = (bool) ($data['uses_silver'] ?? false);
+        $data['uses_diamond'] = (bool) ($data['uses_diamond'] ?? false);
+
+        $goldPurityIds = $this->sanitizeIds($data['gold_purity_ids'] ?? []);
+        $silverPurityIds = $this->sanitizeIds($data['silver_purity_ids'] ?? []);
+        $diamondOptions = $this->sanitizeDiamondOptions($data['diamond_options'] ?? []);
+
+        $data['gold_purity_ids'] = $data['uses_gold'] && ! empty($goldPurityIds) ? $goldPurityIds : null;
+        $data['silver_purity_ids'] = $data['uses_silver'] && ! empty($silverPurityIds) ? $silverPurityIds : null;
+        $data['diamond_options'] = $data['uses_diamond'] && ! empty($diamondOptions) ? $diamondOptions : null;
+
+        if (! $data['is_variant_product']) {
+            $data['uses_gold'] = false;
+            $data['uses_silver'] = false;
+            $data['uses_diamond'] = false;
+            $data['gold_purity_ids'] = null;
+            $data['silver_purity_ids'] = null;
+            $data['diamond_options'] = null;
+        }
+
+        return $data;
+    }
+
+    protected function sanitizeIds(array $ids): array
+    {
+        return collect($ids)
+            ->filter(fn ($value) => is_numeric($value))
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    protected function sanitizeDiamondOptions(array $options): array
+    {
+        return collect($options)
+            ->map(function (array $option) {
+                $key = $option['key'] ?? (string) Str::uuid();
+
+                return [
+                    'key' => $key,
+                    'type_id' => isset($option['type_id']) ? (int) $option['type_id'] : null,
+                    'shape_id' => isset($option['shape_id']) ? (int) $option['shape_id'] : null,
+                    'color_id' => isset($option['color_id']) ? (int) $option['color_id'] : null,
+                    'clarity_id' => isset($option['clarity_id']) ? (int) $option['clarity_id'] : null,
+                    'cut_id' => isset($option['cut_id']) ? (int) $option['cut_id'] : null,
+                    'weight' => isset($option['weight']) ? (float) $option['weight'] : null,
+                ];
+            })
+            ->filter(function (array $option) {
+                return $option['type_id'] || $option['shape_id'] || $option['color_id'] || $option['clarity_id'] || $option['cut_id'] || $option['weight'];
+            })
+            ->values()
+            ->all();
+    }
+
+
     protected function generateProductSku(string $baseSku): string
     {
         do {
@@ -273,5 +438,75 @@ class ProductController extends Controller
         } while (ProductVariant::where('sku', $candidate)->exists());
 
         return $candidate;
+    }
+
+    protected function syncMedia(Product $product, array $uploads = [], array $removedIds = []): void
+    {
+        if (! empty($removedIds)) {
+            $mediaToRemove = $product->media()->whereIn('id', $removedIds)->get();
+            foreach ($mediaToRemove as $media) {
+                $this->deleteMediaFile($media);
+                $media->delete();
+            }
+        }
+
+        if (empty($uploads)) {
+            return;
+        }
+
+        $nextPosition = (int) (($product->media()->max('position')) ?? -1) + 1;
+
+        foreach ($uploads as $upload) {
+            if (! $upload instanceof UploadedFile) {
+                continue;
+            }
+
+            $path = $upload->store('products', 'public');
+            $mimeType = $upload->getMimeType() ?? '';
+            $type = str_starts_with($mimeType, 'video/') ? 'video' : 'image';
+
+            $product->media()->create([
+                'type' => $type,
+                'url' => Storage::disk('public')->url($path),
+                'position' => $nextPosition++,
+                'metadata' => [
+                    'original_name' => $upload->getClientOriginalName(),
+                    'size' => $upload->getSize(),
+                    'mime_type' => $mimeType,
+                    'storage_path' => $path,
+                ],
+            ]);
+        }
+    }
+
+    protected function deleteMediaFile(ProductMedia $media): void
+    {
+        $storagePath = $media->metadata['storage_path'] ?? null;
+        if ($storagePath) {
+            Storage::disk('public')->delete($storagePath);
+
+            return;
+        }
+
+        $url = $media->url;
+        if (! $url) {
+            return;
+        }
+
+        $publicDisk = Storage::disk('public');
+        $publicBase = rtrim($publicDisk->url(''), '/');
+
+        if ($publicBase && str_starts_with($url, $publicBase)) {
+            $relative = ltrim(Str::after($url, $publicBase), '/');
+            if ($relative !== '') {
+                $publicDisk->delete($relative);
+            }
+
+            return;
+        }
+
+        if (str_starts_with($url, '/storage/')) {
+            $publicDisk->delete(ltrim(Str::after($url, '/storage/'), '/'));
+        }
     }
 }

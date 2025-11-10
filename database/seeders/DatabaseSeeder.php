@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             ReferenceDataSeeder::class,
             UserAndKycSeeder::class,
             CatalogSeeder::class,
+            OrderStatusSeeder::class,
             CommerceSeeder::class,
             ProductionSeeder::class,
         ]);

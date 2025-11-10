@@ -5,9 +5,11 @@ namespace Database\Seeders;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Material;
+use App\Models\MaterialType;
 use App\Models\Offer;
 use App\Models\PriceRate;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class ReferenceDataSeeder extends Seeder
 {
@@ -59,10 +61,37 @@ class ReferenceDataSeeder extends Seeder
             ['name' => 'Sterling Silver', 'type' => 'silver', 'purity' => '92.5', 'unit' => 'g'],
         ];
 
+        $materialTypeLookup = collect($materials)
+            ->pluck('type')
+            ->unique()
+            ->mapWithKeys(function (string $typeKey) {
+                $name = Str::headline($typeKey);
+
+                $materialType = MaterialType::updateOrCreate(
+                    ['slug' => Str::slug($typeKey)],
+                    [
+                        'name' => $name,
+                        'description' => null,
+                        'is_active' => true,
+                    ]
+                );
+
+                return [$typeKey => $materialType->id];
+            });
+
         foreach ($materials as $material) {
+            $typeName = Str::headline($material['type']);
+            $materialTypeId = $materialTypeLookup[$material['type']] ?? null;
+
             Material::updateOrCreate(
                 ['name' => $material['name']],
-                $material + ['is_active' => true]
+                [
+                    'type' => $typeName,
+                    'material_type_id' => $materialTypeId,
+                    'purity' => $material['purity'],
+                    'unit' => $material['unit'],
+                    'is_active' => true,
+                ]
             );
         }
 
