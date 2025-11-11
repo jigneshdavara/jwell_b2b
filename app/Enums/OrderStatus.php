@@ -13,6 +13,7 @@ enum OrderStatus: string
     case Delivered = 'delivered';
     case Cancelled = 'cancelled';
     case PendingPayment = 'pending_payment';
+    case Paid = 'paid';
     case PaymentFailed = 'payment_failed';
     case AwaitingMaterials = 'awaiting_materials';
 }

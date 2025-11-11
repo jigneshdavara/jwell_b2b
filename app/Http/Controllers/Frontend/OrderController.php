@@ -45,7 +45,7 @@ class OrderController extends Controller
     {
         abort_unless($order->user_id === Auth::id(), 403);
 
-        $order->load(['items', 'payments']);
+        $order->load(['items', 'payments', 'statusHistory']);
         $statusValue = $order->status instanceof \UnitEnum ? $order->status->value : (string) $order->status;
 
         return Inertia::render('Frontend/Orders/Show', [
@@ -71,6 +71,12 @@ class OrderController extends Controller
                     'status' => $payment->status,
                     'amount' => (float) $payment->amount,
                     'created_at' => optional($payment->created_at)?->toDateTimeString(),
+                ]),
+                'status_history' => $order->statusHistory->map(fn ($history) => [
+                    'id' => $history->id,
+                    'status' => $history->status,
+                    'created_at' => optional($history->created_at)?->toDateTimeString(),
+                    'meta' => $history->meta,
                 ]),
             ],
         ]);

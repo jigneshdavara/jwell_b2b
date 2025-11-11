@@ -41,8 +41,8 @@ type CatalogProps = {
     mode: 'purchase' | 'jobwork';
     filters: {
         brand?: string;
-        gold_purity?: string;
-        silver_purity?: string;
+        gold_purity?: string[];
+        silver_purity?: string[];
         search?: string;
     };
     products: {
@@ -64,8 +64,39 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
 });
 
 export default function CatalogIndex() {
-    const { mode, filters, products, facets } = usePage<PageProps<CatalogProps>>().props;
+    const { mode, filters: rawFilters, products, facets } = usePage<PageProps<CatalogProps>>().props;
+    const filters = useMemo(() => {
+        const normalizeArray = (input?: string | string[] | null) => {
+            if (! input) {
+                return [] as string[];
+            }
+
+            return Array.isArray(input) ? input : [String(input)];
+        };
+
+        return {
+            brand: rawFilters.brand,
+            search: rawFilters.search,
+            gold_purity: normalizeArray(rawFilters.gold_purity),
+            silver_purity: normalizeArray(rawFilters.silver_purity),
+        } satisfies CatalogProps['filters'];
+    }, [rawFilters]);
     const [search, setSearch] = useState(filters.search ?? '');
+
+    const changeMode = (nextMode: 'purchase' | 'jobwork') => {
+        if (nextMode === mode) return;
+        router.get(
+            route('frontend.catalog.index'),
+            {
+                ...rawFilters,
+                mode: nextMode,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+            },
+        );
+    };
 
     const valueNameMap = useMemo(() => {
         const map = new Map<string, string>();
@@ -75,11 +106,11 @@ export default function CatalogIndex() {
         return map;
     }, [facets]);
 
-    const applyFilter = (key: keyof CatalogProps['filters'], value?: string) => {
+    const applyFilter = (key: keyof CatalogProps['filters'], value?: string | string[]) => {
         router.get(
             route('frontend.catalog.index'),
             {
-                ...filters,
+                ...rawFilters,
                 [key]: value ?? undefined,
                 mode,
                 page: undefined,
@@ -100,17 +131,47 @@ export default function CatalogIndex() {
         applyFilter('search', search.trim() || undefined);
     };
 
-    const activeFilters = useMemo(
-        () =>
-            Object.entries(filters)
-                .filter(([, value]) => value)
-                .map(([key, value]) => {
-                    const label = FILTER_LABELS[key] ?? key.replace(/_/g, ' ');
-                    const valueLabel = valueNameMap.get(`${key}:${value}`) ?? String(value);
-                    return { key, value, label, valueLabel };
-                }),
-        [filters, valueNameMap],
-    );
+    const activeFilters = useMemo(() => {
+        const entries: Array<{ key: keyof CatalogProps['filters']; value: string; label: string; valueLabel: string }> = [];
+
+        if (filters.brand) {
+            entries.push({
+                key: 'brand',
+                value: filters.brand,
+                label: FILTER_LABELS.brand,
+                valueLabel: valueNameMap.get(`brand:${filters.brand}`) ?? filters.brand,
+            });
+        }
+
+        filters.gold_purity.forEach((value) => {
+            entries.push({
+                key: 'gold_purity',
+                value,
+                label: FILTER_LABELS.gold_purity,
+                valueLabel: valueNameMap.get(`gold_purity:${value}`) ?? value,
+            });
+        });
+
+        filters.silver_purity.forEach((value) => {
+            entries.push({
+                key: 'silver_purity',
+                value,
+                label: FILTER_LABELS.silver_purity,
+                valueLabel: valueNameMap.get(`silver_purity:${value}`) ?? value,
+            });
+        });
+
+        if (filters.search) {
+            entries.push({
+                key: 'search',
+                value: filters.search,
+                label: FILTER_LABELS.search,
+                valueLabel: filters.search,
+            });
+        }
+
+        return entries;
+    }, [filters, valueNameMap]);
 
     return (
         <AuthenticatedLayout>
@@ -166,10 +227,20 @@ export default function CatalogIndex() {
                 </div>
 
                 <div className="flex flex-wrap gap-3 text-xs">
-                    {activeFilters.map(({ key, label, valueLabel }) => (
+                    {activeFilters.map(({ key, label, valueLabel, value }) => (
                         <button
-                            key={key}
-                            onClick={() => applyFilter(key as keyof CatalogProps['filters'])}
+                            key={`${key}-${valueLabel}`}
+                            onClick={() => {
+                                if (key === 'gold_purity' || key === 'silver_purity') {
+                                    const existing = Array.isArray(filters[key]) ? filters[key] ?? [] : [];
+                                    const updated = existing.filter((entry) => entry !== value);
+                                    applyFilter(key as keyof CatalogProps['filters'], updated.length ? updated : undefined);
+
+                                    return;
+                                }
+
+                                applyFilter(key as keyof CatalogProps['filters']);
+                            }}
                             className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-300"
                         >
                             {label}: <span className="font-semibold">{valueLabel}</span>
@@ -202,38 +273,82 @@ export default function CatalogIndex() {
                         <div>
                             <h2 className="text-sm font-semibold text-slate-800">Gold purities</h2>
                             <div className="mt-3 space-y-2 text-sm">
-                                {facets.goldPurities.map((purity) => (
-                                    <button
-                                        key={purity.id}
-                                        onClick={() => applyFilter('gold_purity', String(purity.id))}
-                                        className={`w-full rounded-xl px-3 py-2 text-left transition ${
-                                            filters.gold_purity === String(purity.id)
-                                                ? 'bg-sky-600/10 font-medium text-sky-700 ring-1 ring-sky-500/40'
-                                                : 'text-slate-600 hover:bg-slate-100'
-                                        }`}
-                                    >
-                                        {purity.name}
-                                    </button>
-                                ))}
+                                {facets.goldPurities.map((purity) => {
+                                    const selected = filters.gold_purity.includes(String(purity.id));
+
+                                    return (
+                                        <label
+                                            key={purity.id}
+                                            className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm transition ${
+                                                selected
+                                                    ? 'border-sky-500 bg-sky-50 text-slate-900'
+                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-sky-300'
+                                            }`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                checked={selected}
+                                                onChange={(event) => {
+                                                    const list = [...filters.gold_purity];
+
+                                                    if (event.target.checked) {
+                                                        list.push(String(purity.id));
+                                                    } else {
+                                                        const index = list.indexOf(String(purity.id));
+                                                        if (index >= 0) {
+                                                            list.splice(index, 1);
+                                                        }
+                                                    }
+
+                                                    applyFilter('gold_purity', list.length ? list : undefined);
+                                                }}
+                                            />
+                                            <span>{purity.name}</span>
+                                        </label>
+                                    );
+                                })}
                             </div>
                         </div>
 
                         <div>
                             <h2 className="text-sm font-semibold text-slate-800">Silver purities</h2>
                             <div className="mt-3 space-y-2 text-sm">
-                                {facets.silverPurities.map((purity) => (
-                                    <button
-                                        key={purity.id}
-                                        onClick={() => applyFilter('silver_purity', String(purity.id))}
-                                        className={`w-full rounded-xl px-3 py-2 text-left transition ${
-                                            filters.silver_purity === String(purity.id)
-                                                ? 'bg-sky-600/10 font-medium text-sky-700 ring-1 ring-sky-500/40'
-                                                : 'text-slate-600 hover:bg-slate-100'
-                                        }`}
-                                    >
-                                        {purity.name}
-                                    </button>
-                                ))}
+                                {facets.silverPurities.map((purity) => {
+                                    const selected = filters.silver_purity.includes(String(purity.id));
+
+                                    return (
+                                        <label
+                                            key={purity.id}
+                                            className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm transition ${
+                                                selected
+                                                    ? 'border-sky-500 bg-sky-50 text-slate-900'
+                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-sky-300'
+                                            }`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                checked={selected}
+                                                onChange={(event) => {
+                                                    const list = [...filters.silver_purity];
+
+                                                    if (event.target.checked) {
+                                                        list.push(String(purity.id));
+                                                    } else {
+                                                        const index = list.indexOf(String(purity.id));
+                                                        if (index >= 0) {
+                                                            list.splice(index, 1);
+                                                        }
+                                                    }
+
+                                                    applyFilter('silver_purity', list.length ? list : undefined);
+                                                }}
+                                            />
+                                            <span>{purity.name}</span>
+                                        </label>
+                                    );
+                                })}
                             </div>
                         </div>
                     </aside>

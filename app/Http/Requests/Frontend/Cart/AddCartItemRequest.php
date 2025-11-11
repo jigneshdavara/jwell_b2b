@@ -18,6 +18,9 @@ class AddCartItemRequest extends FormRequest
             'product_variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
             'quantity' => ['sometimes', 'integer', 'min:1'],
             'configuration' => ['sometimes', 'array'],
+            'configuration.mode' => ['nullable', 'in:purchase,jobwork'],
+            'configuration.notes' => ['nullable', 'string', 'max:2000'],
+            'configuration.selections' => ['nullable', 'array'],
         ];
     }
 }

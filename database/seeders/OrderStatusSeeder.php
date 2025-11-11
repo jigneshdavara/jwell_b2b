@@ -50,6 +50,16 @@ class OrderStatusSeeder extends Seeder
                 'color' => '#1d4ed8',
                 'position' => 6,
             ],
+            [
+                'name' => 'Pending payment',
+                'color' => '#fbbf24',
+                'position' => 7,
+            ],
+            [
+                'name' => 'Paid',
+                'color' => '#22c55e',
+                'position' => 8,
+            ],
         ];
 
         foreach ($statuses as $index => $status) {

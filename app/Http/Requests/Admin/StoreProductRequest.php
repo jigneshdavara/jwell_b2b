@@ -51,6 +51,12 @@ class StoreProductRequest extends FormRequest
             'net_weight' => ['nullable', 'numeric', 'min:0'],
             'base_price' => ['required', 'numeric', 'min:0'],
             'making_charge' => ['required', 'numeric', 'min:0'],
+            'making_charge_discount_type' => ['nullable', 'in:percentage,fixed'],
+            'making_charge_discount_value' => ['nullable', 'numeric', 'min:0', 'required_with:making_charge_discount_type'],
+            'making_charge_discount_overrides' => ['nullable', 'array'],
+            'making_charge_discount_overrides.*.customer_group_id' => ['required', 'integer', 'exists:customer_groups,id'],
+            'making_charge_discount_overrides.*.type' => ['required', 'in:percentage,fixed'],
+            'making_charge_discount_overrides.*.value' => ['required', 'numeric', 'min:0'],
             'standard_pricing' => ['nullable', 'array'],
             'standard_pricing.labour_brand' => ['nullable', 'string', 'max:255'],
             'standard_pricing.diamond_rate' => ['nullable', 'numeric', 'min:0'],
@@ -124,6 +130,16 @@ class StoreProductRequest extends FormRequest
             $skus = $variants->pluck('sku')->filter();
             if ($skus->count() !== $skus->unique()->count()) {
                 $validator->errors()->add('variants', 'Variant SKU values must be unique.');
+            }
+
+            $overrides = collect($this->input('making_charge_discount_overrides', []));
+            $duplicateGroups = $overrides
+                ->pluck('customer_group_id')
+                ->filter()
+                ->duplicates();
+
+            if ($duplicateGroups->isNotEmpty()) {
+                $validator->errors()->add('making_charge_discount_overrides', 'Duplicate customer group entries detected.');
             }
         });
     }

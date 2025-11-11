@@ -8,15 +8,21 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Quotation;
 use App\Models\QuotationMessage;
+use App\Services\CartService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class QuotationController extends Controller
 {
+    public function __construct(protected CartService $cartService)
+    {
+    }
+
     public function index(): Response
     {
         $quotations = Quotation::query()
@@ -144,6 +150,103 @@ class QuotationController extends Controller
         return redirect()
             ->route('frontend.quotations.index')
             ->with('success', 'Message sent.');
+    }
+
+    public function storeFromCart(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        $cart = $this->cartService->getActiveCart($user);
+        $cart->loadMissing('items.product', 'items.variant');
+
+        if ($cart->items->isEmpty()) {
+            return redirect()->route('frontend.cart.index')->with('error', 'Your quotation list is empty.');
+        }
+
+        DB::transaction(function () use ($cart, $user): void {
+            foreach ($cart->items as $item) {
+                $product = $item->product;
+                if (! $product) {
+                    continue;
+                }
+
+                $configuration = $item->configuration ?? [];
+                $mode = in_array($configuration['mode'] ?? null, ['purchase', 'jobwork'], true)
+                    ? $configuration['mode']
+                    : 'purchase';
+
+                if ($mode === 'jobwork' && ! $product->is_jobwork_allowed) {
+                    $mode = 'purchase';
+                }
+
+                $selections = $configuration['selections'] ?? null;
+                if ($selections !== null && ! is_array($selections)) {
+                    $selections = null;
+                }
+
+                $quotation = Quotation::create([
+                    'user_id' => $user->id,
+                    'product_id' => $product->id,
+                    'product_variant_id' => $item->product_variant_id,
+                    'mode' => $mode,
+                    'status' => 'pending',
+                    'quantity' => $item->quantity,
+                    'selections' => $selections,
+                    'notes' => $configuration['notes'] ?? null,
+                ]);
+
+                if (! empty($configuration['notes'])) {
+                    $quotation->messages()->create([
+                        'user_id' => $user->id,
+                        'sender' => 'customer',
+                        'message' => (string) $configuration['notes'],
+                    ]);
+                }
+            }
+
+            $this->cartService->clearItems($cart);
+        });
+
+        return redirect()
+            ->route('frontend.quotations.index')
+            ->with('success', 'Quotation requests submitted successfully.');
+    }
+
+    public function confirm(Quotation $quotation): RedirectResponse
+    {
+        abort_unless($quotation->user_id === Auth::id(), 403);
+
+        if ($quotation->status !== 'pending_customer_confirmation') {
+            return redirect()->route('frontend.quotations.index')->with('error', 'No confirmation required for this quotation.');
+        }
+
+        $quotation->update(['status' => 'customer_confirmed']);
+
+        $quotation->messages()->create([
+            'user_id' => Auth::id(),
+            'sender' => 'customer',
+            'message' => 'Customer approved the updated quotation.',
+        ]);
+
+        return redirect()->route('frontend.quotations.index')->with('success', 'Quotation approved. Awaiting admin confirmation.');
+    }
+
+    public function decline(Quotation $quotation): RedirectResponse
+    {
+        abort_unless($quotation->user_id === Auth::id(), 403);
+
+        if ($quotation->status !== 'pending_customer_confirmation') {
+            return redirect()->route('frontend.quotations.index')->with('error', 'No confirmation required for this quotation.');
+        }
+
+        $quotation->update(['status' => 'customer_declined']);
+
+        $quotation->messages()->create([
+            'user_id' => Auth::id(),
+            'sender' => 'customer',
+            'message' => 'Customer declined the updated quotation.',
+        ]);
+
+        return redirect()->route('frontend.quotations.index')->with('success', 'Quotation declined.');
     }
 }
 

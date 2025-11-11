@@ -10,6 +10,7 @@ use App\Models\Cart;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\Payments\PaymentGatewayManager;
+use App\Services\OrderWorkflowService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,7 +20,8 @@ class CheckoutService
 {
     public function __construct(
         protected CartService $cartService,
-        protected PaymentGatewayManager $gatewayManager
+        protected PaymentGatewayManager $gatewayManager,
+        protected OrderWorkflowService $orderWorkflowService
     ) {
     }
 
@@ -42,6 +44,39 @@ class CheckoutService
         });
     }
 
+    public function initializeExistingOrder(Order $order): array
+    {
+        if (! in_array($order->status?->value ?? $order->status, [OrderStatus::PendingPayment->value, OrderStatus::PaymentFailed->value], true)) {
+            throw new RuntimeException('Order is not awaiting payment.');
+        }
+
+        $order->loadMissing('items');
+
+        $summary = [
+            'subtotal' => $order->subtotal_amount,
+            'tax' => $order->tax_amount,
+            'discount' => $order->discount_amount,
+            'shipping' => $order->price_breakdown['shipping'] ?? 0,
+            'total' => $order->total_amount,
+            'currency' => $order->currency ?? 'INR',
+        ];
+
+        return DB::transaction(function () use ($order, $summary) {
+            $paymentData = $this->createOrUpdatePayment($order);
+
+            return [
+                'subtotal' => $summary['subtotal'],
+                'tax' => $summary['tax'],
+                'discount' => $summary['discount'],
+                'shipping' => $summary['shipping'],
+                'total' => $summary['total'],
+                'currency' => $summary['currency'],
+                'order' => $order->fresh('items'),
+                'payment' => $paymentData,
+            ];
+        });
+    }
+
     public function finalize(Payment $payment): Order
     {
         $gateway = $this->gatewayManager->driver($payment->gateway);
@@ -60,7 +95,9 @@ class CheckoutService
         ]);
 
         $order = $payment->order;
-        $order->update(['status' => OrderStatus::Pending]);
+        $this->orderWorkflowService->transitionOrder($order, OrderStatus::Paid, [
+            'source' => 'payment_success',
+        ]);
 
         event(new OrderConfirmed($order->fresh('items'), $payment));
 

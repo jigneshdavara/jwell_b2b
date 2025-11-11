@@ -51,12 +51,26 @@ class CatalogController extends Controller
             $query->whereHas('brand', fn ($q) => $q->where('name', $filters['brand']));
         }
 
-        if ($filters['gold_purity'] ?? null) {
-            $query->whereJsonContains('gold_purity_ids', (int) $filters['gold_purity']);
+        if (! empty($filters['gold_purity'])) {
+            $goldIds = array_filter((array) $filters['gold_purity'], fn ($value) => $value !== null && $value !== '');
+            if (! empty($goldIds)) {
+                $query->where(function ($goldQuery) use ($goldIds) {
+                    foreach ($goldIds as $id) {
+                        $goldQuery->orWhereJsonContains('gold_purity_ids', (int) $id);
+                    }
+                });
+            }
         }
 
-        if ($filters['silver_purity'] ?? null) {
-            $query->whereJsonContains('silver_purity_ids', (int) $filters['silver_purity']);
+        if (! empty($filters['silver_purity'])) {
+            $silverIds = array_filter((array) $filters['silver_purity'], fn ($value) => $value !== null && $value !== '');
+            if (! empty($silverIds)) {
+                $query->where(function ($silverQuery) use ($silverIds) {
+                    foreach ($silverIds as $id) {
+                        $silverQuery->orWhereJsonContains('silver_purity_ids', (int) $id);
+                    }
+                });
+            }
         }
 
         if ($filters['search'] ?? null) {

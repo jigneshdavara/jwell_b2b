@@ -27,6 +27,13 @@ type Product = {
     net_weight?: number | string;
     base_price?: number | string;
     making_charge?: number | string;
+    making_charge_discount_type?: 'percentage' | 'fixed' | null;
+    making_charge_discount_value?: string | number | null;
+    making_charge_discount_overrides?: Array<{
+        customer_group_id: number | null;
+        type: 'percentage' | 'fixed';
+        value: string | number | null;
+    }>;
     is_jobwork_allowed?: boolean;
     visibility?: string | null;
     standard_pricing?: Record<string, number | string | null> | null;
@@ -63,6 +70,7 @@ type AdminProductEditPageProps = AppPageProps<{
     goldPurities: OptionListItem[];
     silverPurities: OptionListItem[];
     diamondCatalog: DiamondCatalog;
+    customerGroups: OptionListItem[];
     errors: Record<string, string>;
 }>;
 
@@ -83,6 +91,9 @@ type FormData = {
     net_weight: string;
     base_price: string;
     making_charge: string;
+    making_charge_discount_type: '' | 'percentage' | 'fixed';
+    making_charge_discount_value: string;
+    making_charge_discount_overrides: DiscountOverrideForm[];
     is_jobwork_allowed: boolean;
     visibility: string;
     standard_pricing: StandardPricingForm;
@@ -106,6 +117,13 @@ type DiamondOptionForm = {
     clarity_id: number | '';
     cut_id: number | '';
     weight: string;
+};
+
+type DiscountOverrideForm = {
+    localKey: string;
+    customer_group_id: number | '';
+    type: 'percentage' | 'fixed';
+    value: string;
 };
 
 type ProductMedia = {
@@ -146,9 +164,16 @@ const createDiamondOption = (): DiamondOptionForm => ({
     weight: '',
 });
 
+const createDiscountOverride = (): DiscountOverrideForm => ({
+    localKey: generateLocalKey(),
+    customer_group_id: '',
+    type: 'percentage',
+    value: '',
+});
+
 export default function AdminProductEdit() {
     const { props } = usePage<AdminProductEditPageProps>();
-    const { product, brands, categories, goldPurities, silverPurities, diamondCatalog, errors } = props;
+    const { product, brands, categories, goldPurities, silverPurities, diamondCatalog, customerGroups, errors } = props;
 
     const initialVariants: VariantForm[] = product?.variants?.length
         ? product.variants.map((variant, index) => ({
@@ -165,6 +190,18 @@ export default function AdminProductEdit() {
           }))
         : [emptyVariant(true)];
 
+    const initialDiscountOverrides: DiscountOverrideForm[] = product?.making_charge_discount_overrides?.length
+        ? product.making_charge_discount_overrides.map((override, index) => ({
+              localKey: `${generateLocalKey()}-${index}`,
+              customer_group_id:
+                  override.customer_group_id !== null && override.customer_group_id !== undefined
+                      ? Number(override.customer_group_id)
+                      : '',
+              type: (override.type as 'percentage' | 'fixed') ?? 'percentage',
+              value: override.value !== null && override.value !== undefined ? String(override.value) : '',
+          }))
+        : [];
+
     const form = useForm<FormData>(() => ({
         sku: product?.sku ?? '',
         name: product?.name ?? '',
@@ -175,6 +212,13 @@ export default function AdminProductEdit() {
         net_weight: product?.net_weight ? String(product.net_weight) : '',
         base_price: product?.base_price ? String(product.base_price) : '',
         making_charge: product?.making_charge ? String(product.making_charge) : '',
+        making_charge_discount_type:
+            (product?.making_charge_discount_type as 'percentage' | 'fixed' | null) ?? '',
+        making_charge_discount_value:
+            product?.making_charge_discount_value !== null && product?.making_charge_discount_value !== undefined
+                ? String(product.making_charge_discount_value)
+                : '',
+        making_charge_discount_overrides: initialDiscountOverrides,
         is_jobwork_allowed: product?.is_jobwork_allowed ?? false,
         visibility: product?.visibility ?? 'public',
         standard_pricing: {
@@ -655,6 +699,29 @@ export default function AdminProductEdit() {
         });
     };
 
+    const addDiscountOverrideRow = () => {
+        setData((prev) => ({
+            ...prev,
+            making_charge_discount_overrides: [...prev.making_charge_discount_overrides, createDiscountOverride()],
+        }));
+    };
+
+    const updateDiscountOverrideRow = (index: number, changes: Partial<DiscountOverrideForm>) => {
+        setData((prev) => ({
+            ...prev,
+            making_charge_discount_overrides: prev.making_charge_discount_overrides.map((override, idx) =>
+                idx === index ? { ...override, ...changes } : override,
+            ),
+        }));
+    };
+
+    const removeDiscountOverrideRow = (index: number) => {
+        setData((prev) => ({
+            ...prev,
+            making_charge_discount_overrides: prev.making_charge_discount_overrides.filter((_, idx) => idx !== index),
+        }));
+    };
+
     useEffect(() => {
         if (data.uses_diamond && data.diamond_options.length === 0) {
             setData((prev) => {
@@ -693,6 +760,21 @@ export default function AdminProductEdit() {
                       weight: option.weight ? Number(option.weight) : null,
                   }))
                 : [];
+
+            const toNullableNumber = (value: string) => (value === '' ? null : Number(value));
+
+            payload.making_charge_discount_type = current.making_charge_discount_type || null;
+            payload.making_charge_discount_value = current.making_charge_discount_type
+                ? toNullableNumber(current.making_charge_discount_value)
+                : null;
+            payload.making_charge_discount_overrides = current.making_charge_discount_overrides
+                .map((override) => ({
+                    customer_group_id:
+                        override.customer_group_id !== '' ? Number(override.customer_group_id) : null,
+                    type: override.type,
+                    value: toNullableNumber(override.value),
+                }))
+                .filter((override) => override.customer_group_id !== null && override.value !== null);
 
             payload.variants = current.is_variant_product
                 ? current.variants.map((variant) => {

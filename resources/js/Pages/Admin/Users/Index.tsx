@@ -8,6 +8,10 @@ type AdminUserRow = {
     name: string;
     email: string;
     type: string;
+    user_group?: {
+        id: number;
+        name: string;
+    } | null;
     kyc_status: string;
     kyc_status_label: string;
     kyc_notes?: string | null;
@@ -30,6 +34,11 @@ type Pagination<T> = {
     };
 };
 
+type Option = {
+    id: number;
+    name: string;
+};
+
 type AdminUsersPageProps = AppPageProps<{
     users: Pagination<AdminUserRow>;
     kycStatuses: string[];
@@ -43,6 +52,7 @@ type AdminUsersPageProps = AppPageProps<{
         approved: number;
         rejected: number;
     };
+    userGroups: Option[];
 }>;
 
 const statusColours: Record<string, string> = {
@@ -53,7 +63,7 @@ const statusColours: Record<string, string> = {
 };
 
 export default function AdminUsersIndex() {
-    const { users, kycStatuses, filters, stats } = usePage<AdminUsersPageProps>().props;
+    const { users, kycStatuses, filters, stats, userGroups } = usePage<AdminUsersPageProps>().props;
 
     const statusOptions = useMemo(() => ['all', ...kycStatuses], [kycStatuses]);
 
@@ -64,6 +74,17 @@ export default function AdminUsersIndex() {
             replace: true,
             preserveScroll: true,
         });
+    };
+
+    const updateUserGroup = (user: AdminUserRow, groupId: string) => {
+        router.patch(
+            route('admin.users.group.update', user.id),
+            { user_group_id: groupId || null },
+            {
+                preserveScroll: true,
+                preserveState: true,
+            },
+        );
     };
 
     return (
@@ -129,6 +150,7 @@ export default function AdminUsersIndex() {
                                 <th className="px-5 py-3 text-left">Name</th>
                                 <th className="px-5 py-3 text-left">Email</th>
                                 <th className="px-5 py-3 text-left">Type</th>
+                                <th className="px-5 py-3 text-left">User group</th>
                                 <th className="px-5 py-3 text-left">KYC Status</th>
                                 <th className="px-5 py-3 text-left">Docs</th>
                                 <th className="px-5 py-3 text-left">Joined</th>
@@ -153,6 +175,20 @@ export default function AdminUsersIndex() {
                                         </td>
                                         <td className="px-5 py-3 text-slate-600">{user.email}</td>
                                         <td className="px-5 py-3 text-slate-500 uppercase tracking-wide">{user.type}</td>
+                                    <td className="px-5 py-3 text-slate-600">
+                                        <select
+                                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            value={user.user_group?.id ?? ''}
+                                            onChange={(event) => updateUserGroup(user, event.target.value)}
+                                        >
+                                            <option value="">No group</option>
+                                            {userGroups.map((group) => (
+                                                <option key={group.id} value={group.id}>
+                                                    {group.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </td>
                                         <td className="px-5 py-3">
                                             <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}>
                                                 {user.kyc_status_label}

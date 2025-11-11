@@ -32,6 +32,9 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
 const statusColors: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
     pending_payment: 'bg-amber-100 text-amber-700',
+    payment_failed: 'bg-rose-100 text-rose-700',
+    awaiting_materials: 'bg-indigo-100 text-indigo-700',
+    under_production: 'bg-indigo-100 text-indigo-700',
     approved: 'bg-emerald-100 text-emerald-700',
     in_production: 'bg-indigo-100 text-indigo-700',
     quality_check: 'bg-blue-100 text-blue-700',
@@ -39,6 +42,7 @@ const statusColors: Record<string, string> = {
     dispatched: 'bg-sky-100 text-sky-700',
     delivered: 'bg-emerald-100 text-emerald-700',
     cancelled: 'bg-rose-100 text-rose-700',
+    paid: 'bg-emerald-100 text-emerald-700',
 };
 
 export default function FrontendOrdersIndex() {

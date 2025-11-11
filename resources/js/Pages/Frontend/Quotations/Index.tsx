@@ -53,6 +53,9 @@ const statusLabels: Record<string, { label: string; style: string }> = {
     rejected: { label: 'Rejected', style: 'bg-rose-100 text-rose-700' },
     invoiced: { label: 'Awaiting payment', style: 'bg-sky-100 text-sky-700' },
     converted: { label: 'Converted to order', style: 'bg-slate-200 text-slate-700' },
+    pending_customer_confirmation: { label: 'Waiting for you', style: 'bg-amber-100 text-amber-700' },
+    customer_confirmed: { label: 'You approved', style: 'bg-emerald-100 text-emerald-700' },
+    customer_declined: { label: 'You declined', style: 'bg-rose-100 text-rose-700' },
 };
 
 const jobworkStageLabels: Record<string, { label: string; style: string }> = {

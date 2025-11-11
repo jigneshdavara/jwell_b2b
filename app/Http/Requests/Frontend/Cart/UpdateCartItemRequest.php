@@ -14,7 +14,11 @@ class UpdateCartItemRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'quantity' => ['required', 'integer', 'min:1'],
+            'quantity' => ['nullable', 'integer', 'min:1'],
+            'configuration' => ['nullable', 'array'],
+            'configuration.mode' => ['nullable', 'in:purchase,jobwork'],
+            'configuration.notes' => ['nullable', 'string', 'max:2000'],
+            'configuration.selections' => ['nullable', 'array'],
         ];
     }
 }

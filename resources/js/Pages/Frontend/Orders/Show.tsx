@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { PageProps } from '@/types';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 
 type OrderShowItem = {
     id: number;
@@ -29,6 +29,11 @@ type OrderDetails = {
     created_at?: string | null;
     items: OrderShowItem[];
     payments: OrderPayment[];
+    status_history: Array<{
+        id: number;
+        status: string;
+        created_at?: string | null;
+    }>;
 };
 
 type OrderShowProps = PageProps<{
@@ -44,6 +49,9 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
 const statusColors: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
     pending_payment: 'bg-amber-100 text-amber-700',
+    payment_failed: 'bg-rose-100 text-rose-700',
+    awaiting_materials: 'bg-indigo-100 text-indigo-700',
+    under_production: 'bg-indigo-100 text-indigo-700',
     approved: 'bg-emerald-100 text-emerald-700',
     in_production: 'bg-indigo-100 text-indigo-700',
     quality_check: 'bg-blue-100 text-blue-700',
@@ -51,6 +59,7 @@ const statusColors: Record<string, string> = {
     dispatched: 'bg-sky-100 text-sky-700',
     delivered: 'bg-emerald-100 text-emerald-700',
     cancelled: 'bg-rose-100 text-rose-700',
+    paid: 'bg-emerald-100 text-emerald-700',
 };
 
 export default function FrontendOrdersShow() {
@@ -125,7 +134,7 @@ export default function FrontendOrdersShow() {
                             <h2 className="text-lg font-semibold text-slate-900">Payments</h2>
                             <div className="mt-4 space-y-3 text-sm text-slate-600">
                                 {order.payments.length === 0 && (
-                                    <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500">
+                                    <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">
                                         No payments recorded yet.
                                     </p>
                                 )}
@@ -148,6 +157,40 @@ export default function FrontendOrdersShow() {
                                         </div>
                                         <span className="text-sm font-semibold text-slate-900">
                                             {currencyFormatter.format(payment.amount)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                            {(order.status === 'pending_payment' || order.status === 'payment_failed') && (
+                                <div className="mt-4 flex justify-end">
+                                    <Link
+                                        href={route('frontend.orders.pay', order.id)}
+                                        className="rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500"
+                                    >
+                                        Proceed to payment
+                                    </Link>
+                                </div>
+                            )}
+                            {order.status === 'payment_failed' && (
+                                <p className="mt-2 text-xs text-rose-500">Previous attempt failed. Please retry the payment.</p>
+                            )}
+                        </div>
+                        <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
+                            <h2 className="text-lg font-semibold text-slate-900">Status history</h2>
+                            <div className="mt-4 space-y-3 text-sm text-slate-600">
+                                {order.status_history.map((entry) => (
+                                    <div key={entry.id} className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3">
+                                        <span className="font-semibold text-slate-800">{entry.status.replace(/_/g, ' ')}</span>
+                                        <span className="text-xs text-slate-400">
+                                            {entry.created_at
+                                                ? new Date(entry.created_at).toLocaleString('en-IN', {
+                                                      day: '2-digit',
+                                                      month: 'short',
+                                                      year: 'numeric',
+                                                      hour: '2-digit',
+                                                      minute: '2-digit',
+                                                  })
+                                                : 'N/A'}
                                         </span>
                                     </div>
                                 ))}

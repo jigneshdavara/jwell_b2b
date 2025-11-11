@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Quotation;
 use App\Models\QuotationMessage;
+use App\Services\PricingService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,10 @@ use Inertia\Response;
 
 class QuotationController extends Controller
 {
+    public function __construct(protected PricingService $pricingService)
+    {
+    }
+
     public function index(Request $request): Response
     {
         $mode = $request->string('mode')->lower()->value();
@@ -72,7 +77,7 @@ class QuotationController extends Controller
 
     public function show(Quotation $quotation): Response
     {
-        $quotation->load(['user', 'product.media', 'variant', 'order.statusHistory', 'messages.user']);
+        $quotation->load(['user', 'product.media', 'variant', 'product.variants', 'order.statusHistory', 'messages.user']);
 
         return Inertia::render('Admin/Quotations/Show', [
             'quotation' => [
@@ -94,6 +99,12 @@ class QuotationController extends Controller
                     'media' => $quotation->product->media->sortBy('position')->values()->map(fn ($media) => [
                         'url' => $media->url,
                         'alt' => $media->metadata['alt'] ?? $quotation->product->name,
+                    ]),
+                    'variants' => $quotation->product->variants->map(fn (ProductVariant $variant) => [
+                        'id' => $variant->id,
+                        'label' => $variant->label,
+                        'metadata' => $variant->metadata ?? [],
+                        'price_adjustment' => $variant->price_adjustment,
                     ]),
                 ],
                 'variant' => $quotation->variant ? [
@@ -142,6 +153,10 @@ class QuotationController extends Controller
     {
         if ($quotation->status === 'approved') {
             return redirect()->back()->with('info', 'Quotation already approved.');
+        }
+
+        if (! in_array($quotation->status, ['pending', 'customer_confirmed'], true)) {
+            return redirect()->back()->with('error', 'Quotation must be confirmed by customer before approval.');
         }
 
         DB::transaction(function () use ($request, $quotation): void {
@@ -217,20 +232,72 @@ class QuotationController extends Controller
             ->with('success', 'Message sent to client.');
     }
 
+    public function requestCustomerConfirmation(Request $request, Quotation $quotation): RedirectResponse
+    {
+        $data = $request->validate([
+            'quantity' => ['required', 'integer', 'min:1'],
+            'product_variant_id' => ['nullable', 'integer'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        if ($data['product_variant_id'] ?? null) {
+            $variant = $quotation->product->variants()->findOrFail($data['product_variant_id']);
+            $quotation->product_variant_id = $variant->id;
+            $quotation->selections = array_merge($quotation->selections ?? [], [
+                'auto_label' => $variant->metadata['auto_label'] ?? $variant->label,
+            ]);
+        }
+
+        $quotation->quantity = $data['quantity'];
+        $quotation->status = 'pending_customer_confirmation';
+        if (! empty($data['notes'])) {
+            $quotation->admin_notes = $data['notes'];
+        }
+        $quotation->save();
+
+        $quotation->messages()->create([
+            'user_id' => $request->user()?->id,
+            'sender' => 'admin',
+            'message' => $data['notes'] ?? 'Please review updated quotation details.',
+        ]);
+
+        return redirect()
+            ->route('admin.quotations.show', $quotation->id)
+            ->with('success', 'Updated quotation and requested customer approval.');
+    }
+
     protected function createOrderFromQuotation(Quotation $quotation, ?OrderStatus $statusOverride = null): Order
     {
+        $quotation->loadMissing('user');
+
         /** @var Product $product */
         $product = Product::query()->findOrFail($quotation->product_id);
         $variant = $quotation->product_variant_id
             ? ProductVariant::query()->findOrFail($quotation->product_variant_id)
             : null;
 
-        $base = (float) $product->base_price;
-        $making = (float) $product->making_charge;
-        $adjustment = (float) ($variant?->price_adjustment ?? 0);
+        $pricing = $this->pricingService->calculateProductPrice(
+            $product,
+            $quotation->user,
+            [
+                'variant' => $variant ? $variant->toArray() : null,
+                'quantity' => $quotation->quantity,
+                'customer_group_id' => $quotation->user?->customer_group_id ?? null,
+                'customer_type' => $quotation->user?->type ?? null,
+                'mode' => $quotation->mode,
+            ]
+        )->toArray();
 
-        $unitPrice = $base + $making + $adjustment;
-        $total = $unitPrice * $quotation->quantity;
+        $base = (float) ($pricing['base'] ?? $product->base_price);
+        $making = (float) ($pricing['making'] ?? $product->making_charge);
+        $variantAdjustment = (float) ($pricing['variant_adjustment'] ?? ($variant?->price_adjustment ?? 0));
+        $unitSubtotal = (float) ($pricing['subtotal'] ?? ($base + $making + $variantAdjustment));
+        $unitDiscount = (float) ($pricing['discount'] ?? 0);
+        $unitTotal = (float) ($pricing['total'] ?? ($unitSubtotal - $unitDiscount));
+
+        $lineSubtotal = $unitSubtotal * $quotation->quantity;
+        $lineDiscount = $unitDiscount * $quotation->quantity;
+        $lineTotal = $unitTotal * $quotation->quantity;
 
         $initialStatus = $quotation->mode === 'jobwork'
             ? OrderStatus::AwaitingMaterials
@@ -241,14 +308,15 @@ class QuotationController extends Controller
             'status' => $statusOverride?->value ?? $initialStatus->value,
             'reference' => Str::upper(Str::random(10)),
             'currency' => 'INR',
-            'total_amount' => $total,
-            'subtotal_amount' => $total,
+            'total_amount' => round($lineTotal, 2),
+            'subtotal_amount' => round($lineSubtotal, 2),
             'tax_amount' => 0,
-            'discount_amount' => 0,
+            'discount_amount' => round($lineDiscount, 2),
             'price_breakdown' => [
-                'base_price' => $base,
-                'making_charge' => $making,
-                'variant_adjustment' => $adjustment,
+                'unit' => $pricing,
+                'quantity' => $quotation->quantity,
+                'line_subtotal' => round($lineSubtotal, 2),
+                'line_discount' => round($lineDiscount, 2),
             ],
             'locked_rates' => null,
         ]);
@@ -259,8 +327,8 @@ class QuotationController extends Controller
             'sku' => $product->sku,
             'name' => $product->name,
             'quantity' => $quotation->quantity,
-            'unit_price' => $unitPrice,
-            'total_price' => $total,
+            'unit_price' => round($unitTotal, 2),
+            'total_price' => round($lineTotal, 2),
             'configuration' => $quotation->selections,
             'metadata' => [
                 'mode' => $quotation->mode,

@@ -11,6 +11,7 @@ use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\CustomerGroup;
 use App\Models\DiamondClarity;
 use App\Models\DiamondColor;
 use App\Models\DiamondCut;
@@ -91,6 +92,7 @@ class ProductController extends Controller
             'goldPurities' => $this->goldPurityOptions(),
             'silverPurities' => $this->silverPurityOptions(),
             'diamondCatalog' => $this->diamondCatalog(),
+            'customerGroups' => $this->customerGroupOptions(),
         ]);
     }
 
@@ -134,6 +136,18 @@ class ProductController extends Controller
                 'net_weight' => $product->net_weight,
                 'base_price' => $product->base_price,
                 'making_charge' => $product->making_charge,
+                'making_charge_discount_type' => $product->making_charge_discount_type,
+                'making_charge_discount_value' => $product->making_charge_discount_value !== null ? (string) $product->making_charge_discount_value : '',
+                'making_charge_discount_overrides' => collect($product->making_charge_discount_overrides ?? [])
+                    ->map(function (array $override) {
+                        return [
+                            'customer_group_id' => $override['customer_group_id'] ?? null,
+                            'type' => $override['type'] ?? 'percentage',
+                            'value' => isset($override['value']) ? (string) $override['value'] : '',
+                        ];
+                    })
+                    ->values()
+                    ->all(),
                 'is_jobwork_allowed' => $product->is_jobwork_allowed,
                 'visibility' => $product->visibility,
                 'standard_pricing' => $product->standard_pricing,
@@ -185,6 +199,7 @@ class ProductController extends Controller
             'goldPurities' => $this->goldPurityOptions(),
             'silverPurities' => $this->silverPurityOptions(),
             'diamondCatalog' => $this->diamondCatalog(),
+            'customerGroups' => $this->customerGroupOptions(),
         ]);
     }
 
@@ -331,6 +346,20 @@ class ProductController extends Controller
             ->all();
     }
 
+    protected function customerGroupOptions(): array
+    {
+        return CustomerGroup::query()
+            ->where('is_active', true)
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (CustomerGroup $group) => [
+                'id' => $group->id,
+                'name' => $group->name,
+            ])
+            ->all();
+    }
+
     protected function diamondCatalog(): array
     {
         return [
@@ -381,6 +410,19 @@ class ProductController extends Controller
             $data['diamond_options'] = null;
         }
 
+        $data['making_charge_discount_type'] = $data['making_charge_discount_type'] ?? null;
+        if (! $data['making_charge_discount_type']) {
+            $data['making_charge_discount_type'] = null;
+            $data['making_charge_discount_value'] = null;
+        } else {
+            $data['making_charge_discount_value'] = isset($data['making_charge_discount_value'])
+                ? (float) $data['making_charge_discount_value']
+                : null;
+        }
+
+        $discountOverrides = $this->sanitizeDiscountOverrides($data['making_charge_discount_overrides'] ?? []);
+        $data['making_charge_discount_overrides'] = ! empty($discountOverrides) ? $discountOverrides : null;
+
         return $data;
     }
 
@@ -413,6 +455,26 @@ class ProductController extends Controller
             ->filter(function (array $option) {
                 return $option['type_id'] || $option['shape_id'] || $option['color_id'] || $option['clarity_id'] || $option['cut_id'] || $option['weight'];
             })
+            ->values()
+            ->all();
+    }
+
+    protected function sanitizeDiscountOverrides(array $overrides): array
+    {
+        return collect($overrides)
+            ->filter(function ($override) {
+                return is_array($override)
+                    && isset($override['customer_group_id'], $override['type'], $override['value'])
+                    && $override['customer_group_id'] !== null;
+            })
+            ->map(function (array $override) {
+                return [
+                    'customer_group_id' => (int) $override['customer_group_id'],
+                    'type' => $override['type'] === 'fixed' ? 'fixed' : 'percentage',
+                    'value' => (float) $override['value'],
+                ];
+            })
+            ->unique('customer_group_id')
             ->values()
             ->all();
     }

@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { PageProps as AppPageProps } from '@/types';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 type VariantMetadata = {
@@ -220,11 +220,27 @@ export default function CatalogShow() {
         setSubmitting(true);
         post(route('frontend.quotations.store'), {
             preserveScroll: true,
+            onSuccess: () => setConfirmOpen(false),
+            onFinish: () => setSubmitting(false),
+        });
+    };
+
+    const addToQuotationList = () => {
+        const payload = {
+            product_id: product.id,
+            product_variant_id: data.product_variant_id,
+            quantity: data.quantity,
+            configuration: {
+                mode,
+                notes: data.notes,
+                selections: data.selections,
+            },
+        };
+
+        router.post(route('frontend.cart.items.store'), payload, {
+            preserveScroll: true,
             onSuccess: () => {
                 setConfirmOpen(false);
-            },
-            onFinish: () => {
-                setSubmitting(false);
             },
         });
     };
@@ -509,6 +525,14 @@ export default function CatalogShow() {
                                 disabled={submitting}
                             >
                                 Review again
+                            </button>
+                            <button
+                                type="button"
+                                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                onClick={addToQuotationList}
+                                disabled={submitting}
+                            >
+                                Add to quotation list
                             </button>
                             <button
                                 type="button"

@@ -33,14 +33,24 @@ class CartService
         $existingItem = $cart->items
             ->firstWhere(fn (CartItem $item) => $item->product_id === $product->id && $item->product_variant_id === optional($variant)->id && $item->configuration == $configuration);
 
-        $pricingOptions = ['variant' => $variant ? $variant->toArray() : null];
+        $targetQuantity = $existingItem ? $existingItem->quantity + $quantity : $quantity;
+        $mode = $configuration['mode'] ?? 'purchase';
+
+        $pricingOptions = [
+            'variant' => $variant ? $variant->toArray() : null,
+            'quantity' => $targetQuantity,
+            'customer_group_id' => $user->customer_group_id ?? null,
+            'customer_type' => $user->type ?? null,
+            'mode' => $mode,
+        ];
+
         $pricing = $this->pricingService
             ->calculateProductPrice($product, $user, $pricingOptions)
             ->toArray();
 
         if ($existingItem) {
             $existingItem->update([
-                'quantity' => $existingItem->quantity + $quantity,
+                'quantity' => $targetQuantity,
                 'price_breakdown' => $pricing,
             ]);
         } else {
@@ -48,7 +58,11 @@ class CartService
                 'product_id' => $product->id,
                 'product_variant_id' => $variant?->id,
                 'quantity' => $quantity,
-                'configuration' => array_merge($configuration, ['variant' => $variant?->label]),
+                'configuration' => array_merge(
+                    ['mode' => $mode, 'selections' => $configuration['selections'] ?? null],
+                    $configuration,
+                    ['variant' => $variant?->label]
+                ),
                 'price_breakdown' => $pricing,
             ]);
         }
@@ -60,6 +74,18 @@ class CartService
     {
         $quantity = max(1, $quantity);
         $item->update(['quantity' => $quantity]);
+    }
+
+    public function updateItemConfiguration(CartItem $item, array $configuration): void
+    {
+        $existing = $item->configuration ?? [];
+        $merged = array_merge($existing, $configuration);
+
+        if (! isset($merged['mode'])) {
+            $merged['mode'] = $existing['mode'] ?? 'purchase';
+        }
+
+        $item->update(['configuration' => $merged]);
     }
 
     public function removeItem(CartItem $item): void
@@ -75,13 +101,25 @@ class CartService
             $pricing = $this->pricingService->calculateProductPrice(
                 $item->product,
                 $cart->user,
-                ['variant' => $item->variant ? $item->variant->toArray() : null]
+                [
+                    'variant' => $item->variant ? $item->variant->toArray() : null,
+                    'quantity' => $item->quantity,
+                    'customer_group_id' => $cart->user?->customer_group_id ?? null,
+                    'customer_type' => $cart->user?->type ?? null,
+                    'mode' => $item->configuration['mode'] ?? null,
+                ]
             )->toArray();
 
             $item->price_breakdown = $pricing;
             $item->save();
 
-            $total = ($pricing['total'] ?? 0) * $item->quantity;
+            $unitSubtotal = $pricing['subtotal'] ?? (($pricing['base'] ?? 0) + ($pricing['making'] ?? 0) + ($pricing['variant_adjustment'] ?? 0));
+            $unitDiscount = $pricing['discount'] ?? 0;
+            $unitTotal = $pricing['total'] ?? ($unitSubtotal - $unitDiscount);
+
+            $lineSubtotal = $unitSubtotal * $item->quantity;
+            $lineDiscount = $unitDiscount * $item->quantity;
+            $lineTotal = $unitTotal * $item->quantity;
 
             return [
                 'id' => $item->id,
@@ -91,16 +129,19 @@ class CartService
                 'name' => $item->product->name,
                 'variant_label' => $item->variant?->label,
                 'quantity' => $item->quantity,
-                'unit_total' => $pricing['total'] ?? 0,
-                'line_total' => $total,
+                'unit_total' => round($unitTotal, 2),
+                'line_total' => round($lineTotal, 2),
+                'line_subtotal' => round($lineSubtotal, 2),
+                'line_discount' => round($lineDiscount, 2),
                 'price_breakdown' => $pricing,
                 'thumbnail' => optional($item->product->media->sortBy('position')->first())?->url,
+                'configuration' => $item->configuration,
             ];
         });
 
-        $subtotal = $items->sum('line_total');
+        $subtotal = $items->sum(fn (array $item) => $item['line_subtotal'] ?? $item['line_total']);
         $tax = 0.0;
-        $discount = 0.0;
+        $discount = $items->sum(fn (array $item) => $item['line_discount'] ?? 0.0);
         $shipping = 0.0;
         $total = $subtotal + $tax - $discount + $shipping;
 
@@ -125,5 +166,11 @@ class CartService
             'status' => 'converted',
             'metadata' => array_merge($metadata, ['converted_at' => now()->toIso8601String()]),
         ]);
+    }
+
+    public function clearItems(Cart $cart): void
+    {
+        $cart->items()->delete();
+        $cart->update(['status' => 'active']);
     }
 }

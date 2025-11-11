@@ -4,10 +4,12 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\KycController;
 use App\Http\Controllers\Admin\OfferController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\MakingChargeDiscountController;
 use App\Http\Controllers\Admin\PaymentGatewayController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\RateController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\UserGroupController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\MaterialController;
@@ -90,6 +92,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/orders', [FrontendOrderController::class, 'index'])
             ->middleware('ensure.kyc.approved')
             ->name('frontend.orders.index');
+        Route::get('/orders/{order}/pay', [CheckoutController::class, 'payOrder'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.orders.pay');
         Route::get('/orders/{order}', [FrontendOrderController::class, 'show'])
             ->middleware('ensure.kyc.approved')
             ->name('frontend.orders.show');
@@ -100,12 +105,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/quotations', [QuotationController::class, 'store'])
             ->middleware('ensure.kyc.approved')
             ->name('frontend.quotations.store');
+        Route::post('/quotations/from-cart', [QuotationController::class, 'storeFromCart'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.quotations.store-from-cart');
         Route::delete('/quotations/{quotation}', [QuotationController::class, 'destroy'])
             ->middleware('ensure.kyc.approved')
             ->name('frontend.quotations.destroy');
         Route::post('/quotations/{quotation}/messages', [QuotationController::class, 'message'])
             ->middleware('ensure.kyc.approved')
             ->name('frontend.quotations.messages.store');
+        Route::post('/quotations/{quotation}/confirm', [QuotationController::class, 'confirm'])->name('frontend.quotations.confirm');
+        Route::post('/quotations/{quotation}/decline', [QuotationController::class, 'decline'])->name('frontend.quotations.decline');
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -173,6 +183,12 @@ Route::prefix('admin')
             Route::resource('statuses', OrderStatusController::class)->only(['index', 'store', 'update', 'destroy'])->names('statuses');
         });
 
+        Route::delete('users/groups/bulk', [UserGroupController::class, 'bulkDestroy'])->name('users.groups.bulk-destroy');
+        Route::resource('users/groups', UserGroupController::class)
+            ->only(['index', 'store', 'update', 'destroy'])
+            ->names('users.groups');
+        Route::patch('/users/{user}/group', [UserController::class, 'updateGroup'])->name('users.group.update');
+
         Route::prefix('customers')->name('customers.')->group(function () {
             Route::delete('types/bulk', [CustomerTypeController::class, 'bulkDestroy'])->name('types.bulk-destroy');
             Route::resource('types', CustomerTypeController::class)->only(['index', 'store', 'update', 'destroy'])->names('types');
@@ -193,11 +209,18 @@ Route::prefix('admin')
         Route::post('/quotations/{quotation}/reject', [AdminQuotationController::class, 'reject'])->name('quotations.reject');
         Route::post('/quotations/{quotation}/jobwork-status', [AdminQuotationController::class, 'updateJobworkStatus'])->name('quotations.jobwork-status');
         Route::post('/quotations/{quotation}/messages', [AdminQuotationController::class, 'message'])->name('quotations.messages.store');
+        Route::post('/quotations/{quotation}/request-confirmation', [AdminQuotationController::class, 'requestCustomerConfirmation'])->name('quotations.request-confirmation');
 
         Route::get('/offers', [OfferController::class, 'index'])->name('offers.index');
         Route::post('/offers', [OfferController::class, 'store'])->name('offers.store');
         Route::put('/offers/{offer}', [OfferController::class, 'update'])->name('offers.update');
         Route::delete('/offers/{offer}', [OfferController::class, 'destroy'])->name('offers.destroy');
+
+        Route::delete('offers/making-charge-discounts/bulk', [MakingChargeDiscountController::class, 'bulkDestroy'])
+            ->name('offers.making-charge-discounts.bulk-destroy');
+        Route::resource('offers/making-charge-discounts', MakingChargeDiscountController::class)
+            ->only(['index', 'store', 'update', 'destroy'])
+            ->names('offers.making-charge-discounts');
 
         Route::get('/rates', [RateController::class, 'index'])->name('rates.index');
         Route::post('/rates/sync', [RateController::class, 'sync'])->name('rates.sync');

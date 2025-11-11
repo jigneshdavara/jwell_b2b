@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\KycStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateKycStatusRequest;
+use App\Http\Requests\Admin\UpdateUserGroupAssignmentRequest;
 use App\Models\User;
+use App\Models\UserGroup;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -21,7 +23,7 @@ class UserController extends Controller
         $statusValues = collect(KycStatus::cases())->pluck('value')->all();
 
         $usersQuery = User::query()
-            ->with(['kycDocuments', 'kycProfile'])
+            ->with(['kycDocuments', 'kycProfile', 'userGroup'])
             ->latest();
 
         if ($statusFilter && in_array($statusFilter, $statusValues, true)) {
@@ -41,6 +43,10 @@ class UserController extends Controller
                     'kyc_status_label' => Str::headline($user->kyc_status ?? ''),
                     'kyc_notes' => $user->kyc_notes,
                     'kyc_document_count' => $user->kycDocuments->count(),
+                    'user_group' => $user->userGroup ? [
+                        'id' => $user->userGroup->id,
+                        'name' => $user->userGroup->name,
+                    ] : null,
                     'kyc_profile' => $user->kycProfile ? [
                         'business_name' => $user->kycProfile->business_name,
                         'city' => $user->kycProfile->city,
@@ -58,6 +64,16 @@ class UserController extends Controller
             'rejected' => User::where('kyc_status', KycStatus::Rejected->value)->count(),
         ];
 
+        $userGroups = UserGroup::query()
+            ->where('is_active', true)
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (UserGroup $group) => [
+                'id' => $group->id,
+                'name' => $group->name,
+            ]);
+
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
             'kycStatuses' => $statusValues,
@@ -65,6 +81,7 @@ class UserController extends Controller
                 'status' => $statusFilter,
             ],
             'stats' => $stats,
+            'userGroups' => $userGroups,
         ]);
     }
 
@@ -80,5 +97,16 @@ class UserController extends Controller
         return redirect()
             ->back()
             ->with('success', 'KYC status updated successfully.');
+    }
+
+    public function updateGroup(UpdateUserGroupAssignmentRequest $request, User $user): RedirectResponse
+    {
+        $user->update([
+            'user_group_id' => $request->validated('user_group_id'),
+        ]);
+
+        return redirect()
+            ->back()
+            ->with('success', 'User group updated successfully.');
     }
 }

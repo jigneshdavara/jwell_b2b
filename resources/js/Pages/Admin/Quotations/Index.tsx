@@ -33,6 +33,9 @@ const statusBadge: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
     approved: 'bg-emerald-100 text-emerald-700',
     rejected: 'bg-rose-100 text-rose-700',
+    pending_customer_confirmation: 'bg-amber-100 text-amber-700',
+    customer_confirmed: 'bg-emerald-100 text-emerald-700',
+    customer_declined: 'bg-rose-100 text-rose-700',
 };
 
 const jobworkBadges: Record<string, string> = {

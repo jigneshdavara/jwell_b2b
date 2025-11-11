@@ -22,6 +22,9 @@ class Product extends Model
         'net_weight',
         'base_price',
         'making_charge',
+        'making_charge_discount_type',
+        'making_charge_discount_value',
+        'making_charge_discount_overrides',
         'is_jobwork_allowed',
         'visibility',
         'is_active',
@@ -52,6 +55,8 @@ class Product extends Model
         'gold_purity_ids' => 'array',
         'silver_purity_ids' => 'array',
         'diamond_options' => 'array',
+        'making_charge_discount_value' => 'float',
+        'making_charge_discount_overrides' => 'array',
     ];
 
     public function brand(): BelongsTo

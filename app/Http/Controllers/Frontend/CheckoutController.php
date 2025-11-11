@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Exceptions\PaymentGatewayException;
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Frontend\Checkout\ConfirmCheckoutRequest;
 use App\Models\Payment;
+use App\Models\Order;
 use App\Services\CartService;
 use App\Services\CheckoutService;
 use Illuminate\Http\RedirectResponse;
@@ -58,6 +60,44 @@ class CheckoutController extends Controller
         ]);
     }
 
+    public function payOrder(Order $order): RedirectResponse|Response
+    {
+        abort_unless($order->user_id === Auth::id(), 403);
+
+        if (! in_array($order->status?->value ?? $order->status, [OrderStatus::PendingPayment->value, OrderStatus::PaymentFailed->value], true)) {
+            return redirect()->route('frontend.orders.show', $order)->with('info', 'This order is not awaiting payment.');
+        }
+
+        $state = $this->checkoutService->initializeExistingOrder($order);
+
+        return Inertia::render('Frontend/Checkout/Index', [
+            'order' => [
+                'reference' => $state['order']->reference,
+                'total' => $state['total'],
+                'currency' => $state['currency'],
+                'items' => $state['order']->items->map(fn ($item) => [
+                    'sku' => $item->sku,
+                    'name' => $item->name,
+                    'quantity' => $item->quantity,
+                    'line_total' => $item->total_price,
+                ]),
+            ],
+            'payment' => [
+                'publishableKey' => $state['payment']['publishable_key'],
+                'clientSecret' => $state['payment']['client_secret'],
+                'providerReference' => $state['payment']['provider_reference'],
+            ],
+            'summary' => [
+                'subtotal' => $state['subtotal'],
+                'tax' => $state['tax'],
+                'discount' => $state['discount'],
+                'shipping' => $state['shipping'],
+                'total' => $state['total'],
+                'currency' => $state['currency'],
+            ],
+        ]);
+    }
+
     public function confirm(ConfirmCheckoutRequest $request): RedirectResponse
     {
         $payment = Payment::query()
@@ -69,7 +109,7 @@ class CheckoutController extends Controller
             $order = $this->checkoutService->finalize($payment);
         } catch (PaymentGatewayException $exception) {
             return redirect()
-                ->route('frontend.checkout.show')
+                ->back()
                 ->with('error', $exception->getMessage());
         }
 

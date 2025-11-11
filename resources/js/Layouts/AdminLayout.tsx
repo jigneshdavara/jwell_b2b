@@ -31,9 +31,15 @@ const adminNavigation: NavItem[] = [
         label: 'Customers',
         icon: 'users',
         children: [
-            { label: 'Customer list', route: 'admin.users.index', match: 'admin.users.*' },
-            { label: 'Customer types', route: 'admin.customers.types.index', match: 'admin.customers.types.*' },
             { label: 'Customer groups', route: 'admin.customers.groups.index', match: 'admin.customers.groups.*' },
+        ],
+    },
+    {
+        label: 'User management',
+        icon: 'users',
+        children: [
+            { label: 'User list', route: 'admin.users.index', match: 'admin.users.index' },
+            { label: 'User groups', route: 'admin.users.groups.index', match: 'admin.users.groups.*' },
         ],
     },
     {
@@ -82,7 +88,19 @@ const adminNavigation: NavItem[] = [
             { label: 'Jobwork', route: 'admin.quotations.jobwork', match: 'admin.quotations.jobwork' },
         ],
     },
-    { label: 'Offers', route: 'admin.offers.index', match: 'admin.offers.*', icon: 'tag' },
+    {
+        label: 'Offers',
+        icon: 'tag',
+        children: [
+            { label: 'Promo codes', route: 'admin.offers.index', match: 'admin.offers.*', icon: 'tag' },
+            {
+                label: 'Making charge discounts',
+                route: 'admin.offers.making-charge-discounts.index',
+                match: 'admin.offers.making-charge-discounts.*',
+                icon: 'coin',
+            },
+        ],
+    },
     { label: 'Rates', route: 'admin.rates.index', match: 'admin.rates.*', icon: 'activity' },
     { label: 'Payments', route: 'admin.settings.payments.edit', match: 'admin.settings.payments.*', icon: 'credit-card' },
 ];

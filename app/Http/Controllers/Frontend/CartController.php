@@ -66,11 +66,20 @@ class CartController extends Controller
     public function update(UpdateCartItemRequest $request, CartItem $item): RedirectResponse
     {
         $this->authorizeCartItem($request->user()->id, $item);
-        $this->cartService->updateItemQuantity($item, (int) $request->input('quantity'));
+
+        $data = $request->validated();
+
+        if (array_key_exists('quantity', $data) && $data['quantity'] !== null) {
+            $this->cartService->updateItemQuantity($item, (int) $data['quantity']);
+        }
+
+        if (! empty($data['configuration'])) {
+            $this->cartService->updateItemConfiguration($item, $data['configuration']);
+        }
 
         return redirect()
             ->back()
-            ->with('success', 'Updated quantity.');
+            ->with('success', 'Updated quotation entry.');
     }
 
     public function destroy(Request $request, CartItem $item): RedirectResponse

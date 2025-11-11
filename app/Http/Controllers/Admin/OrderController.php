@@ -48,7 +48,7 @@ class OrderController extends Controller
 
     public function show(Order $order): Response
     {
-        $order->load(['items.product', 'user']);
+        $order->load(['items.product', 'user', 'payments', 'statusHistory']);
 
         return Inertia::render('Admin/Orders/Show', [
             'order' => [
@@ -74,6 +74,18 @@ class OrderController extends Controller
                         'total_price' => $item->total_price,
                     ];
                 }),
+                'status_history' => $order->statusHistory->map(fn ($entry) => [
+                    'id' => $entry->id,
+                    'status' => $entry->status,
+                    'created_at' => optional($entry->created_at)?->toDateTimeString(),
+                    'meta' => $entry->meta,
+                ]),
+                'payments' => $order->payments->map(fn ($payment) => [
+                    'id' => $payment->id,
+                    'status' => $payment->status,
+                    'amount' => $payment->amount,
+                    'created_at' => optional($payment->created_at)?->toDateTimeString(),
+                ]),
             ],
             'statusOptions' => collect(OrderStatus::cases())->map(fn (OrderStatus $status) => [
                 'value' => $status->value,

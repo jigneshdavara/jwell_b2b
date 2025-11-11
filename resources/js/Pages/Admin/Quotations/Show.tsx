@@ -1,6 +1,6 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { FormEvent } from 'react';
 
 type QuotationDetails = {
@@ -20,6 +20,12 @@ type QuotationDetails = {
         base_price?: number | null;
         making_charge?: number | null;
         media: Array<{ url: string; alt: string }>;
+        variants: Array<{
+            id: number;
+            label: string;
+            metadata?: Record<string, unknown> | null;
+            price_adjustment: number;
+        }>;
     };
     variant?: {
         id: number;
@@ -39,7 +45,7 @@ type QuotationDetails = {
         history: Array<{
             id: number;
             status: string;
-            created_at: string;
+            created_at?: string | null;
         }>;
     } | null;
     messages: Array<{
@@ -214,7 +220,7 @@ export default function AdminQuotationShow() {
                                     · Status {quotation.order.status} · Total ₹{' '}
                                     {quotation.order.total_amount.toLocaleString('en-IN')}
                                 </p>
-                                {quotation.order.history.length > 0 && (
+                                {quotation.order?.history?.length ? (
                                     <div className="mt-4 space-y-2 text-xs text-slate-500">
                                         <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Status timeline</h3>
                                         <ul className="space-y-2">
@@ -238,7 +244,7 @@ export default function AdminQuotationShow() {
                                             ))}
                                         </ul>
                                     </div>
-                                )}
+                                ) : null}
                             </div>
                         )}
 
@@ -303,7 +309,7 @@ export default function AdminQuotationShow() {
                     </section>
 
                     <aside className="space-y-6">
-                        {quotation.status === 'pending' && (
+                        {(quotation.status === 'pending' || quotation.status === 'customer_confirmed') && (
                             <form onSubmit={submitApprove} className="space-y-4 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-emerald-200/80">
                                 <h3 className="text-base font-semibold text-slate-900">Approve quotation</h3>
                                 <p className="text-xs text-slate-500">
@@ -328,6 +334,61 @@ export default function AdminQuotationShow() {
                                 </button>
                             </form>
                         )}
+
+                        <form
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                approveForm.reset();
+                                rejectForm.reset();
+                                jobworkForm.reset('admin_notes');
+                                const formData = new FormData(event.currentTarget as HTMLFormElement);
+                                router.post(route('admin.quotations.request-confirmation', quotation.id), formData, {
+                                    preserveScroll: true,
+                                });
+                            }}
+                            className="space-y-4 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80"
+                        >
+                            <h3 className="text-base font-semibold text-slate-900">Request customer confirmation</h3>
+                            <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                <span>Quantity</span>
+                                <input
+                                    type="number"
+                                    name="quantity"
+                                    defaultValue={quotation.quantity}
+                                    min={1}
+                                    className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                />
+                            </label>
+                            <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                <span>Variant</span>
+                                <select
+                                    name="product_variant_id"
+                                    defaultValue={quotation.variant?.id ?? ''}
+                                    className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                >
+                                    <option value="">Keep current</option>
+                                    {quotation.product.variants.map((variant) => (
+                                        <option key={variant.id} value={variant.id}>
+                                            {variant.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                <span>Notes to customer</span>
+                                <textarea
+                                    name="notes"
+                                    className="min-h-[80px] rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    placeholder="Explain changes or pricing impact..."
+                                />
+                            </label>
+                            <button
+                                type="submit"
+                                className="w-full rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                            >
+                                Send for customer approval
+                            </button>
+                        </form>
 
                         {quotation.status !== 'rejected' && (
                             <form onSubmit={submitReject} className="space-y-4 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-rose-200/80">

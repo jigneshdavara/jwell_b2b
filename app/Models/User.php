@@ -24,6 +24,7 @@ class User extends Authenticatable
         'password',
         'phone',
         'type',
+        'user_group_id',
         'kyc_status',
         'preferred_language',
         'credit_limit',
@@ -72,6 +73,11 @@ class User extends Authenticatable
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function userGroup()
+    {
+        return $this->belongsTo(UserGroup::class);
     }
 
     public function jobworkRequests()

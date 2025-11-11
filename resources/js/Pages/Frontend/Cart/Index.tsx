@@ -3,6 +3,22 @@ import type { PageProps } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useMemo } from 'react';
 
+type PriceBreakdown = {
+    base?: number;
+    making?: number;
+    variant_adjustment?: number;
+    subtotal?: number;
+    discount?: number;
+    total?: number;
+    discount_details?: {
+        amount: number;
+        type: 'percentage' | 'fixed' | null;
+        value: number;
+        source?: string | null;
+        name?: string | null;
+    } | null;
+};
+
 type CartItem = {
     id: number;
     product_id: number;
@@ -11,9 +27,16 @@ type CartItem = {
     quantity: number;
     unit_total: number;
     line_total: number;
-    price_breakdown: Record<string, number>;
+    line_subtotal?: number;
+    line_discount?: number;
+    price_breakdown: PriceBreakdown;
     thumbnail?: string | null;
     variant_label?: string | null;
+    configuration?: {
+        mode?: 'purchase' | 'jobwork';
+        notes?: string | null;
+        selections?: Record<string, unknown> | null;
+    };
 };
 
 type CartPageProps = PageProps<{
@@ -48,6 +71,14 @@ export default function CartIndex() {
         );
     };
 
+    const updateConfiguration = (item: CartItem, configuration: Record<string, unknown>) => {
+        router.patch(
+            route('frontend.cart.items.update', item.id),
+            { configuration },
+            { preserveScroll: true, preserveState: true },
+        );
+    };
+
     const removeItem = (item: CartItem) => {
         router.delete(route('frontend.cart.items.destroy', item.id), {
             preserveScroll: true,
@@ -56,30 +87,40 @@ export default function CartIndex() {
 
     const isEmpty = cart.items.length === 0;
 
+    const submitQuotations = () => {
+        if (isEmpty) {
+            return;
+        }
+
+        router.post(route('frontend.quotations.store-from-cart'), undefined, {
+            preserveScroll: true,
+        });
+    };
+
     return (
         <AuthenticatedLayout>
-            <Head title="Cart" />
+            <Head title="Quotation list" />
 
             <div className="space-y-10" id="cart">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <h1 className="text-3xl font-semibold text-slate-900">Purchase List</h1>
+                        <h1 className="text-3xl font-semibold text-slate-900">Quotation list</h1>
                         <p className="mt-2 text-sm text-slate-500">
-                            Review your curated pieces before proceeding to secure payment and production planning.
+                            Adjust metal modes and notes before submitting all requests together for merchandising review.
                         </p>
                     </div>
-                    <Link
-                        href={route('frontend.checkout.show')}
+                    <button
+                        type="button"
+                        onClick={submitQuotations}
+                        disabled={isEmpty}
                         className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
                             isEmpty
                                 ? 'cursor-not-allowed bg-slate-300 text-slate-500'
                                 : 'bg-sky-600 text-white shadow-lg shadow-sky-600/30 hover:bg-sky-500'
                         }`}
-                        as={isEmpty ? undefined : 'button'}
-                        disabled={isEmpty}
                     >
-                        Proceed to checkout
-                    </Link>
+                        Submit quotations
+                    </button>
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
@@ -120,6 +161,45 @@ export default function CartIndex() {
                                                         Base {formatter.format(item.price_breakdown.base ?? 0)} · Making{' '}
                                                         {formatter.format(item.price_breakdown.making ?? 0)}
                                                     </p>
+                                                    {(item.line_discount ?? 0) > 0 && (
+                                                        <p className="mt-1 text-xs font-semibold text-emerald-600">
+                                                            Making discount −{formatter.format(item.line_discount ?? 0)}
+                                                            {item.price_breakdown.discount_details?.name
+                                                                ? ` (${item.price_breakdown.discount_details.name})`
+                                                                : ''}
+                                                        </p>
+                                                    )}
+                                                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                                                        <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.3em] text-slate-400">
+                                                            Mode
+                                                            <select
+                                                                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                                value={item.configuration?.mode ?? 'purchase'}
+                                                                onChange={(event) =>
+                                                                    updateConfiguration(item, {
+                                                                        mode: event.target.value,
+                                                                    })
+                                                                }
+                                                            >
+                                                                <option value="purchase">Jewellery quotation</option>
+                                                                <option value="jobwork">Jobwork</option>
+                                                            </select>
+                                                        </label>
+                                                        <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.3em] text-slate-400">
+                                                            Notes
+                                                            <textarea
+                                                                defaultValue={item.configuration?.notes ?? ''}
+                                                                onBlur={(event) =>
+                                                                    updateConfiguration(item, {
+                                                                        notes: event.target.value,
+                                                                    })
+                                                                }
+                                                                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                                placeholder="Share expectations or deadlines"
+                                                                rows={3}
+                                                            />
+                                                        </label>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex flex-col items-start gap-3 md:flex-row md:items-center">
@@ -163,7 +243,7 @@ export default function CartIndex() {
 
                     <aside className="space-y-6">
                         <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                            <h2 className="text-lg font-semibold text-slate-900">Order summary</h2>
+                            <h2 className="text-lg font-semibold text-slate-900">Summary</h2>
                             <div className="mt-4 space-y-3 text-sm text-slate-600">
                                 <div className="flex items-center justify-between">
                                     <span>Subtotal</span>
@@ -173,10 +253,12 @@ export default function CartIndex() {
                                     <span>Tax</span>
                                     <span>{formatter.format(cart.tax)}</span>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span>Discount</span>
-                                    <span>-{formatter.format(cart.discount)}</span>
-                                </div>
+                                {cart.discount > 0 && (
+                                    <div className="flex items-center justify-between">
+                                        <span>Discount</span>
+                                        <span>-{formatter.format(cart.discount)}</span>
+                                    </div>
+                                )}
                                 <div className="flex items-center justify-between">
                                     <span>Shipping</span>
                                     <span>{formatter.format(cart.shipping)}</span>
@@ -188,18 +270,18 @@ export default function CartIndex() {
                                     </div>
                                 </div>
                             </div>
-                            <Link
-                                href={route('frontend.checkout.show')}
-                                className={`mt-6 block rounded-full px-4 py-2 text-center text-sm font-semibold transition ${
+                            <button
+                                type="button"
+                                onClick={submitQuotations}
+                                disabled={isEmpty}
+                                className={`mt-6 block w-full rounded-full px-4 py-2 text-center text-sm font-semibold transition ${
                                     isEmpty
                                         ? 'cursor-not-allowed bg-slate-300 text-slate-500'
                                         : 'bg-sky-600 text-white shadow-lg shadow-sky-600/30 hover:bg-sky-500'
                                 }`}
-                                as={isEmpty ? undefined : 'button'}
-                                disabled={isEmpty}
                             >
-                                Proceed to checkout
-                            </Link>
+                                Submit quotations
+                            </button>
                         </div>
                     </aside>
                 </div>
