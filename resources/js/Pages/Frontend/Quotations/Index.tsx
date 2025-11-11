@@ -12,7 +12,7 @@ type QuotationRow = {
     admin_notes?: string | null;
     quantity: number;
     notes?: string | null;
-    selections?: Record<string, unknown> | null;
+    selections?: Record<string, string | number | boolean | null | undefined> | null;
     product: {
         id: number;
         name: string;
@@ -22,7 +22,7 @@ type QuotationRow = {
     variant?: {
         id: number;
         label: string;
-        metadata?: Record<string, unknown> | null;
+        metadata?: Record<string, string | number | boolean | null | undefined> | null;
     } | null;
     order?: {
         id: number;
@@ -90,6 +90,18 @@ export default function QuotationsIndex() {
                   year: 'numeric',
               })
             : 'N/A';
+
+    const formatSelectionValue = (value: string | number | boolean | null | undefined): string => {
+        if (value === null || value === undefined || value === '') {
+            return '—';
+        }
+
+        if (typeof value === 'boolean') {
+            return value ? 'Yes' : 'No';
+        }
+
+        return String(value);
+    };
 
     useEffect(() => {
         if (!viewQuotation) {
@@ -246,7 +258,7 @@ export default function QuotationsIndex() {
                                                         {Object.entries(quotation.selections).map(([key, value]) => (
                                                             <li key={key}>
                                                                 <span className="capitalize text-slate-400">{key.replace(/_/g, ' ')}:</span>{' '}
-                                                                <span className="text-slate-700">{value ?? '—'}</span>
+                                                                <span className="text-slate-700">{formatSelectionValue(value)}</span>
                                                             </li>
                                                         ))}
                                                     </ul>
@@ -395,7 +407,8 @@ export default function QuotationsIndex() {
                                 <ul className="mt-2 space-y-1">
                                     {Object.entries(viewQuotation.selections).map(([key, value]) => (
                                         <li key={key}>
-                                            <span className="font-semibold text-slate-700">{key.replace(/_/g, ' ')}:</span> {value ?? '—'}
+                                            <span className="font-semibold text-slate-700">{key.replace(/_/g, ' ')}:</span>{' '}
+                                            {formatSelectionValue(value)}
                                         </li>
                                     ))}
                                 </ul>

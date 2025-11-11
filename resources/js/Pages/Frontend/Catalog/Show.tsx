@@ -116,7 +116,21 @@ export default function CatalogShow() {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
-    const { data, setData, post, processing, errors } = useForm({
+    type QuotationFormData = {
+        product_id: number;
+        product_variant_id: number | null;
+        mode: 'purchase' | 'jobwork';
+        quantity: number;
+        notes: string;
+        selections: {
+            gold_purity_id: number | null | '';
+            silver_purity_id: number | null | '';
+            diamond_option_key: string | null;
+            size_cm: string | null;
+        };
+    };
+
+    const { data, setData, post, processing, errors } = useForm<QuotationFormData>({
         product_id: product.id,
         product_variant_id: defaultVariant?.id ?? null,
         mode,

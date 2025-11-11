@@ -39,6 +39,12 @@ type CartItem = {
     };
 };
 
+type ItemConfigurationUpdate = {
+    mode?: 'purchase' | 'jobwork';
+    notes?: string | null;
+    selections?: Record<string, string | number | boolean | null> | null;
+};
+
 type CartPageProps = PageProps<{
     cart: {
         items: CartItem[];
@@ -71,7 +77,7 @@ export default function CartIndex() {
         );
     };
 
-    const updateConfiguration = (item: CartItem, configuration: Record<string, unknown>) => {
+    const updateConfiguration = (item: CartItem, configuration: ItemConfigurationUpdate) => {
         router.patch(
             route('frontend.cart.items.update', item.id),
             { configuration },

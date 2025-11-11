@@ -1,6 +1,7 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps as AppPageProps } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
+import type { FormDataConvertible } from '@inertiajs/core';
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 type VariantForm = {
@@ -13,7 +14,17 @@ type VariantForm = {
     size_cm: string;
     price_adjustment: string;
     is_default: boolean;
-    metadata?: Record<string, unknown>;
+    metadata?: Record<string, FormDataConvertible>;
+};
+
+type ProductDiamondOption = {
+    key?: string | null;
+    type_id: number | null;
+    shape_id: number | null;
+    color_id: number | null;
+    clarity_id: number | null;
+    cut_id: number | null;
+    weight: number | null;
 };
 
 type Product = {
@@ -44,7 +55,7 @@ type Product = {
     uses_diamond?: boolean;
     gold_purity_ids?: number[];
     silver_purity_ids?: number[];
-    diamond_options?: DiamondOptionForm[];
+    diamond_options?: ProductDiamondOption[];
     media?: ProductMedia[];
 };
 
@@ -91,8 +102,8 @@ type FormData = {
     net_weight: string;
     base_price: string;
     making_charge: string;
-    making_charge_discount_type: '' | 'percentage' | 'fixed';
-    making_charge_discount_value: string;
+    making_charge_discount_type: '' | 'percentage' | 'fixed' | null;
+    making_charge_discount_value: string | number | null;
     making_charge_discount_overrides: DiscountOverrideForm[];
     is_jobwork_allowed: boolean;
     visibility: string;
@@ -105,8 +116,8 @@ type FormData = {
     gold_purity_ids: number[];
     silver_purity_ids: number[];
     diamond_options: DiamondOptionForm[];
-    media_uploads: File[];
-    removed_media_ids: number[];
+    media_uploads?: File[];
+    removed_media_ids?: number[];
 };
 
 type DiamondOptionForm = {
@@ -123,7 +134,7 @@ type DiscountOverrideForm = {
     localKey: string;
     customer_group_id: number | '';
     type: 'percentage' | 'fixed';
-    value: string;
+    value: string | number | null;
 };
 
 type ProductMedia = {
@@ -175,6 +186,18 @@ export default function AdminProductEdit() {
     const { props } = usePage<AdminProductEditPageProps>();
     const { product, brands, categories, goldPurities, silverPurities, diamondCatalog, customerGroups, errors } = props;
 
+    const initialDiamondOptions: DiamondOptionForm[] = product?.diamond_options?.length
+        ? product.diamond_options.map((option, index) => ({
+              key: option.key ?? `${generateLocalKey()}-${index}`,
+              type_id: option.type_id ?? '',
+              shape_id: option.shape_id ?? '',
+              color_id: option.color_id ?? '',
+              clarity_id: option.clarity_id ?? '',
+              cut_id: option.cut_id ?? '',
+              weight: option.weight !== null && option.weight !== undefined ? String(option.weight) : '',
+          }))
+        : [];
+
     const initialVariants: VariantForm[] = product?.variants?.length
         ? product.variants.map((variant, index) => ({
               id: variant.id,
@@ -213,11 +236,11 @@ export default function AdminProductEdit() {
         base_price: product?.base_price ? String(product.base_price) : '',
         making_charge: product?.making_charge ? String(product.making_charge) : '',
         making_charge_discount_type:
-            (product?.making_charge_discount_type as 'percentage' | 'fixed' | null) ?? '',
+            (product?.making_charge_discount_type as 'percentage' | 'fixed' | null) ?? null,
         making_charge_discount_value:
             product?.making_charge_discount_value !== null && product?.making_charge_discount_value !== undefined
                 ? String(product.making_charge_discount_value)
-                : '',
+                : null,
         making_charge_discount_overrides: initialDiscountOverrides,
         is_jobwork_allowed: product?.is_jobwork_allowed ?? false,
         visibility: product?.visibility ?? 'public',
@@ -236,9 +259,7 @@ export default function AdminProductEdit() {
         uses_diamond: product?.uses_diamond ?? false,
         gold_purity_ids: product?.gold_purity_ids ?? [],
         silver_purity_ids: product?.silver_purity_ids ?? [],
-        diamond_options: product?.diamond_options?.length
-            ? product.diamond_options
-            : [],
+        diamond_options: initialDiamondOptions,
         media_uploads: [],
         removed_media_ids: [],
     }));
@@ -535,28 +556,37 @@ export default function AdminProductEdit() {
         });
     };
 
-    const updateDiamondOption = (key: string, field: keyof DiamondOptionForm, value: string | number) => {
+    const updateDiamondOption = (
+        key: string,
+        field: Exclude<keyof DiamondOptionForm, 'key'>,
+        value: string | number | null,
+    ) => {
         setData((prev) => {
             const diamond_options = prev.diamond_options.map((option) => {
                 if (option.key !== key) {
                     return option;
                 }
 
-                const nextOption: DiamondOptionForm = { ...option };
-
-                if (field === 'weight' && typeof value === 'string') {
-                    nextOption.weight = value;
-                } else if (field !== 'weight') {
-                    if (value === '' || value === null) {
-                        nextOption[field] = '';
-                    } else if (typeof value === 'number') {
-                        nextOption[field] = value;
-                    } else if (typeof value === 'string') {
-                        nextOption[field] = value === '' ? '' : Number(value);
-                    }
+                if (field === 'weight') {
+                    return {
+                        ...option,
+                        weight: value === null ? '' : String(value),
+                    };
                 }
 
-                return nextOption;
+                const nextValue =
+                    value === null || value === ''
+                        ? ''
+                        : typeof value === 'number'
+                        ? value
+                        : value === ''
+                        ? ''
+                        : Number(value);
+
+                return {
+                    ...option,
+                    [field]: nextValue as DiamondOptionForm[typeof field],
+                };
             });
 
             const draft: FormData = {
@@ -761,7 +791,13 @@ export default function AdminProductEdit() {
                   }))
                 : [];
 
-            const toNullableNumber = (value: string) => (value === '' ? null : Number(value));
+            const toNullableNumber = (value: string | number | null | undefined) => {
+                if (value === null || value === undefined || value === '') {
+                    return null;
+                }
+
+                return typeof value === 'number' ? value : Number(value);
+            };
 
             payload.making_charge_discount_type = current.making_charge_discount_type || null;
             payload.making_charge_discount_value = current.making_charge_discount_type
