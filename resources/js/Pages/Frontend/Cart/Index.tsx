@@ -183,7 +183,7 @@ export default function CartIndex() {
                                                                 value={item.configuration?.mode ?? 'purchase'}
                                                                 onChange={(event) =>
                                                                     updateConfiguration(item, {
-                                                                        mode: event.target.value,
+                                                                        mode: event.target.value as 'purchase' | 'jobwork',
                                                                     })
                                                                 }
                                                             >

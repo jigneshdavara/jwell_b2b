@@ -225,7 +225,7 @@ export default function AdminProductEdit() {
           }))
         : [];
 
-    const form = useForm<FormData>(() => ({
+    const form = useForm<Record<string, any>>(() => ({
         sku: product?.sku ?? '',
         name: product?.name ?? '',
         description: product?.description ?? '',
@@ -262,8 +262,9 @@ export default function AdminProductEdit() {
         diamond_options: initialDiamondOptions,
         media_uploads: [],
         removed_media_ids: [],
-    }));
-    const { data, setData, post, put, processing } = form;
+    }) as Record<string, any>);
+    const { setData, post, put, processing } = form;
+    const data = form.data as FormData;
 
     const goldPurityMap = useMemo(
         () => Object.fromEntries(goldPurities.map((item) => [item.id, item.name])),
@@ -403,7 +404,7 @@ export default function AdminProductEdit() {
     );
 
     const toggleVariantProduct = (checked: boolean) => {
-        setData((prev) => {
+        setData((prev: FormData) => {
             const draft: FormData = {
                 ...prev,
                 is_variant_product: checked,
@@ -427,14 +428,14 @@ export default function AdminProductEdit() {
     };
 
     const toggleUsesGold = (checked: boolean) => {
-        setData((prev) => {
+        setData((prev: FormData) => {
             const draft: FormData = {
                 ...prev,
                 uses_gold: checked,
                 gold_purity_ids: checked ? prev.gold_purity_ids : [],
                 variants: checked
                     ? prev.variants
-                    : prev.variants.map((variant) => ({
+                    : prev.variants.map((variant: VariantForm) => ({
                           ...variant,
                           gold_purity_id: '',
                       })),
@@ -447,14 +448,14 @@ export default function AdminProductEdit() {
     };
 
     const toggleUsesSilver = (checked: boolean) => {
-        setData((prev) => {
+        setData((prev: FormData) => {
             const draft: FormData = {
                 ...prev,
                 uses_silver: checked,
                 silver_purity_ids: checked ? prev.silver_purity_ids : [],
                 variants: checked
                     ? prev.variants
-                    : prev.variants.map((variant) => ({
+                    : prev.variants.map((variant: VariantForm) => ({
                           ...variant,
                           silver_purity_id: '',
                       })),
@@ -467,7 +468,7 @@ export default function AdminProductEdit() {
     };
 
     const toggleUsesDiamond = (checked: boolean) => {
-        setData((prev) => {
+        setData((prev: FormData) => {
             const nextOptions =
                 checked && prev.diamond_options.length === 0 ? [createDiamondOption()] : checked ? prev.diamond_options : [];
 
@@ -477,7 +478,7 @@ export default function AdminProductEdit() {
                 diamond_options: nextOptions,
                 variants: checked
                     ? prev.variants
-                    : prev.variants.map((variant) => ({
+                    : prev.variants.map((variant: VariantForm) => ({
                           ...variant,
                           diamond_option_key: null,
                       })),
@@ -490,7 +491,7 @@ export default function AdminProductEdit() {
     };
 
     const toggleGoldPuritySelection = (purityId: number) => {
-        setData((prev) => {
+        setData((prev: FormData) => {
             const exists = prev.gold_purity_ids.includes(purityId);
             const nextIds = exists
                 ? prev.gold_purity_ids.filter((id) => id !== purityId)
@@ -499,7 +500,7 @@ export default function AdminProductEdit() {
             const draft: FormData = {
                 ...prev,
                 gold_purity_ids: nextIds,
-                variants: prev.variants.map((variant) => {
+                variants: prev.variants.map((variant: VariantForm) => {
                     if (typeof variant.gold_purity_id === 'number' && !nextIds.includes(variant.gold_purity_id)) {
                         return {
                             ...variant,
@@ -518,7 +519,7 @@ export default function AdminProductEdit() {
     };
 
     const toggleSilverPuritySelection = (purityId: number) => {
-        setData((prev) => {
+        setData((prev: FormData) => {
             const exists = prev.silver_purity_ids.includes(purityId);
             const nextIds = exists
                 ? prev.silver_purity_ids.filter((id) => id !== purityId)
@@ -527,7 +528,7 @@ export default function AdminProductEdit() {
             const draft: FormData = {
                 ...prev,
                 silver_purity_ids: nextIds,
-                variants: prev.variants.map((variant) => {
+                variants: prev.variants.map((variant: VariantForm) => {
                     if (typeof variant.silver_purity_id === 'number' && !nextIds.includes(variant.silver_purity_id)) {
                         return {
                             ...variant,
@@ -546,7 +547,7 @@ export default function AdminProductEdit() {
     };
 
     const addDiamondOptionRow = () => {
-        setData((prev) => {
+        setData((prev: FormData) => {
             const draft: FormData = {
                 ...prev,
                 diamond_options: [...prev.diamond_options, createDiamondOption()],
@@ -561,8 +562,8 @@ export default function AdminProductEdit() {
         field: Exclude<keyof DiamondOptionForm, 'key'>,
         value: string | number | null,
     ) => {
-        setData((prev) => {
-            const diamond_options = prev.diamond_options.map((option) => {
+        setData((prev: FormData) => {
+            const diamond_options = prev.diamond_options.map((option: DiamondOptionForm) => {
                 if (option.key !== key) {
                     return option;
                 }
@@ -601,12 +602,12 @@ export default function AdminProductEdit() {
     };
 
     const removeDiamondOptionRow = (key: string) => {
-        setData((prev) => {
-            const diamond_options = prev.diamond_options.filter((option) => option.key !== key);
+        setData((prev: FormData) => {
+            const diamond_options = prev.diamond_options.filter((option: DiamondOptionForm) => option.key !== key);
             const draft: FormData = {
                 ...prev,
                 diamond_options,
-                variants: prev.variants.map((variant) =>
+                variants: prev.variants.map((variant: VariantForm) =>
                     variant.diamond_option_key === key
                         ? {
                               ...variant,
@@ -623,12 +624,12 @@ export default function AdminProductEdit() {
     };
 
     const removeVariant = (index: number) => {
-        setData((prev) => {
+        setData((prev: FormData) => {
             if (prev.variants.length === 1) {
                 return prev;
             }
 
-            const remaining = prev.variants.filter((_, idx) => idx !== index);
+            const remaining = prev.variants.filter((_, idx: number) => idx !== index);
             if (remaining.every((variant) => !variant.is_default) && remaining.length > 0) {
                 remaining[0].is_default = true;
             }
@@ -645,8 +646,8 @@ export default function AdminProductEdit() {
     };
 
     const updateVariant = (index: number, field: keyof VariantForm, value: string | boolean | number | null) => {
-        setData((prev) => {
-            const variants = prev.variants.map((variant, idx) => {
+        setData((prev: FormData) => {
+            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
                 if (idx !== index) {
                     return variant;
                 }
@@ -707,9 +708,9 @@ export default function AdminProductEdit() {
     };
 
     const markDefault = (index: number) => {
-        setData((prev) => ({
+        setData((prev: FormData) => ({
             ...prev,
-            variants: prev.variants.map((variant, idx) => ({
+            variants: prev.variants.map((variant: VariantForm, idx: number) => ({
                 ...variant,
                 is_default: idx === index,
             })),
@@ -717,7 +718,7 @@ export default function AdminProductEdit() {
     };
 
     const addVariantRow = () => {
-        setData((prev) => {
+        setData((prev: FormData) => {
             const draft: FormData = {
                 ...prev,
                 variants: [...prev.variants, emptyVariant(prev.variants.length === 0)],
@@ -730,31 +731,31 @@ export default function AdminProductEdit() {
     };
 
     const addDiscountOverrideRow = () => {
-        setData((prev) => ({
+        setData((prev: FormData) => ({
             ...prev,
             making_charge_discount_overrides: [...prev.making_charge_discount_overrides, createDiscountOverride()],
         }));
     };
 
     const updateDiscountOverrideRow = (index: number, changes: Partial<DiscountOverrideForm>) => {
-        setData((prev) => ({
+        setData((prev: FormData) => ({
             ...prev,
-            making_charge_discount_overrides: prev.making_charge_discount_overrides.map((override, idx) =>
+            making_charge_discount_overrides: prev.making_charge_discount_overrides.map((override: DiscountOverrideForm, idx: number) =>
                 idx === index ? { ...override, ...changes } : override,
             ),
         }));
     };
 
     const removeDiscountOverrideRow = (index: number) => {
-        setData((prev) => ({
+        setData((prev: FormData) => ({
             ...prev,
-            making_charge_discount_overrides: prev.making_charge_discount_overrides.filter((_, idx) => idx !== index),
+            making_charge_discount_overrides: prev.making_charge_discount_overrides.filter((_, idx: number) => idx !== index),
         }));
     };
 
     useEffect(() => {
         if (data.uses_diamond && data.diamond_options.length === 0) {
-            setData((prev) => {
+            setData((prev: FormData) => {
                 const draft: FormData = {
                     ...prev,
                     diamond_options: [createDiamondOption()],
@@ -771,16 +772,17 @@ export default function AdminProductEdit() {
         event.preventDefault();
 
         form.transform((current) => {
-            const payload = { ...current };
-            payload.uses_gold = current.uses_gold;
-            payload.uses_silver = current.uses_silver;
-            payload.uses_diamond = current.uses_diamond;
+            const formState = current as FormData;
+            const payload: any = { ...formState };
+            payload.uses_gold = formState.uses_gold;
+            payload.uses_silver = formState.uses_silver;
+            payload.uses_diamond = formState.uses_diamond;
 
-            payload.gold_purity_ids = current.uses_gold ? [...current.gold_purity_ids] : [];
-            payload.silver_purity_ids = current.uses_silver ? [...current.silver_purity_ids] : [];
+            payload.gold_purity_ids = formState.uses_gold ? [...formState.gold_purity_ids] : [];
+            payload.silver_purity_ids = formState.uses_silver ? [...formState.silver_purity_ids] : [];
 
-            payload.diamond_options = current.uses_diamond
-                ? current.diamond_options.map((option) => ({
+            payload.diamond_options = formState.uses_diamond
+                ? formState.diamond_options.map((option: DiamondOptionForm) => ({
                       key: option.key,
                       type_id: option.type_id !== '' ? Number(option.type_id) : null,
                       shape_id: option.shape_id !== '' ? Number(option.shape_id) : null,
@@ -799,12 +801,12 @@ export default function AdminProductEdit() {
                 return typeof value === 'number' ? value : Number(value);
             };
 
-            payload.making_charge_discount_type = current.making_charge_discount_type || null;
-            payload.making_charge_discount_value = current.making_charge_discount_type
-                ? toNullableNumber(current.making_charge_discount_value)
+            payload.making_charge_discount_type = formState.making_charge_discount_type || null;
+            payload.making_charge_discount_value = formState.making_charge_discount_type
+                ? toNullableNumber(formState.making_charge_discount_value)
                 : null;
-            payload.making_charge_discount_overrides = current.making_charge_discount_overrides
-                .map((override) => ({
+            payload.making_charge_discount_overrides = formState.making_charge_discount_overrides
+                .map((override: DiscountOverrideForm) => ({
                     customer_group_id:
                         override.customer_group_id !== '' ? Number(override.customer_group_id) : null,
                     type: override.type,
@@ -812,9 +814,9 @@ export default function AdminProductEdit() {
                 }))
                 .filter((override) => override.customer_group_id !== null && override.value !== null);
 
-            payload.variants = current.is_variant_product
-                ? current.variants.map((variant) => {
-                      const meta = buildVariantMeta(variant, current);
+            payload.variants = formState.is_variant_product
+                ? formState.variants.map((variant: VariantForm) => {
+                      const meta = buildVariantMeta(variant, formState);
 
                       return {
                           id: variant.id,
@@ -830,7 +832,7 @@ export default function AdminProductEdit() {
                   })
                 : [];
 
-            if (!current.is_variant_product) {
+            if (!formState.is_variant_product) {
                 payload.uses_gold = false;
                 payload.uses_silver = false;
                 payload.uses_diamond = false;
