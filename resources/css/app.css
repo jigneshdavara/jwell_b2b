@@ -32,11 +32,11 @@ a:hover {
 
 @layer components {
     .btn-primary {
-        @apply inline-flex items-center justify-center rounded-lg bg-sky-600 px-5 py-2.5 font-medium text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-slate-900;
+        @apply inline-flex items-center justify-center rounded-lg bg-sk y-600 px-5 py-2.5 font-medium text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500  hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-slate-900;
     }
 
     .btn-secondary {
-        @apply inline-flex items-center justify-center rounded-lg border border-white/30 bg-white/10 px-5 py-2.5 font-medium text-white transition hover:bg-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50;
+        @apply inline-flex items-center justify-center rounded-lg border border-white/30 bg-white/10 px-5 py-2.5 font-medium text-white transition hover:bg-white/20  hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50;
     }
 
     .glass-card {
