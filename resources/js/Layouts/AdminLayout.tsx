@@ -35,7 +35,7 @@ const adminNavigation: NavItem[] = [
         ],
     },
     {
-        label: 'User management',
+        label: 'Manage Users',
         icon: 'users',
         children: [
             { label: 'User list', route: 'admin.users.index', match: 'admin.users.index' },
