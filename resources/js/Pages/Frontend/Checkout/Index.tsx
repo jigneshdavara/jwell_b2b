@@ -135,7 +135,7 @@ export default function CheckoutIndex() {
                                 <div key={item.sku} className="flex items-center justify-between">
                                     <div>
                                         <p className="font-medium text-slate-900">{item.name}</p>
-                                        <p className="text-xs uppercase tracking-[0.35em] text-slate-400">
+                                        <p className="text-xs text-slate-400">
                                             {item.quantity} × {item.sku}
                                         </p>
                                     </div>

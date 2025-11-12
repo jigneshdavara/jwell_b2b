@@ -49,7 +49,7 @@ export default function HomeIndex() {
                         <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-1 text-xs font-semibold text-slate-200">
                             Crafted for high-value jewellery partnerships
                         </p>
-                        <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                        <h1 className="text-4xl font-bold text-white sm:text-5xl lg:text-6xl">
                             The operating system for B2B jewellery sourcing, jobwork, and production.
                         </h1>
                         <p className="text-lg text-slate-200">

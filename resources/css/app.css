@@ -93,11 +93,11 @@ a:hover {
     }
 }
 
-/* Normalize admin uppercase tracking to 0.1rem */
-[class*="tracking-\\[0\\.3em\\]"],
-[class*="tracking-\\[0\\.35em\\]"],
-[class*="tracking-\\[0\\.25em\\]"],
-[class*="tracking-\\[0\\.2em\\]"],
-[class*="tracking-\\[0\\.4em\\]"] {
-    letter-spacing: 0.1rem !important;
+/* Neutralize legacy uppercase/tracking utilities */
+.uppercase {
+    text-transform: none !important;
+}
+
+[class*="tracking-"] {
+    letter-spacing: normal !important;
 }

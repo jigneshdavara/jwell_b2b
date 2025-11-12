@@ -101,7 +101,7 @@ export default function FrontendOrdersIndex() {
                                     </div>
                                 </div>
                                 <div className="text-right text-sm text-slate-600">
-                                    <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Total</p>
+                                    <p className="text-xs text-slate-400">Total</p>
                                     <p className="text-lg font-semibold text-slate-900">
                                         {currencyFormatter.format(order.total_amount)}
                                     </p>

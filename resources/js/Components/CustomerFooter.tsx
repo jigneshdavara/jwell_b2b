@@ -68,7 +68,7 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_45%),_radial-gradient(circle_at_bottom_right,_rgba(236,72,153,0.2),_transparent_55%)]" />
             <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-6 py-12 lg:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))] lg:px-10 xl:px-16">
                     <div className="space-y-4">
-                        <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-slate-200">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-200">
                             Est. 1998
                         </span>
                         <h4 className="text-2xl font-semibold text-white">Elvee B2B Jewellery</h4>
@@ -84,7 +84,7 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
                     </div>
 
                     <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">Quick links</p>
+                        <p className="text-xs font-semibold text-slate-400">Quick links</p>
                         <ul className="mt-4 space-y-3 text-sm">
                             {quickLinks.map((item) => (
                                 <li key={item.label}>
@@ -100,7 +100,7 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
                     </div>
 
                     <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">Client services</p>
+                        <p className="text-xs font-semibold text-slate-400">Client services</p>
                         <ul className="mt-4 space-y-3 text-sm">
                             {supportLinks.map((item) => (
                                 <li key={item.label}>
@@ -116,11 +116,11 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
                     </div>
 
                     <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-400">Contact & studio</p>
+                        <p className="text-xs font-semibold text-slate-400">Contact & studio</p>
                         <ul className="mt-4 space-y-4 text-sm">
                             {companyDetails.map((detail) => (
                                 <li key={detail.label} className="space-y-1">
-                                    <span className="text-xs uppercase tracking-[0.1em] text-slate-500">{detail.label}</span>
+                                    <span className="text-xs text-slate-500">{detail.label}</span>
                                     <a href={detail.href ?? '#'} className="group flex items-center gap-3 text-slate-200 transition hover:text-white">
                                         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/10">
                                             {detail.icon}

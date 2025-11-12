@@ -71,7 +71,7 @@ export default function FrontendOrdersShow() {
 
             <div className="space-y-10">
                 <header className="space-y-3">
-                    <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Order reference</p>
+                    <p className="text-xs text-slate-400">Order reference</p>
                     <h1 className="text-3xl font-semibold text-slate-900">{order.reference}</h1>
                     <div className="flex flex-wrap gap-3 text-xs text-slate-500">
                         <span
@@ -108,7 +108,7 @@ export default function FrontendOrdersShow() {
                                     >
                                         <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
                                             <p className="font-semibold text-slate-900">{item.name}</p>
-                                            <span className="text-xs uppercase tracking-[0.35em] text-slate-400">
+                                            <span className="text-xs text-slate-400">
                                                 SKU {item.sku}
                                             </span>
                                         </div>
