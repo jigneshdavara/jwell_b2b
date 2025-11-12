@@ -143,6 +143,7 @@ export default function Authenticated({
                 href: route('frontend.catalog.index', {
                     category: category.slug ?? category.id,
                 }),
+                image: category.cover_image_url ?? null,
             })),
         [navigationData.categories],
     );
@@ -174,7 +175,7 @@ export default function Authenticated({
     const primaryNav = useMemo(() => {
         const items: Array<
             | { type: 'link'; label: string; href: string; isActive?: boolean }
-            | { type: 'mega'; label: string; items: Array<{ id: number; name: string; href: string }> }
+            | { type: 'mega'; label: string; items: Array<{ id: number; name: string; href: string; image?: string | null }> }
         > = [
             {
                 type: 'link',
@@ -312,17 +313,59 @@ export default function Authenticated({
                                                 </svg>
                                             </button>
                                             {item.items.length > 0 && (
-                                                <div className="invisible absolute left-1/2 z-30 mt-3 w-[28rem] -translate-x-1/2 rounded-3xl border border-slate-100 bg-white p-6 opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100 lg:w-[32rem]">
-                                                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                                        {item.items.map((link) => (
-                                                            <Link
-                                                                key={link.id}
-                                                                href={link.href}
-                                                                className="block rounded-xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-sky-50 hover:text-sky-600"
-                                                            >
-                                                                {link.name}
-                                                            </Link>
-                                                        ))}
+                                                <div
+                                                    className={`invisible absolute left-1/2 z-30 mt-3 -translate-x-1/2 rounded-3xl border border-slate-100 bg-white p-6 opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100 ${
+                                                        item.label === 'Categories'
+                                                            ? 'w-[38rem] lg:w-[46rem]'
+                                                            : 'w-[28rem] lg:w-[32rem]'
+                                                    }`}
+                                                >
+                                                    <div
+                                                        className={`grid gap-3 ${
+                                                            item.label === 'Categories'
+                                                                ? 'sm:grid-cols-2 lg:grid-cols-3'
+                                                                : 'sm:grid-cols-2'
+                                                        }`}
+                                                    >
+                                                        {item.items.map((link) =>
+                                                            item.label === 'Categories' ? (
+                                                                <Link
+                                                                    key={link.id}
+                                                                    href={link.href}
+                                                                    className="group/link relative overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 p-5 transition hover:border-sky-300 hover:shadow-xl"
+                                                                >
+                                                                    {link.image ? (
+                                                                        <img
+                                                                            src={link.image}
+                                                                            alt={link.name}
+                                                                            className="absolute inset-0 h-full w-full object-cover opacity-30 transition group-hover/link:opacity-40"
+                                                                        />
+                                                                    ) : null}
+                                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/80 to-white/60" />
+                                                                    <div className="relative flex h-full flex-col justify-between">
+                                                                        <div>
+                                                                            <p className="text-sm font-semibold text-slate-900">
+                                                                                {link.name}
+                                                                            </p>
+                                                                            <p className="mt-1 text-xs font-medium uppercase tracking-[0.35em] text-slate-400">
+                                                                                Explore now
+                                                                            </p>
+                                                                        </div>
+                                                                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition group-hover/link:border-sky-200 group-hover/link:text-sky-500">
+                                                                            →
+                                                                        </span>
+                                                                    </div>
+                                                                </Link>
+                                                            ) : (
+                                                                <Link
+                                                                    key={link.id}
+                                                                    href={link.href}
+                                                                    className="block rounded-2xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-sky-50 hover:text-sky-600"
+                                                                >
+                                                                    {link.name}
+                                                                </Link>
+                                                            ),
+                                                        )}
                                                     </div>
                                                 </div>
                                             )}
@@ -509,17 +552,42 @@ export default function Authenticated({
                                         ) : (
                                             <div key={item.label}>
                                                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">{item.label}</p>
-                                                <div className="mt-2 grid gap-2">
-                                                    {item.items.map((link) => (
-                                                        <Link
-                                                            key={link.id}
-                                                            href={link.href}
-                                                            className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-sky-300 hover:text-sky-600"
-                                                            onClick={() => setMobileMenuOpen(false)}
-                                                        >
-                                                            {link.name}
-                                                        </Link>
-                                                    ))}
+                                                <div
+                                                    className={`mt-3 ${
+                                                        item.label === 'Categories'
+                                                            ? 'grid grid-cols-2 gap-3'
+                                                            : 'grid gap-2'
+                                                    }`}
+                                                >
+                                                    {item.items.map((link) =>
+                                                        item.label === 'Categories' ? (
+                                                            <Link
+                                                                key={link.id}
+                                                                href={link.href}
+                                                                className="group relative h-28 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600"
+                                                                onClick={() => setMobileMenuOpen(false)}
+                                                            >
+                                                                {link.image ? (
+                                                                    <img
+                                                                        src={link.image}
+                                                                        alt={link.name}
+                                                                        className="absolute inset-0 h-full w-full object-cover opacity-30 transition group-hover:opacity-40"
+                                                                    />
+                                                                ) : null}
+                                                                <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/80 to-white/60" />
+                                                                <span className="relative z-10">{link.name}</span>
+                                                            </Link>
+                                                        ) : (
+                                                            <Link
+                                                                key={link.id}
+                                                                href={link.href}
+                                                                className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-sky-300 hover:text-sky-600"
+                                                                onClick={() => setMobileMenuOpen(false)}
+                                                            >
+                                                                {link.name}
+                                                            </Link>
+                                                        ),
+                                                    )}
                                                 </div>
                                             </div>
                                         ),

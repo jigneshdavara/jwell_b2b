@@ -6,6 +6,8 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\ProductCatalog;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -62,8 +64,20 @@ class HandleInertiaRequests extends Middleware
                 $wishlistProductIds = $wishlist->items->pluck('product_id')->unique()->values()->all();
             }
 
+            $resolveImageUrl = static function (?string $path): ?string {
+                if (! $path) {
+                    return null;
+                }
+
+                if (Str::startsWith($path, ['http://', 'https://'])) {
+                    return $path;
+                }
+
+                return Storage::disk('public')->url($path);
+            };
+
             $navCategories = Category::query()
-                ->select(['id', 'name', 'slug'])
+                ->select(['id', 'name', 'slug', 'cover_image_path'])
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->take(8)
@@ -72,6 +86,7 @@ class HandleInertiaRequests extends Middleware
                     'id' => $category->id,
                     'name' => $category->name,
                     'slug' => $category->slug,
+                    'cover_image_url' => $resolveImageUrl($category->cover_image_path),
                 ])
                 ->toArray();
 
