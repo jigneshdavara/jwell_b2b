@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { PageProps } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ChangeEvent, Dispatch, FormEvent, SetStateAction, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, Dispatch, FormEvent, SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 
 const FILTER_LABELS: Record<string, string> = {
     brand: 'Brand',
@@ -23,8 +23,10 @@ type Product = {
     category?: string | null;
     material?: string | null;
     purity?: string | null;
-    gross_weight: number;
-    net_weight: number;
+    gold_weight?: number | null;
+    silver_weight?: number | null;
+    other_material_weight?: number | null;
+    total_weight?: number | null;
     base_price: number;
     making_charge: number;
     is_jobwork_allowed: boolean;
@@ -51,8 +53,9 @@ type CatalogFiltersInput = {
     price_min?: string | null;
     price_max?: string | null;
     search?: string | null;
-    category?: string | null;
+    category?: string | string[] | null;
     catalog?: string | null;
+    sort?: string | null;
 };
 
 type CatalogProps = {
@@ -61,6 +64,8 @@ type CatalogProps = {
     products: {
         data: Product[];
         links: Array<{ url: string | null; label: string; active: boolean }>;
+        next_page_url: string | null;
+        prev_page_url: string | null;
     };
     facets: {
         brands: string[];
@@ -97,6 +102,7 @@ type CatalogFilters = {
     search?: string;
     category: string[];
     catalog?: string;
+    sort?: string;
 };
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
@@ -120,6 +126,14 @@ export default function CatalogIndex() {
     const wishlistProductIds = page.props.wishlist?.product_ids ?? [];
     const wishlistLookup = useMemo(() => new Set(wishlistProductIds), [wishlistProductIds]);
     const [wishlistBusyId, setWishlistBusyId] = useState<number | null>(null);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [sortOption, setSortOption] = useState<string>(rawFilters.sort ?? 'newest');
+    const [catalogItems, setCatalogItems] = useState<Product[]>(products.data);
+    const [nextPageUrl, setNextPageUrl] = useState<string | null>(products.next_page_url);
+    const [isAppending, setIsAppending] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const previousItemsRef = useRef<Product[]>([]);
+    const loaderRef = useRef<HTMLDivElement | null>(null);
 
     const filters = useMemo<CatalogFilters>(() => {
         const normalizeArray = (input?: string | string[] | null): string[] => {
@@ -149,6 +163,7 @@ export default function CatalogIndex() {
             price_max: normalizeSingle(rawFilters.price_max),
             category: normalizeArray(rawFilters.category),
             catalog: normalizeSingle(rawFilters.catalog),
+            sort: normalizeSingle(rawFilters.sort),
         };
     }, [rawFilters]);
     const [search, setSearch] = useState(filters.search ?? '');
@@ -163,6 +178,59 @@ export default function CatalogIndex() {
             max: filters.price_max ? Number(filters.price_max) : DEFAULT_PRICE_MAX,
         });
     }, [filters.price_min, filters.price_max]);
+
+    useEffect(() => {
+        setSortOption(rawFilters.sort ?? 'newest');
+    }, [rawFilters.sort]);
+
+    useEffect(() => {
+        if (isAppending) {
+            setCatalogItems((prev) => [...previousItemsRef.current, ...products.data]);
+            setIsAppending(false);
+        } else {
+            setCatalogItems(products.data);
+            previousItemsRef.current = [];
+            if (typeof window !== 'undefined') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        setNextPageUrl(products.next_page_url);
+        setIsLoadingMore(false);
+    }, [products.data, products.next_page_url]);
+
+    useEffect(() => {
+        const element = loaderRef.current;
+        if (!element || !nextPageUrl) {
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const [entry] = entries;
+                if (entry.isIntersecting && !isLoadingMore && nextPageUrl) {
+                    previousItemsRef.current = catalogItems;
+                    setIsAppending(true);
+                    setIsLoadingMore(true);
+                    router.get(nextPageUrl, {}, {
+                        preserveScroll: true,
+                        preserveState: true,
+                        replace: false,
+                        only: ['products'],
+                        onError: () => {
+                            setIsAppending(false);
+                            setIsLoadingMore(false);
+                        },
+                    });
+                }
+            },
+            { rootMargin: '200px' },
+        );
+
+        observer.observe(element);
+
+        return () => observer.disconnect();
+    }, [nextPageUrl, isLoadingMore, catalogItems]);
 
     const applyPriceRange = (min: number, max: number) => {
         router.get(
@@ -443,6 +511,49 @@ export default function CatalogIndex() {
                     </div>
                 </div>
 
+                <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/70">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('grid')}
+                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                                viewMode === 'grid' ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                        >
+                            Grid
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('list')}
+                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                                viewMode === 'list' ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                        >
+                            List
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <label htmlFor="catalog-sort" className="font-medium">
+                            Sort by
+                        </label>
+                        <select
+                            id="catalog-sort"
+                            value={sortOption}
+                            onChange={(event) => {
+                                const value = event.target.value;
+                                setSortOption(value);
+                                applyFilter('sort', value === 'newest' ? undefined : value);
+                            }}
+                            className="rounded-2xl border border-slate-200 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                        >
+                            <option value="newest">Newest arrivals</option>
+                            <option value="price_asc">Price: Low to high</option>
+                            <option value="price_desc">Price: High to low</option>
+                            <option value="name_asc">Name: A to Z</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div className="flex flex-wrap gap-3 text-xs">
                     {activeFilters.map(({ key, label, valueLabel, value }) => (
                         <button
@@ -553,7 +664,7 @@ export default function CatalogIndex() {
                                         >
                                             {catalog.name}
                                             {selected && (
-                                                <span className="text-[10px] uppercase tracking-[0.3em]">
+                                            <span className="text-[11px] font-medium text-slate-500">
                                                     ×
                                                 </span>
                                             )}
@@ -699,7 +810,7 @@ export default function CatalogIndex() {
                                     { title: 'Cuts', kind: 'cut', options: facets.diamondOptions.cuts },
                                 ].map(({ title, kind, options }) => (
                                     <div key={kind}>
-                                        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">{title}</p>
+                                        <p className="text-xs font-semibold text-slate-500">{title}</p>
                                         <div className="mt-2 space-y-2">
                                             {options.map((option) => {
                                                 const value = `${kind}:${option.id}`;
@@ -757,13 +868,17 @@ export default function CatalogIndex() {
                     </aside>
 
                     <section className="lg:col-span-4">
-                        {products.data.length === 0 ? (
+                        {catalogItems.length === 0 ? (
                             <div className="rounded-3xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
                                 No products match your filters. Try broadening your search or reset filters.
                             </div>
                         ) : (
-                            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                                {products.data.map((product) => {
+                            <div
+                                className={
+                                    viewMode === 'grid' ? 'grid gap-6 sm:grid-cols-2 xl:grid-cols-3' : 'flex flex-col gap-4'
+                                }
+                            >
+                                {catalogItems.map((product) => {
                                     const productLink = route('frontend.catalog.show', { product: product.id, mode });
                                     const imageUrl = product.thumbnail ?? product.media?.[0]?.url ?? null;
                                     const defaultVariant =
@@ -771,170 +886,29 @@ export default function CatalogIndex() {
                                     const isWishlisted = wishlistLookup.has(product.id);
 
                                     return (
-                                        <article
+                                        <ProductCard
                                             key={product.id}
-                                            className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg transition hover:-translate-y-1 hover:shadow-2xl"
-                                        >
-                                            <button
-                                                type="button"
-                                                onClick={(event) => {
-                                                    event.preventDefault();
-                                                    event.stopPropagation();
-                                                    toggleWishlist(product.id, defaultVariant?.id ?? null);
-                                                }}
-                                                disabled={wishlistBusyId === product.id}
-                                                aria-pressed={isWishlisted}
-                                                className={`absolute right-5 top-5 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border text-sm transition ${
-                                                    isWishlisted
-                                                        ? 'border-rose-200 bg-rose-500/10 text-rose-500'
-                                                        : 'border-white/70 bg-white/70 text-slate-600 hover:border-rose-200 hover:text-rose-500'
-                                                } ${wishlistBusyId === product.id ? 'opacity-60' : ''}`}
-                                            >
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 24 24"
-                                                    fill={isWishlisted ? 'currentColor' : 'none'}
-                                                    stroke="currentColor"
-                                                    strokeWidth={1.5}
-                                                    className="h-5 w-5"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 5.053 7.5 10.5 9 10.5s9-5.447 9-10.5z"
-                                                    />
-                                                </svg>
-                                            </button>
-                                            <Link href={productLink} className="block">
-                                                <div className="relative h-56 w-full overflow-hidden rounded-t-3xl">
-                                                    {imageUrl ? (
-                                                        <>
-                                                            <img
-                                                                src={imageUrl}
-                                                                alt={product.name}
-                                                                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                                                            />
-                                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
-                                                            <div className="absolute bottom-4 left-4 flex flex-col text-white">
-                                                                <span className="text-xs uppercase tracking-[0.35em] text-white/80">
-                                                                    {product.category ?? 'Signature'}
-                                                                </span>
-                                                                <span className="text-sm font-semibold">
-                                                                    {product.brand ?? 'Elvee Atelier'}
-                                                                </span>
-                                                            </div>
-                                                        </>
-                                                    ) : (
-                                                        <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
-                                                            <span className="text-xs uppercase tracking-[0.35em] text-white/70">
-                                                                {product.category ?? 'Signature'}
-                                                            </span>
-                                                            <span className="mt-2 text-lg font-semibold">{product.brand ?? 'Elvee Atelier'}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </Link>
-                                            <div className="space-y-3 p-6">
-                                                <Link
-                                                    href={productLink}
-                                                    className="text-lg font-semibold text-slate-900 transition hover:text-sky-600"
-                                                >
-                                                    {product.name}
-                                                </Link>
-                                                <p className="text-xs uppercase tracking-wide text-slate-400">
-                                                    SKU {product.sku}
-                                                </p>
-                                                {product.catalogs && product.catalogs.length > 0 && (
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {product.catalogs.slice(0, 2).map((catalog) => (
-                                                            <span
-                                                                key={catalog.id}
-                                                                className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-500"
-                                                            >
-                                                                {catalog.name}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                                <div className="flex flex-wrap gap-2">
-                                                    {product.variants.slice(0, 3).map((variant) => (
-                                                        <span
-                                                            key={variant.id}
-                                                            className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium ${
-                                                                variant.is_default
-                                                                    ? 'bg-slate-900 text-white'
-                                                                    : 'bg-slate-100 text-slate-600'
-                                                            }`}
-                                                        >
-                                                            {(variant.metadata?.auto_label as string | undefined) ?? variant.label}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                                <div className="rounded-2xl bg-slate-50 p-4">
-                                                    <dl className="grid grid-cols-2 gap-3 text-xs text-slate-500">
-                                                        <div>
-                                                            <dt className="font-medium text-slate-600">Material</dt>
-                                                            <dd>{product.material ?? 'Custom blend'}</dd>
-                                                        </div>
-                                                        <div>
-                                                            <dt className="font-medium text-slate-600">Gross</dt>
-                                                            <dd>{product.gross_weight.toFixed(2)} g</dd>
-                                                        </div>
-                                                        <div>
-                                                            <dt className="font-medium text-slate-600">Net</dt>
-                                                            <dd>{product.net_weight.toFixed(2)} g</dd>
-                                                        </div>
-                                                    </dl>
-                                                </div>
-                                                <div className="flex items-end justify-between">
-                                                    <div>
-                                                        <p className="text-xs uppercase tracking-wide text-slate-400">
-                                                            Base Price
-                                                        </p>
-                                                        <p className="text-lg font-semibold text-slate-900">
-                                                            {currencyFormatter.format(product.base_price)}
-                                                        </p>
-                                                        <p className="text-xs text-slate-500">
-                                                            Making {currencyFormatter.format(product.making_charge)}
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex flex-col gap-2">
-                                                        <Link
-                                                            href={productLink}
-                                                            className="rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500"
-                                                        >
-                                                            View details
-                                                        </Link>
-                                                        {mode === 'jobwork' && product.is_jobwork_allowed && (
-                                                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1 text-center text-[11px] font-semibold text-emerald-700">
-                                                                Available for jobwork
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </article>
+                                            product={product}
+                                            productLink={productLink}
+                                            imageUrl={imageUrl}
+                                            defaultVariant={defaultVariant}
+                                            isWishlisted={isWishlisted}
+                                            wishlistBusyId={wishlistBusyId}
+                                            viewMode={viewMode}
+                                            mode={mode}
+                                            toggleWishlist={toggleWishlist}
+                                        />
                                     );
                                 })}
                             </div>
                         )}
 
-                        <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm">
-                            {products.links.map((link, index) => (
-                                <Link
-                                    key={index}
-                                    href={link.url ?? '#'}
-                                    preserveScroll
-                                    className={`rounded-full px-4 py-2 transition ${
-                                        link.active
-                                            ? 'bg-sky-600 text-white shadow-lg'
-                                            : link.url
-                                            ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                                            : 'bg-slate-100 text-slate-400'
-                                    }`}
-                                    dangerouslySetInnerHTML={{ __html: link.label }}
-                                />
-                            ))}
+                        <div ref={loaderRef} className="mt-10 flex justify-center">
+                            {isLoadingMore && (
+                                <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600">
+                                    Loading more products…
+                                </span>
+                            )}
                         </div>
                     </section>
                 </div>
@@ -999,7 +973,7 @@ function PriceRangeFilter({
 
     return (
         <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
-            <div className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.3em] text-slate-400">
+            <div className="flex items-center justify-between text-xs font-medium text-slate-500">
                 <span>{currencyFormatter.format(priceRange.min)}</span>
                 <span>{currencyFormatter.format(priceRange.max)}</span>
             </div>
@@ -1025,7 +999,7 @@ function PriceRangeFilter({
             </div>
             <div className="flex items-center gap-3">
                 <div className="flex-1">
-                    <label className="text-xs font-medium uppercase tracking-[0.3em] text-slate-400" htmlFor="price-min">
+                    <label className="text-xs font-medium text-slate-500" htmlFor="price-min">
                         Min
                     </label>
                     <input
@@ -1040,7 +1014,7 @@ function PriceRangeFilter({
                     />
                 </div>
                 <div className="flex-1">
-                    <label className="text-xs font-medium uppercase tracking-[0.3em] text-slate-400" htmlFor="price-max">
+                    <label className="text-xs font-medium text-slate-500" htmlFor="price-max">
                         Max
                     </label>
                     <input
@@ -1072,6 +1046,216 @@ function PriceRangeFilter({
                 </button>
             </div>
         </div>
+    );
+}
+
+type ProductCardProps = {
+    product: Product;
+    productLink: string;
+    imageUrl: string | null;
+    defaultVariant?: Product['variants'][number] | null;
+    isWishlisted: boolean;
+    wishlistBusyId: number | null;
+    viewMode: 'grid' | 'list';
+    mode: 'purchase' | 'jobwork';
+    toggleWishlist: (productId: number, variantId?: number | null) => void;
+};
+
+function ProductCard({
+    product,
+    productLink,
+    imageUrl,
+    defaultVariant,
+    isWishlisted,
+    wishlistBusyId,
+    viewMode,
+    mode,
+    toggleWishlist,
+}: ProductCardProps) {
+    const wishlistDisabled = wishlistBusyId === product.id;
+    const showJobworkBadge = mode === 'jobwork' && product.is_jobwork_allowed;
+    const formatWeight = (value?: number | null) => {
+        if (value === null || value === undefined) {
+            return '—';
+        }
+
+        return `${value.toFixed(2)} g`;
+    };
+    const weightSummary = [
+        product.gold_weight !== null && product.gold_weight !== undefined
+            ? `${product.gold_weight.toFixed(2)} g gold`
+            : null,
+        product.silver_weight !== null && product.silver_weight !== undefined
+            ? `${product.silver_weight.toFixed(2)} g silver`
+            : null,
+        product.other_material_weight !== null && product.other_material_weight !== undefined
+            ? `${product.other_material_weight.toFixed(2)} g other`
+            : null,
+        product.total_weight !== null && product.total_weight !== undefined
+            ? `${product.total_weight.toFixed(2)} g total`
+            : null,
+    ].filter(Boolean);
+
+    const WishlistButton = (
+        <button
+            type="button"
+            onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                toggleWishlist(product.id, defaultVariant?.id ?? null);
+            }}
+            disabled={wishlistDisabled}
+            aria-pressed={isWishlisted}
+            className={`inline-flex h-10 w-10 items-center justify-center rounded-full border text-sm transition ${
+                isWishlisted
+                    ? 'border-rose-200 bg-rose-500/10 text-rose-500'
+                    : 'border-white/70 bg-white/70 text-slate-600 hover:border-rose-200 hover:text-rose-500'
+            } ${wishlistDisabled ? 'opacity-60' : ''}`}
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={isWishlisted ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 5.053 7.5 10.5 9 10.5s9-5.447 9-10.5z"
+                />
+            </svg>
+        </button>
+    );
+
+    if (viewMode === 'list') {
+        return (
+            <article className="group relative flex gap-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+                <Link href={productLink} className="block w-48 flex-shrink-0 overflow-hidden rounded-2xl">
+                    <div className="relative h-48 w-full overflow-hidden rounded-2xl bg-slate-100">
+                        {imageUrl ? (
+                            <img src={imageUrl} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                        ) : (
+                            <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">No image</div>
+                        )}
+                    </div>
+                </Link>
+                <div className="flex flex-1 flex-col justify-between">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="space-y-2">
+                            <Link href={productLink} className="text-lg font-semibold text-slate-900 transition hover:text-sky-600">
+                                {product.name}
+                            </Link>
+                            <p className="text-sm text-slate-500">SKU {product.sku}</p>
+                            <p className="text-sm text-slate-600">{product.brand ?? 'Elvee Atelier'}</p>
+                            <p className="text-sm text-slate-600">
+                                {currencyFormatter.format(product.base_price)}{' '}
+                                <span className="text-xs text-slate-500">+ {currencyFormatter.format(product.making_charge)} making</span>
+                            </p>
+                                <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                                    <span>{product.material ?? 'Custom material'}</span>
+                                    {weightSummary.length > 0 && (
+                                        <>
+                                            <span>•</span>
+                                            <span>{weightSummary.join(' • ')}</span>
+                                        </>
+                                    )}
+                                </div>
+                        </div>
+                        {WishlistButton}
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <Link href={productLink} className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500">
+                            View details
+                        </Link>
+                        {showJobworkBadge && (
+                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
+                                Jobwork available
+                            </span>
+                        )}
+                    </div>
+                </div>
+            </article>
+        );
+    }
+
+    return (
+        <article className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg transition hover:-translate-y-1 hover:shadow-2xl">
+            <div className="absolute right-5 top-5 z-20">{WishlistButton}</div>
+            <Link href={productLink} className="block">
+                <div className="relative h-56 w-full overflow-hidden rounded-t-3xl bg-slate-100">
+                    {imageUrl ? (
+                        <img src={imageUrl} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">No image</div>
+                    )}
+                </div>
+            </Link>
+            <div className="space-y-3 p-6">
+                <Link href={productLink} className="text-lg font-semibold text-slate-900 transition hover:text-sky-600">
+                    {product.name}
+                </Link>
+                <p className="text-sm text-slate-500">SKU {product.sku}</p>
+                {product.catalogs && product.catalogs.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                        {product.catalogs.slice(0, 2).map((catalog) => (
+                            <span key={catalog.id} className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                                {catalog.name}
+                            </span>
+                        ))}
+                    </div>
+                )}
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                    <div className="flex flex-col gap-1">
+                        <span>{currencyFormatter.format(product.base_price)}</span>
+                        <span className="text-xs text-slate-500">Making {currencyFormatter.format(product.making_charge)}</span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
+                        <div>
+                            <span className="font-medium text-slate-600">Material</span>
+                            <p>{product.material ?? 'Custom blend'}</p>
+                        </div>
+                        <div>
+                            <span className="font-medium text-slate-600">Gold weight</span>
+                            <p>{formatWeight(product.gold_weight)}</p>
+                        </div>
+                        <div>
+                            <span className="font-medium text-slate-600">Silver weight</span>
+                            <p>{formatWeight(product.silver_weight)}</p>
+                        </div>
+                        <div>
+                            <span className="font-medium text-slate-600">Other weight</span>
+                            <p>{formatWeight(product.other_material_weight)}</p>
+                        </div>
+                        <div>
+                            <span className="font-medium text-slate-600">Total weight</span>
+                            <p>{formatWeight(product.total_weight)}</p>
+                        </div>
+                    </div>
+                </div>
+                {product.variants.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                        {product.variants.slice(0, 3).map((variant) => (
+                            <span
+                                key={variant.id}
+                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                    variant.is_default ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
+                                }`}
+                            >
+                                {(variant.metadata?.auto_label as string | undefined) ?? variant.label}
+                            </span>
+                        ))}
+                        {product.variants.length > 3 && (
+                            <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                                +{product.variants.length - 3} more
+                            </span>
+                        )}
+                    </div>
+                )}
+                {showJobworkBadge && (
+                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1 text-xs font-semibold text-emerald-700">
+                        Jobwork available
+                    </span>
+                )}
+                <Link href={productLink} className="inline-flex rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500">
+                    View details
+                </Link>
+            </div>
+        </article>
     );
 }
 

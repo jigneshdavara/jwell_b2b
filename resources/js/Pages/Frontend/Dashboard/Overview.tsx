@@ -111,7 +111,7 @@ export default function FrontendDashboardOverview() {
                     </div>
                     <div className="relative z-10 grid gap-8 px-6 py-10 lg:grid-cols-[1.8fr_1fr] lg:px-12 lg:py-14">
                         <div className="space-y-6">
-                            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-white/80">
+                            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white/80">
                                 Wholesale cockpit
                             </span>
                             <h1 className="text-3xl font-semibold leading-tight lg:text-4xl">
@@ -142,7 +142,7 @@ export default function FrontendDashboardOverview() {
                             </div>
                         </div>
                         <div className="rounded-3xl border border-white/15 bg-white/10 p-6 backdrop-blur">
-                            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/60">
+                            <p className="text-xs font-semibold text-white/60">
                                 Live metrics
                             </p>
                             <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -153,11 +153,11 @@ export default function FrontendDashboardOverview() {
                                 )}
                                 {statEntries.map(([key, value]) => (
                                     <div key={key} className="rounded-2xl border border-white/15 bg-white/5 p-4">
-                                        <p className="text-xs uppercase tracking-[0.35em] text-white/60">
+                                        <p className="text-xs text-white/60">
                                             {titleMap[key] ?? key.replace(/_/g, ' ')}
                                         </p>
                                         <p className="mt-2 text-3xl font-semibold text-white">{value}</p>
-                                        <p className="mt-1 text-[11px] uppercase tracking-[0.35em] text-white/50">
+                                        <p className="mt-1 text-[11px] text-white/50">
                                             Updated {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                                         </p>
                                     </div>
@@ -205,7 +205,7 @@ export default function FrontendDashboardOverview() {
                                                         </>
                                                     ) : (
                                                         <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
-                                                            <span className="text-xs uppercase tracking-[0.35em] text-white/70">
+                                                        <span className="text-xs text-white/70">
                                                                 {product.catalog ?? 'Signature drop'}
                                                             </span>
                                                             <span className="mt-2 text-lg font-semibold">
@@ -214,7 +214,7 @@ export default function FrontendDashboardOverview() {
                                                         </div>
                                                     )}
                                                     <div className="absolute left-4 bottom-4 flex flex-col text-white">
-                                                        <span className="text-xs uppercase tracking-[0.35em] text-white/70">
+                                                    <span className="text-xs text-white/70">
                                                             {product.catalog ?? 'Featured'}
                                                         </span>
                                                         <span className="text-sm font-semibold">
@@ -230,10 +230,10 @@ export default function FrontendDashboardOverview() {
                                                 >
                                                     {product.name}
                                                 </Link>
-                                                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">SKU {product.sku}</p>
+                                                <p className="text-xs text-slate-400">SKU {product.sku}</p>
                                                 <div className="flex items-center justify-between">
                                                     <div>
-                                                        <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Base price</p>
+                                                        <p className="text-xs text-slate-400">Base price</p>
                                                         <p className="text-lg font-semibold text-slate-900">
                                                             {currencyFormatter.format(product.base_price)}
                                                         </p>
@@ -260,7 +260,7 @@ export default function FrontendDashboardOverview() {
                     <aside className="space-y-6">
                         <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
                             <h2 className="text-lg font-semibold text-slate-900">Curated catalogues</h2>
-                            <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Tailored for wholesale edits</p>
+                            <p className="text-xs text-slate-400">Tailored for wholesale edits</p>
                             <div className="mt-4 space-y-3">
                                 {featuredCatalogs.map((catalog) => (
                                     <Link
@@ -366,7 +366,7 @@ export default function FrontendDashboardOverview() {
                     <aside className="space-y-6">
                         <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
                             <h2 className="text-lg font-semibold text-slate-900">Jobwork timeline</h2>
-                            <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Live production updates</p>
+                            <p className="text-xs text-slate-400">Live production updates</p>
                             <div className="mt-4 space-y-4">
                                 {jobworkTimeline.map((job) => (
                                     <div key={job.id} className="rounded-2xl border border-slate-200 p-4">
@@ -405,7 +405,7 @@ export default function FrontendDashboardOverview() {
                         </div>
                         <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
                             <h2 className="text-lg font-semibold text-slate-900">Due payments</h2>
-                            <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Awaiting confirmation</p>
+                            <p className="text-xs text-slate-400">Awaiting confirmation</p>
                             <div className="mt-4 space-y-4">
                                 {dueOrders.map((order) => (
                                     <div key={order.reference} className="rounded-2xl border border-slate-200 p-4">

@@ -98,13 +98,9 @@ export default function WishlistIndex() {
                                                 {item.name}
                                             </Link>
                                             {item.variant_label && (
-                                                <p className="text-xs font-medium uppercase tracking-[0.25em] text-slate-400">
-                                                    {item.variant_label}
-                                                </p>
+                                                <p className="text-xs font-medium text-slate-400">{item.variant_label}</p>
                                             )}
-                                            {item.sku && (
-                                                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">SKU {item.sku}</p>
-                                            )}
+                                            {item.sku && <p className="text-xs text-slate-400">SKU {item.sku}</p>}
                                         </div>
                                     </div>
                                     <div className="mt-4 flex items-center justify-between gap-2">

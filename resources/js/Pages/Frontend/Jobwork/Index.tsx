@@ -233,7 +233,7 @@ export default function JobworkIndex() {
                                 {mode === 'catalogue' && prefillProduct ? (
                                     <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
                                         <div>
-                                            <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Design selected</p>
+                                            <p className="text-xs text-slate-400">Design selected</p>
                                             <h2 className="mt-1 text-lg font-semibold text-slate-900">{prefillProduct.name}</h2>
                                             <p className="text-xs text-slate-500">SKU {prefillProduct.sku}</p>
                                         </div>
@@ -262,7 +262,7 @@ export default function JobworkIndex() {
                                                 <ul className="mt-2 space-y-1">
                                                     {Object.entries(prefillProduct.standard_pricing).map(([key, value]) => (
                                                         <li key={key} className="flex justify-between">
-                                                            <span className="uppercase tracking-wide text-slate-500">{key.replace('_', ' ')}</span>
+                                                            <span className="text-slate-500">{key.replace('_', ' ')}</span>
                                                             <span className="text-slate-800">{typeof value === 'number' ? value.toLocaleString('en-IN') : value}</span>
                                                         </li>
                                                     ))}
@@ -312,7 +312,7 @@ export default function JobworkIndex() {
 
                                         {estimatedAmount !== null && (
                                             <div className="rounded-xl bg-slate-900 px-4 py-3 text-sm text-white">
-                                                <p className="text-xs uppercase tracking-[0.35em] text-white/70">Estimated total</p>
+                                                <p className="text-xs text-white/70">Estimated total</p>
                                                 <p className="mt-1 text-lg font-semibold">₹ {estimatedAmount.toLocaleString('en-IN')}</p>
                                                 <p className="text-xs text-white/70">Final value subject to labour & offer adjustments.</p>
                                             </div>
@@ -460,7 +460,7 @@ export default function JobworkIndex() {
                                                 <li key={offer.code} className="rounded-xl bg-slate-50 p-3">
                                                     <div className="flex items-center justify-between">
                                                         <span className="font-semibold text-slate-800">{offer.name}</span>
-                                                        <span className="text-xs uppercase tracking-[0.35em] text-slate-500">{offer.code}</span>
+                                                        <span className="text-xs text-slate-500">{offer.code}</span>
                                                     </div>
                                                     <p className="mt-1 text-xs text-slate-500">{offer.description}</p>
                                                 </li>
@@ -504,7 +504,7 @@ export default function JobworkIndex() {
 
                     <div className="mt-4 overflow-x-auto">
                         <table className="min-w-full divide-y divide-slate-200 text-sm">
-                            <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
+                            <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
                                 <tr>
                                     <th className="px-4 py-3 text-left">Reference</th>
                                     <th className="px-4 py-3 text-left">Design</th>

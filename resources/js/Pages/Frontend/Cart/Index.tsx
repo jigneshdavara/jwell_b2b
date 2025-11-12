@@ -178,7 +178,7 @@ export default function CartIndex() {
                                                 )}
                                                 <div>
                                                     <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-                                                    <p className="text-xs uppercase tracking-[0.35em] text-slate-400">SKU {item.sku}</p>
+                                                    <p className="text-xs text-slate-400">SKU {item.sku}</p>
                                                     {item.variant_label && (
                                                         <p className="mt-1 text-xs font-medium text-slate-500">{item.variant_label}</p>
                                                     )}
@@ -195,7 +195,7 @@ export default function CartIndex() {
                                                         </p>
                                                     )}
                                                     <div className="mt-4 grid gap-3 md:grid-cols-2">
-                                                        <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.3em] text-slate-400">
+                                                        <label className="flex flex-col gap-1 text-xs text-slate-500">
                                                             Mode
                                                             <select
                                                                 className="rounded-2xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
@@ -210,7 +210,7 @@ export default function CartIndex() {
                                                                 <option value="jobwork">Jobwork</option>
                                                             </select>
                                                         </label>
-                                                        <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.3em] text-slate-400">
+                                                        <label className="flex flex-col gap-1 text-xs text-slate-500">
                                                             Notes
                                                             <textarea
                                                                 defaultValue={item.configuration?.notes ?? ''}
@@ -246,7 +246,7 @@ export default function CartIndex() {
                                                     </button>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Total</p>
+                                                    <p className="text-xs text-slate-400">Total</p>
                                                     <p className="text-lg font-semibold text-slate-900">
                                                         {formatter.format(item.line_total)}
                                                     </p>

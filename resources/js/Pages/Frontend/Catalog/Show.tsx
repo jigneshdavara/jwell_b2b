@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { PageProps as AppPageProps } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, type MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type VariantMetadata = {
     auto_label?: string;
@@ -28,8 +28,10 @@ type Product = {
     brand?: string;
     material?: string;
     purity?: string;
-    gross_weight?: number;
-    net_weight?: number;
+    gold_weight?: number | null;
+    silver_weight?: number | null;
+    other_material_weight?: number | null;
+    total_weight?: number | null;
     base_price?: number;
     making_charge?: number;
     is_jobwork_allowed: boolean;
@@ -117,6 +119,27 @@ export default function CatalogShow() {
     );
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const galleryRef = useRef<HTMLDivElement | null>(null);
+    const [isZoomActive, setIsZoomActive] = useState(false);
+    const [zoomLens, setZoomLens] = useState({ left: 0, top: 0, backgroundX: 50, backgroundY: 50 });
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+    const [lightboxZoom, setLightboxZoom] = useState(1.5);
+    const zoomLevel = 2.5;
+    const lensSize = 180;
+    const mediaCount = product.media.length;
+    const hasMedia = mediaCount > 0;
+    const activeMedia = hasMedia
+        ? product.media[Math.min(activeImageIndex, mediaCount - 1)]
+        : null;
+    const formatWeight = (value?: number | null) => {
+        if (value === null || value === undefined) {
+            return '—';
+        }
+
+        return `${value.toFixed(2)} g`;
+    };
+    const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
     type QuotationFormData = {
         product_id: number;
@@ -208,6 +231,21 @@ export default function CatalogShow() {
     }, [wishlistLookup, product.id]);
 
     useEffect(() => {
+        setActiveImageIndex(0);
+    }, [product.id]);
+
+    useEffect(() => {
+        if (activeImageIndex > mediaCount - 1) {
+            setActiveImageIndex(Math.max(mediaCount - 1, 0));
+        }
+    }, [activeImageIndex, mediaCount]);
+
+    useEffect(() => {
+        setIsZoomActive(false);
+        setZoomLens({ left: 0, top: 0, backgroundX: 50, backgroundY: 50 });
+    }, [activeImageIndex]);
+
+    useEffect(() => {
         setData('selections', {
             gold_purity_id: selectedGoldPurity === '' ? null : selectedGoldPurity,
             silver_purity_id: selectedSilverPurity === '' ? null : selectedSilverPurity,
@@ -276,16 +314,13 @@ export default function CatalogShow() {
         setWishlistPending(true);
 
         if (isWishlisted) {
-            router.delete(
-                route('frontend.wishlist.items.destroy-by-product', product.id),
-                {
+            router.delete(route('frontend.wishlist.items.destroy-by-product', product.id), {
+                data: {
                     product_variant_id: data.product_variant_id,
                 },
-                {
-                    preserveScroll: true,
-                    onFinish: () => setWishlistPending(false),
-                },
-            );
+                preserveScroll: true,
+                onFinish: () => setWishlistPending(false),
+            });
         } else {
             router.post(
                 route('frontend.wishlist.items.store'),
@@ -301,6 +336,92 @@ export default function CatalogShow() {
         }
     };
 
+    const handleMouseMove = (event: ReactMouseEvent<HTMLDivElement>) => {
+        if (!galleryRef.current) {
+            return;
+        }
+
+        const rect = galleryRef.current.getBoundingClientRect();
+        const lensHalf = lensSize / 2;
+
+        let x = event.clientX - rect.left;
+        let y = event.clientY - rect.top;
+
+        x = clamp(x, lensHalf, rect.width - lensHalf);
+        y = clamp(y, lensHalf, rect.height - lensHalf);
+
+        setZoomLens({
+            left: x - lensHalf,
+            top: y - lensHalf,
+            backgroundX: (x / rect.width) * 100,
+            backgroundY: (y / rect.height) * 100,
+        });
+    };
+
+    const openLightbox = useCallback(() => {
+        if (hasMedia) {
+            setLightboxOpen(true);
+        }
+    }, [hasMedia]);
+
+    const closeLightbox = useCallback(() => {
+        setLightboxOpen(false);
+    }, []);
+
+    const adjustLightboxZoom = useCallback((delta: number) => {
+        setLightboxZoom((previous) => clamp(previous + delta, 1, 3));
+    }, []);
+
+    const resetLightboxZoom = useCallback(() => setLightboxZoom(1.5), []);
+
+    const showPreviousImage = useCallback(() => {
+        if (!hasMedia || mediaCount <= 1) {
+            return;
+        }
+
+        setActiveImageIndex((index) => (index - 1 + mediaCount) % mediaCount);
+    }, [hasMedia, mediaCount]);
+
+    const showNextImage = useCallback(() => {
+        if (!hasMedia || mediaCount <= 1) {
+            return;
+        }
+
+        setActiveImageIndex((index) => (index + 1) % mediaCount);
+    }, [hasMedia, mediaCount]);
+
+    useEffect(() => {
+        if (!lightboxOpen || typeof document === 'undefined') {
+            return;
+        }
+
+        const previous = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                closeLightbox();
+            } else if (event.key === 'ArrowRight') {
+                showNextImage();
+            } else if (event.key === 'ArrowLeft') {
+                showPreviousImage();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.body.style.overflow = previous;
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [lightboxOpen, closeLightbox, showNextImage, showPreviousImage]);
+
+    useEffect(() => {
+        if (lightboxOpen) {
+            resetLightboxZoom();
+        }
+    }, [activeImageIndex, lightboxOpen, resetLightboxZoom]);
+
     const invalidCombination = product.variants.length > 0 && !matchingVariant;
 
     return (
@@ -310,30 +431,114 @@ export default function CatalogShow() {
             <div className="space-y-8">
                 <div className="grid gap-10 lg:grid-cols-[1.6fr_1fr]">
                     <div className="space-y-6">
-                        <div className="grid gap-4 md:grid-cols-2">
-                            {product.media.map((media, index) => (
-                                <div
-                                    key={`${media.url}-${index}`}
-                                    className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg"
-                                >
-                                    <img
-                                        src={media.url}
-                                        alt={media.alt}
-                                        className="h-64 w-full object-cover transition duration-500 hover:scale-105"
-                                    />
+                        <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
+                            <div className="flex flex-col gap-4 md:flex-row">
+                                {hasMedia && product.media.length > 1 && (
+                                    <div className="order-last flex gap-2 overflow-x-auto md:order-first md:h-[28rem] md:w-24 md:flex-col md:overflow-y-auto">
+                                        {product.media.map((media, index) => (
+                                            <button
+                                                key={`${media.url}-${index}`}
+                                                type="button"
+                                                onClick={() => setActiveImageIndex(index)}
+                                                className={`relative flex h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl border transition md:h-20 md:w-20 ${
+                                                    activeImageIndex === index
+                                                        ? 'border-sky-400 ring-2 ring-sky-100'
+                                                        : 'border-slate-200 hover:border-slate-300'
+                                                }`}
+                                                aria-label={`View image ${index + 1}`}
+                                            >
+                                                <img
+                                                    src={media.url}
+                                                    alt={media.alt}
+                                                    className="h-full w-full object-cover"
+                                                    draggable={false}
+                                                />
+                                                {activeImageIndex === index && (
+                                                    <span className="absolute inset-0 border-2 border-sky-400/80" aria-hidden />
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="relative flex-1">
+                                    <div
+                                        ref={galleryRef}
+                                        className="group relative aspect-square overflow-hidden rounded-3xl bg-slate-100"
+                                        onMouseEnter={() => hasMedia && setIsZoomActive(true)}
+                                        onMouseLeave={() => setIsZoomActive(false)}
+                                        onMouseMove={handleMouseMove}
+                                        onClick={openLightbox}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault();
+                                                openLightbox();
+                                            }
+                                        }}
+                                        aria-label="Open product gallery"
+                                    >
+                                        {activeMedia ? (
+                                            <img
+                                                src={activeMedia.url}
+                                                alt={activeMedia.alt}
+                                                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                                                draggable={false}
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">
+                                                Image coming soon
+                                            </div>
+                                        )}
+                                        {isZoomActive && activeMedia && (
+                                            <div
+                                                className="pointer-events-none absolute rounded-full border-2 border-white/80 shadow-xl shadow-slate-900/40"
+                                                style={{
+                                                    width: `${lensSize}px`,
+                                                    height: `${lensSize}px`,
+                                                    left: `${zoomLens.left}px`,
+                                                    top: `${zoomLens.top}px`,
+                                                    backgroundImage: `url(${activeMedia.url})`,
+                                                    backgroundSize: `${zoomLevel * 100}%`,
+                                                    backgroundPosition: `${zoomLens.backgroundX}% ${zoomLens.backgroundY}%`,
+                                                }}
+                                            />
+                                        )}
+                                        <span className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center text-xs font-medium text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                            Click to view full screen
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={openLightbox}
+                                        className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-slate-900"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth={1.5}
+                                            className="h-4 w-4"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V6a2 2 0 012-2h2m6 0h2a2 2 0 012 2v2m0 6v2a2 2 0 01-2 2h-2m-6 0H6a2 2 0 01-2-2v-2" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 9h6v6H9z" />
+                                        </svg>
+                                        Zoom
+                                    </button>
                                 </div>
-                            ))}
+                            </div>
                         </div>
                         <div className="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-slate-200/80">
-                            <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="flex flex-wrap items-start justify-between gap-4">
                                 <div>
-                                    <p className="text-xs uppercase tracking-[0.35em] text-slate-400">SKU {product.sku}</p>
+                                    <p className="text-xs font-medium text-slate-500">SKU {product.sku}</p>
                                     <h1 className="mt-2 text-3xl font-semibold text-slate-900">{product.name}</h1>
                                     <p className="mt-3 text-sm text-slate-500">By {product.brand ?? 'Elvee Atelier'}</p>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <div className="text-right">
-                                        <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Estimate</p>
+                                        <p className="text-xs font-medium text-slate-500">Base estimate</p>
                                         <p className="text-2xl font-semibold text-slate-900">
                                             {currencyFormatter.format(product.base_price ?? 0)}
                                         </p>
@@ -369,26 +574,42 @@ export default function CatalogShow() {
                                     </button>
                                 </div>
                             </div>
-                            <p className="mt-6 text-sm leading-7 text-slate-600 whitespace-pre-line">{product.description}</p>
-                            <dl className="mt-6 grid gap-4 md:grid-cols-4">
+                            <p className="mt-6 text-sm leading-7 text-slate-600 whitespace-pre-line">
+                                {product.description?.trim() ? product.description : 'Detailed description coming soon.'}
+                            </p>
+                            <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
                                     <dt className="text-slate-500">Material</dt>
-                                    <dd className="font-semibold text-slate-800">{product.material ?? 'Custom blend'}</dd>
+                                    <dd className="mt-1 font-semibold text-slate-900">{product.material ?? 'Custom blend'}</dd>
                                 </div>
                                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
                                     <dt className="text-slate-500">Purity</dt>
-                                    <dd className="font-semibold text-slate-800">{product.purity ?? 'On request'}</dd>
+                                    <dd className="mt-1 font-semibold text-slate-900">{product.purity ?? 'On request'}</dd>
                                 </div>
                                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
-                                    <dt className="text-slate-500">Gross wt.</dt>
-                                    <dd className="font-semibold text-slate-800">
-                                        {(product.gross_weight ?? 0).toFixed(2)} g
+                                    <dt className="text-slate-500">Total weight</dt>
+                                    <dd className="mt-1 font-semibold text-slate-900">{formatWeight(product.total_weight)}</dd>
+                                </div>
+                            </dl>
+                            <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
+                                    <dt className="text-slate-500">Gold weight</dt>
+                                    <dd className="mt-1 font-semibold text-slate-900">{formatWeight(product.gold_weight)}</dd>
+                                </div>
+                                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
+                                    <dt className="text-slate-500">Silver weight</dt>
+                                    <dd className="mt-1 font-semibold text-slate-900">{formatWeight(product.silver_weight)}</dd>
+                                </div>
+                                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
+                                    <dt className="text-slate-500">Other materials</dt>
+                                    <dd className="mt-1 font-semibold text-slate-900">
+                                        {formatWeight(product.other_material_weight)}
                                     </dd>
                                 </div>
                                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
-                                    <dt className="text-slate-500">Net wt.</dt>
-                                    <dd className="font-semibold text-slate-800">
-                                        {(product.net_weight ?? 0).toFixed(2)} g
+                                    <dt className="text-slate-500">Jobwork ready</dt>
+                                    <dd className="mt-1 font-semibold text-slate-900">
+                                        {product.is_jobwork_allowed ? 'Yes' : 'On request'}
                                     </dd>
                                 </div>
                             </dl>
@@ -409,8 +630,8 @@ export default function CatalogShow() {
                                         Select your configuration and our merchandising desk will share pricing shortly.
                                     </p>
                                 </div>
-                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-                                    {isJobworkMode ? 'Jobwork' : 'Jewellery'}
+                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                                    {isJobworkMode ? 'Jobwork mode' : 'Jewellery mode'}
                                 </span>
                             </div>
 
@@ -422,7 +643,7 @@ export default function CatalogShow() {
 
                             {product.uses_gold && (
                                 <div className="space-y-2">
-                                    <p className="text-xs font-medium uppercase tracking-[0.3em] text-slate-500">Gold purity</p>
+                                    <p className="text-xs font-semibold text-slate-600">Gold purity</p>
                                     <div className="flex flex-wrap gap-2">
                                         {goldPurities.map((purity) => (
                                             <button
@@ -444,7 +665,7 @@ export default function CatalogShow() {
 
                             {product.uses_silver && (
                                 <div className="space-y-2">
-                                    <p className="text-xs font-medium uppercase tracking-[0.3em] text-slate-500">Silver purity</p>
+                                    <p className="text-xs font-semibold text-slate-600">Silver purity</p>
                                     <div className="flex flex-wrap gap-2">
                                         {silverPurities.map((purity) => (
                                             <button
@@ -466,7 +687,7 @@ export default function CatalogShow() {
 
                             {product.uses_diamond && (
                                 <div className="space-y-2">
-                                    <p className="text-xs font-medium uppercase tracking-[0.3em] text-slate-500">Diamond mix</p>
+                                    <p className="text-xs font-semibold text-slate-600">Diamond mix</p>
                                     <div className="grid gap-2">
                                         {diamondOptions.map((option) => (
                                             <label
@@ -497,7 +718,7 @@ export default function CatalogShow() {
 
                             {sizeOptions.length > 0 && (
                                 <div className="space-y-2">
-                                    <p className="text-xs font-medium uppercase tracking-[0.3em] text-slate-500">Size (cm)</p>
+                                    <p className="text-xs font-semibold text-slate-600">Size (cm)</p>
                                     <div className="flex flex-wrap gap-2">
                                         {sizeOptions.map((size) => (
                                             <button
@@ -569,7 +790,7 @@ export default function CatalogShow() {
                         </form>
 
                         <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                            <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Next steps</h3>
+                            <h3 className="text-sm font-semibold text-slate-700">Next steps</h3>
                             <p className="mt-3 text-sm text-slate-600">
                                 Our merchandising team will review the configuration and share pricing or follow-up questions by email.
                                 Once you approve, the request moves to production and appears in your {mode === 'jobwork' ? 'jobwork timeline' : 'orders dashboard'}.
@@ -587,6 +808,92 @@ export default function CatalogShow() {
                     </div>
                 </div>
             </div>
+            {lightboxOpen && activeMedia && (
+                <div className="fixed inset-0 z-[70] flex flex-col bg-slate-950/95">
+                    <div className="flex items-center justify-between px-6 py-4 text-white">
+                        <div>
+                            <p className="text-sm font-medium text-white/70">
+                                Image {activeImageIndex + 1} of {product.media.length}
+                            </p>
+                            <p className="text-lg font-semibold">{product.name}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => adjustLightboxZoom(-0.2)}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-lg font-semibold text-white transition hover:bg-white/10"
+                                aria-label="Zoom out"
+                            >
+                                –
+                            </button>
+                            <span className="text-sm font-medium text-white/70">
+                                {Math.round(lightboxZoom * 100)}%
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => adjustLightboxZoom(0.2)}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-lg font-semibold text-white transition hover:bg-white/10"
+                                aria-label="Zoom in"
+                            >
+                                +
+                            </button>
+                            <button
+                                type="button"
+                                onClick={resetLightboxZoom}
+                                className="rounded-full border border-white/20 px-3 py-1 text-sm font-medium text-white transition hover:bg-white/10"
+                            >
+                                Reset
+                            </button>
+                            <button
+                                type="button"
+                                onClick={closeLightbox}
+                                className="rounded-full border border-white/20 px-3 py-1 text-sm font-medium text-white transition hover:bg-white/10"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                    <div className="relative flex-1 overflow-hidden">
+                        {product.media.length > 1 && (
+                            <>
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-6">
+                                    <button
+                                        type="button"
+                                        onClick={showPreviousImage}
+                                        className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
+                                        aria-label="Previous image"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-6">
+                                    <button
+                                        type="button"
+                                        onClick={showNextImage}
+                                        className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
+                                        aria-label="Next image"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                        <div className="flex h-full w-full items-center justify-center overflow-auto px-10 pb-12">
+                            <img
+                                src={activeMedia.url}
+                                alt={activeMedia.alt}
+                                style={{ transform: `scale(${lightboxZoom})` }}
+                                className="max-h-[90vh] max-w-full select-none object-contain transition-transform duration-200"
+                                draggable={false}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
             {confirmOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4">
                     <div className="w-full max-w-md space-y-4 rounded-3xl bg-white p-6 shadow-2xl">

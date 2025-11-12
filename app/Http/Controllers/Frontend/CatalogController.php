@@ -38,6 +38,7 @@ class CatalogController extends Controller
             'search',
             'category',
             'catalog',
+            'sort',
         ]);
 
         $query = Product::query()
@@ -135,11 +136,14 @@ class CatalogController extends Controller
                 });
             });
         }
+        $sort = $request->string('sort')->value();
+
         $filters['brand'] = array_values($brandFilters);
         $filters['gold_purity'] = array_values(array_filter((array) ($filters['gold_purity'] ?? []), fn ($value) => filled($value)));
         $filters['silver_purity'] = array_values(array_filter((array) ($filters['silver_purity'] ?? []), fn ($value) => filled($value)));
         $filters['diamond'] = array_values($diamondFilters);
         $filters['category'] = array_values($categoryFilters);
+        $filters['sort'] = $sort ?: null;
 
         if ($filters['catalog'] ?? null) {
             $catalogFilter = $filters['catalog'];
@@ -174,8 +178,13 @@ class CatalogController extends Controller
             });
         }
 
+        $sort = in_array($sort, ['newest', 'price_asc', 'price_desc', 'name_asc'], true) ? $sort : null;
+
         $products = $query
-            ->latest()
+            ->when($sort === 'price_asc', fn ($builder) => $builder->orderBy('base_price', 'asc'))
+            ->when($sort === 'price_desc', fn ($builder) => $builder->orderBy('base_price', 'desc'))
+            ->when($sort === 'name_asc', fn ($builder) => $builder->orderBy('name'))
+            ->when(! $sort || $sort === 'newest', fn ($builder) => $builder->latest())
             ->paginate(12)
             ->through(fn (Product $product) => [
                 'id' => $product->id,
@@ -185,8 +194,10 @@ class CatalogController extends Controller
                 'category' => optional($product->category)?->name,
                 'material' => optional($product->material)?->name,
                 'purity' => $product->metadata['purity'] ?? $product->material?->purity,
-                'gross_weight' => (float) $product->gross_weight,
-                'net_weight' => (float) $product->net_weight,
+                'gold_weight' => $product->gold_weight !== null ? (float) $product->gold_weight : null,
+                'silver_weight' => $product->silver_weight !== null ? (float) $product->silver_weight : null,
+                'other_material_weight' => $product->other_material_weight !== null ? (float) $product->other_material_weight : null,
+                'total_weight' => $product->total_weight !== null ? (float) $product->total_weight : null,
                 'base_price' => (float) $product->base_price,
                 'making_charge' => (float) $product->making_charge,
                 'is_jobwork_allowed' => (bool) $product->is_jobwork_allowed,
@@ -370,8 +381,10 @@ class CatalogController extends Controller
                 'brand' => optional($product->brand)?->name,
                 'material' => optional($product->material)?->name,
                 'purity' => $product->metadata['purity'] ?? $product->material?->purity,
-                'net_weight' => (float) $product->net_weight,
-                'gross_weight' => (float) $product->gross_weight,
+                'gold_weight' => $product->gold_weight !== null ? (float) $product->gold_weight : null,
+                'silver_weight' => $product->silver_weight !== null ? (float) $product->silver_weight : null,
+                'other_material_weight' => $product->other_material_weight !== null ? (float) $product->other_material_weight : null,
+                'total_weight' => $product->total_weight !== null ? (float) $product->total_weight : null,
                 'base_price' => (float) $product->base_price,
                 'making_charge' => (float) $product->making_charge,
                 'is_jobwork_allowed' => (bool) $product->is_jobwork_allowed,

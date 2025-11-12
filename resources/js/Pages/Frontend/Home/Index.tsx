@@ -46,7 +46,7 @@ export default function HomeIndex() {
 
                 <div className="relative z-10 mx-auto flex max-w-7xl flex-col gap-16 px-6 pb-24 pt-20 lg:flex-row lg:items-center lg:px-10">
                     <div className="max-w-2xl space-y-8">
-                        <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-slate-200">
+                        <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-1 text-xs font-semibold text-slate-200">
                             Crafted for high-value jewellery partnerships
                         </p>
                         <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
@@ -72,7 +72,7 @@ export default function HomeIndex() {
                         <div className="grid gap-4 pt-10 sm:grid-cols-2">
                             {Object.entries(stats).map(([key, value]) => (
                                 <div key={key} className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
-                                    <p className="text-xs uppercase tracking-wide text-slate-300">
+                                    <p className="text-xs text-slate-300">
                                         {prettifyKey(key)}
                                     </p>
                                     <p className="mt-2 text-3xl font-semibold text-white">
@@ -84,7 +84,7 @@ export default function HomeIndex() {
                     </div>
 
                     <div className="w-full max-w-xl space-y-6 rounded-3xl bg-white/10 p-8 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl">
-                        <h2 className="text-sm font-medium uppercase tracking-[0.35em] text-slate-200">
+                        <h2 className="text-sm font-medium text-slate-200">
                             Featured Drops
                         </h2>
                         <div className="space-y-4">
@@ -98,7 +98,7 @@ export default function HomeIndex() {
                                             <p className="text-sm font-semibold text-white">
                                                 {product.name}
                                             </p>
-                                            <p className="text-xs uppercase tracking-wide text-slate-300">
+                                            <p className="text-xs text-slate-300">
                                                 {product.brand ?? 'Signature Collection'}
                                             </p>
                                         </div>
@@ -140,7 +140,7 @@ export default function HomeIndex() {
                 {brands.length > 0 && (
                     <section className="bg-white py-16">
                         <div className="mx-auto max-w-6xl px-6 text-center">
-                            <p className="text-xs font-semibold uppercase tracking-[0.45em] text-slate-400">
+                            <p className="text-xs font-semibold text-slate-400">
                                 Trusted by leading houses
                             </p>
                             <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-slate-500">

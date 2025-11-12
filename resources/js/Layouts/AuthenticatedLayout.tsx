@@ -251,7 +251,7 @@ export default function Authenticated({
                                 </button>
                                 <Link href={route('dashboard')} className="flex items-center gap-3">
                                     <ApplicationLogo className="h-10 w-10 text-slate-900" />
-                                    <span className="hidden text-lg font-semibold tracking-wide text-slate-900 sm:inline">
+                        <span className="hidden text-lg font-semibold text-slate-900 sm:inline">
                                         Elvee
                                     </span>
                                 </Link>
@@ -322,7 +322,7 @@ export default function Authenticated({
                                                                             <p className="text-sm font-semibold text-slate-900">
                                                                                 {link.name}
                                                                             </p>
-                                                                            <p className="mt-1 text-xs font-medium uppercase tracking-[0.35em] text-slate-400">
+                                                                            <p className="mt-1 text-xs font-medium text-slate-500">
                                                                                 Explore now
                                                                             </p>
                                                                         </div>
@@ -541,7 +541,7 @@ export default function Authenticated({
                                             </Link>
                                         ) : (
                                             <div key={item.label}>
-                                                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">{item.label}</p>
+                                                <p className="text-xs font-semibold text-slate-500">{item.label}</p>
                                                 <div
                                                     className={`mt-3 ${
                                                         item.label === 'Categories'
@@ -584,7 +584,7 @@ export default function Authenticated({
                                     )}
                                 </div>
                                 <div className="mt-6 border-t border-slate-200 pt-4">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Account</p>
+                                    <p className="text-xs font-semibold text-slate-500">Account</p>
                                     <div className="mt-3 space-y-2 text-sm text-slate-600">
                                         {accountLinks.map(({ label, href }) => (
                                             <Link
@@ -615,7 +615,7 @@ export default function Authenticated({
                                         support@elvee.in
                                     </a>
                                     <div className="mt-2">
-                                        <label className="text-xs uppercase tracking-[0.3em] text-slate-400">Language</label>
+                                        <label className="text-xs font-semibold text-slate-500">Language</label>
                                         <select
                                             value={language}
                                             onChange={(event) => setLanguage(event.target.value)}
@@ -637,7 +637,7 @@ export default function Authenticated({
                             <div className="flex items-center gap-3">
                                 <Link href="/" className="flex items-center gap-2">
                                     <ApplicationLogo className="h-10 w-10 text-white" />
-                                    <span className="hidden text-lg font-semibold tracking-wide text-white sm:inline">
+                        <span className="hidden text-lg font-semibold text-white sm:inline">
                                         Elvee OS
                                     </span>
                                 </Link>
