@@ -32,6 +32,9 @@ class CatalogController extends Controller
             'brand',
             'gold_purity',
             'silver_purity',
+            'diamond',
+            'price_min',
+            'price_max',
             'search',
             'category',
             'catalog',
@@ -78,15 +81,65 @@ class CatalogController extends Controller
             }
         }
 
-        if ($filters['category'] ?? null) {
-            $categoryFilter = $filters['category'];
-            $query->whereHas('category', function ($categoryQuery) use ($categoryFilter) {
-                $categoryQuery
-                    ->where('slug', $categoryFilter)
-                    ->orWhere('name', $categoryFilter)
-                    ->orWhere('id', $categoryFilter);
+        $diamondFilters = array_filter((array) ($filters['diamond'] ?? []), fn ($value) => filled($value));
+        if (! empty($diamondFilters)) {
+            $query->where(function ($diamondQuery) use ($diamondFilters) {
+                foreach ($diamondFilters as $filter) {
+                    if (! is_string($filter) || strpos($filter, ':') === false) {
+                        continue;
+                    }
+
+                    [$group, $id] = explode(':', $filter, 2);
+                    $id = (int) $id;
+
+                    if ($id <= 0) {
+                        continue;
+                    }
+
+                    switch ($group) {
+                        case 'type':
+                            $diamondQuery->orWhereJsonContains('diamond_options', ['type_id' => $id]);
+                            break;
+                        case 'shape':
+                            $diamondQuery->orWhereJsonContains('diamond_options', ['shape_id' => $id]);
+                            break;
+                        case 'color':
+                            $diamondQuery->orWhereJsonContains('diamond_options', ['color_id' => $id]);
+                            break;
+                        case 'clarity':
+                            $diamondQuery->orWhereJsonContains('diamond_options', ['clarity_id' => $id]);
+                            break;
+                        case 'cut':
+                            $diamondQuery->orWhereJsonContains('diamond_options', ['cut_id' => $id]);
+                            break;
+                    }
+                }
             });
         }
+
+        $categoryFilters = array_filter((array) ($filters['category'] ?? []), fn ($value) => filled($value));
+        if (! empty($categoryFilters)) {
+            $query->whereHas('category', function ($categoryQuery) use ($categoryFilters) {
+                $categoryQuery->where(function ($innerQuery) use ($categoryFilters) {
+                    $ids = array_values(array_filter($categoryFilters, fn ($value) => is_numeric($value)));
+                    $slugsOrNames = array_values(array_filter($categoryFilters, fn ($value) => ! is_numeric($value)));
+
+                    if (! empty($ids)) {
+                        $innerQuery->orWhereIn('id', array_map('intval', $ids));
+                    }
+
+                    if (! empty($slugsOrNames)) {
+                        $innerQuery->orWhereIn('slug', $slugsOrNames)
+                            ->orWhereIn('name', $slugsOrNames);
+                    }
+                });
+            });
+        }
+        $filters['brand'] = array_values($brandFilters);
+        $filters['gold_purity'] = array_values(array_filter((array) ($filters['gold_purity'] ?? []), fn ($value) => filled($value)));
+        $filters['silver_purity'] = array_values(array_filter((array) ($filters['silver_purity'] ?? []), fn ($value) => filled($value)));
+        $filters['diamond'] = array_values($diamondFilters);
+        $filters['category'] = array_values($categoryFilters);
 
         if ($filters['catalog'] ?? null) {
             $catalogFilter = $filters['catalog'];
@@ -104,6 +157,20 @@ class CatalogController extends Controller
             $query->where(function ($q) use ($filters) {
                 $q->where('name', 'like', '%' . $filters['search'] . '%')
                     ->orWhere('sku', 'like', '%' . $filters['search'] . '%');
+            });
+        }
+
+        $priceMin = $filters['price_min'] ?? null;
+        $priceMax = $filters['price_max'] ?? null;
+        if ($priceMin !== null || $priceMax !== null) {
+            $query->where(function ($priceQuery) use ($priceMin, $priceMax) {
+                if ($priceMin !== null) {
+                    $priceQuery->where('base_price', '>=', (float) $priceMin);
+                }
+
+                if ($priceMax !== null) {
+                    $priceQuery->where('base_price', '<=', (float) $priceMax);
+                }
             });
         }
 
@@ -173,6 +240,28 @@ class CatalogController extends Controller
                 'id' => $purity->id,
                 'name' => $purity->name,
             ]),
+            'diamondOptions' => [
+                'types' => DiamondType::orderBy('name')->get(['id', 'name'])->map(fn (DiamondType $type) => [
+                    'id' => $type->id,
+                    'name' => $type->name,
+                ]),
+                'shapes' => DiamondShape::orderBy('name')->get(['id', 'name'])->map(fn (DiamondShape $shape) => [
+                    'id' => $shape->id,
+                    'name' => $shape->name,
+                ]),
+                'colors' => DiamondColor::orderBy('name')->get(['id', 'name'])->map(fn (DiamondColor $color) => [
+                    'id' => $color->id,
+                    'name' => $color->name,
+                ]),
+                'clarities' => DiamondClarity::orderBy('name')->get(['id', 'name'])->map(fn (DiamondClarity $clarity) => [
+                    'id' => $clarity->id,
+                    'name' => $clarity->name,
+                ]),
+                'cuts' => DiamondCut::orderBy('name')->get(['id', 'name'])->map(fn (DiamondCut $cut) => [
+                    'id' => $cut->id,
+                    'name' => $cut->name,
+                ]),
+            ],
         ];
 
         return Inertia::render('Frontend/Catalog/Index', [

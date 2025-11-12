@@ -45,6 +45,7 @@ export default function Authenticated({
     const [searchTerm, setSearchTerm] = useState('');
     const searchInputRef = useRef<HTMLInputElement>(null);
     const [language, setLanguage] = useState(user?.preferred_language ?? 'en');
+    const [openMenu, setOpenMenu] = useState<string | null>(null);
 
     useEffect(() => {
         if (!searchOpen) {
@@ -77,39 +78,6 @@ export default function Authenticated({
         ];
     }, [isCustomer]);
 
-    const retailQuickTabs = useMemo<NavigationItem[]>(() => {
-        if (!isCustomer) {
-            return [];
-        }
-
-        return [
-            {
-                label: 'Jewellery Purchase',
-                href: route('frontend.catalog.index'),
-                active:
-                    (route().current('frontend.catalog.*') && catalogMode !== 'jobwork') ||
-                    route().current('frontend.cart.*') ||
-                    route().current('frontend.checkout.*'),
-                badge: cartCount > 0 ? cartCount : undefined,
-            },
-            {
-                label: 'Jobwork',
-                href: route('frontend.catalog.index', { mode: 'jobwork' }),
-                active: route().current('frontend.catalog.*') && catalogMode === 'jobwork',
-            },
-            {
-                label: 'My Quotations',
-                href: route('frontend.quotations.index'),
-                active: route().current('frontend.quotations.*'),
-            },
-            {
-                label: 'My Orders',
-                href: route('frontend.orders.index'),
-                active: route().current('frontend.orders.*'),
-            },
-        ];
-    }, [cartCount, isCustomer, catalogMode]);
-
     const adminNav: NavigationItem[] =
         userType && ['admin', 'super-admin'].includes(userType)
             ? [
@@ -133,7 +101,6 @@ export default function Authenticated({
             : [];
 
     const navigation = [...customerNav, ...adminNav, ...productionNav];
-    const isDashboardPage = route().current('dashboard');
 
     const categoriesLinks = useMemo(
         () =>
@@ -302,10 +269,16 @@ export default function Authenticated({
                                             {item.label}
                                         </Link>
                                     ) : (
-                                        <div key={item.label} className="group relative">
+                                        <div
+                                            key={item.label}
+                                            className="group relative"
+                                            onMouseEnter={() => setOpenMenu(item.label)}
+                                        >
                                             <button
                                                 type="button"
                                                 className="inline-flex items-center gap-1 text-sm font-semibold text-slate-500 transition hover:text-slate-900"
+                                                onClick={() => setOpenMenu((prev) => (prev === item.label ? null : item.label))}
+                                                onFocus={() => setOpenMenu(item.label)}
                                             >
                                                 {item.label}
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={1.5}>
@@ -314,11 +287,13 @@ export default function Authenticated({
                                             </button>
                                             {item.items.length > 0 && (
                                                 <div
-                                                    className={`invisible absolute left-1/2 z-30 mt-3 -translate-x-1/2 rounded-3xl border border-slate-100 bg-white p-6 opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100 ${
+                                                    className={`absolute left-1/2 z-30 mt-3 -translate-x-1/2 rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl transition ${
                                                         item.label === 'Categories'
                                                             ? 'w-[38rem] lg:w-[46rem]'
                                                             : 'w-[28rem] lg:w-[32rem]'
-                                                    }`}
+                                                    } ${openMenu === item.label ? 'visible opacity-100 pointer-events-auto' : 'invisible opacity-0 pointer-events-none'}`}
+                                                    onMouseEnter={() => setOpenMenu(item.label)}
+                                                    onMouseLeave={() => setOpenMenu(null)}
                                                 >
                                                     <div
                                                         className={`grid gap-3 ${
@@ -423,9 +398,12 @@ export default function Authenticated({
                                         </span>
                                     )}
                                 </Link>
-                                <div className="relative hidden lg:block" onMouseLeave={() => setAccountMenuOpen(false)}>
+                                <div className="relative hidden lg:block">
                                     <button
                                         type="button"
+                                        onMouseEnter={() => setAccountMenuOpen(true)}
+                                        onFocus={() => setAccountMenuOpen(true)}
+                                        onBlur={() => setAccountMenuOpen(false)}
                                         onClick={() => setAccountMenuOpen((previous) => !previous)}
                                         className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                                         aria-label="Account menu"
@@ -437,27 +415,39 @@ export default function Authenticated({
                                     </button>
                                     <div
                                         className={`absolute right-0 mt-3 w-56 rounded-2xl border border-slate-100 bg-white p-4 shadow-xl transition ${
-                                            accountMenuOpen ? 'visible opacity-100' : 'invisible opacity-0'
+                                            accountMenuOpen ? 'visible opacity-100 pointer-events-auto' : 'invisible opacity-0 pointer-events-none'
                                         }`}
+                                        onMouseEnter={() => setAccountMenuOpen(true)}
+                                        onMouseLeave={() => setAccountMenuOpen(false)}
                                     >
                                         <p className="text-sm font-semibold text-slate-700">
                                             Hello, {user?.name?.split(' ')[0] ?? 'there'}
                                         </p>
-                                        <div className="mt-3 space-y-2 text-sm text-slate-600">
+                                        <div className="mt-4 space-y-1.5 text-sm text-slate-600">
                                             {accountLinks.map(({ label, href }) => (
                                                 <Link
                                                     key={label}
                                                     href={href}
-                                                    className="block rounded-xl border border-slate-200 px-3 py-2 hover:border-sky-300 hover:text-sky-600"
+                                                    className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 font-medium text-slate-600 transition hover:bg-sky-50 hover:text-sky-600"
                                                 >
-                                                    {label}
+                                                    <span>{label}</span>
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        strokeWidth={1.5}
+                                                        className="h-4 w-4"
+                                                    >
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                                    </svg>
                                                 </Link>
                                             ))}
                                             <Link
                                                 href={route('logout')}
                                                 method="post"
                                                 as="button"
-                                                className="w-full rounded-xl border border-rose-200 px-3 py-2 text-left text-rose-600 hover:border-rose-300 hover:text-rose-700"
+                                                className="w-full rounded-xl bg-rose-50 px-3 py-2 text-left text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
                                             >
                                                 Logout
                                             </Link>
@@ -773,28 +763,6 @@ export default function Authenticated({
             <main className="relative z-0 flex-1">
                 <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10 lg:py-12">
                     <FlashMessage />
-                    {isCustomer && !isDashboardPage && retailQuickTabs.length > 0 && (
-                        <div className="mb-6 flex flex-wrap gap-3">
-                            {retailQuickTabs.map((item) => (
-                                <Link
-                                    key={item.label}
-                                    href={item.href}
-                                    className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition ${
-                                        item.active
-                                            ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
-                                            : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
-                                    }`}
-                                >
-                                    {item.label}
-                                    {item.badge ? (
-                                        <span className="inline-flex items-center justify-center rounded-full bg-sky-500 px-2 py-0.5 text-xs font-semibold text-white">
-                                            {item.badge}
-                                        </span>
-                                    ) : null}
-                                </Link>
-                            ))}
-                        </div>
-                    )}
                     {children}
                 </div>
             </main>

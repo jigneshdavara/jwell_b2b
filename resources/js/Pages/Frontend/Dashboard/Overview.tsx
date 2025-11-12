@@ -167,25 +167,6 @@ export default function FrontendDashboardOverview() {
                     </div>
                 </section>
 
-                {statEntries.length > 0 && (
-                    <div className="grid gap-6 md:grid-cols-3">
-                        {statEntries.map(([key, value]) => (
-                            <div
-                                key={`stat-card-${key}`}
-                                className="rounded-3xl border border-slate-200 bg-white p-5 shadow-lg shadow-slate-900/5"
-                            >
-                                <p className="text-sm font-medium text-slate-500">
-                                    {titleMap[key] ?? key.replace(/_/g, ' ')}
-                                </p>
-                                <p className="mt-3 text-3xl font-semibold text-slate-900">{value}</p>
-                                <p className="mt-2 text-xs uppercase tracking-[0.35em] text-slate-400">
-                                    Monitoring in real-time
-                                </p>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
                 <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
                     <section className="space-y-6">
                         <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">

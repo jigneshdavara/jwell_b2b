@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { PageProps } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { FormEvent, useMemo, useState } from 'react';
+import { ChangeEvent, Dispatch, FormEvent, SetStateAction, useEffect, useMemo, useState } from 'react';
 
 const FILTER_LABELS: Record<string, string> = {
     brand: 'Brand',
@@ -10,6 +10,9 @@ const FILTER_LABELS: Record<string, string> = {
     search: 'Search',
     category: 'Category',
     catalog: 'Catalog',
+    diamond: 'Diamond',
+    price_min: 'Min price',
+    price_max: 'Max price',
 };
 
 type Product = {
@@ -44,6 +47,9 @@ type CatalogFiltersInput = {
     brand?: string | string[] | null;
     gold_purity?: string | string[] | null;
     silver_purity?: string | string[] | null;
+    diamond?: string | string[] | null;
+    price_min?: string | null;
+    price_max?: string | null;
     search?: string | null;
     category?: string | null;
     catalog?: string | null;
@@ -62,15 +68,34 @@ type CatalogProps = {
         catalogs: Array<{ id: number; name: string; slug?: string | null }>;
         goldPurities: Array<{ id: number; name: string }>;
         silverPurities: Array<{ id: number; name: string }>;
+        diamondOptions: {
+            types: Array<{ id: number; name: string }>;
+            shapes: Array<{ id: number; name: string }>;
+            colors: Array<{ id: number; name: string }>;
+            clarities: Array<{ id: number; name: string }>;
+            cuts: Array<{ id: number; name: string }>;
+        };
     };
 };
+
+type PriceRange = {
+    min: number;
+    max: number;
+};
+
+const DEFAULT_PRICE_MIN = 0;
+const DEFAULT_PRICE_MAX = 500000;
+const PRICE_STEP = 1000;
 
 type CatalogFilters = {
     brand: string[];
     gold_purity: string[];
     silver_purity: string[];
+    diamond: string[];
+    price_min?: string;
+    price_max?: string;
     search?: string;
-    category?: string;
+    category: string[];
     catalog?: string;
 };
 
@@ -92,7 +117,6 @@ export default function CatalogIndex() {
         }
     >();
     const { mode, filters: rawFilters, products, facets } = page.props;
-    const navigationData = page.props.navigation ?? { categories: [], catalogs: [], brands: [] };
     const wishlistProductIds = page.props.wishlist?.product_ids ?? [];
     const wishlistLookup = useMemo(() => new Set(wishlistProductIds), [wishlistProductIds]);
     const [wishlistBusyId, setWishlistBusyId] = useState<number | null>(null);
@@ -120,20 +144,60 @@ export default function CatalogIndex() {
             search: normalizeSingle(rawFilters.search),
             gold_purity: normalizeArray(rawFilters.gold_purity),
             silver_purity: normalizeArray(rawFilters.silver_purity),
-            category: normalizeSingle(rawFilters.category),
+            diamond: normalizeArray(rawFilters.diamond),
+            price_min: normalizeSingle(rawFilters.price_min),
+            price_max: normalizeSingle(rawFilters.price_max),
+            category: normalizeArray(rawFilters.category),
             catalog: normalizeSingle(rawFilters.catalog),
         };
     }, [rawFilters]);
     const [search, setSearch] = useState(filters.search ?? '');
+    const [priceRange, setPriceRange] = useState<PriceRange>(() => ({
+        min: filters.price_min ? Number(filters.price_min) : DEFAULT_PRICE_MIN,
+        max: filters.price_max ? Number(filters.price_max) : DEFAULT_PRICE_MAX,
+    }));
 
-    const highlightCategories = useMemo(
-        () => (navigationData.categories ?? []).slice(0, 4),
-        [navigationData.categories],
-    );
-    const highlightCatalogs = useMemo(
-        () => (navigationData.catalogs ?? []).slice(0, 4),
-        [navigationData.catalogs],
-    );
+    useEffect(() => {
+        setPriceRange({
+            min: filters.price_min ? Number(filters.price_min) : DEFAULT_PRICE_MIN,
+            max: filters.price_max ? Number(filters.price_max) : DEFAULT_PRICE_MAX,
+        });
+    }, [filters.price_min, filters.price_max]);
+
+    const applyPriceRange = (min: number, max: number) => {
+        router.get(
+            route('frontend.catalog.index'),
+            {
+                ...rawFilters,
+                price_min: min > DEFAULT_PRICE_MIN ? String(min) : undefined,
+                price_max: max < DEFAULT_PRICE_MAX ? String(max) : undefined,
+                mode,
+                page: undefined,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+            },
+        );
+    };
+
+    const resetPriceRange = () => {
+        setPriceRange({ min: DEFAULT_PRICE_MIN, max: DEFAULT_PRICE_MAX });
+        router.get(
+            route('frontend.catalog.index'),
+            {
+                ...rawFilters,
+                price_min: undefined,
+                price_max: undefined,
+                mode,
+                page: undefined,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+            },
+        );
+    };
 
     const changeMode = (nextMode: 'purchase' | 'jobwork') => {
         if (nextMode === mode) return;
@@ -154,6 +218,11 @@ export default function CatalogIndex() {
         const map = new Map<string, string>();
         facets.goldPurities.forEach((purity) => map.set(`gold_purity:${purity.id}`, purity.name));
         facets.silverPurities.forEach((purity) => map.set(`silver_purity:${purity.id}`, purity.name));
+        facets.diamondOptions.types.forEach((option) => map.set(`diamond:type:${option.id}`, option.name));
+        facets.diamondOptions.shapes.forEach((option) => map.set(`diamond:shape:${option.id}`, option.name));
+        facets.diamondOptions.colors.forEach((option) => map.set(`diamond:color:${option.id}`, option.name));
+        facets.diamondOptions.clarities.forEach((option) => map.set(`diamond:clarity:${option.id}`, option.name));
+        facets.diamondOptions.cuts.forEach((option) => map.set(`diamond:cut:${option.id}`, option.name));
         facets.brands.forEach((brand) => map.set(`brand:${brand}`, brand));
         facets.categories.forEach((category) => {
             map.set(`category:${category.slug ?? category.id}`, category.name);
@@ -267,14 +336,14 @@ export default function CatalogIndex() {
             });
         }
 
-        if (filters.category) {
+        filters.category.forEach((value) => {
             entries.push({
                 key: 'category',
-                value: filters.category,
+                value,
                 label: FILTER_LABELS.category,
-                valueLabel: valueNameMap.get(`category:${filters.category}`) ?? filters.category,
+                valueLabel: valueNameMap.get(`category:${value}`) ?? value,
             });
-        }
+        });
 
         if (filters.catalog) {
             entries.push({
@@ -282,6 +351,39 @@ export default function CatalogIndex() {
                 value: filters.catalog,
                 label: FILTER_LABELS.catalog,
                 valueLabel: valueNameMap.get(`catalog:${filters.catalog}`) ?? filters.catalog,
+            });
+        }
+
+        filters.diamond.forEach((value) => {
+            entries.push({
+                key: 'diamond',
+                value,
+                label: 'Diamond',
+                valueLabel:
+                    valueNameMap.get(`diamond:type:${value}`) ??
+                    valueNameMap.get(`diamond:shape:${value}`) ??
+                    valueNameMap.get(`diamond:color:${value}`) ??
+                    valueNameMap.get(`diamond:clarity:${value}`) ??
+                    valueNameMap.get(`diamond:cut:${value}`) ??
+                    value,
+            });
+        });
+
+        if (filters.price_min) {
+            entries.push({
+                key: 'price_min',
+                value: filters.price_min,
+                label: FILTER_LABELS.price_min,
+                valueLabel: currencyFormatter.format(Number(filters.price_min)),
+            });
+        }
+
+        if (filters.price_max) {
+            entries.push({
+                key: 'price_max',
+                value: filters.price_max,
+                label: FILTER_LABELS.price_max,
+                valueLabel: currencyFormatter.format(Number(filters.price_max)),
             });
         }
 
@@ -293,114 +395,6 @@ export default function CatalogIndex() {
             <Head title="Catalogue" />
 
             <div className="space-y-10" id="catalog">
-                <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white shadow-2xl">
-                    <div className="absolute inset-0">
-                        <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-sky-500/30 blur-3xl" />
-                        <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-rose-500/20 blur-3xl" />
-                    </div>
-                    <div className="relative z-10 grid gap-10 px-6 py-10 lg:grid-cols-[1.4fr_1fr] lg:px-12 lg:py-14">
-                        <div className="space-y-6">
-                            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-white/80">
-                                Curated for {mode === 'jobwork' ? 'Jobwork' : 'Retailers'}
-                            </span>
-                            <h1 className="text-3xl font-semibold leading-tight lg:text-4xl">
-                                Discover the latest Elvee signatures crafted for wholesale partners.
-                            </h1>
-                            <p className="text-sm text-white/70 lg:text-base">
-                                Browse by category, explore curated catalogues, and shortlist favourites to your wishlist or quotation cart in one click.
-                            </p>
-                            <div className="flex flex-wrap items-center gap-3">
-                                <Link
-                                    href={route('frontend.catalog.index', { mode })}
-                                    className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-slate-900/20 transition hover:bg-white/90"
-                                >
-                                    Explore full catalogue
-                                </Link>
-                                <Link
-                                    href={route('frontend.wishlist.index')}
-                                    className="inline-flex items-center gap-2 rounded-full border border-white/40 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-                                >
-                                    View wishlist
-                                </Link>
-                            </div>
-                            {(highlightCategories.length > 0 || highlightCatalogs.length > 0) && (
-                                <div className="mt-6 space-y-4">
-                                    {highlightCategories.length > 0 && (
-                                        <div className="flex flex-wrap items-center gap-2 text-xs text-white/70">
-                                            <span className="font-semibold uppercase tracking-[0.35em] text-white/60">Trending categories</span>
-                                            {highlightCategories.map((category) => {
-                                                const value = category.slug ?? category.id;
-
-                                                return (
-                                                    <Link
-                                                        key={`hero-category-${category.id}`}
-                                                        href={route('frontend.catalog.index', {
-                                                            mode,
-                                                            category: value,
-                                                        })}
-                                                        className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-semibold text-white transition hover:bg-white/20"
-                                                    >
-                                                        {category.name}
-                                                    </Link>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-
-                                    {highlightCatalogs.length > 0 && (
-                                        <div className="flex flex-wrap items-center gap-2 text-xs text-white/70">
-                                            <span className="font-semibold uppercase tracking-[0.35em] text-white/60">Featured catalogues</span>
-                                            {highlightCatalogs.map((catalog) => {
-                                                const value = catalog.slug ?? catalog.id;
-
-                                                return (
-                                                    <Link
-                                                        key={`hero-catalog-${catalog.id}`}
-                                                        href={route('frontend.catalog.index', {
-                                                            mode,
-                                                            catalog: value,
-                                                        })}
-                                                        className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-semibold text-white transition hover:bg-white/20"
-                                                    >
-                                                        {catalog.name}
-                                                    </Link>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                        <div className="relative hidden overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur lg:block">
-                            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-sky-500/10" />
-                            <div className="relative flex h-full flex-col justify-between p-8">
-                                <div>
-                                    <p className="text-sm font-semibold uppercase tracking-[0.35em] text-white/60">
-                                        Quick Access
-                                    </p>
-                                    <p className="mt-4 text-2xl font-semibold leading-snug text-white">
-                                        Build wishlists, sync rates, and generate quotations in a single workspace.
-                                    </p>
-                                </div>
-                                <div className="space-y-3 text-sm text-white/70">
-                                    <div className="rounded-2xl border border-white/10 bg-slate-900/40 p-4">
-                                        <p className="font-semibold text-white">Wishlist sync</p>
-                                        <p className="mt-1 text-white/70">
-                                            Save designs and move them to quotation list instantly when customers confirm.
-                                        </p>
-                                    </div>
-                                    <div className="rounded-2xl border border-white/10 bg-slate-900/30 p-4">
-                                        <p className="font-semibold text-white">Live metal rates</p>
-                                        <p className="mt-1 text-white/70">
-                                            Your catalogue prices reflect the latest mint rates configured in admin.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
                         <h1 className="text-3xl font-semibold text-slate-900">
@@ -454,11 +448,27 @@ export default function CatalogIndex() {
                         <button
                             key={`${key}-${valueLabel}`}
                             onClick={() => {
-                                if (key === 'brand' || key === 'gold_purity' || key === 'silver_purity') {
+                                if (
+                                    key === 'brand' ||
+                                    key === 'gold_purity' ||
+                                    key === 'silver_purity' ||
+                                    key === 'category' ||
+                                    key === 'diamond'
+                                ) {
                                     const existing = Array.isArray(filters[key]) ? (filters[key] as string[]) : [];
                                     const updated = existing.filter((entry) => entry !== value);
                                     applyFilter(key as keyof CatalogProps['filters'], updated.length ? updated : undefined);
 
+                                    return;
+                                }
+
+                                if (key === 'price_min') {
+                                    applyPriceRange(DEFAULT_PRICE_MIN, filters.price_max ? Number(filters.price_max) : DEFAULT_PRICE_MAX);
+                                    return;
+                                }
+
+                                if (key === 'price_max') {
+                                    applyPriceRange(filters.price_min ? Number(filters.price_min) : DEFAULT_PRICE_MIN, DEFAULT_PRICE_MAX);
                                     return;
                                 }
 
@@ -476,34 +486,43 @@ export default function CatalogIndex() {
                     <aside className="space-y-6 lg:col-span-1">
                         <div>
                             <h2 className="text-sm font-semibold text-slate-800">Categories</h2>
-                            <div className="mt-3 flex flex-wrap gap-2">
+                            <div className="mt-3 space-y-2 text-sm">
                                 {facets.categories.map((category) => {
                                     const value = category.slug ?? String(category.id);
-                                    const selected = filters.category === value;
+                                    const selected = filters.category.includes(value);
 
                                     return (
-                                        <button
+                                        <label
                                             key={category.id}
-                                            type="button"
-                                            onClick={() =>
-                                                applyFilter(
-                                                    'category',
-                                                    selected ? undefined : value,
-                                                )
-                                            }
-                                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
+                                            className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm transition ${
                                                 selected
-                                                    ? 'bg-sky-600 text-white shadow-sm shadow-sky-600/30'
-                                                    : 'bg-slate-100 text-slate-600 hover:bg-sky-50 hover:text-sky-600'
+                                                    ? 'border-sky-500 bg-sky-50 text-slate-900'
+                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-sky-300'
                                             }`}
                                         >
-                                            {category.name}
-                                            {selected && (
-                                                <span className="text-[10px] uppercase tracking-[0.3em]">
-                                                    ×
-                                                </span>
-                                            )}
-                                        </button>
+                                            <input
+                                                type="checkbox"
+                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                checked={selected}
+                                                onChange={(event) => {
+                                                    const list = [...filters.category];
+
+                                                    if (event.target.checked) {
+                                                        if (!list.includes(value)) {
+                                                            list.push(value);
+                                                        }
+                                                    } else {
+                                                        const index = list.indexOf(value);
+                                                        if (index >= 0) {
+                                                            list.splice(index, 1);
+                                                        }
+                                                    }
+
+                                                    applyFilter('category', list.length ? list : undefined);
+                                                }}
+                                            />
+                                            <span>{category.name}</span>
+                                        </label>
                                     );
                                 })}
                             </div>
@@ -667,6 +686,73 @@ export default function CatalogIndex() {
                                     );
                                 })}
                             </div>
+                        </div>
+
+                        <div>
+                            <h2 className="text-sm font-semibold text-slate-800">Diamond</h2>
+                            <div className="mt-3 space-y-4 text-sm">
+                                {[
+                                    { title: 'Types', kind: 'type', options: facets.diamondOptions.types },
+                                    { title: 'Shapes', kind: 'shape', options: facets.diamondOptions.shapes },
+                                    { title: 'Colors', kind: 'color', options: facets.diamondOptions.colors },
+                                    { title: 'Clarities', kind: 'clarity', options: facets.diamondOptions.clarities },
+                                    { title: 'Cuts', kind: 'cut', options: facets.diamondOptions.cuts },
+                                ].map(({ title, kind, options }) => (
+                                    <div key={kind}>
+                                        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">{title}</p>
+                                        <div className="mt-2 space-y-2">
+                                            {options.map((option) => {
+                                                const value = `${kind}:${option.id}`;
+                                                const selected = filters.diamond.includes(value);
+
+                                                return (
+                                                    <label
+                                                        key={value}
+                                                        className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm transition ${
+                                                            selected
+                                                                ? 'border-sky-500 bg-sky-50 text-slate-900'
+                                                                : 'border-slate-200 bg-white text-slate-600 hover:border-sky-300'
+                                                        }`}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                            checked={selected}
+                                                            onChange={(event) => {
+                                                                const list = [...filters.diamond];
+
+                                                                if (event.target.checked) {
+                                                                    if (!list.includes(value)) {
+                                                                        list.push(value);
+                                                                    }
+                                                                } else {
+                                                                    const index = list.indexOf(value);
+                                                                    if (index >= 0) {
+                                                                        list.splice(index, 1);
+                                                                    }
+                                                                }
+
+                                                                applyFilter('diamond', list.length ? list : undefined);
+                                                            }}
+                                                        />
+                                                        <span>{option.name}</span>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h2 className="text-sm font-semibold text-slate-800">Price range (₹)</h2>
+                            <PriceRangeFilter
+                                applyPriceRange={applyPriceRange}
+                                resetPriceRange={resetPriceRange}
+                                priceRange={priceRange}
+                                setPriceRange={setPriceRange}
+                            />
                         </div>
                     </aside>
 
@@ -854,6 +940,138 @@ export default function CatalogIndex() {
                 </div>
             </div>
         </AuthenticatedLayout>
+    );
+}
+
+type PriceRangeFilterProps = {
+    priceRange: PriceRange;
+    setPriceRange: Dispatch<SetStateAction<PriceRange>>;
+    applyPriceRange: (min: number, max: number) => void;
+    resetPriceRange: () => void;
+};
+
+function PriceRangeFilter({
+    priceRange,
+    setPriceRange,
+    applyPriceRange,
+    resetPriceRange,
+}: PriceRangeFilterProps) {
+    const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+    const handleMinRangeChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const value = Number(event.target.value);
+        if (Number.isNaN(value)) return;
+        setPriceRange((prev) => {
+            const nextMin = clamp(value, DEFAULT_PRICE_MIN, prev.max);
+            return { ...prev, min: nextMin };
+        });
+    };
+
+    const handleMaxRangeChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const value = Number(event.target.value);
+        if (Number.isNaN(value)) return;
+        setPriceRange((prev) => {
+            const nextMax = clamp(value, prev.min, DEFAULT_PRICE_MAX);
+            return { ...prev, max: nextMax };
+        });
+    };
+
+    const handleMinInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const value = event.target.value === '' ? DEFAULT_PRICE_MIN : Number(event.target.value);
+        if (Number.isNaN(value)) return;
+        setPriceRange((prev) => {
+            const nextMin = clamp(value, DEFAULT_PRICE_MIN, prev.max);
+            return { ...prev, min: nextMin };
+        });
+    };
+
+    const handleMaxInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const value = event.target.value === '' ? DEFAULT_PRICE_MAX : Number(event.target.value);
+        if (Number.isNaN(value)) return;
+        setPriceRange((prev) => {
+            const nextMax = clamp(value, prev.min, DEFAULT_PRICE_MAX);
+            return { ...prev, max: nextMax };
+        });
+    };
+
+    const apply = () => applyPriceRange(priceRange.min, priceRange.max);
+    const reset = () => resetPriceRange();
+
+    return (
+        <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+            <div className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.3em] text-slate-400">
+                <span>{currencyFormatter.format(priceRange.min)}</span>
+                <span>{currencyFormatter.format(priceRange.max)}</span>
+            </div>
+            <div className="space-y-2">
+                <input
+                    type="range"
+                    min={DEFAULT_PRICE_MIN}
+                    max={DEFAULT_PRICE_MAX}
+                    step={PRICE_STEP}
+                    value={priceRange.min}
+                    onChange={handleMinRangeChange}
+                    className="w-full accent-sky-500"
+                />
+                <input
+                    type="range"
+                    min={DEFAULT_PRICE_MIN}
+                    max={DEFAULT_PRICE_MAX}
+                    step={PRICE_STEP}
+                    value={priceRange.max}
+                    onChange={handleMaxRangeChange}
+                    className="w-full accent-sky-500"
+                />
+            </div>
+            <div className="flex items-center gap-3">
+                <div className="flex-1">
+                    <label className="text-xs font-medium uppercase tracking-[0.3em] text-slate-400" htmlFor="price-min">
+                        Min
+                    </label>
+                    <input
+                        id="price-min"
+                        type="number"
+                        value={priceRange.min}
+                        onChange={handleMinInputChange}
+                        min={DEFAULT_PRICE_MIN}
+                        max={priceRange.max}
+                        step={PRICE_STEP}
+                        className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                    />
+                </div>
+                <div className="flex-1">
+                    <label className="text-xs font-medium uppercase tracking-[0.3em] text-slate-400" htmlFor="price-max">
+                        Max
+                    </label>
+                    <input
+                        id="price-max"
+                        type="number"
+                        value={priceRange.max}
+                        onChange={handleMaxInputChange}
+                        min={priceRange.min}
+                        max={DEFAULT_PRICE_MAX}
+                        step={PRICE_STEP}
+                        className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                    />
+                </div>
+            </div>
+            <div className="flex items-center gap-2">
+                <button
+                    type="button"
+                    onClick={apply}
+                    className="flex-1 rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500"
+                >
+                    Apply
+                </button>
+                <button
+                    type="button"
+                    onClick={reset}
+                    className="flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                >
+                    Reset
+                </button>
+            </div>
+        </div>
     );
 }
 
