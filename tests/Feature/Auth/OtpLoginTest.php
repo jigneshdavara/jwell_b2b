@@ -3,7 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Mail\LoginOtpMail;
-use App\Models\User;
+use App\Models\Customer;
 use App\Models\UserLoginOtp;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -18,7 +18,7 @@ class OtpLoginTest extends TestCase
     {
         Mail::fake();
 
-        $user = User::factory()->retailer()->create([
+        $user = Customer::factory()->retailer()->create([
             'email' => 'otp-user@example.com',
         ]);
 
@@ -41,7 +41,7 @@ class OtpLoginTest extends TestCase
 
     public function test_user_can_login_with_valid_code(): void
     {
-        $user = User::factory()->retailer()->create([
+        $user = Customer::factory()->retailer()->create([
             'email' => 'otp-login@example.com',
             'password' => Hash::make('password'),
         ]);

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\KycStatus;
-use App\Models\User;
+use App\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -13,7 +13,7 @@ class KycMiddlewareTest extends TestCase
 
     public function test_pending_kyc_user_is_redirected_from_catalog(): void
     {
-        $user = User::factory()->retailer()->create([
+        $user = Customer::factory()->retailer()->create([
             'kyc_status' => KycStatus::Pending->value,
         ]);
 
@@ -25,7 +25,7 @@ class KycMiddlewareTest extends TestCase
 
     public function test_approved_user_can_access_catalog(): void
     {
-        $user = User::factory()->retailer()->approved()->create([
+        $user = Customer::factory()->retailer()->approved()->create([
             'kyc_status' => KycStatus::Approved->value,
         ]);
 

@@ -59,7 +59,7 @@ export default function KycReview() {
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        post(route('admin.users.update-kyc', user.id), {
+        post(route('admin.customers.update-kyc', user.id), {
             preserveScroll: true,
         });
     };
@@ -223,7 +223,7 @@ function DocumentReviewCard({ document, statuses }: DocumentReviewCardProps) {
  
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        put(route('admin.users.kyc.documents.update', document.id), {
+        put(route('admin.customers.kyc.documents.update', document.id), {
             preserveScroll: true,
         });
     };

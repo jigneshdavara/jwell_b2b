@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Customer;
 use App\Models\Order;
-use App\Models\User;
 use Illuminate\Support\Collection;
 
 class OfferService
@@ -11,11 +11,11 @@ class OfferService
     /**
      * Resolve applicable offers for a given order or cart context.
      *
-     * @param  User  $user
+     * @param  Customer  $user
      * @param  array<string, mixed>  $context
      * @return Collection<int, array{code: string, description: string, amount: float}>
      */
-    public function resolveOffers(User $user, array $context = []): Collection
+    public function resolveOffers(Customer $user, array $context = []): Collection
     {
         // TODO: Implement offer resolution rules.
         return collect();

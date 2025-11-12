@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('jobwork_requests', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('customers')->cascadeOnDelete();
             $table->string('type');
             $table->text('reference_design')->nullable();
             $table->string('reference_url')->nullable();

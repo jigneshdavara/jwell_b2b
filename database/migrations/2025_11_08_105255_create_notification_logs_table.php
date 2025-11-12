@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('notification_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained('customers')->nullOnDelete();
             $table->string('channel');
             $table->string('template');
             $table->json('payload')->nullable();

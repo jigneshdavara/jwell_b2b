@@ -51,7 +51,15 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        Auth::logout();
+        $guard = $request->session()->pull('auth_guard', 'web');
+
+        Auth::guard($guard)->logout();
+        if ($guard !== 'admin') {
+            Auth::guard('admin')->logout();
+        }
+        if ($guard !== 'web') {
+            Auth::guard('web')->logout();
+        }
 
         $user->delete();
 

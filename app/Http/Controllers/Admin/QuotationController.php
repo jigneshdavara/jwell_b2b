@@ -221,8 +221,10 @@ class QuotationController extends Controller
 
     public function message(Quotation $quotation, StoreQuotationMessageRequest $request): RedirectResponse
     {
+        $customerId = auth('web')->id();
+
         $quotation->messages()->create([
-            'user_id' => $request->user()?->id,
+            'user_id' => $customerId,
             'sender' => 'admin',
             'message' => $request->validated('message'),
         ]);
@@ -255,8 +257,10 @@ class QuotationController extends Controller
         }
         $quotation->save();
 
+        $customerId = auth('web')->id();
+
         $quotation->messages()->create([
-            'user_id' => $request->user()?->id,
+            'user_id' => $customerId,
             'sender' => 'admin',
             'message' => $data['notes'] ?? 'Please review updated quotation details.',
         ]);

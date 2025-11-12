@@ -1,25 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-    --color-background: #f8fafc;
+    --color-background: #0f0d1a;
     --color-surface: #ffffff;
-    --color-primary: #0f172a;
-    --color-primary-dark: #020617;
-    --color-accent: #38bdf8;
-    --color-highlight: #f97316;
-    --color-muted: #94a3b8;
-    --gradient-hero: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 64, 175, 0.92));
-    --gradient-card: linear-gradient(160deg, rgba(56, 189, 248, 0.2), rgba(249, 115, 22, 0.12));
+    --color-primary: #2d2252;
+    --color-primary-dark: #1b1434;
+    --color-accent: #fe4f1c;
+    --color-highlight: #6f57f4;
+    --color-muted: #6d6d86;
+    --gradient-hero: linear-gradient(135deg, rgba(20, 16, 41, 0.95), rgba(44, 18, 65, 0.9), rgba(111, 87, 244, 0.85));
+    --gradient-card: linear-gradient(160deg, rgba(111, 87, 244, 0.18), rgba(254, 79, 28, 0.12));
 }
 
 body {
-    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background-color: var(--color-background);
-    color: #0f172a;
+    font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: #f7f7f9;
+    color: #2d2252;
 }
 
 a {
@@ -27,16 +27,28 @@ a {
 }
 
 a:hover {
-    @apply text-sky-500;
+    @apply text-brand-500;
+}
+
+@layer base {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: 'Playfair Display', ui-serif, Georgia, 'Times New Roman', serif;
+        @apply tracking-tight text-graphite-900;
+    }
 }
 
 @layer components {
     .btn-primary {
-        @apply inline-flex items-center justify-center rounded-lg bg-sky-600 px-5 py-2.5 font-medium text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-slate-900;
+        @apply inline-flex items-center justify-center rounded-full bg-brand-600 px-6 py-2.5 font-semibold text-white shadow-soft-panel transition hover:bg-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-300;
     }
 
     .btn-secondary {
-        @apply inline-flex items-center justify-center rounded-lg border border-white/30 bg-white/10 px-5 py-2.5 font-medium text-white transition hover:bg-white/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50;
+        @apply inline-flex items-center justify-center rounded-full border border-brand-200/70 bg-white px-6 py-2.5 font-semibold text-brand-700 shadow-sm transition hover:border-brand-300 hover:text-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-200;
     }
 
     .glass-card {
@@ -47,7 +59,7 @@ a:hover {
     }
 
     .metric-card {
-        @apply relative overflow-hidden rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200/60 transition hover:-translate-y-1 hover:shadow-2xl;
+        @apply relative overflow-hidden rounded-3xl bg-white p-6 shadow-floating-card ring-1 ring-slate-100/70 transition hover:-translate-y-1 hover:shadow-soft-panel;
     }
 
     .metric-card::after {
@@ -66,5 +78,17 @@ a:hover {
     .metric-card > * {
         position: relative;
         z-index: 1;
+    }
+
+    .badge-pill {
+        @apply inline-flex items-center gap-2 rounded-full border border-brand-200/60 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-brand-500;
+    }
+
+    .card-elevated {
+        @apply rounded-3xl bg-white/90 shadow-floating-card ring-1 ring-white/40 backdrop-blur;
+    }
+
+    .section-container {
+        @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10;
     }
 }

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\KycStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateKycDocumentRequest;
-use App\Models\User;
+use App\Models\Customer;
 use App\Models\UserKycDocument;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
@@ -17,7 +17,7 @@ class KycController extends Controller
 {
     protected array $documentStatuses = ['pending', 'approved', 'rejected', 'needs_revision'];
 
-    public function show(User $user): Response
+    public function show(Customer $user): Response
     {
         $user->load(['kycDocuments', 'kycProfile']);
 

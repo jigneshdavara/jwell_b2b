@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\RateController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserGroupController;
+use App\Http\Controllers\Admin\TeamUserController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\MaterialController;
@@ -125,15 +126,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware(['auth', 'verified', 'can:access admin portal'])
+    ->middleware(['auth:admin', 'can:access admin portal'])
     ->group(function () {
         Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
 
-        Route::get('/users', [UserController::class, 'index'])->name('users.index');
-        Route::post('/users/{user}/kyc-status', [UserController::class, 'updateKycStatus'])
-            ->name('users.update-kyc');
-        Route::get('/users/{user}/kyc', [KycController::class, 'show'])->name('users.kyc.show');
-        Route::put('/users/kyc-documents/{document}', [KycController::class, 'updateDocument'])->name('users.kyc.documents.update');
+        Route::get('/customers', [UserController::class, 'index'])->name('customers.index');
+        Route::post('/customers/{user}/kyc-status', [UserController::class, 'updateKycStatus'])
+            ->name('customers.update-kyc');
+        Route::get('/customers/{user}/kyc', [KycController::class, 'show'])->name('customers.kyc.show');
+        Route::put('/customers/kyc-documents/{document}', [KycController::class, 'updateDocument'])->name('customers.kyc.documents.update');
+        Route::patch('/customers/{user}/group', [UserController::class, 'updateGroup'])->name('customers.group.update');
 
         Route::post('products/bulk/status', [ProductController::class, 'bulkStatus'])->name('products.bulk-status');
         Route::post('products/bulk/brand', [ProductController::class, 'bulkAssignBrand'])->name('products.bulk-brand');
@@ -187,7 +189,12 @@ Route::prefix('admin')
         Route::resource('users/groups', UserGroupController::class)
             ->only(['index', 'store', 'update', 'destroy'])
             ->names('users.groups');
-        Route::patch('/users/{user}/group', [UserController::class, 'updateGroup'])->name('users.group.update');
+        Route::get('/users', [TeamUserController::class, 'index'])->name('users.index');
+        Route::post('/users', [TeamUserController::class, 'store'])->name('users.store');
+        Route::patch('/users/{user}', [TeamUserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [TeamUserController::class, 'destroy'])->name('users.destroy');
+        Route::delete('/users/bulk', [TeamUserController::class, 'bulkDestroy'])->name('users.bulk-destroy');
+        Route::patch('/users/{user}/group', [TeamUserController::class, 'updateGroup'])->name('users.group.update');
 
         Route::prefix('customers')->name('customers.')->group(function () {
             Route::delete('types/bulk', [CustomerTypeController::class, 'bulkDestroy'])->name('types.bulk-destroy');
@@ -232,7 +239,7 @@ Route::prefix('admin')
 
 Route::prefix('production')
     ->name('production.')
-    ->middleware(['auth', 'verified', 'can:update production status'])
+    ->middleware(['auth:admin', 'can:update production status'])
     ->group(function () {
         Route::get('/dashboard', ProductionDashboardController::class)->name('dashboard');
         Route::get('/work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');

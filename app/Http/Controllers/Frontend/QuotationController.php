@@ -54,7 +54,7 @@ class QuotationController extends Controller
                 'order' => $quotation->order ? [
                     'id' => $quotation->order->id,
                     'reference' => $quotation->order->reference,
-                    'status' => (string) $quotation->order->status,
+                    'status' => $quotation->order->status?->value ?? null,
                     'history' => $quotation->order->statusHistory->map(fn ($history) => [
                         'id' => $history->id,
                         'status' => $history->status,

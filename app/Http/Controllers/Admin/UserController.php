@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\KycStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateKycStatusRequest;
-use App\Http\Requests\Admin\UpdateUserGroupAssignmentRequest;
-use App\Models\User;
-use App\Models\UserGroup;
+use App\Http\Requests\Admin\UpdateCustomerGroupAssignmentRequest;
+use App\Models\Customer;
+use App\Models\CustomerGroup;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -22,8 +22,8 @@ class UserController extends Controller
 
         $statusValues = collect(KycStatus::cases())->pluck('value')->all();
 
-        $usersQuery = User::query()
-            ->with(['kycDocuments', 'kycProfile', 'userGroup'])
+        $usersQuery = Customer::query()
+            ->with(['kycDocuments', 'kycProfile', 'customerGroup'])
             ->latest();
 
         if ($statusFilter && in_array($statusFilter, $statusValues, true)) {
@@ -33,7 +33,7 @@ class UserController extends Controller
         $users = $usersQuery
             ->paginate(20)
             ->withQueryString()
-            ->through(function (User $user) {
+            ->through(function (Customer $user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -43,9 +43,9 @@ class UserController extends Controller
                     'kyc_status_label' => Str::headline($user->kyc_status ?? ''),
                     'kyc_notes' => $user->kyc_notes,
                     'kyc_document_count' => $user->kycDocuments->count(),
-                    'user_group' => $user->userGroup ? [
-                        'id' => $user->userGroup->id,
-                        'name' => $user->userGroup->name,
+                    'customer_group' => $user->customerGroup ? [
+                        'id' => $user->customerGroup->id,
+                        'name' => $user->customerGroup->name,
                     ] : null,
                     'kyc_profile' => $user->kycProfile ? [
                         'business_name' => $user->kycProfile->business_name,
@@ -57,19 +57,19 @@ class UserController extends Controller
             });
 
         $stats = [
-            'total' => User::count(),
-            'pending' => User::where('kyc_status', KycStatus::Pending->value)->count(),
-            'review' => User::where('kyc_status', KycStatus::Review->value)->count(),
-            'approved' => User::where('kyc_status', KycStatus::Approved->value)->count(),
-            'rejected' => User::where('kyc_status', KycStatus::Rejected->value)->count(),
+            'total' => Customer::count(),
+            'pending' => Customer::where('kyc_status', KycStatus::Pending->value)->count(),
+            'review' => Customer::where('kyc_status', KycStatus::Review->value)->count(),
+            'approved' => Customer::where('kyc_status', KycStatus::Approved->value)->count(),
+            'rejected' => Customer::where('kyc_status', KycStatus::Rejected->value)->count(),
         ];
 
-        $userGroups = UserGroup::query()
+        $customerGroups = CustomerGroup::query()
             ->where('is_active', true)
             ->orderBy('position')
             ->orderBy('name')
             ->get(['id', 'name'])
-            ->map(fn (UserGroup $group) => [
+            ->map(fn (CustomerGroup $group) => [
                 'id' => $group->id,
                 'name' => $group->name,
             ]);
@@ -81,11 +81,11 @@ class UserController extends Controller
                 'status' => $statusFilter,
             ],
             'stats' => $stats,
-            'userGroups' => $userGroups,
+            'customerGroups' => $customerGroups,
         ]);
     }
 
-    public function updateKycStatus(UpdateKycStatusRequest $request, User $user): RedirectResponse
+    public function updateKycStatus(UpdateKycStatusRequest $request, Customer $user): RedirectResponse
     {
         $remarks = trim((string) $request->input('remarks')) ?: null;
 
@@ -99,14 +99,14 @@ class UserController extends Controller
             ->with('success', 'KYC status updated successfully.');
     }
 
-    public function updateGroup(UpdateUserGroupAssignmentRequest $request, User $user): RedirectResponse
+    public function updateGroup(UpdateCustomerGroupAssignmentRequest $request, Customer $user): RedirectResponse
     {
         $user->update([
-            'user_group_id' => $request->validated('user_group_id'),
+            'customer_group_id' => $request->validated('customer_group_id'),
         ]);
 
         return redirect()
             ->back()
-            ->with('success', 'User group updated successfully.');
+            ->with('success', 'Customer group updated successfully.');
     }
 }

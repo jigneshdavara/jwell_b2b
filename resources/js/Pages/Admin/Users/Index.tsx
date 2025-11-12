@@ -8,7 +8,7 @@ type AdminUserRow = {
     name: string;
     email: string;
     type: string;
-    user_group?: {
+    customer_group?: {
         id: number;
         name: string;
     } | null;
@@ -52,7 +52,7 @@ type AdminUsersPageProps = AppPageProps<{
         approved: number;
         rejected: number;
     };
-    userGroups: Option[];
+    customerGroups: Option[];
 }>;
 
 const statusColours: Record<string, string> = {
@@ -63,13 +63,13 @@ const statusColours: Record<string, string> = {
 };
 
 export default function AdminUsersIndex() {
-    const { users, kycStatuses, filters, stats, userGroups } = usePage<AdminUsersPageProps>().props;
+    const { users, kycStatuses, filters, stats, customerGroups } = usePage<AdminUsersPageProps>().props;
 
     const statusOptions = useMemo(() => ['all', ...kycStatuses], [kycStatuses]);
 
     const changeStatus = (status: string) => {
         const params = status === 'all' ? {} : { status };
-        router.get(route('admin.users.index'), params, {
+        router.get(route('admin.customers.index'), params, {
             preserveState: true,
             replace: true,
             preserveScroll: true,
@@ -78,8 +78,8 @@ export default function AdminUsersIndex() {
 
     const updateUserGroup = (user: AdminUserRow, groupId: string) => {
         router.patch(
-            route('admin.users.group.update', user.id),
-            { user_group_id: groupId || null },
+            route('admin.customers.group.update', user.id),
+            { customer_group_id: groupId || null },
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -150,7 +150,7 @@ export default function AdminUsersIndex() {
                                 <th className="px-5 py-3 text-left">Name</th>
                                 <th className="px-5 py-3 text-left">Email</th>
                                 <th className="px-5 py-3 text-left">Type</th>
-                                <th className="px-5 py-3 text-left">User group</th>
+                                <th className="px-5 py-3 text-left">Customer group</th>
                                 <th className="px-5 py-3 text-left">KYC Status</th>
                                 <th className="px-5 py-3 text-left">Docs</th>
                                 <th className="px-5 py-3 text-left">Joined</th>
@@ -175,19 +175,19 @@ export default function AdminUsersIndex() {
                                         </td>
                                         <td className="px-5 py-3 text-slate-600">{user.email}</td>
                                         <td className="px-5 py-3 text-slate-500 uppercase tracking-wide">{user.type}</td>
-                                    <td className="px-5 py-3 text-slate-600">
-                                        <select
-                                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            value={user.user_group?.id ?? ''}
-                                            onChange={(event) => updateUserGroup(user, event.target.value)}
-                                        >
-                                            <option value="">No group</option>
-                                            {userGroups.map((group) => (
-                                                <option key={group.id} value={group.id}>
-                                                    {group.name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                    <td className="px-5 py-3 text-left">
+                                            <select
+                                                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                value={user.customer_group?.id ?? ''}
+                                                onChange={(event) => updateUserGroup(user, event.target.value)}
+                                            >
+                                                <option value="">No group</option>
+                                                {customerGroups.map((group) => (
+                                                    <option key={group.id} value={group.id}>
+                                                        {group.name}
+                                                    </option>
+                                                ))}
+                                            </select>
                                     </td>
                                         <td className="px-5 py-3">
                                             <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}>
@@ -198,7 +198,7 @@ export default function AdminUsersIndex() {
                                         <td className="px-5 py-3 text-slate-500">{user.joined_at ? new Date(user.joined_at).toLocaleDateString('en-IN') : '—'}</td>
                                         <td className="px-5 py-3 text-right">
                                             <Link
-                                                href={route('admin.users.kyc.show', user.id)}
+                                                href={route('admin.customers.kyc.show', user.id)}
                                                 className="inline-flex items-center rounded-full bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700"
                                             >
                                                 Review KYC

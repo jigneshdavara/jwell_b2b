@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Customer;
 use App\Models\MakingChargeDiscount;
 use App\Models\Product;
-use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -17,7 +17,7 @@ class MakingChargeDiscountService
      * @param  array<string, mixed>  $context
      * @return array<string, mixed>
      */
-    public function resolve(Product $product, ?User $user = null, array $context = []): array
+    public function resolve(Product $product, ?Customer $user = null, array $context = []): array
     {
         $makingCharge = (float) $product->making_charge;
 
@@ -82,7 +82,7 @@ class MakingChargeDiscountService
         return Carbon::now();
     }
 
-    protected function resolveCustomerGroupId(?User $user, array $context): ?int
+    protected function resolveCustomerGroupId(?Customer $user, array $context): ?int
     {
         if (isset($context['customer_group_id']) && $context['customer_group_id'] !== null) {
             return (int) $context['customer_group_id'];
@@ -104,7 +104,7 @@ class MakingChargeDiscountService
         return null;
     }
 
-    protected function resolveCustomerType(?User $user, array $context): ?string
+    protected function resolveCustomerType(?Customer $user, array $context): ?string
     {
         if (isset($context['customer_type']) && is_string($context['customer_type'])) {
             return strtolower($context['customer_type']);

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\KycStatus;
-use App\Models\User;
+use App\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -13,7 +13,7 @@ class JobworkRequestTest extends TestCase
 
     public function test_authenticated_user_can_submit_jobwork_request(): void
     {
-        $user = User::factory()->retailer()->approved()->create([
+        $user = Customer::factory()->retailer()->approved()->create([
             'kyc_status' => KycStatus::Approved->value,
         ]);
 

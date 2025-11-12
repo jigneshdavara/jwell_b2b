@@ -8,6 +8,7 @@ use App\Events\OrderStatusUpdated;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\WorkOrder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class OrderWorkflowService
@@ -26,11 +27,20 @@ class OrderWorkflowService
             $order->status_meta = array_merge($order->status_meta ?? [], $meta);
             $order->save();
 
+            $customerId = Auth::guard('web')->id();
+            $adminId = Auth::guard('admin')->id();
+
             OrderStatusHistory::create([
                 'order_id' => $order->id,
-                'user_id' => auth()->id(),
+                'user_id' => $customerId,
                 'status' => $status->value,
-                'meta' => $meta,
+                'meta' => array_merge(
+                    $meta,
+                    [
+                        'actor_guard' => $customerId ? 'customer' : ($adminId ? 'admin' : null),
+                        'actor_user_id' => $customerId ?? $adminId,
+                    ],
+                ),
             ]);
 
             OrderStatusUpdated::dispatch($order, $status, $meta);

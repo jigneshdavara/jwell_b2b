@@ -4,11 +4,11 @@ namespace Database\Seeders;
 
 use App\Enums\KycStatus;
 use App\Enums\UserType;
+use App\Models\Customer;
 use App\Models\JobworkRequest;
 use App\Models\NotificationLog;
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Database\Seeder;
 
@@ -16,7 +16,7 @@ class ProductionSeeder extends Seeder
 {
     public function run(): void
     {
-        $customers = User::query()
+        $customers = Customer::query()
             ->whereIn('type', [UserType::Retailer->value, UserType::Wholesaler->value])
             ->where('kyc_status', KycStatus::Approved->value)
             ->get();

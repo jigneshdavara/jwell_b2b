@@ -31,14 +31,15 @@ const adminNavigation: NavItem[] = [
         label: 'Customers',
         icon: 'users',
         children: [
+            { label: 'Customer list', route: 'admin.customers.index', match: 'admin.customers.*' },
             { label: 'Customer groups', route: 'admin.customers.groups.index', match: 'admin.customers.groups.*' },
         ],
     },
     {
-        label: 'Manage Users',
+        label: 'Users',
         icon: 'users',
         children: [
-            { label: 'User list', route: 'admin.users.index', match: 'admin.users.index' },
+            { label: 'Users', route: 'admin.users.index', match: 'admin.users.index' },
             { label: 'User groups', route: 'admin.users.groups.index', match: 'admin.users.groups.*' },
         ],
     },

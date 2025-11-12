@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('quotation_messages', function (Blueprint $table) {
             $table->id();
             $table->foreignId('quotation_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained('customers')->nullOnDelete();
             $table->enum('sender', ['customer', 'admin']);
             $table->text('message');
             $table->timestamps();

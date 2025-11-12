@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Customer;
 use App\Models\Product;
-use App\Models\User;
 use Illuminate\Support\Collection;
 
 class PricingService
@@ -17,11 +17,11 @@ class PricingService
      * Calculate the detailed price breakdown for a product configuration.
      *
      * @param  Product  $product
-     * @param  User|null  $user
+     * @param  Customer|null  $user
      * @param  array<string, mixed>  $options
      * @return Collection<string, mixed>
      */
-    public function calculateProductPrice(Product $product, ?User $user, array $options = []): Collection
+    public function calculateProductPrice(Product $product, ?Customer $user, array $options = []): Collection
     {
         $variant = $options['variant'] ?? null;
         $priceAdjustment = is_array($variant) ? ($variant['price_adjustment'] ?? 0) : 0;

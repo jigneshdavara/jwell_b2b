@@ -8,9 +8,9 @@ use App\Enums\KycStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Cart;
+use App\Models\Customer;
 use App\Models\PaymentGateway;
 use App\Models\Product;
-use App\Models\User;
 use App\Services\Payments\Drivers\FakeGateway;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -36,7 +36,7 @@ class CartCheckoutTest extends TestCase
 
     public function test_user_can_add_product_to_cart(): void
     {
-        $user = User::factory()->retailer()->approved()->create([
+        $user = Customer::factory()->retailer()->approved()->create([
             'kyc_status' => KycStatus::Approved->value,
         ]);
         $product = Product::factory()->create();
@@ -55,7 +55,7 @@ class CartCheckoutTest extends TestCase
 
     public function test_checkout_flow_creates_order_and_completes_payment(): void
     {
-        $user = User::factory()->retailer()->approved()->create([
+        $user = Customer::factory()->retailer()->approved()->create([
             'kyc_status' => KycStatus::Approved->value,
         ]);
         $product = Product::factory()->create([

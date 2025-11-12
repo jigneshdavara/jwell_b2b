@@ -34,7 +34,10 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $user = $request->user();
+        $guard = Auth::guard('admin')->check() ? 'admin' : 'web';
+        $request->session()->put('auth_guard', $guard);
+
+        $user = Auth::guard($guard)->user();
 
         $intendedRoute = match ($user?->type) {
             UserType::Admin->value, UserType::SuperAdmin->value => route('admin.dashboard', absolute: false),
@@ -50,7 +53,16 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('web')->logout();
+        $guard = $request->session()->pull('auth_guard', 'web');
+
+        Auth::guard($guard)->logout();
+        // Ensure any other guard session is cleared as well.
+        if ($guard !== 'admin') {
+            Auth::guard('admin')->logout();
+        }
+        if ($guard !== 'web') {
+            Auth::guard('web')->logout();
+        }
 
         $request->session()->invalidate();
 

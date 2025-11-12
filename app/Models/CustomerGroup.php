@@ -20,5 +20,10 @@ class CustomerGroup extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function customers()
+    {
+        return $this->hasMany(Customer::class);
+    }
 }
 

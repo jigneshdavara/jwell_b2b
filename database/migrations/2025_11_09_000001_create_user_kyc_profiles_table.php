@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('user_kyc_profiles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('customers')->cascadeOnDelete();
             $table->string('business_name');
             $table->string('business_website')->nullable();
             $table->string('gst_number')->nullable();

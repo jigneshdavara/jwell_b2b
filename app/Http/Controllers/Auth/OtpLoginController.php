@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\UserType;
 use App\Http\Controllers\Controller;
 use App\Mail\LoginOtpMail;
-use App\Models\User;
+use App\Models\Customer;
 use App\Models\UserLoginOtp;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +23,7 @@ class OtpLoginController extends Controller
     public function send(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'email' => ['required', 'email:filter', 'exists:users,email'],
+            'email' => ['required', 'email:filter', 'exists:customers,email'],
         ]);
 
         $throttleKey = $this->throttleKey($validated['email'], $request->ip());
@@ -34,7 +34,7 @@ class OtpLoginController extends Controller
             ])->status(Response::HTTP_TOO_MANY_REQUESTS);
         }
 
-        $user = User::where('email', $validated['email'])->firstOrFail();
+        $user = Customer::where('email', $validated['email'])->firstOrFail();
 
         $code = (string) random_int(100000, 999999);
 
@@ -56,11 +56,11 @@ class OtpLoginController extends Controller
     public function verify(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'email' => ['required', 'email:filter', 'exists:users,email'],
+            'email' => ['required', 'email:filter', 'exists:customers,email'],
             'code' => ['required', 'string', 'size:6'],
         ]);
 
-        $user = User::where('email', $validated['email'])->firstOrFail();
+        $user = Customer::where('email', $validated['email'])->firstOrFail();
 
         $otp = $user->loginOtps()
             ->whereNull('consumed_at')

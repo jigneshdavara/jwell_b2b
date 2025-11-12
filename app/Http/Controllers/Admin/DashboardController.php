@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\KycStatus;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\JobworkRequest;
 use App\Models\Offer;
 use App\Models\Order;
-use App\Models\User;
 use Carbon\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,7 +18,7 @@ class DashboardController extends Controller
     public function __invoke(): Response
     {
         $metrics = [
-            'pending_kyc' => User::where('kyc_status', KycStatus::Pending->value)->count(),
+            'pending_kyc' => Customer::where('kyc_status', KycStatus::Pending->value)->count(),
             'orders_in_production' => Order::whereIn('status', [
                 OrderStatus::InProduction->value,
                 OrderStatus::QualityCheck->value,
@@ -27,7 +27,7 @@ class DashboardController extends Controller
             'active_offers' => Offer::where('is_active', true)->count(),
         ];
 
-        $recentPartners = User::latest()
+        $recentPartners = Customer::latest()
             ->take(6)
             ->get(['id', 'name', 'email', 'type', 'kyc_status', 'created_at']);
 

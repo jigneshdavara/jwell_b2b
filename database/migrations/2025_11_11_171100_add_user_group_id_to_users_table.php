@@ -12,11 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->foreignId('user_group_id')
-                ->nullable()
-                ->after('type')
-                ->constrained('user_groups')
-                ->nullOnDelete();
+            if (! Schema::hasColumn('users', 'user_group_id')) {
+                $table->foreignId('user_group_id')
+                    ->nullable()
+                    ->after('type')
+                    ->constrained('user_groups')
+                    ->nullOnDelete();
+            }
         });
     }
 
@@ -26,7 +28,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('user_group_id');
+            if (Schema::hasColumn('users', 'user_group_id')) {
+                $table->dropConstrainedForeignId('user_group_id');
+            }
         });
     }
 };

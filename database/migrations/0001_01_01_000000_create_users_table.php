@@ -11,12 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('customers', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('phone')->nullable();
+            $table->string('type')->default('retailer');
+            $table->foreignId('customer_group_id')->nullable();
+            $table->string('kyc_status')->default('pending');
+            $table->text('kyc_notes')->nullable();
+            $table->string('preferred_language')->nullable();
+            $table->decimal('credit_limit', 12, 2)->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
@@ -42,7 +49,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('customers');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
     }

@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Customer;
 use App\Models\Product;
 use App\Models\ProductVariant;
-use App\Models\User;
 
 class CartService
 {
@@ -14,7 +14,7 @@ class CartService
     {
     }
 
-    public function getActiveCart(User $user): Cart
+    public function getActiveCart(Customer $user): Cart
     {
         return Cart::firstOrCreate([
             'user_id' => $user->id,
@@ -24,7 +24,7 @@ class CartService
         ])->loadMissing('items.product.media', 'items.variant');
     }
 
-    public function addItem(User $user, Product $product, ?ProductVariant $variant, int $quantity = 1, array $configuration = []): Cart
+    public function addItem(Customer $user, Product $product, ?ProductVariant $variant, int $quantity = 1, array $configuration = []): Cart
     {
         $cart = $this->getActiveCart($user);
 

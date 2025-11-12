@@ -29,17 +29,21 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $customer = $request->user();
+        $admin = $request->user('admin');
+        $authUser = $customer ?? $admin;
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $authUser,
             ],
             'brand' => [
                 'name' => config('demo.brand_name'),
             ],
             'cart' => [
-                'count' => $request->user()
-                    ? optional($request->user()->carts()
+                'count' => $customer
+                    ? optional($customer->carts()
                         ->where('status', 'active')
                         ->withCount('items')
                         ->latest()

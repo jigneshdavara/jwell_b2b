@@ -6,17 +6,17 @@ use App\Enums\KycStatus;
 use App\Enums\UserType;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
-use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class CommerceSeeder extends Seeder
 {
     public function run(): void
     {
-        $customers = User::query()
+        $customers = Customer::query()
             ->whereIn('type', [UserType::Retailer->value, UserType::Wholesaler->value])
             ->where('kyc_status', KycStatus::Approved->value)
             ->get();
@@ -24,7 +24,7 @@ class CommerceSeeder extends Seeder
         $products = Product::all();
 
         // Ensure at least 20 carts
-        $customers->random(min(20, $customers->count()))->each(function (User $customer) use ($products): void {
+        $customers->random(min(20, $customers->count()))->each(function (Customer $customer) use ($products): void {
             $cart = Cart::factory()
                 ->for($customer)
                 ->create();
@@ -39,7 +39,7 @@ class CommerceSeeder extends Seeder
         });
 
         // Create orders with items
-        $customers->random(min(30, $customers->count()))->each(function (User $customer) use ($products): void {
+        $customers->random(min(30, $customers->count()))->each(function (Customer $customer) use ($products): void {
             $order = Order::factory()
                 ->for($customer)
                 ->create();
