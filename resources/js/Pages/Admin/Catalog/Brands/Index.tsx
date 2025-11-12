@@ -1,13 +1,15 @@
+import RichTextEditor from '@/Components/RichTextEditor';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 
 type BrandRow = {
     id: number;
     name: string;
     slug?: string | null;
     description?: string | null;
+    cover_image_url?: string | null;
     is_active: boolean;
     products_count: number;
 };
@@ -24,11 +26,15 @@ export default function AdminBrandsIndex() {
     const { brands } = usePage<BrandsPageProps>().props;
     const [editingBrand, setEditingBrand] = useState<BrandRow | null>(null);
     const [selectedBrands, setSelectedBrands] = useState<number[]>([]);
+    const [coverPreview, setCoverPreview] = useState<string | null>(null);
+    const [coverObjectUrl, setCoverObjectUrl] = useState<string | null>(null);
 
     const brandForm = useForm({
         name: '',
         slug: '',
         description: '',
+        cover_image: null as File | null,
+        remove_cover_image: false,
         is_active: true,
     });
 
@@ -63,6 +69,13 @@ export default function AdminBrandsIndex() {
         setEditingBrand(null);
         brandForm.reset();
         brandForm.setData('is_active', true);
+        brandForm.setData('cover_image', null);
+        brandForm.setData('remove_cover_image', false);
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+        setCoverPreview(null);
     };
 
     const populateForm = (brand: BrandRow) => {
@@ -71,8 +84,15 @@ export default function AdminBrandsIndex() {
             name: brand.name,
             slug: brand.slug ?? '',
             description: brand.description ?? '',
+            cover_image: null,
+            remove_cover_image: false,
             is_active: brand.is_active,
         });
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+        setCoverPreview(brand.cover_image_url ?? null);
     };
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -83,11 +103,13 @@ export default function AdminBrandsIndex() {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
                 method: 'put',
+                forceFormData: true,
             });
         } else {
             brandForm.post(route('admin.catalog.brands.store'), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
+                forceFormData: true,
             });
         }
     };
@@ -98,6 +120,7 @@ export default function AdminBrandsIndex() {
             slug: brand.slug,
             description: brand.description,
             is_active: !brand.is_active,
+            remove_cover_image: false,
         }, {
             preserveScroll: true,
         });
@@ -130,6 +153,45 @@ export default function AdminBrandsIndex() {
             preserveScroll: true,
             onSuccess: () => setSelectedBrands([]),
         });
+    };
+
+    useEffect(() => {
+        return () => {
+            if (coverObjectUrl) {
+                URL.revokeObjectURL(coverObjectUrl);
+            }
+        };
+    }, [coverObjectUrl]);
+
+    const handleCoverChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0] ?? null;
+        brandForm.setData('cover_image', file);
+        brandForm.setData('remove_cover_image', false);
+
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+
+        if (file) {
+            const objectUrl = URL.createObjectURL(file);
+            setCoverPreview(objectUrl);
+            setCoverObjectUrl(objectUrl);
+        } else {
+            setCoverPreview(editingBrand?.cover_image_url ?? null);
+        }
+    };
+
+    const removeCoverImage = () => {
+        brandForm.setData('cover_image', null);
+        brandForm.setData('remove_cover_image', true);
+
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+
+        setCoverPreview(null);
     };
 
     return (
@@ -188,14 +250,59 @@ export default function AdminBrandsIndex() {
 
                     <label className="flex flex-col gap-2 text-sm text-slate-600">
                         <span>Description</span>
-                        <textarea
-                            value={brandForm.data.description}
-                            onChange={(event) => brandForm.setData('description', event.target.value)}
-                            className="min-h-[100px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                            placeholder="Optional notes for the merchandising team"
+                        <RichTextEditor
+                            value={brandForm.data.description ?? ''}
+                            onChange={(value) => brandForm.setData('description', value)}
+                            placeholder="Share brand story, merchandising notes, or specific positioning details."
                         />
                         {brandForm.errors.description && (
                             <span className="text-xs text-rose-500">{brandForm.errors.description}</span>
+                        )}
+                    </label>
+
+                    <label className="flex flex-col gap-3 text-sm text-slate-600">
+                        <span>Brand image</span>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleCoverChange}
+                            className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-700"
+                        />
+                        {brandForm.errors.cover_image && (
+                            <span className="text-xs text-rose-500">{brandForm.errors.cover_image}</span>
+                        )}
+                        {coverPreview && (
+                            <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
+                                <img
+                                    src={coverPreview}
+                                    alt="Brand cover preview"
+                                    className="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
+                                />
+                                <div className="flex flex-col gap-2">
+                                    <span className="text-xs text-slate-500">
+                                        {editingBrand ? 'This preview will replace the existing image after you save.' : 'This image will represent the brand across the catalogue.'}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={removeCoverImage}
+                                        className="self-start rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                    >
+                                        Remove image
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        {!coverPreview && editingBrand?.cover_image_url && (
+                            <div className="flex items-center justify-between rounded-2xl border border-slate-200 p-4 text-xs text-slate-500">
+                                <span>No replacement uploaded. Existing image will be kept.</span>
+                                <button
+                                    type="button"
+                                    onClick={removeCoverImage}
+                                    className="rounded-full border border-slate-300 px-3 py-1 font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                >
+                                    Remove current image
+                                </button>
+                            </div>
                         )}
                     </label>
 
@@ -259,6 +366,7 @@ export default function AdminBrandsIndex() {
                                     />
                                 </th>
                                 <th className="px-5 py-3 text-left">Name</th>
+                                <th className="px-5 py-3 text-left">Cover</th>
                                 <th className="px-5 py-3 text-left">Slug</th>
                                 <th className="px-5 py-3 text-left">Products</th>
                                 <th className="px-5 py-3 text-left">Status</th>
@@ -278,6 +386,17 @@ export default function AdminBrandsIndex() {
                                         />
                                     </td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">{brand.name}</td>
+                                    <td className="px-5 py-3">
+                                        {brand.cover_image_url ? (
+                                            <img
+                                                src={brand.cover_image_url}
+                                                alt={`${brand.name} cover`}
+                                                className="h-12 w-12 rounded-xl object-cover ring-1 ring-slate-200"
+                                            />
+                                        ) : (
+                                            <span className="text-xs text-slate-400">—</span>
+                                        )}
+                                    </td>
                                     <td className="px-5 py-3 text-slate-500">{brand.slug ?? '—'}</td>
                                     <td className="px-5 py-3 text-slate-500">{brand.products_count}</td>
                                     <td className="px-5 py-3">
@@ -318,7 +437,7 @@ export default function AdminBrandsIndex() {
                             ))}
                             {brands.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-5 py-6 text-center text-sm text-slate-500">
+                                    <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
                                         No brands available yet.
                                     </td>
                                 </tr>

@@ -31,7 +31,7 @@
                 <tr>
                     <td style="padding:24px 48px;background-color:#0f172a;color:#e2e8f0;font-size:13px;">
                         <p style="margin:0 0 8px;font-weight:600;color:#f8fafc;">Need assistance?</p>
-                        <p style="margin:0;color:#cbd5f5;">Reach our concierge desk at <a href="mailto:support@aurumcraft.test" style="color:#38bdf8;text-decoration:none;">support@aurumcraft.test</a> or call +91 22 4000 1234.</p>
+                        <p style="margin:0;color:#cbd5f5;">Reach our concierge desk at <a href="mailto:support@elvee.in" style="color:#38bdf8;text-decoration:none;">support@elvee.in</a> or call +91 22 4000 1234.</p>
                     </td>
                 </tr>
             </table>

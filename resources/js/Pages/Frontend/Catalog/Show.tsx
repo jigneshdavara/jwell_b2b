@@ -287,7 +287,7 @@ export default function CatalogShow() {
                                 <div>
                                     <p className="text-xs uppercase tracking-[0.35em] text-slate-400">SKU {product.sku}</p>
                                     <h1 className="mt-2 text-3xl font-semibold text-slate-900">{product.name}</h1>
-                                    <p className="mt-3 text-sm text-slate-500">By {product.brand ?? 'AurumCraft Atelier'}</p>
+                                    <p className="mt-3 text-sm text-slate-500">By {product.brand ?? 'Elvee Atelier'}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Estimate</p>
@@ -494,7 +494,7 @@ export default function CatalogShow() {
                                 disabled={processing || invalidCombination || jobworkNotAllowed}
                                 className="w-full rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                Submit quotation
+                                Add to quotation
                             </button>
                         </form>
 

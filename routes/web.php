@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\MaterialController;
 use App\Http\Controllers\Admin\MaterialTypeController;
+use App\Http\Controllers\Admin\ProductCatalogController;
 use App\Http\Controllers\Admin\DiamondShapeController;
 use App\Http\Controllers\Admin\DiamondColorController;
 use App\Http\Controllers\Admin\DiamondClarityController;
@@ -147,6 +148,9 @@ Route::prefix('admin')
         Route::resource('catalog/brands', BrandController::class)->only(['index', 'store', 'update', 'destroy'])->names('catalog.brands');
         Route::delete('catalog/categories/bulk', [CategoryController::class, 'bulkDestroy'])->name('catalog.categories.bulk-destroy');
         Route::resource('catalog/categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy'])->names('catalog.categories');
+        Route::delete('catalog/product-catalogs/bulk', [ProductCatalogController::class, 'bulkDestroy'])->name('catalog.product-catalogs.bulk-destroy');
+        Route::post('catalog/product-catalogs/{product_catalog}/assign-products', [ProductCatalogController::class, 'assignProducts'])->name('catalog.product-catalogs.assign-products');
+        Route::resource('catalog/product-catalogs', ProductCatalogController::class)->only(['index', 'store', 'update', 'destroy'])->names('catalog.product-catalogs');
         Route::delete('catalog/materials/bulk', [MaterialController::class, 'bulkDestroy'])->name('catalog.materials.bulk-destroy');
         Route::resource('catalog/materials', MaterialController::class)->only(['index', 'store', 'update', 'destroy'])->names('catalog.materials');
 
@@ -230,8 +234,8 @@ Route::prefix('admin')
             ->names('offers.making-charge-discounts');
 
         Route::get('/rates', [RateController::class, 'index'])->name('rates.index');
-        Route::post('/rates/sync', [RateController::class, 'sync'])->name('rates.sync');
-        Route::post('/rates/override', [RateController::class, 'storeOverride'])->name('rates.override');
+        Route::post('/rates/sync/{metal?}', [RateController::class, 'sync'])->name('rates.sync');
+        Route::post('/rates/{metal}/store', [RateController::class, 'storeMetal'])->name('rates.metal.store');
 
         Route::get('/settings/payments', [PaymentGatewayController::class, 'edit'])->name('settings.payments.edit');
         Route::put('/settings/payments', [PaymentGatewayController::class, 'update'])->name('settings.payments.update');

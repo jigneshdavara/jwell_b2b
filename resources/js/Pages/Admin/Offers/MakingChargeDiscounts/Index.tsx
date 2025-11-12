@@ -13,6 +13,7 @@ type DiscountRow = {
     is_active: boolean;
     brand?: { id: number; name: string } | null;
     category?: { id: number; name: string } | null;
+    customer_group?: { id: number; name: string } | null;
     customer_types?: string[] | null;
     min_cart_total?: number | null;
     starts_at?: string | null;
@@ -40,10 +41,11 @@ type MakingChargeDiscountsPageProps = AppPageProps<{
     brands: Option[];
     categories: Option[];
     customerTypes: CustomerTypeOption[];
+    customerGroups: Option[];
 }>;
 
 export default function AdminMakingChargeDiscountsIndex() {
-    const { discounts, discountTypes, brands, categories, customerTypes } =
+    const { discounts, discountTypes, brands, categories, customerTypes, customerGroups } =
         usePage<MakingChargeDiscountsPageProps>().props;
     const [editingDiscount, setEditingDiscount] = useState<DiscountRow | null>(null);
     const [selectedDiscounts, setSelectedDiscounts] = useState<number[]>([]);
@@ -57,6 +59,14 @@ export default function AdminMakingChargeDiscountsIndex() {
             }, {}),
         [customerTypes],
     );
+    const customerGroupLabels = useMemo(
+        () =>
+            customerGroups.reduce<Record<number, string>>((carry, group) => {
+                carry[group.id] = group.name;
+                return carry;
+            }, {}),
+        [customerGroups],
+    );
 
     const form = useForm({
         name: '',
@@ -65,6 +75,7 @@ export default function AdminMakingChargeDiscountsIndex() {
         value: '',
         brand_id: '',
         category_id: '',
+        customer_group_id: '',
         customer_types: [] as string[],
         min_cart_total: '',
         is_auto: true,
@@ -77,6 +88,8 @@ export default function AdminMakingChargeDiscountsIndex() {
         setEditingDiscount(null);
         form.reset();
         form.setData('discount_type', defaultDiscountType);
+        form.setData('customer_group_id', '');
+        form.setData('customer_types', []);
         form.setData('is_auto', true);
         form.setData('is_active', true);
     };
@@ -90,6 +103,7 @@ export default function AdminMakingChargeDiscountsIndex() {
             value: String(discount.value),
             brand_id: discount.brand ? String(discount.brand.id) : '',
             category_id: discount.category ? String(discount.category.id) : '',
+            customer_group_id: discount.customer_group ? String(discount.customer_group.id) : '',
             customer_types: discount.customer_types ?? [],
             min_cart_total: discount.min_cart_total != null ? String(discount.min_cart_total) : '',
             is_auto: discount.is_auto,
@@ -109,6 +123,9 @@ export default function AdminMakingChargeDiscountsIndex() {
             value: Number(form.data.value || 0),
             brand_id: form.data.brand_id ? Number(form.data.brand_id) : null,
             category_id: form.data.category_id ? Number(form.data.category_id) : null,
+            customer_group_id: form.data.customer_group_id
+                ? Number(form.data.customer_group_id)
+                : null,
             customer_types: form.data.customer_types.length ? form.data.customer_types : null,
             min_cart_total: form.data.min_cart_total ? Number(form.data.min_cart_total) : null,
             is_auto: form.data.is_auto,
@@ -145,6 +162,7 @@ export default function AdminMakingChargeDiscountsIndex() {
                 value: discount.value,
                 brand_id: discount.brand?.id,
                 category_id: discount.category?.id,
+                customer_group_id: discount.customer_group?.id,
                 customer_types: discount.customer_types ?? [],
                 min_cart_total: discount.min_cart_total,
                 is_auto: discount.is_auto,
@@ -329,6 +347,24 @@ export default function AdminMakingChargeDiscountsIndex() {
                             </select>
                             {form.errors.category_id && <span className="text-xs text-rose-500">{form.errors.category_id}</span>}
                         </label>
+                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                            <span>Customer group</span>
+                            <select
+                                value={form.data.customer_group_id}
+                                onChange={(event) => form.setData('customer_group_id', event.target.value)}
+                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                            >
+                                <option value="">All customer groups</option>
+                                {customerGroups.map((group) => (
+                                    <option key={group.id} value={group.id}>
+                                        {group.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {form.errors.customer_group_id && (
+                                <span className="text-xs text-rose-500">{form.errors.customer_group_id}</span>
+                            )}
+                        </label>
                     </div>
 
                     <fieldset className="rounded-2xl border border-slate-200 px-4 py-3">
@@ -496,6 +532,14 @@ export default function AdminMakingChargeDiscountsIndex() {
                                             <span>
                                                 {discount.brand ? `Brand: ${discount.brand.name}` : 'All brands'} •{' '}
                                                 {discount.category ? `Category: ${discount.category.name}` : 'All categories'}
+                                            </span>
+                                            <span>
+                                                {discount.customer_group
+                                                    ? `Customer group: ${
+                                                          customerGroupLabels[discount.customer_group.id] ??
+                                                          discount.customer_group.name
+                                                      }`
+                                                    : 'Customer group: All'}
                                             </span>
                                             <span>
                                                 {discount.customer_types && discount.customer_types.length > 0

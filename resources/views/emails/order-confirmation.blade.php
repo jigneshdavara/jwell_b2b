@@ -36,5 +36,5 @@
     <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#475569;">
         You can follow live production milestones and logistics updates from your dashboard anytime.
     </p>
-    <p style="margin:0;font-size:14px;color:#0f172a;font-weight:600;">With gratitude,<br>The AurumCraft Production Desk</p>
+    <p style="margin:0;font-size:14px;color:#0f172a;font-weight:600;">With gratitude,<br>The Elvee Production Desk</p>
 @endsection

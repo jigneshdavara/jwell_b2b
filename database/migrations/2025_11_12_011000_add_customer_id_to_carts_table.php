@@ -9,44 +9,48 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (! Schema::hasColumn('carts', 'customer_id')) {
-            Schema::table('carts', function (Blueprint $table) {
-                $table->foreignId('customer_id')
-                    ->nullable()
-                    ->after('id')
-                    ->constrained('customers')
-                    ->cascadeOnDelete();
-            });
-
-            if (Schema::hasColumn('carts', 'user_id')) {
-                DB::table('carts')->update([
-                    'customer_id' => DB::raw('user_id'),
-                ]);
-
-                Schema::table('carts', function (Blueprint $table) {
-                    $table->dropForeign('carts_user_id_foreign');
-                });
-
-                Schema::table('carts', function (Blueprint $table) {
-                    $table->dropColumn('user_id');
-                });
-            }
+        if (Schema::hasColumn('carts', 'user_id') || ! Schema::hasColumn('carts', 'customer_id')) {
+            return;
         }
+
+        Schema::table('carts', function (Blueprint $table) {
+            $table->foreignId('user_id')
+                ->nullable()
+                ->after('id')
+                ->constrained('customers')
+                ->cascadeOnDelete();
+        });
+
+        DB::table('carts')->update([
+            'user_id' => DB::raw('customer_id'),
+        ]);
+
+        Schema::table('carts', function (Blueprint $table) {
+            $table->dropColumn('customer_id');
+        });
     }
 
     public function down(): void
     {
-        if (Schema::hasColumn('carts', 'customer_id')) {
-            Schema::table('carts', function (Blueprint $table) {
-                $table->dropConstrainedForeignId('customer_id');
-            });
+        if (Schema::hasColumn('carts', 'customer_id') || ! Schema::hasColumn('carts', 'user_id')) {
+            return;
         }
 
-        if (! Schema::hasColumn('carts', 'user_id')) {
-            Schema::table('carts', function (Blueprint $table) {
-                $table->foreignId('user_id')->nullable()->after('id')->constrained('customers')->cascadeOnDelete();
-            });
-        }
+        Schema::table('carts', function (Blueprint $table) {
+            $table->foreignId('customer_id')
+                ->nullable()
+                ->after('id')
+                ->constrained('customers')
+                ->cascadeOnDelete();
+        });
+
+        DB::table('carts')->update([
+            'customer_id' => DB::raw('user_id'),
+        ]);
+
+        Schema::table('carts', function (Blueprint $table) {
+            $table->dropColumn('user_id');
+        });
     }
 };
 

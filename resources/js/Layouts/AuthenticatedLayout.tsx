@@ -1,4 +1,5 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
+import CustomerFooter from '@/Components/CustomerFooter';
 import FlashMessage from '@/Components/FlashMessage';
 import { Link, usePage } from '@inertiajs/react';
 import { PropsWithChildren, ReactNode, useMemo, useState } from 'react';
@@ -68,19 +69,19 @@ export default function Authenticated({
                 badge: cartCount > 0 ? cartCount : undefined,
             },
             {
-                label: 'Job Work',
+                label: 'Jobwork',
                 href: route('frontend.catalog.index', { mode: 'jobwork' }),
                 active: route().current('frontend.catalog.*') && catalogMode === 'jobwork',
+            },
+            {
+                label: 'My Quotations',
+                href: route('frontend.quotations.index'),
+                active: route().current('frontend.quotations.*'),
             },
             {
                 label: 'My Orders',
                 href: route('frontend.orders.index'),
                 active: route().current('frontend.orders.*'),
-            },
-            {
-                label: 'Quotations',
-                href: route('frontend.quotations.index'),
-                active: route().current('frontend.quotations.*'),
             },
         ];
     }, [cartCount, isCustomer, catalogMode]);
@@ -110,14 +111,14 @@ export default function Authenticated({
     const navigation = [...customerNav, ...adminNav, ...productionNav];
 
     return (
-        <div className="min-h-screen bg-slate-100">
+        <div className="flex min-h-screen flex-col bg-slate-100">
             <header className="relative z-40 bg-gradient-to-r from-slate-950 via-slate-900 to-blue-900 text-white shadow-xl">
                 <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
                     <div className="flex items-center gap-3">
                         <Link href="/" className="flex items-center gap-2">
                             <ApplicationLogo className="h-10 w-10 text-white" />
                             <span className="hidden text-lg font-semibold tracking-wide text-white sm:inline">
-                                AurumCraft OS
+                                Elvee OS
                             </span>
                         </Link>
                         <nav className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 shadow-inner lg:flex">
@@ -237,7 +238,7 @@ export default function Authenticated({
                 </div>
             )}
 
-            <main className="relative z-0">
+            <main className="relative z-0 flex-1">
                 <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10 lg:py-12">
                     <FlashMessage />
                     {retailQuickTabs.length > 0 && (
@@ -265,6 +266,7 @@ export default function Authenticated({
                     {children}
                 </div>
             </main>
+            {isCustomer && <CustomerFooter className="mt-16" />}
         </div>
     );
 }

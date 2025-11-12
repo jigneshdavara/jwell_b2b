@@ -192,8 +192,8 @@ export default function AdminProductsIndex() {
                 <section className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                            <h1 className="text-2xl font-semibold text-slate-900">Catalogue master</h1>
-                            <p className="text-sm text-slate-500">Manage SKUs, variant matrices, imagery, and pricing anchors.</p>
+                            <h1 className="text-2xl font-semibold text-slate-900">Products</h1>
+                           
                         </div>
                         <div className="flex flex-wrap gap-3 text-sm text-slate-500">
                             <input

@@ -21,6 +21,8 @@ class StoreBrandRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('brands', 'slug')],
             'description' => ['nullable', 'string'],
+            'cover_image' => ['nullable', 'image', 'max:5120'],
+            'remove_cover_image' => ['sometimes', 'boolean'],
             'is_active' => ['boolean'],
         ];
     }

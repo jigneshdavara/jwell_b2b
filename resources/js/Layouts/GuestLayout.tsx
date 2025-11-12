@@ -13,7 +13,7 @@ export default function Guest({ children }: PropsWithChildren) {
                 <Link href="/" className="flex items-center gap-3 text-slate-200">
                     <ApplicationLogo className="h-10 w-10 text-white" />
                     <span className="text-base font-semibold tracking-wide text-slate-100">
-                        AurumCraft B2B Suite
+                        Elvee B2B Suite
                     </span>
                 </Link>
 
@@ -25,7 +25,7 @@ export default function Guest({ children }: PropsWithChildren) {
                 <p className="mt-10 text-center text-xs text-slate-400">
                     Need enterprise onboarding?{' '}
                     <a
-                        href="mailto:onboarding@aurumcraft.test"
+                        href="mailto:onboarding@elvee.in"
                         className="font-medium text-sky-300 underline decoration-slate-500/60 hover:decoration-sky-300"
                     >
                         Schedule a guided demo

@@ -29,6 +29,13 @@ class UserFactory extends Factory
         ];
     }
 
+    public function admin(): static
+    {
+        return $this->state(fn () => [
+            'type' => UserType::Admin->value,
+        ]);
+    }
+
     public function superAdmin(): static
     {
         return $this->state(fn () => [

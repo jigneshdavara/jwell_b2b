@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\UserType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkDestroyMakingChargeDiscountsRequest;
 use App\Http\Requests\Admin\StoreMakingChargeDiscountRequest;
 use App\Http\Requests\Admin\UpdateMakingChargeDiscountRequest;
 use App\Models\Brand;
-use App\Enums\UserType;
 use App\Models\Category;
+use App\Models\CustomerGroup;
 use App\Models\CustomerType;
 use App\Models\MakingChargeDiscount;
 use Illuminate\Http\RedirectResponse;
@@ -58,6 +59,12 @@ class MakingChargeDiscountController extends Controller
             'brands' => Brand::query()->select('id', 'name')->orderBy('name')->get(),
             'categories' => Category::query()->select('id', 'name')->orderBy('name')->get(),
             'customerTypes' => $this->customerTypeOptions(),
+            'customerGroups' => CustomerGroup::query()
+                ->select('id', 'name')
+                ->where('is_active', true)
+                ->orderBy('position')
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 

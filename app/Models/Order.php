@@ -42,7 +42,7 @@ class Order extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(Customer::class, 'user_id');
     }
 
     public function items(): HasMany

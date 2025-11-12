@@ -6,6 +6,7 @@ use App\Enums\UserType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreOfferRequest;
 use App\Http\Requests\Admin\UpdateOfferRequest;
+use App\Models\CustomerGroup;
 use App\Models\Offer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
@@ -39,7 +40,18 @@ class OfferController extends Controller
         return Inertia::render('Admin/Offers/Index', [
             'offers' => $offers,
             'offerTypes' => ['percentage', 'fixed', 'making_charge'],
-            'customerTypes' => collect(UserType::cases())->pluck('value'),
+            'customerTypes' => collect([UserType::Retailer, UserType::Wholesaler])
+                ->map(fn (UserType $type) => [
+                    'value' => $type->value,
+                    'label' => Str::title(str_replace('-', ' ', $type->value)),
+                ])
+                ->values(),
+            'customerGroups' => CustomerGroup::query()
+                ->select('id', 'name')
+                ->where('is_active', true)
+                ->orderBy('position')
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 

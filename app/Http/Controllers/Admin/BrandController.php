@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\StoreBrandRequest;
 use App\Http\Requests\Admin\UpdateBrandRequest;
 use App\Models\Brand;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,6 +27,7 @@ class BrandController extends Controller
                     'name' => $brand->name,
                     'slug' => $brand->slug,
                     'description' => $brand->description,
+                    'cover_image_url' => $brand->cover_image_path ? Storage::url($brand->cover_image_path) : null,
                     'is_active' => $brand->is_active,
                     'products_count' => $brand->products_count,
                 ];
@@ -38,10 +40,15 @@ class BrandController extends Controller
 
     public function store(StoreBrandRequest $request): RedirectResponse
     {
+        $coverImagePath = $request->file('cover_image')
+            ? $request->file('cover_image')->store('brand-covers', 'public')
+            : null;
+
         Brand::create([
             'name' => $request->input('name'),
             'slug' => $request->input('slug') ?: Str::slug($request->input('name')),
             'description' => $request->input('description'),
+            'cover_image_path' => $coverImagePath,
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -52,12 +59,30 @@ class BrandController extends Controller
 
     public function update(UpdateBrandRequest $request, Brand $brand): RedirectResponse
     {
-        $brand->update([
+        $payload = [
             'name' => $request->input('name'),
             'slug' => $request->input('slug') ?: Str::slug($request->input('name')),
             'description' => $request->input('description'),
             'is_active' => $request->boolean('is_active', true),
-        ]);
+        ];
+
+        if ($request->boolean('remove_cover_image')) {
+            if ($brand->cover_image_path) {
+                Storage::disk('public')->delete($brand->cover_image_path);
+            }
+
+            $payload['cover_image_path'] = null;
+        }
+
+        if ($request->hasFile('cover_image')) {
+            if ($brand->cover_image_path) {
+                Storage::disk('public')->delete($brand->cover_image_path);
+            }
+
+            $payload['cover_image_path'] = $request->file('cover_image')->store('brand-covers', 'public');
+        }
+
+        $brand->update($payload);
 
         return redirect()
             ->back()

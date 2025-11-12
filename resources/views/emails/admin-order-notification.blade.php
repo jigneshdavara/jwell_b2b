@@ -34,5 +34,5 @@
             </tr>
         @endforeach
     </table>
-    <p style="margin:0;font-size:14px;color:#0f172a;font-weight:600;">AurumCraft Automations</p>
+    <p style="margin:0;font-size:14px;color:#0f172a;font-weight:600;">Elvee Automations</p>
 @endsection

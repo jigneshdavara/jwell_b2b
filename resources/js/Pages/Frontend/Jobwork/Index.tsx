@@ -74,7 +74,7 @@ const submitModes: Array<{ value: SubmissionMode; label: string; helper: string 
     {
         value: 'catalogue',
         label: 'Catalogue design',
-        helper: 'Customise an existing AurumCraft design with metal / variant tweaks.',
+        helper: 'Customise an existing Elvee design with metal / variant tweaks.',
     },
     {
         value: 'custom',
@@ -356,7 +356,7 @@ export default function JobworkIndex() {
                                         onChange={(event) => setData('type', event.target.value as FormData['type'])}
                                     >
                                         <option value="customer_supplied">Customer supplying metal/stone</option>
-                                        <option value="vendor_supplied">AurumCraft supplying metal/stone</option>
+                                        <option value="vendor_supplied">Elvee supplying metal/stone</option>
                                     </select>
                                 </label>
 

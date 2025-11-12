@@ -27,5 +27,5 @@
     <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#475569;">
         Visit the admin portal &rsaquo; Users to review and approve their KYC dossier.
     </p>
-    <p style="margin:0;font-size:14px;color:#0f172a;font-weight:600;">AurumCraft Automations</p>
+    <p style="margin:0;font-size:14px;color:#0f172a;font-weight:600;">Elvee Automations</p>
 @endsection

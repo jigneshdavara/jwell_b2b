@@ -26,7 +26,7 @@ class CommerceSeeder extends Seeder
         // Ensure at least 20 carts
         $customers->random(min(20, $customers->count()))->each(function (Customer $customer) use ($products): void {
             $cart = Cart::factory()
-                ->for($customer)
+                ->for($customer, 'user')
                 ->create();
 
             CartItem::factory()
@@ -41,7 +41,7 @@ class CommerceSeeder extends Seeder
         // Create orders with items
         $customers->random(min(30, $customers->count()))->each(function (Customer $customer) use ($products): void {
             $order = Order::factory()
-                ->for($customer)
+                ->for($customer, 'user')
                 ->create();
 
             OrderItem::factory()

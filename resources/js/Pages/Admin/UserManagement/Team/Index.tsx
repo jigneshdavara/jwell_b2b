@@ -47,6 +47,10 @@ export default function AdminTeamUsersIndex() {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
     const updateUserGroup = (user: TeamUser, groupId: string) => {
+        if (isProtected(user)) {
+            return;
+        }
+
         router.patch(
             route('admin.users.group.update', user.id),
             { user_group_id: groupId || null },
@@ -294,7 +298,14 @@ export default function AdminTeamUsersIndex() {
                             <span>User role</span>
                             <select
                                 value={newUser.type}
-                                onChange={(event) => setNewUser((prev) => ({ ...prev, type: event.target.value }))}
+                                onChange={(event) =>
+                                    setNewUser((prev) => ({
+                                        ...prev,
+                                        type: event.target.value,
+                                        user_group_id:
+                                            event.target.value === 'super-admin' ? '' : prev.user_group_id,
+                                    }))
+                                }
                                 className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                 disabled={editingUser?.type === 'super-admin'}
                             >
@@ -308,20 +319,26 @@ export default function AdminTeamUsersIndex() {
                         </label>
                         <label className="flex flex-col gap-2 text-sm text-slate-600 md:col-span-2 md:max-w-xs">
                             <span>User group (optional)</span>
-                            <select
-                                value={newUser.user_group_id}
-                                onChange={(event) =>
-                                    setNewUser((prev) => ({ ...prev, user_group_id: event.target.value }))
-                                }
-                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                            >
-                                <option value="">Admin (no restrictions)</option>
-                                {userGroups.map((group) => (
-                                    <option key={group.id} value={group.id}>
-                                        {group.name}
-                                    </option>
-                                ))}
-                            </select>
+                            {newUser.type === 'super-admin' || editingUser?.type === 'super-admin' ? (
+                                <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-2 text-sm text-slate-400">
+                                    Super administrators bypass group restrictions.
+                                </div>
+                            ) : (
+                                <select
+                                    value={newUser.user_group_id}
+                                    onChange={(event) =>
+                                        setNewUser((prev) => ({ ...prev, user_group_id: event.target.value }))
+                                    }
+                                    className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                >
+                                    <option value="">Admin (no restrictions)</option>
+                                    {userGroups.map((group) => (
+                                        <option key={group.id} value={group.id}>
+                                            {group.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
                             {errors?.user_group_id && <span className="text-xs text-rose-500">{errors.user_group_id}</span>}
                         </label>
                         <div className="md:col-span-2">
@@ -380,18 +397,24 @@ export default function AdminTeamUsersIndex() {
                                         <td className="px-5 py-3 text-slate-600">{user.email}</td>
                                         <td className="px-5 py-3 text-slate-500">{user.type_label || 'Admin'}</td>
                                         <td className="px-5 py-3 text-slate-600">
-                                            <select
-                                                value={user.user_group?.id ?? ''}
-                                                onChange={(event) => updateUserGroup(user, event.target.value)}
-                                                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            >
-                                                <option value="">No group assigned</option>
-                                                {userGroups.map((groupOption) => (
-                                                    <option key={groupOption.id} value={groupOption.id}>
-                                                        {groupOption.name}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            {isProtected(user) ? (
+                                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                                    Super admin
+                                                </span>
+                                            ) : (
+                                                <select
+                                                    value={user.user_group?.id ?? ''}
+                                                    onChange={(event) => updateUserGroup(user, event.target.value)}
+                                                    className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                >
+                                                    <option value="">No group assigned</option>
+                                                    {userGroups.map((groupOption) => (
+                                                        <option key={groupOption.id} value={groupOption.id}>
+                                                            {groupOption.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            )}
                                         </td>
                                         <td className="px-5 py-3 text-slate-500">
                                             {user.joined_at ? new Date(user.joined_at).toLocaleDateString('en-IN') : '—'}

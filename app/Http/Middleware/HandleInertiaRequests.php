@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -33,6 +34,17 @@ class HandleInertiaRequests extends Middleware
         $admin = $request->user('admin');
         $authUser = $customer ?? $admin;
 
+        $cartCount = 0;
+        if ($customer instanceof Customer) {
+            $activeCart = $customer->carts()
+                ->where('status', 'active')
+                ->withCount('items')
+                ->latest()
+                ->first();
+
+            $cartCount = $activeCart->items_count ?? 0;
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -42,13 +54,7 @@ class HandleInertiaRequests extends Middleware
                 'name' => config('demo.brand_name'),
             ],
             'cart' => [
-                'count' => $customer
-                    ? optional($customer->carts()
-                        ->where('status', 'active')
-                        ->withCount('items')
-                        ->latest()
-                        ->first())->items_count ?? 0
-                    : 0,
+                'count' => $cartCount,
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),

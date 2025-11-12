@@ -83,7 +83,7 @@ export default function Login({
 
             <div className="mx-auto grid w-full max-w-5xl gap-10 lg:grid-cols-[minmax(0,1fr),400px] lg:items-start">
                 <aside className="space-y-6 text-slate-200">
-                    <h1 className="text-3xl font-semibold text-white">Welcome back to AurumCraft</h1>
+                    <h1 className="text-3xl font-semibold text-white">Welcome back to Elvee</h1>
                     <p className="text-sm text-slate-300">
                         Sign in to manage partnership pricing, monitor jobwork milestones, and keep wholesale orders moving in one place.
                     </p>
@@ -115,7 +115,7 @@ export default function Login({
                     )}
 
                     <p className="text-sm text-slate-300">
-                        New to AurumCraft?{' '}
+                        New to Elvee?{' '}
                         <Link href={route('register')} className="font-semibold text-white underline decoration-slate-400 hover:decoration-white">
                             Create an account
                         </Link>

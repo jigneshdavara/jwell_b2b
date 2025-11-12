@@ -137,7 +137,7 @@ export default function KycOnboardingShow() {
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.25),_transparent_40%),_radial-gradient(circle_at_bottom_right,_rgba(249,115,22,0.25),_transparent_45%)]" />
                     <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                         <div>
-                            <p className="text-xs uppercase tracking-[0.4em] text-white/70">AurumCraft onboarding</p>
+                            <p className="text-xs uppercase tracking-[0.1em] text-white/70">Elvee onboarding</p>
                             <h1 className="mt-2 text-3xl font-semibold">KYC verification status</h1>
                             <p className="mt-3 max-w-2xl text-sm text-white/80">{statusInfo.description}</p>
                             {user.kyc_notes && (
@@ -456,7 +456,7 @@ export default function KycOnboardingShow() {
                         <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
                             <h3 className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">Need help?</h3>
                             <p className="mt-3 text-sm text-slate-600">
-                                Write to <a href="mailto:compliance@aurumcraft.test" className="font-semibold text-sky-600">compliance@aurumcraft.test</a>{' '}
+                                Write to <a href="mailto:compliance@elvee.in" className="font-semibold text-sky-600">compliance@elvee.in</a>{' '}
                                 for expedited verification or assistance with additional paperwork.
                             </p>
                         </div>

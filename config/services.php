@@ -36,8 +36,10 @@ return [
     ],
 
     'rates' => [
+        'driver' => env('RATES_API_DRIVER', 'metals-api'),
         'endpoint' => env('RATES_API_ENDPOINT'),
         'token' => env('RATES_API_TOKEN'),
+        'currency' => env('RATES_API_CURRENCY', 'INR'),
     ],
 
 ];

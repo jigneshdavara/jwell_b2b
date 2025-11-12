@@ -22,6 +22,8 @@ class StoreCategoryRequest extends FormRequest
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('categories', 'slug')],
             'description' => ['nullable', 'string'],
             'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'cover_image' => ['nullable', 'image', 'max:5120'],
+            'remove_cover_image' => ['sometimes', 'boolean'],
             'is_active' => ['boolean'],
         ];
     }

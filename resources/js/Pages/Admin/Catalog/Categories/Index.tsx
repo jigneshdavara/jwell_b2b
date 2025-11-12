@@ -1,13 +1,15 @@
+import RichTextEditor from '@/Components/RichTextEditor';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 
 type CategoryRow = {
     id: number;
     name: string;
     slug?: string | null;
     description?: string | null;
+    cover_image_url?: string | null;
     is_active: boolean;
     products_count: number;
     parent_id?: number | null;
@@ -34,6 +36,8 @@ export default function AdminCategoriesIndex() {
     const { categories, filters, parents } = usePage<CategoriesPageProps>().props;
     const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+    const [coverPreview, setCoverPreview] = useState<string | null>(null);
+    const [coverObjectUrl, setCoverObjectUrl] = useState<string | null>(null);
 
     const [filterState, setFilterState] = useState({
         search: filters.search ?? '',
@@ -47,6 +51,8 @@ export default function AdminCategoriesIndex() {
         description: '',
         is_active: true,
         parent_id: 'none' as string,
+        cover_image: null as File | null,
+        remove_cover_image: false,
     });
 
     useEffect(() => {
@@ -81,6 +87,13 @@ export default function AdminCategoriesIndex() {
         categoryForm.reset();
         categoryForm.setData('is_active', true);
         categoryForm.setData('parent_id', 'none');
+        categoryForm.setData('cover_image', null);
+        categoryForm.setData('remove_cover_image', false);
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+        setCoverPreview(null);
     };
 
     const populateForm = (category: CategoryRow) => {
@@ -91,7 +104,14 @@ export default function AdminCategoriesIndex() {
             description: category.description ?? '',
             is_active: category.is_active,
             parent_id: category.parent_id ? String(category.parent_id) : 'none',
+            cover_image: null,
+            remove_cover_image: false,
         });
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+        setCoverPreview(category.cover_image_url ?? null);
     };
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -99,18 +119,20 @@ export default function AdminCategoriesIndex() {
 
         categoryForm.transform((data) => ({
             ...data,
-            parent_id: data.parent_id === 'none' ? null : Number(data.parent_id),
+            parent_id: data.parent_id === 'none' ? null : data.parent_id,
         }));
 
         if (editingCategory) {
             categoryForm.put(route('admin.catalog.categories.update', editingCategory.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
+                forceFormData: true,
             });
         } else {
             categoryForm.post(route('admin.catalog.categories.store'), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
+                forceFormData: true,
             });
         }
     };
@@ -122,6 +144,7 @@ export default function AdminCategoriesIndex() {
             description: category.description,
             is_active: !category.is_active,
             parent_id: category.parent_id,
+            remove_cover_image: false,
         }, {
             preserveScroll: true,
         });
@@ -156,6 +179,45 @@ export default function AdminCategoriesIndex() {
         });
     };
 
+    useEffect(() => {
+        return () => {
+            if (coverObjectUrl) {
+                URL.revokeObjectURL(coverObjectUrl);
+            }
+        };
+    }, [coverObjectUrl]);
+
+    const handleCoverChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0] ?? null;
+        categoryForm.setData('cover_image', file);
+        categoryForm.setData('remove_cover_image', false);
+
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+
+        if (file) {
+            const objectUrl = URL.createObjectURL(file);
+            setCoverPreview(objectUrl);
+            setCoverObjectUrl(objectUrl);
+        } else {
+            setCoverPreview(editingCategory?.cover_image_url ?? null);
+        }
+    };
+
+    const removeCoverImage = () => {
+        categoryForm.setData('cover_image', null);
+        categoryForm.setData('remove_cover_image', true);
+
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+
+        setCoverPreview(null);
+    };
+
     const applyFilters = (nextFilters: Partial<typeof filterState>) => {
         const merged = { ...filterState, ...nextFilters };
         setFilterState(merged);
@@ -180,8 +242,7 @@ export default function AdminCategoriesIndex() {
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div>
                             <h1 className="text-2xl font-semibold text-slate-900">Categories</h1>
-                            <p className="mt-2 text-sm text-slate-500">Structure the catalogue into multi-level collections and control visibility.</p>
-                        </div>
+                           </div>
                         <div className="flex flex-wrap gap-3 text-sm text-slate-500">
                             <input
                                 type="search"
@@ -281,14 +342,59 @@ export default function AdminCategoriesIndex() {
 
                     <label className="flex flex-col gap-2 text-sm text-slate-600">
                         <span>Description</span>
-                        <textarea
-                            value={categoryForm.data.description}
-                            onChange={(event) => categoryForm.setData('description', event.target.value)}
-                            className="min-h-[100px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                            placeholder="Optional merchandising notes"
+                        <RichTextEditor
+                            value={categoryForm.data.description ?? ''}
+                            onChange={(value) => categoryForm.setData('description', value)}
+                            placeholder="Describe assortment strategy, merchandising notes, or design direction for this category."
                         />
                         {categoryForm.errors.description && (
                             <span className="text-xs text-rose-500">{categoryForm.errors.description}</span>
+                        )}
+                    </label>
+
+                    <label className="flex flex-col gap-3 text-sm text-slate-600">
+                        <span>Category visual</span>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleCoverChange}
+                            className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-700"
+                        />
+                        {categoryForm.errors.cover_image && (
+                            <span className="text-xs text-rose-500">{categoryForm.errors.cover_image}</span>
+                        )}
+                        {coverPreview && (
+                            <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
+                                <img
+                                    src={coverPreview}
+                                    alt="Category cover preview"
+                                    className="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
+                                />
+                                <div className="flex flex-col gap-2">
+                                    <span className="text-xs text-slate-500">
+                                        {editingCategory ? 'This preview will replace the existing category image once saved.' : 'This image will be used in admin and catalogue highlights.'}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={removeCoverImage}
+                                        className="self-start rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                    >
+                                        Remove image
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        {!coverPreview && editingCategory?.cover_image_url && (
+                            <div className="flex items-center justify-between rounded-2xl border border-slate-200 p-4 text-xs text-slate-500">
+                                <span>No replacement chosen. Existing visual will remain.</span>
+                                <button
+                                    type="button"
+                                    onClick={removeCoverImage}
+                                    className="rounded-full border border-slate-300 px-3 py-1 font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                >
+                                    Remove current image
+                                </button>
+                            </div>
                         )}
                     </label>
 
@@ -350,6 +456,7 @@ export default function AdminCategoriesIndex() {
                                     />
                                 </th>
                                 <th className="px-5 py-3 text-left">Name</th>
+                                <th className="px-5 py-3 text-left">Cover</th>
                                 <th className="px-5 py-3 text-left">Slug</th>
                                 <th className="px-5 py-3 text-left">Products</th>
                                 <th className="px-5 py-3 text-left">Parent</th>
@@ -378,6 +485,17 @@ export default function AdminCategoriesIndex() {
                                             )}
                                             <span>{category.name}</span>
                                         </div>
+                                    </td>
+                                    <td className="px-5 py-3">
+                                        {category.cover_image_url ? (
+                                            <img
+                                                src={category.cover_image_url}
+                                                alt={`${category.name} cover`}
+                                                className="h-12 w-12 rounded-xl object-cover ring-1 ring-slate-200"
+                                            />
+                                        ) : (
+                                            <span className="text-xs text-slate-400">—</span>
+                                        )}
                                     </td>
                                     <td className="px-5 py-3 text-slate-500">{category.slug ?? '—'}</td>
                                     <td className="px-5 py-3 text-slate-500">{category.products_count}</td>
@@ -420,7 +538,7 @@ export default function AdminCategoriesIndex() {
                             ))}
                             {categories.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-5 py-6 text-center text-sm text-slate-500">
+                                    <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
                                         No categories available yet.
                                     </td>
                                 </tr>

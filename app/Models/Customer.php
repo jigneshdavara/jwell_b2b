@@ -60,22 +60,22 @@ class Customer extends Authenticatable
 
     public function kycDocuments()
     {
-        return $this->hasMany(UserKycDocument::class);
+        return $this->hasMany(UserKycDocument::class, 'user_id');
     }
 
     public function kycProfile()
     {
-        return $this->hasOne(UserKycProfile::class);
+        return $this->hasOne(UserKycProfile::class, 'user_id');
     }
 
     public function loginOtps()
     {
-        return $this->hasMany(UserLoginOtp::class);
+        return $this->hasMany(UserLoginOtp::class, 'user_id');
     }
 
     public function orders()
     {
-        return $this->hasMany(Order::class);
+        return $this->hasMany(Order::class, 'user_id');
     }
 
     public function customerGroup()
@@ -85,12 +85,12 @@ class Customer extends Authenticatable
 
     public function jobworkRequests()
     {
-        return $this->hasMany(JobworkRequest::class);
+        return $this->hasMany(JobworkRequest::class, 'user_id');
     }
 
     public function carts()
     {
-        return $this->hasMany(Cart::class);
+        return $this->hasMany(Cart::class, 'user_id');
     }
 }
 

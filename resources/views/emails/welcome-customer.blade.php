@@ -19,5 +19,5 @@
     <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#475569;">
         If you need any assistance, just reply to this email—our concierge desk is on standby.
     </p>
-    <p style="margin:0;font-size:14px;line-height:1.6;color:#0f172a;font-weight:600;">Warm regards,<br>The AurumCraft Partnerships Team</p>
+    <p style="margin:0;font-size:14px;line-height:1.6;color:#0f172a;font-weight:600;">Warm regards,<br>The Elvee Partnerships Team</p>
 @endsection

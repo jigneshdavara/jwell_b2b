@@ -55,7 +55,7 @@ export default function ProductionDashboardOverview() {
                             </p>
                         </div>
                         <a
-                            href="mailto:production@aurumcraft.test"
+                            href="mailto:production@elvee.in"
                             className="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white"
                         >
                             Escalate an issue

@@ -47,8 +47,9 @@ class CatalogController extends Controller
             $query->where('is_jobwork_allowed', true);
         }
 
-        if ($filters['brand'] ?? null) {
-            $query->whereHas('brand', fn ($q) => $q->where('name', $filters['brand']));
+        $brandFilters = array_filter((array) ($filters['brand'] ?? []), fn ($value) => filled($value));
+        if (! empty($brandFilters)) {
+            $query->whereHas('brand', fn ($q) => $q->whereIn('name', $brandFilters));
         }
 
         if (! empty($filters['gold_purity'])) {

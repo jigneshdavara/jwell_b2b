@@ -39,13 +39,28 @@ class AuthenticatedSessionController extends Controller
 
         $user = Auth::guard($guard)->user();
 
-        $intendedRoute = match ($user?->type) {
-            UserType::Admin->value, UserType::SuperAdmin->value => route('admin.dashboard', absolute: false),
-            UserType::Production->value => route('production.dashboard', absolute: false),
-            default => route('dashboard', absolute: false),
+        $intendedUrl = match ($user?->type) {
+            UserType::Admin->value,
+            UserType::SuperAdmin->value => route('admin.dashboard'),
+            UserType::Production->value => route('production.dashboard'),
+            default => route('dashboard'),
         };
 
-        return redirect()->intended($intendedRoute);
+        if ($guard === 'admin') {
+            $storedIntended = $request->session()->get('url.intended');
+            $storedPath = $storedIntended ? parse_url($storedIntended, PHP_URL_PATH) : null;
+
+            $expectedPrefix = match ($user?->type) {
+                UserType::Production->value => '/production',
+                default => '/admin',
+        };
+
+            if (! $storedPath || ! str_starts_with($storedPath, $expectedPrefix)) {
+                $request->session()->put('url.intended', $intendedUrl);
+            }
+        }
+
+        return redirect()->intended($intendedUrl);
     }
 
     /**

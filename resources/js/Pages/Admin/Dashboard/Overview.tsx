@@ -47,7 +47,7 @@ export default function AdminDashboardOverview() {
             <div className="space-y-8">
                 <div className="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/5 ring-1 ring-slate-200/70 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <p className="text-xs uppercase tracking-[0.45em] text-slate-400">AurumCraft HQ</p>
+                        <p className="text-xs uppercase tracking-[0.1em] text-slate-500/80">Elvee HQ</p>
                         <h1 className="mt-2 text-3xl font-semibold text-slate-900">Administration Control Tower</h1>
                         <p className="mt-2 text-sm text-slate-500">
                             Monitor partner onboarding, production flows, and commercial levers at a glance.
@@ -55,7 +55,7 @@ export default function AdminDashboardOverview() {
                     </div>
                     <Link
                         className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
-                        href="mailto:operations@aurumcraft.test"
+                        href="mailto:operations@elvee.in"
                     >
                         Connect with operations
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -64,10 +64,10 @@ export default function AdminDashboardOverview() {
                     </Link>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-4">
+                    <div className="grid gap-4 md:grid-cols-4">
                     {Object.entries(metrics).map(([key, value]) => (
                         <div key={key} className="rounded-2xl bg-slate-900 p-5 text-slate-100 shadow-lg shadow-slate-900/30">
-                            <p className="text-xs uppercase tracking-[0.35em] text-slate-300">{labels[key] ?? key.replace(/_/g, ' ')}</p>
+                                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-300/80">{labels[key] ?? key.replace(/_/g, ' ')}</p>
                             <p className="mt-4 text-4xl font-semibold">{value}</p>
                             <p className="mt-3 text-xs text-slate-400">Synced moments ago</p>
                         </div>
@@ -76,7 +76,7 @@ export default function AdminDashboardOverview() {
                         href={route('admin.settings.payments.edit')}
                         className="rounded-2xl border border-slate-200 bg-white p-5 shadow-lg shadow-slate-900/10 transition hover:border-slate-300 hover:shadow-xl"
                     >
-                        <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Gateway status</p>
+                        <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">Gateway status</p>
                         <p className="mt-4 text-2xl font-semibold text-slate-900">Stripe</p>
                         <p className="mt-2 text-sm text-slate-500">Credentials &amp; test keys</p>
                         <span className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-sky-600">
@@ -93,7 +93,7 @@ export default function AdminDashboardOverview() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <h2 className="text-lg font-semibold text-slate-900">Latest Partner Registrations</h2>
-                                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Approvals awaiting action</p>
+                                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500/70">Approvals awaiting action</p>
                             </div>
                             <Link
                                 href={route('admin.customers.index')}
@@ -111,7 +111,7 @@ export default function AdminDashboardOverview() {
                                     <div>
                                         <p className="text-sm font-semibold text-slate-800">{partner.name}</p>
                                         <p className="text-xs text-slate-500">{partner.email}</p>
-                                        <p className="mt-1 text-xs uppercase tracking-[0.35em] text-slate-400">{partner.type}</p>
+                                        <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-slate-400">{partner.type}</p>
                                     </div>
                                     <div className="text-right">
                                         <span
@@ -139,7 +139,7 @@ export default function AdminDashboardOverview() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <h2 className="text-lg font-semibold text-slate-900">Jobwork Watchlist</h2>
-                                <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Awaiting production allocation</p>
+                                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500/70">Awaiting production allocation</p>
                             </div>
                             <Link
                                 href={route('production.work-orders.index')}

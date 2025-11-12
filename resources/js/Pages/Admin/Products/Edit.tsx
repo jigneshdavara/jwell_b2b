@@ -1,3 +1,4 @@
+import RichTextEditor from '@/Components/RichTextEditor';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps as AppPageProps } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
@@ -36,6 +37,10 @@ type Product = {
     category_id?: number;
     gross_weight?: number | string;
     net_weight?: number | string;
+    gold_weight?: number | string;
+    silver_weight?: number | string;
+    other_material_weight?: number | string;
+    total_weight?: number | string;
     base_price?: number | string;
     making_charge?: number | string;
     making_charge_discount_type?: 'percentage' | 'fixed' | null;
@@ -57,6 +62,12 @@ type Product = {
     silver_purity_ids?: number[];
     diamond_options?: ProductDiamondOption[];
     media?: ProductMedia[];
+    metadata?: {
+        size_dimension?: {
+            unit?: 'mm' | 'cm';
+            values?: Array<number | string>;
+        } | null;
+    } | null;
 };
 
 type OptionListItem = {
@@ -100,6 +111,10 @@ type FormData = {
     category_id: string;
     gross_weight: string;
     net_weight: string;
+    gold_weight: string;
+    silver_weight: string;
+    other_material_weight: string;
+    total_weight: string;
     base_price: string;
     making_charge: string;
     making_charge_discount_type: '' | 'percentage' | 'fixed' | null;
@@ -118,6 +133,9 @@ type FormData = {
     diamond_options: DiamondOptionForm[];
     media_uploads?: File[];
     removed_media_ids?: number[];
+    size_dimension_enabled: boolean;
+    size_unit: 'mm' | 'cm';
+    size_values: string[];
 };
 
 type DiamondOptionForm = {
@@ -225,6 +243,13 @@ export default function AdminProductEdit() {
           }))
         : [];
 
+    const sizeDimension = product?.metadata?.size_dimension ?? null;
+    const initialSizeUnit = sizeDimension?.unit === 'cm' ? 'cm' : 'mm';
+    const initialSizeValues = Array.isArray(sizeDimension?.values)
+        ? (sizeDimension?.values ?? []).map((value) => String(value))
+        : [];
+    const initialSizeEnabled = initialSizeValues.length > 0;
+
     const form = useForm<Record<string, any>>(() => ({
         sku: product?.sku ?? '',
         name: product?.name ?? '',
@@ -233,6 +258,10 @@ export default function AdminProductEdit() {
         category_id: String(product?.category_id ?? ''),
         gross_weight: product?.gross_weight ? String(product.gross_weight) : '',
         net_weight: product?.net_weight ? String(product.net_weight) : '',
+        gold_weight: product?.gold_weight ? String(product.gold_weight) : '',
+        silver_weight: product?.silver_weight ? String(product.silver_weight) : '',
+        other_material_weight: product?.other_material_weight ? String(product.other_material_weight) : '',
+        total_weight: product?.total_weight ? String(product.total_weight) : '',
         base_price: product?.base_price ? String(product.base_price) : '',
         making_charge: product?.making_charge ? String(product.making_charge) : '',
         making_charge_discount_type:
@@ -262,9 +291,64 @@ export default function AdminProductEdit() {
         diamond_options: initialDiamondOptions,
         media_uploads: [],
         removed_media_ids: [],
+        size_dimension_enabled: initialSizeEnabled,
+        size_unit: initialSizeUnit,
+        size_values: initialSizeValues,
     }) as Record<string, any>);
     const { setData, post, put, processing } = form;
     const data = form.data as FormData;
+    const [sizeValueInput, setSizeValueInput] = useState('');
+
+    const formatDecimal = (value: number): string => {
+        if (!Number.isFinite(value)) {
+            return '';
+        }
+
+        return value.toFixed(3).replace(/\.?0+$/, '');
+    };
+
+    const convertToCentimeters = (value: string, unit: 'mm' | 'cm'): string => {
+        const numeric = parseFloat(value);
+        if (!Number.isFinite(numeric)) {
+            return '';
+        }
+
+        const centimeters = unit === 'mm' ? numeric / 10 : numeric;
+        return formatDecimal(centimeters);
+    };
+
+    const convertFromCentimeters = (value: string | number, unit: 'mm' | 'cm'): string => {
+        const numeric = typeof value === 'number' ? value : parseFloat(value);
+        if (!Number.isFinite(numeric)) {
+            return '';
+        }
+
+        const converted = unit === 'mm' ? numeric * 10 : numeric;
+        return formatDecimal(converted);
+    };
+
+    useEffect(() => {
+        setData((prev: FormData) => {
+            const parse = (value: string) => {
+                const numeric = parseFloat(value);
+
+                return Number.isFinite(numeric) ? numeric : 0;
+            };
+
+            const sum = parse(prev.gold_weight) + parse(prev.silver_weight) + parse(prev.other_material_weight);
+            const formatted = sum === 0 ? '' : sum.toFixed(3).replace(/\.?0+$/, '');
+
+            if (prev.total_weight === formatted) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                total_weight: formatted,
+            };
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data.gold_weight, data.silver_weight, data.other_material_weight]);
 
     const goldPurityMap = useMemo(
         () => Object.fromEntries(goldPurities.map((item) => [item.id, item.name])),
@@ -328,14 +412,39 @@ export default function AdminProductEdit() {
                     : '';
             const diamondOption = state.diamond_options.find((option) => option.key === variant.diamond_option_key) ?? null;
             const diamondLabel = buildDiamondOptionLabel(diamondOption);
-            const sizeLabel = variant.size_cm ? `${variant.size_cm} cm` : '';
+
+            const rawMetadata = (variant.metadata ?? {}) as Record<string, FormDataConvertible>;
+            const storedSizeValue =
+                typeof rawMetadata.size_value === 'string' || typeof rawMetadata.size_value === 'number'
+                    ? String(rawMetadata.size_value)
+                    : '';
+            const storedSizeUnit =
+                rawMetadata.size_unit === 'mm' || rawMetadata.size_unit === 'cm'
+                    ? (rawMetadata.size_unit as 'mm' | 'cm')
+                    : state.size_unit;
+
+            let sizeUnit: 'mm' | 'cm' = state.size_dimension_enabled ? storedSizeUnit : 'cm';
+            let sizeValue = '';
+
+            if (state.size_dimension_enabled) {
+                if (storedSizeValue) {
+                    sizeValue = formatDecimal(Number(storedSizeValue));
+                } else if (variant.size_cm) {
+                    sizeValue = convertFromCentimeters(variant.size_cm, state.size_unit);
+                }
+            } else if (variant.size_cm) {
+                sizeValue = formatDecimal(parseFloat(variant.size_cm));
+                sizeUnit = 'cm';
+            }
+
+            const sizeLabel = sizeValue ? `${sizeValue}${sizeUnit}` : '';
 
             const autoLabelParts = [diamondLabel, goldName, silverName, sizeLabel].filter(Boolean);
             const autoLabel = autoLabelParts.length ? autoLabelParts.join(' / ') : 'Variant';
             const metalTone = [goldName, silverName].filter(Boolean).join(' + ');
             const stoneQuality = diamondLabel;
 
-            const metadata = {
+            const metadata: Record<string, FormDataConvertible> = {
                 gold_purity_id:
                     variant.gold_purity_id !== '' && variant.gold_purity_id !== null ? Number(variant.gold_purity_id) : null,
                 silver_purity_id:
@@ -356,6 +465,25 @@ export default function AdminProductEdit() {
                 auto_label: autoLabel,
             };
 
+            if (sizeValue) {
+                metadata.size_value = sizeValue;
+                metadata.size_unit = sizeUnit;
+            } else {
+                delete metadata.size_value;
+                delete metadata.size_unit;
+            }
+
+            const storedStatus =
+                typeof rawMetadata.status === 'string' && rawMetadata.status.trim().length > 0
+                    ? String(rawMetadata.status)
+                    : undefined;
+
+            if (storedStatus) {
+                metadata.status = storedStatus;
+            } else {
+                metadata.status = 'enabled';
+            }
+
             return {
                 autoLabel,
                 metalTone,
@@ -364,7 +492,7 @@ export default function AdminProductEdit() {
                 metadata,
             };
         },
-        [buildDiamondOptionLabel, goldPurityMap, silverPurityMap],
+        [buildDiamondOptionLabel, convertFromCentimeters, formatDecimal, goldPurityMap, silverPurityMap],
     );
 
     const recalculateVariants = useCallback(
@@ -374,10 +502,20 @@ export default function AdminProductEdit() {
                 const previousAutoLabel = (variant.metadata?.auto_label as string | undefined) ?? '';
                 const shouldReplaceLabel = !variant.label || variant.label === previousAutoLabel;
 
+                const previousAutoSku = (variant.metadata?.auto_sku as string | undefined) ?? '';
+                const baseSkuSource = (draft.sku ?? '').trim();
+                const normalizedBase = baseSkuSource ? baseSkuSource.replace(/[^A-Za-z0-9]/g, '').toUpperCase() : 'SKU';
+                const autoSku = `${normalizedBase}-${String(index + 1).padStart(2, '0')}`;
+                const shouldReplaceSku = !variant.sku || variant.sku === previousAutoSku;
+
                 return {
                     ...variant,
+                    sku: shouldReplaceSku ? autoSku : variant.sku,
                     label: shouldReplaceLabel ? meta.autoLabel : variant.label,
-                    metadata: meta.metadata,
+                    metadata: {
+                        ...meta.metadata,
+                        auto_sku: autoSku,
+                    },
                     is_default: variant.is_default ?? index === 0,
                 };
             }),
@@ -403,6 +541,15 @@ export default function AdminProductEdit() {
         [buildDiamondOptionLabel, data.diamond_options],
     );
 
+    const diamondLabelMap = useMemo(
+        () =>
+            diamondOptionLabels.reduce<Record<string, string>>((carry, option) => {
+                carry[option.key] = option.label;
+                return carry;
+            }, {}),
+        [diamondOptionLabels],
+    );
+
     const toggleVariantProduct = (checked: boolean) => {
         setData((prev: FormData) => {
             const draft: FormData = {
@@ -414,12 +561,21 @@ export default function AdminProductEdit() {
                 gold_purity_ids: checked ? prev.gold_purity_ids : [],
                 silver_purity_ids: checked ? prev.silver_purity_ids : [],
                 diamond_options: checked ? prev.diamond_options : [],
+                size_dimension_enabled: checked ? prev.size_dimension_enabled : false,
+                size_values: checked ? prev.size_values : [],
+                size_unit: checked ? prev.size_unit : 'mm',
                 variants: checked
                     ? prev.variants.length > 0
                         ? prev.variants
                         : [emptyVariant(true)]
                     : [],
             };
+
+            if (!checked) {
+                draft.size_dimension_enabled = false;
+                draft.size_values = [];
+                draft.size_unit = 'mm';
+            }
 
             draft.variants = recalculateVariants(draft);
 
@@ -482,6 +638,132 @@ export default function AdminProductEdit() {
                           ...variant,
                           diamond_option_key: null,
                       })),
+            };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
+        });
+    };
+
+    const toggleSizeDimension = (checked: boolean) => {
+        setData((prev: FormData) => {
+            const draft: FormData = {
+                ...prev,
+                size_dimension_enabled: checked,
+                size_values: checked ? prev.size_values : [],
+                size_unit: checked ? prev.size_unit : 'mm',
+                variants: prev.variants.map((variant: VariantForm) => {
+                    if (checked) {
+                        return {
+                            ...variant,
+                        };
+                    }
+
+                    const metadata = { ...(variant.metadata ?? {}) };
+                    delete metadata.size_value;
+                    delete metadata.size_unit;
+
+                    return {
+                        ...variant,
+                        size_cm: '',
+                        metadata,
+                    };
+                }),
+            };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
+        });
+    };
+
+    const changeSizeUnit = (unit: 'mm' | 'cm') => {
+        setData((prev: FormData) => {
+            if (prev.size_unit === unit) {
+                return prev;
+            }
+
+            const convertedValues = prev.size_values.map((value) => {
+                const centimeters = convertToCentimeters(value, prev.size_unit);
+                return centimeters ? convertFromCentimeters(centimeters, unit) : value;
+            });
+
+            const draft: FormData = {
+                ...prev,
+                size_unit: unit,
+                size_values: convertedValues,
+                variants: prev.variants.map((variant: VariantForm) => {
+                    if (!variant.size_cm) {
+                        return {
+                            ...variant,
+                            metadata: {
+                                ...(variant.metadata ?? {}),
+                                size_unit: unit,
+                            },
+                        };
+                    }
+
+                    const metadata = { ...(variant.metadata ?? {}) };
+                    const displayValue = convertFromCentimeters(variant.size_cm, unit);
+
+                    if (displayValue) {
+                        metadata.size_value = displayValue;
+                        metadata.size_unit = unit;
+                    } else {
+                        delete metadata.size_value;
+                        metadata.size_unit = unit;
+                    }
+
+                    return {
+                        ...variant,
+                        metadata,
+                    };
+                }),
+            };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
+        });
+    };
+
+    const addSizeValue = () => {
+        const rawValue = sizeValueInput.trim();
+        if (!rawValue) {
+            return;
+        }
+
+        const numeric = parseFloat(rawValue);
+        if (!Number.isFinite(numeric) || numeric <= 0) {
+            return;
+        }
+
+        const normalized = formatDecimal(numeric);
+
+        setData((prev: FormData) => {
+            if (prev.size_values.includes(normalized)) {
+                return prev;
+            }
+
+            const draft: FormData = {
+                ...prev,
+                size_values: [...prev.size_values, normalized],
+            };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
+        });
+
+        setSizeValueInput('');
+    };
+
+    const removeSizeValue = (value: string) => {
+        setData((prev: FormData) => {
+            const draft: FormData = {
+                ...prev,
+                size_values: prev.size_values.filter((entry) => entry !== value),
             };
 
             draft.variants = recalculateVariants(draft);
@@ -707,6 +989,40 @@ export default function AdminProductEdit() {
         });
     };
 
+    const updateVariantMetadata = (index: number, changes: Record<string, FormDataConvertible | null>) => {
+        setData((prev: FormData) => {
+            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
+                if (idx !== index) {
+                    return variant;
+                }
+
+                const metadata = { ...(variant.metadata ?? {}) } as Record<string, FormDataConvertible>;
+
+                Object.entries(changes).forEach(([key, value]) => {
+                    if (value === null) {
+                        delete metadata[key];
+                    } else {
+                        metadata[key] = value;
+                    }
+                });
+
+                return {
+                    ...variant,
+                    metadata,
+                };
+            });
+
+            const draft: FormData = {
+                ...prev,
+                variants,
+            };
+
+            draft.variants = recalculateVariants(draft);
+
+            return draft;
+        });
+    };
+
     const markDefault = (index: number) => {
         setData((prev: FormData) => ({
             ...prev,
@@ -717,11 +1033,87 @@ export default function AdminProductEdit() {
         }));
     };
 
-    const addVariantRow = () => {
+    const generateVariantMatrix = () => {
         setData((prev: FormData) => {
+            const goldOptions = prev.uses_gold ? prev.gold_purity_ids : [null];
+            const silverOptions = prev.uses_silver ? prev.silver_purity_ids : [null];
+            const diamondOptions = prev.uses_diamond ? prev.diamond_options.map((option) => option.key) : [null];
+            const sizeOptions =
+                prev.size_dimension_enabled && prev.size_values.length > 0 ? prev.size_values : [null];
+
+            if (
+                (prev.uses_gold && goldOptions.length === 0) ||
+                (prev.uses_silver && silverOptions.length === 0) ||
+                (prev.uses_diamond && diamondOptions.length === 0) ||
+                (prev.size_dimension_enabled && sizeOptions.length === 0)
+            ) {
+                return prev;
+            }
+
+            const combinations: Array<{
+                gold: number | '';
+                silver: number | '';
+                diamond: string | null;
+                size: string | null;
+            }> = [];
+
+            goldOptions.forEach((goldOption) => {
+                silverOptions.forEach((silverOption) => {
+                    diamondOptions.forEach((diamondOption) => {
+                        sizeOptions.forEach((sizeOption) => {
+                            combinations.push({
+                                gold: goldOption ?? '',
+                                silver: silverOption ?? '',
+                                diamond: diamondOption ?? null,
+                                size: sizeOption ?? null,
+                            });
+                        });
+                    });
+                });
+            });
+
+            if (combinations.length === 0) {
+                return prev;
+            }
+
+            const newVariants = combinations.map((combo, index) => {
+                const variant = emptyVariant(index === 0);
+
+                if (combo.gold !== '' && combo.gold !== null) {
+                    variant.gold_purity_id = combo.gold as number;
+                }
+
+                if (combo.silver !== '' && combo.silver !== null) {
+                    variant.silver_purity_id = combo.silver as number;
+                }
+
+                if (combo.diamond) {
+                    variant.diamond_option_key = combo.diamond;
+                }
+
+                const metadata: Record<string, FormDataConvertible> = {
+                    ...(variant.metadata ?? {}),
+                    status: 'enabled',
+                };
+
+                if (combo.size) {
+                    const centimeters = convertToCentimeters(combo.size, prev.size_unit);
+                    variant.size_cm = centimeters;
+                    metadata.size_value = combo.size;
+                    metadata.size_unit = prev.size_unit;
+                } else {
+                    delete metadata.size_value;
+                    delete metadata.size_unit;
+                }
+
+                variant.metadata = metadata;
+
+                return variant;
+            });
+
             const draft: FormData = {
                 ...prev,
-                variants: [...prev.variants, emptyVariant(prev.variants.length === 0)],
+                variants: newVariants,
             };
 
             draft.variants = recalculateVariants(draft);
@@ -805,6 +1197,10 @@ export default function AdminProductEdit() {
             payload.making_charge_discount_value = formState.making_charge_discount_type
                 ? toNullableNumber(formState.making_charge_discount_value)
                 : null;
+            payload.gold_weight = toNullableNumber(formState.gold_weight);
+            payload.silver_weight = toNullableNumber(formState.silver_weight);
+            payload.other_material_weight = toNullableNumber(formState.other_material_weight);
+            payload.total_weight = toNullableNumber(formState.total_weight);
             payload.making_charge_discount_overrides = formState.making_charge_discount_overrides
                 .map((override: DiscountOverrideForm) => ({
                     customer_group_id:
@@ -831,6 +1227,29 @@ export default function AdminProductEdit() {
                       };
                   })
                 : [];
+
+            const sizeMetadataValues = formState.size_values
+                .map((value) => parseFloat(value))
+                .filter((value) => Number.isFinite(value) && value > 0);
+
+            if (formState.size_dimension_enabled && sizeMetadataValues.length > 0) {
+                payload.metadata = {
+                    size_dimension: {
+                        unit: formState.size_unit,
+                        values: sizeMetadataValues,
+                    },
+                };
+            } else {
+                payload.metadata = null;
+            }
+
+            if (!payload.metadata) {
+                delete payload.metadata;
+            }
+
+            delete payload.size_dimension_enabled;
+            delete payload.size_unit;
+            delete payload.size_values;
 
             if (!formState.is_variant_product) {
                 payload.uses_gold = false;
@@ -966,73 +1385,94 @@ export default function AdminProductEdit() {
                                 {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
                             </label>
                             <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                <span>Description</span>
-                                <textarea
-                                    value={data.description}
-                                    onChange={(event) => setData('description', event.target.value)}
-                                    className="min-h-[120px] rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                />
-                                {errors.description && <span className="text-xs text-rose-500">{errors.description}</span>}
+                                <span>Brand *</span>
+                                <select
+                                    value={data.brand_id}
+                                    onChange={(event) => setData('brand_id', event.target.value)}
+                                    className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                >
+                                    <option value="">Select brand</option>
+                                    {Object.entries(brands).map(([id, name]) => (
+                                        <option key={id} value={id}>
+                                            {name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.brand_id && <span className="text-xs text-rose-500">{errors.brand_id}</span>}
+                            </label>
+                            <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                <span>Category *</span>
+                                <select
+                                    value={data.category_id}
+                                    onChange={(event) => setData('category_id', event.target.value)}
+                                    className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                >
+                                    <option value="">Select category</option>
+                                    {Object.entries(categories).map(([id, name]) => (
+                                        <option key={id} value={id}>
+                                            {name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.category_id && <span className="text-xs text-rose-500">{errors.category_id}</span>}
                             </label>
                         </div>
 
                         <div className="space-y-4">
                             <div className="grid gap-4 md:grid-cols-2">
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                    <span>Brand *</span>
-                                    <select
-                                        value={data.brand_id}
-                                        onChange={(event) => setData('brand_id', event.target.value)}
+                                    <span>Gold weight (g)</span>
+                                    <input
+                                        type="number"
+                                        step="0.001"
+                                        value={data.gold_weight}
+                                        onChange={(event) => setData('gold_weight', event.target.value)}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                    >
-                                        <option value="">Select brand</option>
-                                        {Object.entries(brands).map(([id, name]) => (
-                                            <option key={id} value={id}>
-                                                {name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {errors.brand_id && <span className="text-xs text-rose-500">{errors.brand_id}</span>}
+                                        placeholder="0.000"
+                                    />
+                                    {errors.gold_weight && <span className="text-xs text-rose-500">{errors.gold_weight}</span>}
                                 </label>
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                    <span>Category *</span>
-                                    <select
-                                        value={data.category_id}
-                                        onChange={(event) => setData('category_id', event.target.value)}
+                                    <span>Silver weight (g)</span>
+                                    <input
+                                        type="number"
+                                        step="0.001"
+                                        value={data.silver_weight}
+                                        onChange={(event) => setData('silver_weight', event.target.value)}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                    >
-                                        <option value="">Select category</option>
-                                        {Object.entries(categories).map(([id, name]) => (
-                                            <option key={id} value={id}>
-                                                {name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {errors.category_id && <span className="text-xs text-rose-500">{errors.category_id}</span>}
+                                        placeholder="0.000"
+                                    />
+                                    {errors.silver_weight && <span className="text-xs text-rose-500">{errors.silver_weight}</span>}
                                 </label>
                             </div>
                             <div className="grid gap-4 md:grid-cols-2">
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                    <span>Gross weight (g)</span>
+                                    <span>Other material weight (g)</span>
                                     <input
                                         type="number"
                                         step="0.001"
-                                        value={data.gross_weight}
-                                        onChange={(event) => setData('gross_weight', event.target.value)}
+                                        value={data.other_material_weight}
+                                        onChange={(event) => setData('other_material_weight', event.target.value)}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        placeholder="0.000"
                                     />
-                                    {errors.gross_weight && <span className="text-xs text-rose-500">{errors.gross_weight}</span>}
+                                    {errors.other_material_weight && (
+                                        <span className="text-xs text-rose-500">{errors.other_material_weight}</span>
+                                    )}
                                 </label>
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                    <span>Net weight (g)</span>
+                                    <span>Total weight (g)</span>
                                     <input
-                                        type="number"
-                                        step="0.001"
-                                        value={data.net_weight}
-                                        onChange={(event) => setData('net_weight', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        type="text"
+                                        value={data.total_weight}
+                                        readOnly
+                                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        placeholder="Auto"
                                     />
-                                    {errors.net_weight && <span className="text-xs text-rose-500">{errors.net_weight}</span>}
+                                    {errors.total_weight && <span className="text-xs text-rose-500">{errors.total_weight}</span>}
+                                    <span className="text-[11px] text-slate-400">
+                                        Auto sum of gold, silver, and other material weights.
+                                    </span>
                                 </label>
                             </div>
 
@@ -1071,6 +1511,27 @@ export default function AdminProductEdit() {
                                 Jobwork requests allowed for this SKU
                             </label>
                         </div>
+                    </div>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
+                    <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <h2 className="text-xl font-semibold text-slate-900">Product description</h2>
+                            <p className="text-sm text-slate-500">
+                                Provide merchandising copy, craftsmanship details, and any atelier notes for this SKU.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-6">
+                        <RichTextEditor
+                            value={data.description}
+                            onChange={(value) => setData('description', value)}
+                            className="overflow-hidden rounded-3xl border border-slate-200"
+                            placeholder="Detail the design notes, materials, finish, and atelier craftsmanship."
+                        />
+                        {errors.description && <span className="mt-2 block text-xs text-rose-500">{errors.description}</span>}
                     </div>
                 </div>
 
@@ -1209,6 +1670,101 @@ export default function AdminProductEdit() {
                         </p>
                     ) : (
                         <div className="mt-6 space-y-6">
+                            <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+                                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                    <div>
+                                        <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Size dimension</h3>
+                                        <p className="text-xs text-slate-500">
+                                            Maintain consistent size data across variants. Add numeric values and choose the preferred unit.
+                                        </p>
+                                    </div>
+                                    <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.size_dimension_enabled}
+                                            onChange={(event) => toggleSizeDimension(event.target.checked)}
+                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        />
+                                        Use size dimension
+                                    </label>
+                                </div>
+                                {data.size_dimension_enabled && (
+                                    <div className="space-y-4">
+                                        <div className="flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+                                            <span>Unit</span>
+                                            <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                                                <input
+                                                    type="radio"
+                                                    name="size-unit"
+                                                    value="mm"
+                                                    checked={data.size_unit === 'mm'}
+                                                    onChange={() => changeSizeUnit('mm')}
+                                                    className="h-4 w-4 border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                />
+                                                Millimetres (mm)
+                                            </label>
+                                            <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                                                <input
+                                                    type="radio"
+                                                    name="size-unit"
+                                                    value="cm"
+                                                    checked={data.size_unit === 'cm'}
+                                                    onChange={() => changeSizeUnit('cm')}
+                                                    className="h-4 w-4 border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                />
+                                                Centimetres (cm)
+                                            </label>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    step="0.001"
+                                                    min="0"
+                                                    value={sizeValueInput}
+                                                    onChange={(event) => setSizeValueInput(event.target.value)}
+                                                    className="w-24 rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    placeholder={`e.g. 25${data.size_unit}`}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={addSizeValue}
+                                                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                                >
+                                                    Add size
+                                                </button>
+                                            </div>
+                                            {data.size_values.length === 0 && (
+                                                <span className="text-xs text-slate-400">
+                                                    Add at least one size value to use in the variant matrix.
+                                                </span>
+                                            )}
+                                        </div>
+                                        {data.size_values.length > 0 && (
+                                            <div className="flex flex-wrap gap-2">
+                                                {data.size_values.map((value) => (
+                                                    <span
+                                                        key={`${value}-${data.size_unit}`}
+                                                        className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600"
+                                                    >
+                                                        {value}
+                                                        {data.size_unit}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeSizeValue(value)}
+                                                            className="text-rose-500 transition hover:text-rose-600"
+                                                            aria-label={`Remove size ${value}${data.size_unit}`}
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                     <div>
@@ -1488,183 +2044,255 @@ export default function AdminProductEdit() {
                         </div>
                         <button
                             type="button"
-                            onClick={addVariantRow}
+                            onClick={generateVariantMatrix}
                             className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
                             </svg>
-                            Add variant
+                            Generate matrix
                         </button>
                     </div>
 
                     {variantError && <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-600">{variantError}</p>}
 
-                    <div className="mt-6 space-y-4">
-                        {data.variants.map((variant, index) => (
-                            <div key={variant.id ?? `row-${index}`} className="rounded-2xl border border-slate-200 p-4 shadow-sm">
-                                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                                    <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
-                                        SKU
-                                        <input
-                                            type="text"
-                                            value={variant.sku}
-                                            onChange={(event) => updateVariant(index, 'sku', event.target.value)}
-                                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            placeholder="Optional"
-                                        />
-                                        {errors[`variants.${index}.sku`] && (
-                                            <span className="text-xs text-rose-500">{errors[`variants.${index}.sku`]}</span>
-                                        )}
-                                    </label>
-                                    {data.uses_gold && (
-                                        <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
-                                            Gold purity
-                                            <select
-                                                value={variant.gold_purity_id === '' ? '' : variant.gold_purity_id}
-                                                onChange={(event) =>
-                                                    updateVariant(
-                                                        index,
-                                                        'gold_purity_id',
-                                                        event.target.value === '' ? '' : Number(event.target.value),
-                                                    )
-                                                }
-                                                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            >
-                                                <option value="">Select gold purity</option>
-                                                {selectedGoldPurities.map((purity) => (
-                                                    <option key={purity.id} value={purity.id}>
-                                                        {purity.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {errors[`variants.${index}.gold_purity_id`] && (
-                                                <span className="text-xs text-rose-500">{errors[`variants.${index}.gold_purity_id`]}</span>
-                                            )}
-                                        </label>
-                                    )}
-                                    {data.uses_silver && (
-                                        <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
-                                            Silver purity
-                                            <select
-                                                value={variant.silver_purity_id === '' ? '' : variant.silver_purity_id}
-                                                onChange={(event) =>
-                                                    updateVariant(
-                                                        index,
-                                                        'silver_purity_id',
-                                                        event.target.value === '' ? '' : Number(event.target.value),
-                                                    )
-                                                }
-                                                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            >
-                                                <option value="">Select silver purity</option>
-                                                {selectedSilverPurities.map((purity) => (
-                                                    <option key={purity.id} value={purity.id}>
-                                                        {purity.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {errors[`variants.${index}.silver_purity_id`] && (
-                                                <span className="text-xs text-rose-500">{errors[`variants.${index}.silver_purity_id`]}</span>
-                                            )}
-                                        </label>
-                                    )}
-                                    {data.uses_diamond && (
-                                        <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
-                                            Diamond mix
-                                            <select
-                                                value={variant.diamond_option_key ?? ''}
-                                                onChange={(event) =>
-                                                    updateVariant(index, 'diamond_option_key', event.target.value || '')
-                                                }
-                                                className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            >
-                                                <option value="">Select diamond option</option>
-                                                {diamondOptionLabels.length === 0 && <option value="" disabled>No options configured</option>}
-                                                {diamondOptionLabels.map((option) => (
-                                                    <option key={option.key} value={option.key}>
-                                                        {option.label}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {errors[`variants.${index}.diamond_option_key`] && (
-                                                <span className="text-xs text-rose-500">
-                                                    {errors[`variants.${index}.diamond_option_key`]}
-                                                </span>
-                                            )}
-                                        </label>
-                                    )}
-                                    <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
-                                        Size (cm)
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={variant.size_cm}
-                                            onChange={(event) => updateVariant(index, 'size_cm', event.target.value)}
-                                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        />
-                                        {errors[`variants.${index}.size_cm`] && (
-                                            <span className="text-xs text-rose-500">{errors[`variants.${index}.size_cm`]}</span>
-                                        )}
-                                    </label>
-                                </div>
+                    <div className="mt-8 overflow-x-auto rounded-2xl border border-slate-200">
+                        <table className="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead className="bg-slate-50 text-xs uppercase tracking-[0.1em] text-slate-500">
+                                <tr>
+                                    <th className="px-4 py-3 text-left">SKU</th>
+                                    <th className="px-4 py-3 text-left">Variant label</th>
+                                    <th className="px-4 py-3 text-left">Price adj (₹)</th>
+                                    <th className="px-4 py-3 text-left">Gold</th>
+                                    <th className="px-4 py-3 text-left">Silver</th>
+                                    <th className="px-4 py-3 text-left">Diamond</th>
+                                    <th className="px-4 py-3 text-left">Size</th>
+                                    <th className="px-4 py-3 text-left">Status</th>
+                                    <th className="px-4 py-3 text-left">Default</th>
+                                    <th className="px-4 py-3 text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {data.variants.map((variant, index) => {
+                                    const goldLabel =
+                                        variant.gold_purity_id !== '' && variant.gold_purity_id !== null
+                                            ? goldPurityMap[Number(variant.gold_purity_id)] ?? '—'
+                                            : '—';
+                                    const silverLabel =
+                                        variant.silver_purity_id !== '' && variant.silver_purity_id !== null
+                                            ? silverPurityMap[Number(variant.silver_purity_id)] ?? '—'
+                                            : '—';
+                                    const diamondLabel =
+                                        variant.diamond_option_key && diamondLabelMap[variant.diamond_option_key]
+                                            ? diamondLabelMap[variant.diamond_option_key]
+                                            : variant.diamond_option_key
+                                            ? 'Configured mix'
+                                            : '—';
+                                    const meta = (variant.metadata ?? {}) as Record<string, FormDataConvertible>;
+                                    const metaSizeValue =
+                                        typeof meta.size_value === 'string' || typeof meta.size_value === 'number'
+                                            ? String(meta.size_value)
+                                            : '';
+                                    const metaSizeUnit =
+                                        meta.size_unit === 'mm' || meta.size_unit === 'cm'
+                                            ? (meta.size_unit as 'mm' | 'cm')
+                                            : data.size_unit;
+                                    const sizeDisplay = metaSizeValue
+                                        ? `${metaSizeValue}${metaSizeUnit}`
+                                        : variant.size_cm
+                                        ? `${formatDecimal(parseFloat(variant.size_cm))}cm`
+                                        : '—';
+                                    const variantStatus =
+                                        typeof meta.status === 'string' && meta.status.trim().length > 0
+                                            ? String(meta.status)
+                                            : 'enabled';
+                                    const suggestedLabel = buildVariantMeta(variant, data).autoLabel;
 
-                                <div className="mt-4 grid gap-4 md:grid-cols-3">
-                                    <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
-                                        Price adjustment (₹)
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={variant.price_adjustment}
-                                            onChange={(event) => updateVariant(index, 'price_adjustment', event.target.value)}
-                                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        />
-                                        {errors[`variants.${index}.price_adjustment`] && (
-                                            <span className="text-xs text-rose-500">{errors[`variants.${index}.price_adjustment`]}</span>
-                                        )}
-                                    </label>
-                                    <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
-                                        Variant label
-                                        <input
-                                            type="text"
-                                            value={variant.label}
-                                            onChange={(event) => updateVariant(index, 'label', event.target.value)}
-                                            className="rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        />
-                                        {errors[`variants.${index}.label`] && (
-                                            <span className="text-xs text-rose-500">{errors[`variants.${index}.label`]}</span>
-                                        )}
-                                        <span className="text-[10px] uppercase tracking-[0.3em] text-slate-400">
-                                            Suggested: {buildVariantMeta(variant, data).autoLabel}
-                                        </span>
-                                    </label>
-                                    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3">
-                                        <input
-                                            type="radio"
-                                            checked={variant.is_default}
-                                            onChange={() => markDefault(index)}
-                                            className="h-4 w-4 text-slate-900 focus:ring-slate-900"
-                                            name="default-variant"
-                                        />
-                                        <div>
-                                            <p className="text-sm font-semibold text-slate-800">Default display variant</p>
-                                            <p className="text-xs text-slate-500">Used for price cards & listing highlights.</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
-                                    <span>Row #{index + 1}</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => removeVariant(index)}
-                                        className="text-rose-500 hover:text-rose-600"
-                                    >
-                                        Remove variant
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                                    return (
+                                        <tr
+                                            key={variant.id ?? `summary-${index}`}
+                                            className={`hover:bg-slate-50 ${variantStatus === 'disabled' ? 'opacity-70' : ''}`}
+                                        >
+                                            <td className="px-4 py-3 align-middle">
+                                                <input
+                                                    type="text"
+                                                    value={variant.sku}
+                                                    onChange={(event) => updateVariant(index, 'sku', event.target.value)}
+                                                    className="w-full rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    placeholder="Variant SKU"
+                                                />
+                                                {errors[`variants.${index}.sku`] && (
+                                                    <p className="mt-1 text-xs text-rose-500">{errors[`variants.${index}.sku`]}</p>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 align-middle">
+                                                <input
+                                                    type="text"
+                                                    value={variant.label}
+                                                    onChange={(event) => updateVariant(index, 'label', event.target.value)}
+                                                    className="w-full rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    placeholder="Display label"
+                                                />
+                                                {errors[`variants.${index}.label`] && (
+                                                    <p className="mt-1 text-xs text-rose-500">{errors[`variants.${index}.label`]}</p>
+                                                )}
+                                                
+                                            </td>
+                                            <td className="px-4 py-3 align-middle">
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={variant.price_adjustment}
+                                                    onChange={(event) => updateVariant(index, 'price_adjustment', event.target.value)}
+                                                    className="w-28 rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                />
+                                                {errors[`variants.${index}.price_adjustment`] && (
+                                                    <p className="mt-1 text-xs text-rose-500">{errors[`variants.${index}.price_adjustment`]}</p>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 align-middle text-slate-700">
+                                                {data.uses_gold ? (
+                                                    <>
+                                                        <select
+                                                            value={variant.gold_purity_id === '' ? '' : variant.gold_purity_id}
+                                                            onChange={(event) =>
+                                                                updateVariant(
+                                                                    index,
+                                                                    'gold_purity_id',
+                                                                    event.target.value === '' ? '' : Number(event.target.value),
+                                                                )
+                                                            }
+                                                            className="w-full rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                        >
+                                                            <option value="">Select</option>
+                                                            {selectedGoldPurities.map((purity) => (
+                                                                <option key={purity.id} value={purity.id}>
+                                                                    {purity.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        {errors[`variants.${index}.gold_purity_id`] && (
+                                                            <p className="mt-1 text-xs text-rose-500">{errors[`variants.${index}.gold_purity_id`]}</p>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    goldLabel
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 align-middle text-slate-700">
+                                                {data.uses_silver ? (
+                                                    <>
+                                                        <select
+                                                            value={variant.silver_purity_id === '' ? '' : variant.silver_purity_id}
+                                                            onChange={(event) =>
+                                                                updateVariant(
+                                                                    index,
+                                                                    'silver_purity_id',
+                                                                    event.target.value === '' ? '' : Number(event.target.value),
+                                                                )
+                                                            }
+                                                            className="w-full rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                        >
+                                                            <option value="">Select</option>
+                                                            {selectedSilverPurities.map((purity) => (
+                                                                <option key={purity.id} value={purity.id}>
+                                                                    {purity.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        {errors[`variants.${index}.silver_purity_id`] && (
+                                                            <p className="mt-1 text-xs text-rose-500">{errors[`variants.${index}.silver_purity_id`]}</p>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    silverLabel
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 align-middle text-slate-700">
+                                                {data.uses_diamond ? (
+                                                    <>
+                                                        <select
+                                                            value={variant.diamond_option_key ?? ''}
+                                                            onChange={(event) => updateVariant(index, 'diamond_option_key', event.target.value || '')}
+                                                            className="w-full rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                        >
+                                                            <option value="">Select</option>
+                                                            {diamondOptionLabels.length === 0 && (
+                                                                <option value="" disabled>
+                                                                    No options configured
+                                                                </option>
+                                                            )}
+                                                            {diamondOptionLabels.map((option) => (
+                                                                <option key={option.key} value={option.key}>
+                                                                    {option.label}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        {errors[`variants.${index}.diamond_option_key`] && (
+                                                            <p className="mt-1 text-xs text-rose-500">{errors[`variants.${index}.diamond_option_key`]}</p>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    diamondLabel
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3 align-middle text-slate-700">
+                                                {sizeDisplay}
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-700">
+                                                <select
+                                                    value={variantStatus}
+                                                    onChange={(event) =>
+                                                        updateVariantMetadata(index, {
+                                                            status: event.target.value as FormDataConvertible,
+                                                        })
+                                                    }
+                                                    className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                >
+                                                    <option value="enabled">Enabled</option>
+                                                    <option value="disabled">Disabled</option>
+                                                </select>
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-700">
+                                                <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                                                    <input
+                                                        type="radio"
+                                                        name="default-variant-table"
+                                                        checked={variant.is_default}
+                                                        onChange={() => markDefault(index)}
+                                                        className="h-4 w-4 text-sky-600 focus:ring-sky-500"
+                                                    />
+                                                    <span>{variant.is_default ? 'Default' : 'Set default'}</span>
+                                                </label>
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeVariant(index)}
+                                                    className="inline-flex items-center justify-center rounded-full border border-rose-200 p-2 text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
+                                                    aria-label="Remove variant"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-4 w-4">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12m-9 3v6m6-6v6M10 4h4a1 1 0 0 1 1 1v1H9V5a1 1 0 0 1 1-1Z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 7h14l-.8 11.2A2 2 0 0 1 16.2 20H7.8a2 2 0 0 1-1.99-1.8L5 7Z" />
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {data.variants.length === 0 && (
+                                    <tr>
+                                        <td
+                                            colSpan={10}
+                                            className="px-4 py-6 text-center text-xs uppercase tracking-[0.1em] text-slate-400"
+                                        >
+                                            No variants configured.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                     </div>
                 )}

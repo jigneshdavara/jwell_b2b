@@ -19,6 +19,10 @@ const variants: Record<string, { bg: string; border: string; text: string }> = {
     },
 };
 
+const statusMessages: Record<string, string> = {
+    kyc_pending: 'Your KYC documents are under review. We will notify you as soon as the verification is complete.',
+};
+
 export default function FlashMessage() {
     const { flash } = usePage().props as { flash?: Record<string, string | null> };
     const [message, setMessage] = useState<{ type: keyof typeof variants; text: string } | null>(null);
@@ -36,7 +40,9 @@ export default function FlashMessage() {
         } else if (flash.info) {
             setMessage({ type: 'info', text: flash.info });
         } else if (flash.status) {
-            setMessage({ type: 'info', text: flash.status });
+            const statusKey = String(flash.status).trim();
+            const statusText = statusMessages[statusKey] ?? statusKey;
+            setMessage({ type: 'info', text: statusText });
         } else {
             setMessage(null);
         }

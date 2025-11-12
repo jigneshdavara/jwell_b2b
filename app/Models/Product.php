@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
@@ -20,6 +21,10 @@ class Product extends Model
         'material_id',
         'gross_weight',
         'net_weight',
+        'gold_weight',
+        'silver_weight',
+        'other_material_weight',
+        'total_weight',
         'base_price',
         'making_charge',
         'making_charge_discount_type',
@@ -57,6 +62,10 @@ class Product extends Model
         'diamond_options' => 'array',
         'making_charge_discount_value' => 'float',
         'making_charge_discount_overrides' => 'array',
+        'gold_weight' => 'float',
+        'silver_weight' => 'float',
+        'other_material_weight' => 'float',
+        'total_weight' => 'float',
     ];
 
     public function brand(): BelongsTo
@@ -87,5 +96,10 @@ class Product extends Model
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function catalogs(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductCatalog::class)->withTimestamps();
     }
 }

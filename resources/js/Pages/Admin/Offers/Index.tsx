@@ -3,6 +3,12 @@ import type { PageProps as AppPageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
+type OfferConstraints = {
+    min_order_total?: number | null;
+    customer_types?: string[] | null;
+    customer_group_ids?: number[] | null;
+};
+
 type OfferRow = {
     id: number;
     code: string;
@@ -11,10 +17,7 @@ type OfferRow = {
     type: string;
     type_label: string;
     value: number;
-    constraints?: {
-        min_order_total?: number | null;
-        customer_types?: string[] | null;
-    } | null;
+    constraints?: OfferConstraints | null;
     starts_at?: string | null;
     ends_at?: string | null;
     is_active: boolean;
@@ -25,14 +28,25 @@ type Pagination<T> = {
     data: T[];
 };
 
+type CustomerTypeOption = {
+    value: string;
+    label: string;
+};
+
+type CustomerGroupOption = {
+    id: number;
+    name: string;
+};
+
 type AdminOffersPageProps = AppPageProps<{
     offers: Pagination<OfferRow>;
     offerTypes: string[];
-    customerTypes: string[];
+    customerTypes: CustomerTypeOption[];
+    customerGroups: CustomerGroupOption[];
 }>;
 
 export default function AdminOffersIndex() {
-    const { offers, offerTypes, customerTypes } = usePage<AdminOffersPageProps>().props;
+    const { offers, offerTypes, customerTypes, customerGroups } = usePage<AdminOffersPageProps>().props;
 
     const [editingOffer, setEditingOffer] = useState<OfferRow | null>(null);
 
@@ -49,7 +63,26 @@ export default function AdminOffersIndex() {
         is_active: true,
         min_order_total: '',
         customer_types: [] as string[],
+        customer_group_ids: [] as string[],
     });
+
+    const customerTypeLabels = useMemo(
+        () =>
+            customerTypes.reduce<Record<string, string>>((carry, option) => {
+                carry[option.value] = option.label;
+                return carry;
+            }, {}),
+        [customerTypes],
+    );
+
+    const customerGroupLabels = useMemo(
+        () =>
+            customerGroups.reduce<Record<number, string>>((carry, group) => {
+                carry[group.id] = group.name;
+                return carry;
+            }, {}),
+        [customerGroups],
+    );
 
     const errorFor = (key: string) => (errors as Record<string, string | undefined>)[key];
 
@@ -57,6 +90,8 @@ export default function AdminOffersIndex() {
         reset();
         setData('type', offerTypes[0] ?? 'percentage');
         setData('is_active', true);
+        setData('customer_types', []);
+        setData('customer_group_ids', []);
         setEditingOffer(null);
     };
 
@@ -73,11 +108,26 @@ export default function AdminOffersIndex() {
             is_active: offer.is_active,
             min_order_total: offer.constraints?.min_order_total != null ? String(offer.constraints.min_order_total) : '',
             customer_types: offer.constraints?.customer_types?.filter(Boolean) ?? [],
+            customer_group_ids:
+                offer.constraints?.customer_group_ids
+                    ?.filter((groupId): groupId is number => typeof groupId === 'number')
+                    .map((groupId) => String(groupId)) ?? [],
         });
     };
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        const normalizedCustomerTypes = Array.from(
+            new Set(data.customer_types.filter((type) => Boolean(customerTypeLabels[type]))),
+        );
+        const customerGroupIds = Array.from(
+            new Set(
+                data.customer_group_ids
+                    .map((value) => Number(value))
+                    .filter((value) => Number.isInteger(value) && value > 0),
+            ),
+        );
 
         const payload = {
             code: data.code,
@@ -87,7 +137,8 @@ export default function AdminOffersIndex() {
             value: Number(data.value || 0),
             constraints: {
                 min_order_total: data.min_order_total ? Number(data.min_order_total) : null,
-                customer_types: data.customer_types.length ? data.customer_types : null,
+                customer_types: normalizedCustomerTypes.length ? normalizedCustomerTypes : null,
+                customer_group_ids: customerGroupIds.length ? customerGroupIds : null,
             },
             starts_at: data.starts_at || null,
             ends_at: data.ends_at || null,
@@ -272,31 +323,72 @@ export default function AdminOffersIndex() {
                         </legend>
                         <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600">
                             {customerTypes.map((type) => {
-                                const checked = data.customer_types.includes(type);
+                                const checked = data.customer_types.includes(type.value);
                                 return (
-                                    <label key={type} className="inline-flex items-center gap-2">
+                                    <label key={type.value} className="inline-flex items-center gap-2">
                                         <input
                                             type="checkbox"
                                             checked={checked}
                                             onChange={(event) => {
                                                 if (event.target.checked) {
-                                                    setData('customer_types', [...data.customer_types, type]);
+                                                    setData('customer_types', [...data.customer_types, type.value]);
                                                 } else {
                                                     setData(
                                                         'customer_types',
-                                                        data.customer_types.filter((value) => value !== type),
+                                                        data.customer_types.filter((value) => value !== type.value),
                                                     );
                                                 }
                                             }}
                                             className="rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                         />
-                                        <span className="uppercase tracking-wide">{type}</span>
+                                        <span className="uppercase tracking-wide">{type.label}</span>
                                     </label>
                                 );
                             })}
                         </div>
                         {errorFor('constraints.customer_types') && (
                             <p className="mt-2 text-xs text-rose-500">{errorFor('constraints.customer_types')}</p>
+                        )}
+                    </fieldset>
+
+                    <fieldset className="rounded-2xl border border-slate-200 px-4 py-3">
+                        <legend className="px-2 text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">
+                            Eligible customer groups
+                        </legend>
+                        <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600">
+                            {customerGroups.length === 0 ? (
+                                <p className="text-xs uppercase tracking-widest text-slate-400">
+                                    No customer groups configured. All groups will be eligible.
+                                </p>
+                            ) : (
+                                customerGroups.map((group) => {
+                                    const value = String(group.id);
+                                    const checked = data.customer_group_ids.includes(value);
+                                    return (
+                                        <label key={group.id} className="inline-flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={(event) => {
+                                                    if (event.target.checked) {
+                                                        setData('customer_group_ids', [...data.customer_group_ids, value]);
+                                                    } else {
+                                                        setData(
+                                                            'customer_group_ids',
+                                                            data.customer_group_ids.filter((id) => id !== value),
+                                                        );
+                                                    }
+                                                }}
+                                                className="rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            />
+                                            <span className="tracking-wide text-slate-500">{group.name}</span>
+                                        </label>
+                                    );
+                                })
+                            )}
+                        </div>
+                        {errorFor('constraints.customer_group_ids') && (
+                            <p className="mt-2 text-xs text-rose-500">{errorFor('constraints.customer_group_ids')}</p>
                         )}
                     </fieldset>
 
@@ -346,7 +438,30 @@ export default function AdminOffersIndex() {
                             {offers.data.map((offer) => (
                                 <tr key={offer.id} className="hover:bg-slate-50">
                                     <td className="px-5 py-3 font-semibold text-slate-900">{offer.code}</td>
-                                    <td className="px-5 py-3 text-slate-600">{offer.name}</td>
+                                    <td className="px-5 py-3 text-slate-600">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="font-semibold text-slate-900">{offer.name}</span>
+                                            {offer.description && (
+                                                <span className="text-xs text-slate-500">{offer.description}</span>
+                                            )}
+                                            <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.25em] text-slate-400">
+                                                <span>
+                                                    {offer.constraints?.customer_types?.length
+                                                        ? `Customers: ${offer.constraints.customer_types
+                                                              .map((type) => customerTypeLabels[type] ?? type)
+                                                              .join(', ')}`
+                                                        : 'Customers: All'}
+                                                </span>
+                                                <span>
+                                                    {offer.constraints?.customer_group_ids?.length
+                                                        ? `Groups: ${offer.constraints.customer_group_ids
+                                                              .map((id) => customerGroupLabels[id] ?? `#${id}`)
+                                                              .join(', ')}`
+                                                        : 'Groups: All'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td className="px-5 py-3 text-slate-500 uppercase tracking-wide">{offer.type_label}</td>
                                     <td className="px-5 py-3 text-right text-slate-900">₹ {offer.value.toLocaleString('en-IN')}</td>
                                     <td className="px-5 py-3 text-center">

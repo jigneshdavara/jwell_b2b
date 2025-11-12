@@ -134,6 +134,10 @@ class ProductController extends Controller
                 'category_id' => $product->category_id,
                 'gross_weight' => $product->gross_weight,
                 'net_weight' => $product->net_weight,
+                'gold_weight' => $product->gold_weight,
+                'silver_weight' => $product->silver_weight,
+                'other_material_weight' => $product->other_material_weight,
+                'total_weight' => $product->total_weight,
                 'base_price' => $product->base_price,
                 'making_charge' => $product->making_charge,
                 'making_charge_discount_type' => $product->making_charge_discount_type,
@@ -171,6 +175,7 @@ class ProductController extends Controller
                         ];
                     })
                     ->all(),
+                'metadata' => $product->metadata,
                 'variants' => $product->variants->map(fn (ProductVariant $variant) => [
                     'id' => $variant->id,
                     'sku' => $variant->sku,
@@ -423,6 +428,29 @@ class ProductController extends Controller
         $discountOverrides = $this->sanitizeDiscountOverrides($data['making_charge_discount_overrides'] ?? []);
         $data['making_charge_discount_overrides'] = ! empty($discountOverrides) ? $discountOverrides : null;
 
+        foreach (['gold_weight', 'silver_weight', 'other_material_weight', 'total_weight'] as $weightField) {
+            if (! array_key_exists($weightField, $data)) {
+                continue;
+            }
+
+            $value = $data[$weightField];
+            $data[$weightField] = ($value === null || $value === '' || ! is_numeric($value))
+                ? null
+                : (float) $value;
+        }
+
+        if (array_key_exists('metadata', $data)) {
+            $metadata = is_array($data['metadata']) ? $data['metadata'] : [];
+
+            $sizeDimension = $this->sanitizeSizeDimension($metadata['size_dimension'] ?? null);
+
+            $metadata = array_filter([
+                'size_dimension' => $sizeDimension,
+            ]);
+
+            $data['metadata'] = ! empty($metadata) ? $metadata : null;
+        }
+
         return $data;
     }
 
@@ -477,6 +505,31 @@ class ProductController extends Controller
             ->unique('customer_group_id')
             ->values()
             ->all();
+    }
+
+    protected function sanitizeSizeDimension($sizeDimension): ?array
+    {
+        if (! is_array($sizeDimension)) {
+            return null;
+        }
+
+        $unit = $sizeDimension['unit'] ?? null;
+
+        if (! in_array($unit, ['mm', 'cm'], true)) {
+            return null;
+        }
+
+        $values = collect($sizeDimension['values'] ?? [])
+            ->filter(fn ($value) => is_numeric($value))
+            ->map(fn ($value) => round((float) $value, 3))
+            ->filter(fn ($value) => $value > 0)
+            ->values()
+            ->all();
+
+        return [
+            'unit' => $unit,
+            'values' => $values,
+        ];
     }
 
 

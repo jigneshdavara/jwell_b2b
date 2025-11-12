@@ -95,7 +95,7 @@ class CheckoutService
         ]);
 
         $order = $payment->order;
-        $this->orderWorkflowService->transitionOrder($order, OrderStatus::Paid, [
+        $this->orderWorkflowService->transitionOrder($order, OrderStatus::Pending, [
             'source' => 'payment_success',
         ]);
 

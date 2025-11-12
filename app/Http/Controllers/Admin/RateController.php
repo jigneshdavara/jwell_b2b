@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\StoreRateOverrideRequest;
+use App\Http\Requests\Admin\UpdateMetalRatesRequest;
 use App\Models\PriceRate;
 use App\Services\RateSyncService;
 use Illuminate\Http\RedirectResponse;
@@ -13,6 +13,11 @@ use Inertia\Response;
 
 class RateController extends Controller
 {
+    private const PURITY_ORDER = [
+        'gold' => ['24K', '22K', '18K', '14K'],
+        'silver' => ['999', '958', '925'],
+    ];
+
     public function __construct(
         protected RateSyncService $rateSyncService
     ) {
@@ -38,36 +43,114 @@ class RateController extends Controller
 
         return Inertia::render('Admin/Rates/Index', [
             'rates' => $rates,
-            'metals' => PriceRate::query()->select('metal')->distinct()->orderBy('metal')->pluck('metal'),
             'defaultCurrency' => config('app.currency', 'INR'),
+            'metalSummaries' => [
+                'gold' => $this->buildMetalSummary('gold'),
+                'silver' => $this->buildMetalSummary('silver'),
+            ],
         ]);
     }
 
-    public function sync(): RedirectResponse
+    public function sync(?string $metal = null): RedirectResponse
     {
-        $this->rateSyncService->syncLiveRates();
+        $normalizedMetal = $metal ? Str::lower($metal) : null;
+        $synced = $this->rateSyncService->syncLiveRates($normalizedMetal);
+
+        $hasUpdates = collect($synced)
+            ->flatten(1)
+            ->isNotEmpty();
+
+        if (! $hasUpdates) {
+            return redirect()
+                ->route('admin.rates.index')
+                ->with('error', 'Could not fetch live rates. Check API credentials and try again.');
+        }
+
+        $message = $normalizedMetal
+            ? Str::headline("{$normalizedMetal} rates pulled from provider. Review and save to apply.")
+            : 'Live rate synchronization has been queued. Refresh in a moment.';
 
         return redirect()
             ->route('admin.rates.index')
-            ->with('success', 'Live rate synchronization has been queued. Refresh in a moment.');
+            ->with('success', $message);
     }
 
-    public function storeOverride(StoreRateOverrideRequest $request): RedirectResponse
+    public function storeMetal(UpdateMetalRatesRequest $request, string $metal): RedirectResponse
     {
-        PriceRate::create([
-            'metal' => $request->input('metal'),
-            'purity' => $request->input('purity'),
-            'price_per_gram' => $request->input('price_per_gram'),
-            'currency' => $request->input('currency', config('app.currency', 'INR')),
-            'source' => 'manual',
-            'effective_at' => $request->date('effective_at', now()),
-            'metadata' => array_filter([
-                'notes' => $request->input('notes'),
-            ]),
-        ]);
+        $normalizedMetal = Str::lower($metal);
+        $currency = Str::upper($request->input('currency', config('app.currency', 'INR')));
+
+        collect($request->input('rates', []))
+            ->map(function ($rate) {
+                return [
+                    'purity' => isset($rate['purity']) ? trim((string) $rate['purity']) : '',
+                    'price_per_gram' => isset($rate['price_per_gram']) ? (float) $rate['price_per_gram'] : 0.0,
+                ];
+            })
+            ->filter(fn ($rate) => $rate['purity'] !== '' && $rate['price_per_gram'] > 0)
+            ->each(function (array $rate) use ($normalizedMetal, $currency): void {
+                PriceRate::updateOrCreate(
+                    [
+                        'metal' => $normalizedMetal,
+                        'purity' => $rate['purity'],
+                    ],
+                    [
+                        'price_per_gram' => $rate['price_per_gram'],
+                        'currency' => $currency,
+                        'source' => 'manual',
+                        'metadata' => [
+                            'origin' => 'manual',
+                        ],
+                        'effective_at' => now(),
+                    ],
+                );
+            });
 
         return redirect()
             ->route('admin.rates.index')
-            ->with('success', 'Manual override saved.');
+            ->with('success', Str::headline("{$metal} rates saved."));
+    }
+
+    protected function buildMetalSummary(string $metal): array
+    {
+        $rates = PriceRate::query()
+            ->whereRaw('LOWER(metal) = ?', [$metal])
+            ->latest('effective_at')
+            ->get();
+
+        $latest = $rates->first();
+
+        /** @var \Illuminate\Support\Collection<int, \App\Models\PriceRate> $latestByPurity */
+        $latestByPurity = $rates
+            ->unique('purity')
+            ->sortBy(function (PriceRate $rate) use ($metal) {
+                $order = self::PURITY_ORDER[$metal] ?? [];
+                $index = array_search($rate->purity, $order, true);
+
+                return $index === false ? PHP_INT_MAX : $index;
+            })
+            ->values();
+
+        return [
+            'metal' => $metal,
+            'label' => Str::title($metal),
+            'latest' => $latest ? [
+                'purity' => $latest->purity,
+                'price_per_gram' => $latest->price_per_gram,
+                'currency' => $latest->currency ?? config('app.currency', 'INR'),
+                'effective_at' => optional($latest->effective_at)?->toIso8601String(),
+                'source' => $latest->source,
+            ] : null,
+            'rates' => $latestByPurity
+                ->values()
+                ->map(function (PriceRate $rate) {
+                    return [
+                        'purity' => $rate->purity,
+                        'price_per_gram' => $rate->price_per_gram,
+                        'currency' => $rate->currency ?? config('app.currency', 'INR'),
+                    ];
+                })
+                ->all(),
+        ];
     }
 }

@@ -16,6 +16,10 @@ return new class extends Migration
             return;
         }
 
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         Schema::table('products', function (Blueprint $table) {
             try {
                 $table->dropForeign(['material_id']);
@@ -33,6 +37,10 @@ return new class extends Migration
     public function down(): void
     {
         if (! Schema::hasColumn('products', 'material_id')) {
+            return;
+        }
+
+        if (DB::getDriverName() === 'sqlite') {
             return;
         }
 

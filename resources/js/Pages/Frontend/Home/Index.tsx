@@ -38,7 +38,7 @@ export default function HomeIndex() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100">
-            <Head title="AurumCraft B2B Jewellery OS" />
+            <Head title="Elvee B2B Jewellery OS" />
 
             <header className="relative overflow-hidden">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_40%),_radial-gradient(circle_at_bottom_right,_rgba(249,115,22,0.25),_transparent_45%)]" />
@@ -118,7 +118,7 @@ export default function HomeIndex() {
 
             <main className="space-y-24 bg-slate-100 text-slate-900">
                 <section className="mx-auto max-w-6xl px-6 pt-20 lg:px-10">
-                    <h2 className="text-2xl font-semibold text-slate-900">Why partners choose AurumCraft</h2>
+                    <h2 className="text-2xl font-semibold text-slate-900">Why partners choose Elvee</h2>
                     <div className="mt-8 grid gap-6 md:grid-cols-3">
                         {features.map((feature) => (
                             <div
@@ -161,7 +161,7 @@ export default function HomeIndex() {
                                 Bring retail partners closer with immersive catalog and production intelligence.
                             </h2>
                             <p className="text-sm text-slate-200">
-                                From bullion hedging to dispatch updates, AurumCraft keeps every stakeholder
+                                From bullion hedging to dispatch updates, Elvee keeps every stakeholder
                                 aligned. Dive into the experience with our fully loaded demo environment.
                             </p>
                         </div>
@@ -170,7 +170,7 @@ export default function HomeIndex() {
                                 Explore the live demo
                             </Link>
                             <a
-                                href="mailto:onboarding@aurumcraft.test"
+                                href="mailto:onboarding@elvee.in"
                                 className="btn-secondary"
                             >
                                 Talk to our team

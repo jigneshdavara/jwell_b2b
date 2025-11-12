@@ -150,7 +150,7 @@ class UserAndKycSeeder extends Seeder
 
             UserKycDocument::factory()
                 ->count(2 - $user->kycDocuments()->count())
-                ->for($user)
+                ->for($user, 'user')
                 ->create();
         });
     }

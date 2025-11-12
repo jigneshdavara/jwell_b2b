@@ -14,6 +14,7 @@ class Brand extends Model
         'name',
         'slug',
         'description',
+        'cover_image_path',
         'is_active',
     ];
 

@@ -21,7 +21,7 @@ class LoginOtpMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your AurumCraft login code'
+            subject: 'Your Elvee login code'
         );
     }
 
@@ -32,7 +32,7 @@ class LoginOtpMail extends Mailable
             with: [
                 'code' => $this->code,
                 'expiresIn' => $this->expiresIn,
-                'brand' => config('demo.brand_name', 'AurumCraft'),
+                'brand' => config('demo.brand_name', 'Elvee'),
             ],
         );
     }

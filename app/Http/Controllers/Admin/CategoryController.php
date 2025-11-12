@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\UpdateCategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -53,6 +54,7 @@ class CategoryController extends Controller
                     'name' => $category->name,
                     'slug' => $category->slug,
                     'description' => $category->description,
+                    'cover_image_url' => $category->cover_image_path ? Storage::url($category->cover_image_path) : null,
                     'is_active' => $category->is_active,
                     'products_count' => $category->products_count,
                     'parent_id' => $category->parent_id,
@@ -111,11 +113,16 @@ class CategoryController extends Controller
 
     public function store(StoreCategoryRequest $request): RedirectResponse
     {
+        $coverImagePath = $request->file('cover_image')
+            ? $request->file('cover_image')->store('category-covers', 'public')
+            : null;
+
         Category::create([
             'name' => $request->input('name'),
             'slug' => $request->input('slug') ?: Str::slug($request->input('name')),
             'description' => $request->input('description'),
             'parent_id' => $request->input('parent_id') ?: null,
+            'cover_image_path' => $coverImagePath,
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -126,13 +133,31 @@ class CategoryController extends Controller
 
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
-        $category->update([
+        $payload = [
             'name' => $request->input('name'),
             'slug' => $request->input('slug') ?: Str::slug($request->input('name')),
             'description' => $request->input('description'),
             'parent_id' => $request->input('parent_id') ?: null,
             'is_active' => $request->boolean('is_active', true),
-        ]);
+        ];
+
+        if ($request->boolean('remove_cover_image')) {
+            if ($category->cover_image_path) {
+                Storage::disk('public')->delete($category->cover_image_path);
+            }
+
+            $payload['cover_image_path'] = null;
+        }
+
+        if ($request->hasFile('cover_image')) {
+            if ($category->cover_image_path) {
+                Storage::disk('public')->delete($category->cover_image_path);
+            }
+
+            $payload['cover_image_path'] = $request->file('cover_image')->store('category-covers', 'public');
+        }
+
+        $category->update($payload);
 
         return redirect()
             ->back()
