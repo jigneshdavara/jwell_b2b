@@ -33,6 +33,7 @@ class Customer extends Authenticatable
         'credit_limit',
         'kyc_notes',
         'kyc_comments_enabled',
+        'is_active',
     ];
 
     /**
@@ -57,6 +58,7 @@ class Customer extends Authenticatable
             'password' => 'hashed',
             'credit_limit' => 'float',
             'kyc_comments_enabled' => 'bool',
+            'is_active' => 'bool',
         ];
     }
 

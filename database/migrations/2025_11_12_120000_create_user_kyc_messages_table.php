@@ -19,13 +19,14 @@ return new class extends Migration
 
         Schema::table('customers', function (Blueprint $table) {
             $table->boolean('kyc_comments_enabled')->default(true)->after('kyc_notes');
+            $table->boolean('is_active')->default(true)->after('kyc_comments_enabled');
         });
     }
 
     public function down(): void
     {
         Schema::table('customers', function (Blueprint $table) {
-            $table->dropColumn('kyc_comments_enabled');
+            $table->dropColumn(['kyc_comments_enabled', 'is_active']);
         });
 
         Schema::dropIfExists('user_kyc_messages');
