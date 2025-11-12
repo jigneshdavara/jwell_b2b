@@ -35,6 +35,7 @@ type Product = {
     description?: string;
     brand_id?: number;
     category_id?: number;
+    product_catalog_ids?: number[];
     gross_weight?: number | string;
     net_weight?: number | string;
     gold_weight?: number | string;
@@ -89,6 +90,7 @@ type AdminProductEditPageProps = AppPageProps<{
     product: Product | null;
     brands: OptionList;
     categories: OptionList;
+    productCatalogs: OptionList;
     goldPurities: OptionListItem[];
     silverPurities: OptionListItem[];
     diamondCatalog: DiamondCatalog;
@@ -109,6 +111,7 @@ type FormData = {
     description: string;
     brand_id: string;
     category_id: string;
+    product_catalog_ids: string[];
     gross_weight: string;
     net_weight: string;
     gold_weight: string;
@@ -202,7 +205,17 @@ const createDiscountOverride = (): DiscountOverrideForm => ({
 
 export default function AdminProductEdit() {
     const { props } = usePage<AdminProductEditPageProps>();
-    const { product, brands, categories, goldPurities, silverPurities, diamondCatalog, customerGroups, errors } = props;
+    const {
+        product,
+        brands,
+        categories,
+        productCatalogs,
+        goldPurities,
+        silverPurities,
+        diamondCatalog,
+        customerGroups,
+        errors,
+    } = props;
 
     const initialDiamondOptions: DiamondOptionForm[] = product?.diamond_options?.length
         ? product.diamond_options.map((option, index) => ({
@@ -256,6 +269,7 @@ export default function AdminProductEdit() {
         description: product?.description ?? '',
         brand_id: String(product?.brand_id ?? ''),
         category_id: String(product?.category_id ?? ''),
+        product_catalog_ids: (product?.product_catalog_ids ?? []).map((id) => String(id)),
         gross_weight: product?.gross_weight ? String(product.gross_weight) : '',
         net_weight: product?.net_weight ? String(product.net_weight) : '',
         gold_weight: product?.gold_weight ? String(product.gold_weight) : '',
@@ -1416,6 +1430,46 @@ export default function AdminProductEdit() {
                                 </select>
                                 {errors.category_id && <span className="text-xs text-rose-500">{errors.category_id}</span>}
                             </label>
+                            <div className="flex flex-col gap-2 text-sm text-slate-600">
+                                <span>Assign catalogues</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {Object.entries(productCatalogs).map(([id, name]) => {
+                                        const value = String(id);
+                                        const selected = data.product_catalog_ids.includes(value);
+
+                                        return (
+                                            <button
+                                                key={id}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (selected) {
+                                                        setData(
+                                                            'product_catalog_ids',
+                                                            data.product_catalog_ids.filter((catalogId) => catalogId !== value),
+                                                        );
+                                                    } else {
+                                                        setData('product_catalog_ids', [...data.product_catalog_ids, value]);
+                                                    }
+                                                }}
+                                                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
+                                                    selected
+                                                        ? 'bg-sky-600 text-white shadow-sky-600/30'
+                                                        : 'bg-slate-100 text-slate-600 hover:bg-sky-50 hover:text-sky-600'
+                                                }`}
+                                            >
+                                                {name}
+                                                {selected && <span className="text-[10px] uppercase tracking-[0.3em]">×</span>}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <span className="text-[11px] text-slate-400">
+                                    Link the product to one or more catalogues for customer-facing navigation.
+                                </span>
+                                {errors.product_catalog_ids && (
+                                    <span className="text-xs text-rose-500">{errors.product_catalog_ids}</span>
+                                )}
+                            </div>
                         </div>
 
                         <div className="space-y-4">

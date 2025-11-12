@@ -8,6 +8,8 @@ const FILTER_LABELS: Record<string, string> = {
     gold_purity: 'Gold purity',
     silver_purity: 'Silver purity',
     search: 'Search',
+    category: 'Category',
+    catalog: 'Catalog',
 };
 
 type Product = {
@@ -28,6 +30,7 @@ type Product = {
     uses_diamond: boolean;
     thumbnail?: string | null;
     media?: Array<{ url: string; alt: string }>;
+    catalogs?: Array<{ id: number; name: string; slug?: string | null }>;
     variants: Array<{
         id: number;
         label: string;
@@ -42,6 +45,8 @@ type CatalogFiltersInput = {
     gold_purity?: string | string[] | null;
     silver_purity?: string | string[] | null;
     search?: string | null;
+    category?: string | null;
+    catalog?: string | null;
 };
 
 type CatalogProps = {
@@ -53,7 +58,8 @@ type CatalogProps = {
     };
     facets: {
         brands: string[];
-        categories: string[];
+        categories: Array<{ id: number; name: string; slug?: string | null }>;
+        catalogs: Array<{ id: number; name: string; slug?: string | null }>;
         goldPurities: Array<{ id: number; name: string }>;
         silverPurities: Array<{ id: number; name: string }>;
     };
@@ -64,6 +70,8 @@ type CatalogFilters = {
     gold_purity: string[];
     silver_purity: string[];
     search?: string;
+    category?: string;
+    catalog?: string;
 };
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
@@ -73,7 +81,22 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
 });
 
 export default function CatalogIndex() {
-    const { mode, filters: rawFilters, products, facets } = usePage<PageProps<CatalogProps>>().props;
+    const page = usePage<
+        PageProps<CatalogProps> & {
+            navigation?: {
+                categories?: Array<{ id: number; name: string; slug?: string | null }>;
+                catalogs?: Array<{ id: number; name: string; slug?: string | null }>;
+                brands?: Array<{ id: number; name: string; slug?: string | null }>;
+            };
+            wishlist?: { product_ids?: number[] };
+        }
+    >();
+    const { mode, filters: rawFilters, products, facets } = page.props;
+    const navigationData = page.props.navigation ?? { categories: [], catalogs: [], brands: [] };
+    const wishlistProductIds = page.props.wishlist?.product_ids ?? [];
+    const wishlistLookup = useMemo(() => new Set(wishlistProductIds), [wishlistProductIds]);
+    const [wishlistBusyId, setWishlistBusyId] = useState<number | null>(null);
+
     const filters = useMemo<CatalogFilters>(() => {
         const normalizeArray = (input?: string | string[] | null): string[] => {
             if (!input) {
@@ -83,14 +106,34 @@ export default function CatalogIndex() {
             return Array.isArray(input) ? input.map(String) : [String(input)];
         };
 
+        const normalizeSingle = (input?: string | null): string | undefined => {
+            if (typeof input !== 'string') {
+                return undefined;
+            }
+
+            const trimmed = input.trim();
+            return trimmed === '' ? undefined : trimmed;
+        };
+
         return {
             brand: normalizeArray(rawFilters.brand),
-            search: rawFilters.search ?? undefined,
+            search: normalizeSingle(rawFilters.search),
             gold_purity: normalizeArray(rawFilters.gold_purity),
             silver_purity: normalizeArray(rawFilters.silver_purity),
+            category: normalizeSingle(rawFilters.category),
+            catalog: normalizeSingle(rawFilters.catalog),
         };
     }, [rawFilters]);
     const [search, setSearch] = useState(filters.search ?? '');
+
+    const highlightCategories = useMemo(
+        () => (navigationData.categories ?? []).slice(0, 4),
+        [navigationData.categories],
+    );
+    const highlightCatalogs = useMemo(
+        () => (navigationData.catalogs ?? []).slice(0, 4),
+        [navigationData.catalogs],
+    );
 
     const changeMode = (nextMode: 'purchase' | 'jobwork') => {
         if (nextMode === mode) return;
@@ -112,8 +155,20 @@ export default function CatalogIndex() {
         facets.goldPurities.forEach((purity) => map.set(`gold_purity:${purity.id}`, purity.name));
         facets.silverPurities.forEach((purity) => map.set(`silver_purity:${purity.id}`, purity.name));
         facets.brands.forEach((brand) => map.set(`brand:${brand}`, brand));
+        facets.categories.forEach((category) => {
+            map.set(`category:${category.slug ?? category.id}`, category.name);
+        });
+        facets.catalogs.forEach((catalog) => {
+            map.set(`catalog:${catalog.slug ?? catalog.id}`, catalog.name);
+        });
+        (navigationData.categories ?? []).forEach((category: any) => {
+            map.set(`category:${category.slug ?? category.id}`, category.name);
+        });
+        (navigationData.catalogs ?? []).forEach((catalog: any) => {
+            map.set(`catalog:${catalog.slug ?? catalog.id}`, catalog.name);
+        });
         return map;
-    }, [facets]);
+    }, [facets, navigationData]);
 
     const applyFilter = (key: keyof CatalogProps['filters'], value?: string | string[]) => {
         router.get(
@@ -138,6 +193,39 @@ export default function CatalogIndex() {
     const onSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         applyFilter('search', search.trim() || undefined);
+    };
+
+    const toggleWishlist = (productId: number, variantId?: number | null) => {
+        if (wishlistBusyId === productId) {
+            return;
+        }
+
+        setWishlistBusyId(productId);
+
+        if (wishlistLookup.has(productId)) {
+            router.delete(
+                route('frontend.wishlist.items.destroy-by-product', productId),
+                {
+                    product_variant_id: variantId ?? undefined,
+                },
+                {
+                    preserveScroll: true,
+                    onFinish: () => setWishlistBusyId(null),
+                },
+            );
+        } else {
+            router.post(
+                route('frontend.wishlist.items.store'),
+                {
+                    product_id: productId,
+                    product_variant_id: variantId ?? undefined,
+                },
+                {
+                    preserveScroll: true,
+                    onFinish: () => setWishlistBusyId(null),
+                },
+            );
+        }
     };
 
     const activeFilters = useMemo(() => {
@@ -179,6 +267,24 @@ export default function CatalogIndex() {
             });
         }
 
+        if (filters.category) {
+            entries.push({
+                key: 'category',
+                value: filters.category,
+                label: FILTER_LABELS.category,
+                valueLabel: valueNameMap.get(`category:${filters.category}`) ?? filters.category,
+            });
+        }
+
+        if (filters.catalog) {
+            entries.push({
+                key: 'catalog',
+                value: filters.catalog,
+                label: FILTER_LABELS.catalog,
+                valueLabel: valueNameMap.get(`catalog:${filters.catalog}`) ?? filters.catalog,
+            });
+        }
+
         return entries;
     }, [filters, valueNameMap]);
 
@@ -187,6 +293,114 @@ export default function CatalogIndex() {
             <Head title="Catalogue" />
 
             <div className="space-y-10" id="catalog">
+                <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white shadow-2xl">
+                    <div className="absolute inset-0">
+                        <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-sky-500/30 blur-3xl" />
+                        <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-rose-500/20 blur-3xl" />
+                    </div>
+                    <div className="relative z-10 grid gap-10 px-6 py-10 lg:grid-cols-[1.4fr_1fr] lg:px-12 lg:py-14">
+                        <div className="space-y-6">
+                            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-white/80">
+                                Curated for {mode === 'jobwork' ? 'Jobwork' : 'Retailers'}
+                            </span>
+                            <h1 className="text-3xl font-semibold leading-tight lg:text-4xl">
+                                Discover the latest Elvee signatures crafted for wholesale partners.
+                            </h1>
+                            <p className="text-sm text-white/70 lg:text-base">
+                                Browse by category, explore curated catalogues, and shortlist favourites to your wishlist or quotation cart in one click.
+                            </p>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <Link
+                                    href={route('frontend.catalog.index', { mode })}
+                                    className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-slate-900/20 transition hover:bg-white/90"
+                                >
+                                    Explore full catalogue
+                                </Link>
+                                <Link
+                                    href={route('frontend.wishlist.index')}
+                                    className="inline-flex items-center gap-2 rounded-full border border-white/40 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                                >
+                                    View wishlist
+                                </Link>
+                            </div>
+                            {(highlightCategories.length > 0 || highlightCatalogs.length > 0) && (
+                                <div className="mt-6 space-y-4">
+                                    {highlightCategories.length > 0 && (
+                                        <div className="flex flex-wrap items-center gap-2 text-xs text-white/70">
+                                            <span className="font-semibold uppercase tracking-[0.35em] text-white/60">Trending categories</span>
+                                            {highlightCategories.map((category) => {
+                                                const value = category.slug ?? category.id;
+
+                                                return (
+                                                    <Link
+                                                        key={`hero-category-${category.id}`}
+                                                        href={route('frontend.catalog.index', {
+                                                            mode,
+                                                            category: value,
+                                                        })}
+                                                        className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-semibold text-white transition hover:bg-white/20"
+                                                    >
+                                                        {category.name}
+                                                    </Link>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {highlightCatalogs.length > 0 && (
+                                        <div className="flex flex-wrap items-center gap-2 text-xs text-white/70">
+                                            <span className="font-semibold uppercase tracking-[0.35em] text-white/60">Featured catalogues</span>
+                                            {highlightCatalogs.map((catalog) => {
+                                                const value = catalog.slug ?? catalog.id;
+
+                                                return (
+                                                    <Link
+                                                        key={`hero-catalog-${catalog.id}`}
+                                                        href={route('frontend.catalog.index', {
+                                                            mode,
+                                                            catalog: value,
+                                                        })}
+                                                        className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-semibold text-white transition hover:bg-white/20"
+                                                    >
+                                                        {catalog.name}
+                                                    </Link>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <div className="relative hidden overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur lg:block">
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-sky-500/10" />
+                            <div className="relative flex h-full flex-col justify-between p-8">
+                                <div>
+                                    <p className="text-sm font-semibold uppercase tracking-[0.35em] text-white/60">
+                                        Quick Access
+                                    </p>
+                                    <p className="mt-4 text-2xl font-semibold leading-snug text-white">
+                                        Build wishlists, sync rates, and generate quotations in a single workspace.
+                                    </p>
+                                </div>
+                                <div className="space-y-3 text-sm text-white/70">
+                                    <div className="rounded-2xl border border-white/10 bg-slate-900/40 p-4">
+                                        <p className="font-semibold text-white">Wishlist sync</p>
+                                        <p className="mt-1 text-white/70">
+                                            Save designs and move them to quotation list instantly when customers confirm.
+                                        </p>
+                                    </div>
+                                    <div className="rounded-2xl border border-white/10 bg-slate-900/30 p-4">
+                                        <p className="font-semibold text-white">Live metal rates</p>
+                                        <p className="mt-1 text-white/70">
+                                            Your catalogue prices reflect the latest mint rates configured in admin.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
                         <h1 className="text-3xl font-semibold text-slate-900">
@@ -260,6 +474,76 @@ export default function CatalogIndex() {
 
                 <div className="grid gap-6 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70 lg:grid-cols-5">
                     <aside className="space-y-6 lg:col-span-1">
+                        <div>
+                            <h2 className="text-sm font-semibold text-slate-800">Categories</h2>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {facets.categories.map((category) => {
+                                    const value = category.slug ?? String(category.id);
+                                    const selected = filters.category === value;
+
+                                    return (
+                                        <button
+                                            key={category.id}
+                                            type="button"
+                                            onClick={() =>
+                                                applyFilter(
+                                                    'category',
+                                                    selected ? undefined : value,
+                                                )
+                                            }
+                                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
+                                                selected
+                                                    ? 'bg-sky-600 text-white shadow-sm shadow-sky-600/30'
+                                                    : 'bg-slate-100 text-slate-600 hover:bg-sky-50 hover:text-sky-600'
+                                            }`}
+                                        >
+                                            {category.name}
+                                            {selected && (
+                                                <span className="text-[10px] uppercase tracking-[0.3em]">
+                                                    ×
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h2 className="text-sm font-semibold text-slate-800">Catalogs</h2>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {facets.catalogs.map((catalog) => {
+                                    const value = catalog.slug ?? String(catalog.id);
+                                    const selected = filters.catalog === value;
+
+                                    return (
+                                        <button
+                                            key={catalog.id}
+                                            type="button"
+                                            onClick={() =>
+                                                applyFilter(
+                                                    'catalog',
+                                                    selected ? undefined : value,
+                                                )
+                                            }
+                                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
+                                                selected
+                                                    ? 'bg-slate-900 text-white shadow-sm shadow-slate-800/30'
+                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                                            }`}
+                                        >
+                                            {catalog.name}
+                                            {selected && (
+                                                <span className="text-[10px] uppercase tracking-[0.3em]">
+                                                    ×
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
                         <div>
                             <h2 className="text-sm font-semibold text-slate-800">Brands</h2>
                             <div className="mt-3 space-y-2 text-sm">
@@ -396,12 +680,45 @@ export default function CatalogIndex() {
                                 {products.data.map((product) => {
                                     const productLink = route('frontend.catalog.show', { product: product.id, mode });
                                     const imageUrl = product.thumbnail ?? product.media?.[0]?.url ?? null;
+                                    const defaultVariant =
+                                        product.variants.find((variant) => variant.is_default) ?? product.variants[0] ?? null;
+                                    const isWishlisted = wishlistLookup.has(product.id);
 
                                     return (
                                         <article
                                             key={product.id}
                                             className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg transition hover:-translate-y-1 hover:shadow-2xl"
                                         >
+                                            <button
+                                                type="button"
+                                                onClick={(event) => {
+                                                    event.preventDefault();
+                                                    event.stopPropagation();
+                                                    toggleWishlist(product.id, defaultVariant?.id ?? null);
+                                                }}
+                                                disabled={wishlistBusyId === product.id}
+                                                aria-pressed={isWishlisted}
+                                                className={`absolute right-5 top-5 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border text-sm transition ${
+                                                    isWishlisted
+                                                        ? 'border-rose-200 bg-rose-500/10 text-rose-500'
+                                                        : 'border-white/70 bg-white/70 text-slate-600 hover:border-rose-200 hover:text-rose-500'
+                                                } ${wishlistBusyId === product.id ? 'opacity-60' : ''}`}
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 24 24"
+                                                    fill={isWishlisted ? 'currentColor' : 'none'}
+                                                    stroke="currentColor"
+                                                    strokeWidth={1.5}
+                                                    className="h-5 w-5"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 5.053 7.5 10.5 9 10.5s9-5.447 9-10.5z"
+                                                    />
+                                                </svg>
+                                            </button>
                                             <Link href={productLink} className="block">
                                                 <div className="relative h-56 w-full overflow-hidden rounded-t-3xl">
                                                     {imageUrl ? (
@@ -441,6 +758,18 @@ export default function CatalogIndex() {
                                                 <p className="text-xs uppercase tracking-wide text-slate-400">
                                                     SKU {product.sku}
                                                 </p>
+                                                {product.catalogs && product.catalogs.length > 0 && (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {product.catalogs.slice(0, 2).map((catalog) => (
+                                                            <span
+                                                                key={catalog.id}
+                                                                className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-500"
+                                                            >
+                                                                {catalog.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                                 <div className="flex flex-wrap gap-2">
                                                     {product.variants.slice(0, 3).map((variant) => (
                                                         <span

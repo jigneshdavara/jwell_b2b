@@ -92,5 +92,10 @@ class Customer extends Authenticatable
     {
         return $this->hasMany(Cart::class, 'user_id');
     }
+
+    public function wishlist()
+    {
+        return $this->hasOne(Wishlist::class);
+    }
 }
 

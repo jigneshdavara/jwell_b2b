@@ -12,6 +12,7 @@ use App\Models\DiamondShape;
 use App\Models\DiamondType;
 use App\Models\GoldPurity;
 use App\Models\Product;
+use App\Models\ProductCatalog;
 use App\Models\SilverPurity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -32,6 +33,8 @@ class CatalogController extends Controller
             'gold_purity',
             'silver_purity',
             'search',
+            'category',
+            'catalog',
         ]);
 
         $query = Product::query()
@@ -39,6 +42,7 @@ class CatalogController extends Controller
                 'brand',
                 'category',
                 'material',
+                'catalogs:id,name,slug',
                 'media' => fn ($media) => $media->orderBy('position'),
                 'variants' => fn ($variants) => $variants->orderByDesc('is_default'),
             ]);
@@ -74,6 +78,28 @@ class CatalogController extends Controller
             }
         }
 
+        if ($filters['category'] ?? null) {
+            $categoryFilter = $filters['category'];
+            $query->whereHas('category', function ($categoryQuery) use ($categoryFilter) {
+                $categoryQuery
+                    ->where('slug', $categoryFilter)
+                    ->orWhere('name', $categoryFilter)
+                    ->orWhere('id', $categoryFilter);
+            });
+        }
+
+        if ($filters['catalog'] ?? null) {
+            $catalogFilter = $filters['catalog'];
+            $catalog = ProductCatalog::query()
+                ->where('slug', $catalogFilter)
+                ->orWhere('id', $catalogFilter)
+                ->first();
+
+            if ($catalog) {
+                $query->whereHas('catalogs', fn ($catalogQuery) => $catalogQuery->where('product_catalogs.id', $catalog->id));
+            }
+        }
+
         if ($filters['search'] ?? null) {
             $query->where(function ($q) use ($filters) {
                 $q->where('name', 'like', '%' . $filters['search'] . '%')
@@ -105,6 +131,11 @@ class CatalogController extends Controller
                 'uses_gold' => (bool) $product->uses_gold,
                 'uses_silver' => (bool) $product->uses_silver,
                 'uses_diamond' => (bool) $product->uses_diamond,
+                'catalogs' => $product->catalogs->map(fn (ProductCatalog $catalog) => [
+                    'id' => $catalog->id,
+                    'name' => $catalog->name,
+                    'slug' => $catalog->slug,
+                ]),
                 'variants' => $product->variants->map(fn ($variant) => [
                     'id' => $variant->id,
                     'label' => $variant->label,
@@ -116,7 +147,24 @@ class CatalogController extends Controller
 
         $facets = [
             'brands' => Brand::orderBy('name')->pluck('name'),
-            'categories' => Category::orderBy('name')->pluck('name'),
+            'categories' => Category::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'slug'])
+                ->map(fn (Category $category) => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                ]),
+            'catalogs' => ProductCatalog::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'slug'])
+                ->map(fn (ProductCatalog $catalog) => [
+                    'id' => $catalog->id,
+                    'name' => $catalog->name,
+                    'slug' => $catalog->slug,
+                ]),
             'goldPurities' => GoldPurity::orderBy('position')->orderBy('name')->get(['id', 'name'])->map(fn (GoldPurity $purity) => [
                 'id' => $purity->id,
                 'name' => $purity->name,

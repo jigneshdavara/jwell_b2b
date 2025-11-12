@@ -84,8 +84,10 @@ const fallbackMeta = (metadata?: VariantMetadata | null) => ({
 });
 
 export default function CatalogShow() {
-    const { props } = usePage<CatalogShowPageProps>();
-    const { mode, product, goldPurities, silverPurities, diamondOptions } = props;
+    const page = usePage<CatalogShowPageProps & { wishlist?: { product_ids?: number[] } }>();
+    const { mode, product, goldPurities, silverPurities, diamondOptions } = page.props;
+    const wishlistProductIds = page.props.wishlist?.product_ids ?? [];
+    const wishlistLookup = useMemo(() => new Set(wishlistProductIds), [wishlistProductIds]);
 
     const defaultVariant = useMemo(
         () => product.variants.find((variant) => variant.is_default) ?? product.variants[0] ?? null,
@@ -198,6 +200,13 @@ export default function CatalogShow() {
         setData('product_variant_id', matchingVariant?.id ?? null);
     }, [matchingVariant, setData]);
 
+    const [wishlistPending, setWishlistPending] = useState(false);
+    const [isWishlisted, setIsWishlisted] = useState(wishlistLookup.has(product.id));
+
+    useEffect(() => {
+        setIsWishlisted(wishlistLookup.has(product.id));
+    }, [wishlistLookup, product.id]);
+
     useEffect(() => {
         setData('selections', {
             gold_purity_id: selectedGoldPurity === '' ? null : selectedGoldPurity,
@@ -259,6 +268,39 @@ export default function CatalogShow() {
         });
     };
 
+    const toggleWishlist = () => {
+        if (wishlistPending) {
+            return;
+        }
+
+        setWishlistPending(true);
+
+        if (isWishlisted) {
+            router.delete(
+                route('frontend.wishlist.items.destroy-by-product', product.id),
+                {
+                    product_variant_id: data.product_variant_id,
+                },
+                {
+                    preserveScroll: true,
+                    onFinish: () => setWishlistPending(false),
+                },
+            );
+        } else {
+            router.post(
+                route('frontend.wishlist.items.store'),
+                {
+                    product_id: product.id,
+                    product_variant_id: data.product_variant_id,
+                },
+                {
+                    preserveScroll: true,
+                    onFinish: () => setWishlistPending(false),
+                },
+            );
+        }
+    };
+
     const invalidCombination = product.variants.length > 0 && !matchingVariant;
 
     return (
@@ -289,14 +331,42 @@ export default function CatalogShow() {
                                     <h1 className="mt-2 text-3xl font-semibold text-slate-900">{product.name}</h1>
                                     <p className="mt-3 text-sm text-slate-500">By {product.brand ?? 'Elvee Atelier'}</p>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Estimate</p>
-                                    <p className="text-2xl font-semibold text-slate-900">
-                                        {currencyFormatter.format(product.base_price ?? 0)}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                        Making {currencyFormatter.format(product.making_charge ?? 0)}
-                                    </p>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-right">
+                                        <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Estimate</p>
+                                        <p className="text-2xl font-semibold text-slate-900">
+                                            {currencyFormatter.format(product.base_price ?? 0)}
+                                        </p>
+                                        <p className="text-xs text-slate-500">
+                                            Making {currencyFormatter.format(product.making_charge ?? 0)}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={toggleWishlist}
+                                        disabled={wishlistPending}
+                                        className={`inline-flex h-12 w-12 items-center justify-center rounded-full border transition ${
+                                            isWishlisted
+                                                ? 'border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-300 hover:text-rose-700'
+                                                : 'border-slate-200 text-slate-500 hover:border-rose-200 hover:text-rose-600'
+                                        }`}
+                                        aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 24 24"
+                                            fill={isWishlisted ? 'currentColor' : 'none'}
+                                            stroke="currentColor"
+                                            strokeWidth={1.5}
+                                            className="h-5 w-5"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 5.053 7.5 10.5 9 10.5s9-5.447 9-10.5z"
+                                            />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                             <p className="mt-6 text-sm leading-7 text-slate-600 whitespace-pre-line">{product.description}</p>

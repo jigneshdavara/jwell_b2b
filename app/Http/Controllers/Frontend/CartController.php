@@ -58,9 +58,11 @@ class CartController extends Controller
 
         $this->cartService->addItem($user, $product, $variant, $quantity, $configuration);
 
+        $variantSuffix = $variant ? ' · ' . $variant->label : '';
+
         return redirect()
             ->back()
-            ->with('success', 'Added to your purchase list.');
+            ->with('success', sprintf('%s%s added to your quotation list.', $product->name, $variantSuffix));
     }
 
     public function update(UpdateCartItemRequest $request, CartItem $item): RedirectResponse

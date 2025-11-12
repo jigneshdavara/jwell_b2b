@@ -2,7 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Customer;
+use App\Models\ProductCatalog;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,14 +38,68 @@ class HandleInertiaRequests extends Middleware
         $authUser = $customer ?? $admin;
 
         $cartCount = 0;
+        $wishlistCount = 0;
+        $wishlistProductIds = [];
+        $navCategories = [];
+        $navCatalogs = [];
+        $navBrands = [];
         if ($customer instanceof Customer) {
-            $activeCart = $customer->carts()
+            $customer->loadMissing([
+                'carts' => fn ($query) => $query->withCount('items')->where('status', 'active')->latest(),
+                'wishlist.items',
+            ]);
+
+            $activeCart = $customer->carts
                 ->where('status', 'active')
-                ->withCount('items')
-                ->latest()
+                ->sortByDesc('created_at')
                 ->first();
 
             $cartCount = $activeCart->items_count ?? 0;
+
+            $wishlist = $customer->wishlist;
+            if ($wishlist) {
+                $wishlistCount = $wishlist->items->count();
+                $wishlistProductIds = $wishlist->items->pluck('product_id')->unique()->values()->all();
+            }
+
+            $navCategories = Category::query()
+                ->select(['id', 'name', 'slug'])
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->take(8)
+                ->get()
+                ->map(fn (Category $category) => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                ])
+                ->toArray();
+
+            $navCatalogs = ProductCatalog::query()
+                ->select(['id', 'name', 'slug'])
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->take(8)
+                ->get()
+                ->map(fn (ProductCatalog $catalog) => [
+                    'id' => $catalog->id,
+                    'name' => $catalog->name,
+                    'slug' => $catalog->slug,
+                ])
+                ->toArray();
+
+            $navBrands = Brand::query()
+                ->select(['id', 'name', 'slug'])
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->take(8)
+                ->get()
+                ->map(fn (Brand $brand) => [
+                    'id' => $brand->id,
+                    'name' => $brand->name,
+                    'slug' => $brand->slug,
+                ])
+                ->toArray();
         }
 
         return [
@@ -55,6 +112,15 @@ class HandleInertiaRequests extends Middleware
             ],
             'cart' => [
                 'count' => $cartCount,
+            ],
+            'wishlist' => [
+                'count' => $wishlistCount,
+                'product_ids' => $wishlistProductIds,
+            ],
+            'navigation' => [
+                'categories' => $navCategories,
+                'catalogs' => $navCatalogs,
+                'brands' => $navBrands,
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),

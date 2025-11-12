@@ -47,6 +47,8 @@ class StoreProductRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'brand_id' => ['required', 'exists:brands,id'],
             'category_id' => ['required', 'exists:categories,id'],
+            'product_catalog_ids' => ['nullable', 'array'],
+            'product_catalog_ids.*' => ['integer', 'exists:product_catalogs,id'],
             'gross_weight' => ['nullable', 'numeric', 'min:0'],
             'net_weight' => ['nullable', 'numeric', 'min:0'],
             'gold_weight' => ['nullable', 'numeric', 'min:0'],

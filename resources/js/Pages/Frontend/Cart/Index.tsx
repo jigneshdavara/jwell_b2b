@@ -1,7 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import Modal from '@/Components/Modal';
 import type { PageProps } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 type PriceBreakdown = {
     base?: number;
@@ -67,6 +68,13 @@ const currencyFormatter = (currency: string) =>
 export default function CartIndex() {
     const { cart } = usePage<CartPageProps>().props;
     const formatter = useMemo(() => currencyFormatter(cart.currency || 'INR'), [cart.currency]);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const totalQuantity = useMemo(() => cart.items.reduce((sum, item) => sum + item.quantity, 0), [cart.items]);
+    const jobworkCount = useMemo(
+        () => cart.items.filter((item) => (item.configuration?.mode ?? 'purchase') === 'jobwork').length,
+        [cart.items],
+    );
 
     const updateQuantity = (item: CartItem, delta: number) => {
         const nextQuantity = Math.max(1, item.quantity + delta);
@@ -98,8 +106,19 @@ export default function CartIndex() {
             return;
         }
 
+        setConfirmOpen(true);
+    };
+
+    const confirmSubmit = () => {
+        if (submitting || isEmpty) {
+            return;
+        }
+
+        setSubmitting(true);
         router.post(route('frontend.quotations.store-from-cart'), undefined, {
             preserveScroll: true,
+            onSuccess: () => setConfirmOpen(false),
+            onFinish: () => setSubmitting(false),
         });
     };
 
@@ -292,6 +311,50 @@ export default function CartIndex() {
                     </aside>
                 </div>
             </div>
+
+            <Modal show={confirmOpen} onClose={() => (!submitting ? setConfirmOpen(false) : undefined)} maxWidth="lg">
+                <div className="space-y-5 p-6">
+                    <h2 className="text-lg font-semibold text-slate-900">Submit all quotation requests?</h2>
+                    <p className="text-sm text-slate-600">
+                        We will create separate quotation tickets for each product so the merchandising team can review the
+                        details. You can still add more items afterwards.
+                    </p>
+                    <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                        <p>
+                            <span className="font-semibold text-slate-800">Products selected:</span> {cart.items.length}
+                        </p>
+                        <p className="mt-1">
+                            <span className="font-semibold text-slate-800">Total units:</span> {totalQuantity}
+                        </p>
+                        {jobworkCount > 0 && (
+                            <p className="mt-1">
+                                <span className="font-semibold text-slate-800">Jobwork requests:</span> {jobworkCount}
+                            </p>
+                        )}
+                        <p className="mt-1">
+                            <span className="font-semibold text-slate-800">Estimated total:</span> {formatter.format(cart.total)}
+                        </p>
+                    </div>
+                    <div className="flex justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={() => (!submitting ? setConfirmOpen(false) : undefined)}
+                            className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                            disabled={submitting}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={confirmSubmit}
+                            disabled={submitting}
+                            className="inline-flex items-center justify-center rounded-full bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {submitting ? 'Submitting…' : 'Confirm & submit'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </AuthenticatedLayout>
     );
 }

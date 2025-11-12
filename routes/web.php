@@ -36,6 +36,7 @@ use App\Http\Controllers\Frontend\JobworkController;
 use App\Http\Controllers\Frontend\QuotationController;
 use App\Http\Controllers\Frontend\OrderController as FrontendOrderController;
 use App\Http\Controllers\Frontend\KycOnboardingController;
+use App\Http\Controllers\Frontend\WishlistController;
 use App\Http\Controllers\Production\DashboardController as ProductionDashboardController;
 use App\Http\Controllers\Production\WorkOrderController;
 use App\Http\Controllers\ProfileController;
@@ -75,6 +76,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])
             ->middleware('ensure.kyc.approved')
             ->name('frontend.cart.items.destroy');
+        Route::get('/wishlist', [WishlistController::class, 'index'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.wishlist.index');
+        Route::post('/wishlist/items', [WishlistController::class, 'store'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.wishlist.items.store');
+        Route::delete('/wishlist/items/{item}', [WishlistController::class, 'destroy'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.wishlist.items.destroy');
+        Route::post('/wishlist/items/{item}/move-to-cart', [WishlistController::class, 'addToCart'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.wishlist.items.move-to-cart');
+        Route::delete('/wishlist/product/{product}', [WishlistController::class, 'destroyByProduct'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.wishlist.items.destroy-by-product');
 
         Route::get('/checkout', [CheckoutController::class, 'show'])
             ->middleware('ensure.kyc.approved')

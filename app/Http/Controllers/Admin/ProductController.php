@@ -19,6 +19,7 @@ use App\Models\DiamondShape;
 use App\Models\DiamondType;
 use App\Models\GoldPurity;
 use App\Models\Product;
+use App\Models\ProductCatalog;
 use App\Models\ProductMedia;
 use App\Models\ProductVariant;
 use App\Models\SilverPurity;
@@ -89,6 +90,7 @@ class ProductController extends Controller
             'product' => null,
             'brands' => Brand::query()->pluck('name', 'id'),
             'categories' => Category::query()->pluck('name', 'id'),
+            'productCatalogs' => ProductCatalog::query()->pluck('name', 'id'),
             'goldPurities' => $this->goldPurityOptions(),
             'silverPurities' => $this->silverPurityOptions(),
             'diamondCatalog' => $this->diamondCatalog(),
@@ -105,12 +107,15 @@ class ProductController extends Controller
         $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
 
         $data = $this->prepareProductPayload($data);
+        $catalogIds = $this->sanitizeIds($data['product_catalog_ids'] ?? []);
+        unset($data['product_catalog_ids']);
 
-        return DB::transaction(function () use ($data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds) {
+        return DB::transaction(function () use ($data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds) {
             $product = Product::create($data);
 
             $variantSync->sync($product, $variants, $variantOptions);
             $this->syncMedia($product, $mediaUploads, $removedMediaIds);
+            $product->catalogs()->sync($catalogIds);
 
             return redirect()
                 ->route('admin.products.edit', $product)
@@ -120,7 +125,7 @@ class ProductController extends Controller
 
     public function edit(Product $product): Response
     {
-        $product->load(['brand', 'category', 'material', 'media' => fn ($query) => $query->orderBy('position'), 'variants' => function ($query) {
+        $product->load(['brand', 'category', 'material', 'catalogs', 'media' => fn ($query) => $query->orderBy('position'), 'variants' => function ($query) {
             $query->orderByDesc('is_default')->orderBy('label');
         }]);
 
@@ -176,6 +181,7 @@ class ProductController extends Controller
                     })
                     ->all(),
                 'metadata' => $product->metadata,
+                'product_catalog_ids' => $product->catalogs->pluck('id')->all(),
                 'variants' => $product->variants->map(fn (ProductVariant $variant) => [
                     'id' => $variant->id,
                     'sku' => $variant->sku,
@@ -201,6 +207,7 @@ class ProductController extends Controller
             ],
             'brands' => Brand::query()->pluck('name', 'id'),
             'categories' => Category::query()->pluck('name', 'id'),
+            'productCatalogs' => ProductCatalog::query()->pluck('name', 'id'),
             'goldPurities' => $this->goldPurityOptions(),
             'silverPurities' => $this->silverPurityOptions(),
             'diamondCatalog' => $this->diamondCatalog(),
@@ -217,11 +224,14 @@ class ProductController extends Controller
         $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
 
         $data = $this->prepareProductPayload($data);
+        $catalogIds = $this->sanitizeIds($data['product_catalog_ids'] ?? []);
+        unset($data['product_catalog_ids']);
 
-        DB::transaction(function () use ($product, $data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds): void {
+        DB::transaction(function () use ($product, $data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds): void {
             $product->update($data);
             $variantSync->sync($product, $variants, $variantOptions);
             $this->syncMedia($product, $mediaUploads, $removedMediaIds);
+            $product->catalogs()->sync($catalogIds);
         });
 
         return redirect()
