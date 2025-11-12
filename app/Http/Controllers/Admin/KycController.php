@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\KycStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreKycMessageRequest;
+use App\Http\Requests\Admin\UpdateKycCommentsSettingRequest;
 use App\Http\Requests\Admin\UpdateKycDocumentRequest;
 use App\Models\Customer;
 use App\Models\UserKycDocument;
+use App\Models\UserKycMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -19,7 +22,7 @@ class KycController extends Controller
 
     public function show(Customer $user): Response
     {
-        $user->load(['kycDocuments', 'kycProfile']);
+        $user->load(['kycDocuments', 'kycProfile', 'kycMessages.admin']);
 
         return Inertia::render('Admin/Users/KycReview', [
             'user' => [
@@ -29,6 +32,7 @@ class KycController extends Controller
                 'kyc_status' => $user->kyc_status,
                 'kyc_status_label' => Str::headline($user->kyc_status ?? ''),
                 'kyc_notes' => $user->kyc_notes,
+                'comments_enabled' => (bool) $user->kyc_comments_enabled,
                 'kyc_profile' => $user->kycProfile ? [
                     'business_name' => $user->kycProfile->business_name,
                     'business_website' => $user->kycProfile->business_website,
@@ -55,6 +59,21 @@ class KycController extends Controller
                     ];
                 }),
             ],
+            'messages' => $user->kycMessages
+                ->sortBy('created_at')
+                ->values()
+                ->map(function (UserKycMessage $message) {
+                    return [
+                        'id' => $message->id,
+                        'sender_type' => $message->sender_type,
+                        'message' => $message->message,
+                        'created_at' => $message->created_at?->toDateTimeString(),
+                        'admin' => $message->admin ? [
+                            'id' => $message->admin->id,
+                            'name' => $message->admin->name,
+                        ] : null,
+                    ];
+                }),
             'statuses' => collect(KycStatus::cases())->map(fn (KycStatus $status) => [
                 'value' => $status->value,
                 'label' => Str::headline($status->value),
@@ -73,5 +92,29 @@ class KycController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Document feedback saved.');
+    }
+
+    public function storeMessage(StoreKycMessageRequest $request, Customer $user): RedirectResponse
+    {
+        $user->kycMessages()->create([
+            'sender_type' => 'admin',
+            'admin_id' => $request->user()->id,
+            'message' => $request->string('message')->trim()->toString(),
+        ]);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Message sent to the customer.');
+    }
+
+    public function updateCommentsSetting(UpdateKycCommentsSettingRequest $request, Customer $user): RedirectResponse
+    {
+        $user->update([
+            'kyc_comments_enabled' => $request->boolean('allow_replies'),
+        ]);
+
+        return redirect()
+            ->back()
+            ->with('success', 'KYC messaging preferences updated.');
     }
 }

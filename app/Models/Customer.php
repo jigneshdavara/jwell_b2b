@@ -32,6 +32,7 @@ class Customer extends Authenticatable
         'preferred_language',
         'credit_limit',
         'kyc_notes',
+        'kyc_comments_enabled',
     ];
 
     /**
@@ -55,6 +56,7 @@ class Customer extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'credit_limit' => 'float',
+            'kyc_comments_enabled' => 'bool',
         ];
     }
 
@@ -96,6 +98,11 @@ class Customer extends Authenticatable
     public function wishlist()
     {
         return $this->hasOne(Wishlist::class);
+    }
+
+    public function kycMessages()
+    {
+        return $this->hasMany(UserKycMessage::class, 'user_id');
     }
 }
 

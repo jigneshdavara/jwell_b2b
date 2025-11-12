@@ -20,7 +20,12 @@ class UpdateKycStatusRequest extends FormRequest
     {
         return [
             'status' => ['required', Rule::in(collect(KycStatus::cases())->pluck('value')->all())],
-            'remarks' => ['nullable', 'string', 'max:500'],
+            'remarks' => [
+                'nullable',
+                'string',
+                'max:500',
+                Rule::requiredIf(fn () => $this->input('status') === KycStatus::Rejected->value),
+            ],
         ];
     }
 }

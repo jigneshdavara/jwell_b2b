@@ -50,6 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/onboarding/kyc/documents', [KycOnboardingController::class, 'storeDocument'])->name('onboarding.kyc.documents.store');
     Route::delete('/onboarding/kyc/documents/{document}', [KycOnboardingController::class, 'destroyDocument'])->name('onboarding.kyc.documents.destroy');
     Route::get('/onboarding/kyc/documents/{document}/download', [KycOnboardingController::class, 'downloadDocument'])->name('onboarding.kyc.documents.download');
+    Route::post('/onboarding/kyc/messages', [KycOnboardingController::class, 'storeMessage'])->name('onboarding.kyc.messages.store');
 
     Route::middleware(['portal.customer'])->group(function () {
         Route::get('/dashboard', FrontendDashboardController::class)
@@ -152,6 +153,8 @@ Route::prefix('admin')
             ->name('customers.update-kyc');
         Route::get('/customers/{user}/kyc', [KycController::class, 'show'])->name('customers.kyc.show');
         Route::put('/customers/kyc-documents/{document}', [KycController::class, 'updateDocument'])->name('customers.kyc.documents.update');
+        Route::post('/customers/{user}/kyc/messages', [KycController::class, 'storeMessage'])->name('customers.kyc.messages.store');
+        Route::post('/customers/{user}/kyc/comments-preference', [KycController::class, 'updateCommentsSetting'])->name('customers.kyc.comments.update');
         Route::patch('/customers/{user}/group', [UserController::class, 'updateGroup'])->name('customers.group.update');
 
         Route::post('products/bulk/status', [ProductController::class, 'bulkStatus'])->name('products.bulk-status');

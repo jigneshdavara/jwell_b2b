@@ -52,6 +52,17 @@ type KycProfile = {
     contact_phone?: string | null;
 };
 
+type ConversationMessage = {
+    id: number;
+    sender_type: 'admin' | 'customer';
+    message: string;
+    created_at?: string | null;
+    admin?: {
+        id: number;
+        name: string;
+    } | null;
+};
+
 type KycOnboardingPageProps = PageProps<{
     user: {
         name: string;
@@ -64,11 +75,13 @@ type KycOnboardingPageProps = PageProps<{
     profile: KycProfile;
     documents: KycDocument[];
     documentTypes: string[];
-    adminComments?: Array<{ id: number; message: string; created_at?: string | null }>;
+    messages: ConversationMessage[];
+    can_customer_reply: boolean;
 }>;
 
 export default function KycOnboardingShow() {
-    const { user, profile, documents, documentTypes, adminComments = [] } = usePage<KycOnboardingPageProps>().props;
+    const { user, profile, documents, documentTypes, messages, can_customer_reply } =
+        usePage<KycOnboardingPageProps>().props;
 
     const profileForm = useForm({
         business_name: profile?.business_name ?? '',
@@ -91,7 +104,17 @@ export default function KycOnboardingShow() {
         document_file: null,
     });
 
+    const messageForm = useForm({
+        message: '',
+    });
+
     const statusInfo = statusLabels[user.kyc_status] ?? statusLabels.pending;
+    const documentStatusTheme: Record<string, string> = {
+        approved: 'bg-emerald-100 text-emerald-700',
+        rejected: 'bg-rose-100 text-rose-700',
+        needs_revision: 'bg-amber-100 text-amber-700',
+        pending: 'bg-slate-100 text-slate-700',
+    };
 
     const submitProfile = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -120,6 +143,34 @@ export default function KycOnboardingShow() {
         });
     };
 
+    const submitMessage = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const content = messageForm.data.message.trim();
+
+        if (!content || !can_customer_reply) {
+            return;
+        }
+
+        messageForm.post(route('onboarding.kyc.messages.store'), {
+            preserveScroll: true,
+            onSuccess: () => messageForm.reset('message'),
+        });
+    };
+
+    const formatTimestamp = (value?: string | null) => {
+        if (!value) {
+            return '';
+        }
+
+        return new Date(value).toLocaleString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
     const removeDocument = (documentId: number) => {
         router.delete(route('onboarding.kyc.documents.destroy', documentId), {
             preserveScroll: true,
@@ -137,18 +188,18 @@ export default function KycOnboardingShow() {
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.25),_transparent_40%),_radial-gradient(circle_at_bottom_right,_rgba(249,115,22,0.25),_transparent_45%)]" />
                     <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                         <div>
-                            <p className="text-xs uppercase tracking-[0.1em] text-white/70">Elvee onboarding</p>
+                            <p className="text-xs text-white/70">Elvee onboarding</p>
                             <h1 className="mt-2 text-3xl font-semibold">KYC verification status</h1>
                             <p className="mt-3 max-w-2xl text-sm text-white/80">{statusInfo.description}</p>
                             {user.kyc_notes && (
                                 <div className="mt-4 rounded-2xl bg-white/10 p-4 text-sm text-amber-200">
-                                    <p className="font-semibold uppercase tracking-[0.35em] text-amber-300">Reviewer notes</p>
+                                    <p className="font-semibold text-amber-300">Reviewer notes</p>
                                     <p className="mt-2 whitespace-pre-line">{user.kyc_notes}</p>
                                 </div>
                             )}
                         </div>
                         <div className="flex flex-col items-start gap-3 lg:items-end">
-                            <span className={`rounded-full px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] ${statusInfo.badge}`}>
+                            <span className={`rounded-full px-4 py-1 text-xs font-semibold ${statusInfo.badge}`}>
                                 {user.kyc_status === 'review' ? 'needs attention' : user.kyc_status}
                             </span>
                             {isApproved ? (
@@ -162,7 +213,7 @@ export default function KycOnboardingShow() {
                                     </svg>
                                 </a>
                             ) : (
-                                <span className="text-xs uppercase tracking-[0.35em] text-white/70">Access unlocks after approval</span>
+                                <span className="text-xs text-white/70">Access unlocks after approval</span>
                             )}
                         </div>
                     </div>
@@ -213,7 +264,7 @@ export default function KycOnboardingShow() {
                                         type="text"
                                         value={profileForm.data.gst_number}
                                         onChange={(event) => profileForm.setData('gst_number', event.target.value.toUpperCase())}
-                                        className="rounded-2xl border border-slate-300 px-4 py-2 uppercase focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                         placeholder="Optional"
                                     />
                                     <InputError message={profileForm.errors.gst_number} />
@@ -224,7 +275,7 @@ export default function KycOnboardingShow() {
                                         type="text"
                                         value={profileForm.data.pan_number}
                                         onChange={(event) => profileForm.setData('pan_number', event.target.value.toUpperCase())}
-                                        className="rounded-2xl border border-slate-300 px-4 py-2 uppercase focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                         placeholder="Optional"
                                     />
                                     <InputError message={profileForm.errors.pan_number} />
@@ -372,26 +423,73 @@ export default function KycOnboardingShow() {
                     </div>
 
                     <aside className="space-y-6">
-                        {adminComments.length > 0 && (
-                            <div className="rounded-3xl bg-rose-50 p-6 shadow-xl ring-1 ring-rose-100">
-                                <h3 className="text-sm font-semibold uppercase tracking-[0.35em] text-rose-500">Admin comments</h3>
-                                <div className="mt-4 space-y-3 text-sm text-rose-700">
-                                    {adminComments.map((comment) => (
-                                        <div key={comment.id} className="rounded-2xl bg-white p-4 shadow ring-1 ring-rose-100">
-                                            <p>{comment.message}</p>
-                                            {comment.created_at && (
-                                                <p className="mt-2 text-xs text-rose-400">
-                                                    Added {new Date(comment.created_at).toLocaleString('en-IN')}
-                                                </p>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
+                        <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                            <h3 className="text-sm font-semibold text-slate-900">Messages from compliance</h3>
+                            <p className="mt-2 text-xs text-slate-500">
+                                Track clarifications sent by the compliance desk. Respond when you have the requested information.
+                            </p>
+                            <div className="mt-4 space-y-3 max-h-64 overflow-y-auto rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
+                                {messages.length === 0 ? (
+                                    <p className="text-xs text-slate-500">No messages yet. Compliance will reach out if anything is pending.</p>
+                                ) : (
+                                    messages.map((message) => {
+                                        const isAdmin = message.sender_type === 'admin';
+                                        return (
+                                            <div
+                                                key={message.id}
+                                                className={`flex flex-col gap-1 ${isAdmin ? 'items-start text-left' : 'items-end text-right'}`}
+                                            >
+                                                <span className="text-[11px] text-slate-400">
+                                                    {isAdmin ? message.admin?.name ?? 'Compliance team' : 'You'}
+                                                    {message.created_at ? ` · ${formatTimestamp(message.created_at)}` : ''}
+                                                </span>
+                                                <div
+                                                    className={`max-w-full rounded-2xl px-4 py-3 text-sm ${
+                                                        isAdmin
+                                                            ? 'bg-sky-100 text-sky-900 ring-1 ring-sky-200'
+                                                            : 'bg-slate-900 text-white'
+                                                    }`}
+                                                >
+                                                    <p className="whitespace-pre-line">{message.message}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
                             </div>
-                        )}
+                            {!can_customer_reply && (
+                                <p className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
+                                    Replies are disabled by the compliance team. You can still review their updates above.
+                                </p>
+                            )}
+                            {can_customer_reply && (
+                                <form onSubmit={submitMessage} className="mt-4 space-y-2">
+                                    <label className="flex flex-col gap-2 text-xs text-slate-600">
+                                        <span className="font-semibold text-slate-700">Send a reply</span>
+                                        <textarea
+                                            value={messageForm.data.message}
+                                            onChange={(event) => messageForm.setData('message', event.target.value)}
+                                            className="min-h-[90px] rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            placeholder="Share the update or clarification you have for the compliance team."
+                                            disabled={messageForm.processing}
+                                        />
+                                        <InputError message={messageForm.errors.message} />
+                                    </label>
+                                    <div className="flex justify-end">
+                                        <button
+                                            type="submit"
+                                            disabled={messageForm.processing || !messageForm.data.message.trim()}
+                                            className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            {messageForm.processing ? 'Sending…' : 'Send message'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+                        </div>
 
                         <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                            <h3 className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">Submitted documents</h3>
+                            <h3 className="text-sm font-semibold text-slate-700">Submitted documents</h3>
                             <div className="mt-4 space-y-3 text-sm">
                                 {documents.length === 0 && (
                                     <p className="rounded-2xl bg-slate-50 p-4 text-slate-500">
@@ -412,7 +510,11 @@ export default function KycOnboardingShow() {
                                                     Uploaded {document.uploaded_at ? new Date(document.uploaded_at).toLocaleString('en-IN') : 'recently'}
                                                 </p>
                                             </div>
-                                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold capitalize text-slate-600">
+                                            <span
+                                                className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                                                    documentStatusTheme[document.status] ?? documentStatusTheme.pending
+                                                }`}
+                                            >
                                                 {document.status}
                                             </span>
                                         </div>
@@ -454,7 +556,7 @@ export default function KycOnboardingShow() {
                         </div>
 
                         <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                            <h3 className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">Need help?</h3>
+                            <h3 className="text-sm font-semibold text-slate-500">Need help?</h3>
                             <p className="mt-3 text-sm text-slate-600">
                                 Write to <a href="mailto:compliance@elvee.in" className="font-semibold text-sky-600">compliance@elvee.in</a>{' '}
                                 for expedited verification or assistance with additional paperwork.

@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Enums\KycStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Frontend\Kyc\SendKycMessageRequest;
 use App\Http\Requests\Frontend\Kyc\StoreKycDocumentRequest;
 use App\Http\Requests\Frontend\Kyc\UpdateKycProfileRequest;
 use App\Models\UserKycDocument;
+use App\Models\UserKycMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +21,7 @@ class KycOnboardingController extends Controller
     {
         $user = $request->user();
 
-        $user->loadMissing(['kycProfile', 'kycDocuments']);
+        $user->loadMissing(['kycProfile', 'kycDocuments', 'kycMessages.admin']);
 
         if (! $user->kycProfile) {
             $user->kycProfile()->create([
@@ -67,16 +69,22 @@ class KycOnboardingController extends Controller
                 ];
             }),
             'documentTypes' => (new StoreKycDocumentRequest())->documentTypes(),
-            'adminComments' => $user->kycDocuments
-                ->whereNotNull('remarks')
+            'messages' => $user->kycMessages
+                ->sortBy('created_at')
                 ->values()
-                ->map(function (UserKycDocument $document) {
+                ->map(function (UserKycMessage $message) {
                     return [
-                        'id' => $document->id,
-                        'message' => $document->remarks ?? '',
-                        'created_at' => $document->updated_at?->toDateTimeString(),
+                        'id' => $message->id,
+                        'sender_type' => $message->sender_type,
+                        'message' => $message->message,
+                        'created_at' => $message->created_at?->toDateTimeString(),
+                        'admin' => $message->admin ? [
+                            'id' => $message->admin->id,
+                            'name' => $message->admin->name,
+                        ] : null,
                     ];
                 }),
+            'can_customer_reply' => (bool) $user->kyc_comments_enabled,
         ]);
     }
 
@@ -135,6 +143,28 @@ class KycOnboardingController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Document removed.');
+    }
+
+    public function storeMessage(SendKycMessageRequest $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        if (! $user->kyc_comments_enabled) {
+            abort(403);
+        }
+
+        $user->kycMessages()->create([
+            'sender_type' => 'customer',
+            'message' => $request->string('message')->trim()->toString(),
+        ]);
+
+        if (! in_array($user->kyc_status, [KycStatus::Approved->value, KycStatus::Review->value], true)) {
+            $user->forceFill([
+                'kyc_status' => KycStatus::Review->value,
+            ])->save();
+        }
+
+        return back()->with('success', 'Message sent to the compliance team.');
     }
 
     public function downloadDocument(Request $request, UserKycDocument $document)
