@@ -1,6 +1,7 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import CustomerFooter from '@/Components/CustomerFooter';
 import FlashMessage from '@/Components/FlashMessage';
+import type { User } from '@/types';
 import { Link, router, usePage } from '@inertiajs/react';
 import { FormEvent, PropsWithChildren, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -16,11 +17,7 @@ export default function Authenticated({
     children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
     const page = usePage();
-    const user = page.props.auth.user as {
-        name: string;
-        email: string;
-        type?: string;
-    };
+    const user = page.props.auth.user as User;
     const userType = (user?.type ?? '').toLowerCase();
     const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
     const cart = (page.props as { cart?: { count?: number } }).cart;
