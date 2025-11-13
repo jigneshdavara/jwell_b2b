@@ -39,6 +39,8 @@ class CatalogController extends Controller
             'category',
             'catalog',
             'sort',
+            'jobwork_available',
+            'ready_made',
         ]);
 
         $query = Product::query()
@@ -53,6 +55,16 @@ class CatalogController extends Controller
 
         if ($mode === 'jobwork') {
             $query->where('is_jobwork_allowed', true);
+        }
+
+        // Filter by jobwork availability
+        if (($filters['jobwork_available'] ?? null) === '1') {
+            $query->where('is_jobwork_allowed', true);
+        }
+
+        // Filter by ready made (products that are not jobwork-only, meaning they have base_price)
+        if (($filters['ready_made'] ?? null) === '1') {
+            $query->whereNotNull('base_price')->where('base_price', '>', 0);
         }
 
         $brandFilters = array_filter((array) ($filters['brand'] ?? []), fn ($value) => filled($value));
@@ -144,6 +156,8 @@ class CatalogController extends Controller
         $filters['diamond'] = array_values($diamondFilters);
         $filters['category'] = array_values($categoryFilters);
         $filters['sort'] = $sort ?: null;
+        $filters['jobwork_available'] = ($filters['jobwork_available'] ?? null) === '1' ? '1' : null;
+        $filters['ready_made'] = ($filters['ready_made'] ?? null) === '1' ? '1' : null;
 
         if ($filters['catalog'] ?? null) {
             $catalogFilter = $filters['catalog'];

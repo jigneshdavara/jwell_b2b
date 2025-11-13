@@ -117,16 +117,13 @@ export default function CatalogShow() {
     const [selectedSize, setSelectedSize] = useState<string>(
         sizeOptions.length > 0 ? defaultMeta.size_cm ?? sizeOptions[0] : '',
     );
+    const [selectedMode] = useState<'purchase' | 'jobwork'>('purchase');
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const galleryRef = useRef<HTMLDivElement | null>(null);
-    const [isZoomActive, setIsZoomActive] = useState(false);
-    const [zoomLens, setZoomLens] = useState({ left: 0, top: 0, backgroundX: 50, backgroundY: 50 });
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxZoom, setLightboxZoom] = useState(1.5);
-    const zoomLevel = 2.5;
-    const lensSize = 180;
     const mediaCount = product.media.length;
     const hasMedia = mediaCount > 0;
     const activeMedia = hasMedia
@@ -158,7 +155,7 @@ export default function CatalogShow() {
     const { data, setData, post, processing, errors } = useForm<QuotationFormData>({
         product_id: product.id,
         product_variant_id: defaultVariant?.id ?? null,
-        mode,
+        mode: selectedMode,
         quantity: 1,
         notes: '',
         selections: {
@@ -168,6 +165,10 @@ export default function CatalogShow() {
             size_cm: selectedSize || null,
         },
     });
+
+    useEffect(() => {
+        setData('mode', selectedMode);
+    }, [selectedMode, setData]);
 
     const matchingVariant = useMemo(() => {
         return product.variants.find((variant) => {
@@ -240,10 +241,6 @@ export default function CatalogShow() {
         }
     }, [activeImageIndex, mediaCount]);
 
-    useEffect(() => {
-        setIsZoomActive(false);
-        setZoomLens({ left: 0, top: 0, backgroundX: 50, backgroundY: 50 });
-    }, [activeImageIndex]);
 
     useEffect(() => {
         setData('selections', {
@@ -254,16 +251,23 @@ export default function CatalogShow() {
         });
     }, [selectedGoldPurity, selectedSilverPurity, selectedDiamondOption, selectedSize, setData]);
 
-    const isJobworkMode = mode === 'jobwork';
+    const isJobworkMode = selectedMode === 'jobwork';
     const jobworkNotAllowed = isJobworkMode && !product.is_jobwork_allowed;
 
     const estimatedTotal = useMemo(() => {
-        const base = product.base_price ?? 0;
-        const making = product.making_charge ?? 0;
-        const adjustment = matchingVariant?.price_adjustment ?? 0;
-
-        return base + making + adjustment;
-    }, [product.base_price, product.making_charge, matchingVariant]);
+        if (isJobworkMode) {
+            // For jobwork, only charge the making charge
+            const making = product.making_charge ?? 0;
+            const adjustment = matchingVariant?.price_adjustment ?? 0;
+            return making + adjustment;
+        } else {
+            // For purchase, charge base + making
+            const base = product.base_price ?? 0;
+            const making = product.making_charge ?? 0;
+            const adjustment = matchingVariant?.price_adjustment ?? 0;
+            return base + making + adjustment;
+        }
+    }, [product.base_price, product.making_charge, matchingVariant, isJobworkMode]);
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -272,7 +276,21 @@ export default function CatalogShow() {
             return;
         }
 
-        setConfirmOpen(true);
+        // Directly add to cart without modal
+        const payload = {
+            product_id: product.id,
+            product_variant_id: data.product_variant_id,
+            quantity: data.quantity,
+            configuration: {
+                mode: selectedMode,
+                notes: data.notes,
+                selections: data.selections,
+            },
+        };
+
+        router.post(route('frontend.cart.items.store'), payload, {
+            preserveScroll: true,
+        });
     };
 
     const confirmSubmit = () => {
@@ -336,27 +354,6 @@ export default function CatalogShow() {
         }
     };
 
-    const handleMouseMove = (event: ReactMouseEvent<HTMLDivElement>) => {
-        if (!galleryRef.current) {
-            return;
-        }
-
-        const rect = galleryRef.current.getBoundingClientRect();
-        const lensHalf = lensSize / 2;
-
-        let x = event.clientX - rect.left;
-        let y = event.clientY - rect.top;
-
-        x = clamp(x, lensHalf, rect.width - lensHalf);
-        y = clamp(y, lensHalf, rect.height - lensHalf);
-
-        setZoomLens({
-            left: x - lensHalf,
-            top: y - lensHalf,
-            backgroundX: (x / rect.width) * 100,
-            backgroundY: (y / rect.height) * 100,
-        });
-    };
 
     const openLightbox = useCallback(() => {
         if (hasMedia) {
@@ -432,119 +429,12 @@ export default function CatalogShow() {
                 <div className="grid gap-10 lg:grid-cols-[1.6fr_1fr]">
                     <div className="space-y-6">
                         <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                            <div className="flex flex-col gap-4 md:flex-row">
-                                {hasMedia && product.media.length > 1 && (
-                                    <div className="order-last flex gap-2 overflow-x-auto md:order-first md:h-[28rem] md:w-24 md:flex-col md:overflow-y-auto">
-                                        {product.media.map((media, index) => (
-                                            <button
-                                                key={`${media.url}-${index}`}
-                                                type="button"
-                                                onClick={() => setActiveImageIndex(index)}
-                                                className={`relative flex h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl border transition md:h-20 md:w-20 ${
-                                                    activeImageIndex === index
-                                                        ? 'border-sky-400 ring-2 ring-sky-100'
-                                                        : 'border-slate-200 hover:border-slate-300'
-                                                }`}
-                                                aria-label={`View image ${index + 1}`}
-                                            >
-                                                <img
-                                                    src={media.url}
-                                                    alt={media.alt}
-                                                    className="h-full w-full object-cover"
-                                                    draggable={false}
-                                                />
-                                                {activeImageIndex === index && (
-                                                    <span className="absolute inset-0 border-2 border-sky-400/80" aria-hidden />
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                                <div className="relative flex-1">
-                                    <div
-                                        ref={galleryRef}
-                                        className="group relative aspect-square overflow-hidden rounded-3xl bg-slate-100"
-                                        onMouseEnter={() => hasMedia && setIsZoomActive(true)}
-                                        onMouseLeave={() => setIsZoomActive(false)}
-                                        onMouseMove={handleMouseMove}
-                                        onClick={openLightbox}
-                                        role="button"
-                                        tabIndex={0}
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter' || event.key === ' ') {
-                                                event.preventDefault();
-                                                openLightbox();
-                                            }
-                                        }}
-                                        aria-label="Open product gallery"
-                                    >
-                                        {activeMedia ? (
-                                            <img
-                                                src={activeMedia.url}
-                                                alt={activeMedia.alt}
-                                                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                                                draggable={false}
-                                            />
-                                        ) : (
-                                            <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">
-                                                Image coming soon
-                                            </div>
-                                        )}
-                                        {isZoomActive && activeMedia && (
-                                            <div
-                                                className="pointer-events-none absolute rounded-full border-2 border-white/80 shadow-xl shadow-slate-900/40"
-                                                style={{
-                                                    width: `${lensSize}px`,
-                                                    height: `${lensSize}px`,
-                                                    left: `${zoomLens.left}px`,
-                                                    top: `${zoomLens.top}px`,
-                                                    backgroundImage: `url(${activeMedia.url})`,
-                                                    backgroundSize: `${zoomLevel * 100}%`,
-                                                    backgroundPosition: `${zoomLens.backgroundX}% ${zoomLens.backgroundY}%`,
-                                                }}
-                                            />
-                                        )}
-                                        <span className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center text-xs font-medium text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                                            Click to view full screen
-                                        </span>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={openLightbox}
-                                        className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-slate-900"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth={1.5}
-                                            className="h-4 w-4"
-                                        >
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V6a2 2 0 012-2h2m6 0h2a2 2 0 012 2v2m0 6v2a2 2 0 01-2 2h-2m-6 0H6a2 2 0 01-2-2v-2" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 9h6v6H9z" />
-                                        </svg>
-                                        Zoom
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-slate-200/80">
-                            <div className="flex flex-wrap items-start justify-between gap-4">
-                                <div>
-                                    <p className="text-xs font-medium text-slate-500">SKU {product.sku}</p>
-                                    <h1 className="mt-2 text-3xl font-semibold text-slate-900">{product.name}</h1>
-                                    <p className="mt-3 text-sm text-slate-500">By {product.brand ?? 'Elvee Atelier'}</p>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="text-right">
-                                        <p className="text-xs font-medium text-slate-500">Base estimate</p>
-                                        <p className="text-2xl font-semibold text-slate-900">
-                                            {currencyFormatter.format(product.base_price ?? 0)}
-                                        </p>
-                                        <p className="text-xs text-slate-500">
-                                            Making {currencyFormatter.format(product.making_charge ?? 0)}
-                                        </p>
+                            <div className="mb-4">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1">
+                                        <p className="text-xs font-medium text-slate-500">SKU {product.sku}</p>
+                                        <h1 className="mt-2 text-2xl font-semibold text-slate-900">{product.name}</h1>
+                                        <p className="mt-2 text-sm text-slate-500">By {product.brand ?? 'Elvee Atelier'}</p>
                                     </div>
                                     <button
                                         type="button"
@@ -574,7 +464,125 @@ export default function CatalogShow() {
                                     </button>
                                 </div>
                             </div>
-                            <p className="mt-6 text-sm leading-7 text-slate-600 whitespace-pre-line">
+                            <div className="flex flex-col gap-4 md:flex-row">
+                                {hasMedia && product.media.length > 1 && (
+                                    <div className="order-last flex gap-2 overflow-x-auto md:order-first md:h-[28rem] md:w-24 md:flex-col md:overflow-y-auto">
+                                        {product.media.map((media, index) => (
+                                            <button
+                                                key={`${media.url}-${index}`}
+                                                type="button"
+                                                onClick={() => setActiveImageIndex(index)}
+                                                className={`relative flex h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl border transition md:h-20 md:w-20 ${
+                                                    activeImageIndex === index
+                                                        ? 'border-sky-400 ring-2 ring-sky-100'
+                                                        : 'border-slate-200 hover:border-slate-300'
+                                                }`}
+                                                aria-label={`View image ${index + 1}`}
+                                            >
+                                                <img
+                                                    src={media.url}
+                                                    alt={media.alt}
+                                                    className="h-full w-full object-cover"
+                                                    draggable={false}
+                                                />
+                                                {activeImageIndex === index && (
+                                                    <span className="absolute inset-0 border-2 border-sky-400/80" aria-hidden />
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="relative flex-1">
+                                    <button
+                                        type="button"
+                                        onClick={toggleWishlist}
+                                        disabled={wishlistPending}
+                                        className={`absolute right-4 top-4 z-10 inline-flex h-12 w-12 items-center justify-center rounded-full border transition ${
+                                            isWishlisted
+                                                ? 'border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-300 hover:text-rose-700'
+                                                : 'border-white/70 bg-white/70 text-slate-500 hover:border-rose-200 hover:text-rose-600'
+                                        }`}
+                                        aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 24 24"
+                                            fill={isWishlisted ? 'currentColor' : 'none'}
+                                            stroke="currentColor"
+                                            strokeWidth={1.5}
+                                            className="h-5 w-5"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 5.053 7.5 10.5 9 10.5s9-5.447 9-10.5z"
+                                            />
+                                        </svg>
+                                    </button>
+                                    <div
+                                        ref={galleryRef}
+                                        className="group relative aspect-square overflow-hidden rounded-3xl bg-slate-100"
+                                        onClick={openLightbox}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault();
+                                                openLightbox();
+                                            }
+                                        }}
+                                        aria-label="Open product gallery"
+                                    >
+                                        {activeMedia ? (
+                                            <img
+                                                src={activeMedia.url}
+                                                alt={activeMedia.alt}
+                                                className="h-full w-full object-cover"
+                                                draggable={false}
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">
+                                                Image coming soon
+                                            </div>
+                                        )}
+                                        <span className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center text-xs font-medium text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                            Click to view full screen
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={openLightbox}
+                                        className="absolute right-4 bottom-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-slate-900"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth={1.5}
+                                            className="h-4 w-4"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V6a2 2 0 012-2h2m6 0h2a2 2 0 012 2v2m0 6v2a2 2 0 01-2 2h-2m-6 0H6a2 2 0 01-2-2v-2" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 9h6v6H9z" />
+                                        </svg>
+                                        View fullscreen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-slate-200/80">
+                            <div className="mb-6">
+                                <div className="text-right">
+                                    <p className="text-xs font-medium text-slate-500">Base estimate</p>
+                                    <p className="text-2xl font-semibold text-slate-900">
+                                        {currencyFormatter.format(product.base_price ?? 0)}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                        Making {currencyFormatter.format(product.making_charge ?? 0)}
+                                    </p>
+                                </div>
+                            </div>
+                            <p className="text-sm leading-7 text-slate-600 whitespace-pre-line">
                                 {product.description?.trim() ? product.description : 'Detailed description coming soon.'}
                             </p>
                             <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -621,25 +629,14 @@ export default function CatalogShow() {
                             onSubmit={submit}
                             className="w-full space-y-5 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80"
                         >
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-lg font-semibold text-slate-900">
-                                        {isJobworkMode ? 'Request jobwork quotation' : 'Request jewellery quotation'}
-                                    </h2>
-                                    <p className="text-xs text-slate-500">
-                                        Select your configuration and our merchandising desk will share pricing shortly.
-                                    </p>
-                                </div>
-                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                                    {isJobworkMode ? 'Jobwork mode' : 'Jewellery mode'}
-                                </span>
+                            <div>
+                                <h2 className="text-lg font-semibold text-slate-900">
+                                    Request quotation
+                                </h2>
+                                <p className="text-xs text-slate-500">
+                                    Select your configuration and our merchandising desk will share pricing shortly.
+                                </p>
                             </div>
-
-                            {jobworkNotAllowed && (
-                                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                                    This design is not available for jobwork. Switch to Jewellery purchase to request a quotation.
-                                </div>
-                            )}
 
                             {product.uses_gold && (
                                 <div className="space-y-2">
@@ -776,8 +773,30 @@ export default function CatalogShow() {
                                     {currencyFormatter.format(estimatedTotal)}
                                 </p>
                                 <p className="text-xs text-slate-500">
-                                    Includes base & making. Final quotation may vary with bullion/diamond parity and labour.
+                                    {isJobworkMode
+                                        ? 'Includes making charge only. Final quotation may vary with labour costs.'
+                                        : 'Includes base & making. Final quotation may vary with bullion/diamond parity and labour.'}
                                 </p>
+                                {!isJobworkMode && (
+                                    <div className="mt-2 space-y-1 text-xs">
+                                        <p className="flex justify-between">
+                                            <span>Base:</span>
+                                            <span className="font-medium">{currencyFormatter.format(product.base_price ?? 0)}</span>
+                                        </p>
+                                        <p className="flex justify-between">
+                                            <span>Making:</span>
+                                            <span className="font-medium">{currencyFormatter.format(product.making_charge ?? 0)}</span>
+                                        </p>
+                                    </div>
+                                )}
+                                {isJobworkMode && (
+                                    <div className="mt-2 space-y-1 text-xs">
+                                        <p className="flex justify-between">
+                                            <span>Making charge:</span>
+                                            <span className="font-medium">{currencyFormatter.format(product.making_charge ?? 0)}</span>
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             <button

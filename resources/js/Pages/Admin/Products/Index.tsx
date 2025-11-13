@@ -19,6 +19,15 @@ type Product = {
 type AdminProductsPageProps = AppPageProps<{
     products: {
         data: Product[];
+        meta: {
+            current_page: number;
+            last_page: number;
+            from: number | null;
+            to: number | null;
+            total: number;
+            per_page: number;
+        };
+        links: Array<{ url: string | null; label: string; active: boolean }>;
     };
     brands: BrandList;
     categories: CategoryList;
@@ -28,11 +37,13 @@ type AdminProductsPageProps = AppPageProps<{
         category?: string | null;
         status?: string | null;
     };
+    perPageOptions: number[];
+    perPage: number;
 }>;
 
 export default function AdminProductsIndex() {
     const { props } = usePage<AdminProductsPageProps>();
-    const { products, brands, categories, filters } = props;
+    const { products, brands, categories, filters, perPageOptions, perPage: initialPerPage } = props;
 
     const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
     const [filterState, setFilterState] = useState({
@@ -41,6 +52,7 @@ export default function AdminProductsIndex() {
         category: filters.category ?? 'all',
         status: filters.status ?? 'all',
     });
+    const [perPage, setPerPage] = useState(initialPerPage ?? products.meta.per_page);
     const [bulkBrand, setBulkBrand] = useState('');
     const [bulkCategory, setBulkCategory] = useState('');
 
@@ -48,6 +60,10 @@ export default function AdminProductsIndex() {
         const existingIds = new Set(products.data.map((product) => product.id));
         setSelectedProducts((prev) => prev.filter((id) => existingIds.has(id)));
     }, [products.data]);
+
+    useEffect(() => {
+        setPerPage(initialPerPage ?? products.meta.per_page);
+    }, [initialPerPage, products.meta.per_page]);
 
     const allSelected = useMemo(() => {
         if (products.data.length === 0) {
@@ -82,6 +98,26 @@ export default function AdminProductsIndex() {
                 brand: merged.brand !== 'all' ? merged.brand : undefined,
                 category: merged.category !== 'all' ? merged.category : undefined,
                 status: merged.status !== 'all' ? merged.status : undefined,
+                per_page: perPage,
+            },
+            {
+                preserveState: true,
+                replace: true,
+                preserveScroll: true,
+            },
+        );
+    };
+
+    const handlePerPageChange = (value: number) => {
+        setPerPage(value);
+        router.get(
+            route('admin.products.index'),
+            {
+                search: filterState.search || undefined,
+                brand: filterState.brand !== 'all' ? filterState.brand : undefined,
+                category: filterState.category !== 'all' ? filterState.category : undefined,
+                status: filterState.status !== 'all' ? filterState.status : undefined,
+                per_page: value,
             },
             {
                 preserveState: true,
@@ -182,6 +218,49 @@ export default function AdminProductsIndex() {
         router.post(route('admin.products.copy', id), {}, {
             preserveScroll: true,
         });
+    };
+
+    const deleteProduct = (id: number) => {
+        if (!window.confirm('Delete this product? This cannot be undone.')) {
+            return;
+        }
+
+        router.delete(route('admin.products.destroy', id), {
+            preserveScroll: true,
+        });
+    };
+
+    const iconButton = (label: string, onClick: () => void, icon: JSX.Element) => (
+        <button
+            type="button"
+            onClick={onClick}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+            title={label}
+        >
+            {icon}
+        </button>
+    );
+
+    const changePage = (url: string | null) => {
+        if (!url) {
+            return;
+        }
+
+        router.get(
+            url,
+            {
+                search: filterState.search || undefined,
+                brand: filterState.brand !== 'all' ? filterState.brand : undefined,
+                category: filterState.category !== 'all' ? filterState.category : undefined,
+                status: filterState.status !== 'all' ? filterState.status : undefined,
+                per_page: perPage,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
     };
 
     return (
@@ -382,17 +461,29 @@ export default function AdminProductsIndex() {
                                         <div className="flex justify-end gap-2">
                                             <Link
                                                 href={route('admin.products.edit', product.id)}
-                                                className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+                                                title="Edit product"
                                             >
-                                                Edit
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
+                                                </svg>
                                             </Link>
-                                            <button
-                                                type="button"
-                                                onClick={() => duplicateProduct(product.id)}
-                                                className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-800"
-                                            >
-                                                Duplicate
-                                            </button>
+                                            {iconButton(
+                                                'Duplicate product',
+                                                () => duplicateProduct(product.id),
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16h8a2 2 0 002-2V6H8a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 16V18a2 2 0 01-2 2H6a2 2 0 01-2-2V10a2 2 0 012-2h2" />
+                                                </svg>,
+                                            )}
+                                            {iconButton(
+                                                'Delete product',
+                                                () => deleteProduct(product.id),
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
+                                                </svg>,
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -406,6 +497,42 @@ export default function AdminProductsIndex() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                    <div>
+                        Showing {products.meta.from ?? 0} to {products.meta.to ?? 0} of {products.meta.total} entries
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {products.links.map((link, index) => {
+                            const cleanLabel = link.label
+                                .replace('&laquo;', '«')
+                                .replace('&raquo;', '»')
+                                .replace(/&nbsp;/g, ' ')
+                                .trim();
+
+                            if (!link.url) {
+                                return (
+                                    <span key={`${link.label}-${index}`} className="rounded-full px-3 py-1 text-sm text-slate-400">
+                                        {cleanLabel}
+                                    </span>
+                                );
+                            }
+
+                            return (
+                                <button
+                                    key={`${link.label}-${index}`}
+                                    type="button"
+                                    onClick={() => changePage(link.url)}
+                                    className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                        link.active ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                    }`}
+                                >
+                                    {cleanLabel}
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </AdminLayout>

@@ -19,9 +19,14 @@ class UserController extends Controller
     public function index(Request $request): Response
     {
         $statusFilter = $request->string('status')->lower()->value();
-
+        $search = $request->string('search')->trim()->value();
+        $groupFilter = $request->integer('customer_group_id');
+        $typeFilter = $request->string('type')->lower()->value();
+        $perPage = (int) $request->input('per_page', 20);
+        if (! in_array($perPage, [10, 25, 50, 100], true)) {
+            $perPage = 20;
+        }
         $statusValues = collect(KycStatus::cases())->pluck('value')->all();
-
         $usersQuery = Customer::query()
             ->with(['kycDocuments', 'kycProfile', 'customerGroup'])
             ->latest();
@@ -30,8 +35,27 @@ class UserController extends Controller
             $usersQuery->where('kyc_status', $statusFilter);
         }
 
+        if ($search) {
+            $usersQuery->where(function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($groupFilter) {
+            $usersQuery->where('customer_group_id', $groupFilter);
+        }
+
+        if ($typeFilter) {
+            $usersQuery->where('type', $typeFilter);
+        }
+
+        if ($request->boolean('only_active')) {
+            $usersQuery->where('is_active', true);
+        }
+
         $users = $usersQuery
-            ->paginate(20)
+            ->paginate($perPage)
             ->withQueryString()
             ->through(function (Customer $user) {
                 return [
@@ -39,6 +63,7 @@ class UserController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'type' => Str::headline($user->type ?? ''),
+                    'is_active' => (bool) $user->is_active,
                     'kyc_status' => $user->kyc_status,
                     'kyc_status_label' => Str::headline($user->kyc_status ?? ''),
                     'kyc_notes' => $user->kyc_notes,
@@ -79,10 +104,62 @@ class UserController extends Controller
             'kycStatuses' => $statusValues,
             'filters' => [
                 'status' => $statusFilter,
+                'search' => $search,
+                'customer_group_id' => $groupFilter,
+                'type' => $typeFilter,
             ],
             'stats' => $stats,
             'customerGroups' => $customerGroups,
+            'perPageOptions' => [10, 25, 50, 100],
         ]);
+    }
+
+    public function destroy(Customer $user): RedirectResponse
+    {
+        $user->delete();
+
+        return redirect()
+            ->back()
+            ->with('success', 'Customer deleted successfully.');
+    }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $ids = collect($request->input('ids', []))->filter()->all();
+
+        if (! empty($ids)) {
+            Customer::query()->whereIn('id', $ids)->delete();
+        }
+
+        return redirect()
+            ->back()
+            ->with('success', 'Selected customers deleted.');
+    }
+
+    public function bulkGroupUpdate(UpdateCustomerGroupAssignmentRequest $request): RedirectResponse
+    {
+        $ids = collect($request->input('ids', []))->filter()->all();
+
+        if (! empty($ids)) {
+            Customer::query()->whereIn('id', $ids)->update([
+                'customer_group_id' => $request->validated('customer_group_id'),
+            ]);
+        }
+
+        return redirect()
+            ->back()
+            ->with('success', 'Customer group updated for selected entries.');
+    }
+
+    public function toggleStatus(Request $request, Customer $user): RedirectResponse
+    {
+        $user->update([
+            'is_active' => ! $user->is_active,
+        ]);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Customer status updated.');
     }
 
     public function updateKycStatus(UpdateKycStatusRequest $request, Customer $user): RedirectResponse

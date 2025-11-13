@@ -201,7 +201,7 @@ export default function Authenticated({
                 <>
                     <header className="relative z-40 bg-white text-slate-900 shadow">
                         <div className="hidden border-b border-slate-100 bg-slate-900 text-xs text-white lg:block">
-                            <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-2">
+                            <div className="mx-auto flex max-w-[95rem] items-center justify-between px-4 py-2">
                                 <div className="flex items-center gap-6">
                                     <a href="tel:+919988877665" className="flex items-center gap-2 text-white/80 transition hover:text-white">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-3.5 w-3.5">
@@ -237,7 +237,7 @@ export default function Authenticated({
                                 </div>
                             </div>
                         </div>
-                        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
+                        <div className="mx-auto flex max-w-[95rem] items-center justify-between px-4 py-4">
                             <div className="flex items-center gap-4">
                                 <button
                                     type="button"
@@ -348,23 +348,23 @@ export default function Authenticated({
                                     ),
                                 )}
                             </nav>
-                            <div className="flex items-center gap-2 lg:gap-3">
+                            <div className="flex items-center gap-2.5 lg:gap-3">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setSearchTerm('');
                                         setSearchOpen(true);
                                     }}
-                                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                                    className="inline-flex h-7 w-7 items-center justify-center text-slate-600 transition hover:text-slate-900"
                                     aria-label="Search"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
                                     </svg>
                                 </button>
                                 <Link
                                     href={route('frontend.wishlist.index')}
-                                    className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-rose-200 hover:text-rose-600"
+                                    className="relative inline-flex h-7 w-7 items-center justify-center text-slate-600 transition hover:text-rose-600"
                                     aria-label="View wishlist"
                                 >
                                     <svg
@@ -372,7 +372,7 @@ export default function Authenticated({
                                         viewBox="0 0 24 24"
                                         fill={wishlistCount > 0 ? 'currentColor' : 'none'}
                                         stroke="currentColor"
-                                        strokeWidth={1.5}
+                                        strokeWidth={2}
                                         className="h-5 w-5"
                                     >
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 5.053 7.5 10.5 9 10.5s9-5.447 9-10.5z" />
@@ -385,15 +385,15 @@ export default function Authenticated({
                                 </Link>
                                 <Link
                                     href={route('frontend.cart.index')}
-                                    className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-sky-200 hover:text-sky-600"
+                                    className="relative inline-flex h-7 w-7 items-center justify-center text-slate-600 transition hover:text-sky-600"
                                     aria-label="View quotation list"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18l-1.5 11.25A2.25 2.25 0 0117.265 20.5H6.735a2.25 2.25 0 01-2.235-2.25L3 7z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V5.5A2.5 2.5 0 0110.5 3h3A2.5 2.5 0 0116 5.5V7" />
                                     </svg>
                                     {cartCount > 0 && (
-                                        <span className="absolute -top-1 -right-1 inline-flex min-h-[1.2rem] min-w-[1.2rem] items-center justify-center rounded-full bg-sky-500 px-1 text-[10px] font-semibold text-white">
+                                        <span className="absolute -top-1 -right-1 inline-flex min-h-[1.2rem] min-w-[1.2rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
                                             {cartCount}
                                         </span>
                                     )}
@@ -405,10 +405,10 @@ export default function Authenticated({
                                         onFocus={() => setAccountMenuOpen(true)}
                                         onBlur={() => setAccountMenuOpen(false)}
                                         onClick={() => setAccountMenuOpen((previous) => !previous)}
-                                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                                        className="inline-flex h-7 w-7 items-center justify-center text-slate-600 transition hover:text-slate-900"
                                         aria-label="Account menu"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 12a4.5 4.5 0 100-9 4.5 4.5 0 000 9z" />
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25a7.5 7.5 0 0115 0" />
                                         </svg>
@@ -423,12 +423,12 @@ export default function Authenticated({
                                         <p className="text-sm font-semibold text-slate-700">
                                             Hello, {user?.name?.split(' ')[0] ?? 'there'}
                                         </p>
-                                        <div className="mt-4 space-y-1.5 text-sm text-slate-600">
+                                        <div className="mt-3 space-y-0.5 text-sm text-slate-600">
                                             {accountLinks.map(({ label, href }) => (
                                                 <Link
                                                     key={label}
                                                     href={href}
-                                                    className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 font-medium text-slate-600 transition hover:bg-sky-50 hover:text-sky-600"
+                                                    className="flex items-center justify-between px-0 py-2 font-medium text-slate-600 transition hover:text-sky-600"
                                                 >
                                                     <span>{label}</span>
                                                     <svg
@@ -436,7 +436,7 @@ export default function Authenticated({
                                                         viewBox="0 0 24 24"
                                                         fill="none"
                                                         stroke="currentColor"
-                                                        strokeWidth={1.5}
+                                                        strokeWidth={2}
                                                         className="h-4 w-4"
                                                     >
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -447,7 +447,7 @@ export default function Authenticated({
                                                 href={route('logout')}
                                                 method="post"
                                                 as="button"
-                                                className="w-full rounded-xl bg-rose-50 px-3 py-2 text-left text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
+                                                className="w-full px-0 py-2 text-left text-sm font-semibold text-rose-600 transition hover:text-rose-700"
                                             >
                                                 Logout
                                             </Link>
@@ -633,7 +633,7 @@ export default function Authenticated({
             ) : (
                 <>
                     <header className="relative z-40 bg-gradient-to-r from-slate-950 via-slate-900 to-blue-900 text-white shadow-xl">
-                        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
+                        <div className="mx-auto flex max-w-[95rem] items-center justify-between px-4 py-4">
                             <div className="flex items-center gap-3">
                                 <Link href="/" className="flex items-center gap-2">
                                     <ApplicationLogo className="h-10 w-10 text-white" />
@@ -756,12 +756,12 @@ export default function Authenticated({
             )}
             {header && (
                 <div className="border-b border-slate-200 bg-white">
-                    <div className="mx-auto max-w-7xl px-6 py-6 lg:px-10">{header}</div>
+                    <div className="mx-auto max-w-[95rem] px-4 py-6">{header}</div>
                 </div>
             )}
 
             <main className="relative z-0 flex-1">
-                <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10 lg:py-12">
+                <div className="mx-auto max-w-[95rem] px-4 py-10 lg:py-12">
                     <FlashMessage />
                     {children}
                 </div>

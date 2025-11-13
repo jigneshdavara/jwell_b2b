@@ -16,10 +16,13 @@ class DiamondClarityController extends Controller
 {
     public function index(): Response
     {
+        $perPage = request()->integer('per_page', 20);
+        $perPage = in_array($perPage, [10, 25, 50, 100]) ? $perPage : 20;
+
         $clarities = DiamondClarity::query()
             ->orderBy('position')
             ->orderBy('name')
-            ->paginate(20)
+            ->paginate($perPage)
             ->through(function (DiamondClarity $clarity) {
                 return [
                     'id' => $clarity->id,

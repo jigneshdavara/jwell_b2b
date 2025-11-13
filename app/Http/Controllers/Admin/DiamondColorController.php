@@ -16,10 +16,17 @@ class DiamondColorController extends Controller
 {
     public function index(): Response
     {
+        $perPage = (int) request('per_page', 20);
+
+        if (! in_array($perPage, [10, 25, 50, 100], true)) {
+            $perPage = 20;
+        }
+
         $colors = DiamondColor::query()
             ->orderBy('position')
             ->orderBy('name')
-            ->paginate(20)
+            ->paginate($perPage)
+            ->withQueryString()
             ->through(function (DiamondColor $color) {
                 return [
                     'id' => $color->id,

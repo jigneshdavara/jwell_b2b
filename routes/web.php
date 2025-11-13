@@ -151,11 +151,15 @@ Route::prefix('admin')
         Route::get('/customers', [UserController::class, 'index'])->name('customers.index');
         Route::post('/customers/{user}/kyc-status', [UserController::class, 'updateKycStatus'])
             ->name('customers.update-kyc');
+        Route::post('/customers/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('customers.toggle-status');
         Route::get('/customers/{user}/kyc', [KycController::class, 'show'])->name('customers.kyc.show');
         Route::put('/customers/kyc-documents/{document}', [KycController::class, 'updateDocument'])->name('customers.kyc.documents.update');
         Route::post('/customers/{user}/kyc/messages', [KycController::class, 'storeMessage'])->name('customers.kyc.messages.store');
         Route::post('/customers/{user}/kyc/comments-preference', [KycController::class, 'updateCommentsSetting'])->name('customers.kyc.comments.update');
         Route::patch('/customers/{user}/group', [UserController::class, 'updateGroup'])->name('customers.group.update');
+        Route::delete('/customers/{user}', [UserController::class, 'destroy'])->name('customers.destroy');
+        Route::delete('/customers/bulk', [UserController::class, 'bulkDestroy'])->name('customers.bulk-destroy');
+        Route::post('/customers/bulk/group', [UserController::class, 'bulkGroupUpdate'])->name('customers.bulk-group-update');
 
         Route::post('products/bulk/status', [ProductController::class, 'bulkStatus'])->name('products.bulk-status');
         Route::post('products/bulk/brand', [ProductController::class, 'bulkAssignBrand'])->name('products.bulk-brand');

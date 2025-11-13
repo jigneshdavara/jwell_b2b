@@ -38,6 +38,11 @@ class ProductController extends Controller
     public function index(): Response
     {
         $filters = request()->only(['search', 'brand', 'category', 'status']);
+        $perPage = (int) request('per_page', 20);
+
+        if (! in_array($perPage, [10, 25, 50, 100], true)) {
+            $perPage = 20;
+        }
 
         $products = Product::query()
             ->with(['brand', 'category'])
@@ -62,7 +67,7 @@ class ProductController extends Controller
                 }
             })
             ->latest('updated_at')
-            ->paginate(20)
+            ->paginate($perPage)
             ->withQueryString()
             ->through(function (Product $product) {
                 return [
@@ -81,6 +86,8 @@ class ProductController extends Controller
             'brands' => Brand::query()->orderBy('name')->pluck('name', 'id'),
             'categories' => Category::query()->orderBy('name')->pluck('name', 'id'),
             'filters' => $filters,
+            'perPageOptions' => [10, 25, 50, 100],
+            'perPage' => $perPage,
         ]);
     }
 
@@ -581,6 +588,9 @@ class ProductController extends Controller
 
         $nextPosition = (int) (($product->media()->max('position')) ?? -1) + 1;
 
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $publicDisk */
+        $publicDisk = Storage::disk('public');
+
         foreach ($uploads as $upload) {
             if (! $upload instanceof UploadedFile) {
                 continue;
@@ -592,7 +602,7 @@ class ProductController extends Controller
 
             $product->media()->create([
                 'type' => $type,
-                'url' => Storage::disk('public')->url($path),
+                'url' => $publicDisk->url($path),
                 'position' => $nextPosition++,
                 'metadata' => [
                     'original_name' => $upload->getClientOriginalName(),
@@ -618,6 +628,7 @@ class ProductController extends Controller
             return;
         }
 
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $publicDisk */
         $publicDisk = Storage::disk('public');
         $publicBase = rtrim($publicDisk->url(''), '/');
 

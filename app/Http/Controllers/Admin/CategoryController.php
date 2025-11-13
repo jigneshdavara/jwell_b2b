@@ -19,6 +19,11 @@ class CategoryController extends Controller
     public function index(): Response
     {
         $filters = request()->only(['search', 'status', 'parent_id']);
+        $perPage = (int) request('per_page', 20);
+
+        if (! in_array($perPage, [10, 25, 50, 100], true)) {
+            $perPage = 20;
+        }
 
         $allCategories = Category::select('id', 'name', 'parent_id')->get()->keyBy('id');
 
@@ -46,7 +51,7 @@ class CategoryController extends Controller
                 $query->where('parent_id', $parentId === 'root' ? null : $parentId);
             })
             ->latest()
-            ->paginate(50)
+            ->paginate($perPage)
             ->withQueryString()
             ->through(function (Category $category) use ($allCategories, &$depthCache) {
                 return [

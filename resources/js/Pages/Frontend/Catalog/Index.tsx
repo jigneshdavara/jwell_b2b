@@ -13,6 +13,8 @@ const FILTER_LABELS: Record<string, string> = {
     diamond: 'Diamond',
     price_min: 'Min price',
     price_max: 'Max price',
+    jobwork_available: 'Available for jobwork',
+    ready_made: 'Ready made jewelry',
 };
 
 type Product = {
@@ -56,6 +58,8 @@ type CatalogFiltersInput = {
     category?: string | string[] | null;
     catalog?: string | null;
     sort?: string | null;
+    jobwork_available?: string | null;
+    ready_made?: string | null;
 };
 
 type CatalogProps = {
@@ -103,6 +107,8 @@ type CatalogFilters = {
     category: string[];
     catalog?: string;
     sort?: string;
+    jobwork_available?: string;
+    ready_made?: string;
 };
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
@@ -134,6 +140,16 @@ export default function CatalogIndex() {
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const previousItemsRef = useRef<Product[]>([]);
     const loaderRef = useRef<HTMLDivElement | null>(null);
+    const [collapsedFilters, setCollapsedFilters] = useState<Record<string, boolean>>({
+        categories: false,
+        catalogs: true,
+        brands: true,
+        goldPurities: false,
+        silverPurities: true,
+        diamond: true,
+        price: false,
+        availability: false,
+    });
 
     const filters = useMemo<CatalogFilters>(() => {
         const normalizeArray = (input?: string | string[] | null): string[] => {
@@ -164,6 +180,8 @@ export default function CatalogIndex() {
             category: normalizeArray(rawFilters.category),
             catalog: normalizeSingle(rawFilters.catalog),
             sort: normalizeSingle(rawFilters.sort),
+            jobwork_available: normalizeSingle(rawFilters.jobwork_available),
+            ready_made: normalizeSingle(rawFilters.ready_made),
         };
     }, [rawFilters]);
     const [search, setSearch] = useState(filters.search ?? '');
@@ -282,6 +300,7 @@ export default function CatalogIndex() {
         );
     };
 
+    const navigation = page.props.navigation ?? {};
     const valueNameMap = useMemo(() => {
         const map = new Map<string, string>();
         facets.goldPurities.forEach((purity) => map.set(`gold_purity:${purity.id}`, purity.name));
@@ -298,14 +317,14 @@ export default function CatalogIndex() {
         facets.catalogs.forEach((catalog) => {
             map.set(`catalog:${catalog.slug ?? catalog.id}`, catalog.name);
         });
-        (navigationData.categories ?? []).forEach((category: any) => {
+        (navigation.categories ?? []).forEach((category: any) => {
             map.set(`category:${category.slug ?? category.id}`, category.name);
         });
-        (navigationData.catalogs ?? []).forEach((catalog: any) => {
+        (navigation.catalogs ?? []).forEach((catalog: any) => {
             map.set(`catalog:${catalog.slug ?? catalog.id}`, catalog.name);
         });
         return map;
-    }, [facets, navigationData]);
+    }, [facets, navigation]);
 
     const applyFilter = (key: keyof CatalogProps['filters'], value?: string | string[]) => {
         router.get(
@@ -343,9 +362,9 @@ export default function CatalogIndex() {
             router.delete(
                 route('frontend.wishlist.items.destroy-by-product', productId),
                 {
-                    product_variant_id: variantId ?? undefined,
-                },
-                {
+                    data: {
+                        product_variant_id: variantId ?? undefined,
+                    },
                     preserveScroll: true,
                     onFinish: () => setWishlistBusyId(null),
                 },
@@ -455,6 +474,24 @@ export default function CatalogIndex() {
             });
         }
 
+        if (filters.jobwork_available === '1') {
+            entries.push({
+                key: 'jobwork_available',
+                value: '1',
+                label: FILTER_LABELS.jobwork_available,
+                valueLabel: 'Yes',
+            });
+        }
+
+        if (filters.ready_made === '1') {
+            entries.push({
+                key: 'ready_made',
+                value: '1',
+                label: FILTER_LABELS.ready_made,
+                valueLabel: 'Yes',
+            });
+        }
+
         return entries;
     }, [filters, valueNameMap]);
 
@@ -462,74 +499,71 @@ export default function CatalogIndex() {
         <AuthenticatedLayout>
             <Head title="Catalogue" />
 
-            <div className="space-y-10" id="catalog">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                    <div>
-                        <h1 className="text-3xl font-semibold text-slate-900">
-                            {mode === 'jobwork' ? 'Jobwork-ready Designs' : 'Showcase Collection'}
-                        </h1>
-                        <p className="mt-2 text-sm text-slate-500">
-                            {mode === 'jobwork'
-                                ? 'Explore pieces eligible for custom manufacturing. Select a design to raise a jobwork quotation.'
-                                : 'Filter by brand, material, or purity. Review variants and request a quotation for wholesale purchase.'}
-                        </p>
-                    </div>
-                    <div>
-                        <form onSubmit={onSearchSubmit} className="flex gap-3">
-                            <div className="relative flex-1 min-w-[220px]">
-                                <input
-                                    type="search"
-                                    value={search}
-                                    onChange={(event) => setSearch(event.target.value)}
-                                    placeholder="Search SKU or design"
-                                    className="w-full rounded-2xl border border-slate-300 bg-white/80 px-4 py-2 text-sm text-slate-700 shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                />
-                                {filters.search && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setSearch('');
-                                            applyFilter('search');
-                                        }}
-                                        className="absolute inset-y-0 right-3 flex items-center text-xs font-medium text-slate-400 hover:text-slate-600"
-                                    >
-                                        Clear
-                                    </button>
-                                )}
-                            </div>
-                            <button type="submit" className="rounded-2xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500">
-                                Search
-                            </button>
-                            <button
-                                type="button"
-                                onClick={resetFilters}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:border-slate-400 hover:text-slate-800"
-                            >
-                                Reset
-                            </button>
-                        </form>
-                    </div>
+            <div className="space-y-4" id="catalog">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <h1 className="text-2xl font-semibold text-slate-900">
+                        {mode === 'jobwork' ? 'Jobwork-ready Designs' : 'Showcase Collection'}
+                    </h1>
+                    <form onSubmit={onSearchSubmit} className="flex gap-2">
+                        <div className="relative flex-1 min-w-[200px]">
+                            <input
+                                type="search"
+                                value={search}
+                                onChange={(event) => setSearch(event.target.value)}
+                                placeholder="Search SKU or design"
+                                className="w-full rounded-xl border border-slate-300 bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                            />
+                            {filters.search && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSearch('');
+                                        applyFilter('search');
+                                    }}
+                                    className="absolute inset-y-0 right-2 flex items-center text-xs font-medium text-slate-400 hover:text-slate-600"
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+                        <button type="submit" className="rounded-xl bg-sky-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500">
+                            Search
+                        </button>
+                        <button
+                            type="button"
+                            onClick={resetFilters}
+                            className="rounded-xl border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-slate-400 hover:text-slate-800"
+                        >
+                            Reset
+                        </button>
+                    </form>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/70">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70">
                     <div className="flex flex-wrap items-center gap-2">
                         <button
                             type="button"
                             onClick={() => setViewMode('grid')}
-                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition ${
                                 viewMode === 'grid' ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                             }`}
+                            aria-label="Grid view"
                         >
-                            Grid
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25A2.25 2.25 0 018 10.5H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                            </svg>
                         </button>
                         <button
                             type="button"
                             onClick={() => setViewMode('list')}
-                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition ${
                                 viewMode === 'list' ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                             }`}
+                            aria-label="List view"
                         >
-                            List
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                            </svg>
                         </button>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -554,8 +588,9 @@ export default function CatalogIndex() {
                     </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3 text-xs">
-                    {activeFilters.map(({ key, label, valueLabel, value }) => (
+                {activeFilters.length > 0 && (
+                    <div className="flex flex-wrap gap-2 text-xs">
+                        {activeFilters.map(({ key, label, valueLabel, value }) => (
                         <button
                             key={`${key}-${valueLabel}`}
                             onClick={() => {
@@ -583,299 +618,451 @@ export default function CatalogIndex() {
                                     return;
                                 }
 
+                                if (key === 'jobwork_available' || key === 'ready_made') {
+                                    applyFilter(key as keyof CatalogProps['filters'], undefined);
+                                    return;
+                                }
+
                                 applyFilter(key as keyof CatalogProps['filters']);
                             }}
-                            className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-300"
+                            className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2.5 py-0.5 text-slate-700 hover:bg-slate-300"
                         >
                             {label}: <span className="font-semibold">{valueLabel}</span>
                             <span aria-hidden>×</span>
                         </button>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
 
-                <div className="grid gap-6 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70 lg:grid-cols-5">
-                    <aside className="space-y-6 lg:col-span-1">
+                <div className="grid gap-4 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 lg:grid-cols-5">
+                    <aside className="space-y-3 lg:col-span-1">
                         <div>
-                            <h2 className="text-sm font-semibold text-slate-800">Categories</h2>
-                            <div className="mt-3 space-y-2 text-sm">
-                                {facets.categories.map((category) => {
-                                    const value = category.slug ?? String(category.id);
-                                    const selected = filters.category.includes(value);
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, categories: !prev.categories }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Categories</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.categories ? '' : 'rotate-180'}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.categories && (
+                                <div className="mt-3 space-y-1.5 text-sm">
+                                    {facets.categories.map((category) => {
+                                        const value = category.slug ?? String(category.id);
+                                        const selected = filters.category.includes(value);
 
-                                    return (
-                                        <label
-                                            key={category.id}
-                                            className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm transition ${
-                                                selected
-                                                    ? 'border-sky-500 bg-sky-50 text-slate-900'
-                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-sky-300'
-                                            }`}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                checked={selected}
-                                                onChange={(event) => {
-                                                    const list = [...filters.category];
+                                        return (
+                                            <label
+                                                key={category.id}
+                                                className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                    selected ? 'text-slate-900' : 'text-slate-600'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                    checked={selected}
+                                                    onChange={(event) => {
+                                                        const list = [...filters.category];
 
-                                                    if (event.target.checked) {
-                                                        if (!list.includes(value)) {
-                                                            list.push(value);
+                                                        if (event.target.checked) {
+                                                            if (!list.includes(value)) {
+                                                                list.push(value);
+                                                            }
+                                                        } else {
+                                                            const index = list.indexOf(value);
+                                                            if (index >= 0) {
+                                                                list.splice(index, 1);
+                                                            }
                                                         }
-                                                    } else {
-                                                        const index = list.indexOf(value);
-                                                        if (index >= 0) {
-                                                            list.splice(index, 1);
-                                                        }
-                                                    }
 
-                                                    applyFilter('category', list.length ? list : undefined);
-                                                }}
-                                            />
-                                            <span>{category.name}</span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
+                                                        applyFilter('category', list.length ? list : undefined);
+                                                    }}
+                                                />
+                                                <span>{category.name}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         <div>
-                            <h2 className="text-sm font-semibold text-slate-800">Catalogs</h2>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {facets.catalogs.map((catalog) => {
-                                    const value = catalog.slug ?? String(catalog.id);
-                                    const selected = filters.catalog === value;
-
-                                    return (
-                                        <button
-                                            key={catalog.id}
-                                            type="button"
-                                            onClick={() =>
-                                                applyFilter(
-                                                    'catalog',
-                                                    selected ? undefined : value,
-                                                )
-                                            }
-                                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
-                                                selected
-                                                    ? 'bg-slate-900 text-white shadow-sm shadow-slate-800/30'
-                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                                            }`}
-                                        >
-                                            {catalog.name}
-                                            {selected && (
-                                            <span className="text-[11px] font-medium text-slate-500">
-                                                    ×
-                                                </span>
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, availability: !prev.availability }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Availability</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.availability ? '' : 'rotate-180'}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.availability && (
+                                <div className="mt-3 space-y-1.5 text-sm">
+                                    <label className="flex items-center gap-2.5 py-1.5 text-sm transition text-slate-600">
+                                        <input
+                                            type="checkbox"
+                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            checked={filters.jobwork_available === '1'}
+                                            onChange={(event) => {
+                                                applyFilter('jobwork_available', event.target.checked ? '1' : undefined);
+                                            }}
+                                        />
+                                        <span>Available for jobwork</span>
+                                    </label>
+                                    <label className="flex items-center gap-2.5 py-1.5 text-sm transition text-slate-600">
+                                        <input
+                                            type="checkbox"
+                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            checked={filters.ready_made === '1'}
+                                            onChange={(event) => {
+                                                applyFilter('ready_made', event.target.checked ? '1' : undefined);
+                                            }}
+                                        />
+                                        <span>Ready made jewelry</span>
+                                    </label>
+                                </div>
+                            )}
                         </div>
 
                         <div>
-                            <h2 className="text-sm font-semibold text-slate-800">Brands</h2>
-                            <div className="mt-3 space-y-2 text-sm">
-                                {facets.brands.map((brand) => {
-                                    const selected = filters.brand.includes(brand);
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, catalogs: !prev.catalogs }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Catalogs</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.catalogs ? '' : 'rotate-180'}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.catalogs && (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {facets.catalogs.map((catalog) => {
+                                        const value = catalog.slug ?? String(catalog.id);
+                                        const selected = filters.catalog === value;
 
-                                    return (
-                                        <label
-                                            key={brand}
-                                            className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm transition ${
-                                                selected
-                                                    ? 'border-sky-500 bg-sky-50 text-slate-900'
-                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-sky-300'
-                                            }`}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                checked={selected}
-                                                onChange={(event) => {
-                                                    const list = [...filters.brand];
-
-                                                    if (event.target.checked) {
-                                                        if (!list.includes(brand)) {
-                                                            list.push(brand);
-                                                        }
-                                                    } else {
-                                                        const index = list.indexOf(brand);
-                                                        if (index >= 0) {
-                                                            list.splice(index, 1);
-                                                        }
-                                                    }
-
-                                                    applyFilter('brand', list.length ? list : undefined);
-                                                }}
-                                            />
-                                            <span>{brand}</span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
+                                        return (
+                                            <button
+                                                key={catalog.id}
+                                                type="button"
+                                                onClick={() =>
+                                                    applyFilter(
+                                                        'catalog',
+                                                        selected ? undefined : value,
+                                                    )
+                                                }
+                                                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
+                                                    selected
+                                                        ? 'bg-slate-900 text-white shadow-sm shadow-slate-800/30'
+                                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                                                }`}
+                                            >
+                                                {catalog.name}
+                                                {selected && (
+                                                    <span className="text-[11px] font-medium text-slate-500">
+                                                        ×
+                                                    </span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         <div>
-                            <h2 className="text-sm font-semibold text-slate-800">Gold purities</h2>
-                            <div className="mt-3 space-y-2 text-sm">
-                                {facets.goldPurities.map((purity) => {
-                                    const selected = filters.gold_purity.includes(String(purity.id));
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, brands: !prev.brands }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Brands</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.brands ? '' : 'rotate-180'}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.brands && (
+                                <div className="mt-3 space-y-1.5 text-sm">
+                                    {facets.brands.map((brand) => {
+                                        const selected = filters.brand.includes(brand);
 
-                                    return (
-                                        <label
-                                            key={purity.id}
-                                            className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm transition ${
-                                                selected
-                                                    ? 'border-sky-500 bg-sky-50 text-slate-900'
-                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-sky-300'
-                                            }`}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                checked={selected}
-                                                onChange={(event) => {
-                                                    const list = [...filters.gold_purity];
+                                        return (
+                                            <label
+                                                key={brand}
+                                                className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                    selected ? 'text-slate-900' : 'text-slate-600'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                    checked={selected}
+                                                    onChange={(event) => {
+                                                        const list = [...filters.brand];
 
-                                                    if (event.target.checked) {
-                                                        list.push(String(purity.id));
-                                                    } else {
-                                                        const index = list.indexOf(String(purity.id));
-                                                        if (index >= 0) {
-                                                            list.splice(index, 1);
+                                                        if (event.target.checked) {
+                                                            if (!list.includes(brand)) {
+                                                                list.push(brand);
+                                                            }
+                                                        } else {
+                                                            const index = list.indexOf(brand);
+                                                            if (index >= 0) {
+                                                                list.splice(index, 1);
+                                                            }
                                                         }
-                                                    }
 
-                                                    applyFilter('gold_purity', list.length ? list : undefined);
-                                                }}
-                                            />
-                                            <span>{purity.name}</span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
+                                                        applyFilter('brand', list.length ? list : undefined);
+                                                    }}
+                                                />
+                                                <span>{brand}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         <div>
-                            <h2 className="text-sm font-semibold text-slate-800">Silver purities</h2>
-                            <div className="mt-3 space-y-2 text-sm">
-                                {facets.silverPurities.map((purity) => {
-                                    const selected = filters.silver_purity.includes(String(purity.id));
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, goldPurities: !prev.goldPurities }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Gold purities</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.goldPurities ? '' : 'rotate-180'}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.goldPurities && (
+                                <div className="mt-3 space-y-1.5 text-sm">
+                                    {facets.goldPurities.map((purity) => {
+                                        const selected = filters.gold_purity.includes(String(purity.id));
 
-                                    return (
-                                        <label
-                                            key={purity.id}
-                                            className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm transition ${
-                                                selected
-                                                    ? 'border-sky-500 bg-sky-50 text-slate-900'
-                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-sky-300'
-                                            }`}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                checked={selected}
-                                                onChange={(event) => {
-                                                    const list = [...filters.silver_purity];
+                                        return (
+                                            <label
+                                                key={purity.id}
+                                                className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                    selected ? 'text-slate-900' : 'text-slate-600'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                    checked={selected}
+                                                    onChange={(event) => {
+                                                        const list = [...filters.gold_purity];
 
-                                                    if (event.target.checked) {
-                                                        list.push(String(purity.id));
-                                                    } else {
-                                                        const index = list.indexOf(String(purity.id));
-                                                        if (index >= 0) {
-                                                            list.splice(index, 1);
+                                                        if (event.target.checked) {
+                                                            list.push(String(purity.id));
+                                                        } else {
+                                                            const index = list.indexOf(String(purity.id));
+                                                            if (index >= 0) {
+                                                                list.splice(index, 1);
+                                                            }
                                                         }
-                                                    }
 
-                                                    applyFilter('silver_purity', list.length ? list : undefined);
-                                                }}
-                                            />
-                                            <span>{purity.name}</span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
+                                                        applyFilter('gold_purity', list.length ? list : undefined);
+                                                    }}
+                                                />
+                                                <span>{purity.name}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         <div>
-                            <h2 className="text-sm font-semibold text-slate-800">Diamond</h2>
-                            <div className="mt-3 space-y-4 text-sm">
-                                {[
-                                    { title: 'Types', kind: 'type', options: facets.diamondOptions.types },
-                                    { title: 'Shapes', kind: 'shape', options: facets.diamondOptions.shapes },
-                                    { title: 'Colors', kind: 'color', options: facets.diamondOptions.colors },
-                                    { title: 'Clarities', kind: 'clarity', options: facets.diamondOptions.clarities },
-                                    { title: 'Cuts', kind: 'cut', options: facets.diamondOptions.cuts },
-                                ].map(({ title, kind, options }) => (
-                                    <div key={kind}>
-                                        <p className="text-xs font-semibold text-slate-500">{title}</p>
-                                        <div className="mt-2 space-y-2">
-                                            {options.map((option) => {
-                                                const value = `${kind}:${option.id}`;
-                                                const selected = filters.diamond.includes(value);
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, silverPurities: !prev.silverPurities }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Silver purities</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.silverPurities ? '' : 'rotate-180'}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.silverPurities && (
+                                <div className="mt-3 space-y-1.5 text-sm">
+                                    {facets.silverPurities.map((purity) => {
+                                        const selected = filters.silver_purity.includes(String(purity.id));
 
-                                                return (
-                                                    <label
-                                                        key={value}
-                                                        className={`flex items-center gap-3 rounded-2xl border px-3 py-2 text-sm transition ${
-                                                            selected
-                                                                ? 'border-sky-500 bg-sky-50 text-slate-900'
-                                                                : 'border-slate-200 bg-white text-slate-600 hover:border-sky-300'
-                                                        }`}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                            checked={selected}
-                                                            onChange={(event) => {
-                                                                const list = [...filters.diamond];
+                                        return (
+                                            <label
+                                                key={purity.id}
+                                                className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                    selected ? 'text-slate-900' : 'text-slate-600'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                    checked={selected}
+                                                    onChange={(event) => {
+                                                        const list = [...filters.silver_purity];
 
-                                                                if (event.target.checked) {
-                                                                    if (!list.includes(value)) {
-                                                                        list.push(value);
+                                                        if (event.target.checked) {
+                                                            list.push(String(purity.id));
+                                                        } else {
+                                                            const index = list.indexOf(String(purity.id));
+                                                            if (index >= 0) {
+                                                                list.splice(index, 1);
+                                                            }
+                                                        }
+
+                                                        applyFilter('silver_purity', list.length ? list : undefined);
+                                                    }}
+                                                />
+                                                <span>{purity.name}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, diamond: !prev.diamond }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Diamond</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.diamond ? '' : 'rotate-180'}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.diamond && (
+                                <div className="mt-3 space-y-4 text-sm">
+                                    {[
+                                        { title: 'Types', kind: 'type', options: facets.diamondOptions.types },
+                                        { title: 'Shapes', kind: 'shape', options: facets.diamondOptions.shapes },
+                                        { title: 'Colors', kind: 'color', options: facets.diamondOptions.colors },
+                                        { title: 'Clarities', kind: 'clarity', options: facets.diamondOptions.clarities },
+                                        { title: 'Cuts', kind: 'cut', options: facets.diamondOptions.cuts },
+                                    ].map(({ title, kind, options }) => (
+                                        <div key={kind}>
+                                            <p className="text-xs font-semibold text-slate-500">{title}</p>
+                                            <div className="mt-2 space-y-1.5">
+                                                {options.map((option) => {
+                                                    const value = `${kind}:${option.id}`;
+                                                    const selected = filters.diamond.includes(value);
+
+                                                    return (
+                                                        <label
+                                                            key={value}
+                                                            className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                                selected ? 'text-slate-900' : 'text-slate-600'
+                                                            }`}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                                checked={selected}
+                                                                onChange={(event) => {
+                                                                    const list = [...filters.diamond];
+
+                                                                    if (event.target.checked) {
+                                                                        if (!list.includes(value)) {
+                                                                            list.push(value);
+                                                                        }
+                                                                    } else {
+                                                                        const index = list.indexOf(value);
+                                                                        if (index >= 0) {
+                                                                            list.splice(index, 1);
+                                                                        }
                                                                     }
-                                                                } else {
-                                                                    const index = list.indexOf(value);
-                                                                    if (index >= 0) {
-                                                                        list.splice(index, 1);
-                                                                    }
-                                                                }
 
-                                                                applyFilter('diamond', list.length ? list : undefined);
-                                                            }}
-                                                        />
-                                                        <span>{option.name}</span>
-                                                    </label>
-                                                );
-                                            })}
+                                                                    applyFilter('diamond', list.length ? list : undefined);
+                                                                }}
+                                                            />
+                                                            <span>{option.name}</span>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div>
-                            <h2 className="text-sm font-semibold text-slate-800">Price range (₹)</h2>
-                            <PriceRangeFilter
-                                applyPriceRange={applyPriceRange}
-                                resetPriceRange={resetPriceRange}
-                                priceRange={priceRange}
-                                setPriceRange={setPriceRange}
-                            />
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, price: !prev.price }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Price range (₹)</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.price ? '' : 'rotate-180'}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.price && (
+                                <PriceRangeFilter
+                                    applyPriceRange={applyPriceRange}
+                                    resetPriceRange={resetPriceRange}
+                                    priceRange={priceRange}
+                                    setPriceRange={setPriceRange}
+                                />
+                            )}
                         </div>
                     </aside>
 
                     <section className="lg:col-span-4">
                         {catalogItems.length === 0 ? (
-                            <div className="rounded-3xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
+                            <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
                                 No products match your filters. Try broadening your search or reset filters.
                             </div>
                         ) : (
                             <div
                                 className={
-                                    viewMode === 'grid' ? 'grid gap-6 sm:grid-cols-2 xl:grid-cols-3' : 'flex flex-col gap-4'
+                                    viewMode === 'grid' ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3' : 'flex flex-col gap-3'
                                 }
                             >
                                 {catalogItems.map((product) => {
@@ -931,21 +1118,27 @@ function PriceRangeFilter({
     resetPriceRange,
 }: PriceRangeFilterProps) {
     const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+    const [activeThumb, setActiveThumb] = useState<'min' | 'max' | null>(null);
+    const sliderRef = useRef<HTMLDivElement>(null);
 
-    const handleMinRangeChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const getPercentage = (value: number) => {
+        return ((value - DEFAULT_PRICE_MIN) / (DEFAULT_PRICE_MAX - DEFAULT_PRICE_MIN)) * 100;
+    };
+
+    const handleMinChange = (event: ChangeEvent<HTMLInputElement>) => {
         const value = Number(event.target.value);
         if (Number.isNaN(value)) return;
         setPriceRange((prev) => {
-            const nextMin = clamp(value, DEFAULT_PRICE_MIN, prev.max);
+            const nextMin = clamp(value, DEFAULT_PRICE_MIN, prev.max - PRICE_STEP);
             return { ...prev, min: nextMin };
         });
     };
 
-    const handleMaxRangeChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const handleMaxChange = (event: ChangeEvent<HTMLInputElement>) => {
         const value = Number(event.target.value);
         if (Number.isNaN(value)) return;
         setPriceRange((prev) => {
-            const nextMax = clamp(value, prev.min, DEFAULT_PRICE_MAX);
+            const nextMax = clamp(value, prev.min + PRICE_STEP, DEFAULT_PRICE_MAX);
             return { ...prev, max: nextMax };
         });
     };
@@ -954,7 +1147,7 @@ function PriceRangeFilter({
         const value = event.target.value === '' ? DEFAULT_PRICE_MIN : Number(event.target.value);
         if (Number.isNaN(value)) return;
         setPriceRange((prev) => {
-            const nextMin = clamp(value, DEFAULT_PRICE_MIN, prev.max);
+            const nextMin = clamp(value, DEFAULT_PRICE_MIN, prev.max - PRICE_STEP);
             return { ...prev, min: nextMin };
         });
     };
@@ -963,7 +1156,7 @@ function PriceRangeFilter({
         const value = event.target.value === '' ? DEFAULT_PRICE_MAX : Number(event.target.value);
         if (Number.isNaN(value)) return;
         setPriceRange((prev) => {
-            const nextMax = clamp(value, prev.min, DEFAULT_PRICE_MAX);
+            const nextMax = clamp(value, prev.min + PRICE_STEP, DEFAULT_PRICE_MAX);
             return { ...prev, max: nextMax };
         });
     };
@@ -971,21 +1164,40 @@ function PriceRangeFilter({
     const apply = () => applyPriceRange(priceRange.min, priceRange.max);
     const reset = () => resetPriceRange();
 
+    const minPercent = getPercentage(priceRange.min);
+    const maxPercent = getPercentage(priceRange.max);
+
     return (
-        <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+        <div className="mt-3 space-y-4">
             <div className="flex items-center justify-between text-xs font-medium text-slate-500">
                 <span>{currencyFormatter.format(priceRange.min)}</span>
                 <span>{currencyFormatter.format(priceRange.max)}</span>
             </div>
-            <div className="space-y-2">
+            <div className="relative" ref={sliderRef}>
+                <div className="relative h-2 w-full rounded-full bg-slate-200">
+                    <div
+                        className="absolute h-2 rounded-full bg-sky-500"
+                        style={{
+                            left: `${minPercent}%`,
+                            width: `${maxPercent - minPercent}%`,
+                        }}
+                    />
+                </div>
                 <input
                     type="range"
                     min={DEFAULT_PRICE_MIN}
                     max={DEFAULT_PRICE_MAX}
                     step={PRICE_STEP}
                     value={priceRange.min}
-                    onChange={handleMinRangeChange}
-                    className="w-full accent-sky-500"
+                    onChange={handleMinChange}
+                    onMouseDown={() => setActiveThumb('min')}
+                    onMouseUp={() => setActiveThumb(null)}
+                    onTouchStart={() => setActiveThumb('min')}
+                    onTouchEnd={() => setActiveThumb(null)}
+                    className="absolute top-0 h-2 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-sky-600 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:hover:bg-sky-700 [&::-moz-range-thumb]:relative [&::-moz-range-thumb]:z-10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-sky-600 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:hover:bg-sky-700"
+                    style={{
+                        zIndex: activeThumb === 'min' ? 20 : 10,
+                    }}
                 />
                 <input
                     type="range"
@@ -993,8 +1205,15 @@ function PriceRangeFilter({
                     max={DEFAULT_PRICE_MAX}
                     step={PRICE_STEP}
                     value={priceRange.max}
-                    onChange={handleMaxRangeChange}
-                    className="w-full accent-sky-500"
+                    onChange={handleMaxChange}
+                    onMouseDown={() => setActiveThumb('max')}
+                    onMouseUp={() => setActiveThumb(null)}
+                    onTouchStart={() => setActiveThumb('max')}
+                    onTouchEnd={() => setActiveThumb(null)}
+                    className="absolute top-0 h-2 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-sky-600 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:hover:bg-sky-700 [&::-moz-range-thumb]:relative [&::-moz-range-thumb]:z-10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-sky-600 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:hover:bg-sky-700"
+                    style={{
+                        zIndex: activeThumb === 'max' ? 20 : 10,
+                    }}
                 />
             </div>
             <div className="flex items-center gap-3">
@@ -1010,7 +1229,7 @@ function PriceRangeFilter({
                         min={DEFAULT_PRICE_MIN}
                         max={priceRange.max}
                         step={PRICE_STEP}
-                        className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                     />
                 </div>
                 <div className="flex-1">
@@ -1025,7 +1244,7 @@ function PriceRangeFilter({
                         min={priceRange.min}
                         max={DEFAULT_PRICE_MAX}
                         step={PRICE_STEP}
-                        className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                     />
                 </div>
             </div>
@@ -1033,14 +1252,14 @@ function PriceRangeFilter({
                 <button
                     type="button"
                     onClick={apply}
-                    className="flex-1 rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500"
+                    className="flex-1 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500"
                 >
                     Apply
                 </button>
                 <button
                     type="button"
                     onClick={reset}
-                    className="flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                    className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                 >
                     Reset
                 </button>
@@ -1155,13 +1374,13 @@ function ProductCard({
                                         </>
                                     )}
                                 </div>
+                                {product.is_jobwork_allowed && (
+                                    <p className="text-xs font-medium text-emerald-600">Available for jobwork</p>
+                                )}
                         </div>
                         {WishlistButton}
                     </div>
                     <div className="flex items-center justify-between">
-                        <Link href={productLink} className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500">
-                            View details
-                        </Link>
                         {showJobworkBadge && (
                             <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
                                 Jobwork available
@@ -1226,34 +1445,15 @@ function ProductCard({
                             <p>{formatWeight(product.total_weight)}</p>
                         </div>
                     </div>
+                    {product.is_jobwork_allowed && (
+                        <p className="mt-3 text-xs font-medium text-emerald-600">Available for jobwork</p>
+                    )}
                 </div>
-                {product.variants.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                        {product.variants.slice(0, 3).map((variant) => (
-                            <span
-                                key={variant.id}
-                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                    variant.is_default ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
-                                }`}
-                            >
-                                {(variant.metadata?.auto_label as string | undefined) ?? variant.label}
-                            </span>
-                        ))}
-                        {product.variants.length > 3 && (
-                            <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
-                                +{product.variants.length - 3} more
-                            </span>
-                        )}
-                    </div>
-                )}
                 {showJobworkBadge && (
                     <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1 text-xs font-semibold text-emerald-700">
                         Jobwork available
                     </span>
                 )}
-                <Link href={productLink} className="inline-flex rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500">
-                    View details
-                </Link>
             </div>
         </article>
     );
