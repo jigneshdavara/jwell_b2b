@@ -96,10 +96,9 @@ export default function AdminCustomerGroupsIndex() {
         event.preventDefault();
 
         if (editingGroup) {
-            form.post(route('admin.customers.groups.update', editingGroup.id), {
+            form.put(route('admin.customers.groups.update', editingGroup.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
-                method: 'put',
             });
         } else {
             form.post(route('admin.customers.groups.store'), {

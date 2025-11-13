@@ -96,10 +96,9 @@ export default function AdminDiamondCutsIndex() {
         event.preventDefault();
 
         if (editingCut) {
-            form.post(route('admin.diamond.cuts.update', editingCut.id), {
+            form.put(route('admin.diamond.cuts.update', editingCut.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
-                method: 'put',
             });
         } else {
             form.post(route('admin.diamond.cuts.store'), {

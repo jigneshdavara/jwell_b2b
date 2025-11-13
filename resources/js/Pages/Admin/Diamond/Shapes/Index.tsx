@@ -96,10 +96,9 @@ export default function AdminDiamondShapesIndex() {
         event.preventDefault();
 
         if (editingShape) {
-            form.post(route('admin.diamond.shapes.update', editingShape.id), {
+            form.put(route('admin.diamond.shapes.update', editingShape.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
-                method: 'put',
             });
         } else {
             form.post(route('admin.diamond.shapes.store'), {

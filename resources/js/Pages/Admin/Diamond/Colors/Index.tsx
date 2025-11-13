@@ -96,10 +96,9 @@ export default function AdminDiamondColorsIndex() {
         event.preventDefault();
 
         if (editingColor) {
-            form.post(route('admin.diamond.colors.update', editingColor.id), {
+            form.put(route('admin.diamond.colors.update', editingColor.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
-                method: 'put',
             });
         } else {
             form.post(route('admin.diamond.colors.store'), {

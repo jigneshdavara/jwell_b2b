@@ -53,10 +53,9 @@ export default function AdminCustomerTypesIndex() {
         event.preventDefault();
 
         if (editingType) {
-            form.post(route('admin.customers.types.update', editingType.id), {
+            form.put(route('admin.customers.types.update', editingType.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
-                method: 'put',
             });
         } else {
             form.post(route('admin.customers.types.store'), {

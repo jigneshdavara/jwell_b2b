@@ -61,9 +61,8 @@ export default function AdminOrderStatusesIndex() {
         event.preventDefault();
 
         if (editingStatus) {
-            form.post(route('admin.orders.statuses.update', editingStatus.id), {
+            form.put(route('admin.orders.statuses.update', editingStatus.id), {
                 preserveScroll: true,
-                method: 'put',
                 onSuccess: () => resetForm(),
             });
         } else {

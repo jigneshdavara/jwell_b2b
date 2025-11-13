@@ -29,10 +29,14 @@ class KycController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'phone' => $user->phone,
+                'type' => $user->type,
                 'kyc_status' => $user->kyc_status,
                 'kyc_status_label' => Str::headline($user->kyc_status ?? ''),
                 'kyc_notes' => $user->kyc_notes,
                 'comments_enabled' => (bool) $user->kyc_comments_enabled,
+                'created_at' => $user->created_at?->toDateTimeString(),
+                'updated_at' => $user->updated_at?->toDateTimeString(),
                 'kyc_profile' => $user->kycProfile ? [
                     'business_name' => $user->kycProfile->business_name,
                     'business_website' => $user->kycProfile->business_website,
@@ -47,6 +51,8 @@ class KycController extends Controller
                     'country' => $user->kycProfile->country,
                     'contact_name' => $user->kycProfile->contact_name,
                     'contact_phone' => $user->kycProfile->contact_phone,
+                    'created_at' => $user->kycProfile->created_at?->toDateTimeString(),
+                    'updated_at' => $user->kycProfile->updated_at?->toDateTimeString(),
                 ] : null,
                 'kyc_documents' => $user->kycDocuments->map(function (UserKycDocument $document) {
                     return [

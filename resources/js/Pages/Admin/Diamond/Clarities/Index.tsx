@@ -96,10 +96,9 @@ export default function AdminDiamondClaritiesIndex() {
         event.preventDefault();
 
         if (editingClarity) {
-            form.post(route('admin.diamond.clarities.update', editingClarity.id), {
+            form.put(route('admin.diamond.clarities.update', editingClarity.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
-                method: 'put',
             });
         } else {
             form.post(route('admin.diamond.clarities.store'), {

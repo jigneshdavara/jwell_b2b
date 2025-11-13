@@ -116,10 +116,9 @@ export default function AdminBrandsIndex() {
         event.preventDefault();
 
         if (editingBrand) {
-            brandForm.post(route('admin.catalog.brands.update', editingBrand.id), {
+            brandForm.put(route('admin.catalog.brands.update', editingBrand.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
-                method: 'put',
                 forceFormData: true,
             });
         } else {

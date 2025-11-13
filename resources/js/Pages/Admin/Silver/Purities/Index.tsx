@@ -96,10 +96,9 @@ export default function AdminSilverPuritiesIndex() {
         event.preventDefault();
 
         if (editingPurity) {
-            form.post(route('admin.silver.purities.update', editingPurity.id), {
+            form.put(route('admin.silver.purities.update', editingPurity.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
-                method: 'put',
             });
         } else {
             form.post(route('admin.silver.purities.store'), {

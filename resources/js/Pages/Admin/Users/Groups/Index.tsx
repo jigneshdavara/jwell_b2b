@@ -131,10 +131,7 @@ export default function AdminUserGroupsIndex() {
         } as const;
 
         if (editingGroup) {
-            form.post(route('admin.users.groups.update', editingGroup.id), {
-                ...options,
-                method: 'put',
-            });
+            form.put(route('admin.users.groups.update', editingGroup.id), options);
         } else {
             form.post(route('admin.users.groups.store'), options);
         }

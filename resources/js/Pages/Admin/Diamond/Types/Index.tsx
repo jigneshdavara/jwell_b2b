@@ -96,10 +96,9 @@ export default function AdminDiamondTypesIndex() {
         event.preventDefault();
 
         if (editingType) {
-            form.post(route('admin.diamond.types.update', editingType.id), {
+            form.put(route('admin.diamond.types.update', editingType.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
-                method: 'put',
             });
         } else {
             form.post(route('admin.diamond.types.store'), {

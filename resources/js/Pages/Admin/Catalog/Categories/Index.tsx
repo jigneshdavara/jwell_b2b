@@ -134,10 +134,19 @@ export default function AdminCategoriesIndex() {
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        categoryForm.transform((data) => ({
-            ...data,
-            parent_id: data.parent_id === 'none' ? null : data.parent_id,
-        }));
+        // Ensure name is not empty
+        if (!categoryForm.data.name || categoryForm.data.name.trim() === '') {
+            categoryForm.setError('name', 'The name field is required.');
+            return;
+        }
+
+        // Update form data with proper parent_id handling before submitting
+        const parentId = categoryForm.data.parent_id === 'none' ? null : (categoryForm.data.parent_id ? Number(categoryForm.data.parent_id) : null);
+        categoryForm.setData('parent_id', parentId);
+        categoryForm.setData('name', categoryForm.data.name.trim());
+        if (categoryForm.data.slug) {
+            categoryForm.setData('slug', categoryForm.data.slug.trim());
+        }
 
         if (editingCategory) {
             categoryForm.put(route('admin.catalog.categories.update', editingCategory.id), {

@@ -143,10 +143,7 @@ export default function AdminMakingChargeDiscountsIndex() {
         } as const;
 
         if (editingDiscount) {
-            form.post(route('admin.offers.making-charge-discounts.update', editingDiscount.id), {
-                ...options,
-                method: 'put',
-            });
+            form.put(route('admin.offers.making-charge-discounts.update', editingDiscount.id), options);
         } else {
             form.post(route('admin.offers.making-charge-discounts.store'), options);
         }

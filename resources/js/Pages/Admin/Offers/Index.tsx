@@ -52,7 +52,7 @@ export default function AdminOffersIndex() {
 
     const defaultType = useMemo(() => offerTypes[0] ?? 'percentage', [offerTypes]);
 
-    const { data, setData, post, processing, errors, reset, transform } = useForm({
+    const { data, setData, post, put, processing, errors, reset, transform } = useForm({
         code: '',
         name: '',
         description: '',
@@ -154,10 +154,7 @@ export default function AdminOffersIndex() {
         } as const;
 
         if (editingOffer) {
-            post(route('admin.offers.update', editingOffer.id), {
-                ...options,
-                method: 'put',
-            });
+            put(route('admin.offers.update', editingOffer.id), options);
         } else {
             post(route('admin.offers.store'), options);
         }

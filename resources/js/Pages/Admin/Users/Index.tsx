@@ -71,7 +71,7 @@ export default function AdminUsersIndex() {
     const { users, kycStatuses, filters, stats, customerGroups, perPageOptions } = usePage<AdminUsersPageProps>().props;
     const [search, setSearch] = useState(filters.search ?? '');
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(users.meta.per_page);
+    const [perPage, setPerPage] = useState(users.meta?.per_page ?? 20);
     const [typeFilter, setTypeFilter] = useState(filters.type ?? '');
     const [groupFilter, setGroupFilter] = useState<string | ''>(filters.customer_group_id ? String(filters.customer_group_id) : '');
 
@@ -80,7 +80,7 @@ export default function AdminUsersIndex() {
     const changeStatus = (status: string) => {
         const params = {
             search: search || undefined,
-            per_page: perPage !== users.meta.per_page ? perPage : undefined,
+            per_page: perPage !== (users.meta?.per_page ?? 20) ? perPage : undefined,
             customer_group_id: groupFilter || undefined,
             type: typeFilter || undefined,
             status: status === 'all' ? undefined : status,
@@ -273,7 +273,7 @@ export default function AdminUsersIndex() {
                                 setSearch('');
                                 setGroupFilter('');
                                 setTypeFilter('');
-                                setPerPage(users.meta.per_page);
+                                setPerPage(users.meta?.per_page ?? 20);
                                 router.get(route('admin.customers.index'));
                             }}
                             className="rounded-full border border-slate-200 px-4 py-1.5 font-semibold text-slate-600 hover:border-slate-300 hover:text-slate-900"
@@ -330,6 +330,7 @@ export default function AdminUsersIndex() {
                                 <th className="px-5 py-3 text-left">Email</th>
                                 <th className="px-5 py-3 text-left">Type</th>
                                 <th className="px-5 py-3 text-left">Customer group</th>
+                                <th className="px-5 py-3 text-left">KYC Status</th>
                                 <th className="px-5 py-3 text-left">Status</th>
                                 <th className="px-5 py-3 text-left">Docs</th>
                                 <th className="px-5 py-3 text-left">Joined</th>
@@ -361,23 +362,23 @@ export default function AdminUsersIndex() {
                                                 {user.kyc_status_label}
                                             </span>
                                         </td>
+                                        <td className="px-5 py-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleActive(user)}
+                                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition ${
+                                                    user.is_active
+                                                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                }`}
+                                            >
+                                                {user.is_active ? 'Enabled' : 'Disabled'}
+                                            </button>
+                                        </td>
                                         <td className="px-5 py-3 text-slate-500">{user.kyc_document_count}</td>
                                         <td className="px-5 py-3 text-slate-500">{user.joined_at ? new Date(user.joined_at).toLocaleDateString('en-IN') : '—'}</td>
                                         <td className="px-5 py-3 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                {iconButton(
-                                                    user.is_active ? (
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                        </svg>
-                                                    ) : (
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12a7.5 7.5 0 0015 0M19.5 12a7.5 7.5 0 01-15 0" />
-                                                        </svg>
-                                                    ),
-                                                    user.is_active ? 'Disable customer' : 'Enable customer',
-                                                    () => toggleActive(user),
-                                                )}
                                                 <Link
                                                     href={route('admin.customers.kyc.show', user.id)}
                                                     className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
@@ -402,7 +403,7 @@ export default function AdminUsersIndex() {
                             })}
                             {users.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={9} className="px-5 py-6 text-center text-sm text-slate-500">
+                                    <td colSpan={10} className="px-5 py-6 text-center text-sm text-slate-500">
                                         No customers found.
                                     </td>
                                 </tr>
@@ -413,13 +414,13 @@ export default function AdminUsersIndex() {
 
                 <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
                     <div>
-                        Showing {(users.meta.current_page - 1) * users.meta.per_page + 1} to{' '}
-                        {Math.min(users.meta.current_page * users.meta.per_page, users.meta.total)} of {users.meta.total} entries
+                        Showing {((users.meta?.current_page ?? 1) - 1) * (users.meta?.per_page ?? 20) + 1} to{' '}
+                        {Math.min((users.meta?.current_page ?? 1) * (users.meta?.per_page ?? 20), users.meta?.total ?? 0)} of {users.meta?.total ?? 0} entries
                     </div>
                     <div className="flex gap-2">
-                        {Array.from({ length: users.meta.last_page }).map((_, index) => {
+                        {Array.from({ length: users.meta?.last_page ?? 1 }).map((_, index) => {
                             const page = index + 1;
-                            const active = page === users.meta.current_page;
+                            const active = page === (users.meta?.current_page ?? 1);
                             return (
                                 <button
                                     key={page}

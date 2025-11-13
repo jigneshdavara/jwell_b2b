@@ -96,10 +96,9 @@ export default function AdminGoldPuritiesIndex() {
         event.preventDefault();
 
         if (editingPurity) {
-            form.post(route('admin.gold.purities.update', editingPurity.id), {
+            form.put(route('admin.gold.purities.update', editingPurity.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
-                method: 'put',
             });
         } else {
             form.post(route('admin.gold.purities.store'), {

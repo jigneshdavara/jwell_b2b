@@ -73,10 +73,9 @@ export default function AdminMaterialsIndex() {
         event.preventDefault();
 
         if (editingMaterial) {
-            materialForm.post(route('admin.catalog.materials.update', editingMaterial.id), {
+            materialForm.put(route('admin.catalog.materials.update', editingMaterial.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
-                method: 'put',
             });
         } else {
             materialForm.post(route('admin.catalog.materials.store'), {

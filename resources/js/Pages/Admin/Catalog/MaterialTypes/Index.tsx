@@ -50,10 +50,9 @@ export default function AdminMaterialTypesIndex() {
         event.preventDefault();
 
         if (editingType) {
-            form.post(route('admin.catalog.material-types.update', editingType.id), {
+            form.put(route('admin.catalog.material-types.update', editingType.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
-                method: 'put',
             });
         } else {
             form.post(route('admin.catalog.material-types.store'), {
