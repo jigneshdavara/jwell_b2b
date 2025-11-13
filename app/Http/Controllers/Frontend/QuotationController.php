@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreQuotationMessageRequest;
+use App\Mail\QuotationSubmittedAdminMail;
+use App\Mail\QuotationSubmittedCustomerMail;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Quotation;
@@ -13,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -104,7 +107,7 @@ class QuotationController extends Controller
             return back()->withErrors(['mode' => 'Jobwork quotations are not allowed for this product.']);
         }
 
-        Quotation::create([
+        $quotation = Quotation::create([
             'user_id' => $request->user()->id,
             'product_id' => $product->id,
             'product_variant_id' => $variantId,
@@ -114,6 +117,17 @@ class QuotationController extends Controller
             'selections' => $data['selections'] ?? null,
             'notes' => $data['notes'] ?? null,
         ]);
+
+        $quotation->load(['user', 'product']);
+
+        // Send email to customer
+        Mail::to($quotation->user->email)->send(new QuotationSubmittedCustomerMail($quotation));
+
+        // Send email to admin
+        $adminEmail = config('mail.from.address');
+        if ($adminEmail) {
+            Mail::to($adminEmail)->send(new QuotationSubmittedAdminMail($quotation));
+        }
 
         return redirect()
             ->route('frontend.quotations.index')
@@ -162,7 +176,8 @@ class QuotationController extends Controller
             return redirect()->route('frontend.cart.index')->with('error', 'Your quotation list is empty.');
         }
 
-        DB::transaction(function () use ($cart, $user): void {
+        $quotations = [];
+        DB::transaction(function () use ($cart, $user, &$quotations): void {
             foreach ($cart->items as $item) {
                 $product = $item->product;
                 if (! $product) {
@@ -201,10 +216,23 @@ class QuotationController extends Controller
                         'message' => (string) $configuration['notes'],
                     ]);
                 }
+
+                $quotations[] = $quotation;
             }
 
             $this->cartService->clearItems($cart);
         });
+
+        // Send emails for all quotations
+        $adminEmail = config('mail.from.address');
+        foreach ($quotations as $quotation) {
+            $quotation->load(['user', 'product']);
+            Mail::to($quotation->user->email)->send(new QuotationSubmittedCustomerMail($quotation));
+            
+            if ($adminEmail) {
+                Mail::to($adminEmail)->send(new QuotationSubmittedAdminMail($quotation));
+            }
+        }
 
         return redirect()
             ->route('frontend.quotations.index')

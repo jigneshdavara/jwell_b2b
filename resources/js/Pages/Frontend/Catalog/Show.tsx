@@ -493,32 +493,6 @@ export default function CatalogShow() {
                                     </div>
                                 )}
                                 <div className="relative flex-1">
-                                    <button
-                                        type="button"
-                                        onClick={toggleWishlist}
-                                        disabled={wishlistPending}
-                                        className={`absolute right-4 top-4 z-10 inline-flex h-12 w-12 items-center justify-center rounded-full border transition ${
-                                            isWishlisted
-                                                ? 'border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-300 hover:text-rose-700'
-                                                : 'border-white/70 bg-white/70 text-slate-500 hover:border-rose-200 hover:text-rose-600'
-                                        }`}
-                                        aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill={isWishlisted ? 'currentColor' : 'none'}
-                                            stroke="currentColor"
-                                            strokeWidth={1.5}
-                                            className="h-5 w-5"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 5.053 7.5 10.5 9 10.5s9-5.447 9-10.5z"
-                                            />
-                                        </svg>
-                                    </button>
                                     <div
                                         ref={galleryRef}
                                         className="group relative aspect-square overflow-hidden rounded-3xl bg-slate-100"

@@ -7,6 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ApproveQuotationRequest;
 use App\Http\Requests\Admin\UpdateJobworkStatusRequest;
 use App\Http\Requests\StoreQuotationMessageRequest;
+use App\Mail\QuotationApprovedMail;
+use App\Mail\QuotationConfirmationRequestMail;
+use App\Mail\QuotationRejectedMail;
+use App\Mail\QuotationStatusUpdatedMail;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -18,6 +22,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -159,6 +164,7 @@ class QuotationController extends Controller
             return redirect()->back()->with('error', 'Quotation must be confirmed by customer before approval.');
         }
 
+        $previousStatus = $quotation->status;
         DB::transaction(function () use ($request, $quotation): void {
             $quotation->fill([
                 'status' => 'approved',
@@ -180,6 +186,18 @@ class QuotationController extends Controller
             $quotation->save();
         });
 
+        $quotation->load(['user', 'product', 'order']);
+        
+        // Send approval email to customer
+        Mail::to($quotation->user->email)->send(new QuotationApprovedMail($quotation));
+        
+        // Send status update email
+        Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
+            $quotation,
+            $previousStatus,
+            $request->validated('admin_notes')
+        ));
+
         return redirect()
             ->route('admin.quotations.show', $quotation->id)
             ->with('success', 'Quotation approved successfully.');
@@ -187,10 +205,25 @@ class QuotationController extends Controller
 
     public function reject(ApproveQuotationRequest $request, Quotation $quotation): RedirectResponse
     {
+        $previousStatus = $quotation->status;
+        $reason = $request->validated('admin_notes');
+        
         $quotation->update([
             'status' => 'rejected',
-            'admin_notes' => $request->validated('admin_notes'),
+            'admin_notes' => $reason,
         ]);
+
+        $quotation->load(['user', 'product']);
+        
+        // Send rejection email to customer
+        Mail::to($quotation->user->email)->send(new QuotationRejectedMail($quotation, $reason));
+        
+        // Send status update email
+        Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
+            $quotation,
+            $previousStatus,
+            $reason
+        ));
 
         return redirect()
             ->route('admin.quotations.show', $quotation->id)
@@ -203,9 +236,12 @@ class QuotationController extends Controller
             return redirect()->back()->with('error', 'Jobwork status is only applicable to jobwork quotations.');
         }
 
+        $previousStatus = $quotation->jobwork_status;
+        $notes = $request->validated('admin_notes');
+        
         $quotation->update([
             'jobwork_status' => $request->validated('jobwork_status'),
-            'admin_notes' => $request->validated('admin_notes'),
+            'admin_notes' => $notes,
         ]);
 
         if ($request->validated('jobwork_status') === 'billing_confirmed' && ! $quotation->order) {
@@ -213,6 +249,15 @@ class QuotationController extends Controller
             $quotation->order()->associate($order);
             $quotation->save();
         }
+
+        $quotation->load(['user', 'product']);
+        
+        // Send status update email to customer
+        Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
+            $quotation,
+            $previousStatus ?? 'pending',
+            $notes
+        ));
 
         return redirect()
             ->route('admin.quotations.show', $quotation->id)
@@ -250,6 +295,7 @@ class QuotationController extends Controller
             ]);
         }
 
+        $previousStatus = $quotation->status;
         $quotation->quantity = $data['quantity'];
         $quotation->status = 'pending_customer_confirmation';
         if (! empty($data['notes'])) {
@@ -258,12 +304,25 @@ class QuotationController extends Controller
         $quotation->save();
 
         $customerId = auth('web')->id();
+        $message = $data['notes'] ?? 'Please review updated quotation details.';
 
         $quotation->messages()->create([
             'user_id' => $customerId,
             'sender' => 'admin',
-            'message' => $data['notes'] ?? 'Please review updated quotation details.',
+            'message' => $message,
         ]);
+
+        $quotation->load(['user', 'product']);
+        
+        // Send confirmation request email to customer
+        Mail::to($quotation->user->email)->send(new QuotationConfirmationRequestMail($quotation, $message));
+        
+        // Send status update email
+        Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
+            $quotation,
+            $previousStatus,
+            $message
+        ));
 
         return redirect()
             ->route('admin.quotations.show', $quotation->id)
