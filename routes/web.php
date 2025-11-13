@@ -244,6 +244,8 @@ Route::prefix('admin')
         Route::post('/quotations/{quotation}/jobwork-status', [AdminQuotationController::class, 'updateJobworkStatus'])->name('quotations.jobwork-status');
         Route::post('/quotations/{quotation}/messages', [AdminQuotationController::class, 'message'])->name('quotations.messages.store');
         Route::post('/quotations/{quotation}/request-confirmation', [AdminQuotationController::class, 'requestCustomerConfirmation'])->name('quotations.request-confirmation');
+        Route::post('/quotations/{quotation}/update-product', [AdminQuotationController::class, 'updateProduct'])->name('quotations.update-product');
+        Route::delete('/quotations/{quotation}', [AdminQuotationController::class, 'destroy'])->name('quotations.destroy');
 
         Route::get('/offers', [OfferController::class, 'index'])->name('offers.index');
         Route::post('/offers', [OfferController::class, 'store'])->name('offers.store');

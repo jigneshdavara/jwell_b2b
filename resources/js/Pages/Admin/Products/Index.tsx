@@ -52,7 +52,7 @@ export default function AdminProductsIndex() {
         category: filters.category ?? 'all',
         status: filters.status ?? 'all',
     });
-    const [perPage, setPerPage] = useState(initialPerPage ?? products.meta.per_page);
+    const [perPage, setPerPage] = useState(initialPerPage ?? products.meta?.per_page ?? 20);
     const [bulkBrand, setBulkBrand] = useState('');
     const [bulkCategory, setBulkCategory] = useState('');
 
@@ -62,8 +62,8 @@ export default function AdminProductsIndex() {
     }, [products.data]);
 
     useEffect(() => {
-        setPerPage(initialPerPage ?? products.meta.per_page);
-    }, [initialPerPage, products.meta.per_page]);
+        setPerPage(initialPerPage ?? products.meta?.per_page ?? 20);
+    }, [initialPerPage, products.meta?.per_page]);
 
     const allSelected = useMemo(() => {
         if (products.data.length === 0) {
@@ -501,7 +501,7 @@ export default function AdminProductsIndex() {
 
                 <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
                     <div>
-                        Showing {products.meta.from ?? 0} to {products.meta.to ?? 0} of {products.meta.total} entries
+                        Showing {products.meta?.from ?? 0} to {products.meta?.to ?? 0} of {products.meta?.total ?? 0} entries
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {products.links.map((link, index) => {

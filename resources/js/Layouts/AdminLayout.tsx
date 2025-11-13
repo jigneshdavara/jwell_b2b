@@ -90,10 +90,8 @@ const adminNavigation: NavItem[] = [
     {
         label: 'Quotations',
         icon: 'inbox',
-        children: [
-            { label: 'Jewellery', route: 'admin.quotations.jewellery', match: 'admin.quotations.jewellery' },
-            { label: 'Jobwork', route: 'admin.quotations.jobwork', match: 'admin.quotations.jobwork' },
-        ],
+        route: 'admin.quotations.index',
+        match: 'admin.quotations.*',
     },
     {
         label: 'Offers',
@@ -208,10 +206,8 @@ export default function AdminLayout({ children }: PropsWithChildren) {
 
         adminNavigation.forEach((item) => {
             if ('children' in item && item.children) {
-                const isQuotationGroup = item.label === 'Quotations';
                 const anyActive = item.children.some((child) => route().current(child.match));
-                const additionalActive = isQuotationGroup && route().current('admin.quotations.*');
-                initial[item.label] = anyActive || additionalActive;
+                initial[item.label] = anyActive;
             }
         });
 
