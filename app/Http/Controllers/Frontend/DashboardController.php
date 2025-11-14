@@ -156,9 +156,6 @@ class DashboardController extends Controller
 
         return Inertia::render('Frontend/Dashboard/Overview', [
             'stats' => $stats,
-            'recentOrders' => $recentOrders,
-            'jobworkTimeline' => $jobworkTimeline,
-            'dueOrders' => $dueOrders,
             'recentProducts' => $recentProducts,
             'featuredCatalogs' => $featuredCatalogs,
             'featuredCategories' => $featuredCategories,

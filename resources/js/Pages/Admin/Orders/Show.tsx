@@ -359,17 +359,21 @@ export default function AdminOrdersShow() {
                                     {order.status_history.length === 0 && (
                                         <p className="text-xs text-slate-400">No status updates recorded yet.</p>
                                     )}
-                                    {order.status_history.map((entry) => (
-                                        <div key={entry.id} className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3">
-                                            <div>
-                                                <span className="font-semibold text-slate-800">{entry.status.replace(/_/g, ' ')}</span>
-                                                {entry.meta?.comment && (
-                                                    <p className="mt-1 text-xs text-slate-500">{entry.meta.comment as string}</p>
-                                                )}
+                                    {order.status_history.map((entry) => {
+                                        const comment = entry.meta?.comment;
+                                        const commentText = typeof comment === 'string' ? comment : null;
+                                        return (
+                                            <div key={entry.id} className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3">
+                                                <div>
+                                                    <span className="font-semibold text-slate-800">{entry.status.replace(/_/g, ' ')}</span>
+                                                    {commentText && (
+                                                        <p className="mt-1 text-xs text-slate-500">{commentText}</p>
+                                                    )}
+                                                </div>
+                                                <span className="text-xs text-slate-400">{formatDate(entry.created_at)}</span>
                                             </div>
-                                            <span className="text-xs text-slate-400">{formatDate(entry.created_at)}</span>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>

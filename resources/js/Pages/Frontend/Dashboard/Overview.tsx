@@ -16,25 +16,6 @@ const titleMap: Record<string, string> = {
 
 type DashboardProps = {
     stats: Record<string, number>;
-    recentOrders: Array<{
-        reference: string;
-        status: string;
-        total: number;
-        items: number;
-        placed_on: string;
-    }>;
-    jobworkTimeline: Array<{
-        id: number;
-        status?: string | null;
-        product?: string | null;
-        quantity: number;
-        submitted_on: string | null;
-    }>;
-    dueOrders: Array<{
-        reference: string;
-        total: number;
-        placed_on: string | null;
-    }>;
     recentProducts: Array<{
         id: number;
         name: string;
@@ -88,9 +69,6 @@ const statusColors: Record<string, string> = {
 export default function FrontendDashboardOverview() {
     const {
         stats,
-        recentOrders,
-        jobworkTimeline,
-        dueOrders,
         recentProducts,
         featuredCatalogs,
         featuredCategories: _featuredCategories,
@@ -301,141 +279,6 @@ export default function FrontendDashboardOverview() {
                     </aside>
                 </div>
 
-                <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
-                    <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h2 className="text-lg font-semibold text-slate-900">Recent orders</h2>
-                                <p className="text-sm text-slate-500">Track fulfilment and reconcile with payments.</p>
-                            </div>
-                            <Link
-                                href={route('frontend.orders.index')}
-                                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
-                            >
-                                View all orders
-                            </Link>
-                        </div>
-                        <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
-                            <table className="min-w-full divide-y divide-slate-200 text-sm">
-                                <thead className="bg-slate-50">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left font-semibold text-slate-500">Reference</th>
-                                        <th className="px-4 py-3 text-left font-semibold text-slate-500">Status</th>
-                                        <th className="px-4 py-3 text-right font-semibold text-slate-500">Total</th>
-                                        <th className="px-4 py-3 text-right font-semibold text-slate-500">Items</th>
-                                        <th className="px-4 py-3 text-right font-semibold text-slate-500">Placed</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
-                                    {recentOrders.map((order) => (
-                                        <tr key={order.reference}>
-                                            <td className="px-4 py-3 font-medium text-slate-700">{order.reference}</td>
-                                            <td className="px-4 py-3">
-                                                <span
-                                                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                                        statusColors[order.status] ?? 'bg-slate-100 text-slate-700'
-                                                    }`}
-                                                >
-                                                    {order.status.replace(/_/g, ' ')}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-slate-700">
-                                                {currencyFormatter.format(order.total)}
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-slate-500">{order.items}</td>
-                                            <td className="px-4 py-3 text-right text-slate-500">
-                                                {new Date(order.placed_on).toLocaleDateString('en-IN', {
-                                                    day: '2-digit',
-                                                    month: 'short',
-                                                    year: 'numeric',
-                                                })}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {recentOrders.length === 0 && (
-                                        <tr>
-                                            <td colSpan={5} className="px-4 py-6 text-center text-sm text-slate-500">
-                                                No orders yet. Start curating from the catalogue to populate this view.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
-                    <aside className="space-y-6">
-                        <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                            <h2 className="text-lg font-semibold text-slate-900">Jobwork timeline</h2>
-                            <p className="text-xs text-slate-400">Live production updates</p>
-                            <div className="mt-4 space-y-4">
-                                {jobworkTimeline.map((job) => (
-                                    <div key={job.id} className="rounded-2xl border border-slate-200 p-4">
-                                        <div className="flex items-center justify-between">
-                                            <p className="font-semibold text-slate-800">Quotation #{job.id}</p>
-                                            <span
-                                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                                    (job.status && statusColors[job.status]) ??
-                                                    'bg-slate-100 text-slate-700'
-                                                }`}
-                                            >
-                                                {(job.status ?? 'pending').replace(/_/g, ' ')}
-                                            </span>
-                                        </div>
-                                        <p className="mt-2 text-sm text-slate-600">
-                                            {job.product ?? 'Catalogue design'} · {job.quantity} pcs
-                                        </p>
-                                        <p className="mt-3 text-xs text-slate-500">
-                                            Submitted{' '}
-                                            {job.submitted_on
-                                                ? new Date(job.submitted_on).toLocaleDateString('en-IN', {
-                                                      day: '2-digit',
-                                                      month: 'short',
-                                                      year: 'numeric',
-                                                  })
-                                                : 'N/A'}
-                                        </p>
-                                    </div>
-                                ))}
-                                {jobworkTimeline.length === 0 && (
-                                    <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
-                                        No jobwork submitted yet. Launch a custom request directly from any product page.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                            <h2 className="text-lg font-semibold text-slate-900">Due payments</h2>
-                            <p className="text-xs text-slate-400">Awaiting confirmation</p>
-                            <div className="mt-4 space-y-4">
-                                {dueOrders.map((order) => (
-                                    <div key={order.reference} className="rounded-2xl border border-slate-200 p-4">
-                                        <div className="flex items-center justify-between">
-                                            <p className="font-semibold text-slate-800">{order.reference}</p>
-                                            <span className="text-sm font-semibold text-slate-900">
-                                                {currencyFormatter.format(order.total)}
-                                            </span>
-                                        </div>
-                                        <p className="mt-2 text-xs text-slate-500">
-                                            Raised{' '}
-                                            {order.placed_on
-                                                ? new Date(order.placed_on).toLocaleDateString('en-IN', {
-                                                      day: '2-digit',
-                                                      month: 'short',
-                                                      year: 'numeric',
-                                                  })
-                                                : 'N/A'}
-                                        </p>
-                                    </div>
-                                ))}
-                                {dueOrders.length === 0 && (
-                                    <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
-                                        No pending payments right now.
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </aside>
-                </div>
             </div>
         </AuthenticatedLayout>
     );

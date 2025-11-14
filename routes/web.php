@@ -265,8 +265,16 @@ Route::prefix('admin')
         Route::post('/rates/sync/{metal?}', [RateController::class, 'sync'])->name('rates.sync');
         Route::post('/rates/{metal}/store', [RateController::class, 'storeMetal'])->name('rates.metal.store');
 
-        Route::get('/settings/payments', [PaymentGatewayController::class, 'edit'])->name('settings.payments.edit');
-        Route::put('/settings/payments', [PaymentGatewayController::class, 'update'])->name('settings.payments.update');
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::get('/general', [\App\Http\Controllers\Admin\Settings\GeneralSettingsController::class, 'index'])->name('general.index');
+            Route::put('/general', [\App\Http\Controllers\Admin\Settings\GeneralSettingsController::class, 'update'])->name('general.update');
+            
+            Route::resource('tax-groups', \App\Http\Controllers\Admin\Settings\TaxGroupController::class)->only(['index', 'store', 'update', 'destroy'])->names('tax-groups');
+            Route::resource('taxes', \App\Http\Controllers\Admin\Settings\TaxController::class)->only(['index', 'store', 'update', 'destroy'])->names('taxes');
+            
+            Route::get('/payments', [PaymentGatewayController::class, 'edit'])->name('payments.edit');
+            Route::put('/payments', [PaymentGatewayController::class, 'update'])->name('payments.update');
+        });
     });
 
 Route::prefix('production')

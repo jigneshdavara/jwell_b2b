@@ -119,8 +119,7 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
                         <p className="text-xs font-semibold text-slate-400">Contact & studio</p>
                         <ul className="mt-4 space-y-4 text-sm">
                             {companyDetails.map((detail) => (
-                                <li key={detail.label} className="space-y-1">
-                                    <span className="text-xs text-slate-500">{detail.label}</span>
+                                <li key={detail.label}>
                                     <a href={detail.href ?? '#'} className="group flex items-center gap-3 text-slate-200 transition hover:text-white">
                                         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/10">
                                             {detail.icon}

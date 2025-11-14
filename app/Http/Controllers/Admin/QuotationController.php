@@ -472,7 +472,7 @@ class QuotationController extends Controller
 
         $quotation->load(['user', 'product']);
         
-        $message = $data['admin_notes'] ?? "Product changed from '{$previousProduct}' to '{$newProduct}'.";
+        $message = (string) ($data['admin_notes'] ?? "Product changed from '{$previousProduct}' to '{$newProduct}'.");
         
         $quotation->messages()->create([
             'user_id' => auth('web')->id(),
@@ -481,14 +481,16 @@ class QuotationController extends Controller
         ]);
 
         // Send confirmation request email to customer
-        Mail::to($quotation->user->email)->send(new QuotationConfirmationRequestMail($quotation, $message));
-        
-        // Send status update email
-        Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
-            $quotation,
-            $previousStatus,
-            $message
-        ));
+        if (config('mail.from.address') && $quotation->user->email) {
+            Mail::to($quotation->user->email)->send(new QuotationConfirmationRequestMail($quotation, $message));
+            
+            // Send status update email
+            Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
+                $quotation,
+                (string) $previousStatus,
+                $message
+            ));
+        }
 
         return redirect()
             ->route('admin.quotations.show', $quotation->id)

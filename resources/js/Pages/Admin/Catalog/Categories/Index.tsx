@@ -141,7 +141,8 @@ export default function AdminCategoriesIndex() {
         }
 
         // Update form data with proper parent_id handling before submitting
-        const parentId = categoryForm.data.parent_id === 'none' ? null : (categoryForm.data.parent_id ? Number(categoryForm.data.parent_id) : null);
+        // Keep parent_id as string for form submission (will be converted to number/null on backend)
+        const parentId = categoryForm.data.parent_id === 'none' ? 'none' : categoryForm.data.parent_id;
         categoryForm.setData('parent_id', parentId);
         categoryForm.setData('name', categoryForm.data.name.trim());
         if (categoryForm.data.slug) {

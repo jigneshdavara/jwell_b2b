@@ -26,6 +26,23 @@ const steps = [
     },
 ];
 
+const conciergeHighlights = [
+    {
+        title: 'White-glove onboarding',
+        detail: 'Dedicated concierge unlocks catalogues, bullion controls, and order routing for your house.',
+    },
+    {
+        title: 'Jobs + wholesale ready',
+        detail: 'Retailers, wholesalers, and jobworkers collaborate inside one secure Elvee workspace.',
+    },
+    {
+        title: 'Compliance accelerated',
+        detail: 'Share documents digitally and receive verification status updates within 1-2 business days.',
+    },
+];
+
+const documentChecklist = ['GST certificate', 'PAN card', 'Storefront photos', 'Business registration / CIN / MSME'];
+
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
@@ -124,18 +141,16 @@ export default function Register() {
                                 onClick={() => setData('account_type', option.value)}
                                 className={`w-full rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
                                     data.account_type === option.value
-                                        ? 'border-slate-900 bg-slate-900 text-white shadow shadow-slate-900/20'
-                                        : 'border-slate-300 text-slate-600 hover:border-slate-400'
+                                        ? 'border-elvee-blue bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
+                                        : 'border-elvee-blue/20 bg-ivory text-elvee-blue hover:border-feather-gold/60 hover:text-feather-gold'
                                 }`}
                             >
                                 {option.label}
                             </button>
                         ))}
                     </div>
-                    <InputError message={errors.account_type} className="mt-2" />
                 </div>
             </div>
-
             <div className="grid gap-5 md:grid-cols-2">
                 <div>
                     <InputLabel htmlFor="password" value="Password" />
@@ -180,18 +195,17 @@ export default function Register() {
                         value={data.business_name}
                         className="mt-1 block w-full"
                         onChange={(event) => setData('business_name', event.target.value)}
-                        required
                     />
                     <InputError message={errors.business_name} className="mt-2" />
                 </div>
                 <div>
-                    <InputLabel htmlFor="website" value="Website" />
+                    <InputLabel htmlFor="website" value="Website / Instagram" />
                     <TextInput
                         id="website"
                         name="website"
                         value={data.website}
                         className="mt-1 block w-full"
-                        placeholder="https://example.com"
+                        placeholder="@yourbrand or www.example.com"
                         onChange={(event) => setData('website', event.target.value)}
                     />
                     <InputError message={errors.website} className="mt-2" />
@@ -202,21 +216,19 @@ export default function Register() {
                         id="gst_number"
                         name="gst_number"
                         value={data.gst_number}
-                        className="mt-1 block w-full"
-                        placeholder="Optional"
-                        onChange={(event) => setData('gst_number', event.target.value.toUpperCase())}
+                        className="mt-1 block w-full uppercase tracking-[0.2em]"
+                        onChange={(event) => setData('gst_number', event.target.value)}
                     />
                     <InputError message={errors.gst_number} className="mt-2" />
                 </div>
                 <div>
-                    <InputLabel htmlFor="pan_number" value="PAN" />
+                    <InputLabel htmlFor="pan_number" value="PAN number" />
                     <TextInput
                         id="pan_number"
                         name="pan_number"
                         value={data.pan_number}
-                        className="mt-1 block w-full"
-                        placeholder="Optional"
-                        onChange={(event) => setData('pan_number', event.target.value.toUpperCase())}
+                        className="mt-1 block w-full uppercase tracking-[0.2em]"
+                        onChange={(event) => setData('pan_number', event.target.value)}
                     />
                     <InputError message={errors.pan_number} className="mt-2" />
                 </div>
@@ -257,7 +269,7 @@ export default function Register() {
                     <InputError message={errors.contact_phone} className="mt-2" />
                 </div>
             </div>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-ink/70">
                 Tip: Upload these documents after registration to accelerate compliance reviews (GST certificate, PAN, store photographs).
             </p>
         </div>
@@ -316,7 +328,7 @@ export default function Register() {
                         id="postal_code"
                         name="postal_code"
                         value={data.postal_code}
-                        className="mt-1 block w-full"
+                        className="mt-1 block w-full tracking-[0.3em]"
                         onChange={(event) => setData('postal_code', event.target.value)}
                     />
                     <InputError message={errors.postal_code} className="mt-2" />
@@ -333,6 +345,9 @@ export default function Register() {
                     <InputError message={errors.country} className="mt-2" />
                 </div>
             </div>
+            <p className="text-sm text-ink/70">
+                Dispatch-ready partners receive pick-up coordination, insured shipments, and concierge updates.
+            </p>
         </div>
     );
 
@@ -352,75 +367,149 @@ export default function Register() {
         <GuestLayout>
             <Head title="Register" />
 
-            <div className="mx-auto w-full max-w-3xl space-y-8">
-                <header className="space-y-3 text-center">
-                    <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Partner onboarding</p>
-                    <h1 className="text-3xl font-semibold text-white">Create your partner account</h1>
-                    <p className="text-sm text-slate-200/80">
-                        Provide your business details so we can enable catalogue, jobwork, and wholesale pricing after verification.
+            <div className="mx-auto w-full max-w-6xl gap-8 lg:grid lg:grid-cols-[340px,minmax(0,1fr)]">
+                <aside className="mb-8 space-y-6 rounded-3xl bg-white/80 p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 backdrop-blur lg:mb-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.35em] text-feather-gold">Partner onboarding</p>
+                    <h1 className="text-3xl font-semibold text-elvee-blue">Let's introduce your jewellery house</h1>
+                    <p className="text-sm text-ink/80">
+                        Share business credentials and addresses to unlock curated catalogues, bullion hedging, and wholesale jobwork in one secure space.
                     </p>
-                    <p className="text-sm text-slate-300">
+
+                    <div className="space-y-4">
+                        {steps.map((step, index) => {
+                            const isCurrent = index === currentStep;
+                            const isComplete = index < currentStep;
+                            return (
+                                <div
+                                    key={step.title}
+                                    className={`rounded-2xl border p-4 ${isCurrent ? 'border-elvee-blue bg-white shadow-lg shadow-elvee-blue/10' : 'border-elvee-blue/15 bg-ivory'}`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span
+                                            className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold ${
+                                                isCurrent
+                                                    ? 'bg-elvee-blue text-white'
+                                                    : isComplete
+                                                    ? 'bg-feather-gold text-white'
+                                                    : 'bg-white text-elvee-blue'
+                                            }`}
+                                        >
+                                            {index + 1}
+                                        </span>
+                                        <div>
+                                            <p className="text-sm font-semibold text-elvee-blue">{step.title}</p>
+                                            <p className="text-xs text-ink/70">{step.description}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="space-y-3 rounded-2xl border border-dashed border-feather-gold/60 bg-feather-gold/5 p-5">
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-feather-gold">Recommended documents</p>
+                        <ul className="space-y-2 text-sm text-ink/80">
+                            {documentChecklist.map((item) => (
+                                <li key={item} className="flex items-start gap-2">
+                                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-feather-gold" />
+                                    {item}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div className="space-y-2 rounded-2xl border border-elvee-blue/15 bg-white/90 p-5 shadow-inner">
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/60">Concierge notes</p>
+                        {conciergeHighlights.map((item) => (
+                            <div key={item.title} className="space-y-1">
+                                <p className="text-sm font-semibold text-elvee-blue">{item.title}</p>
+                                <p className="text-sm text-ink/70">{item.detail}</p>
+                            </div>
+                        ))}
+                        <p className="pt-2 text-sm text-ink/70">
+                            Need help?{' '}
+                            <a href="mailto:onboarding@elvee.in" className="font-semibold text-elvee-blue underline decoration-feather-gold decoration-2 underline-offset-4">
+                                onboarding@elvee.in
+                            </a>
+                        </p>
+                    </div>
+                </aside>
+
+                <section className="space-y-6">
+                    <div className="rounded-3xl bg-white/80 p-6 text-sm text-ink/80 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 backdrop-blur">
                         Already registered?{' '}
-                        <Link href={route('login')} className="font-semibold text-white underline decoration-slate-400 hover:decoration-white">
+                        <Link href={route('login')} className="font-semibold text-elvee-blue underline decoration-feather-gold decoration-2 underline-offset-4 hover:text-feather-gold">
                             Log in instead
                         </Link>
-                    </p>
-                </header>
-
-                <nav className="flex flex-wrap justify-center gap-3 text-xs font-semibold uppercase tracking-[0.35em] text-slate-300">
-                    {steps.map((step, index) => {
-                        const isCurrent = index === currentStep;
-                        const isComplete = index < currentStep;
-                        return (
-                            <button
-                                key={step.title}
-                                type="button"
-                                onClick={() => (isComplete || isCurrent) && goToStep(index)}
-                                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 transition ${
-                                    isCurrent
-                                        ? 'bg-white text-slate-900 shadow shadow-slate-900/15'
-                                        : isComplete
-                                        ? 'bg-white/20 text-white hover:bg-white/25'
-                                        : 'bg-white/10 text-slate-300'
-                                }`}
-                                disabled={!isCurrent && !isComplete}
-                            >
-                                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${isCurrent ? 'bg-slate-900 text-white' : 'bg-white/20 text-white'}`}>
-                                    {index + 1}
-                                </span>
-                                {step.title}
-                            </button>
-                        );
-                    })}
-                </nav>
-
-                <form onSubmit={submit} className="space-y-6 rounded-3xl bg-white p-8 shadow-2xl ring-1 ring-slate-200/70">
-                    <header className="space-y-1 border-b border-slate-200 pb-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">Step {currentStep + 1} of {steps.length}</p>
-                        <h2 className="text-xl font-semibold text-slate-900">{steps[currentStep].title}</h2>
-                        <p className="text-sm text-slate-500">{steps[currentStep].description}</p>
-                    </header>
-
-                    {renderStepContent()}
-
-                    <div className="flex items-center justify-between">
-                        {currentStep > 0 ? (
-                            <button
-                                type="button"
-                                onClick={() => setCurrentStep((prev) => Math.max(prev - 1, 0))}
-                                className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
-                            >
-                                ← Back
-                            </button>
-                        ) : (
-                            <span />
-                        )}
-
-                        <PrimaryButton className="px-6" disabled={processing}>
-                            {processing ? 'Submitting…' : nextLabel}
-                        </PrimaryButton>
                     </div>
-                </form>
+
+                    <form onSubmit={submit} className="space-y-6 rounded-3xl bg-white p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10">
+                        <header className="space-y-4 border-b border-elvee-blue/10 pb-6">
+                            <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.35em] text-ink/60">
+                                <span>Step {currentStep + 1} of {steps.length}</span>
+                                <span className="h-px flex-1 bg-elvee-blue/10" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-semibold text-elvee-blue">{steps[currentStep].title}</h2>
+                                <p className="text-sm text-ink/70">{steps[currentStep].description}</p>
+                            </div>
+                            <div className="flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.2em]">
+                                {steps.map((step, index) => {
+                                    const isCurrent = index === currentStep;
+                                    const isComplete = index < currentStep;
+                                    return (
+                                        <button
+                                            key={step.title}
+                                            type="button"
+                                            onClick={() => (isComplete || isCurrent) && goToStep(index)}
+                                            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 transition ${
+                                                isCurrent
+                                                    ? 'bg-elvee-blue text-white shadow shadow-elvee-blue/30'
+                                                    : isComplete
+                                                    ? 'bg-feather-gold/20 text-elvee-blue'
+                                                    : 'bg-ivory text-ink/60'
+                                            }`}
+                                            disabled={!isCurrent && !isComplete}
+                                        >
+                                            <span
+                                                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                                                    isCurrent
+                                                        ? 'bg-white text-elvee-blue'
+                                                        : isComplete
+                                                        ? 'bg-feather-gold text-white'
+                                                        : 'bg-white/60 text-elvee-blue'
+                                                }`}
+                                            >
+                                                {index + 1}
+                                            </span>
+                                            {step.title}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </header>
+
+                        {renderStepContent()}
+
+                        <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                            {currentStep > 0 ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentStep((prev) => Math.max(prev - 1, 0))}
+                                    className="inline-flex items-center justify-center rounded-full border border-elvee-blue/30 px-5 py-3 text-sm font-semibold text-elvee-blue transition hover:border-feather-gold/60 hover:text-feather-gold"
+                                >
+                                    Back
+                                </button>
+                            ) : (
+                                <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/60">Start your profile</span>
+                            )}
+
+                            <PrimaryButton className="min-w-[180px]" disabled={processing}>
+                                {processing ? 'Submitting...' : nextLabel}
+                            </PrimaryButton>
+                        </div>
+                    </form>
+                </section>
             </div>
         </GuestLayout>
     );
