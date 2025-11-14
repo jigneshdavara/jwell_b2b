@@ -385,6 +385,149 @@ export default function FrontendOrdersShow() {
                     </div>
                 </div>
             </div>
+
+            {/* Product Details Modal */}
+            {productDetailsModalOpen && (
+                <Modal show={true} onClose={() => setProductDetailsModalOpen(null)} maxWidth="4xl">
+                    <div className="flex min-h-0 flex-col">
+                        <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-slate-900">Product Details</h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setProductDetailsModalOpen(null)}
+                                    className="text-slate-400 hover:text-slate-600"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                            <div className="space-y-6">
+                                {/* Product Image and Basic Info */}
+                                <div className="flex gap-6">
+                                    {productDetailsModalOpen.product?.media?.[0] && (
+                                        <img
+                                            src={productDetailsModalOpen.product.media[0].url}
+                                            alt={productDetailsModalOpen.product.media[0].alt}
+                                            className="h-32 w-32 rounded-lg object-cover shadow-lg"
+                                        />
+                                    )}
+                                    <div className="flex-1">
+                                        <h4 className="text-xl font-semibold text-slate-900">{productDetailsModalOpen.name}</h4>
+                                        <p className="mt-1 text-sm text-slate-500">SKU: {productDetailsModalOpen.sku}</p>
+                                        <div className="mt-3 flex gap-2">
+                                            <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                                                Qty: {productDetailsModalOpen.quantity}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Pricing */}
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                    <h5 className="mb-3 text-sm font-semibold text-slate-700">Pricing</h5>
+                                    <div className="space-y-2 text-sm">
+                                        {productDetailsModalOpen.product?.base_price && (
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-600">Base Price:</span>
+                                                <span className="font-semibold text-slate-900">{currencyFormatter.format(Number(productDetailsModalOpen.product.base_price))}</span>
+                                            </div>
+                                        )}
+                                        {productDetailsModalOpen.product?.making_charge && (
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-600">Making Charge:</span>
+                                                <span className="font-semibold text-slate-900">{currencyFormatter.format(Number(productDetailsModalOpen.product.making_charge))}</span>
+                                            </div>
+                                        )}
+                                        <div className="border-t border-slate-300 pt-2">
+                                            <div className="flex justify-between">
+                                                <span className="font-semibold text-slate-900">Unit Price:</span>
+                                                <span className="font-semibold text-slate-900">{currencyFormatter.format(productDetailsModalOpen.unit_price)}</span>
+                                            </div>
+                                            <div className="flex justify-between mt-2">
+                                                <span className="font-semibold text-slate-900">Total Price:</span>
+                                                <span className="font-semibold text-slate-900">{currencyFormatter.format(productDetailsModalOpen.total_price)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Weights */}
+                                {(productDetailsModalOpen.product?.gold_weight || productDetailsModalOpen.product?.silver_weight || productDetailsModalOpen.product?.other_material_weight || productDetailsModalOpen.product?.total_weight) && (
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Weights</h5>
+                                        <div className="space-y-2 text-sm">
+                                            {productDetailsModalOpen.product.gold_weight && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-600">Gold Weight:</span>
+                                                    <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.gold_weight).toFixed(3)} g</span>
+                                                </div>
+                                            )}
+                                            {productDetailsModalOpen.product.silver_weight && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-600">Silver Weight:</span>
+                                                    <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.silver_weight).toFixed(3)} g</span>
+                                                </div>
+                                            )}
+                                            {productDetailsModalOpen.product.other_material_weight && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-600">Other Material Weight:</span>
+                                                    <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.other_material_weight).toFixed(3)} g</span>
+                                                </div>
+                                            )}
+                                            {productDetailsModalOpen.product.total_weight && (
+                                                <div className="border-t border-slate-300 pt-2">
+                                                    <div className="flex justify-between">
+                                                        <span className="font-semibold text-slate-900">Total Weight:</span>
+                                                        <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.total_weight).toFixed(3)} g</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Configuration */}
+                                {productDetailsModalOpen.configuration && Object.keys(productDetailsModalOpen.configuration).length > 0 && (
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Configuration</h5>
+                                        <div className="space-y-2 text-sm">
+                                            {Object.entries(productDetailsModalOpen.configuration).map(([key, value]) => (
+                                                <div key={key} className="flex justify-between">
+                                                    <span className="text-slate-600">{key.replace(/_/g, ' ')}:</span>
+                                                    <span className="font-semibold text-slate-900">
+                                                        {value === null || value === undefined || value === '' ? '—' : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Metadata */}
+                                {productDetailsModalOpen.metadata && Object.keys(productDetailsModalOpen.metadata).length > 0 && (
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Additional Information</h5>
+                                        <div className="space-y-2 text-sm">
+                                            {Object.entries(productDetailsModalOpen.metadata).map(([key, value]) => (
+                                                <div key={key} className="flex justify-between">
+                                                    <span className="text-slate-600">{key.replace(/_/g, ' ')}:</span>
+                                                    <span className="font-semibold text-slate-900">
+                                                        {value === null || value === undefined || value === '' ? '—' : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
         </AuthenticatedLayout>
     );
 }

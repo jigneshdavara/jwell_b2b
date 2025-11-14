@@ -150,15 +150,6 @@ export default function FrontendQuotationShow() {
         ? [quotation, ...quotation.related_quotations]
         : [quotation];
 
-    const formatSelectionValue = (value: unknown): string => {
-        if (value === null || value === undefined || value === '') {
-            return '—';
-        }
-        if (typeof value === 'boolean') {
-            return value ? 'Yes' : 'No';
-        }
-        return String(value);
-    };
 
     const submitMessage = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
