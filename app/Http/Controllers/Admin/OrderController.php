@@ -22,7 +22,7 @@ class OrderController extends Controller
     public function index(): Response
     {
         $orders = Order::query()
-            ->with('user')
+            ->with(['user', 'items'])
             ->latest()
             ->paginate(20)
             ->through(function (Order $order) {
@@ -34,9 +34,12 @@ class OrderController extends Controller
                     'status' => $statusValue,
                     'status_label' => Str::headline($statusValue),
                     'total_amount' => $order->total_amount,
+                    'created_at' => optional($order->created_at)?->toDateTimeString(),
                     'user' => $order->user ? [
                         'name' => $order->user->name,
+                        'email' => $order->user->email,
                     ] : null,
+                    'items_count' => $order->items->count(),
                 ];
             });
 
@@ -48,7 +51,7 @@ class OrderController extends Controller
 
     public function show(Order $order): Response
     {
-        $order->load(['items.product', 'user', 'payments', 'statusHistory']);
+        $order->load(['items.product.media', 'user', 'payments', 'statusHistory', 'quotations.product.media']);
 
         return Inertia::render('Admin/Orders/Show', [
             'order' => [
@@ -61,6 +64,8 @@ class OrderController extends Controller
                 'discount_amount' => $order->discount_amount,
                 'total_amount' => $order->total_amount,
                 'price_breakdown' => $order->price_breakdown,
+                'created_at' => optional($order->created_at)?->toDateTimeString(),
+                'updated_at' => optional($order->updated_at)?->toDateTimeString(),
                 'user' => $order->user ? [
                     'name' => $order->user->name,
                     'email' => $order->user->email,
@@ -71,7 +76,25 @@ class OrderController extends Controller
                         'sku' => $item->sku,
                         'name' => $item->name,
                         'quantity' => $item->quantity,
+                        'unit_price' => $item->unit_price,
                         'total_price' => $item->total_price,
+                        'configuration' => $item->configuration,
+                        'metadata' => $item->metadata,
+                        'product' => $item->product ? [
+                            'id' => $item->product->id,
+                            'name' => $item->product->name,
+                            'sku' => $item->product->sku,
+                            'base_price' => $item->product->base_price,
+                            'making_charge' => $item->product->making_charge,
+                            'gold_weight' => $item->product->gold_weight,
+                            'silver_weight' => $item->product->silver_weight,
+                            'other_material_weight' => $item->product->other_material_weight,
+                            'total_weight' => $item->product->total_weight,
+                            'media' => $item->product->media->sortBy('position')->values()->map(fn ($media) => [
+                                'url' => $media->url,
+                                'alt' => $media->metadata['alt'] ?? $item->product->name,
+                            ]),
+                        ] : null,
                     ];
                 }),
                 'status_history' => $order->statusHistory->map(fn ($entry) => [
@@ -85,6 +108,21 @@ class OrderController extends Controller
                     'status' => $payment->status,
                     'amount' => $payment->amount,
                     'created_at' => optional($payment->created_at)?->toDateTimeString(),
+                ]),
+                'quotations' => $order->quotations->map(fn ($quotation) => [
+                    'id' => $quotation->id,
+                    'mode' => $quotation->mode,
+                    'status' => $quotation->status,
+                    'quantity' => $quotation->quantity,
+                    'product' => $quotation->product ? [
+                        'id' => $quotation->product->id,
+                        'name' => $quotation->product->name,
+                        'sku' => $quotation->product->sku,
+                        'media' => $quotation->product->media->sortBy('position')->values()->map(fn ($media) => [
+                            'url' => $media->url,
+                            'alt' => $media->metadata['alt'] ?? $quotation->product->name,
+                        ]),
+                    ] : null,
                 ]),
             ],
             'statusOptions' => collect(OrderStatus::cases())->map(fn (OrderStatus $status) => [

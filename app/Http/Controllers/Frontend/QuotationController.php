@@ -28,36 +28,174 @@ class QuotationController extends Controller
 
     public function index(): Response
     {
-        $quotations = Quotation::query()
+        $query = Quotation::query()
             ->with(['product.media', 'variant', 'order.statusHistory', 'messages.user'])
             ->where('user_id', Auth::id())
-            ->latest()
+            ->latest();
+
+        // Group quotations by user_id and created_at (within same 5 minutes) to show combined modes
+        $quotations = $query
             ->get()
-            ->map(fn (Quotation $quotation) => [
+            ->groupBy(function ($quotation) {
+                $createdAt = optional($quotation->created_at);
+                // Group by user and date+hour+minute (rounded to 5 minutes)
+                if ($createdAt) {
+                    $minute = floor($createdAt->format('i') / 5) * 5;
+                    return $quotation->user_id.'_'.$createdAt->format('Y-m-d H:').sprintf('%02d', $minute);
+                }
+                return $quotation->user_id.'_'.time();
+            })
+            ->map(function ($group) {
+                $first = $group->first();
+                $modes = $group->pluck('mode')->unique()->values();
+                $totalQuantity = $group->sum('quantity');
+                
+                return [
+                    'id' => $first->id,
+                    'ids' => $group->pluck('id')->values()->all(),
+                    'mode' => $modes->count() > 1 ? 'both' : $modes->first(),
+                    'modes' => $modes->all(),
+                    'status' => $first->status,
+                    'jobwork_status' => $first->jobwork_status,
+                    'quantity' => $totalQuantity,
+                    'approved_at' => optional($first->approved_at)?->toDateTimeString(),
+                    'created_at' => optional($first->created_at)?->toDateTimeString(),
+                    'updated_at' => optional($first->updated_at)?->toDateTimeString(),
+                    'product' => [
+                        'id' => $first->product->id,
+                        'name' => $first->product->name,
+                        'sku' => $first->product->sku,
+                        'thumbnail' => optional($first->product->media->sortBy('position')->first())->url,
+                    ],
+                    'products' => $group->map(function ($q) {
+                        return [
+                            'id' => $q->product->id,
+                            'name' => $q->product->name,
+                            'sku' => $q->product->sku,
+                            'thumbnail' => optional($q->product->media->sortBy('position')->first())->url,
+                        ];
+                    })->values()->all(),
+                    'order_reference' => $first->order?->reference,
+                ];
+            })
+            ->values()
+            ->sortByDesc(function ($item) {
+                return $item['created_at'] ?? '';
+            })
+            ->values();
+
+        return Inertia::render('Frontend/Quotations/Index', [
+            'quotations' => $quotations,
+        ]);
+    }
+
+    public function show(Quotation $quotation): Response
+    {
+        abort_unless($quotation->user_id === Auth::id(), 403);
+
+        $quotation->load(['user', 'product.media', 'variant', 'product.variants', 'order.statusHistory', 'messages.user']);
+
+        // Find all related quotations (same user, within 5 minutes)
+        $createdAt = $quotation->created_at;
+        $timeWindow = $createdAt ? $createdAt->copy()->subMinutes(5) : null;
+        $timeWindowEnd = $createdAt ? $createdAt->copy()->addMinutes(5) : null;
+
+        $relatedQuotations = Quotation::query()
+            ->where('user_id', $quotation->user_id)
+            ->where('id', '!=', $quotation->id) // Exclude the main quotation
+            ->when($timeWindow && $timeWindowEnd, function ($q) use ($timeWindow, $timeWindowEnd) {
+                $q->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
+            })
+            ->with(['product.media', 'variant', 'product.variants'])
+            ->orderBy('created_at')
+            ->get();
+
+        return Inertia::render('Frontend/Quotations/Show', [
+            'quotation' => [
                 'id' => $quotation->id,
                 'mode' => $quotation->mode,
                 'status' => $quotation->status,
                 'jobwork_status' => $quotation->jobwork_status,
-                'approved_at' => optional($quotation->approved_at)?->toDateTimeString(),
-                'admin_notes' => $quotation->admin_notes,
                 'quantity' => $quotation->quantity,
                 'notes' => $quotation->notes,
+                'admin_notes' => $quotation->admin_notes,
+                'approved_at' => optional($quotation->approved_at)?->toDateTimeString(),
                 'selections' => $quotation->selections,
+                'created_at' => optional($quotation->created_at)?->toDateTimeString(),
+                'updated_at' => optional($quotation->updated_at)?->toDateTimeString(),
+                'related_quotations' => $relatedQuotations->map(function ($q) {
+                    return [
+                        'id' => $q->id,
+                        'mode' => $q->mode,
+                        'status' => $q->status,
+                        'quantity' => $q->quantity,
+                        'notes' => $q->notes,
+                        'selections' => $q->selections,
+                        'product' => [
+                            'id' => $q->product->id,
+                            'name' => $q->product->name,
+                            'sku' => $q->product->sku,
+                            'base_price' => $q->product->base_price,
+                            'making_charge' => $q->product->making_charge,
+                            'gold_weight' => $q->product->gold_weight,
+                            'silver_weight' => $q->product->silver_weight,
+                            'other_material_weight' => $q->product->other_material_weight,
+                            'total_weight' => $q->product->total_weight,
+                            'media' => $q->product->media->sortBy('position')->values()->map(fn ($media) => [
+                                'url' => $media->url,
+                                'alt' => $media->metadata['alt'] ?? $q->product->name,
+                            ]),
+                            'variants' => $q->product->variants->map(fn ($variant) => [
+                                'id' => $variant->id,
+                                'label' => $variant->label,
+                                'metadata' => $variant->metadata ?? [],
+                                'price_adjustment' => $variant->price_adjustment,
+                            ]),
+                        ],
+                        'variant' => $q->variant ? [
+                            'id' => $q->variant->id,
+                            'label' => $q->variant->label,
+                            'price_adjustment' => $q->variant->price_adjustment,
+                            'metadata' => $q->variant->metadata ?? [],
+                        ] : null,
+                    ];
+                }),
                 'product' => [
                     'id' => $quotation->product->id,
                     'name' => $quotation->product->name,
                     'sku' => $quotation->product->sku,
-                    'thumbnail' => optional($quotation->product->media->sortBy('position')->first())->url,
+                    'base_price' => $quotation->product->base_price,
+                    'making_charge' => $quotation->product->making_charge,
+                    'gold_weight' => $quotation->product->gold_weight,
+                    'silver_weight' => $quotation->product->silver_weight,
+                    'other_material_weight' => $quotation->product->other_material_weight,
+                    'total_weight' => $quotation->product->total_weight,
+                    'media' => $quotation->product->media->sortBy('position')->values()->map(fn ($media) => [
+                        'url' => $media->url,
+                        'alt' => $media->metadata['alt'] ?? $quotation->product->name,
+                    ]),
+                    'variants' => $quotation->product->variants->map(fn ($variant) => [
+                        'id' => $variant->id,
+                        'label' => $variant->label,
+                        'metadata' => $variant->metadata ?? [],
+                        'price_adjustment' => $variant->price_adjustment,
+                    ]),
                 ],
                 'variant' => $quotation->variant ? [
                     'id' => $quotation->variant->id,
                     'label' => $quotation->variant->label,
+                    'price_adjustment' => $quotation->variant->price_adjustment,
                     'metadata' => $quotation->variant->metadata ?? [],
                 ] : null,
+                'user' => [
+                    'name' => optional($quotation->user)->name,
+                    'email' => optional($quotation->user)->email,
+                ],
                 'order' => $quotation->order ? [
                     'id' => $quotation->order->id,
                     'reference' => $quotation->order->reference,
                     'status' => $quotation->order->status?->value ?? null,
+                    'total_amount' => $quotation->order->total_amount,
                     'history' => $quotation->order->statusHistory->map(fn ($history) => [
                         'id' => $history->id,
                         'status' => $history->status,
@@ -70,13 +208,9 @@ class QuotationController extends Controller
                     'sender' => $message->sender,
                     'message' => $message->message,
                     'created_at' => optional($message->created_at)?->toDateTimeString(),
+                    'author' => optional($message->user)->name,
                 ]),
-                'created_at' => $quotation->created_at?->toDateTimeString(),
-                'updated_at' => $quotation->updated_at?->toDateTimeString(),
-            ]);
-
-        return Inertia::render('Frontend/Quotations/Index', [
-            'quotations' => $quotations,
+            ],
         ]);
     }
 

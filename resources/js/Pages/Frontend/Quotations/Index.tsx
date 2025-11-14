@@ -1,11 +1,13 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { PageProps } from '@/types';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useMemo, useState } from 'react';
 
 type QuotationRow = {
     id: number;
-    mode: 'purchase' | 'jobwork';
+    ids?: number[];
+    mode: 'purchase' | 'jobwork' | 'both';
+    modes?: string[];
     status: string;
     jobwork_status?: string | null;
     approved_at?: string | null;
@@ -19,28 +21,20 @@ type QuotationRow = {
         sku: string;
         thumbnail?: string | null;
     };
+    products?: Array<{
+        id: number;
+        name: string;
+        sku: string;
+        thumbnail?: string | null;
+    }>;
     variant?: {
         id: number;
         label: string;
         metadata?: Record<string, string | number | boolean | null | undefined> | null;
     } | null;
-    order?: {
-        id: number;
-        reference: string;
-        status: string;
-        history?: Array<{
-            id: number;
-            status: string;
-            created_at: string;
-        }>;
-    } | null;
-    messages: Array<{
-        id: number;
-        sender: 'customer' | 'admin';
-        message: string;
-        created_at?: string | null;
-    }>;
+    order_reference?: string | null;
     created_at?: string | null;
+    updated_at?: string | null;
 };
 
 type QuotationsPageProps = PageProps<{
@@ -71,8 +65,6 @@ const jobworkStageLabels: Record<string, { label: string; style: string }> = {
 export default function QuotationsIndex() {
     const { quotations } = usePage<QuotationsPageProps>().props;
     const [modeFilter, setModeFilter] = useState<'all' | 'purchase' | 'jobwork'>('all');
-    const [viewQuotation, setViewQuotation] = useState<QuotationRow | null>(null);
-    const messageForm = useForm({ message: '' });
 
     const filteredQuotations = useMemo(() => {
         if (modeFilter === 'all') {
@@ -91,41 +83,6 @@ export default function QuotationsIndex() {
               })
             : 'N/A';
 
-    const formatSelectionValue = (value: string | number | boolean | null | undefined): string => {
-        if (value === null || value === undefined || value === '') {
-            return '—';
-        }
-
-        if (typeof value === 'boolean') {
-            return value ? 'Yes' : 'No';
-        }
-
-        return String(value);
-    };
-
-    useEffect(() => {
-        if (!viewQuotation) {
-            return;
-        }
-
-        const latest = quotations.find((quotation) => quotation.id === viewQuotation.id);
-        if (latest) {
-            setViewQuotation(latest);
-        }
-        // we intentionally ignore setViewQuotation in deps to avoid looping
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [quotations]);
-
-    const submitMessage = (quotationId: number) => {
-        if (!messageForm.data.message.trim()) {
-            return;
-        }
-
-        messageForm.post(route('frontend.quotations.messages.store', quotationId), {
-            onSuccess: () => messageForm.reset('message'),
-            preserveScroll: true,
-        });
-    };
 
     return (
         <AuthenticatedLayout>
@@ -204,6 +161,7 @@ export default function QuotationsIndex() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-slate-200">
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Quotation #</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Product</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">SKU</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Mode</th>
@@ -223,6 +181,14 @@ export default function QuotationsIndex() {
                                         return (
                                             <tr key={quotation.id} className="hover:bg-slate-50">
                                                 <td className="px-4 py-4">
+                                                    <Link
+                                                        href={route('frontend.quotations.show', quotation.id)}
+                                                        className="text-sm font-semibold text-elvee-blue hover:text-feather-gold transition"
+                                                    >
+                                                        #{quotation.id}
+                                                    </Link>
+                                                </td>
+                                                <td className="px-4 py-4">
                                                     <div className="flex items-center gap-3">
                                                         {quotation.product.thumbnail && (
                                                             <img
@@ -233,20 +199,21 @@ export default function QuotationsIndex() {
                                                         )}
                                                         <div>
                                                             <p className="text-sm font-semibold text-slate-900">{quotation.product.name}</p>
-                                                            {quotation.variant && (
-                                                                <p className="text-xs text-slate-500">
-                                                                    {(quotation.variant.metadata?.auto_label as string | undefined) ?? quotation.variant.label}
-                                                                </p>
+                                                            {quotation.products && quotation.products.length > 1 && (
+                                                                <p className="text-xs text-slate-500">+{quotation.products.length - 1} more product{quotation.products.length - 1 !== 1 ? 's' : ''}</p>
                                                             )}
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4">
                                                     <p className="text-sm text-slate-600">{quotation.product.sku}</p>
+                                                    {quotation.products && quotation.products.length > 1 && (
+                                                        <p className="text-xs text-slate-400">+{quotation.products.length - 1} more</p>
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-4">
                                                     <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                                                        {quotation.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}
+                                                        {quotation.mode === 'both' ? 'Both' : quotation.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-4">
@@ -273,9 +240,8 @@ export default function QuotationsIndex() {
                                                 </td>
                                                 <td className="px-4 py-4">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setViewQuotation(quotation)}
+                                                        <Link
+                                                            href={route('frontend.quotations.show', quotation.id)}
                                                             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:border-elvee-blue hover:bg-elvee-blue/5 hover:text-elvee-blue"
                                                             title="View details"
                                                         >
@@ -283,7 +249,7 @@ export default function QuotationsIndex() {
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                             </svg>
-                                                        </button>
+                                                        </Link>
                                                         {quotation.status === 'pending' && (
                                                             <button
                                                                 type="button"
@@ -313,159 +279,6 @@ export default function QuotationsIndex() {
                     )}
                 </section>
             </div>
-
-            {viewQuotation && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4">
-                    <div className="w-full max-w-3xl space-y-5 rounded-3xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-xs text-slate-400">Quotation</p>
-                                <h2 className="text-2xl font-semibold text-slate-900">{viewQuotation.product.name}</h2>
-                                <p className="mt-1 text-xs text-slate-500">SKU {viewQuotation.product.sku}</p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setViewQuotation(null)}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-slate-500 transition hover:border-slate-400 hover:text-slate-800"
-                                title="Close"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2 text-sm text-slate-600">
-                                <p>
-                                    <span className="font-semibold text-slate-800">Mode:</span> {viewQuotation.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}
-                                </p>
-                                <p>
-                                    <span className="font-semibold text-slate-800">Status:</span> {viewQuotation.status}
-                                </p>
-                                <p>
-                                    <span className="font-semibold text-slate-800">Quantity:</span> {viewQuotation.quantity}
-                                </p>
-                                <p>
-                                    <span className="font-semibold text-slate-800">Requested on:</span> {formatDate(viewQuotation.created_at)}
-                                </p>
-                                {viewQuotation.approved_at && (
-                                    <p>
-                                        <span className="font-semibold text-slate-800">Approved on:</span> {formatDate(viewQuotation.approved_at)}
-                                    </p>
-                                )}
-                            </div>
-                            <div className="space-y-2 text-sm text-slate-600">
-                                {viewQuotation.jobwork_status && (
-                                    <p>
-                                        <span className="font-semibold text-slate-800">Jobwork stage:</span> {jobworkStageLabels[viewQuotation.jobwork_status]?.label ?? viewQuotation.jobwork_status.replace(/_/g, ' ')}
-                                    </p>
-                                )}
-                                {viewQuotation.order && (
-                                    <p>
-                                        <span className="font-semibold text-slate-800">Order:</span> {viewQuotation.order.reference} ({viewQuotation.order.status})
-                                    </p>
-                                )}
-                                {viewQuotation.order?.history?.length ? (
-                                    <div className="mt-2 space-y-2">
-                                        <p className="text-xs font-semibold text-slate-400">Status timeline</p>
-                                        <ul className="space-y-1">
-                                            {viewQuotation.order.history.map((entry) => (
-                                                <li key={entry.id} className="rounded-2xl border border-slate-200 px-3 py-2 text-xs text-slate-500">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="font-semibold text-slate-700">{entry.status.replace(/_/g, ' ')}</span>
-                                                        <span>{formatDate(entry.created_at)}</span>
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                ) : null}
-                            </div>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                                <h3 className="text-xs font-semibold text-slate-400">Your notes</h3>
-                                <p className="mt-2 whitespace-pre-line">{viewQuotation.notes || '—'}</p>
-                            </div>
-                            <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                                <h3 className="text-xs font-semibold text-slate-400">Admin response</h3>
-                                <p className="mt-2 whitespace-pre-line">{viewQuotation.admin_notes || 'Awaiting response'}</p>
-                            </div>
-                        </div>
-
-                        {viewQuotation.selections && Object.keys(viewQuotation.selections).length > 0 && (
-                            <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                                <h3 className="text-xs font-semibold text-slate-400">Selections</h3>
-                                <ul className="mt-2 space-y-1">
-                                    {Object.entries(viewQuotation.selections).map(([key, value]) => (
-                                        <li key={key}>
-                                            <span className="font-semibold text-slate-700">{key.replace(/_/g, ' ')}:</span>{' '}
-                                            {formatSelectionValue(value)}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-
-                        <div className="space-y-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                            <h3 className="text-xs font-semibold text-slate-400">Conversation</h3>
-                            <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-                                {viewQuotation.messages.length === 0 && (
-                                    <p className="text-xs text-slate-400">No messages yet. Start the conversation below.</p>
-                                )}
-                                {viewQuotation.messages.map((message) => (
-                                    <div
-                                        key={message.id}
-                                        className={`flex flex-col gap-1 rounded-2xl border px-3 py-2 ${
-                                            message.sender === 'admin'
-                                                ? 'border-slate-200 bg-white'
-                                                : 'border-feather-gold/30 bg-feather-gold/5'
-                                        }`}
-                                    >
-                                        <div className="flex items-center justify-between text-[11px] text-slate-400">
-                                            <span>{message.sender === 'admin' ? 'Admin' : 'You'}</span>
-                                            <span>{formatDate(message.created_at)}</span>
-                                        </div>
-                                        <p className="text-sm text-slate-700 whitespace-pre-line">{message.message}</p>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {viewQuotation.status !== 'rejected' && (
-                                <form
-                                    onSubmit={(event) => {
-                                        event.preventDefault();
-                                        submitMessage(viewQuotation.id);
-                                    }}
-                                    className="space-y-2"
-                                >
-                                    <textarea
-                                        value={messageForm.data.message}
-                                        onChange={(event) => messageForm.setData('message', event.target.value)}
-                                        className="w-full min-h-[90px] rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                        placeholder="Share more details or ask a question..."
-                                        disabled={messageForm.processing}
-                                    />
-                                    {messageForm.errors.message && (
-                                        <p className="text-xs text-rose-500">{messageForm.errors.message}</p>
-                                    )}
-                                    <div className="flex justify-end">
-                                        <button
-                                            type="submit"
-                                            disabled={messageForm.processing || !messageForm.data.message.trim()}
-                                            className="rounded-full bg-elvee-blue px-4 py-2 text-xs font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
-                                        >
-                                            {messageForm.processing ? 'Sending…' : 'Send message'}
-                                        </button>
-                                    </div>
-                                </form>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
         </AuthenticatedLayout>
     );
 }

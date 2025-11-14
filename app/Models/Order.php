@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\OrderStatusHistory;
 use App\Models\Customer;
+use App\Models\Quotation;
 
 class Order extends Model
 {
@@ -63,6 +64,11 @@ class Order extends Model
     public function statusHistory(): HasMany
     {
         return $this->hasMany(OrderStatusHistory::class)->latest('created_at');
+    }
+
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
     }
 
     public function scopeStatus(Builder $query, OrderStatus $status): Builder

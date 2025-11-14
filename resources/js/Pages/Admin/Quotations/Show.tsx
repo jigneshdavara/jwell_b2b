@@ -17,6 +17,10 @@ type RelatedQuotation = {
         sku: string;
         base_price?: number | null;
         making_charge?: number | null;
+        gold_weight?: number | null;
+        silver_weight?: number | null;
+        other_material_weight?: number | null;
+        total_weight?: number | null;
         media: Array<{ url: string; alt: string }>;
         variants: Array<{
             id: number;
@@ -52,6 +56,10 @@ type QuotationDetails = {
         sku: string;
         base_price?: number | null;
         making_charge?: number | null;
+        gold_weight?: number | null;
+        silver_weight?: number | null;
+        other_material_weight?: number | null;
+        total_weight?: number | null;
         media: Array<{ url: string; alt: string }>;
         variants: Array<{
             id: number;
@@ -134,6 +142,7 @@ export default function AdminQuotationShow() {
     // Track if changes have been made that require customer confirmation
     const [hasChanges, setHasChanges] = useState(quotation.status === 'pending_customer_confirmation');
     const [actionType, setActionType] = useState<'approve' | 'reject' | 'request_confirmation' | 'jobwork_update' | ''>('');
+    const [productDetailsModalOpen, setProductDetailsModalOpen] = useState<RelatedQuotation | QuotationDetails | null>(null);
 
     const approveForm = useForm({
         admin_notes: quotation.admin_notes ?? '',
@@ -434,6 +443,16 @@ export default function AdminQuotationShow() {
                                                 </td>
                                                 <td className="px-4 py-4">
                                                     <div className="flex items-center justify-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setProductDetailsModalOpen(item)}
+                                                            className="inline-flex items-center gap-1 rounded-full border border-elvee-blue/30 px-2.5 py-1.5 text-[10px] font-semibold text-elvee-blue transition hover:border-elvee-blue hover:bg-elvee-blue/5"
+                                                            title="View product details"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                                                            </svg>
+                                                        </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => openChangeModal(item)}
@@ -814,6 +833,167 @@ export default function AdminQuotationShow() {
                     </div>
                 </div>
             </div>
+
+            {/* Product Details Modal */}
+            {productDetailsModalOpen && (
+                <Modal show={true} onClose={() => setProductDetailsModalOpen(null)} maxWidth="4xl">
+                    <div className="flex min-h-0 flex-col">
+                        <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-slate-900">Product Details</h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setProductDetailsModalOpen(null)}
+                                    className="text-slate-400 hover:text-slate-600"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                            <div className="space-y-6">
+                                {/* Product Image and Basic Info */}
+                                <div className="flex gap-6">
+                                    {productDetailsModalOpen.product.media?.[0] && (
+                                        <img
+                                            src={productDetailsModalOpen.product.media[0].url}
+                                            alt={productDetailsModalOpen.product.media[0].alt}
+                                            className="h-32 w-32 rounded-lg object-cover shadow-lg"
+                                        />
+                                    )}
+                                    <div className="flex-1">
+                                        <h4 className="text-xl font-semibold text-slate-900">{productDetailsModalOpen.product.name}</h4>
+                                        <p className="mt-1 text-sm text-slate-500">SKU: {productDetailsModalOpen.product.sku}</p>
+                                        <div className="mt-3 flex gap-2">
+                                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${productDetailsModalOpen.mode === 'jobwork' ? 'bg-elvee-blue/10 text-elvee-blue' : 'bg-slate-200 text-slate-700'}`}>
+                                                {productDetailsModalOpen.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}
+                                            </span>
+                                            <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                                                Qty: {productDetailsModalOpen.quantity}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Pricing */}
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                    <h5 className="mb-3 text-sm font-semibold text-slate-700">Pricing</h5>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-600">Base Price:</span>
+                                            <span className="font-semibold text-slate-900">₹ {Number(productDetailsModalOpen.product.base_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-600">Making Charge:</span>
+                                            <span className="font-semibold text-slate-900">₹ {Number(productDetailsModalOpen.product.making_charge || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                        {productDetailsModalOpen.variant && (
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-600">Variant Adjustment:</span>
+                                                <span className="font-semibold text-slate-900">₹ {Number(productDetailsModalOpen.variant.price_adjustment || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                            </div>
+                                        )}
+                                        <div className="border-t border-slate-300 pt-2">
+                                            <div className="flex justify-between">
+                                                <span className="font-semibold text-slate-900">Unit Price:</span>
+                                                <span className="font-semibold text-slate-900">
+                                                    ₹ {(Number(productDetailsModalOpen.product.base_price || 0) + Number(productDetailsModalOpen.product.making_charge || 0) + Number(productDetailsModalOpen.variant?.price_adjustment || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Weights */}
+                                {(productDetailsModalOpen.product.gold_weight || productDetailsModalOpen.product.silver_weight || productDetailsModalOpen.product.other_material_weight || productDetailsModalOpen.product.total_weight) && (
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Weights</h5>
+                                        <div className="space-y-2 text-sm">
+                                            {productDetailsModalOpen.product.gold_weight && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-600">Gold Weight:</span>
+                                                    <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.gold_weight).toFixed(3)} g</span>
+                                                </div>
+                                            )}
+                                            {productDetailsModalOpen.product.silver_weight && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-600">Silver Weight:</span>
+                                                    <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.silver_weight).toFixed(3)} g</span>
+                                                </div>
+                                            )}
+                                            {productDetailsModalOpen.product.other_material_weight && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-600">Other Material Weight:</span>
+                                                    <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.other_material_weight).toFixed(3)} g</span>
+                                                </div>
+                                            )}
+                                            {productDetailsModalOpen.product.total_weight && (
+                                                <div className="border-t border-slate-300 pt-2">
+                                                    <div className="flex justify-between">
+                                                        <span className="font-semibold text-slate-900">Total Weight:</span>
+                                                        <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.total_weight).toFixed(3)} g</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Selected Variant */}
+                                {productDetailsModalOpen.variant && (
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Selected Variant</h5>
+                                        <div className="space-y-2 text-sm">
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-600">Label:</span>
+                                                <span className="font-semibold text-slate-900">{productDetailsModalOpen.variant.label}</span>
+                                            </div>
+                                            {productDetailsModalOpen.variant.metadata && Object.keys(productDetailsModalOpen.variant.metadata).length > 0 && (
+                                                <div className="mt-3 space-y-1">
+                                                    <p className="text-xs font-semibold text-slate-500">Variant Details:</p>
+                                                    {Object.entries(productDetailsModalOpen.variant.metadata).map(([key, value]) => (
+                                                        <div key={key} className="flex justify-between text-xs">
+                                                            <span className="text-slate-600">{key.replace(/_/g, ' ')}:</span>
+                                                            <span className="font-medium text-slate-900">{String(value)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Selections */}
+                                {productDetailsModalOpen.selections && Object.keys(productDetailsModalOpen.selections).length > 0 && (
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Selected Options</h5>
+                                        <div className="space-y-2 text-sm">
+                                            {Object.entries(productDetailsModalOpen.selections).map(([key, value]) => (
+                                                <div key={key} className="flex justify-between">
+                                                    <span className="text-slate-600">{key.replace(/_/g, ' ')}:</span>
+                                                    <span className="font-semibold text-slate-900">
+                                                        {value === null || value === undefined || value === '' ? '—' : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Notes */}
+                                {productDetailsModalOpen.notes && (
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Notes</h5>
+                                        <p className="text-sm text-slate-700 whitespace-pre-line">{productDetailsModalOpen.notes}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
 
             {/* Change Product Modal */}
             <Modal show={changeProductModalOpen !== null} onClose={closeChangeModal} maxWidth="4xl">

@@ -121,6 +121,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/quotations', [QuotationController::class, 'index'])
             ->middleware('ensure.kyc.approved')
             ->name('frontend.quotations.index');
+        Route::get('/quotations/{quotation}', [QuotationController::class, 'show'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.quotations.show');
         Route::post('/quotations', [QuotationController::class, 'store'])
             ->middleware('ensure.kyc.approved')
             ->name('frontend.quotations.store');
