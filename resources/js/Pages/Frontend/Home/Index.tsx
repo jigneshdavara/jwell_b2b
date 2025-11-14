@@ -1,3 +1,5 @@
+import CustomerFooter from '@/Components/CustomerFooter';
+import CustomerHeader from '@/Components/CustomerHeader';
 import { Head, Link, usePage } from '@inertiajs/react';
 import type { PageProps } from '@/types';
 import { ReactNode } from 'react';
@@ -47,7 +49,7 @@ export default function HomeIndex() {
     const personaHighlights: Array<{ title: string; detail: string; icon: ReactNode }> = [
         {
             title: 'Retailers',
-            detail: 'Curated retail drops, crystal-clear delivery timelines, and concierge-grade visibility.',
+            detail: 'Curated retail drops, clear delivery timelines, and concierge-grade visibility.',
             icon: (
                 <svg className="h-6 w-6 text-feather-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M4 9h16l-1.5 11h-13Z" strokeLinecap="round" strokeLinejoin="round" />
@@ -58,7 +60,7 @@ export default function HomeIndex() {
         },
         {
             title: 'Wholesalers',
-            detail: 'Lock bullion rates, manage credit, and align every order milestone with confidence.',
+            detail: 'Lock bullion rates, manage credit, and track every milestone with confidence.',
             icon: (
                 <svg className="h-6 w-6 text-feather-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <circle cx="12" cy="12" r="9" />
@@ -69,7 +71,7 @@ export default function HomeIndex() {
         },
         {
             title: 'Jobworkers',
-            detail: 'Share briefs, receive production inputs, and keep dispatches synced with ERP.',
+            detail: 'Share briefs, receive production inputs, and sync dispatches with ERP timelines.',
             icon: (
                 <svg className="h-6 w-6 text-feather-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <path d="M4 7h16v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" strokeLinecap="round" strokeLinejoin="round" />
@@ -81,54 +83,34 @@ export default function HomeIndex() {
         },
     ];
 
-    const currentYear = new Date().getFullYear();
-
     return (
         <div className="min-h-screen bg-ivory text-ink">
             <Head title="Elvee B2B Jewellery OS" />
 
-            <header className="relative overflow-hidden">
+            <CustomerHeader
+                navLinks={headerLinks}
+                primaryCta={{ label: 'Request access', href: route('register') }}
+                secondaryCta={{ label: 'Sign in', href: route('login') }}
+                tagline="Retailer & wholesale workspace"
+            />
+
+            <section className="relative overflow-hidden">
                 <div className="pointer-events-none absolute inset-0">
                     <div className="absolute inset-0 bg-gradient-to-br from-white via-ivory to-feather-gold/5" />
                     <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-feather-gold/20 blur-3xl" />
                     <div className="absolute -right-10 bottom-0 h-64 w-64 rounded-full bg-elvee-blue/10 blur-3xl" />
                 </div>
 
-                <div className="relative z-10">
-                    <div className="border-b border-white/20 bg-white/10 backdrop-blur">
-                        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-6 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left lg:px-10">
-                            <div className="flex items-center justify-center gap-3 text-elvee-blue">
-                                <span className="text-xs font-semibold uppercase tracking-[0.4em] text-feather-gold">Elvee</span>
-                                <p className="text-sm font-semibold text-elvee-blue/80">B2B Jewellery OS</p>
-                            </div>
-                            <nav className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold uppercase tracking-[0.3em] text-elvee-blue/70">
-                                {headerLinks.map((link) => (
-                                    <a key={link.label} href={link.href} className="hover:text-elvee-blue">
-                                        {link.label}
-                                    </a>
-                                ))}
-                            </nav>
-                            <div className="flex items-center justify-center gap-3">
-                                <Link href={route('login')} className="rounded-full border border-elvee-blue/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-elvee-blue transition hover:border-feather-gold/60 hover:text-feather-gold">
-                                    Log in
-                                </Link>
-                                <Link href={route('register')} className="rounded-full bg-elvee-blue px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-lg shadow-elvee-blue/30">
-                                    Request access
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mx-auto flex max-w-6xl flex-col gap-16 px-6 pb-24 pt-16 lg:flex-row lg:items-center lg:px-10">
-                        <div className="max-w-2xl space-y-8">
-                            <p className="inline-flex items-center gap-2 rounded-full bg-feather-gold/10 px-4 py-1 text-xs font-semibold tracking-[0.3em] text-feather-gold">
-                                ELVEE SUITE
-                            </p>
-                            <h1 className="text-4xl font-semibold text-elvee-blue sm:text-5xl lg:text-6xl">
+                <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-16 px-6 pb-24 pt-16 lg:flex-row lg:items-center lg:px-10">
+                    <div className="max-w-2xl space-y-8">
+                        <p className="inline-flex items-center gap-2 rounded-full bg-feather-gold/10 px-4 py-1 text-xs font-semibold tracking-[0.3em] text-feather-gold">
+                            ELVEE SUITE
+                        </p>
+                        <h1 className="text-4xl font-semibold text-elvee-blue sm:text-5xl lg:text-6xl">
                             White-glove commerce for luxury retailers & wholesale partners.
                         </h1>
                         <p className="text-base text-ink/80">
-                            Present elevated collections, lock live rates, manage jobwork, and keep every retail partner informed-without leaving one secure platform.
+                            Present elevated collections, lock live rates, manage jobwork, and keep every retail partner informed without leaving one secure platform.
                         </p>
 
                         <div className="flex flex-wrap gap-4">
@@ -171,13 +153,13 @@ export default function HomeIndex() {
                             ))}
                         </div>
                     </div>
-                    </div>
                 </div>
-            </header>
+            </section>
 
             <main className="space-y-24 bg-white/80 py-24">
                 <section className="mx-auto max-w-5xl px-6 lg:px-10" id="solutions">
-                    <div className="grid gap-6 md:grid-cols-3">
+                    <h2 className="text-2xl font-semibold text-elvee-blue">Who we serve</h2>
+                    <div className="mt-8 grid gap-6 md:grid-cols-3">
                         {personaHighlights.map((persona) => (
                             <div key={persona.title} className="rounded-3xl border border-elvee-blue/10 bg-white p-6 shadow-lg shadow-elvee-blue/5">
                                 <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-feather-gold/10">{persona.icon}</div>
@@ -241,56 +223,9 @@ export default function HomeIndex() {
                 </section>
             </main>
 
-            <footer className="bg-elvee-blue/95 text-white" id="stories">
-                <div className="mx-auto max-w-6xl px-6 py-12 lg:px-10">
-                    <div className="grid gap-10 md:grid-cols-3">
-                        <div className="space-y-3">
-                            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-feather-gold">Elvee Suite</p>
-                            <p className="text-sm text-white/80">
-                                Technology, artistry, and emotion for B2B jewellery partnerships. Built for retailers, wholesalers, and production teams who demand clarity.
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-feather-gold">Navigation</p>
-                            <ul className="mt-4 space-y-2 text-sm text-white/80">
-                                {headerLinks.map((link) => (
-                                    <li key={link.label}>
-                                        <a href={link.href} className="hover:text-white">
-                                            {link.label}
-                                        </a>
-                                    </li>
-                                ))}
-                                <li>
-                                    <Link href={route('login')} className="hover:text-white">
-                                        Login
-                                    </Link>
-                                </li>
-                                <li>
-                                    <Link href={route('register')} className="hover:text-white">
-                                        Request access
-                                    </Link>
-                                </li>
-                            </ul>
-                        </div>
-                        <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-feather-gold">Contact</p>
-                            <ul className="mt-4 space-y-2 text-sm text-white/80">
-                                <li>M1-M6 Gujarat Hira Bourse, Surat, India</li>
-                                <li>
-                                    <a href="mailto:onboarding@elvee.in" className="hover:text-white">
-                                        onboarding@elvee.in
-                                    </a>
-                                </li>
-                                <li>+91 261 610 5100</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-white/70 sm:flex-row sm:items-center sm:justify-between">
-                        <p>Copyright {currentYear} Elvee Jewels Pvt. Ltd. All rights reserved.</p>
-                        <p>Privacy | Terms | Security</p>
-                    </div>
-                </div>
-            </footer>
+            <div id="stories">
+                <CustomerFooter className="mt-24" />
+            </div>
         </div>
     );
 }

@@ -4,7 +4,8 @@
     "type": "module",
     "scripts": {
         "build": "tsc && vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "watch": "concurrently \"tsc --watch\" \"vite build --watch\""
     },
     "devDependencies": {
         "@headlessui/react": "^2.0.0",

@@ -45,7 +45,7 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
         },
         {
             label: 'Studio hours',
-            value: 'Mon–Sat, 10:00 – 19:00 IST',
+            value: 'Mon-Sat, 10:00 - 19:00 IST',
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-feather-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -132,7 +132,7 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
                     </div>
                 </div>
             <div className="relative mx-auto flex w-full flex-col gap-3 border-t border-white/10 px-6 py-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-10 xl:px-16 2xl:px-24">
-                <p>© {currentYear} Elvee Jewellery Pvt. Ltd. All rights reserved.</p>
+                <p>Copyright {currentYear} Elvee Jewellery Pvt. Ltd. All rights reserved.</p>
                 <div className="flex flex-wrap gap-4">
                     <Link href="/privacy" className="transition hover:text-white">
                         Privacy policy
