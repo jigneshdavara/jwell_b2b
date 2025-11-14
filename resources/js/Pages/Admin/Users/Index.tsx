@@ -1,4 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import type { PageProps as AppPageProps } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
@@ -74,6 +75,8 @@ export default function AdminUsersIndex() {
     const [perPage, setPerPage] = useState(users.meta?.per_page ?? 20);
     const [typeFilter, setTypeFilter] = useState(filters.type ?? '');
     const [groupFilter, setGroupFilter] = useState<string | ''>(filters.customer_group_id ? String(filters.customer_group_id) : '');
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
     const statusOptions = useMemo(() => ['all', ...kycStatuses], [kycStatuses]);
 
@@ -126,14 +129,18 @@ export default function AdminUsersIndex() {
 
     const bulkDelete = () => {
         if (selectedIds.length === 0) return;
+        setBulkDeleteConfirm(true);
+    };
 
-        if (window.confirm('Delete selected customers? This cannot be undone.')) {
-            router.delete(route('admin.customers.bulk-destroy'), {
-                data: { ids: selectedIds },
-                preserveScroll: true,
-                onFinish: clearBulkSelection,
-            });
-        }
+    const handleBulkDelete = () => {
+        router.delete(route('admin.customers.bulk-destroy'), {
+            data: { ids: selectedIds },
+            preserveScroll: true,
+            onFinish: () => {
+                clearBulkSelection();
+                setBulkDeleteConfirm(false);
+            },
+        });
     };
 
     const bulkAssignGroup = (groupId: string) => {
@@ -152,9 +159,16 @@ export default function AdminUsersIndex() {
     };
 
     const deleteCustomer = (id: number) => {
-        if (window.confirm('Delete this customer? This action is irreversible.')) {
-            router.delete(route('admin.customers.destroy', id), {
+        setDeleteConfirm(id);
+    };
+
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.customers.destroy', deleteConfirm), {
                 preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
             });
         }
     };
@@ -388,14 +402,16 @@ export default function AdminUsersIndex() {
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5l7.5 7.5-7.5 7.5m-7.5-7.5h15" />
                                                     </svg>
                                                 </Link>
-                                                {iconButton(
-                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-4 w-4">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => deleteCustomer(user.id)}
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                                                    title="Delete customer"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
                                                     </svg>
-                                                    ,
-                                                    'Delete customer',
-                                                    () => deleteCustomer(user.id),
-                                                )}
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -450,6 +466,26 @@ export default function AdminUsersIndex() {
                     </div>
                 </div>
             </div>
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete Customers"
+                message={`Are you sure you want to delete ${selectedIds.length} selected customer(s)? This cannot be undone.`}
+                confirmText="Delete"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Delete Customer"
+                message="Are you sure you want to delete this customer? This action is irreversible."
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

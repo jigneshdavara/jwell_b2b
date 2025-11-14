@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -34,6 +35,8 @@ export default function AdminDiamondCutsIndex() {
     const [editingCut, setEditingCut] = useState<DiamondCutRow | null>(null);
     const [selectedCuts, setSelectedCuts] = useState<number[]>([]);
     const [perPage, setPerPage] = useState(cuts.per_page ?? 20);
+    const [deleteConfirm, setDeleteConfirm] = useState<DiamondCutRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
         name: '',
@@ -120,28 +123,35 @@ export default function AdminDiamondCutsIndex() {
     };
 
     const deleteCut = (cut: DiamondCutRow) => {
-        if (!window.confirm(`Remove diamond cut ${cut.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(cut);
+    };
 
-        router.delete(route('admin.diamond.cuts.destroy', cut.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.diamond.cuts.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const bulkDelete = () => {
         if (selectedCuts.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Delete ${selectedCuts.length} selected diamond cut grade(s)?`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.diamond.cuts.bulk-destroy'), {
             data: { ids: selectedCuts },
             preserveScroll: true,
-            onSuccess: () => setSelectedCuts([]),
+            onSuccess: () => {
+                setSelectedCuts([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -443,6 +453,26 @@ export default function AdminDiamondCutsIndex() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Diamond Cut"
+                message={deleteConfirm ? `Are you sure you want to remove diamond cut ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete Diamond Cuts"
+                message={`Are you sure you want to delete ${selectedCuts.length} selected diamond cut grade(s)?`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

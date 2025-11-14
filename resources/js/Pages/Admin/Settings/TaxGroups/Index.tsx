@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -34,6 +35,7 @@ export default function AdminTaxGroupsIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingGroup, setEditingGroup] = useState<TaxGroupRow | null>(null);
     const [perPage, setPerPage] = useState(taxGroups.per_page ?? 20);
+    const [deleteConfirm, setDeleteConfirm] = useState<TaxGroupRow | null>(null);
 
     const form = useForm({
         name: '',
@@ -90,13 +92,18 @@ export default function AdminTaxGroupsIndex() {
     };
 
     const deleteGroup = (group: TaxGroupRow) => {
-        if (!window.confirm(`Remove tax group ${group.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(group);
+    };
 
-        router.delete(route('admin.settings.tax-groups.destroy', group.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.settings.tax-groups.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const changePage = (url: string | null) => {
@@ -346,6 +353,16 @@ export default function AdminTaxGroupsIndex() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Tax Group"
+                message={deleteConfirm ? `Are you sure you want to remove tax group ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

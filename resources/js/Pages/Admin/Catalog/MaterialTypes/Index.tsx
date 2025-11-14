@@ -1,4 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
@@ -24,6 +25,8 @@ export default function AdminMaterialTypesIndex() {
     const { materialTypes } = usePage<MaterialTypesPageProps>().props;
     const [editingType, setEditingType] = useState<MaterialTypeRow | null>(null);
     const [selectedTypes, setSelectedTypes] = useState<number[]>([]);
+    const [deleteConfirm, setDeleteConfirm] = useState<MaterialTypeRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
         name: '',
@@ -73,13 +76,18 @@ export default function AdminMaterialTypesIndex() {
     };
 
     const deleteType = (type: MaterialTypeRow) => {
-        if (!window.confirm(`Remove material type ${type.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(type);
+    };
 
-        router.delete(route('admin.catalog.material-types.destroy', type.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.catalog.material-types.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const toggleSelection = (id: number) => {
@@ -108,15 +116,17 @@ export default function AdminMaterialTypesIndex() {
         if (selectedTypes.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Delete ${selectedTypes.length} selected material type(s)? This will unassign them from materials.`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.catalog.material-types.bulk-destroy'), {
             data: { ids: selectedTypes },
             preserveScroll: true,
-            onSuccess: () => setSelectedTypes([]),
+            onSuccess: () => {
+                setSelectedTypes([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -316,6 +326,26 @@ export default function AdminMaterialTypesIndex() {
                     </table>
                 </div>
             </div>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Material Type"
+                message={deleteConfirm ? `Are you sure you want to remove material type ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete Material Types"
+                message={`Are you sure you want to delete ${selectedTypes.length} selected material type(s)? This will unassign them from materials.`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

@@ -1,4 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import type { PageProps as AppPageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
@@ -49,6 +50,8 @@ export default function AdminMakingChargeDiscountsIndex() {
         usePage<MakingChargeDiscountsPageProps>().props;
     const [editingDiscount, setEditingDiscount] = useState<DiscountRow | null>(null);
     const [selectedDiscounts, setSelectedDiscounts] = useState<number[]>([]);
+    const [deleteConfirm, setDeleteConfirm] = useState<DiscountRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const defaultDiscountType = useMemo(() => discountTypes[0] ?? 'percentage', [discountTypes]);
     const customerTypeLabels = useMemo(
@@ -174,13 +177,18 @@ export default function AdminMakingChargeDiscountsIndex() {
     };
 
     const deleteDiscount = (discount: DiscountRow) => {
-        if (!window.confirm(`Remove making charge discount "${discount.name}"?`)) {
-            return;
-        }
+        setDeleteConfirm(discount);
+    };
 
-        router.delete(route('admin.offers.making-charge-discounts.destroy', discount.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.offers.making-charge-discounts.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const toggleSelection = (id: number) => {
@@ -208,15 +216,17 @@ export default function AdminMakingChargeDiscountsIndex() {
         if (selectedDiscounts.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Delete ${selectedDiscounts.length} making charge discount(s)?`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.offers.making-charge-discounts.bulk-destroy'), {
             data: { ids: selectedDiscounts },
             preserveScroll: true,
-            onSuccess: () => setSelectedDiscounts([]),
+            onSuccess: () => {
+                setSelectedDiscounts([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -605,6 +615,26 @@ export default function AdminMakingChargeDiscountsIndex() {
                     </table>
                 </div>
             </div>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Making Charge Discount"
+                message={deleteConfirm ? `Are you sure you want to remove making charge discount "${deleteConfirm.name}"?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete Making Charge Discounts"
+                message={`Are you sure you want to delete ${selectedDiscounts.length} making charge discount(s)?`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

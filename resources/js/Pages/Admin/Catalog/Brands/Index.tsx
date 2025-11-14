@@ -1,5 +1,6 @@
 import RichTextEditor from '@/Components/RichTextEditor';
 import Modal from '@/Components/Modal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -38,6 +39,8 @@ export default function AdminBrandsIndex() {
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
     const [coverObjectUrl, setCoverObjectUrl] = useState<string | null>(null);
     const [perPage, setPerPage] = useState(brands.per_page ?? 20);
+    const [deleteConfirm, setDeleteConfirm] = useState<BrandRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const brandForm = useForm({
         name: '',
@@ -143,31 +146,36 @@ export default function AdminBrandsIndex() {
     };
 
     const deleteBrand = (brand: BrandRow) => {
-        if (!window.confirm(`Remove brand ${brand.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(brand);
+    };
 
-        router.delete(route('admin.catalog.brands.destroy', brand.id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                setSelectedBrands((prev) => prev.filter((id) => id !== brand.id));
-            },
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.catalog.brands.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelectedBrands((prev) => prev.filter((id) => id !== deleteConfirm.id));
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const bulkDelete = () => {
         if (selectedBrands.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Remove ${selectedBrands.length} selected brand(s)?`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.catalog.brands.bulk-destroy'), {
             data: { ids: selectedBrands },
             preserveScroll: true,
-            onSuccess: () => setSelectedBrands([]),
+            onSuccess: () => {
+                setSelectedBrands([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -560,6 +568,26 @@ export default function AdminBrandsIndex() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Brand"
+                message={deleteConfirm ? `Are you sure you want to remove brand ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Remove Brands"
+                message={`Are you sure you want to remove ${selectedBrands.length} selected brand(s)?`}
+                confirmText="Remove"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

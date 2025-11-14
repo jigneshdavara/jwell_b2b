@@ -1,4 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
@@ -24,6 +25,8 @@ export default function AdminCustomerTypesIndex() {
     const { types } = usePage<CustomerTypesPageProps>().props;
     const [editingType, setEditingType] = useState<CustomerTypeRow | null>(null);
     const [selectedTypes, setSelectedTypes] = useState<number[]>([]);
+    const [deleteConfirm, setDeleteConfirm] = useState<CustomerTypeRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
         name: '',
@@ -75,13 +78,18 @@ export default function AdminCustomerTypesIndex() {
     };
 
     const deleteType = (type: CustomerTypeRow) => {
-        if (!window.confirm(`Remove customer type ${type.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(type);
+    };
 
-        router.delete(route('admin.customers.types.destroy', type.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.customers.types.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const toggleSelection = (id: number) => {
@@ -110,15 +118,17 @@ export default function AdminCustomerTypesIndex() {
         if (selectedTypes.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Delete ${selectedTypes.length} selected customer type(s)?`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.customers.types.bulk-destroy'), {
             data: { ids: selectedTypes },
             preserveScroll: true,
-            onSuccess: () => setSelectedTypes([]),
+            onSuccess: () => {
+                setSelectedTypes([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -324,6 +334,26 @@ export default function AdminCustomerTypesIndex() {
                     </table>
                 </div>
             </div>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Customer Type"
+                message={deleteConfirm ? `Are you sure you want to remove customer type ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete Customer Types"
+                message={`Are you sure you want to delete ${selectedTypes.length} selected customer type(s)?`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

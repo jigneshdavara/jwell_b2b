@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import type { PageProps } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
@@ -65,6 +66,7 @@ const jobworkStageLabels: Record<string, { label: string; style: string }> = {
 export default function QuotationsIndex() {
     const { quotations } = usePage<QuotationsPageProps>().props;
     const [modeFilter, setModeFilter] = useState<'all' | 'purchase' | 'jobwork'>('all');
+    const [cancelConfirm, setCancelConfirm] = useState<{ show: boolean; quotationId: number | null }>({ show: false, quotationId: null });
 
     const filteredQuotations = useMemo(() => {
         if (modeFilter === 'all') {
@@ -254,11 +256,7 @@ export default function QuotationsIndex() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    if (window.confirm('Cancel this quotation request? This action cannot be undone.')) {
-                                                                        router.delete(route('frontend.quotations.destroy', quotation.id), {
-                                                                            preserveScroll: true,
-                                                                        });
-                                                                    }
+                                                                    setCancelConfirm({ show: true, quotationId: quotation.id });
                                                                 }}
                                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
                                                                 title="Cancel request"
@@ -279,6 +277,25 @@ export default function QuotationsIndex() {
                     )}
                 </section>
             </div>
+
+            <ConfirmationModal
+                show={cancelConfirm.show && cancelConfirm.quotationId !== null}
+                onClose={() => setCancelConfirm({ show: false, quotationId: null })}
+                onConfirm={() => {
+                    if (cancelConfirm.quotationId) {
+                        router.delete(route('frontend.quotations.destroy', cancelConfirm.quotationId), {
+                            preserveScroll: true,
+                            onSuccess: () => {
+                                setCancelConfirm({ show: false, quotationId: null });
+                            },
+                        });
+                    }
+                }}
+                title="Cancel Quotation"
+                message="Are you sure you want to cancel this quotation request? This action cannot be undone."
+                confirmText="Cancel Request"
+                variant="danger"
+            />
         </AuthenticatedLayout>
     );
 }

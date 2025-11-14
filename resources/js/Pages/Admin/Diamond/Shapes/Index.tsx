@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -34,6 +35,8 @@ export default function AdminDiamondShapesIndex() {
     const [editingShape, setEditingShape] = useState<DiamondShapeRow | null>(null);
     const [selectedShapes, setSelectedShapes] = useState<number[]>([]);
     const [perPage, setPerPage] = useState(shapes.per_page ?? 20);
+    const [deleteConfirm, setDeleteConfirm] = useState<DiamondShapeRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
         name: '',
@@ -120,28 +123,35 @@ export default function AdminDiamondShapesIndex() {
     };
 
     const deleteShape = (shape: DiamondShapeRow) => {
-        if (!window.confirm(`Remove diamond shape ${shape.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(shape);
+    };
 
-        router.delete(route('admin.diamond.shapes.destroy', shape.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.diamond.shapes.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const bulkDelete = () => {
         if (selectedShapes.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Delete ${selectedShapes.length} selected diamond shape(s)?`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.diamond.shapes.bulk-destroy'), {
             data: { ids: selectedShapes },
             preserveScroll: true,
-            onSuccess: () => setSelectedShapes([]),
+            onSuccess: () => {
+                setSelectedShapes([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -441,6 +451,26 @@ export default function AdminDiamondShapesIndex() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Diamond Shape"
+                message={deleteConfirm ? `Are you sure you want to remove diamond shape ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete Diamond Shapes"
+                message={`Are you sure you want to delete ${selectedShapes.length} selected diamond shape(s)?`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

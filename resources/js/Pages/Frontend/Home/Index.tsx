@@ -179,12 +179,25 @@ export default function HomeIndex() {
             </section>
 
             <main className="space-y-24 bg-white/80 py-24">
-                <section className="mx-auto max-w-5xl px-6 lg:px-10" id="solutions">
-                    <h2 className="text-2xl font-semibold text-elvee-blue">Who we serve</h2>
-                    <div className="mt-8 grid gap-6 md:grid-cols-3">
+                <section className="mx-auto max-w-6xl px-6 lg:px-10" id="solutions">
+                    <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-feather-gold">Who we serve</p>
+                            <h2 className="text-2xl font-semibold text-elvee-blue">Tailored workflows for each partner segment</h2>
+                        </div>
+                        <div className="text-sm text-ink/70 lg:max-w-sm">
+                            From retail storefronts to jobworkers, Elvee adapts onboarding, catalogues, and approvals to the way your network operates.
+                        </div>
+                    </div>
+                    <div className="grid gap-6 lg:grid-cols-3">
                         {personaHighlights.map((persona) => (
-                            <div key={persona.title} className="rounded-3xl border border-elvee-blue/10 bg-white p-6 shadow-lg shadow-elvee-blue/5">
-                                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-feather-gold/10">{persona.icon}</div>
+                            <div
+                                key={persona.title}
+                                className="rounded-3xl border border-elvee-blue/10 bg-white p-6 shadow-lg shadow-elvee-blue/5 transition hover:-translate-y-1 hover:shadow-2xl"
+                            >
+                                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-feather-gold/40 bg-feather-gold/15">
+                                    {persona.icon}
+                                </div>
                                 <h3 className="text-lg font-semibold text-elvee-blue">{persona.title}</h3>
                                 <p className="mt-2 text-sm text-ink/70">{persona.detail}</p>
                             </div>
@@ -223,23 +236,49 @@ export default function HomeIndex() {
                 )}
 
                 <section className="mx-auto max-w-6xl px-6 lg:px-10" id="jobwork">
-                    <div className="flex flex-col gap-10 rounded-3xl bg-gradient-to-br from-elvee-blue to-navy p-10 text-white lg:flex-row lg:items-center lg:justify-between">
-                        <div className="max-w-xl space-y-4">
-                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-feather-gold">Experience it live</p>
-                            <h2 className="text-3xl font-semibold">
-                                Bring retail partners closer with immersive catalogues, bullion controls, and production intelligence.
-                            </h2>
-                            <p className="text-sm text-white/80">
-                                From bullion hedging to dispatch updates, Elvee keeps every stakeholder aligned with tasteful, high-trust interfaces.
-                            </p>
-                        </div>
-                        <div className="flex flex-col gap-3 sm:flex-row">
-                            <Link href={route('login')} className="btn-primary">
-                                Explore the live demo
-                            </Link>
-                            <a href="mailto:onboarding@elvee.in" className="btn-secondary bg-white text-elvee-blue hover:bg-ivory">
-                                Talk to our team
-                            </a>
+                    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-elvee-blue via-navy to-slate-900 p-10 text-white shadow-[0_25px_60px_-20px_rgba(10,30,70,0.7)]">
+                        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/2 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.15),_transparent_55%)] blur-3xl lg:block" />
+                        <div className="relative z-10 flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="max-w-xl space-y-4">
+                                <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-feather-gold">
+                                    Experience it live
+                                </p>
+                                <h2 className="text-3xl font-semibold leading-tight">
+                                    Bring retail partners closer with immersive catalogues, bullion controls, and production intelligence.
+                                </h2>
+                                <p className="text-sm text-white/80">
+                                    From bullion hedging to dispatch updates, Elvee keeps every stakeholder aligned with tasteful, high-trust interfaces.
+                                </p>
+                                <div className="grid gap-4 sm:grid-cols-3">
+                                    {[
+                                        { label: 'Live demo', value: '5 mins', sub: 'Guided walkthrough' },
+                                        { label: 'Avg. onboarding', value: '48 hrs', sub: 'Retail partners' },
+                                        { label: 'Support', value: '24/7', sub: 'Concierge desk' },
+                                    ].map((metric) => (
+                                        <div key={metric.label} className="rounded-2xl bg-white/5 p-4 text-sm">
+                                            <p className="text-xs uppercase tracking-[0.3em] text-white/70">{metric.label}</p>
+                                            <p className="mt-1 text-2xl font-semibold text-white">{metric.value}</p>
+                                            <p className="text-xs text-white/70">{metric.sub}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-3 text-slate-900 lg:min-w-[320px]">
+                                <Link
+                                    href={route('login')}
+                                    className="flex items-center justify-between rounded-2xl bg-white/90 px-5 py-3 text-sm font-semibold text-elvee-blue shadow-lg shadow-navy/30 transition hover:bg-white"
+                                >
+                                    <span>Explore the live demo</span>
+                                    <span className="rounded-full bg-elvee-blue px-2 py-1 text-xs text-white">5 min tour</span>
+                                </Link>
+                                <a
+                                    href="mailto:onboarding@elvee.in"
+                                    className="flex items-center justify-between rounded-2xl border border-white/40 bg-transparent px-5 py-3 text-sm font-semibold text-white transition hover:border-feather-gold hover:text-feather-gold"
+                                >
+                                    <span>Talk to our team</span>
+                                    <span className="rounded-full bg-white/10 px-2 py-1 text-xs text-white">Concierge</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </section>

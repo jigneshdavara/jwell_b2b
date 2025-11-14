@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -45,6 +46,7 @@ export default function AdminTaxesIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingTax, setEditingTax] = useState<TaxRow | null>(null);
     const [perPage, setPerPage] = useState(taxes.per_page ?? 20);
+    const [deleteConfirm, setDeleteConfirm] = useState<TaxRow | null>(null);
 
     const form = useForm({
         tax_group_id: '',
@@ -99,13 +101,18 @@ export default function AdminTaxesIndex() {
     };
 
     const deleteTax = (tax: TaxRow) => {
-        if (!window.confirm(`Remove tax ${tax.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(tax);
+    };
 
-        router.delete(route('admin.settings.taxes.destroy', tax.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.settings.taxes.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const changePage = (url: string | null) => {
@@ -392,6 +399,16 @@ export default function AdminTaxesIndex() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Tax"
+                message={deleteConfirm ? `Are you sure you want to remove tax ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

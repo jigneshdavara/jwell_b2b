@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -34,6 +35,8 @@ export default function AdminSilverPuritiesIndex() {
     const [editingPurity, setEditingPurity] = useState<SilverPurityRow | null>(null);
     const [selectedPurities, setSelectedPurities] = useState<number[]>([]);
     const [perPage, setPerPage] = useState(purities.per_page ?? 20);
+    const [deleteConfirm, setDeleteConfirm] = useState<SilverPurityRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
         name: '',
@@ -120,28 +123,35 @@ export default function AdminSilverPuritiesIndex() {
     };
 
     const deletePurity = (purity: SilverPurityRow) => {
-        if (!window.confirm(`Remove silver purity ${purity.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(purity);
+    };
 
-        router.delete(route('admin.silver.purities.destroy', purity.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.silver.purities.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const bulkDelete = () => {
         if (selectedPurities.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Delete ${selectedPurities.length} selected silver purity value(s)?`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.silver.purities.bulk-destroy'), {
             data: { ids: selectedPurities },
             preserveScroll: true,
-            onSuccess: () => setSelectedPurities([]),
+            onSuccess: () => {
+                setSelectedPurities([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -441,6 +451,26 @@ export default function AdminSilverPuritiesIndex() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Silver Purity"
+                message={deleteConfirm ? `Are you sure you want to remove silver purity ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete Silver Purities"
+                message={`Are you sure you want to delete ${selectedPurities.length} selected silver purity value(s)?`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

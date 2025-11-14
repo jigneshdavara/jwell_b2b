@@ -1,4 +1,6 @@
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmationModal from '@/Components/ConfirmationModal';
+import AlertModal from '@/Components/AlertModal';
 import type { PageProps as AppPageProps } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
@@ -55,6 +57,19 @@ export default function AdminProductsIndex() {
     const [perPage, setPerPage] = useState(initialPerPage ?? products.meta?.per_page ?? 20);
     const [bulkBrand, setBulkBrand] = useState('');
     const [bulkCategory, setBulkCategory] = useState('');
+    
+    // Modal states
+    const [alertModal, setAlertModal] = useState<{ show: boolean; title: string; message: string }>({
+        show: false,
+        title: '',
+        message: '',
+    });
+    const [confirmModal, setConfirmModal] = useState<{ show: boolean; title: string; message: string; onConfirm: () => void }>({
+        show: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+    });
 
     useEffect(() => {
         const existingIds = new Set(products.data.map((product) => product.id));
@@ -129,7 +144,11 @@ export default function AdminProductsIndex() {
 
     const ensureSelection = (callback: () => void) => {
         if (selectedProducts.length === 0) {
-            alert('Select at least one product first.');
+            setAlertModal({
+                show: true,
+                title: 'Selection Required',
+                message: 'Select at least one product first.',
+            });
             return;
         }
 
@@ -138,14 +157,20 @@ export default function AdminProductsIndex() {
 
     const bulkDelete = () => {
         ensureSelection(() => {
-            if (!window.confirm(`Delete ${selectedProducts.length} product(s)?`)) {
-                return;
-            }
-
-            router.delete(route('admin.products.bulk-destroy'), {
-                data: { ids: selectedProducts },
-                preserveScroll: true,
-                onSuccess: () => setSelectedProducts([]),
+            setConfirmModal({
+                show: true,
+                title: 'Delete Products',
+                message: `Are you sure you want to delete ${selectedProducts.length} product(s)? This action cannot be undone.`,
+                onConfirm: () => {
+                    router.delete(route('admin.products.bulk-destroy'), {
+                        data: { ids: selectedProducts },
+                        preserveScroll: true,
+                        onSuccess: () => {
+                            setSelectedProducts([]);
+                            setConfirmModal({ show: false, title: '', message: '', onConfirm: () => {} });
+                        },
+                    });
+                },
             });
         });
     };
@@ -169,7 +194,11 @@ export default function AdminProductsIndex() {
     const bulkAssignBrand = () => {
         ensureSelection(() => {
             if (!bulkBrand) {
-                alert('Select a brand to assign.');
+                setAlertModal({
+                    show: true,
+                    title: 'Brand Required',
+                    message: 'Select a brand to assign.',
+                });
                 return;
             }
 
@@ -193,7 +222,11 @@ export default function AdminProductsIndex() {
     const bulkAssignCategory = () => {
         ensureSelection(() => {
             if (!bulkCategory) {
-                alert('Select a category to assign.');
+                setAlertModal({
+                    show: true,
+                    title: 'Category Required',
+                    message: 'Select a category to assign.',
+                });
                 return;
             }
 
@@ -221,12 +254,18 @@ export default function AdminProductsIndex() {
     };
 
     const deleteProduct = (id: number) => {
-        if (!window.confirm('Delete this product? This cannot be undone.')) {
-            return;
-        }
-
-        router.delete(route('admin.products.destroy', id), {
-            preserveScroll: true,
+        setConfirmModal({
+            show: true,
+            title: 'Delete Product',
+            message: 'Are you sure you want to delete this product? This action cannot be undone.',
+            onConfirm: () => {
+                router.delete(route('admin.products.destroy', id), {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        setConfirmModal({ show: false, title: '', message: '', onConfirm: () => {} });
+                    },
+                });
+            },
         });
     };
 
@@ -535,6 +574,23 @@ export default function AdminProductsIndex() {
                     </div>
                 </div>
             </div>
+
+            <AlertModal
+                show={alertModal.show}
+                onClose={() => setAlertModal({ show: false, title: '', message: '' })}
+                title={alertModal.title}
+                message={alertModal.message}
+            />
+
+            <ConfirmationModal
+                show={confirmModal.show}
+                onClose={() => setConfirmModal({ show: false, title: '', message: '', onConfirm: () => {} })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

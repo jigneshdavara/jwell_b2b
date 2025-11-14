@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -34,6 +35,8 @@ export default function AdminDiamondColorsIndex() {
     const [editingColor, setEditingColor] = useState<DiamondColorRow | null>(null);
     const [selectedColors, setSelectedColors] = useState<number[]>([]);
     const [perPage, setPerPage] = useState(colors.per_page ?? 20);
+    const [deleteConfirm, setDeleteConfirm] = useState<DiamondColorRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
         name: '',
@@ -120,28 +123,35 @@ export default function AdminDiamondColorsIndex() {
     };
 
     const deleteColor = (color: DiamondColorRow) => {
-        if (!window.confirm(`Remove diamond color ${color.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(color);
+    };
 
-        router.delete(route('admin.diamond.colors.destroy', color.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.diamond.colors.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const bulkDelete = () => {
         if (selectedColors.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Delete ${selectedColors.length} selected diamond color(s)?`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.diamond.colors.bulk-destroy'), {
             data: { ids: selectedColors },
             preserveScroll: true,
-            onSuccess: () => setSelectedColors([]),
+            onSuccess: () => {
+                setSelectedColors([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -441,6 +451,26 @@ export default function AdminDiamondColorsIndex() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Diamond Color"
+                message={deleteConfirm ? `Are you sure you want to remove diamond color ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete Diamond Colors"
+                message={`Are you sure you want to delete ${selectedColors.length} selected diamond color(s)?`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

@@ -167,7 +167,7 @@ const experienceHighlights: Array<{ title: string; description: string; icon: Re
                     <ul className="space-y-4">
                         {experienceHighlights.map((item) => (
                             <li key={item.title} className="flex gap-4 rounded-2xl border border-elvee-blue/10 bg-ivory/70 p-4">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-feather-gold/15">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-feather-gold/40 bg-feather-gold/15">
                                     {item.icon}
                                 </div>
                                 <div className="space-y-1 text-sm text-ink/80">

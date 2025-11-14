@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -37,6 +38,8 @@ export default function ProductCatalogsIndex() {
     const [editingCatalog, setEditingCatalog] = useState<ProductCatalogRow | null>(null);
     const [selectedCatalogs, setSelectedCatalogs] = useState<number[]>([]);
     const [assigningCatalog, setAssigningCatalog] = useState<ProductCatalogRow | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<ProductCatalogRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [assignSelection, setAssignSelection] = useState<number[]>([]);
     const [assignSearch, setAssignSearch] = useState('');
     const [assignBrand, setAssignBrand] = useState<string>('all');
@@ -122,31 +125,36 @@ export default function ProductCatalogsIndex() {
     };
 
     const deleteCatalog = (catalog: ProductCatalogRow) => {
-        if (!window.confirm(`Remove catalog "${catalog.name}"?`)) {
-            return;
-        }
+        setDeleteConfirm(catalog);
+    };
 
-        router.delete(route('admin.catalog.product-catalogs.destroy', catalog.id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                setSelectedCatalogs((prev) => prev.filter((id) => id !== catalog.id));
-            },
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.catalog.product-catalogs.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelectedCatalogs((prev) => prev.filter((id) => id !== deleteConfirm.id));
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const bulkDelete = () => {
         if (selectedCatalogs.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Remove ${selectedCatalogs.length} selected catalog(s)?`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.catalog.product-catalogs.bulk-destroy'), {
             data: { ids: selectedCatalogs },
             preserveScroll: true,
-            onSuccess: () => setSelectedCatalogs([]),
+            onSuccess: () => {
+                setSelectedCatalogs([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -602,6 +610,26 @@ export default function ProductCatalogsIndex() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Catalog"
+                message={deleteConfirm ? `Are you sure you want to remove catalog "${deleteConfirm.name}"?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Remove Catalogs"
+                message={`Are you sure you want to remove ${selectedCatalogs.length} selected catalog(s)?`}
+                confirmText="Remove"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -34,6 +35,8 @@ export default function AdminGoldPuritiesIndex() {
     const [editingPurity, setEditingPurity] = useState<GoldPurityRow | null>(null);
     const [selectedPurities, setSelectedPurities] = useState<number[]>([]);
     const [perPage, setPerPage] = useState(purities.per_page ?? 20);
+    const [deleteConfirm, setDeleteConfirm] = useState<GoldPurityRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
         name: '',
@@ -120,28 +123,35 @@ export default function AdminGoldPuritiesIndex() {
     };
 
     const deletePurity = (purity: GoldPurityRow) => {
-        if (!window.confirm(`Remove gold purity ${purity.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(purity);
+    };
 
-        router.delete(route('admin.gold.purities.destroy', purity.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.gold.purities.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const bulkDelete = () => {
         if (selectedPurities.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Delete ${selectedPurities.length} selected gold purity value(s)?`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.gold.purities.bulk-destroy'), {
             data: { ids: selectedPurities },
             preserveScroll: true,
-            onSuccess: () => setSelectedPurities([]),
+            onSuccess: () => {
+                setSelectedPurities([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -443,6 +453,26 @@ export default function AdminGoldPuritiesIndex() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Gold Purity"
+                message={deleteConfirm ? `Are you sure you want to remove gold purity ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete Gold Purities"
+                message={`Are you sure you want to delete ${selectedPurities.length} selected gold purity value(s)?`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

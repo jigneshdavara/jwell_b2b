@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -41,6 +42,8 @@ export default function AdminUserGroupsIndex() {
     const [editingGroup, setEditingGroup] = useState<UserGroupRow | null>(null);
     const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
     const [perPage, setPerPage] = useState(groups.per_page ?? 20);
+    const [deleteConfirm, setDeleteConfirm] = useState<UserGroupRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const featureLabels = useMemo(
         () =>
@@ -154,28 +157,35 @@ export default function AdminUserGroupsIndex() {
     };
 
     const deleteGroup = (group: UserGroupRow) => {
-        if (!window.confirm(`Remove user group ${group.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(group);
+    };
 
-        router.delete(route('admin.users.groups.destroy', group.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.users.groups.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const bulkDelete = () => {
         if (selectedGroups.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Delete ${selectedGroups.length} selected user group(s)?`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.users.groups.bulk-destroy'), {
             data: { ids: selectedGroups },
             preserveScroll: true,
-            onSuccess: () => setSelectedGroups([]),
+            onSuccess: () => {
+                setSelectedGroups([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -521,6 +531,26 @@ export default function AdminUserGroupsIndex() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove User Group"
+                message={deleteConfirm ? `Are you sure you want to remove user group ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete User Groups"
+                message={`Are you sure you want to delete ${selectedGroups.length} selected user group(s)?`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

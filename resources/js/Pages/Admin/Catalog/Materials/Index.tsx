@@ -1,4 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import type { PageProps } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
@@ -32,6 +33,8 @@ export default function AdminMaterialsIndex() {
     const { materials, units, materialTypes } = usePage<MaterialsPageProps>().props;
     const [editingMaterial, setEditingMaterial] = useState<MaterialRow | null>(null);
     const [selectedMaterials, setSelectedMaterials] = useState<number[]>([]);
+    const [deleteConfirm, setDeleteConfirm] = useState<MaterialRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const materialForm = useForm({
         name: '',
@@ -98,13 +101,18 @@ export default function AdminMaterialsIndex() {
     };
 
     const deleteMaterial = (material: MaterialRow) => {
-        if (!window.confirm(`Remove material ${material.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(material);
+    };
 
-        router.delete(route('admin.catalog.materials.destroy', material.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.catalog.materials.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const toggleSelection = (id: number) => {
@@ -133,15 +141,17 @@ export default function AdminMaterialsIndex() {
         if (selectedMaterials.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Delete ${selectedMaterials.length} selected material(s)? This action cannot be undone.`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.catalog.materials.bulk-destroy'), {
             data: { ids: selectedMaterials },
             preserveScroll: true,
-            onSuccess: () => setSelectedMaterials([]),
+            onSuccess: () => {
+                setSelectedMaterials([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -377,6 +387,26 @@ export default function AdminMaterialsIndex() {
                     <option key={option} value={option} />
                 ))}
             </datalist>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Material"
+                message={deleteConfirm ? `Are you sure you want to remove material ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete Materials"
+                message={`Are you sure you want to delete ${selectedMaterials.length} selected material(s)? This action cannot be undone.`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

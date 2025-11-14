@@ -1,4 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import type { PageProps as AppPageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
@@ -49,6 +50,7 @@ export default function AdminOffersIndex() {
     const { offers, offerTypes, customerTypes, customerGroups } = usePage<AdminOffersPageProps>().props;
 
     const [editingOffer, setEditingOffer] = useState<OfferRow | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<OfferRow | null>(null);
 
     const defaultType = useMemo(() => offerTypes[0] ?? 'percentage', [offerTypes]);
 
@@ -177,12 +179,18 @@ export default function AdminOffersIndex() {
     };
 
     const deleteOffer = (offer: OfferRow) => {
-        if (!window.confirm(`Remove offer ${offer.code}?`)) {
-            return;
+        setDeleteConfirm(offer);
+    };
+
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.offers.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
         }
-        router.delete(route('admin.offers.destroy', offer.id), {
-            preserveScroll: true,
-        });
     };
 
     return (
@@ -510,6 +518,16 @@ export default function AdminOffersIndex() {
                     </table>
                 </div>
             </div>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Offer"
+                message={deleteConfirm ? `Are you sure you want to remove offer ${deleteConfirm.code}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

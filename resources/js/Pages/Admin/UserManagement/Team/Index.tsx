@@ -1,4 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import type { PageProps } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
@@ -45,6 +46,8 @@ export default function AdminTeamUsersIndex() {
     });
     const [editingUser, setEditingUser] = useState<TeamUser | null>(null);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [deleteConfirm, setDeleteConfirm] = useState<TeamUser | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const updateUserGroup = (user: TeamUser, groupId: string) => {
         if (isProtected(user)) {
@@ -162,35 +165,39 @@ export default function AdminTeamUsersIndex() {
         if (isProtected(user)) {
             return;
         }
+        setDeleteConfirm(user);
+    };
 
-        if (!window.confirm('Delete this user account? This action cannot be undone.')) {
-            return;
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.users.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelectedIds((current) => current.filter((id) => id !== deleteConfirm.id));
+                    if (editingUser?.id === deleteConfirm.id) {
+                        cancelEdit();
+                    }
+                    setDeleteConfirm(null);
+                },
+            });
         }
-
-        router.delete(route('admin.users.destroy', user.id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                setSelectedIds((current) => current.filter((id) => id !== user.id));
-                if (editingUser?.id === user.id) {
-                    cancelEdit();
-                }
-            },
-        });
     };
 
     const bulkDelete = () => {
         if (selectedIds.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Delete ${selectedIds.length} selected user(s)? This action cannot be undone.`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.users.bulk-destroy'), {
             data: { ids: selectedIds },
             preserveScroll: true,
-            onSuccess: () => setSelectedIds([]),
+            onSuccess: () => {
+                setSelectedIds([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -445,6 +452,26 @@ export default function AdminTeamUsersIndex() {
                     </table>
                 </div>
             </div>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Delete User Account"
+                message="Are you sure you want to delete this user account? This action cannot be undone."
+                confirmText="Delete"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete Users"
+                message={`Are you sure you want to delete ${selectedIds.length} selected user(s)? This action cannot be undone.`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

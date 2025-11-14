@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -34,6 +35,8 @@ export default function AdminDiamondTypesIndex() {
     const [editingType, setEditingType] = useState<DiamondTypeRow | null>(null);
     const [selectedTypes, setSelectedTypes] = useState<number[]>([]);
     const [perPage, setPerPage] = useState(types.per_page ?? 20);
+    const [deleteConfirm, setDeleteConfirm] = useState<DiamondTypeRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
         name: '',
@@ -120,28 +123,35 @@ export default function AdminDiamondTypesIndex() {
     };
 
     const deleteType = (type: DiamondTypeRow) => {
-        if (!window.confirm(`Remove diamond type ${type.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(type);
+    };
 
-        router.delete(route('admin.diamond.types.destroy', type.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.diamond.types.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const bulkDelete = () => {
         if (selectedTypes.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Delete ${selectedTypes.length} selected diamond type(s)?`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.diamond.types.bulk-destroy'), {
             data: { ids: selectedTypes },
             preserveScroll: true,
-            onSuccess: () => setSelectedTypes([]),
+            onSuccess: () => {
+                setSelectedTypes([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -443,6 +453,26 @@ export default function AdminDiamondTypesIndex() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Diamond Type"
+                message={deleteConfirm ? `Are you sure you want to remove diamond type ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete Diamond Types"
+                message={`Are you sure you want to delete ${selectedTypes.length} selected diamond type(s)?`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

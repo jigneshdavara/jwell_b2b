@@ -378,12 +378,12 @@ export default function Register() {
                                 >
                                     <div className="flex items-center gap-3">
                                         <span
-                                            className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold ${
+                                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold ${
                                                 isCurrent
-                                                    ? 'bg-elvee-blue text-white'
+                                                    ? 'border-elvee-blue bg-elvee-blue text-white'
                                                     : isComplete
-                                                    ? 'bg-feather-gold text-white'
-                                                    : 'bg-white text-elvee-blue'
+                                                    ? 'border-feather-gold bg-feather-gold text-white'
+                                                    : 'border-elvee-blue/20 bg-white text-elvee-blue'
                                             }`}
                                         >
                                             {index + 1}

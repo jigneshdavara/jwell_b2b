@@ -1,4 +1,5 @@
 import Modal from '@/Components/Modal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -34,6 +35,8 @@ export default function AdminDiamondClaritiesIndex() {
     const [editingClarity, setEditingClarity] = useState<DiamondClarityRow | null>(null);
     const [selectedClarities, setSelectedClarities] = useState<number[]>([]);
     const [perPage, setPerPage] = useState(clarities.per_page ?? 20);
+    const [deleteConfirm, setDeleteConfirm] = useState<DiamondClarityRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
         name: '',
@@ -120,28 +123,35 @@ export default function AdminDiamondClaritiesIndex() {
     };
 
     const deleteClarity = (clarity: DiamondClarityRow) => {
-        if (!window.confirm(`Remove diamond clarity ${clarity.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(clarity);
+    };
 
-        router.delete(route('admin.diamond.clarities.destroy', clarity.id), {
-            preserveScroll: true,
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.diamond.clarities.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const bulkDelete = () => {
         if (selectedClarities.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Delete ${selectedClarities.length} selected diamond clarity grade(s)?`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.diamond.clarities.bulk-destroy'), {
             data: { ids: selectedClarities },
             preserveScroll: true,
-            onSuccess: () => setSelectedClarities([]),
+            onSuccess: () => {
+                setSelectedClarities([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -441,6 +451,26 @@ export default function AdminDiamondClaritiesIndex() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Diamond Clarity"
+                message={deleteConfirm ? `Are you sure you want to remove diamond clarity ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Delete Diamond Clarities"
+                message={`Are you sure you want to delete ${selectedClarities.length} selected diamond clarity grade(s)?`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }

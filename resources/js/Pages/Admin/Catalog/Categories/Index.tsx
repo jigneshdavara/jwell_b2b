@@ -1,5 +1,6 @@
 import RichTextEditor from '@/Components/RichTextEditor';
 import Modal from '@/Components/Modal';
+import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -48,6 +49,8 @@ export default function AdminCategoriesIndex() {
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
     const [coverObjectUrl, setCoverObjectUrl] = useState<string | null>(null);
     const [perPage, setPerPage] = useState(categories.per_page ?? 20);
+    const [deleteConfirm, setDeleteConfirm] = useState<CategoryRow | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const [filterState, setFilterState] = useState({
         search: filters.search ?? '',
@@ -178,31 +181,36 @@ export default function AdminCategoriesIndex() {
     };
 
     const deleteCategory = (category: CategoryRow) => {
-        if (!window.confirm(`Remove category ${category.name}?`)) {
-            return;
-        }
+        setDeleteConfirm(category);
+    };
 
-        router.delete(route('admin.catalog.categories.destroy', category.id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                setSelectedCategories((prev) => prev.filter((id) => id !== category.id));
-            },
-        });
+    const handleDelete = () => {
+        if (deleteConfirm) {
+            router.delete(route('admin.catalog.categories.destroy', deleteConfirm.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelectedCategories((prev) => prev.filter((id) => id !== deleteConfirm.id));
+                    setDeleteConfirm(null);
+                },
+            });
+        }
     };
 
     const bulkDelete = () => {
         if (selectedCategories.length === 0) {
             return;
         }
+        setBulkDeleteConfirm(true);
+    };
 
-        if (!window.confirm(`Remove ${selectedCategories.length} selected category(ies)?`)) {
-            return;
-        }
-
+    const handleBulkDelete = () => {
         router.delete(route('admin.catalog.categories.bulk-destroy'), {
             data: { ids: selectedCategories },
             preserveScroll: true,
-            onSuccess: () => setSelectedCategories([]),
+            onSuccess: () => {
+                setSelectedCategories([]);
+                setBulkDeleteConfirm(false);
+            },
         });
     };
 
@@ -677,6 +685,26 @@ export default function AdminCategoriesIndex() {
                     </div>
                 </div>
             </Modal>
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Remove Category"
+                message={deleteConfirm ? `Are you sure you want to remove category ${deleteConfirm.name}?` : ''}
+                confirmText="Remove"
+                variant="danger"
+            />
+
+            <ConfirmationModal
+                show={bulkDeleteConfirm}
+                onClose={() => setBulkDeleteConfirm(false)}
+                onConfirm={handleBulkDelete}
+                title="Remove Categories"
+                message={`Are you sure you want to remove ${selectedCategories.length} selected category(ies)?`}
+                confirmText="Remove"
+                variant="danger"
+            />
         </AdminLayout>
     );
 }
