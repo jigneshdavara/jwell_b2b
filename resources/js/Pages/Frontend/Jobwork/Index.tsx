@@ -185,7 +185,7 @@ export default function JobworkIndex() {
                             </span>
                             <Link
                                 href={route('frontend.catalog.index')}
-                                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 font-semibold text-white shadow-slate-900/30 transition hover:bg-slate-700"
+                                className="inline-flex items-center gap-2 rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
                             >
                                 Browse catalogue
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -287,8 +287,8 @@ export default function JobworkIndex() {
                                                                 key={variant.id}
                                                                 className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 text-sm transition ${
                                                                     isSelected
-                                                                        ? 'border-sky-500 bg-sky-50 text-slate-900'
-                                                                        : 'border-slate-200 bg-white text-slate-600 hover:border-sky-300'
+                                                                        ? 'border-feather-gold bg-feather-gold/10 text-slate-900'
+                                                                        : 'border-slate-200 bg-white text-slate-600 hover:border-feather-gold/50'
                                                                 }`}
                                                             >
                                                                 <span>{variant.label}</span>
@@ -300,7 +300,7 @@ export default function JobworkIndex() {
                                                                         value={variant.id}
                                                                         checked={isSelected}
                                                                         onChange={() => setData('product_variant_id', variant.id)}
-                                                                        className="h-4 w-4 text-sky-600 focus:ring-sky-500"
+                                                                        className="h-4 w-4 text-elvee-blue focus:ring-feather-gold"
                                                                     />
                                                                 </span>
                                                             </label>
@@ -323,7 +323,7 @@ export default function JobworkIndex() {
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
                                             <span>Reference design summary *</span>
                                             <textarea
-                                                className="min-h-[120px] rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="min-h-[120px] rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                                 value={data.reference_design}
                                                 onChange={(event) => setData('reference_design', event.target.value)}
                                                 placeholder="Describe materials, gemstone placements, finishing details, packaging expectations…"
@@ -336,7 +336,7 @@ export default function JobworkIndex() {
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
                                             <span>Reference media URLs (one per line)</span>
                                             <textarea
-                                                className="min-h-[120px] rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="min-h-[120px] rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                                 value={referenceMediaInput}
                                                 onChange={(event) => setReferenceMediaInput(event.target.value)}
                                                 placeholder="https://…"
@@ -351,7 +351,7 @@ export default function JobworkIndex() {
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
                                     <span>Supply Type</span>
                                     <select
-                                        className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                         value={data.type}
                                         onChange={(event) => setData('type', event.target.value as FormData['type'])}
                                     >
@@ -365,7 +365,7 @@ export default function JobworkIndex() {
                                         <span>Metal</span>
                                         <input
                                             type="text"
-                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                             value={data.metal}
                                             onChange={(event) => setData('metal', event.target.value)}
                                         />
@@ -375,7 +375,7 @@ export default function JobworkIndex() {
                                         <span>Purity</span>
                                         <input
                                             type="text"
-                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                             value={data.purity}
                                             onChange={(event) => setData('purity', event.target.value)}
                                         />
@@ -388,7 +388,7 @@ export default function JobworkIndex() {
                                         <span>Diamond / Stone quality</span>
                                         <input
                                             type="text"
-                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                             value={data.diamond_quality}
                                             onChange={(event) => setData('diamond_quality', event.target.value)}
                                         />
@@ -398,7 +398,7 @@ export default function JobworkIndex() {
                                         <input
                                             type="number"
                                             min={1}
-                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                             value={data.quantity}
                                             onChange={(event) => setData('quantity', Number(event.target.value) || 1)}
                                         />
@@ -409,7 +409,7 @@ export default function JobworkIndex() {
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
                                     <span>Special instructions</span>
                                     <textarea
-                                        className="min-h-[100px] rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="min-h-[100px] rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                         value={data.special_instructions}
                                         onChange={(event) => setData('special_instructions', event.target.value)}
                                     />
@@ -420,7 +420,7 @@ export default function JobworkIndex() {
                                         <span>Delivery deadline</span>
                                         <input
                                             type="date"
-                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                             value={data.delivery_deadline}
                                             onChange={(event) => setData('delivery_deadline', event.target.value)}
                                         />
@@ -433,7 +433,7 @@ export default function JobworkIndex() {
                                         <input
                                             type="number"
                                             step="0.01"
-                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                             value={data.wastage_percentage}
                                             onChange={(event) => setData('wastage_percentage', event.target.value)}
                                         />
@@ -443,7 +443,7 @@ export default function JobworkIndex() {
                                         <input
                                             type="number"
                                             step="0.01"
-                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                             value={data.manufacturing_charge}
                                             onChange={(event) => setData('manufacturing_charge', event.target.value)}
                                         />
@@ -487,7 +487,7 @@ export default function JobworkIndex() {
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="w-full rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="w-full rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {processing ? 'Submitting…' : 'Submit jobwork request'}
                                 </button>

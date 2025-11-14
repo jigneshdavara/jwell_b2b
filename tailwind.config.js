@@ -13,7 +13,16 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['Avenir', 'Montserrat', 'Nunito', ...defaultTheme.fontFamily.sans],
+            },
+            colors: {
+                'elvee-blue': '#0E244D',
+                'feather-gold': '#AE8135',
+                'ivory': '#F8F5F0',
+                'warm-gold': '#927038',
+                'steel': '#B6B6B6',
+                'navy': '#0A1F47',
+                'ink': '#0C1424',
             },
         },
     },

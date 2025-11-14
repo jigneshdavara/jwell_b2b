@@ -189,7 +189,7 @@ export default function AdminUsersIndex() {
                                     value={search}
                                     onChange={(event) => setSearch(event.target.value)}
                                     placeholder="Jane Doe or jane@studio.com"
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 />
                                 <button
                                     type="button"
@@ -205,7 +205,7 @@ export default function AdminUsersIndex() {
                             <select
                                 value={groupFilter}
                                 onChange={(event) => setGroupFilter(event.target.value)}
-                                className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                             >
                                 <option value="">All groups</option>
                                 {customerGroups.map((group) => (
@@ -220,7 +220,7 @@ export default function AdminUsersIndex() {
                             <select
                                 value={typeFilter}
                                 onChange={(event) => setTypeFilter(event.target.value)}
-                                className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                             >
                                 <option value="">All types</option>
                                 <option value="retailer">Retailer</option>
@@ -307,7 +307,7 @@ export default function AdminUsersIndex() {
                                 </option>
                             ))}
                         </select>
-                        <button type="button" onClick={clearBulkSelection} className="text-xs text-white/70 underline-offset-2 hover:underline">
+                        <button type="button" onClick={clearBulkSelection} className="text-xs text-white/80 hover:text-white transition">
                             Clear selection
                         </button>
                     </div>
@@ -322,7 +322,7 @@ export default function AdminUsersIndex() {
                                         type="checkbox"
                                         checked={selectedIds.length > 0 && selectedIds.length === users.data.length}
                                         onChange={(event) => toggleSelectAll(event.target.checked)}
-                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                         aria-label="Select all customers"
                                     />
                                 </th>
@@ -349,7 +349,7 @@ export default function AdminUsersIndex() {
                                                 type="checkbox"
                                                 checked={checked}
                                                 onChange={(event) => toggleSelect(user.id, event.target.checked)}
-                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                                 aria-label={`Select ${user.name}`}
                                             />
                                         </td>
@@ -440,7 +440,7 @@ export default function AdminUsersIndex() {
                                         );
                                     }}
                                     className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                        active ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                        active ? 'bg-elvee-blue text-white shadow shadow-elvee-blue/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                     }`}
                                 >
                                     {page}

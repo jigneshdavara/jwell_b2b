@@ -38,104 +38,107 @@ export default function WishlistIndex() {
             <Head title="Wishlist" />
 
             <div className="space-y-10">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <h1 className="text-3xl font-semibold text-slate-900">Wishlist</h1>
-                        <p className="mt-2 text-sm text-slate-500">
-                            Keep track of designs you love and move them to the quotation list when you&apos;re ready.
-                        </p>
+                <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <h1 className="text-3xl font-semibold text-slate-900">Wishlist</h1>
+                            <p className="mt-2 text-sm text-slate-500">
+                                Keep track of designs you love and move them to the quotation list when you&apos;re ready.
+                            </p>
+                        </div>
+                        {!isEmpty && (
+                            <Link
+                                href={route('frontend.catalog.index')}
+                                className="inline-flex items-center gap-2 rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
+                            >
+                                Browse more products
+                            </Link>
+                        )}
                     </div>
-                    {!isEmpty && (
-                        <Link
-                            href={route('frontend.catalog.index')}
-                            className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500"
-                        >
-                            Browse more products
-                        </Link>
-                    )}
-                </div>
+                </header>
 
-                <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
+                <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
                     {isEmpty ? (
                         <div className="flex flex-col items-center justify-center gap-4 py-16 text-sm text-slate-500">
                             <p>Your wishlist is empty. Add favourites while browsing the catalogue.</p>
                             <Link
                                 href={route('frontend.catalog.index')}
-                                className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+                                className="rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
                             >
                                 Explore catalogue
                             </Link>
                         </div>
                     ) : (
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {items.map((item) => (
                                 <article
                                     key={item.id}
-                                    className="flex flex-col justify-between rounded-2xl border border-slate-200 p-5 shadow-sm transition hover:shadow-lg"
+                                    className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-lg"
                                 >
-                                    <div className="space-y-3">
-                                        <Link
-                                            href={route('frontend.catalog.show', { product: item.product_id })}
-                                            className="block overflow-hidden rounded-2xl bg-slate-100"
-                                        >
-                                            {item.thumbnail ? (
-                                                <img
-                                                    src={item.thumbnail}
-                                                    alt={item.name ?? 'Product image'}
-                                                    className="h-48 w-full object-cover transition duration-500 hover:scale-105"
-                                                />
-                                            ) : (
-                                                <div className="flex h-48 w-full items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
-                                                    <span className="text-lg font-semibold">{item.name ?? 'Product'}</span>
-                                                </div>
-                                            )}
-                                        </Link>
-                                        <div>
+                                    <Link
+                                        href={route('frontend.catalog.show', { product: item.product_id })}
+                                        className="relative block aspect-square overflow-hidden bg-slate-100"
+                                    >
+                                        {item.thumbnail ? (
+                                            <img
+                                                src={item.thumbnail}
+                                                alt={item.name ?? 'Product image'}
+                                                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
+                                                <span className="text-lg font-semibold">{item.name ?? 'Product'}</span>
+                                            </div>
+                                        )}
+                                    </Link>
+                                    <div className="flex flex-1 flex-col p-4">
+                                        <div className="flex-1">
                                             <Link
                                                 href={route('frontend.catalog.show', { product: item.product_id })}
-                                                className="text-base font-semibold text-slate-900 transition hover:text-sky-600"
+                                                className="block"
                                             >
-                                                {item.name}
+                                                <h3 className="text-base font-semibold text-slate-900 transition hover:text-feather-gold line-clamp-2">
+                                                    {item.name}
+                                                </h3>
                                             </Link>
                                             {item.variant_label && (
-                                                <p className="text-xs font-medium text-slate-400">{item.variant_label}</p>
+                                                <p className="mt-1 text-xs font-medium text-slate-400">{item.variant_label}</p>
                                             )}
-                                            {item.sku && <p className="text-xs text-slate-400">SKU {item.sku}</p>}
+                                            {item.sku && <p className="mt-1 text-xs text-slate-400">SKU {item.sku}</p>}
                                         </div>
-                                    </div>
-                                    <div className="mt-4 flex items-center justify-between gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => moveToCart(item)}
-                                            className="inline-flex flex-1 items-center justify-center rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-sky-600/30 transition hover:bg-sky-500"
-                                        >
-                                            Move to quotations
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeItem(item)}
-                                            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:text-rose-600"
-                                            aria-label="Remove from wishlist"
-                                        >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth={1.5}
-                                                className="h-4 w-4"
+                                        <div className="mt-4 flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => moveToCart(item)}
+                                                className="flex-1 rounded-lg bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-elvee-blue/30 transition hover:bg-navy"
                                             >
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </button>
+                                                Move to quotations
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeItem(item)}
+                                                className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                                                aria-label="Remove from wishlist"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth={1.5}
+                                                    className="h-4 w-4"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </div>
                                 </article>
                             ))}
                         </div>
                     )}
-                </div>
+                </section>
             </div>
         </AuthenticatedLayout>
     );
 }
-

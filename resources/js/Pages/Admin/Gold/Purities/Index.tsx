@@ -218,7 +218,7 @@ export default function AdminGoldPuritiesIndex() {
                                         type="checkbox"
                                         checked={allSelected}
                                         onChange={toggleSelectAll}
-                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                         aria-label="Select all gold purities"
                                     />
                                 </th>
@@ -237,7 +237,7 @@ export default function AdminGoldPuritiesIndex() {
                                             type="checkbox"
                                             checked={selectedPurities.includes(purity.id)}
                                             onChange={() => toggleSelection(purity.id)}
-                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                             aria-label={`Select gold purity ${purity.name}`}
                                         />
                                     </td>
@@ -338,7 +338,7 @@ export default function AdminGoldPuritiesIndex() {
                                     type="button"
                                     onClick={() => changePage(link.url)}
                                     className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                        link.active ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                        link.active ? 'bg-elvee-blue text-white shadow shadow-elvee-blue/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                     }`}
                                 >
                                     {cleanLabel}
@@ -420,7 +420,7 @@ export default function AdminGoldPuritiesIndex() {
                                             type="checkbox"
                                             checked={form.data.is_active}
                                             onChange={(event) => form.setData('is_active', event.target.checked)}
-                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                         />
                                         Active for selection
                                     </label>

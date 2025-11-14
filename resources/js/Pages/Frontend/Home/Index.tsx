@@ -125,7 +125,7 @@ export default function HomeIndex() {
                                 key={feature.title}
                                 className="relative overflow-hidden rounded-3xl bg-white p-6 shadow-lg ring-1 ring-slate-200/80"
                             >
-                                <div className="absolute left-6 top-6 h-10 w-10 rounded-full bg-sky-500/10" />
+                                <div className="absolute left-6 top-6 h-10 w-10 rounded-full bg-feather-gold/10" />
                                 <div className="relative space-y-3">
                                     <h3 className="text-lg font-semibold text-slate-900">
                                         {feature.title}

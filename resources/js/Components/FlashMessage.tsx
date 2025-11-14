@@ -13,9 +13,9 @@ const variants: Record<string, { bg: string; border: string; text: string }> = {
         text: 'text-rose-900',
     },
     info: {
-        bg: 'bg-sky-50',
-        border: 'border-sky-200',
-        text: 'text-sky-900',
+        bg: 'bg-elvee-blue/5',
+        border: 'border-elvee-blue/20',
+        text: 'text-elvee-blue',
     },
 };
 

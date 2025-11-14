@@ -304,7 +304,7 @@ export default function Authenticated({
                                                                 <Link
                                                                     key={link.id}
                                                                     href={link.href}
-                                                                    className="group/link relative overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 p-5 transition hover:border-sky-300 hover:shadow-xl"
+                                                                    className="group/link relative overflow-hidden rounded-2xl border border-slate-100 bg-ivory p-5 transition hover:border-feather-gold hover:shadow-xl"
                                                                 >
                                                                     {link.image ? (
                                                                         <img
@@ -323,7 +323,7 @@ export default function Authenticated({
                                                                                 Explore now
                                                                             </p>
                                                                         </div>
-                                                                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition group-hover/link:border-sky-200 group-hover/link:text-sky-500">
+                                                                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition group-hover/link:border-feather-gold group-hover/link:text-feather-gold">
                                                                             →
                                                                         </span>
                                                                     </div>
@@ -332,7 +332,7 @@ export default function Authenticated({
                                                                 <Link
                                                                     key={link.id}
                                                                     href={link.href}
-                                                                    className="block rounded-2xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-sky-50 hover:text-sky-600"
+                                                                    className="block rounded-2xl bg-ivory px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-feather-gold/10 hover:text-feather-gold"
                                                                 >
                                                                     {link.name}
                                                                 </Link>
@@ -382,7 +382,7 @@ export default function Authenticated({
                                 </Link>
                                 <Link
                                     href={route('frontend.cart.index')}
-                                    className="relative inline-flex h-7 w-7 items-center justify-center text-slate-600 transition hover:text-sky-600"
+                                    className="relative inline-flex h-7 w-7 items-center justify-center text-slate-600 transition hover:text-feather-gold"
                                     aria-label="View quotation list"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
@@ -425,7 +425,7 @@ export default function Authenticated({
                                                 <Link
                                                     key={label}
                                                     href={href}
-                                                    className="flex items-center justify-between px-0 py-2 font-medium text-slate-600 transition hover:text-sky-600"
+                                                    className="flex items-center justify-between px-0 py-2 font-medium text-slate-600 transition hover:text-feather-gold"
                                                 >
                                                     <span>{label}</span>
                                                     <svg
@@ -489,11 +489,11 @@ export default function Authenticated({
                                         value={searchTerm}
                                         onChange={(event) => setSearchTerm(event.target.value)}
                                         placeholder="Search collections or SKU"
-                                        className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                     />
                                     <button
                                         type="submit"
-                                        className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500"
+                                        className="rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy"
                                     >
                                         Search
                                     </button>
@@ -531,7 +531,7 @@ export default function Authenticated({
                                             <Link
                                                 key={item.label}
                                                 href={item.href}
-                                                className="block rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600"
+                                                className="block rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 hover:border-feather-gold hover:text-feather-gold"
                                                 onClick={() => setMobileMenuOpen(false)}
                                             >
                                                 {item.label}
@@ -551,7 +551,7 @@ export default function Authenticated({
                                                             <Link
                                                                 key={link.id}
                                                                 href={link.href}
-                                                                className="group relative h-28 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600"
+                                                                className="group relative h-28 overflow-hidden rounded-2xl border border-slate-200 bg-ivory p-4 text-sm font-semibold text-slate-700 hover:border-feather-gold hover:text-feather-gold"
                                                                 onClick={() => setMobileMenuOpen(false)}
                                                             >
                                                                 {link.image ? (
@@ -568,7 +568,7 @@ export default function Authenticated({
                                                             <Link
                                                                 key={link.id}
                                                                 href={link.href}
-                                                                className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-sky-300 hover:text-sky-600"
+                                                                className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:border-feather-gold hover:text-feather-gold"
                                                                 onClick={() => setMobileMenuOpen(false)}
                                                             >
                                                                 {link.name}
@@ -587,7 +587,7 @@ export default function Authenticated({
                                             <Link
                                                 key={label}
                                                 href={href}
-                                                className="block rounded-xl border border-slate-200 px-3 py-2 hover:border-sky-300 hover:text-sky-600"
+                                                className="block rounded-xl border border-slate-200 px-3 py-2 hover:border-feather-gold hover:text-feather-gold"
                                                 onClick={() => setMobileMenuOpen(false)}
                                             >
                                                 {label}
@@ -605,10 +605,10 @@ export default function Authenticated({
                                     </div>
                                 </div>
                                 <div className="mt-6 border-t border-slate-200 pt-4 text-sm text-slate-600">
-                                    <a href="tel:+919988877665" className="block rounded-xl border border-slate-200 px-3 py-2 hover:border-sky-300 hover:text-sky-600">
+                                    <a href="tel:+919988877665" className="block rounded-xl border border-slate-200 px-3 py-2 hover:border-feather-gold hover:text-feather-gold">
                                         +91 99888 77665
                                     </a>
-                                    <a href="mailto:support@elvee.in" className="mt-2 block rounded-xl border border-slate-200 px-3 py-2 hover:border-sky-300 hover:text-sky-600">
+                                    <a href="mailto:support@elvee.in" className="mt-2 block rounded-xl border border-slate-200 px-3 py-2 hover:border-feather-gold hover:text-feather-gold">
                                         support@elvee.in
                                     </a>
                                     <div className="mt-2">
@@ -616,7 +616,7 @@ export default function Authenticated({
                                         <select
                                             value={language}
                                             onChange={(event) => setLanguage(event.target.value)}
-                                            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                         >
                                             <option value="en">English</option>
                                             <option value="hi">हिन्दी</option>
@@ -651,7 +651,7 @@ export default function Authenticated({
                                         >
                                             {item.label}
                                             {item.badge ? (
-                                                <span className="ml-2 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-sky-500 px-2 text-xs font-semibold text-white">
+                                                <span className="ml-2 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-feather-gold px-2 text-xs font-semibold text-white">
                                                     {item.badge}
                                                 </span>
                                             ) : null}
@@ -718,7 +718,7 @@ export default function Authenticated({
                                     >
                                         {item.label}
                                         {item.badge ? (
-                                            <span className="ml-2 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-sky-500 px-2 text-xs font-semibold text-white">
+                                            <span className="ml-2 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-feather-gold px-2 text-xs font-semibold text-white">
                                                 {item.badge}
                                             </span>
                                         ) : null}

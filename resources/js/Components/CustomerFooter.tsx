@@ -28,7 +28,7 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
             value: '+91 99888 77665',
             href: 'tel:+919988877665',
             icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-sky-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-feather-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 4.5 9 11.25m0 0 3-3m-3 3 6.75 6.75M10.5 21h.008v.008H10.5z" />
                 </svg>
             ),
@@ -38,7 +38,7 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
             value: 'hello@elvee.in',
             href: 'mailto:hello@elvee.in',
             icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-sky-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-feather-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12.75v4.5a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 17.25v-4.5m18 0V6.75A2.25 2.25 0 0 0 18.75 4.5H5.25A2.25 2.25 0 0 0 3 6.75v6m18 0L12 12l-9 1.5" />
                 </svg>
             ),
@@ -47,7 +47,7 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
             label: 'Studio hours',
             value: 'Mon–Sat, 10:00 – 19:00 IST',
             icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-sky-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-feather-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                 </svg>
             ),
@@ -56,7 +56,7 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
             label: 'Flagship atelier',
             value: 'Elvee, SEZ Jewellery Park, Mumbai',
             icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-sky-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-feather-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm-3-7.5a9 9 0 0 0-9 9c0 7.5 9 12 9 12s9-4.5 9-12a9 9 0 0 0-9-9Z" />
                 </svg>
             ),
@@ -65,8 +65,8 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
 
     return (
         <footer className={clsx('relative w-full overflow-hidden bg-slate-950 text-slate-200', className)}>
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_45%),_radial-gradient(circle_at_bottom_right,_rgba(236,72,153,0.2),_transparent_55%)]" />
-            <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-6 py-12 lg:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))] lg:px-10 xl:px-16">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(174,129,53,0.15),_transparent_45%),_radial-gradient(circle_at_bottom_right,_rgba(174,129,53,0.12),_transparent_55%)]" />
+            <div className="relative mx-auto grid w-full gap-10 px-6 py-12 lg:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))] lg:px-10 xl:px-16 2xl:px-24">
                     <div className="space-y-4">
                         <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-200">
                             Est. 1998
@@ -132,7 +132,7 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
                         </ul>
                     </div>
                 </div>
-            <div className="flex flex-col gap-3 border-t border-white/10 px-6 py-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-10 xl:px-16">
+            <div className="relative mx-auto flex w-full flex-col gap-3 border-t border-white/10 px-6 py-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-10 xl:px-16 2xl:px-24">
                 <p>© {currentYear} Elvee Jewellery Pvt. Ltd. All rights reserved.</p>
                 <div className="flex flex-wrap gap-4">
                     <Link href="/privacy" className="transition hover:text-white">

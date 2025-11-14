@@ -86,7 +86,7 @@ function CheckoutForm({ providerReference }: { providerReference: string }) {
             <button
                 type="submit"
                 disabled={!stripe || processing}
-                className="w-full rounded-full bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
             >
                 {processing ? 'Processing…' : 'Confirm payment'}
             </button>

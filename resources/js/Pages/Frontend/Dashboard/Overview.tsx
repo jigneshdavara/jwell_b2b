@@ -69,7 +69,7 @@ type DashboardProps = {
 const statusColors: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
     approved: 'bg-emerald-100 text-emerald-700',
-    in_production: 'bg-sky-100 text-sky-700',
+    in_production: 'bg-elvee-blue/10 text-elvee-blue',
     quality_check: 'bg-indigo-100 text-indigo-700',
     ready_to_dispatch: 'bg-purple-100 text-purple-700',
     dispatched: 'bg-blue-100 text-blue-700',
@@ -78,7 +78,7 @@ const statusColors: Record<string, string> = {
     cancelled: 'bg-rose-100 text-rose-700',
     submitted: 'bg-slate-100 text-slate-700',
     material_sending: 'bg-slate-100 text-slate-700',
-    material_received: 'bg-sky-100 text-sky-700',
+    material_received: 'bg-elvee-blue/10 text-elvee-blue',
     under_preparation: 'bg-indigo-100 text-indigo-700',
     awaiting_billing: 'bg-amber-100 text-amber-700',
     billing_confirmed: 'bg-emerald-100 text-emerald-700',
@@ -104,9 +104,9 @@ export default function FrontendDashboardOverview() {
             <Head title="Wholesale Dashboard" />
 
             <div className="space-y-10">
-                <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 text-white shadow-2xl">
+                <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-elvee-blue via-navy to-ink text-white shadow-2xl">
                     <div className="absolute inset-0">
-                        <div className="absolute -left-28 -top-28 h-72 w-72 rounded-full bg-sky-500/30 blur-3xl" />
+                        <div className="absolute -left-28 -top-28 h-72 w-72 rounded-full bg-feather-gold/20 blur-3xl" />
                         <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-rose-500/20 blur-3xl" />
                     </div>
                     <div className="relative z-10 grid gap-8 px-6 py-10 lg:grid-cols-[1.8fr_1fr] lg:px-12 lg:py-14">
@@ -226,7 +226,7 @@ export default function FrontendDashboardOverview() {
                                             <div className="space-y-3 p-5">
                                                 <Link
                                                     href={productLink}
-                                                    className="text-base font-semibold text-slate-900 transition hover:text-sky-600"
+                                                    className="text-base font-semibold text-slate-900 transition hover:text-feather-gold"
                                                 >
                                                     {product.name}
                                                 </Link>
@@ -240,7 +240,7 @@ export default function FrontendDashboardOverview() {
                                                     </div>
                                                     <Link
                                                         href={productLink}
-                                                        className="rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500"
+                                                        className="rounded-full bg-elvee-blue px-4 py-2 text-xs font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy"
                                                     >
                                                         View product
                                                     </Link>
@@ -266,7 +266,7 @@ export default function FrontendDashboardOverview() {
                                     <Link
                                         key={catalog.id}
                                         href={route('frontend.catalog.index', { catalog: catalog.slug ?? catalog.id })}
-                                        className="flex items-start justify-between rounded-2xl border border-slate-200 p-4 transition hover:border-sky-300 hover:bg-sky-50"
+                                        className="flex items-start justify-between rounded-2xl border border-slate-200 p-4 transition hover:border-feather-gold/50 hover:bg-feather-gold/5"
                                     >
                                         <div>
                                             <p className="text-sm font-semibold text-slate-800">{catalog.name}</p>

@@ -56,7 +56,7 @@ const statusColors: Record<string, string> = {
     in_production: 'bg-indigo-100 text-indigo-700',
     quality_check: 'bg-blue-100 text-blue-700',
     ready_to_dispatch: 'bg-purple-100 text-purple-700',
-    dispatched: 'bg-sky-100 text-sky-700',
+    dispatched: 'bg-elvee-blue/10 text-elvee-blue',
     delivered: 'bg-emerald-100 text-emerald-700',
     cancelled: 'bg-rose-100 text-rose-700',
     paid: 'bg-emerald-100 text-emerald-700',
@@ -165,7 +165,7 @@ export default function FrontendOrdersShow() {
                                 <div className="mt-4 flex justify-end">
                                     <Link
                                         href={route('frontend.orders.pay', order.id)}
-                                        className="rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500"
+                                        className="rounded-full bg-elvee-blue px-4 py-2 text-xs font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy"
                                     >
                                         Proceed to payment
                                     </Link>

@@ -259,7 +259,7 @@ export default function AdminUserGroupsIndex() {
                                         type="checkbox"
                                         checked={allSelected}
                                         onChange={toggleSelectAll}
-                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                         aria-label="Select all user groups"
                                     />
                                 </th>
@@ -277,7 +277,7 @@ export default function AdminUserGroupsIndex() {
                                             type="checkbox"
                                             checked={selectedGroups.includes(group.id)}
                                             onChange={() => toggleSelection(group.id)}
-                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                             aria-label={`Select user group ${group.name}`}
                                         />
                                     </td>
@@ -393,7 +393,7 @@ export default function AdminUserGroupsIndex() {
                                     type="button"
                                     onClick={() => changePage(link.url)}
                                     className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                        link.active ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                        link.active ? 'bg-elvee-blue text-white shadow shadow-elvee-blue/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                     }`}
                                 >
                                     {cleanLabel}
@@ -452,7 +452,7 @@ export default function AdminUserGroupsIndex() {
                                                 type="text"
                                                 value={form.data.name}
                                                 onChange={(event) => form.setData('name', event.target.value)}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                                 required
                                             />
                                             {form.errors.name && <span className="text-xs text-rose-500">{form.errors.name}</span>}
@@ -463,7 +463,7 @@ export default function AdminUserGroupsIndex() {
                                                 type="number"
                                                 value={form.data.position}
                                                 onChange={(event) => form.setData('position', Number(event.target.value))}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                                 min={0}
                                             />
                                             {form.errors.position && <span className="text-xs text-rose-500">{form.errors.position}</span>}
@@ -475,7 +475,7 @@ export default function AdminUserGroupsIndex() {
                                             type="checkbox"
                                             checked={form.data.is_active}
                                             onChange={(event) => form.setData('is_active', event.target.checked)}
-                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                         />
                                         Active for assignment
                                     </label>
@@ -487,7 +487,7 @@ export default function AdminUserGroupsIndex() {
                                         <textarea
                                             value={form.data.description}
                                             onChange={(event) => form.setData('description', event.target.value)}
-                                            className="min-h-[120px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="min-h-[120px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                             placeholder="Optional notes for internal reference."
                                         />
                                         {form.errors.description && <span className="text-xs text-rose-500">{form.errors.description}</span>}
@@ -508,7 +508,7 @@ export default function AdminUserGroupsIndex() {
                                                     type="checkbox"
                                                     checked={checked}
                                                     onChange={(event) => toggleFeature(feature.value, event.target.checked)}
-                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                                 />
                                                 {feature.label}
                                             </label>

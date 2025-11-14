@@ -30,7 +30,7 @@ export default function ProductionLayout({ children }: PropsWithChildren) {
         <div className="flex min-h-screen bg-slate-950 text-slate-100">
             <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-slate-800/60 bg-slate-900/70 px-4 py-6 backdrop-blur lg:flex">
                 <div className="flex items-center gap-3 px-2">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500 text-slate-900 font-bold">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-feather-gold text-slate-900 font-bold">
                         PR
                     </div>
                     <div>
@@ -50,7 +50,7 @@ export default function ProductionLayout({ children }: PropsWithChildren) {
                                 href={route(item.route)}
                                 className={`flex items-center gap-3 rounded-xl px-3 py-2 font-medium transition ${
                                     isActive
-                                        ? 'bg-sky-500 text-slate-900 shadow shadow-sky-500/30'
+                                        ? 'bg-feather-gold text-slate-900 shadow shadow-feather-gold/30'
                                         : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
                                 }`}
                             >

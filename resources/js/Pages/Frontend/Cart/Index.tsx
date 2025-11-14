@@ -156,30 +156,32 @@ export default function CartIndex() {
         <AuthenticatedLayout>
             <Head title="Quotation list" />
 
-            <div className="space-y-6" id="cart">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold text-slate-900">Quotation list</h1>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Review and submit all quotation requests together for merchandising review.
-                        </p>
+            <div className="space-y-10" id="cart">
+                <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <h1 className="text-3xl font-semibold text-slate-900">Quotation list</h1>
+                            <p className="mt-2 text-sm text-slate-500">
+                                Review and submit all quotation requests together for merchandising review.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={submitQuotations}
+                            disabled={isEmpty}
+                            className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition ${
+                                isEmpty
+                                    ? 'cursor-not-allowed bg-slate-300 text-slate-500'
+                                    : 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30 hover:bg-navy'
+                            }`}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Submit all quotations
+                        </button>
                     </div>
-                    <button
-                        type="button"
-                        onClick={submitQuotations}
-                        disabled={isEmpty}
-                        className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition ${
-                            isEmpty
-                                ? 'cursor-not-allowed bg-slate-300 text-slate-500'
-                                : 'bg-sky-600 text-white shadow-lg shadow-sky-600/30 hover:bg-sky-500'
-                        }`}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Submit quotations
-                    </button>
-                </div>
+                </header>
 
                 <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
                     <div className="space-y-4">
@@ -239,7 +241,7 @@ export default function CartIndex() {
                                                             <div className="min-w-0 flex-1">
                                                                 <Link
                                                                     href={route('frontend.catalog.show', { product: item.product_id })}
-                                                                    className="text-sm font-semibold text-slate-900 truncate hover:text-sky-600 transition"
+                                                                    className="text-sm font-semibold text-slate-900 truncate hover:text-feather-gold transition"
                                                                 >
                                                                     {item.name}
                                                                 </Link>
@@ -324,7 +326,7 @@ export default function CartIndex() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => openNotesModal(item)}
-                                                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-sky-600"
+                                                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-feather-gold"
                                                                 aria-label="Edit notes"
                                                                 title={item.configuration?.notes ? 'View/edit notes' : 'Add notes'}
                                                             >
@@ -396,7 +398,7 @@ export default function CartIndex() {
                             <textarea
                                 value={cartCommentData.comment}
                                 onChange={(e) => setCartCommentData('comment', e.target.value)}
-                                className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 placeholder="Add notes for the merchandising team..."
                                 rows={4}
                             />
@@ -409,7 +411,7 @@ export default function CartIndex() {
                             className={`w-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition ${
                                 isEmpty
                                     ? 'cursor-not-allowed bg-slate-300 text-slate-500'
-                                    : 'bg-sky-600 text-white shadow-lg shadow-sky-600/30 hover:bg-sky-500'
+                                    : 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30 hover:bg-navy'
                             }`}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
@@ -463,7 +465,7 @@ export default function CartIndex() {
                             type="button"
                             onClick={confirmSubmit}
                             disabled={submitting}
-                            className="inline-flex items-center justify-center rounded-full bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex items-center justify-center rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {submitting ? 'Submitting…' : 'Confirm & submit'}
                         </button>
@@ -488,7 +490,7 @@ export default function CartIndex() {
                                         [selectedItem.id]: e.target.value,
                                     }))
                                 }
-                                className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 placeholder="Share expectations or deadlines..."
                                 rows={5}
                             />
@@ -504,7 +506,7 @@ export default function CartIndex() {
                             <button
                                 type="button"
                                 onClick={() => saveNotes(selectedItem)}
-                                className="inline-flex items-center justify-center rounded-full bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500"
+                                className="inline-flex items-center justify-center rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
                             >
                                 Save notes
                             </button>

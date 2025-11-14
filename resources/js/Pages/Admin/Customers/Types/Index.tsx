@@ -164,7 +164,7 @@ export default function AdminCustomerTypesIndex() {
                                 type="text"
                                 value={form.data.name}
                                 onChange={(event) => form.setData('name', event.target.value)}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 required
                             />
                             {form.errors.name && <span className="text-xs text-rose-500">{form.errors.name}</span>}
@@ -175,7 +175,7 @@ export default function AdminCustomerTypesIndex() {
                                 type="number"
                                 value={form.data.position}
                                 onChange={(event) => form.setData('position', Number(event.target.value))}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 min={0}
                             />
                             {form.errors.position && <span className="text-xs text-rose-500">{form.errors.position}</span>}
@@ -187,7 +187,7 @@ export default function AdminCustomerTypesIndex() {
                         <textarea
                             value={form.data.description}
                             onChange={(event) => form.setData('description', event.target.value)}
-                            className="min-h-[120px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                            className="min-h-[120px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                             placeholder="Optional internal notes (e.g. pricing rules, sales reps)."
                         />
                         {form.errors.description && <span className="text-xs text-rose-500">{form.errors.description}</span>}
@@ -198,7 +198,7 @@ export default function AdminCustomerTypesIndex() {
                             type="checkbox"
                             checked={form.data.is_active}
                             onChange={(event) => form.setData('is_active', event.target.checked)}
-                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                            className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                         />
                         Active for selection
                     </label>
@@ -246,7 +246,7 @@ export default function AdminCustomerTypesIndex() {
                                         type="checkbox"
                                         checked={allSelected}
                                         onChange={toggleSelectAll}
-                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                         aria-label="Select all customer types"
                                     />
                                 </th>
@@ -265,7 +265,7 @@ export default function AdminCustomerTypesIndex() {
                                             type="checkbox"
                                             checked={selectedTypes.includes(type.id)}
                                             onChange={() => toggleSelection(type.id)}
-                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                             aria-label={`Select customer type ${type.name}`}
                                         />
                                     </td>

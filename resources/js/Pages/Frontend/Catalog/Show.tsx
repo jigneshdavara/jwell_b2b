@@ -474,7 +474,7 @@ export default function CatalogShow() {
                                                 onClick={() => setActiveImageIndex(index)}
                                                 className={`relative flex h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl border transition md:h-20 md:w-20 ${
                                                     activeImageIndex === index
-                                                        ? 'border-sky-400 ring-2 ring-sky-100'
+                                                        ? 'border-feather-gold ring-2 ring-feather-gold/20'
                                                         : 'border-slate-200 hover:border-slate-300'
                                                 }`}
                                                 aria-label={`View image ${index + 1}`}
@@ -486,7 +486,7 @@ export default function CatalogShow() {
                                                     draggable={false}
                                                 />
                                                 {activeImageIndex === index && (
-                                                    <span className="absolute inset-0 border-2 border-sky-400/80" aria-hidden />
+                                                    <span className="absolute inset-0 border-2 border-feather-gold/80" aria-hidden />
                                                 )}
                                             </button>
                                         ))}
@@ -623,7 +623,7 @@ export default function CatalogShow() {
                                                 onClick={() => setSelectedGoldPurity(purity.id)}
                                                 className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                                                     selectedGoldPurity === purity.id
-                                                        ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30'
+                                                        ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
                                                         : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                                                 }`}
                                             >
@@ -645,7 +645,7 @@ export default function CatalogShow() {
                                                 onClick={() => setSelectedSilverPurity(purity.id)}
                                                 className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                                                     selectedSilverPurity === purity.id
-                                                        ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30'
+                                                        ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
                                                         : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                                                 }`}
                                             >
@@ -665,8 +665,8 @@ export default function CatalogShow() {
                                                 key={option.key}
                                                 className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 text-sm transition ${
                                                     selectedDiamondOption === option.key
-                                                        ? 'border-sky-500 bg-sky-50 text-slate-900'
-                                                        : 'border-slate-200 bg-white text-slate-600 hover:border-sky-300'
+                                                        ? 'border-feather-gold bg-feather-gold/10 text-slate-900'
+                                                        : 'border-slate-200 bg-white text-slate-600 hover:border-feather-gold'
                                                 }`}
                                             >
                                                 <span>{option.label}</span>
@@ -676,7 +676,7 @@ export default function CatalogShow() {
                                                     value={option.key}
                                                     checked={selectedDiamondOption === option.key}
                                                     onChange={() => setSelectedDiamondOption(option.key)}
-                                                    className="h-4 w-4 text-sky-600 focus:ring-sky-500"
+                                                    className="h-4 w-4 text-elvee-blue focus:ring-feather-gold"
                                                 />
                                             </label>
                                         ))}
@@ -698,7 +698,7 @@ export default function CatalogShow() {
                                                 onClick={() => setSelectedSize(size)}
                                                 className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                                                     selectedSize === size
-                                                        ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30'
+                                                        ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
                                                         : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                                                 }`}
                                             >
@@ -725,7 +725,7 @@ export default function CatalogShow() {
                                         const next = Number(event.target.value);
                                         setData('quantity', Number.isFinite(next) && next > 0 ? Math.floor(next) : 1);
                                     }}
-                                    className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 />
                                 {errors.quantity && <span className="text-xs text-rose-500">{errors.quantity}</span>}
                             </label>
@@ -735,7 +735,7 @@ export default function CatalogShow() {
                                 <textarea
                                     value={data.notes}
                                     onChange={(event) => setData('notes', event.target.value)}
-                                    className="min-h-[120px] rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="min-h-[120px] rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                     placeholder="List required scope: hallmarking, hallmark packaging, diamond certification, delivery deadlines…"
                                 />
                                 {errors.notes && <span className="text-xs text-rose-500">{errors.notes}</span>}
@@ -776,7 +776,7 @@ export default function CatalogShow() {
                             <button
                                 type="submit"
                                 disabled={processing || invalidCombination || jobworkNotAllowed}
-                                className="w-full rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="w-full rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 Add to quotation
                             </button>
@@ -790,7 +790,7 @@ export default function CatalogShow() {
                             </p>
                             <Link
                                 href={route('frontend.quotations.index')}
-                                className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-sky-600 hover:text-sky-500"
+                                className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-elvee-blue hover:text-feather-gold"
                             >
                                 View all quotations
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -920,7 +920,7 @@ export default function CatalogShow() {
                             </button>
                             <button
                                 type="button"
-                                className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sky-600/30 hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-elvee-blue/30 hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
                                 onClick={confirmSubmit}
                                 disabled={submitting}
                             >

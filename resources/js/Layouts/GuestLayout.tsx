@@ -26,7 +26,7 @@ export default function Guest({ children }: PropsWithChildren) {
                     Need enterprise onboarding?{' '}
                     <a
                         href="mailto:onboarding@elvee.in"
-                        className="font-medium text-sky-300 underline decoration-slate-500/60 hover:decoration-sky-300"
+                        className="font-medium text-feather-gold transition hover:text-warm-gold"
                     >
                         Schedule a guided demo
                     </a>

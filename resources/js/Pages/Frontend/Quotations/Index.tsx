@@ -51,7 +51,7 @@ const statusLabels: Record<string, { label: string; style: string }> = {
     pending: { label: 'Pending review', style: 'bg-amber-100 text-amber-700' },
     approved: { label: 'Approved', style: 'bg-emerald-100 text-emerald-700' },
     rejected: { label: 'Rejected', style: 'bg-rose-100 text-rose-700' },
-    invoiced: { label: 'Awaiting payment', style: 'bg-sky-100 text-sky-700' },
+    invoiced: { label: 'Awaiting payment', style: 'bg-elvee-blue/10 text-elvee-blue' },
     converted: { label: 'Converted to order', style: 'bg-slate-200 text-slate-700' },
     pending_customer_confirmation: { label: 'Waiting for you', style: 'bg-amber-100 text-amber-700' },
     customer_confirmed: { label: 'You approved', style: 'bg-emerald-100 text-emerald-700' },
@@ -60,7 +60,7 @@ const statusLabels: Record<string, { label: string; style: string }> = {
 
 const jobworkStageLabels: Record<string, { label: string; style: string }> = {
     material_sending: { label: 'Material sending', style: 'bg-slate-100 text-slate-600' },
-    material_received: { label: 'Material received', style: 'bg-sky-100 text-sky-700' },
+    material_received: { label: 'Material received', style: 'bg-elvee-blue/10 text-elvee-blue' },
     under_preparation: { label: 'Under preparation', style: 'bg-indigo-100 text-indigo-700' },
     completed: { label: 'Completed', style: 'bg-emerald-100 text-emerald-700' },
     awaiting_billing: { label: 'Awaiting billing', style: 'bg-amber-100 text-amber-700' },
@@ -137,12 +137,12 @@ export default function QuotationsIndex() {
                         <div>
                             <h1 className="text-3xl font-semibold text-slate-900">Quotation requests</h1>
                             <p className="mt-2 text-sm text-slate-500">
-                                Track jewellery purchase and jobwork quotations. We’ll notify you as soon as our merchandising desk replies.
+                                Track jewellery purchase and jobwork quotations. We'll notify you as soon as our merchandising desk replies.
                             </p>
                         </div>
                         <Link
                             href={route('frontend.catalog.index')}
-                            className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-slate-900/30 transition hover:bg-slate-700"
+                            className="inline-flex items-center gap-2 rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
                         >
                             Browse catalogue
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -159,7 +159,7 @@ export default function QuotationsIndex() {
                             onClick={() => setModeFilter('all')}
                             className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
                                 modeFilter === 'all'
-                                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/30'
+                                    ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
                                     : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                             }`}
                         >
@@ -170,7 +170,7 @@ export default function QuotationsIndex() {
                             onClick={() => setModeFilter('purchase')}
                             className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
                                 modeFilter === 'purchase'
-                                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/30'
+                                    ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
                                     : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                             }`}
                         >
@@ -181,7 +181,7 @@ export default function QuotationsIndex() {
                             onClick={() => setModeFilter('jobwork')}
                             className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
                                 modeFilter === 'jobwork'
-                                    ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/30'
+                                    ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
                                     : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                             }`}
                         >
@@ -194,130 +194,121 @@ export default function QuotationsIndex() {
                             <p>No quotation requests yet.</p>
                             <Link
                                 href={route('frontend.catalog.index')}
-                                className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500"
+                                className="rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
                             >
                                 Start a quotation
                             </Link>
                         </div>
                     ) : (
-                        <div className="space-y-4">
-                            {filteredQuotations.map((quotation) => {
-                                const statusMeta = statusLabels[quotation.status] ?? {
-                                    label: quotation.status,
-                                    style: 'bg-slate-200 text-slate-700',
-                                };
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-slate-200">
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Product</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">SKU</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Mode</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Status</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Quantity</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Date</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {filteredQuotations.map((quotation) => {
+                                        const statusMeta = statusLabels[quotation.status] ?? {
+                                            label: quotation.status,
+                                            style: 'bg-slate-200 text-slate-700',
+                                        };
 
-                                return (
-                                    <article
-                                        key={quotation.id}
-                                        className="flex flex-col gap-4 rounded-2xl border border-slate-200 p-5 md:flex-row md:items-center md:justify-between"
-                                    >
-                                        <div className="flex flex-1 items-start gap-4">
-                                            {quotation.product.thumbnail && (
-                                                <img
-                                                    src={quotation.product.thumbnail}
-                                                    alt={quotation.product.name}
-                                                    className="h-20 w-20 rounded-xl object-cover shadow"
-                                                />
-                                            )}
-                                            <div>
-                                                <p className="text-sm font-semibold text-slate-900">{quotation.product.name}</p>
-                                                <p className="text-xs text-slate-400">
-                                                    SKU {quotation.product.sku}
-                                                </p>
-                                                <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                                                    <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600">
+                                        return (
+                                            <tr key={quotation.id} className="hover:bg-slate-50">
+                                                <td className="px-4 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        {quotation.product.thumbnail && (
+                                                            <img
+                                                                src={quotation.product.thumbnail}
+                                                                alt={quotation.product.name}
+                                                                className="h-12 w-12 rounded-lg object-cover"
+                                                            />
+                                                        )}
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-slate-900">{quotation.product.name}</p>
+                                                            {quotation.variant && (
+                                                                <p className="text-xs text-slate-500">
+                                                                    {(quotation.variant.metadata?.auto_label as string | undefined) ?? quotation.variant.label}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <p className="text-sm text-slate-600">{quotation.product.sku}</p>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
                                                         {quotation.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}
                                                     </span>
-                                                    <span
-                                                        className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium ${statusMeta.style}`}
-                                                    >
-                                                        {statusMeta.label}
-                                                    </span>
-                                                </div>
-                                                {quotation.variant && (
-                                                    <p className="mt-2 text-xs font-medium text-slate-500">
-                                                        Variant: {(quotation.variant.metadata?.auto_label as string | undefined) ?? quotation.variant.label}
-                                                    </p>
-                                                )}
-                                                {quotation.jobwork_status && (
-                                                    <div className="mt-2">
-                                                        <span
-                                                            className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${
-                                                                jobworkStageLabels[quotation.jobwork_status]?.style ??
-                                                                'bg-slate-200 text-slate-600'
-                                                            }`}
-                                                        >
-                                                            {jobworkStageLabels[quotation.jobwork_status]?.label ??
-                                                                quotation.jobwork_status.replace(/_/g, ' ')}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${statusMeta.style}`}>
+                                                            {statusMeta.label}
                                                         </span>
+                                                        {quotation.jobwork_status && (
+                                                            <span
+                                                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                                                    jobworkStageLabels[quotation.jobwork_status]?.style ?? 'bg-slate-200 text-slate-600'
+                                                                }`}
+                                                            >
+                                                                {jobworkStageLabels[quotation.jobwork_status]?.label ?? quotation.jobwork_status.replace(/_/g, ' ')}
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                )}
-                                                {quotation.selections && (
-                                                    <ul className="mt-2 text-xs text-slate-500">
-                                                        {Object.entries(quotation.selections).map(([key, value]) => (
-                                                            <li key={key}>
-                                                                <span className="capitalize text-slate-400">{key.replace(/_/g, ' ')}:</span>{' '}
-                                                                <span className="text-slate-700">{formatSelectionValue(value)}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                )}
-                                                {quotation.order && (
-                                                    <p className="mt-2 text-xs text-slate-500">
-                                                        Linked order {quotation.order.reference} · Status {quotation.order.status}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col items-start gap-3 md:items-end">
-                                            <div className="flex items-center gap-3 text-sm text-slate-600">
-                                                <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-700">
-                                                    Qty: {quotation.quantity}
-                                                </span>
-                                                {quotation.created_at && (
-                                                    <span className="text-xs text-slate-400">
-                                                        Requested {new Date(quotation.created_at).toLocaleDateString()}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setViewQuotation(quotation)}
-                                                    className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
-                                                >
-                                                    View details
-                                                </button>
-                                                {quotation.notes && (
-                                                    <p className="max-w-sm rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                                                        {quotation.notes}
-                                                    </p>
-                                                )}
-                                                {quotation.status === 'pending' && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            if (
-                                                                window.confirm(
-                                                                    'Cancel this quotation request? This action cannot be undone.',
-                                                                )
-                                                            ) {
-                                                                router.delete(route('frontend.quotations.destroy', quotation.id), {
-                                                                    preserveScroll: true,
-                                                                });
-                                                            }
-                                                        }}
-                                                        className="text-xs font-semibold text-rose-500 hover:text-rose-600"
-                                                    >
-                                                        Cancel request
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </article>
-                                );
-                            })}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <span className="text-sm font-semibold text-slate-900">{quotation.quantity}</span>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <span className="text-sm text-slate-600">{formatDate(quotation.created_at)}</span>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setViewQuotation(quotation)}
+                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:border-elvee-blue hover:bg-elvee-blue/5 hover:text-elvee-blue"
+                                                            title="View details"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                            </svg>
+                                                        </button>
+                                                        {quotation.status === 'pending' && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (window.confirm('Cancel this quotation request? This action cannot be undone.')) {
+                                                                        router.delete(route('frontend.quotations.destroy', quotation.id), {
+                                                                            preserveScroll: true,
+                                                                        });
+                                                                    }
+                                                                }}
+                                                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                                                                title="Cancel request"
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                </svg>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                 </section>
@@ -325,7 +316,7 @@ export default function QuotationsIndex() {
 
             {viewQuotation && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4">
-                    <div className="w-full max-w-3xl space-y-5 rounded-3xl bg-white p-6 shadow-2xl">
+                    <div className="w-full max-w-3xl space-y-5 rounded-3xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <div className="flex items-start justify-between">
                             <div>
                                 <p className="text-xs text-slate-400">Quotation</p>
@@ -335,9 +326,12 @@ export default function QuotationsIndex() {
                             <button
                                 type="button"
                                 onClick={() => setViewQuotation(null)}
-                                className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-500 transition hover:border-slate-400 hover:text-slate-800"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-slate-500 transition hover:border-slate-400 hover:text-slate-800"
+                                title="Close"
                             >
-                                Close
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
                             </button>
                         </div>
 
@@ -427,7 +421,7 @@ export default function QuotationsIndex() {
                                         className={`flex flex-col gap-1 rounded-2xl border px-3 py-2 ${
                                             message.sender === 'admin'
                                                 ? 'border-slate-200 bg-white'
-                                                : 'border-sky-200 bg-sky-50'
+                                                : 'border-feather-gold/30 bg-feather-gold/5'
                                         }`}
                                     >
                                         <div className="flex items-center justify-between text-[11px] text-slate-400">
@@ -450,7 +444,7 @@ export default function QuotationsIndex() {
                                     <textarea
                                         value={messageForm.data.message}
                                         onChange={(event) => messageForm.setData('message', event.target.value)}
-                                        className="w-full min-h-[90px] rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="w-full min-h-[90px] rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                         placeholder="Share more details or ask a question..."
                                         disabled={messageForm.processing}
                                     />
@@ -461,7 +455,7 @@ export default function QuotationsIndex() {
                                         <button
                                             type="submit"
                                             disabled={messageForm.processing || !messageForm.data.message.trim()}
-                                            className="rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                            className="rounded-full bg-elvee-blue px-4 py-2 text-xs font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             {messageForm.processing ? 'Sending…' : 'Send message'}
                                         </button>
@@ -475,4 +469,3 @@ export default function QuotationsIndex() {
         </AuthenticatedLayout>
     );
 }
-

@@ -511,7 +511,7 @@ export default function CatalogIndex() {
                                 value={search}
                                 onChange={(event) => setSearch(event.target.value)}
                                 placeholder="Search SKU or design"
-                                className="w-full rounded-xl border border-slate-300 bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-inner focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="w-full rounded-xl border border-slate-300 bg-white/80 px-3 py-1.5 text-sm text-slate-700 shadow-inner focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                             />
                             {filters.search && (
                                 <button
@@ -526,7 +526,7 @@ export default function CatalogIndex() {
                                 </button>
                             )}
                         </div>
-                        <button type="submit" className="rounded-xl bg-sky-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500">
+                        <button type="submit" className="rounded-xl bg-elvee-blue px-3 py-1.5 text-sm font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy">
                             Search
                         </button>
                         <button
@@ -578,7 +578,7 @@ export default function CatalogIndex() {
                                 setSortOption(value);
                                 applyFilter('sort', value === 'newest' ? undefined : value);
                             }}
-                            className="rounded-2xl border border-slate-200 px-3 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                            className="rounded-2xl border border-slate-200 px-3 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                         >
                             <option value="newest">Newest arrivals</option>
                             <option value="price_asc">Price: Low to high</option>
@@ -667,7 +667,7 @@ export default function CatalogIndex() {
                                             >
                                                 <input
                                                     type="checkbox"
-                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                                     checked={selected}
                                                     onChange={(event) => {
                                                         const list = [...filters.category];
@@ -715,7 +715,7 @@ export default function CatalogIndex() {
                                     <label className="flex items-center gap-2.5 py-1.5 text-sm transition text-slate-600">
                                         <input
                                             type="checkbox"
-                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                             checked={filters.jobwork_available === '1'}
                                             onChange={(event) => {
                                                 applyFilter('jobwork_available', event.target.checked ? '1' : undefined);
@@ -726,7 +726,7 @@ export default function CatalogIndex() {
                                     <label className="flex items-center gap-2.5 py-1.5 text-sm transition text-slate-600">
                                         <input
                                             type="checkbox"
-                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                             checked={filters.ready_made === '1'}
                                             onChange={(event) => {
                                                 applyFilter('ready_made', event.target.checked ? '1' : undefined);
@@ -819,7 +819,7 @@ export default function CatalogIndex() {
                                             >
                                                 <input
                                                     type="checkbox"
-                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                                     checked={selected}
                                                     onChange={(event) => {
                                                         const list = [...filters.brand];
@@ -876,7 +876,7 @@ export default function CatalogIndex() {
                                             >
                                                 <input
                                                     type="checkbox"
-                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                                     checked={selected}
                                                     onChange={(event) => {
                                                         const list = [...filters.gold_purity];
@@ -931,7 +931,7 @@ export default function CatalogIndex() {
                                             >
                                                 <input
                                                     type="checkbox"
-                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                                     checked={selected}
                                                     onChange={(event) => {
                                                         const list = [...filters.silver_purity];
@@ -997,7 +997,7 @@ export default function CatalogIndex() {
                                                         >
                                                             <input
                                                                 type="checkbox"
-                                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                                className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                                                 checked={selected}
                                                                 onChange={(event) => {
                                                                     const list = [...filters.diamond];
@@ -1176,7 +1176,7 @@ function PriceRangeFilter({
             <div className="relative" ref={sliderRef}>
                 <div className="relative h-2 w-full rounded-full bg-slate-200">
                     <div
-                        className="absolute h-2 rounded-full bg-sky-500"
+                        className="absolute h-2 rounded-full bg-feather-gold"
                         style={{
                             left: `${minPercent}%`,
                             width: `${maxPercent - minPercent}%`,
@@ -1194,7 +1194,7 @@ function PriceRangeFilter({
                     onMouseUp={() => setActiveThumb(null)}
                     onTouchStart={() => setActiveThumb('min')}
                     onTouchEnd={() => setActiveThumb(null)}
-                    className="absolute top-0 h-2 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-sky-600 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:hover:bg-sky-700 [&::-moz-range-thumb]:relative [&::-moz-range-thumb]:z-10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-sky-600 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:hover:bg-sky-700"
+                    className="absolute top-0 h-2 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-feather-gold [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:hover:bg-warm-gold [&::-moz-range-thumb]:relative [&::-moz-range-thumb]:z-10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-feather-gold [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:hover:bg-warm-gold"
                     style={{
                         zIndex: activeThumb === 'min' ? 20 : 10,
                     }}
@@ -1210,7 +1210,7 @@ function PriceRangeFilter({
                     onMouseUp={() => setActiveThumb(null)}
                     onTouchStart={() => setActiveThumb('max')}
                     onTouchEnd={() => setActiveThumb(null)}
-                    className="absolute top-0 h-2 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-sky-600 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:hover:bg-sky-700 [&::-moz-range-thumb]:relative [&::-moz-range-thumb]:z-10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-sky-600 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:hover:bg-sky-700"
+                    className="absolute top-0 h-2 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-feather-gold [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:hover:bg-warm-gold [&::-moz-range-thumb]:relative [&::-moz-range-thumb]:z-10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-feather-gold [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:hover:bg-warm-gold"
                     style={{
                         zIndex: activeThumb === 'max' ? 20 : 10,
                     }}
@@ -1229,7 +1229,7 @@ function PriceRangeFilter({
                         min={DEFAULT_PRICE_MIN}
                         max={priceRange.max}
                         step={PRICE_STEP}
-                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                     />
                 </div>
                 <div className="flex-1">
@@ -1244,7 +1244,7 @@ function PriceRangeFilter({
                         min={priceRange.min}
                         max={DEFAULT_PRICE_MAX}
                         step={PRICE_STEP}
-                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                     />
                 </div>
             </div>
@@ -1252,7 +1252,7 @@ function PriceRangeFilter({
                 <button
                     type="button"
                     onClick={apply}
-                    className="flex-1 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500"
+                    className="flex-1 rounded-lg bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy"
                 >
                     Apply
                 </button>
@@ -1356,7 +1356,7 @@ function ProductCard({
                 <div className="flex flex-1 flex-col justify-between">
                     <div className="flex items-start justify-between gap-4">
                         <div className="space-y-2">
-                            <Link href={productLink} className="text-lg font-semibold text-slate-900 transition hover:text-sky-600">
+                            <Link href={productLink} className="text-lg font-semibold text-slate-900 transition hover:text-feather-gold">
                                 {product.name}
                             </Link>
                             <p className="text-sm text-slate-500">SKU {product.sku}</p>
@@ -1405,7 +1405,7 @@ function ProductCard({
                 </div>
             </Link>
             <div className="space-y-3 p-6">
-                <Link href={productLink} className="text-lg font-semibold text-slate-900 transition hover:text-sky-600">
+                <Link href={productLink} className="text-lg font-semibold text-slate-900 transition hover:text-feather-gold">
                     {product.name}
                 </Link>
                 <p className="text-sm text-slate-500">SKU {product.sku}</p>

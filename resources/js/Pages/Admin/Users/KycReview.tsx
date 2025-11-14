@@ -236,7 +236,7 @@ export default function KycReview() {
                                                 href={user.kyc_profile.business_website}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="text-sky-600 hover:text-sky-500"
+                                                className="text-elvee-blue hover:text-feather-gold"
                                             >
                                                 {user.kyc_profile.business_website}
                                             </a>
@@ -372,7 +372,7 @@ export default function KycReview() {
                                                         href={document.file_url}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1.5 text-xs font-medium text-sky-600 hover:text-sky-500"
+                                                        className="inline-flex items-center gap-1.5 text-xs font-medium text-elvee-blue hover:text-feather-gold"
                                                     >
                                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -432,7 +432,7 @@ export default function KycReview() {
                         <label className="flex flex-col gap-2 text-sm text-slate-600">
                             <span className="font-semibold text-slate-800">Status</span>
                             <select
-                                className="rounded-xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 value={data.status}
                                 onChange={(event) => setData('status', event.target.value)}
                             >
@@ -447,7 +447,7 @@ export default function KycReview() {
                         <label className="flex flex-col gap-2 text-sm text-slate-600">
                             <span className="font-semibold text-slate-800">Internal Notes</span>
                             <textarea
-                                className="min-h-[100px] rounded-xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="min-h-[100px] rounded-xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 value={data.remarks}
                                 onChange={(event) => setData('remarks', event.target.value)}
                                 placeholder="Add internal notes (optional)"
@@ -531,7 +531,7 @@ export default function KycReview() {
                             <textarea
                                 value={messageForm.data.message}
                                 onChange={(event) => messageForm.setData('message', event.target.value)}
-                                className="min-h-[90px] rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="min-h-[90px] rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 placeholder="Share clarifications, request missing documents, or confirm approval."
                                 disabled={messageForm.processing}
                             />
@@ -580,7 +580,7 @@ export default function KycReview() {
                                             href={selectedDocument.file_url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-sky-600 hover:text-sky-500"
+                                            className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-elvee-blue hover:text-feather-gold"
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
@@ -598,7 +598,7 @@ export default function KycReview() {
                                 <textarea
                                     value={documentForm.data.remarks}
                                     onChange={(event) => documentForm.setData('remarks', event.target.value)}
-                                    className="w-full min-h-[120px] rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="w-full min-h-[120px] rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                     placeholder={
                                         documentAction === 'approve'
                                             ? 'Add any notes about this approval...'
