@@ -17,7 +17,7 @@ export default function Guest({ children }: PropsWithChildren) {
                 navLinks={navLinks}
                 primaryCta={{ label: 'Request access', href: route('register') }}
                 secondaryCta={{ label: 'Sign in', href: route('login') }}
-                tagline="Concierge onboarding for B2B jewellery partners"
+                tagline=""
             />
 
             <div className="relative overflow-hidden">

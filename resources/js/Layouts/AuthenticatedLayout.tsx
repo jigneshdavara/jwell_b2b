@@ -199,36 +199,36 @@ export default function Authenticated({
                     <header className="relative z-40 bg-white text-slate-900 shadow">
                         <div className="hidden border-b border-slate-100 bg-slate-900 text-xs text-white lg:block">
                             <div className="mx-auto flex max-w-[95rem] items-center justify-between px-4 py-2">
-                                <div className="flex items-center gap-6">
-                                    <a href="tel:+919988877665" className="flex items-center gap-2 text-white/80 transition hover:text-white">
+                                <div className="flex items-center gap-6 text-white">
+                                    <a href="tel:+919988877665" className="flex items-center gap-2 text-white transition hover:text-feather-gold">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-3.5 w-3.5">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75l7.5 7.5a2.25 2.25 0 003.182 0l1.318-1.318a2.25 2.25 0 013.182 0l3.318 3.318" />
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 2.25l7.5 7.5" />
                                         </svg>
                                         <span>+91 99888 77665</span>
                                     </a>
-                                    <a
-                                        href="mailto:support@elvee.in"
-                                        className="flex items-center gap-2 text-white/80 transition hover:text-white"
-                                    >
+                                    <a href="mailto:support@elvee.in" className="flex items-center gap-2 text-white transition hover:text-feather-gold">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-3.5 w-3.5">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75l7.5 6 7.5-6M4.5 18.75h15a.75.75 0 00.75-.75V6A1.5 1.5 0 0018.75 4.5H5.25A1.5 1.5 0 003.75 6v12a.75.75 0 00.75.75z" />
                                         </svg>
                                         <span>support@elvee.in</span>
                                     </a>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-white/60">Language</span>
+                                <div className="flex items-center gap-3 text-white/70">
+                                    <span>Language</span>
                                     <select
                                         value={language}
                                         onChange={(event) => setLanguage(event.target.value)}
                                         className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-medium text-white focus:border-white focus:outline-none"
                                     >
                                         <option value="en" className="text-slate-900">
-                                            English
+                                            EN
                                         </option>
                                         <option value="hi" className="text-slate-900">
-                                            हिन्दी
+                                            Hindi
+                                        </option>
+                                        <option value="gu" className="text-slate-900">
+                                            Gujarati
                                         </option>
                                     </select>
                                 </div>

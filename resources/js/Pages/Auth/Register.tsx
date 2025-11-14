@@ -6,6 +6,13 @@ import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
 
+const ArrowRightIcon = () => (
+    <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M3 8h10" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="m9.5 4.5 3.5 3.5-3.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
 const accountTypes = [
     { value: 'retailer', label: 'Retailer' },
     { value: 'wholesaler', label: 'Wholesaler' },
@@ -23,21 +30,6 @@ const steps = [
     {
         title: 'Registered address',
         description: 'Tell us where to ship and how to contact your team.',
-    },
-];
-
-const conciergeHighlights = [
-    {
-        title: 'White-glove onboarding',
-        detail: 'Dedicated concierge unlocks catalogues, bullion controls, and order routing for your house.',
-    },
-    {
-        title: 'Jobs + wholesale ready',
-        detail: 'Retailers, wholesalers, and jobworkers collaborate inside one secure Elvee workspace.',
-    },
-    {
-        title: 'Compliance accelerated',
-        detail: 'Share documents digitally and receive verification status updates within 1-2 business days.',
     },
 ];
 
@@ -367,7 +359,7 @@ export default function Register() {
         <GuestLayout>
             <Head title="Register" />
 
-            <div className="mx-auto w-full max-w-6xl gap-8 lg:grid lg:grid-cols-[340px,minmax(0,1fr)]">
+            <div className="mx-auto w-full max-w-6xl gap-10 lg:grid lg:grid-cols-[380px,minmax(0,1fr)]">
                 <aside className="mb-8 space-y-6 rounded-3xl bg-white/80 p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 backdrop-blur lg:mb-0">
                     <p className="text-xs font-semibold uppercase tracking-[0.35em] text-feather-gold">Partner onboarding</p>
                     <h1 className="text-3xl font-semibold text-elvee-blue">Let's introduce your jewellery house</h1>
@@ -418,21 +410,6 @@ export default function Register() {
                         </ul>
                     </div>
 
-                    <div className="space-y-2 rounded-2xl border border-elvee-blue/15 bg-white/90 p-5 shadow-inner">
-                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/60">Concierge notes</p>
-                        {conciergeHighlights.map((item) => (
-                            <div key={item.title} className="space-y-1">
-                                <p className="text-sm font-semibold text-elvee-blue">{item.title}</p>
-                                <p className="text-sm text-ink/70">{item.detail}</p>
-                            </div>
-                        ))}
-                        <p className="pt-2 text-sm text-ink/70">
-                            Need help?{' '}
-                            <a href="mailto:onboarding@elvee.in" className="font-semibold text-elvee-blue underline decoration-feather-gold decoration-2 underline-offset-4">
-                                onboarding@elvee.in
-                            </a>
-                        </p>
-                    </div>
                 </aside>
 
                 <section className="space-y-6">
@@ -504,8 +481,9 @@ export default function Register() {
                                 <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/60">Start your profile</span>
                             )}
 
-                            <PrimaryButton className="min-w-[180px]" disabled={processing}>
-                                {processing ? 'Submitting...' : nextLabel}
+                            <PrimaryButton className="min-w-[200px] gap-2" disabled={processing}>
+                                <span>{processing ? 'Submitting...' : nextLabel}</span>
+                                {!processing && <ArrowRightIcon />}
                             </PrimaryButton>
                         </div>
                     </form>

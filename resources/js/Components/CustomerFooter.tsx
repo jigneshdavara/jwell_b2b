@@ -84,11 +84,11 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
                     </div>
 
                     <div>
-                        <p className="text-xs font-semibold text-slate-400">Quick links</p>
-                        <ul className="mt-4 space-y-3 text-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Quick links</p>
+                        <ul className="mt-4 space-y-3 text-sm text-white">
                             {quickLinks.map((item) => (
                                 <li key={item.label}>
-                                    <Link href={item.href} className="inline-flex items-center gap-2 text-slate-300 transition hover:text-white">
+                                    <Link href={item.href} className="inline-flex items-center gap-2 text-white transition hover:text-feather-gold">
                                         <span>{item.label}</span>
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                                             <path d="M12.293 2.293a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L14 5.414V17a1 1 0 11-2 0V5.414L8.707 7.707A1 1 0 117.293 6.293l4-4z" />
@@ -100,11 +100,11 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
                     </div>
 
                     <div>
-                        <p className="text-xs font-semibold text-slate-400">Client services</p>
-                        <ul className="mt-4 space-y-3 text-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Client services</p>
+                        <ul className="mt-4 space-y-3 text-sm text-white">
                             {supportLinks.map((item) => (
                                 <li key={item.label}>
-                                    <Link href={item.href} className="inline-flex items-center gap-2 text-slate-300 transition hover:text-white">
+                                    <Link href={item.href} className="inline-flex items-center gap-2 text-white transition hover:text-feather-gold">
                                         <span>{item.label}</span>
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                                             <path d="M12.293 2.293a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L14 5.414V17a1 1 0 11-2 0V5.414L8.707 7.707A1 1 0 117.293 6.293l4-4z" />
@@ -116,12 +116,12 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
                     </div>
 
                     <div>
-                        <p className="text-xs font-semibold text-slate-400">Contact & studio</p>
-                        <ul className="mt-4 space-y-4 text-sm">
+                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Contact & studio</p>
+                        <ul className="mt-4 space-y-4 text-sm text-white">
                             {companyDetails.map((detail) => (
                                 <li key={detail.label}>
-                                    <a href={detail.href ?? '#'} className="group flex items-center gap-3 text-slate-200 transition hover:text-white">
-                                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/10">
+                                    <a href={detail.href ?? '#'} className="group flex items-center gap-3 text-white transition hover:text-feather-gold">
+                                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-900">
                                             {detail.icon}
                                         </span>
                                         <span className="text-sm">{detail.value}</span>
@@ -131,16 +131,16 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
                         </ul>
                     </div>
                 </div>
-            <div className="relative mx-auto flex w-full flex-col gap-3 border-t border-white/10 px-6 py-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between lg:px-10 xl:px-16 2xl:px-24">
+            <div className="relative mx-auto flex w-full flex-col gap-3 border-t border-white/10 px-6 py-6 text-xs text-white sm:flex-row sm:items-center sm:justify-between lg:px-10 xl:px-16 2xl:px-24">
                 <p>Copyright {currentYear} Elvee Jewellery Pvt. Ltd. All rights reserved.</p>
-                <div className="flex flex-wrap gap-4">
-                    <Link href="/privacy" className="transition hover:text-white">
+                <div className="flex flex-wrap gap-4 text-white">
+                    <Link href="/privacy" className="transition hover:text-feather-gold" style={{ color: '#FFFFFF' }}>
                         Privacy policy
                     </Link>
-                    <Link href="/terms" className="transition hover:text-white">
+                    <Link href="/terms" className="transition hover:text-feather-gold" style={{ color: '#FFFFFF' }}>
                         Terms of trade
                     </Link>
-                    <Link href="/compliance" className="transition hover:text-white">
+                    <Link href="/compliance" className="transition hover:text-feather-gold" style={{ color: '#FFFFFF' }}>
                         Compliance & certifications
                     </Link>
                 </div>

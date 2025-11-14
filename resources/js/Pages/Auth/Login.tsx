@@ -33,7 +33,14 @@ export default function Login({
 }) {
     const [mode, setMode] = useState<LoginMode>('password');
     const [otpRequested, setOtpRequested] = useState(false);
-    const experienceHighlights: Array<{ title: string; description: string; icon: ReactNode }> = [
+const ArrowRightIcon = () => (
+    <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+        <path d="M3 8h10" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="m9.5 4.5 3.5 3.5-3.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+const experienceHighlights: Array<{ title: string; description: string; icon: ReactNode }> = [
         {
             title: 'Wholesale cockpit',
             description: 'Track catalogue enquiries, allocations, and approvals in real time.',
@@ -146,7 +153,7 @@ export default function Login({
         <GuestLayout>
             <Head title="Log in" />
 
-            <div className="mx-auto grid w-full max-w-6xl items-start gap-10 lg:grid-cols-[360px,minmax(0,1fr)]">
+            <div className="mx-auto grid w-full max-w-6xl items-start gap-10 lg:grid-cols-[420px,minmax(0,1fr)]">
                 <aside className="space-y-6 rounded-3xl bg-white/85 p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 backdrop-blur">
                     <div className="inline-flex items-center gap-2 rounded-full bg-feather-gold/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-feather-gold">
                         Wholesale & retail access
@@ -266,8 +273,9 @@ export default function Login({
                                     )}
                                 </div>
 
-                                <PrimaryButton className="w-full" disabled={passwordForm.processing}>
-                                    Log in
+                                <PrimaryButton className="w-full gap-2" disabled={passwordForm.processing}>
+                                    <span>Log in</span>
+                                    <ArrowRightIcon />
                                 </PrimaryButton>
                             </form>
                         ) : (
@@ -287,8 +295,9 @@ export default function Login({
                                         />
                                         <InputError message={otpRequestForm.errors.email} className="mt-2" />
                                     </div>
-                                    <PrimaryButton className="w-full" disabled={otpRequestForm.processing}>
-                                        {otpRequested ? 'Resend code' : 'Send login code'}
+                                    <PrimaryButton className="w-full gap-2" disabled={otpRequestForm.processing}>
+                                        <span>{otpRequested ? 'Resend code' : 'Send login code'}</span>
+                                        <ArrowRightIcon />
                                     </PrimaryButton>
                                 </form>
 
@@ -308,8 +317,9 @@ export default function Login({
                                         />
                                         <InputError message={otpVerifyForm.errors.code} className="mt-2" />
                                     </div>
-                                    <PrimaryButton className="w-full" disabled={otpVerifyForm.processing || !otpRequested}>
-                                        Log in with code
+                                    <PrimaryButton className="w-full gap-2" disabled={otpVerifyForm.processing || !otpRequested}>
+                                        <span>Log in with code</span>
+                                        <ArrowRightIcon />
                                     </PrimaryButton>
                                 </form>
                             </div>

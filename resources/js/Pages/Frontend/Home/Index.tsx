@@ -83,6 +83,26 @@ export default function HomeIndex() {
         },
     ];
 
+    const ArrowRightIcon = () => (
+        <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M3 8h10" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="m9.5 4.5 3.5 3.5-3.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+
+    const SparkIcon = () => (
+        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M10 2v4" strokeLinecap="round" />
+            <path d="M10 14v4" strokeLinecap="round" />
+            <path d="M3.757 5.757 6.343 8.343" strokeLinecap="round" />
+            <path d="M13.657 12.657 16.243 15.243" strokeLinecap="round" />
+            <path d="M2 10h4" strokeLinecap="round" />
+            <path d="M14 10h4" strokeLinecap="round" />
+            <path d="M3.757 14.243 6.343 11.657" strokeLinecap="round" />
+            <path d="M13.657 7.343 16.243 4.757" strokeLinecap="round" />
+        </svg>
+    );
+
     return (
         <div className="min-h-screen bg-ivory text-ink">
             <Head title="Elvee B2B Jewellery OS" />
@@ -91,7 +111,7 @@ export default function HomeIndex() {
                 navLinks={headerLinks}
                 primaryCta={{ label: 'Request access', href: route('register') }}
                 secondaryCta={{ label: 'Sign in', href: route('login') }}
-                tagline="Retailer & wholesale workspace"
+                tagline=""
             />
 
             <section className="relative overflow-hidden">
@@ -114,11 +134,13 @@ export default function HomeIndex() {
                         </p>
 
                         <div className="flex flex-wrap gap-4">
-                            <Link href={route('login')} className="btn-primary">
-                                Sign in to your workspace
+                            <Link href={route('login')} className="btn-primary gap-2">
+                                <span>Sign in to your workspace</span>
+                                <ArrowRightIcon />
                             </Link>
-                            <Link href={route('register')} className="btn-secondary">
-                                Request partner access
+                            <Link href={route('register')} className="btn-secondary gap-2">
+                                <SparkIcon />
+                                <span>Request partner access</span>
                             </Link>
                         </div>
 

@@ -8,13 +8,19 @@ use App\Models\JobworkRequest;
 use App\Models\Offer;
 use App\Models\Order;
 use App\Models\Product;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class HomeController extends Controller
 {
-    public function index(): Response
+    public function index(): Response|RedirectResponse
     {
+        if (Auth::check()) {
+            return redirect()->route('dashboard');
+        }
+
         $stats = [
             'products' => Product::count(),
             'orders' => Order::count(),
