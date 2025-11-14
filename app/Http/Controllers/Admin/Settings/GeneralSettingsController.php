@@ -60,17 +60,25 @@ class GeneralSettingsController extends Controller
             'app_timezone' => ['required', 'string', 'max:50'],
             'app_currency' => ['required', 'string', 'max:3'],
         ]);
+        
+        // Convert empty strings to null for nullable fields
+        $nullableFields = ['company_address', 'company_city', 'company_state', 'company_pincode', 'company_phone', 'company_email', 'company_gstin'];
+        foreach ($nullableFields as $field) {
+            if (isset($data[$field]) && $data[$field] === '') {
+                $data[$field] = null;
+            }
+        }
 
         // Update text settings
         Setting::set('admin_email', $data['admin_email'], 'string', 'email');
         Setting::set('company_name', $data['company_name'], 'string', 'company');
-        Setting::set('company_address', $data['company_address'] ?? '', 'string', 'company');
-        Setting::set('company_city', $data['company_city'] ?? '', 'string', 'company');
-        Setting::set('company_state', $data['company_state'] ?? '', 'string', 'company');
-        Setting::set('company_pincode', $data['company_pincode'] ?? '', 'string', 'company');
-        Setting::set('company_phone', $data['company_phone'] ?? '', 'string', 'company');
-        Setting::set('company_email', $data['company_email'] ?? '', 'string', 'company');
-        Setting::set('company_gstin', $data['company_gstin'] ?? '', 'string', 'company');
+        Setting::set('company_address', $data['company_address'] ?: '', 'string', 'company');
+        Setting::set('company_city', $data['company_city'] ?: '', 'string', 'company');
+        Setting::set('company_state', $data['company_state'] ?: '', 'string', 'company');
+        Setting::set('company_pincode', $data['company_pincode'] ?: '', 'string', 'company');
+        Setting::set('company_phone', $data['company_phone'] ?: '', 'string', 'company');
+        Setting::set('company_email', $data['company_email'] ?: '', 'string', 'company');
+        Setting::set('company_gstin', $data['company_gstin'] ?: '', 'string', 'company');
         Setting::set('app_name', $data['app_name'], 'string', 'general');
         Setting::set('app_timezone', $data['app_timezone'], 'string', 'general');
         Setting::set('app_currency', $data['app_currency'], 'string', 'general');

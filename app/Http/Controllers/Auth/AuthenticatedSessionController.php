@@ -30,11 +30,10 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        $request->authenticate();
+        $guard = $request->authenticate();
 
         $request->session()->regenerate();
 
-        $guard = Auth::guard('admin')->check() ? 'admin' : 'web';
         $request->session()->put('auth_guard', $guard);
 
         $user = Auth::guard($guard)->user();
@@ -46,21 +45,27 @@ class AuthenticatedSessionController extends Controller
             default => route('dashboard'),
         };
 
-        if ($guard === 'admin') {
-            $storedIntended = $request->session()->get('url.intended');
-            $storedPath = $storedIntended ? parse_url($storedIntended, PHP_URL_PATH) : null;
+        $storedIntended = $request->session()->get('url.intended');
+        $storedPath = $storedIntended ? parse_url($storedIntended, PHP_URL_PATH) : null;
 
+        if ($guard === 'admin') {
             $expectedPrefix = match ($user?->type) {
                 UserType::Production->value => '/production',
                 default => '/admin',
-        };
+            };
 
             if (! $storedPath || ! str_starts_with($storedPath, $expectedPrefix)) {
                 $request->session()->put('url.intended', $intendedUrl);
             }
+
+            return redirect()->intended($intendedUrl);
         }
 
-        return redirect()->intended($intendedUrl);
+        if ($storedPath && (str_starts_with($storedPath, '/admin') || str_starts_with($storedPath, '/production'))) {
+            $request->session()->forget('url.intended');
+        }
+
+        return redirect($intendedUrl);
     }
 
     /**
@@ -69,10 +74,13 @@ class AuthenticatedSessionController extends Controller
     public function destroy(Request $request): RedirectResponse
     {
         $request->session()->forget('auth_guard');
+        $request->session()->forget('url.intended');
 
         foreach (['admin', 'web'] as $guard) {
             Auth::guard($guard)->logout();
         }
+
+        Auth::shouldUse(config('auth.defaults.guard', 'web'));
 
         $request->session()->invalidate();
 

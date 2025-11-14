@@ -1,7 +1,7 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type GeneralSettingsProps = PageProps<{
     settings: {
@@ -38,23 +38,30 @@ export default function AdminGeneralSettingsIndex() {
     const { settings } = usePage<GeneralSettingsProps>().props;
     const [logoPreview, setLogoPreview] = useState<string | null>(settings.logo_url ?? null);
     const [faviconPreview, setFaviconPreview] = useState<string | null>(settings.favicon_url ?? null);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
 
     const form = useForm({
-        admin_email: settings.admin_email,
-        company_name: settings.company_name,
-        company_address: settings.company_address,
-        company_city: settings.company_city,
-        company_state: settings.company_state,
-        company_pincode: settings.company_pincode,
-        company_phone: settings.company_phone,
-        company_email: settings.company_email,
-        company_gstin: settings.company_gstin,
+        admin_email: settings.admin_email || '',
+        company_name: settings.company_name || '',
+        company_address: settings.company_address || '',
+        company_city: settings.company_city || '',
+        company_state: settings.company_state || '',
+        company_pincode: settings.company_pincode || '',
+        company_phone: settings.company_phone || '',
+        company_email: settings.company_email || '',
+        company_gstin: settings.company_gstin || '',
         logo: null as File | null,
         favicon: null as File | null,
-        app_name: settings.app_name,
-        app_timezone: settings.app_timezone,
-        app_currency: settings.app_currency,
+        app_name: settings.app_name || '',
+        app_timezone: settings.app_timezone || '',
+        app_currency: settings.app_currency || '',
     });
+
+    // Clear errors on mount to prevent stale validation errors
+    useEffect(() => {
+        form.clearErrors();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -82,9 +89,42 @@ export default function AdminGeneralSettingsIndex() {
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        form.post(route('admin.settings.general.update'), {
+        setHasSubmitted(true);
+        
+        // Only include logo/favicon if they are actually files
+        form.transform((data) => {
+            const transformed: Record<string, any> = {
+                admin_email: data.admin_email,
+                company_name: data.company_name,
+                company_address: data.company_address,
+                company_city: data.company_city,
+                company_state: data.company_state,
+                company_pincode: data.company_pincode,
+                company_phone: data.company_phone,
+                company_email: data.company_email,
+                company_gstin: data.company_gstin,
+                app_name: data.app_name,
+                app_timezone: data.app_timezone,
+                app_currency: data.app_currency,
+            };
+            
+            if (data.logo instanceof File) {
+                transformed.logo = data.logo;
+            }
+            if (data.favicon instanceof File) {
+                transformed.favicon = data.favicon;
+            }
+            
+            return transformed;
+        });
+        
+        form.put(route('admin.settings.general.update'), {
             preserveScroll: true,
             forceFormData: true,
+            onSuccess: () => {
+                form.clearErrors();
+                setHasSubmitted(false);
+            },
         });
     };
 

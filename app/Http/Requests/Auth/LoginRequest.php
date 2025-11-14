@@ -33,36 +33,31 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Attempt to authenticate the request's credentials.
+     * Attempt to authenticate the request's credentials and return the guard used.
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function authenticate(): void
+    public function authenticate(): string
     {
         $this->ensureIsNotRateLimited();
 
         $credentials = $this->only('email', 'password');
         $remember = $this->boolean('remember');
 
-        $authenticated = false;
+        foreach (['admin', 'web'] as $guard) {
+            if (Auth::guard($guard)->attempt($credentials, $remember)) {
+                Auth::shouldUse($guard);
+                RateLimiter::clear($this->throttleKey());
 
-        if (Auth::guard('admin')->attempt($credentials, $remember)) {
-            Auth::shouldUse('admin');
-            $authenticated = true;
-        } elseif (Auth::guard('web')->attempt($credentials, $remember)) {
-            Auth::shouldUse('web');
-            $authenticated = true;
+                return $guard;
+            }
         }
 
-        if (! $authenticated) {
-            RateLimiter::hit($this->throttleKey());
+        RateLimiter::hit($this->throttleKey());
 
-            throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
-            ]);
-        }
-
-        RateLimiter::clear($this->throttleKey());
+        throw ValidationException::withMessages([
+            'email' => trans('auth.failed'),
+        ]);
     }
 
     /**
