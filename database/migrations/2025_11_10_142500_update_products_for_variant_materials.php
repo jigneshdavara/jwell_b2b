@@ -29,15 +29,15 @@ return new class extends Migration
             }
 
             if (! Schema::hasColumn('products', 'gold_purity_ids')) {
-                $table->json('gold_purity_ids')->nullable();
+                $table->jsonb('gold_purity_ids')->nullable();
             }
 
             if (! Schema::hasColumn('products', 'silver_purity_ids')) {
-                $table->json('silver_purity_ids')->nullable();
+                $table->jsonb('silver_purity_ids')->nullable();
             }
 
             if (! Schema::hasColumn('products', 'diamond_options')) {
-                $table->json('diamond_options')->nullable();
+                $table->jsonb('diamond_options')->nullable();
             }
         });
     }

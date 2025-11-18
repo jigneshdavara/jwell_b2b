@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('quotations', function (Blueprint $table) {
-            $table->foreignId('order_id')->nullable()->constrained()->nullOnDelete()->after('notes');
-            $table->timestamp('approved_at')->nullable()->after('order_id');
-            $table->string('jobwork_status')->nullable()->after('approved_at');
-            $table->text('admin_notes')->nullable()->after('jobwork_status');
+            $table->foreignId('order_id')->nullable()->constrained()->nullOnDelete();
+            $table->timestampTz('approved_at')->nullable();
+            $table->string('jobwork_status')->nullable();
+            $table->text('admin_notes')->nullable();
         });
     }
 
@@ -30,4 +30,3 @@ return new class extends Migration
         });
     }
 };
-

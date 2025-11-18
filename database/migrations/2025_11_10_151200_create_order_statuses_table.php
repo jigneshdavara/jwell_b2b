@@ -18,8 +18,8 @@ return new class extends Migration
             $table->string('color')->default('#64748b');
             $table->boolean('is_default')->default(false);
             $table->boolean('is_active')->default(true);
-            $table->unsignedInteger('position')->default(0);
-            $table->timestamps();
+            $table->integer('position')->default(0);
+            $table->timestampsTz();
         });
     }
 
@@ -31,4 +31,3 @@ return new class extends Migration
         Schema::dropIfExists('order_statuses');
     }
 };
-

@@ -21,8 +21,8 @@ return new class extends Migration
             $table->string('size')->nullable();
             $table->decimal('price_adjustment', 12, 2)->default(0);
             $table->boolean('is_default')->default(false);
-            $table->json('metadata')->nullable();
-            $table->timestamps();
+            $table->jsonb('metadata')->nullable();
+            $table->timestampsTz();
         });
     }
 

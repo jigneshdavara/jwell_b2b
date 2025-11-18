@@ -16,10 +16,10 @@ return new class extends Migration
             $table->string('name')->unique();
             $table->string('slug')->unique();
             $table->text('description')->nullable();
-            $table->json('features')->nullable();
+            $table->jsonb('features')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->unsignedInteger('position')->default(0);
-            $table->timestamps();
+            $table->integer('position')->default(0);
+            $table->timestampsTz();
 
             $table->index(['is_active', 'position']);
         });
@@ -33,4 +33,3 @@ return new class extends Migration
         Schema::dropIfExists('user_groups');
     }
 };
-

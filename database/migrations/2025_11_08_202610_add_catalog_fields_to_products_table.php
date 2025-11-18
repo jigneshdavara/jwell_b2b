@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('products', function (Blueprint $table) {
             $table->string('material_type')->nullable()->after('visibility');
             $table->string('style')->nullable()->after('material_type');
-            $table->json('standard_pricing')->nullable()->after('metadata');
+            $table->jsonb('standard_pricing')->nullable()->after('metadata');
         });
     }
 

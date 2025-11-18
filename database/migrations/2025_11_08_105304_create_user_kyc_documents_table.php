@@ -18,8 +18,8 @@ return new class extends Migration
             $table->string('file_path');
             $table->string('status')->default('pending');
             $table->string('remarks')->nullable();
-            $table->json('metadata')->nullable();
-            $table->timestamps();
+            $table->jsonb('metadata')->nullable();
+            $table->timestampsTz();
         });
     }
 

@@ -16,11 +16,11 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained('customers')->nullOnDelete();
             $table->string('channel');
             $table->string('template');
-            $table->json('payload')->nullable();
-            $table->timestamp('sent_at')->nullable();
+            $table->jsonb('payload')->nullable();
+            $table->timestampTz('sent_at')->nullable();
             $table->string('status')->default('queued');
-            $table->json('response')->nullable();
-            $table->timestamps();
+            $table->jsonb('response')->nullable();
+            $table->timestampsTz();
         });
     }
 

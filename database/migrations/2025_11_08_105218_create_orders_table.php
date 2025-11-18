@@ -21,10 +21,10 @@ return new class extends Migration
             $table->decimal('tax_amount', 12, 2)->default(0);
             $table->decimal('discount_amount', 12, 2)->default(0);
             $table->decimal('total_amount', 12, 2)->default(0);
-            $table->json('price_breakdown')->nullable();
-            $table->json('locked_rates')->nullable();
-            $table->json('status_meta')->nullable();
-            $table->timestamps();
+            $table->jsonb('price_breakdown')->nullable();
+            $table->jsonb('locked_rates')->nullable();
+            $table->jsonb('status_meta')->nullable();
+            $table->timestampsTz();
         });
     }
 

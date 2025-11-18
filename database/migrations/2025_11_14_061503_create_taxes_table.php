@@ -19,7 +19,7 @@ return new class extends Migration
             $table->decimal('rate', 5, 2); // Percentage rate (e.g., 18.00 for 18%)
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->timestamps();
+            $table->timestampsTz();
         });
     }
 

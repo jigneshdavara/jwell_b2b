@@ -11,8 +11,8 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('customer_id')->constrained()->cascadeOnDelete();
             $table->string('name')->default('Primary');
-            $table->json('metadata')->nullable();
-            $table->timestamps();
+            $table->jsonb('metadata')->nullable();
+            $table->timestampsTz();
             $table->unique('customer_id');
         });
 
@@ -21,8 +21,8 @@ return new class extends Migration {
             $table->foreignId('wishlist_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_variant_id')->nullable()->constrained()->nullOnDelete();
-            $table->json('configuration')->nullable();
-            $table->timestamps();
+            $table->jsonb('configuration')->nullable();
+            $table->timestampsTz();
             $table->unique(['wishlist_id', 'product_id', 'product_variant_id'], 'wishlist_item_unique');
         });
     }

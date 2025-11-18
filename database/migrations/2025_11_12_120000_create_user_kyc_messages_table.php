@@ -11,15 +11,28 @@ return new class extends Migration
         Schema::create('user_kyc_messages', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('customers')->cascadeOnDelete();
-            $table->foreignId('admin_id')->nullable()->constrained('users')->nullOnDelete();
+            // admin_id references admin users table
+            $table->foreignId('admin_id')->nullable();
             $table->enum('sender_type', ['customer', 'admin']);
             $table->text('message');
-            $table->timestamps();
+            $table->timestampsTz();
         });
 
+        // Add foreign key constraint if users table exists (for admin users)
+        if (Schema::hasTable('users')) {
+            Schema::table('user_kyc_messages', function (Blueprint $table) {
+                $table->foreign('admin_id')->references('id')->on('users')->nullOnDelete();
+            });
+        }
+
         Schema::table('customers', function (Blueprint $table) {
-            $table->boolean('kyc_comments_enabled')->default(true)->after('kyc_notes');
-            $table->boolean('is_active')->default(true)->after('kyc_comments_enabled');
+            // PostgreSQL doesn't support 'after()', columns will be added at the end
+            if (! Schema::hasColumn('customers', 'kyc_comments_enabled')) {
+                $table->boolean('kyc_comments_enabled')->default(true);
+            }
+            if (! Schema::hasColumn('customers', 'is_active')) {
+                $table->boolean('is_active')->default(true);
+            }
         });
     }
 
@@ -32,4 +45,3 @@ return new class extends Migration
         Schema::dropIfExists('user_kyc_messages');
     }
 };
-
