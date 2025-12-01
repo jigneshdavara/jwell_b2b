@@ -23,7 +23,7 @@ class StoreJobworkRequest extends FormRequest
                 'nullable',
                 'integer',
                 'exists:products,id',
-                Rule::requiredIf(fn () => $this->input('submission_mode') === 'catalogue'),
+                Rule::requiredIf(fn() => $this->input('submission_mode') === 'catalogue'),
             ],
             'product_variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
             'type' => ['required', 'in:customer_supplied,vendor_supplied'],
@@ -31,8 +31,11 @@ class StoreJobworkRequest extends FormRequest
             'reference_url' => ['nullable', 'url', 'max:255'],
             'reference_media' => ['nullable', 'array'],
             'reference_media.*' => ['nullable', 'url', 'max:255'],
-            'metal' => ['required', 'string', 'max:100'],
-            'purity' => ['required', 'string', 'max:50'],
+            'metal_id' => ['nullable', 'integer', 'exists:metals,id'],
+            'metal_purity_id' => ['nullable', 'integer', 'exists:metal_purities,id'],
+            'metal_tone_id' => ['nullable', 'integer', 'exists:metal_tones,id'],
+            'metal' => ['nullable', 'string', 'max:100'], // @deprecated - kept for backward compatibility
+            'purity' => ['nullable', 'string', 'max:50'], // @deprecated - kept for backward compatibility
             'diamond_quality' => ['nullable', 'string', 'max:50'],
             'quantity' => ['required', 'integer', 'min:1'],
             'special_instructions' => ['nullable', 'string'],

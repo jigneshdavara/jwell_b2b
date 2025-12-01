@@ -18,11 +18,11 @@ return new class extends Migration
             $table->foreignId('product_variant_id')->nullable()->constrained()->nullOnDelete();
             $table->enum('mode', ['purchase', 'jobwork'])->default('purchase');
             $table->string('status')->default('pending');
-            $table->unsignedInteger('quantity')->default(1);
-            $table->json('selections')->nullable();
+            $table->integer('quantity')->default(1);
+            $table->jsonb('selections')->nullable();
             $table->text('notes')->nullable();
-            $table->json('metadata')->nullable();
-            $table->timestamps();
+            $table->jsonb('metadata')->nullable();
+            $table->timestampsTz();
         });
     }
 
@@ -34,4 +34,3 @@ return new class extends Migration
         Schema::dropIfExists('quotations');
     }
 };
-

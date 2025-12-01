@@ -18,9 +18,9 @@ return new class extends Migration
             $table->decimal('price_per_gram', 12, 2);
             $table->string('currency')->default('INR');
             $table->string('source')->default('manual');
-            $table->timestamp('effective_at')->nullable();
-            $table->json('metadata')->nullable();
-            $table->timestamps();
+            $table->timestampTz('effective_at')->nullable();
+            $table->jsonb('metadata')->nullable();
+            $table->timestampsTz();
         });
     }
 

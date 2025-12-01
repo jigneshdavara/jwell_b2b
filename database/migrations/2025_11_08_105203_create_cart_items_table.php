@@ -15,10 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('cart_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
-            $table->unsignedInteger('quantity')->default(1);
-            $table->json('configuration')->nullable();
-            $table->json('price_breakdown')->nullable();
-            $table->timestamps();
+            $table->integer('quantity')->default(1);
+            $table->jsonb('configuration')->nullable();
+            $table->jsonb('price_breakdown')->nullable();
+            $table->timestampsTz();
         });
     }
 

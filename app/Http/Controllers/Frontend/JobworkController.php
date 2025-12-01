@@ -6,6 +6,7 @@ use App\Enums\JobworkStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Jobwork\StoreJobworkRequest;
 use App\Models\JobworkRequest;
+use App\Models\Metal;
 use App\Models\Offer;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -25,7 +26,7 @@ class JobworkController extends Controller
         $defaultVariantId = null;
 
         if ($request->filled('product')) {
-            $productModel = Product::with(['media' => fn ($media) => $media->orderBy('position'), 'variants' => fn ($variants) => $variants->orderByDesc('is_default')])->find($request->integer('product'));
+            $productModel = Product::with(['media' => fn($media) => $media->orderBy('position'), 'variants' => fn($variants) => $variants->orderByDesc('is_default')])->find($request->integer('product'));
 
             if ($productModel) {
                 $product = [
@@ -39,13 +40,13 @@ class JobworkController extends Controller
                     'base_price' => $productModel->base_price,
                     'making_charge' => $productModel->making_charge,
                     'standard_pricing' => $productModel->standard_pricing,
-                    'variants' => $productModel->variants->map(fn ($variant) => [
+                    'variants' => $productModel->variants->map(fn($variant) => [
                         'id' => $variant->id,
                         'label' => $variant->label,
                         'price_adjustment' => $variant->price_adjustment,
                         'is_default' => $variant->is_default,
                     ]),
-                    'media' => $productModel->media->map(fn ($media) => [
+                    'media' => $productModel->media->map(fn($media) => [
                         'url' => $media->url,
                         'alt' => $media->metadata['alt'] ?? $productModel->name,
                     ]),
@@ -61,9 +62,9 @@ class JobworkController extends Controller
             ->latest()
             ->limit(25)
             ->get()
-            ->map(fn (JobworkRequest $request) => [
+            ->map(fn(JobworkRequest $request) => [
                 'id' => $request->id,
-                'reference' => 'JW'.str_pad((string) $request->id, 5, '0', STR_PAD_LEFT),
+                'reference' => 'JW' . str_pad((string) $request->id, 5, '0', STR_PAD_LEFT),
                 'product' => $request->product?->name,
                 'variant' => $request->variant?->label,
                 'quantity' => $request->quantity,
@@ -73,7 +74,7 @@ class JobworkController extends Controller
                 'created_at' => $request->created_at->toDateTimeString(),
             ]);
 
-        $offers = Offer::query()->where('is_active', true)->latest()->limit(5)->get()->map(fn (Offer $offer) => [
+        $offers = Offer::query()->where('is_active', true)->latest()->limit(5)->get()->map(fn(Offer $offer) => [
             'code' => $offer->code,
             'name' => $offer->name,
             'description' => $offer->description,
@@ -81,11 +82,48 @@ class JobworkController extends Controller
             'type' => $offer->type,
         ]);
 
+        // Get metals, purities, and tones for dropdowns
+        $metals = Metal::where('is_active', true)
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get()
+            ->map(fn(Metal $metal) => [
+                'id' => $metal->id,
+                'name' => $metal->name,
+                'slug' => $metal->slug,
+            ]);
+
+        $metalPurities = \App\Models\MetalPurity::where('is_active', true)
+            ->with('metal')
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($purity) => [
+                'id' => $purity->id,
+                'metal_id' => $purity->metal_id,
+                'name' => $purity->name,
+            ]);
+
+        $metalTones = \App\Models\MetalTone::where('is_active', true)
+            ->with('metal')
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($tone) => [
+                'id' => $tone->id,
+                'metal_id' => $tone->metal_id,
+                'name' => $tone->name,
+                'slug' => $tone->slug,
+            ]);
+
         return Inertia::render('Frontend/Jobwork/Index', [
             'prefillProduct' => $product,
             'defaultVariantId' => $defaultVariantId,
             'jobworks' => $jobworks,
             'offers' => $offers,
+            'metals' => $metals,
+            'metalPurities' => $metalPurities,
+            'metalTones' => $metalTones,
         ]);
     }
 
@@ -124,6 +162,9 @@ class JobworkController extends Controller
                 'reference_media' => $request->input('reference_media'),
                 'metal' => $request->input('metal', $product?->material?->name),
                 'purity' => $request->input('purity', $product?->metadata['purity'] ?? $product?->material?->purity),
+                'metal_id' => $request->input('metal_id'),
+                'metal_purity_id' => $request->input('metal_purity_id'),
+                'metal_tone_id' => $request->input('metal_tone_id'),
                 'diamond_quality' => $request->input('diamond_quality'),
                 'quantity' => $request->input('quantity'),
                 'special_instructions' => $request->input('special_instructions'),

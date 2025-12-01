@@ -1,7 +1,7 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 type GeneralSettingsProps = PageProps<{
     settings: {
@@ -39,6 +39,8 @@ export default function AdminGeneralSettingsIndex() {
     const [logoPreview, setLogoPreview] = useState<string | null>(settings.logo_url ?? null);
     const [faviconPreview, setFaviconPreview] = useState<string | null>(settings.favicon_url ?? null);
     const [hasSubmitted, setHasSubmitted] = useState(false);
+    const [logoInputKey, setLogoInputKey] = useState(0);
+    const [faviconInputKey, setFaviconInputKey] = useState(0);
 
     const form = useForm({
         admin_email: settings.admin_email || '',
@@ -52,6 +54,8 @@ export default function AdminGeneralSettingsIndex() {
         company_gstin: settings.company_gstin || '',
         logo: null as File | null,
         favicon: null as File | null,
+        remove_logo: false,
+        remove_favicon: false,
         app_name: settings.app_name || '',
         app_timezone: settings.app_timezone || '',
         app_currency: settings.app_currency || '',
@@ -63,67 +67,156 @@ export default function AdminGeneralSettingsIndex() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Initialize and sync previews with settings
+    useEffect(() => {
+        // Update logo preview from settings if no file is selected and not being removed
+        if (!form.data.logo && !form.data.remove_logo) {
+            setLogoPreview(settings.logo_url ?? null);
+        }
+        // Update favicon preview from settings if no file is selected and not being removed
+        if (!form.data.favicon && !form.data.remove_favicon) {
+            setFaviconPreview(settings.favicon_url ?? null);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [settings.logo_url, settings.favicon_url, form.data.logo, form.data.favicon, form.data.remove_logo, form.data.remove_favicon]);
+
+    // Initialize previews on mount from settings
+    useEffect(() => {
+        if (settings.logo_url && !logoPreview && !form.data.logo) {
+            setLogoPreview(settings.logo_url);
+        }
+        if (settings.favicon_url && !faviconPreview && !form.data.favicon) {
+            setFaviconPreview(settings.favicon_url);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
+        const file = event.target.files?.[0] ?? null;
+        form.setData('logo', file);
         if (file) {
-            form.setData('logo', file);
             const reader = new FileReader();
             reader.onload = (e) => {
                 setLogoPreview(e.target?.result as string);
             };
             reader.readAsDataURL(file);
+        } else {
+            // Reset to original logo if file input is cleared
+            setLogoPreview(settings.logo_url ?? null);
         }
     };
 
     const handleFaviconChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
+        const file = event.target.files?.[0] ?? null;
+        form.setData('favicon', file);
         if (file) {
-            form.setData('favicon', file);
             const reader = new FileReader();
             reader.onload = (e) => {
                 setFaviconPreview(e.target?.result as string);
             };
             reader.readAsDataURL(file);
+        } else {
+            // Reset to original favicon if file input is cleared
+            setFaviconPreview(settings.favicon_url ?? null);
         }
     };
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setHasSubmitted(true);
-        
-        // Only include logo/favicon if they are actually files
+
+        const trimmedAdminEmail = form.data.admin_email?.trim() || '';
+        const trimmedCompanyName = form.data.company_name?.trim() || '';
+        const trimmedAppName = form.data.app_name?.trim() || '';
+        const logo = form.data.logo;
+        const favicon = form.data.favicon;
+        const hasFile = logo instanceof File || favicon instanceof File;
+
+        // Frontend validation
+        if (!trimmedAdminEmail) {
+            form.setError('admin_email', 'The admin email field is required.');
+            setHasSubmitted(false);
+            return;
+        }
+        if (!trimmedCompanyName) {
+            form.setError('company_name', 'The company name field is required.');
+            setHasSubmitted(false);
+            return;
+        }
+        if (!trimmedAppName) {
+            form.setError('app_name', 'The app name field is required.');
+            setHasSubmitted(false);
+            return;
+        }
+
+        // Use transform to set cleaned data and method spoofing
         form.transform((data) => {
             const transformed: Record<string, any> = {
-                admin_email: data.admin_email,
-                company_name: data.company_name,
-                company_address: data.company_address,
-                company_city: data.company_city,
-                company_state: data.company_state,
-                company_pincode: data.company_pincode,
-                company_phone: data.company_phone,
-                company_email: data.company_email,
-                company_gstin: data.company_gstin,
-                app_name: data.app_name,
+                admin_email: trimmedAdminEmail,
+                company_name: trimmedCompanyName,
+                company_address: data.company_address?.trim() || null,
+                company_city: data.company_city?.trim() || null,
+                company_state: data.company_state?.trim() || null,
+                company_pincode: data.company_pincode?.trim() || null,
+                company_phone: data.company_phone?.trim() || null,
+                company_email: data.company_email?.trim() || null,
+                company_gstin: data.company_gstin?.trim() || null,
+                app_name: trimmedAppName,
                 app_timezone: data.app_timezone,
                 app_currency: data.app_currency,
+                _method: 'PUT', // method spoofing for update
             };
-            
-            if (data.logo instanceof File) {
-                transformed.logo = data.logo;
+
+            // Include remove flags if set
+            if (data.remove_logo) {
+                transformed.remove_logo = true;
             }
-            if (data.favicon instanceof File) {
-                transformed.favicon = data.favicon;
+            if (data.remove_favicon) {
+                transformed.remove_favicon = true;
             }
-            
+
+            // Only include logo/favicon if they are actually files
+            if (logo instanceof File) {
+                transformed.logo = logo;
+            }
+            if (favicon instanceof File) {
+                transformed.favicon = favicon;
+            }
+
             return transformed;
         });
-        
-        form.put(route('admin.settings.general.update'), {
+
+        form.post(route('admin.settings.general.update'), {
             preserveScroll: true,
-            forceFormData: true,
+            forceFormData: hasFile, // required when file present
             onSuccess: () => {
                 form.clearErrors();
                 setHasSubmitted(false);
+                // Clear file inputs and remove flags after successful save
+                form.setData('logo', null);
+                form.setData('favicon', null);
+                form.setData('remove_logo', false);
+                form.setData('remove_favicon', false);
+                // Reset file inputs to clear "No file chosen" state
+                setLogoInputKey(prev => prev + 1);
+                setFaviconInputKey(prev => prev + 1);
+                // Previews will be updated by useEffect when settings prop updates
+            },
+            onError: (errors: any) => {
+                setHasSubmitted(false);
+                // Errors are automatically displayed by Inertia via form.errors
+                if (errors && Object.keys(errors).length > 0) {
+                    const firstErrorField = Object.keys(errors)[0];
+                    const errorElement = document.querySelector(`[name="${firstErrorField}"]`) ||
+                        document.querySelector(`input[id*="${firstErrorField}"]`);
+                    if (errorElement) {
+                        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            },
+            onFinish: () => {
+                // Reset transform so it doesn't affect other requests
+                form.transform((data) => data);
             },
         });
     };
@@ -271,8 +364,9 @@ export default function AdminGeneralSettingsIndex() {
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    setLogoPreview(null);
                                                     form.setData('logo', null);
+                                                    form.setData('remove_logo', true);
+                                                    setLogoPreview(null);
                                                 }}
                                                 className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50"
                                             >
@@ -281,6 +375,7 @@ export default function AdminGeneralSettingsIndex() {
                                         </div>
                                     )}
                                     <input
+                                        key={logoInputKey}
                                         type="file"
                                         accept="image/*"
                                         onChange={handleLogoChange}
@@ -299,8 +394,9 @@ export default function AdminGeneralSettingsIndex() {
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    setFaviconPreview(null);
                                                     form.setData('favicon', null);
+                                                    form.setData('remove_favicon', true);
+                                                    setFaviconPreview(null);
                                                 }}
                                                 className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50"
                                             >
@@ -309,6 +405,7 @@ export default function AdminGeneralSettingsIndex() {
                                         </div>
                                     )}
                                     <input
+                                        key={faviconInputKey}
                                         type="file"
                                         accept="image/*"
                                         onChange={handleFaviconChange}

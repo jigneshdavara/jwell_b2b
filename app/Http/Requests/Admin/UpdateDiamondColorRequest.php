@@ -11,14 +11,13 @@ class UpdateDiamondColorRequest extends StoreDiamondColorRequest
      */
     public function rules(): array
     {
-        $diamondColor = $this->route('diamond_color');
+        $color = $this->route('color'); // Route parameter is 'color' from resource route
 
         return [
-            'name' => ['required', 'string', 'max:255', Rule::unique('diamond_colors', 'name')->ignore($diamondColor?->id)],
+            'name' => ['required', 'string', 'max:255', Rule::unique('diamond_colors', 'name')->ignore($color ? $color->id : null)],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
             'position' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }
-

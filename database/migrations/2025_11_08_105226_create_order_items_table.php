@@ -17,12 +17,12 @@ return new class extends Migration
             $table->foreignId('product_id')->nullable()->constrained()->nullOnDelete();
             $table->string('sku');
             $table->string('name');
-            $table->unsignedInteger('quantity')->default(1);
+            $table->integer('quantity')->default(1);
             $table->decimal('unit_price', 12, 2)->default(0);
             $table->decimal('total_price', 12, 2)->default(0);
-            $table->json('configuration')->nullable();
-            $table->json('metadata')->nullable();
-            $table->timestamps();
+            $table->jsonb('configuration')->nullable();
+            $table->jsonb('metadata')->nullable();
+            $table->timestampsTz();
         });
     }
 

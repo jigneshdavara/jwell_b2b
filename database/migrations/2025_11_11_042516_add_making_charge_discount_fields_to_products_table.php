@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('products', function (Blueprint $table) {
             $table->enum('making_charge_discount_type', ['percentage', 'fixed'])->nullable()->after('making_charge');
             $table->decimal('making_charge_discount_value', 10, 2)->nullable()->after('making_charge_discount_type');
-            $table->json('making_charge_discount_overrides')->nullable()->after('making_charge_discount_value');
+            $table->jsonb('making_charge_discount_overrides')->nullable()->after('making_charge_discount_value');
         });
     }
 

@@ -19,8 +19,8 @@ return new class extends Migration
             $table->string('status')->default('pending');
             $table->decimal('amount', 12, 2);
             $table->string('currency', 3)->default('INR');
-            $table->json('meta')->nullable();
-            $table->timestamps();
+            $table->jsonb('meta')->nullable();
+            $table->timestampsTz();
         });
     }
 

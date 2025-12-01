@@ -11,17 +11,14 @@ class UpdateBrandRequest extends StoreBrandRequest
      */
     public function rules(): array
     {
-        $rules = parent::rules();
-
         $brand = $this->route('brand');
 
-        $rules['slug'] = [
-            'nullable',
-            'string',
-            'max:255',
-            Rule::unique('brands', 'slug')->ignore($brand?->id),
+        return [
+            'name' => ['required', 'string', 'max:191', Rule::unique('brands', 'name')->ignore($brand?->id)],
+            'description' => ['nullable', 'string'],
+            'cover_image' => ['nullable', 'image', 'max:2048'],
+            'is_active' => ['boolean'],
         ];
-
-        return $rules;
     }
 }
+

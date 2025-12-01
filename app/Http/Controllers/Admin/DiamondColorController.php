@@ -60,13 +60,13 @@ class DiamondColorController extends Controller
             ->with('success', 'Diamond color created successfully.');
     }
 
-    public function update(UpdateDiamondColorRequest $request, DiamondColor $diamondColor): RedirectResponse
+    public function update(UpdateDiamondColorRequest $request, DiamondColor $color): RedirectResponse
     {
         $data = $request->validated();
 
-        $diamondColor->update([
+        $color->update([
             'name' => $data['name'],
-            'slug' => $diamondColor->name === $data['name'] ? $diamondColor->slug : $this->uniqueSlug($data['name'], $diamondColor->id),
+            'slug' => $color->name === $data['name'] ? $color->slug : $this->uniqueSlug($data['name'], $color->id),
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
             'position' => $data['position'] ?? 0,
@@ -77,9 +77,9 @@ class DiamondColorController extends Controller
             ->with('success', 'Diamond color updated successfully.');
     }
 
-    public function destroy(DiamondColor $diamondColor): RedirectResponse
+    public function destroy(DiamondColor $color): RedirectResponse
     {
-        $diamondColor->delete();
+        $color->delete();
 
         return redirect()
             ->back()
@@ -103,9 +103,9 @@ class DiamondColorController extends Controller
 
         while (
             DiamondColor::query()
-                ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
-                ->where('slug', $slug)
-                ->exists()
+            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
+            ->where('slug', $slug)
+            ->exists()
         ) {
             $slug = sprintf('%s-%d', $base, $counter++);
         }
@@ -113,4 +113,3 @@ class DiamondColorController extends Controller
         return $slug;
     }
 }
-

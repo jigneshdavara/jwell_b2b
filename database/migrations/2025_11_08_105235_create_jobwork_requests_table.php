@@ -20,14 +20,14 @@ return new class extends Migration
             $table->string('metal');
             $table->string('purity')->nullable();
             $table->string('diamond_quality')->nullable();
-            $table->unsignedInteger('quantity')->default(1);
+            $table->integer('quantity')->default(1);
             $table->text('special_instructions')->nullable();
-            $table->timestamp('delivery_deadline')->nullable();
+            $table->timestampTz('delivery_deadline')->nullable();
             $table->decimal('wastage_percentage', 5, 2)->nullable();
             $table->decimal('manufacturing_charge', 12, 2)->nullable();
             $table->string('status')->default('submitted');
-            $table->json('metadata')->nullable();
-            $table->timestamps();
+            $table->jsonb('metadata')->nullable();
+            $table->timestampsTz();
         });
     }
 

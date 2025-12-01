@@ -56,13 +56,13 @@ class DiamondTypeController extends Controller
             ->with('success', 'Diamond type created successfully.');
     }
 
-    public function update(UpdateDiamondTypeRequest $request, DiamondType $diamondType): RedirectResponse
+    public function update(UpdateDiamondTypeRequest $request, DiamondType $type): RedirectResponse
     {
         $data = $request->validated();
 
-        $diamondType->update([
+        $type->update([
             'name' => $data['name'],
-            'slug' => $diamondType->name === $data['name'] ? $diamondType->slug : $this->uniqueSlug($data['name'], $diamondType->id),
+            'slug' => $type->name === $data['name'] ? $type->slug : $this->uniqueSlug($data['name'], $type->id),
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
             'position' => $data['position'] ?? 0,
@@ -73,9 +73,9 @@ class DiamondTypeController extends Controller
             ->with('success', 'Diamond type updated successfully.');
     }
 
-    public function destroy(DiamondType $diamondType): RedirectResponse
+    public function destroy(DiamondType $type): RedirectResponse
     {
-        $diamondType->delete();
+        $type->delete();
 
         return redirect()
             ->back()
@@ -99,9 +99,9 @@ class DiamondTypeController extends Controller
 
         while (
             DiamondType::query()
-                ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
-                ->where('slug', $slug)
-                ->exists()
+            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
+            ->where('slug', $slug)
+            ->exists()
         ) {
             $slug = sprintf('%s-%d', $base, $counter++);
         }
@@ -109,4 +109,3 @@ class DiamondTypeController extends Controller
         return $slug;
     }
 }
-

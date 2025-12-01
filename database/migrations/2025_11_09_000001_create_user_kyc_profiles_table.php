@@ -24,8 +24,8 @@ return new class extends Migration
             $table->string('country')->default('India');
             $table->string('contact_name')->nullable();
             $table->string('contact_phone')->nullable();
-            $table->json('metadata')->nullable();
-            $table->timestamps();
+            $table->jsonb('metadata')->nullable();
+            $table->timestampsTz();
         });
     }
 

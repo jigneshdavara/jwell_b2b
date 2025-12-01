@@ -11,6 +11,7 @@ use App\Models\ProductVariant;
 use App\Models\Quotation;
 use App\Models\QuotationMessage;
 use App\Services\CartService;
+use App\Services\PricingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,8 +23,10 @@ use Inertia\Response;
 
 class QuotationController extends Controller
 {
-    public function __construct(protected CartService $cartService)
-    {
+    public function __construct(
+        protected CartService $cartService,
+        protected PricingService $pricingService
+    ) {
     }
 
     public function index(): Response
@@ -123,7 +126,19 @@ class QuotationController extends Controller
                 'selections' => $quotation->selections,
                 'created_at' => optional($quotation->created_at)?->toDateTimeString(),
                 'updated_at' => optional($quotation->updated_at)?->toDateTimeString(),
-                'related_quotations' => $relatedQuotations->map(function ($q) {
+                'related_quotations' => $relatedQuotations->map(function ($q) use ($quotation) {
+                    $pricing = $this->pricingService->calculateProductPrice(
+                        $q->product,
+                        $quotation->user,
+                        [
+                            'variant' => $q->variant ? $q->variant->toArray() : null,
+                            'quantity' => $q->quantity,
+                            'customer_group_id' => $quotation->user?->customer_group_id ?? null,
+                            'customer_type' => $quotation->user?->type ?? null,
+                            'mode' => $q->mode,
+                        ]
+                    )->toArray();
+
                     return [
                         'id' => $q->id,
                         'mode' => $q->mode,
@@ -158,6 +173,7 @@ class QuotationController extends Controller
                             'price_adjustment' => $q->variant->price_adjustment,
                             'metadata' => $q->variant->metadata ?? [],
                         ] : null,
+                        'price_breakdown' => $pricing,
                     ];
                 }),
                 'product' => [
@@ -187,6 +203,17 @@ class QuotationController extends Controller
                     'price_adjustment' => $quotation->variant->price_adjustment,
                     'metadata' => $quotation->variant->metadata ?? [],
                 ] : null,
+                'price_breakdown' => $this->pricingService->calculateProductPrice(
+                    $quotation->product,
+                    $quotation->user,
+                    [
+                        'variant' => $quotation->variant ? $quotation->variant->toArray() : null,
+                        'quantity' => $quotation->quantity,
+                        'customer_group_id' => $quotation->user?->customer_group_id ?? null,
+                        'customer_type' => $quotation->user?->type ?? null,
+                        'mode' => $quotation->mode,
+                    ]
+                )->toArray(),
                 'user' => [
                     'name' => optional($quotation->user)->name,
                     'email' => optional($quotation->user)->email,

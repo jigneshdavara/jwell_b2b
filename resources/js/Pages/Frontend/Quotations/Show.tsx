@@ -35,6 +35,14 @@ type RelatedQuotation = {
         price_adjustment: number;
         metadata?: Record<string, unknown> | null;
     } | null;
+    price_breakdown?: {
+        metal?: number;
+        diamond?: number;
+        making?: number;
+        subtotal?: number;
+        discount?: number;
+        total?: number;
+    };
 };
 
 type QuotationDetails = {
@@ -89,6 +97,14 @@ type QuotationDetails = {
             created_at?: string | null;
         }>;
     } | null;
+    price_breakdown?: {
+        metal?: number;
+        diamond?: number;
+        making?: number;
+        subtotal?: number;
+        discount?: number;
+        total?: number;
+    };
     messages: Array<{
         id: number;
         sender: 'customer' | 'admin';
@@ -265,10 +281,11 @@ export default function FrontendQuotationShow() {
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {allQuotations.map((item) => {
-                                        const basePrice = Number(item.product.base_price) || 0;
-                                        const makingCharge = Number(item.product.making_charge) || 0;
-                                        const variantAdjustment = Number(item.variant?.price_adjustment) || 0;
-                                        const unitPrice = basePrice + makingCharge + variantAdjustment;
+                                        const priceBreakdown = item.price_breakdown || {};
+                                        const metalCost = Number(priceBreakdown.metal) || 0;
+                                        const diamondCost = Number(priceBreakdown.diamond) || 0;
+                                        const makingCharge = Number(priceBreakdown.making) || 0;
+                                        const unitPrice = Number(priceBreakdown.total) || (metalCost + diamondCost + makingCharge);
                                         const lineTotal = unitPrice * (Number(item.quantity) || 0);
                                         return (
                                             <tr key={item.id} className="hover:bg-slate-50/50 transition">
@@ -307,9 +324,11 @@ export default function FrontendQuotationShow() {
                                                 <td className="px-4 py-4 text-right">
                                                     <div className="text-sm font-semibold text-slate-900">{currencyFormatter.format(unitPrice)}</div>
                                                     <div className="text-xs text-slate-400">
-                                                        Base: {currencyFormatter.format(basePrice)}
-                                                        {makingCharge > 0 ? ` + Making: ${currencyFormatter.format(makingCharge)}` : ''}
-                                                        {variantAdjustment !== 0 ? ` + Variant: ${currencyFormatter.format(variantAdjustment)}` : ''}
+                                                        {metalCost > 0 && `Metal: ${currencyFormatter.format(metalCost)}`}
+                                                        {metalCost > 0 && (diamondCost > 0 || makingCharge > 0) && ' + '}
+                                                        {diamondCost > 0 && `Diamond: ${currencyFormatter.format(diamondCost)}`}
+                                                        {diamondCost > 0 && makingCharge > 0 && ' + '}
+                                                        {makingCharge > 0 && `Making: ${currencyFormatter.format(makingCharge)}`}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
@@ -339,15 +358,18 @@ export default function FrontendQuotationShow() {
                                 <tfoot className="border-t-2 border-slate-200 bg-slate-50">
                                     {(() => {
                                         const totals = allQuotations.reduce((acc, item) => {
-                                            const basePrice = Number(item.product.base_price) || 0;
-                                            const makingCharge = Number(item.product.making_charge) || 0;
-                                            const variantAdjustment = Number(item.variant?.price_adjustment) || 0;
+                                            const priceBreakdown = item.price_breakdown || {};
+                                            const metalCost = Number(priceBreakdown.metal) || 0;
+                                            const diamondCost = Number(priceBreakdown.diamond) || 0;
+                                            const makingCharge = Number(priceBreakdown.making) || 0;
+                                            const unitTotal = Number(priceBreakdown.total) || (metalCost + diamondCost + makingCharge);
                                             const quantity = Number(item.quantity) || 0;
+                                            const lineTotal = unitTotal * quantity;
                                             
                                             if (item.mode === 'jobwork') {
-                                                acc.totalJobwork += (makingCharge + variantAdjustment) * quantity;
+                                                acc.totalJobwork += lineTotal;
                                             } else {
-                                                acc.totalBase += (basePrice + makingCharge + variantAdjustment) * quantity;
+                                                acc.totalBase += lineTotal;
                                             }
                                             
                                             return acc;
@@ -374,7 +396,7 @@ export default function FrontendQuotationShow() {
                                                 {totals.totalBase > 0 && (
                                                     <tr>
                                                         <td colSpan={3} className="px-4 py-2 text-right text-sm text-slate-600">
-                                                            Total Base
+                                                            Total Purchase
                                                         </td>
                                                         <td className="px-4 py-2"></td>
                                                         <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
@@ -665,28 +687,44 @@ export default function FrontendQuotationShow() {
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                     <h5 className="mb-3 text-sm font-semibold text-slate-700">Pricing</h5>
                                     <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-600">Base Price:</span>
-                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(Number(productDetailsModalOpen.product.base_price || 0))}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-600">Making Charge:</span>
-                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(Number(productDetailsModalOpen.product.making_charge || 0))}</span>
-                                        </div>
-                                        {productDetailsModalOpen.variant && (
-                                            <div className="flex justify-between">
-                                                <span className="text-slate-600">Variant Adjustment:</span>
-                                                <span className="font-semibold text-slate-900">{currencyFormatter.format(Number(productDetailsModalOpen.variant.price_adjustment || 0))}</span>
-                                            </div>
-                                        )}
-                                        <div className="border-t border-slate-300 pt-2">
-                                            <div className="flex justify-between">
-                                                <span className="font-semibold text-slate-900">Unit Price:</span>
-                                                <span className="font-semibold text-slate-900">
-                                                    {currencyFormatter.format(Number(productDetailsModalOpen.product.base_price || 0) + Number(productDetailsModalOpen.product.making_charge || 0) + Number(productDetailsModalOpen.variant?.price_adjustment || 0))}
-                                                </span>
-                                            </div>
-                                        </div>
+                                        {(() => {
+                                            const priceBreakdown = productDetailsModalOpen.price_breakdown || {};
+                                            const metalCost = Number(priceBreakdown.metal) || 0;
+                                            const diamondCost = Number(priceBreakdown.diamond) || 0;
+                                            const makingCharge = Number(priceBreakdown.making) || 0;
+                                            const total = Number(priceBreakdown.total) || (metalCost + diamondCost + makingCharge);
+                                            
+                                            return (
+                                                <>
+                                                    {metalCost > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Metal:</span>
+                                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(metalCost)}</span>
+                                                        </div>
+                                                    )}
+                                                    {diamondCost > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Diamond:</span>
+                                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(diamondCost)}</span>
+                                                        </div>
+                                                    )}
+                                                    {makingCharge > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Making Charge:</span>
+                                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(makingCharge)}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="border-t border-slate-300 pt-2">
+                                                        <div className="flex justify-between">
+                                                            <span className="font-semibold text-slate-900">Unit Price:</span>
+                                                            <span className="font-semibold text-slate-900">
+                                                                {currencyFormatter.format(total)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
 

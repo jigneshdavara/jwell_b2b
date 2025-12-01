@@ -23,9 +23,9 @@ return new class extends Migration
             $table->decimal('min_cart_total', 12, 2)->nullable();
             $table->boolean('is_auto')->default(true);
             $table->boolean('is_active')->default(true);
-            $table->timestamp('starts_at')->nullable();
-            $table->timestamp('ends_at')->nullable();
-            $table->timestamps();
+            $table->timestampTz('starts_at')->nullable();
+            $table->timestampTz('ends_at')->nullable();
+            $table->timestampsTz();
 
             $table->index(['is_active', 'starts_at', 'ends_at']);
         });

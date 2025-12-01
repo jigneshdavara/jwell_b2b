@@ -18,8 +18,8 @@ return new class extends Migration
             $table->string('driver');
             $table->boolean('is_active')->default(false);
             $table->boolean('is_default')->default(false);
-            $table->json('config')->nullable();
-            $table->timestamps();
+            $table->jsonb('config')->nullable();
+            $table->timestampsTz();
         });
     }
 

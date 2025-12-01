@@ -18,11 +18,11 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('type');
             $table->decimal('value', 12, 2);
-            $table->json('constraints')->nullable();
-            $table->timestamp('starts_at')->nullable();
-            $table->timestamp('ends_at')->nullable();
+            $table->jsonb('constraints')->nullable();
+            $table->timestampTz('starts_at')->nullable();
+            $table->timestampTz('ends_at')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->timestamps();
+            $table->timestampsTz();
         });
     }
 

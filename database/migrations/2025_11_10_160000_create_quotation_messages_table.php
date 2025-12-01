@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained('customers')->nullOnDelete();
             $table->enum('sender', ['customer', 'admin']);
             $table->text('message');
-            $table->timestamps();
+            $table->timestampsTz();
         });
     }
 

@@ -20,8 +20,7 @@ class RateController extends Controller
 
     public function __construct(
         protected RateSyncService $rateSyncService
-    ) {
-    }
+    ) {}
 
     public function index(): Response
     {
@@ -41,13 +40,57 @@ class RateController extends Controller
                 ];
             });
 
+        // Get all available metals from the database
+        $availableMetals = \App\Models\Metal::query()
+            ->where('is_active', true)
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($metal) {
+                return [
+                    'id' => $metal->id,
+                    'name' => $metal->name,
+                    'slug' => $metal->slug,
+                    'value' => Str::lower($metal->slug), // Use slug as value for matching
+                ];
+            })
+            ->all();
+
+        // Get purities for each metal
+        $metalPuritiesMap = [];
+        foreach ($availableMetals as $metal) {
+            $metalModel = \App\Models\Metal::find($metal['id']);
+            if ($metalModel) {
+                $metalPuritiesMap[$metal['value']] = $metalModel->purities()
+                    ->where('is_active', true)
+                    ->orderBy('position')
+                    ->orderBy('name')
+                    ->get()
+                    ->map(function ($purity) {
+                        return [
+                            'id' => $purity->id,
+                            'name' => $purity->name,
+                            'slug' => $purity->slug,
+                        ];
+                    })
+                    ->all();
+            }
+        }
+
+        // Build summaries for ALL active metals (not just those with rates)
+        $metalSummaries = [];
+        foreach ($availableMetals as $metal) {
+            $metalValue = $metal['value'];
+            // Build summary for all active metals, even if they don't have rates yet
+            $metalSummaries[$metalValue] = $this->buildMetalSummary($metalValue);
+        }
+
         return Inertia::render('Admin/Rates/Index', [
             'rates' => $rates,
             'defaultCurrency' => config('app.currency', 'INR'),
-            'metalSummaries' => [
-                'gold' => $this->buildMetalSummary('gold'),
-                'silver' => $this->buildMetalSummary('silver'),
-            ],
+            'availableMetals' => $availableMetals,
+            'metalSummaries' => $metalSummaries,
+            'metalPurities' => $metalPuritiesMap, // Purities grouped by metal slug
         ]);
     }
 
@@ -87,7 +130,7 @@ class RateController extends Controller
                     'price_per_gram' => isset($rate['price_per_gram']) ? (float) $rate['price_per_gram'] : 0.0,
                 ];
             })
-            ->filter(fn ($rate) => $rate['purity'] !== '' && $rate['price_per_gram'] > 0)
+            ->filter(fn($rate) => $rate['purity'] !== '' && $rate['price_per_gram'] > 0)
             ->each(function (array $rate) use ($normalizedMetal, $currency): void {
                 PriceRate::updateOrCreate(
                     [

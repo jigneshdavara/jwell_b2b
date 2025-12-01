@@ -25,8 +25,8 @@ return new class extends Migration
             $table->decimal('making_charge', 12, 2)->default(0);
             $table->boolean('is_jobwork_allowed')->default(false);
             $table->string('visibility')->nullable();
-            $table->json('metadata')->nullable();
-            $table->timestamps();
+            $table->jsonb('metadata')->nullable();
+            $table->timestampsTz();
         });
     }
 

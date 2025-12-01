@@ -11,9 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('customers', function (Blueprint $table) {
-            $table->boolean('is_active')->default(true)->after('kyc_notes');
-        });
+        // Check if column already exists (it may have been added in a previous migration)
+        if (! Schema::hasColumn('customers', 'is_active')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->boolean('is_active')->default(true);
+            });
+        }
     }
 
     /**

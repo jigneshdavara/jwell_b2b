@@ -17,8 +17,8 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->unsignedInteger('position')->default(0);
-            $table->timestamps();
+            $table->integer('position')->default(0);
+            $table->timestampsTz();
         });
     }
 
@@ -30,4 +30,3 @@ return new class extends Migration
         Schema::dropIfExists('diamond_shapes');
     }
 };
-

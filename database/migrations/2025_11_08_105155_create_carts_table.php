@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('customers')->cascadeOnDelete();
             $table->string('status')->default('active');
             $table->string('currency')->default('INR');
-            $table->json('metadata')->nullable();
-            $table->timestamps();
+            $table->jsonb('metadata')->nullable();
+            $table->timestampsTz();
         });
     }
 

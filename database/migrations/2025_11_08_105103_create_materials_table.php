@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('purity')->nullable();
             $table->string('unit')->default('g');
             $table->boolean('is_active')->default(true);
-            $table->timestamps();
+            $table->timestampsTz();
         });
     }
 

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->text('value')->nullable();
             $table->string('type')->default('string'); // string, text, boolean, integer, json
             $table->string('group')->default('general'); // general, company, email, etc.
-            $table->timestamps();
+            $table->timestampsTz();
         });
     }
 

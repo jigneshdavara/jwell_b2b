@@ -33,12 +33,12 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
+            $table->timestampTz('email_verified_at')->nullable();
             $table->string('password');
             $table->string('type')->default('admin');
             $table->foreignId('user_group_id')->nullable()->constrained('user_groups')->nullOnDelete();
             $table->rememberToken();
-            $table->timestamps();
+            $table->timestampsTz();
         });
     }
 
@@ -50,4 +50,3 @@ return new class extends Migration
         Schema::dropIfExists('users');
     }
 };
-

@@ -43,11 +43,33 @@ type OfferRecord = {
     type: string;
 };
 
+type MetalOption = {
+    id: number;
+    name: string;
+    slug: string;
+};
+
+type MetalPurityOption = {
+    id: number;
+    metal_id: number;
+    name: string;
+};
+
+type MetalToneOption = {
+    id: number;
+    metal_id: number;
+    name: string;
+    slug: string;
+};
+
 type JobworkPageProps = PageProps<{
     prefillProduct: PrefillProduct | null;
     defaultVariantId: number | null;
     jobworks: JobworkRecord[];
     offers: OfferRecord[];
+    metals: MetalOption[];
+    metalPurities: MetalPurityOption[];
+    metalTones: MetalToneOption[];
 }>;
 
 type SubmissionMode = 'catalogue' | 'custom';
@@ -60,8 +82,11 @@ type FormData = {
     reference_design: string;
     reference_url: string;
     reference_media: string[];
-    metal: string;
-    purity: string;
+    metal_id: number | '';
+    metal_purity_id: number | '';
+    metal_tone_id: number | '';
+    metal: string; // @deprecated - kept for backward compatibility
+    purity: string; // @deprecated - kept for backward compatibility
     diamond_quality: string;
     quantity: number;
     special_instructions: string;
@@ -84,10 +109,11 @@ const submitModes: Array<{ value: SubmissionMode; label: string; helper: string 
 ];
 
 export default function JobworkIndex() {
-    const { prefillProduct, defaultVariantId, jobworks, offers } = usePage<JobworkPageProps>().props;
+    const { prefillProduct, defaultVariantId, jobworks, offers, metals, metalPurities, metalTones } = usePage<JobworkPageProps>().props;
 
     const [mode, setMode] = useState<SubmissionMode>(prefillProduct ? 'catalogue' : 'custom');
     const [referenceMediaInput, setReferenceMediaInput] = useState('');
+    const [selectedMetalId, setSelectedMetalId] = useState<number | ''>('');
 
     const { data, setData, post, processing, errors } = useForm<FormData>({
         submission_mode: prefillProduct ? 'catalogue' : 'custom',
@@ -97,6 +123,9 @@ export default function JobworkIndex() {
         reference_design: '',
         reference_url: '',
         reference_media: [],
+        metal_id: '',
+        metal_purity_id: '',
+        metal_tone_id: '',
         metal: prefillProduct?.material ?? '',
         purity: prefillProduct?.purity ?? '',
         diamond_quality: '',
@@ -107,6 +136,17 @@ export default function JobworkIndex() {
         manufacturing_charge: '',
     });
 
+    // Filter purities and tones based on selected metal
+    const availablePurities = useMemo(() => {
+        if (selectedMetalId === '' || typeof selectedMetalId !== 'number') return [];
+        return metalPurities.filter((purity) => purity.metal_id === selectedMetalId);
+    }, [selectedMetalId, metalPurities]);
+
+    const availableTones = useMemo(() => {
+        if (selectedMetalId === '' || typeof selectedMetalId !== 'number') return [];
+        return metalTones.filter((tone) => tone.metal_id === selectedMetalId);
+    }, [selectedMetalId, metalTones]);
+
     useEffect(() => {
         setData('submission_mode', mode);
         if (mode === 'catalogue' && prefillProduct) {
@@ -114,6 +154,17 @@ export default function JobworkIndex() {
             setData('metal', prefillProduct.material ?? '');
             setData('purity', prefillProduct.purity ?? '');
             setData('product_variant_id', defaultVariantId ?? null);
+            
+            // Try to match prefill material to a metal
+            if (prefillProduct.material) {
+                const matchedMetal = metals.find((m) => 
+                    m.name.toLowerCase() === prefillProduct.material?.toLowerCase()
+                );
+                if (matchedMetal) {
+                    setSelectedMetalId(matchedMetal.id);
+                    setData('metal_id', matchedMetal.id);
+                }
+            }
         }
 
         if (mode === 'custom') {
@@ -360,26 +411,76 @@ export default function JobworkIndex() {
                                     </select>
                                 </label>
 
-                                <div className="grid gap-4 md:grid-cols-2">
+                                <div className="grid gap-4 md:grid-cols-3">
                                     <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                        <span>Metal</span>
-                                        <input
-                                            type="text"
+                                        <span>Metal *</span>
+                                        <select
                                             className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                            value={data.metal}
-                                            onChange={(event) => setData('metal', event.target.value)}
-                                        />
+                                            value={data.metal_id}
+                                            onChange={(event) => {
+                                                const metalId = event.target.value === '' ? '' : Number(event.target.value);
+                                                setSelectedMetalId(metalId);
+                                                setData('metal_id', metalId);
+                                                setData('metal_purity_id', ''); // Reset purity when metal changes
+                                                setData('metal_tone_id', ''); // Reset tone when metal changes
+                                                // Also update deprecated field for backward compatibility
+                                                const selectedMetal = metals.find((m) => m.id === metalId);
+                                                setData('metal', selectedMetal?.name ?? '');
+                                            }}
+                                        >
+                                            <option value="">Select metal</option>
+                                            {metals.map((metal) => (
+                                                <option key={metal.id} value={metal.id}>
+                                                    {metal.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.metal_id && <span className="text-xs text-rose-500">{errors.metal_id}</span>}
                                         {errors.metal && <span className="text-xs text-rose-500">{errors.metal}</span>}
                                     </label>
                                     <label className="flex flex-col gap-2 text-sm text-slate-600">
                                         <span>Purity</span>
-                                        <input
-                                            type="text"
-                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                            value={data.purity}
-                                            onChange={(event) => setData('purity', event.target.value)}
-                                        />
+                                        <select
+                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 disabled:bg-slate-50 disabled:text-slate-400"
+                                            value={data.metal_purity_id}
+                                            onChange={(event) => {
+                                                const purityId = event.target.value === '' ? '' : Number(event.target.value);
+                                                setData('metal_purity_id', purityId);
+                                                // Also update deprecated field for backward compatibility
+                                                const selectedPurity = availablePurities.find((p) => p.id === purityId);
+                                                setData('purity', selectedPurity?.name ?? '');
+                                            }}
+                                            disabled={selectedMetalId === '' || typeof selectedMetalId !== 'number'}
+                                        >
+                                            <option value="">Select purity</option>
+                                            {availablePurities.map((purity) => (
+                                                <option key={purity.id} value={purity.id}>
+                                                    {purity.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.metal_purity_id && <span className="text-xs text-rose-500">{errors.metal_purity_id}</span>}
                                         {errors.purity && <span className="text-xs text-rose-500">{errors.purity}</span>}
+                                    </label>
+                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <span>Tone</span>
+                                        <select
+                                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 disabled:bg-slate-50 disabled:text-slate-400"
+                                            value={data.metal_tone_id}
+                                            onChange={(event) => {
+                                                const toneId = event.target.value === '' ? '' : Number(event.target.value);
+                                                setData('metal_tone_id', toneId);
+                                            }}
+                                            disabled={selectedMetalId === '' || typeof selectedMetalId !== 'number'}
+                                        >
+                                            <option value="">Select tone</option>
+                                            {availableTones.map((tone) => (
+                                                <option key={tone.id} value={tone.id}>
+                                                    {tone.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.metal_tone_id && <span className="text-xs text-rose-500">{errors.metal_tone_id}</span>}
                                     </label>
                                 </div>
 

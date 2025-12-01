@@ -5,8 +5,9 @@ import { ChangeEvent, Dispatch, FormEvent, SetStateAction, useEffect, useMemo, u
 
 const FILTER_LABELS: Record<string, string> = {
     brand: 'Brand',
-    gold_purity: 'Gold purity',
-    silver_purity: 'Silver purity',
+    metal: 'Metal',
+    metal_purity: 'Metal purity',
+    metal_tone: 'Metal tone',
     search: 'Search',
     category: 'Category',
     catalog: 'Catalog',
@@ -29,7 +30,7 @@ type Product = {
     silver_weight?: number | null;
     other_material_weight?: number | null;
     total_weight?: number | null;
-    base_price: number;
+    price_total: number;
     making_charge: number;
     is_jobwork_allowed: boolean;
     uses_gold: boolean;
@@ -49,12 +50,13 @@ type Product = {
 
 type CatalogFiltersInput = {
     brand?: string | string[] | null;
-    gold_purity?: string | string[] | null;
-    silver_purity?: string | string[] | null;
+    metal?: string | string[] | null;
+    metal_purity?: string | string[] | null;
+    metal_tone?: string | string[] | null;
     diamond?: string | string[] | null;
     price_min?: string | null;
     price_max?: string | null;
-    search?: string | null;
+    search?: string | string[] | null;
     category?: string | string[] | null;
     catalog?: string | null;
     sort?: string | null;
@@ -75,8 +77,9 @@ type CatalogProps = {
         brands: string[];
         categories: Array<{ id: number; name: string; slug?: string | null }>;
         catalogs: Array<{ id: number; name: string; slug?: string | null }>;
-        goldPurities: Array<{ id: number; name: string }>;
-        silverPurities: Array<{ id: number; name: string }>;
+        metals: Array<{ id: number; name: string }>;
+        metalPurities: Array<{ id: number; name: string; metal_id: number; metal: { id: number; name: string } | null }>;
+        metalTones: Array<{ id: number; name: string; metal_id: number; metal: { id: number; name: string } | null }>;
         diamondOptions: {
             types: Array<{ id: number; name: string }>;
             shapes: Array<{ id: number; name: string }>;
@@ -98,8 +101,9 @@ const PRICE_STEP = 1000;
 
 type CatalogFilters = {
     brand: string[];
-    gold_purity: string[];
-    silver_purity: string[];
+    metal: string[];
+    metal_purity: string[];
+    metal_tone: string[];
     diamond: string[];
     price_min?: string;
     price_max?: string;
@@ -144,8 +148,9 @@ export default function CatalogIndex() {
         categories: false,
         catalogs: true,
         brands: true,
-        goldPurities: false,
-        silverPurities: true,
+        metals: false,
+        metalPurities: true,
+        metalTones: true,
         diamond: true,
         price: false,
         availability: false,
@@ -171,9 +176,10 @@ export default function CatalogIndex() {
 
         return {
             brand: normalizeArray(rawFilters.brand),
-            search: normalizeSingle(rawFilters.search),
-            gold_purity: normalizeArray(rawFilters.gold_purity),
-            silver_purity: normalizeArray(rawFilters.silver_purity),
+            search: normalizeSingle(Array.isArray(rawFilters.search) ? rawFilters.search[0] : rawFilters.search),
+            metal: normalizeArray(rawFilters.metal),
+            metal_purity: normalizeArray(rawFilters.metal_purity),
+            metal_tone: normalizeArray(rawFilters.metal_tone),
             diamond: normalizeArray(rawFilters.diamond),
             price_min: normalizeSingle(rawFilters.price_min),
             price_max: normalizeSingle(rawFilters.price_max),
@@ -303,8 +309,9 @@ export default function CatalogIndex() {
     const navigation = page.props.navigation ?? {};
     const valueNameMap = useMemo(() => {
         const map = new Map<string, string>();
-        facets.goldPurities.forEach((purity) => map.set(`gold_purity:${purity.id}`, purity.name));
-        facets.silverPurities.forEach((purity) => map.set(`silver_purity:${purity.id}`, purity.name));
+        facets.metals.forEach((metal) => map.set(`metal:${metal.id}`, metal.name));
+        facets.metalPurities.forEach((purity) => map.set(`metal_purity:${purity.id}`, purity.name));
+        facets.metalTones.forEach((tone) => map.set(`metal_tone:${tone.id}`, tone.name));
         facets.diamondOptions.types.forEach((option) => map.set(`diamond:type:${option.id}`, option.name));
         facets.diamondOptions.shapes.forEach((option) => map.set(`diamond:shape:${option.id}`, option.name));
         facets.diamondOptions.colors.forEach((option) => map.set(`diamond:color:${option.id}`, option.name));
@@ -396,21 +403,30 @@ export default function CatalogIndex() {
             });
         });
 
-        filters.gold_purity.forEach((value) => {
+        filters.metal.forEach((value) => {
             entries.push({
-                key: 'gold_purity',
+                key: 'metal',
                 value,
-                label: FILTER_LABELS.gold_purity,
-                valueLabel: valueNameMap.get(`gold_purity:${value}`) ?? value,
+                label: FILTER_LABELS.metal,
+                valueLabel: valueNameMap.get(`metal:${value}`) ?? value,
             });
         });
 
-        filters.silver_purity.forEach((value) => {
+        filters.metal_purity.forEach((value) => {
             entries.push({
-                key: 'silver_purity',
+                key: 'metal_purity',
                 value,
-                label: FILTER_LABELS.silver_purity,
-                valueLabel: valueNameMap.get(`silver_purity:${value}`) ?? value,
+                label: FILTER_LABELS.metal_purity,
+                valueLabel: valueNameMap.get(`metal_purity:${value}`) ?? value,
+            });
+        });
+
+        filters.metal_tone.forEach((value) => {
+            entries.push({
+                key: 'metal_tone',
+                value,
+                label: FILTER_LABELS.metal_tone,
+                valueLabel: valueNameMap.get(`metal_tone:${value}`) ?? value,
             });
         });
 
@@ -596,8 +612,9 @@ export default function CatalogIndex() {
                             onClick={() => {
                                 if (
                                     key === 'brand' ||
-                                    key === 'gold_purity' ||
-                                    key === 'silver_purity' ||
+                                    key === 'metal' ||
+                                    key === 'metal_purity' ||
+                                    key === 'metal_tone' ||
                                     key === 'category' ||
                                     key === 'diamond'
                                 ) {
@@ -849,12 +866,12 @@ export default function CatalogIndex() {
                         <div>
                             <button
                                 type="button"
-                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, goldPurities: !prev.goldPurities }))}
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, metals: !prev.metals }))}
                                 className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
                             >
-                                <span>Gold purities</span>
+                                <span>Metals</span>
                                 <svg
-                                    className={`h-4 w-4 transition-transform ${collapsedFilters.goldPurities ? '' : 'rotate-180'}`}
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.metals ? '' : 'rotate-180'}`}
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -862,14 +879,14 @@ export default function CatalogIndex() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                                 </svg>
                             </button>
-                            {!collapsedFilters.goldPurities && (
+                            {!collapsedFilters.metals && (
                                 <div className="mt-3 space-y-1.5 text-sm">
-                                    {facets.goldPurities.map((purity) => {
-                                        const selected = filters.gold_purity.includes(String(purity.id));
+                                    {facets.metals.map((metal) => {
+                                        const selected = filters.metal.includes(String(metal.id));
 
                                         return (
                                             <label
-                                                key={purity.id}
+                                                key={metal.id}
                                                 className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
                                                     selected ? 'text-slate-900' : 'text-slate-600'
                                                 }`}
@@ -879,21 +896,21 @@ export default function CatalogIndex() {
                                                     className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                                     checked={selected}
                                                     onChange={(event) => {
-                                                        const list = [...filters.gold_purity];
+                                                        const list = [...filters.metal];
 
                                                         if (event.target.checked) {
-                                                            list.push(String(purity.id));
+                                                            list.push(String(metal.id));
                                                         } else {
-                                                            const index = list.indexOf(String(purity.id));
+                                                            const index = list.indexOf(String(metal.id));
                                                             if (index >= 0) {
                                                                 list.splice(index, 1);
                                                             }
                                                         }
 
-                                                        applyFilter('gold_purity', list.length ? list : undefined);
+                                                        applyFilter('metal', list.length ? list : undefined);
                                                     }}
                                                 />
-                                                <span>{purity.name}</span>
+                                                <span>{metal.name}</span>
                                             </label>
                                         );
                                     })}
@@ -904,12 +921,12 @@ export default function CatalogIndex() {
                         <div>
                             <button
                                 type="button"
-                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, silverPurities: !prev.silverPurities }))}
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, metalPurities: !prev.metalPurities }))}
                                 className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
                             >
-                                <span>Silver purities</span>
+                                <span>Metal purities</span>
                                 <svg
-                                    className={`h-4 w-4 transition-transform ${collapsedFilters.silverPurities ? '' : 'rotate-180'}`}
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.metalPurities ? '' : 'rotate-180'}`}
                                     fill="none"
                                     stroke="currentColor"
                                     viewBox="0 0 24 24"
@@ -917,10 +934,10 @@ export default function CatalogIndex() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                                 </svg>
                             </button>
-                            {!collapsedFilters.silverPurities && (
+                            {!collapsedFilters.metalPurities && (
                                 <div className="mt-3 space-y-1.5 text-sm">
-                                    {facets.silverPurities.map((purity) => {
-                                        const selected = filters.silver_purity.includes(String(purity.id));
+                                    {facets.metalPurities.map((purity) => {
+                                        const selected = filters.metal_purity.includes(String(purity.id));
 
                                         return (
                                             <label
@@ -934,7 +951,7 @@ export default function CatalogIndex() {
                                                     className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                                                     checked={selected}
                                                     onChange={(event) => {
-                                                        const list = [...filters.silver_purity];
+                                                        const list = [...filters.metal_purity];
 
                                                         if (event.target.checked) {
                                                             list.push(String(purity.id));
@@ -945,10 +962,65 @@ export default function CatalogIndex() {
                                                             }
                                                         }
 
-                                                        applyFilter('silver_purity', list.length ? list : undefined);
+                                                        applyFilter('metal_purity', list.length ? list : undefined);
                                                     }}
                                                 />
-                                                <span>{purity.name}</span>
+                                                <span>{purity.name} {purity.metal ? `(${purity.metal.name})` : ''}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, metalTones: !prev.metalTones }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Metal tones</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.metalTones ? '' : 'rotate-180'}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.metalTones && (
+                                <div className="mt-3 space-y-1.5 text-sm">
+                                    {facets.metalTones.map((tone) => {
+                                        const selected = filters.metal_tone.includes(String(tone.id));
+
+                                        return (
+                                            <label
+                                                key={tone.id}
+                                                className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                    selected ? 'text-slate-900' : 'text-slate-600'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                                    checked={selected}
+                                                    onChange={(event) => {
+                                                        const list = [...filters.metal_tone];
+
+                                                        if (event.target.checked) {
+                                                            list.push(String(tone.id));
+                                                        } else {
+                                                            const index = list.indexOf(String(tone.id));
+                                                            if (index >= 0) {
+                                                                list.splice(index, 1);
+                                                            }
+                                                        }
+
+                                                        applyFilter('metal_tone', list.length ? list : undefined);
+                                                    }}
+                                                />
+                                                <span>{tone.name} {tone.metal ? `(${tone.metal.name})` : ''}</span>
                                             </label>
                                         );
                                     })}
@@ -1362,8 +1434,7 @@ function ProductCard({
                             <p className="text-sm text-slate-500">SKU {product.sku}</p>
                             <p className="text-sm text-slate-600">{product.brand ?? 'Elvee Atelier'}</p>
                             <p className="text-sm text-slate-600">
-                                {currencyFormatter.format(product.base_price)}{' '}
-                                <span className="text-xs text-slate-500">+ {currencyFormatter.format(product.making_charge)} making</span>
+                                {currencyFormatter.format(product.price_total)}
                             </p>
                                 <div className="flex flex-wrap gap-2 text-xs text-slate-500">
                                     <span>{product.material ?? 'Custom material'}</span>
@@ -1420,8 +1491,7 @@ function ProductCard({
                 )}
                 <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
                     <div className="flex flex-col gap-1">
-                        <span>{currencyFormatter.format(product.base_price)}</span>
-                        <span className="text-xs text-slate-500">Making {currencyFormatter.format(product.making_charge)}</span>
+                        <span>{currencyFormatter.format(product.price_total)}</span>
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
                         <div>

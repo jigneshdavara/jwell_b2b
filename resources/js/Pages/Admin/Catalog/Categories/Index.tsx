@@ -137,33 +137,68 @@ export default function AdminCategoriesIndex() {
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        // Ensure name is not empty
-        if (!categoryForm.data.name || categoryForm.data.name.trim() === '') {
+        const trimmedName = categoryForm.data.name?.trim() || '';
+        const trimmedDescription = categoryForm.data.description?.trim() || '';
+        const trimmedSlug = categoryForm.data.slug?.trim() || '';
+        const parentId = categoryForm.data.parent_id === 'none' || categoryForm.data.parent_id === '' ? null : categoryForm.data.parent_id;
+        const isActive = !!categoryForm.data.is_active;
+        const coverImage = categoryForm.data.cover_image; // Preserve the file
+        const removeCoverImage = categoryForm.data.remove_cover_image;
+        const hasFile = coverImage instanceof File;
+
+        // Frontend validation
+        if (!trimmedName) {
             categoryForm.setError('name', 'The name field is required.');
             return;
         }
 
-        // Update form data with proper parent_id handling before submitting
-        // Keep parent_id as string for form submission (will be converted to number/null on backend)
-        const parentId = categoryForm.data.parent_id === 'none' ? 'none' : categoryForm.data.parent_id;
-        categoryForm.setData('parent_id', parentId);
-        categoryForm.setData('name', categoryForm.data.name.trim());
-        if (categoryForm.data.slug) {
-            categoryForm.setData('slug', categoryForm.data.slug.trim());
-        }
+        // Use transform to set cleaned data and method spoofing for updates
+        categoryForm.transform((data) => {
+            const transformed: any = {
+                name: trimmedName,
+                description: trimmedDescription || null,
+                slug: trimmedSlug || null,
+                parent_id: parentId,
+                is_active: isActive,
+                cover_image: coverImage, // Preserve file
+                remove_cover_image: removeCoverImage,
+            };
+            if (editingCategory) {
+                transformed._method = 'PUT'; // method spoofing for update
+            }
+            return transformed;
+        });
+
+        const submitOptions = {
+            preserveScroll: true,
+            forceFormData: hasFile, // required when file present
+            onSuccess: () => {
+                resetForm();
+            },
+            onError: (errors: any) => {
+                // Errors are automatically displayed by Inertia via form.errors
+                // Scroll to first error if needed
+                if (errors && Object.keys(errors).length > 0) {
+                    const firstErrorField = Object.keys(errors)[0];
+                    const errorElement = document.querySelector(`[name="${firstErrorField}"]`) || 
+                                       document.querySelector(`input[value*="${firstErrorField}"]`)?.closest('label');
+                    if (errorElement) {
+                        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            },
+            onFinish: () => {
+                // Reset transform so it doesn't affect other requests
+                categoryForm.transform((data) => data);
+            },
+        };
 
         if (editingCategory) {
-            categoryForm.put(route('admin.catalog.categories.update', editingCategory.id), {
-                preserveScroll: true,
-                onSuccess: () => resetForm(),
-                forceFormData: true,
-            });
+            // UPDATE: POST + _method=PUT (Laravel-friendly for file uploads)
+            categoryForm.post(route('admin.catalog.categories.update', editingCategory.id), submitOptions);
         } else {
-            categoryForm.post(route('admin.catalog.categories.store'), {
-                preserveScroll: true,
-                onSuccess: () => resetForm(),
-                forceFormData: true,
-            });
+            // CREATE: normal POST
+            categoryForm.post(route('admin.catalog.categories.store'), submitOptions);
         }
     };
 

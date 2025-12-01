@@ -47,7 +47,6 @@ const adminNavigation: NavItem[] = [
         label: 'Catalog',
         icon: 'collection',
         children: [
-            { label: 'Brands', route: 'admin.catalog.brands.index', match: 'admin.catalog.brands.*', icon: 'sparkle' },
             { label: 'Categories', route: 'admin.catalog.categories.index', match: 'admin.catalog.categories.*', icon: 'layers' },
             {
                 label: 'Product catalog',
@@ -58,6 +57,7 @@ const adminNavigation: NavItem[] = [
             { label: 'Products', route: 'admin.products.index', match: 'admin.products.*', icon: 'diamond' },
         ],
     },
+    { label: 'Brands', route: 'admin.brands.index', match: 'admin.brands.*', icon: 'sparkle' },
     {
         label: 'Diamonds',
         icon: 'gem',
@@ -70,14 +70,13 @@ const adminNavigation: NavItem[] = [
         ],
     },
     {
-        label: 'Gold',
-        icon: 'coin',
-        children: [{ label: 'Purity', route: 'admin.gold.purities.index', match: 'admin.gold.purities.*' }],
-    },
-    {
-        label: 'Silver',
+        label: 'Metals',
         icon: 'ingot',
-        children: [{ label: 'Purity', route: 'admin.silver.purities.index', match: 'admin.silver.purities.*' }],
+        children: [
+            { label: 'Metals', route: 'admin.metals.index', match: 'admin.metals.*' },
+            { label: 'Tones', route: 'admin.metal-tones.index', match: 'admin.metal-tones.*' },
+            { label: 'Purities', route: 'admin.metal-purities.index', match: 'admin.metal-purities.*' },
+        ],
     },
     {
         label: 'Orders',

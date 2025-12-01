@@ -29,9 +29,7 @@ use Inertia\Response;
 
 class QuotationController extends Controller
 {
-    public function __construct(protected PricingService $pricingService)
-    {
-    }
+    public function __construct(protected PricingService $pricingService) {}
 
     public function index(Request $request): Response
     {
@@ -42,21 +40,21 @@ class QuotationController extends Controller
         // Filter by order reference
         if ($request->filled('order_reference')) {
             $query->whereHas('order', function ($q) use ($request) {
-                $q->where('reference', 'like', '%'.$request->string('order_reference')->value().'%');
+                $q->where('reference', 'like', '%' . $request->string('order_reference')->value() . '%');
             });
         }
 
         // Filter by customer name
         if ($request->filled('customer_name')) {
             $query->whereHas('user', function ($q) use ($request) {
-                $q->where('name', 'like', '%'.$request->string('customer_name')->value().'%');
+                $q->where('name', 'like', '%' . $request->string('customer_name')->value() . '%');
             });
         }
 
         // Filter by customer email
         if ($request->filled('customer_email')) {
             $query->whereHas('user', function ($q) use ($request) {
-                $q->where('email', 'like', '%'.$request->string('customer_email')->value().'%');
+                $q->where('email', 'like', '%' . $request->string('customer_email')->value() . '%');
             });
         }
 
@@ -68,15 +66,15 @@ class QuotationController extends Controller
                 // Group by user and date+hour+minute (rounded to 5 minutes)
                 if ($createdAt) {
                     $minute = floor($createdAt->format('i') / 5) * 5;
-                    return $quotation->user_id.'_'.$createdAt->format('Y-m-d H:').sprintf('%02d', $minute);
+                    return $quotation->user_id . '_' . $createdAt->format('Y-m-d H:') . sprintf('%02d', $minute);
                 }
-                return $quotation->user_id.'_'.time();
+                return $quotation->user_id . '_' . time();
             })
             ->map(function ($group) {
                 $first = $group->first();
                 $modes = $group->pluck('mode')->unique()->values();
                 $totalQuantity = $group->sum('quantity');
-                
+
                 return [
                     'id' => $first->id,
                     'ids' => $group->pluck('id')->values()->all(),
@@ -165,7 +163,19 @@ class QuotationController extends Controller
                 'admin_notes' => $quotation->admin_notes,
                 'approved_at' => optional($quotation->approved_at)?->toDateTimeString(),
                 'selections' => $quotation->selections,
-                'related_quotations' => $relatedQuotations->map(function ($q) {
+                'related_quotations' => $relatedQuotations->map(function ($q) use ($quotation) {
+                    $pricing = $this->pricingService->calculateProductPrice(
+                        $q->product,
+                        $quotation->user,
+                        [
+                            'variant' => $q->variant ? $q->variant->toArray() : null,
+                            'quantity' => $q->quantity,
+                            'customer_group_id' => $quotation->user?->customer_group_id ?? null,
+                            'customer_type' => $quotation->user?->type ?? null,
+                            'mode' => $q->mode,
+                        ]
+                    )->toArray();
+
                     return [
                         'id' => $q->id,
                         'mode' => $q->mode,
@@ -183,11 +193,11 @@ class QuotationController extends Controller
                             'silver_weight' => $q->product->silver_weight,
                             'other_material_weight' => $q->product->other_material_weight,
                             'total_weight' => $q->product->total_weight,
-                            'media' => $q->product->media->sortBy('position')->values()->map(fn ($media) => [
+                            'media' => $q->product->media->sortBy('position')->values()->map(fn($media) => [
                                 'url' => $media->url,
                                 'alt' => $media->metadata['alt'] ?? $q->product->name,
                             ]),
-                            'variants' => $q->product->variants->map(fn ($variant) => [
+                            'variants' => $q->product->variants->map(fn($variant) => [
                                 'id' => $variant->id,
                                 'label' => $variant->label,
                                 'metadata' => $variant->metadata ?? [],
@@ -200,6 +210,7 @@ class QuotationController extends Controller
                             'price_adjustment' => $q->variant->price_adjustment,
                             'metadata' => $q->variant->metadata ?? [],
                         ] : null,
+                        'price_breakdown' => $pricing,
                     ];
                 }),
                 'product' => [
@@ -212,11 +223,11 @@ class QuotationController extends Controller
                     'silver_weight' => $quotation->product->silver_weight,
                     'other_material_weight' => $quotation->product->other_material_weight,
                     'total_weight' => $quotation->product->total_weight,
-                    'media' => $quotation->product->media->sortBy('position')->values()->map(fn ($media) => [
+                    'media' => $quotation->product->media->sortBy('position')->values()->map(fn($media) => [
                         'url' => $media->url,
                         'alt' => $media->metadata['alt'] ?? $quotation->product->name,
                     ]),
-                    'variants' => $quotation->product->variants->map(fn (ProductVariant $variant) => [
+                    'variants' => $quotation->product->variants->map(fn(ProductVariant $variant) => [
                         'id' => $variant->id,
                         'label' => $variant->label,
                         'metadata' => $variant->metadata ?? [],
@@ -229,6 +240,17 @@ class QuotationController extends Controller
                     'price_adjustment' => $quotation->variant->price_adjustment,
                     'metadata' => $quotation->variant->metadata ?? [],
                 ] : null,
+                'price_breakdown' => $this->pricingService->calculateProductPrice(
+                    $quotation->product,
+                    $quotation->user,
+                    [
+                        'variant' => $quotation->variant ? $quotation->variant->toArray() : null,
+                        'quantity' => $quotation->quantity,
+                        'customer_group_id' => $quotation->user?->customer_group_id ?? null,
+                        'customer_type' => $quotation->user?->type ?? null,
+                        'mode' => $quotation->mode,
+                    ]
+                )->toArray(),
                 'user' => [
                     'name' => optional($quotation->user)->name,
                     'email' => optional($quotation->user)->email,
@@ -238,14 +260,14 @@ class QuotationController extends Controller
                     'reference' => $quotation->order->reference,
                     'status' => $quotation->order->status instanceof OrderStatus ? $quotation->order->status->value : (string) $quotation->order->status,
                     'total_amount' => $quotation->order->total_amount,
-                    'history' => $quotation->order->statusHistory->map(fn ($history) => [
+                    'history' => $quotation->order->statusHistory->map(fn($history) => [
                         'id' => $history->id,
                         'status' => $history->status,
                         'created_at' => optional($history->created_at)?->toDateTimeString(),
                         'meta' => $history->meta,
                     ]),
                 ] : null,
-                'messages' => $quotation->messages->map(fn (QuotationMessage $message) => [
+                'messages' => $quotation->messages->map(fn(QuotationMessage $message) => [
                     'id' => $message->id,
                     'sender' => $message->sender,
                     'message' => $message->message,
@@ -298,10 +320,10 @@ class QuotationController extends Controller
         });
 
         $quotation->load(['user', 'product', 'order']);
-        
+
         // Send approval email to customer
         Mail::to($quotation->user->email)->send(new QuotationApprovedMail($quotation));
-        
+
         // Send status update email
         Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
             $quotation,
@@ -318,17 +340,17 @@ class QuotationController extends Controller
     {
         $previousStatus = $quotation->status;
         $reason = $request->validated('admin_notes');
-        
+
         $quotation->update([
             'status' => 'rejected',
             'admin_notes' => $reason,
         ]);
 
         $quotation->load(['user', 'product']);
-        
+
         // Send rejection email to customer
         Mail::to($quotation->user->email)->send(new QuotationRejectedMail($quotation, $reason));
-        
+
         // Send status update email
         Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
             $quotation,
@@ -349,7 +371,7 @@ class QuotationController extends Controller
 
         $previousStatus = $quotation->jobwork_status;
         $notes = $request->validated('admin_notes');
-        
+
         $quotation->update([
             'jobwork_status' => $request->validated('jobwork_status'),
             'admin_notes' => $notes,
@@ -362,7 +384,7 @@ class QuotationController extends Controller
         }
 
         $quotation->load(['user', 'product']);
-        
+
         // Send status update email to customer
         Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
             $quotation,
@@ -424,10 +446,10 @@ class QuotationController extends Controller
         ]);
 
         $quotation->load(['user', 'product']);
-        
+
         // Send confirmation request email to customer
         Mail::to($quotation->user->email)->send(new QuotationConfirmationRequestMail($quotation, $message));
-        
+
         // Send status update email
         Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
             $quotation,
@@ -450,7 +472,7 @@ class QuotationController extends Controller
         ]);
 
         $product = Product::query()->findOrFail($data['product_id']);
-        
+
         if ($data['product_variant_id'] ?? null) {
             $variant = ProductVariant::query()->findOrFail($data['product_variant_id']);
             if ($variant->product_id !== $product->id) {
@@ -471,9 +493,9 @@ class QuotationController extends Controller
         ]);
 
         $quotation->load(['user', 'product']);
-        
+
         $message = (string) ($data['admin_notes'] ?? "Product changed from '{$previousProduct}' to '{$newProduct}'.");
-        
+
         $quotation->messages()->create([
             'user_id' => auth('web')->id(),
             'sender' => 'admin',
@@ -483,7 +505,7 @@ class QuotationController extends Controller
         // Send confirmation request email to customer
         if (config('mail.from.address') && $quotation->user->email) {
             Mail::to($quotation->user->email)->send(new QuotationConfirmationRequestMail($quotation, $message));
-            
+
             // Send status update email
             Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
                 $quotation,
@@ -558,10 +580,10 @@ class QuotationController extends Controller
             ]
         )->toArray();
 
-        $base = (float) ($pricing['base'] ?? $product->base_price);
+        $metalCost = (float) ($pricing['metal'] ?? 0);
+        $diamondCost = (float) ($pricing['diamond'] ?? 0);
         $making = (float) ($pricing['making'] ?? $product->making_charge);
-        $variantAdjustment = (float) ($pricing['variant_adjustment'] ?? ($variant?->price_adjustment ?? 0));
-        $unitSubtotal = (float) ($pricing['subtotal'] ?? ($base + $making + $variantAdjustment));
+        $unitSubtotal = (float) ($pricing['subtotal'] ?? ($metalCost + $diamondCost + $making));
         $unitDiscount = (float) ($pricing['discount'] ?? 0);
         $unitTotal = (float) ($pricing['total'] ?? ($unitSubtotal - $unitDiscount));
 
@@ -612,14 +634,14 @@ class QuotationController extends Controller
         ]);
 
         $order->statusHistory()->create([
-            'user_id' => auth()->id(),
+            'user_id' => null, // Admin users are not in customers table, so set to null
             'status' => $order->status,
             'meta' => [
                 'source' => 'quotation_approval',
+                'approved_by' => auth()->id(), // Store admin ID in meta for tracking
             ],
         ]);
 
         return $order;
     }
 }
-

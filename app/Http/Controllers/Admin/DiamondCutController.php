@@ -56,13 +56,13 @@ class DiamondCutController extends Controller
             ->with('success', 'Diamond cut grade created successfully.');
     }
 
-    public function update(UpdateDiamondCutRequest $request, DiamondCut $diamondCut): RedirectResponse
+    public function update(UpdateDiamondCutRequest $request, DiamondCut $cut): RedirectResponse
     {
         $data = $request->validated();
 
-        $diamondCut->update([
+        $cut->update([
             'name' => $data['name'],
-            'slug' => $diamondCut->name === $data['name'] ? $diamondCut->slug : $this->uniqueSlug($data['name'], $diamondCut->id),
+            'slug' => $cut->name === $data['name'] ? $cut->slug : $this->uniqueSlug($data['name'], $cut->id),
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
             'position' => $data['position'] ?? 0,
@@ -73,9 +73,9 @@ class DiamondCutController extends Controller
             ->with('success', 'Diamond cut grade updated successfully.');
     }
 
-    public function destroy(DiamondCut $diamondCut): RedirectResponse
+    public function destroy(DiamondCut $cut): RedirectResponse
     {
-        $diamondCut->delete();
+        $cut->delete();
 
         return redirect()
             ->back()
@@ -99,9 +99,9 @@ class DiamondCutController extends Controller
 
         while (
             DiamondCut::query()
-                ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
-                ->where('slug', $slug)
-                ->exists()
+            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
+            ->where('slug', $slug)
+            ->exists()
         ) {
             $slug = sprintf('%s-%d', $base, $counter++);
         }
@@ -109,4 +109,3 @@ class DiamondCutController extends Controller
         return $slug;
     }
 }
-

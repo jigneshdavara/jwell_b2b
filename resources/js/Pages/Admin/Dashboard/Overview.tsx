@@ -53,7 +53,7 @@ export default function AdminDashboardOverview() {
                             Monitor partner onboarding, production flows, and commercial levers at a glance.
                         </p>
                     </div>
-                    <Link
+                    {/* <Link
                         className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                         href="mailto:operations@elvee.in"
                     >
@@ -61,7 +61,7 @@ export default function AdminDashboardOverview() {
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </Link>
+                    </Link> */}
                 </div>
 
                     <div className="grid gap-4 md:grid-cols-4">
@@ -141,12 +141,12 @@ export default function AdminDashboardOverview() {
                                 <h2 className="text-lg font-semibold text-slate-900">Jobwork Watchlist</h2>
                                 <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500/70">Awaiting production allocation</p>
                             </div>
-                            <Link
+                            {/* <Link
                                 href={route('production.work-orders.index')}
                                 className="text-xs font-semibold text-sky-600 hover:text-sky-500"
                             >
                                 Delegate
-                            </Link>
+                            </Link> */}
                         </div>
                         <div className="mt-6 space-y-4">
                             {jobworkQueue.map((job) => (

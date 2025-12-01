@@ -13,14 +13,14 @@ return new class extends Migration {
             $table->string('slug')->unique();
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->timestamps();
+            $table->timestampsTz();
         });
 
         Schema::create('product_catalog_product', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_catalog_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
-            $table->timestamps();
+            $table->timestampsTz();
             $table->unique(['product_catalog_id', 'product_id'], 'product_catalog_product_unique');
         });
     }

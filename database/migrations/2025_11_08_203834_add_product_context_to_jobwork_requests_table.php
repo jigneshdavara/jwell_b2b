@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('product_id')->nullable()->after('user_id')->constrained()->nullOnDelete();
             $table->foreignId('product_variant_id')->nullable()->after('product_id')->constrained()->nullOnDelete();
             $table->string('submission_mode')->default('catalogue')->after('type');
-            $table->json('reference_media')->nullable()->after('reference_url');
+            $table->jsonb('reference_media')->nullable()->after('reference_url');
         });
     }
 

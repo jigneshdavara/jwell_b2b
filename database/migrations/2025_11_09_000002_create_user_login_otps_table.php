@@ -12,9 +12,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('customers')->cascadeOnDelete();
             $table->string('code');
-            $table->timestamp('expires_at');
-            $table->timestamp('consumed_at')->nullable();
-            $table->timestamps();
+            $table->timestampTz('expires_at');
+            $table->timestampTz('consumed_at')->nullable();
+            $table->timestampsTz();
         });
     }
 

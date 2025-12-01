@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('order_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->nullable()->constrained('customers')->nullOnDelete();
             $table->string('status');
-            $table->json('meta')->nullable();
-            $table->timestamps();
+            $table->jsonb('meta')->nullable();
+            $table->timestampsTz();
         });
     }
 

@@ -11,7 +11,6 @@ use App\Http\Controllers\Admin\RateController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserGroupController;
 use App\Http\Controllers\Admin\TeamUserController;
-use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\MaterialController;
 use App\Http\Controllers\Admin\MaterialTypeController;
@@ -21,8 +20,10 @@ use App\Http\Controllers\Admin\DiamondColorController;
 use App\Http\Controllers\Admin\DiamondClarityController;
 use App\Http\Controllers\Admin\DiamondCutController;
 use App\Http\Controllers\Admin\DiamondTypeController;
-use App\Http\Controllers\Admin\GoldPurityController;
-use App\Http\Controllers\Admin\SilverPurityController;
+use App\Http\Controllers\Admin\BrandController;
+use App\Http\Controllers\Admin\MetalController;
+use App\Http\Controllers\Admin\MetalToneController;
+use App\Http\Controllers\Admin\MetalPurityController;
 use App\Http\Controllers\Admin\CustomerTypeController;
 use App\Http\Controllers\Admin\CustomerGroupController;
 use App\Http\Controllers\Admin\OrderStatusController;
@@ -170,8 +171,6 @@ Route::prefix('admin')
         Route::delete('products/bulk', [ProductController::class, 'bulkDestroy'])->name('products.bulk-destroy');
         Route::post('products/{product}/copy', [ProductController::class, 'copy'])->name('products.copy');
         Route::resource('products', ProductController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
-        Route::delete('catalog/brands/bulk', [BrandController::class, 'bulkDestroy'])->name('catalog.brands.bulk-destroy');
-        Route::resource('catalog/brands', BrandController::class)->only(['index', 'store', 'update', 'destroy'])->names('catalog.brands');
         Route::delete('catalog/categories/bulk', [CategoryController::class, 'bulkDestroy'])->name('catalog.categories.bulk-destroy');
         Route::resource('catalog/categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy'])->names('catalog.categories');
         Route::delete('catalog/product-catalogs/bulk', [ProductCatalogController::class, 'bulkDestroy'])->name('catalog.product-catalogs.bulk-destroy');
@@ -200,15 +199,18 @@ Route::prefix('admin')
             Route::resource('types', DiamondTypeController::class)->only(['index', 'store', 'update', 'destroy'])->names('types');
         });
 
-        Route::prefix('gold')->name('gold.')->group(function () {
-            Route::delete('purities/bulk', [GoldPurityController::class, 'bulkDestroy'])->name('purities.bulk-destroy');
-            Route::resource('purities', GoldPurityController::class)->only(['index', 'store', 'update', 'destroy'])->names('purities');
-        });
+        Route::delete('metals/bulk', [MetalController::class, 'bulkDestroy'])->name('metals.bulk-destroy');
+        Route::resource('metals', MetalController::class)->only(['index', 'store', 'update', 'destroy'])->names('metals');
 
-        Route::prefix('silver')->name('silver.')->group(function () {
-            Route::delete('purities/bulk', [SilverPurityController::class, 'bulkDestroy'])->name('purities.bulk-destroy');
-            Route::resource('purities', SilverPurityController::class)->only(['index', 'store', 'update', 'destroy'])->names('purities');
-        });
+        Route::delete('brands/bulk', [BrandController::class, 'bulkDestroy'])->name('brands.bulk-destroy');
+        Route::resource('brands', BrandController::class)->only(['index', 'store', 'update', 'destroy'])->names('brands');
+
+        Route::delete('metal-tones/bulk', [MetalToneController::class, 'bulkDestroy'])->name('metal-tones.bulk-destroy');
+        Route::resource('metal-tones', MetalToneController::class)->only(['index', 'store', 'update', 'destroy'])->names('metal-tones');
+
+        Route::delete('metal-purities/bulk', [MetalPurityController::class, 'bulkDestroy'])->name('metal-purities.bulk-destroy');
+        Route::resource('metal-purities', MetalPurityController::class)->only(['index', 'store', 'update', 'destroy'])->names('metal-purities');
+
 
         Route::prefix('orders')->name('orders.')->group(function () {
             Route::delete('statuses/bulk', [OrderStatusController::class, 'bulkDestroy'])->name('statuses.bulk-destroy');
@@ -268,10 +270,10 @@ Route::prefix('admin')
         Route::prefix('settings')->name('settings.')->group(function () {
             Route::get('/general', [\App\Http\Controllers\Admin\Settings\GeneralSettingsController::class, 'index'])->name('general.index');
             Route::put('/general', [\App\Http\Controllers\Admin\Settings\GeneralSettingsController::class, 'update'])->name('general.update');
-            
+
             Route::resource('tax-groups', \App\Http\Controllers\Admin\Settings\TaxGroupController::class)->only(['index', 'store', 'update', 'destroy'])->names('tax-groups');
             Route::resource('taxes', \App\Http\Controllers\Admin\Settings\TaxController::class)->only(['index', 'store', 'update', 'destroy'])->names('taxes');
-            
+
             Route::get('/payments', [PaymentGatewayController::class, 'edit'])->name('payments.edit');
             Route::put('/payments', [PaymentGatewayController::class, 'update'])->name('payments.update');
         });
@@ -288,4 +290,4 @@ Route::prefix('production')
     });
 
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

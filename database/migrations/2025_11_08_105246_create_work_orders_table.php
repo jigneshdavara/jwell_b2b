@@ -16,12 +16,21 @@ return new class extends Migration
             $table->foreignId('order_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('jobwork_request_id')->nullable()->constrained()->nullOnDelete();
             $table->string('status')->default('draft');
-            $table->foreignId('assigned_to')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('due_date')->nullable();
+            // assigned_to will reference admin users table created later
+            // Foreign key constraint will be added in a later migration
+            $table->foreignId('assigned_to')->nullable();
+            $table->timestampTz('due_date')->nullable();
             $table->text('notes')->nullable();
-            $table->json('metadata')->nullable();
-            $table->timestamps();
+            $table->jsonb('metadata')->nullable();
+            $table->timestampsTz();
         });
+
+        // Add foreign key constraint if users table exists (for admin users)
+        if (Schema::hasTable('users')) {
+            Schema::table('work_orders', function (Blueprint $table) {
+                $table->foreign('assigned_to')->references('id')->on('users')->nullOnDelete();
+            });
+        }
     }
 
     /**

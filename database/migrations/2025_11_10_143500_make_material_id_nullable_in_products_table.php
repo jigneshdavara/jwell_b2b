@@ -28,7 +28,12 @@ return new class extends Migration
             }
         });
 
-        DB::statement('ALTER TABLE products MODIFY material_id BIGINT UNSIGNED NULL');
+        // PostgreSQL uses ALTER COLUMN instead of MODIFY
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE products ALTER COLUMN material_id DROP NOT NULL');
+        } else {
+            DB::statement('ALTER TABLE products MODIFY material_id BIGINT UNSIGNED NULL');
+        }
     }
 
     /**
@@ -44,7 +49,12 @@ return new class extends Migration
             return;
         }
 
-        DB::statement('ALTER TABLE products MODIFY material_id BIGINT UNSIGNED NOT NULL');
+        // PostgreSQL uses ALTER COLUMN instead of MODIFY
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE products ALTER COLUMN material_id SET NOT NULL');
+        } else {
+            DB::statement('ALTER TABLE products MODIFY material_id BIGINT UNSIGNED NOT NULL');
+        }
 
         Schema::table('products', function (Blueprint $table) {
             $table
@@ -55,4 +65,3 @@ return new class extends Migration
         });
     }
 };
-

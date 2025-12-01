@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkDestroyOrderStatusesRequest;
 use App\Http\Requests\Admin\StoreOrderStatusRequest;
-use App\Http\Requests\Admin\UpdateOrderStatusRequest;
+use App\Http\Requests\Admin\UpdateOrderStatusTypeRequest;
 use App\Models\OrderStatus;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -62,20 +62,20 @@ class OrderStatusController extends Controller
             ->with('success', 'Order status created successfully.');
     }
 
-    public function update(UpdateOrderStatusRequest $request, OrderStatus $orderStatus): RedirectResponse
+    public function update(UpdateOrderStatusTypeRequest $request, OrderStatus $status): RedirectResponse
     {
         $data = $request->validated();
 
-        DB::transaction(function () use ($data, $orderStatus): void {
+        DB::transaction(function () use ($data, $status): void {
             if (! empty($data['is_default'])) {
                 OrderStatus::query()
-                    ->whereKeyNot($orderStatus->id)
+                    ->whereKeyNot($status->id)
                     ->update(['is_default' => false]);
             }
 
-            $orderStatus->update([
+            $status->update([
                 'name' => $data['name'],
-                'slug' => $orderStatus->name === $data['name'] ? $orderStatus->slug : $this->uniqueSlug($data['name'], $orderStatus->id),
+                'slug' => $status->name === $data['name'] ? $status->slug : $this->uniqueSlug($data['name'], $status->id),
                 'color' => $data['color'] ?? '#64748b',
                 'is_default' => $data['is_default'] ?? false,
                 'is_active' => $data['is_active'] ?? true,
@@ -88,15 +88,15 @@ class OrderStatusController extends Controller
             ->with('success', 'Order status updated successfully.');
     }
 
-    public function destroy(OrderStatus $orderStatus): RedirectResponse
+    public function destroy(OrderStatus $status): RedirectResponse
     {
-        if ($orderStatus->is_default && OrderStatus::query()->whereKeyNot($orderStatus->id)->exists()) {
+        if ($status->is_default && OrderStatus::query()->whereKeyNot($status->id)->exists()) {
             return redirect()
                 ->back()
                 ->with('error', 'You must designate another default status before deleting this one.');
         }
 
-        $orderStatus->delete();
+        $status->delete();
 
         return redirect()
             ->back()
@@ -109,9 +109,9 @@ class OrderStatusController extends Controller
 
         if (
             OrderStatus::query()
-                ->whereIn('id', $ids)
-                ->where('is_default', true)
-                ->exists()
+            ->whereIn('id', $ids)
+            ->where('is_default', true)
+            ->exists()
         ) {
             return redirect()
                 ->back()
@@ -133,9 +133,9 @@ class OrderStatusController extends Controller
 
         while (
             OrderStatus::query()
-                ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
-                ->where('slug', $slug)
-                ->exists()
+            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
+            ->where('slug', $slug)
+            ->exists()
         ) {
             $slug = sprintf('%s-%d', $base, $counter++);
         }
@@ -143,4 +143,3 @@ class OrderStatusController extends Controller
         return $slug;
     }
 }
-
