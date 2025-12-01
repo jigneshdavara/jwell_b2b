@@ -11,14 +11,13 @@ class UpdateCustomerGroupRequest extends StoreCustomerGroupRequest
      */
     public function rules(): array
     {
-        $customerGroup = $this->route('customer_group');
+        $customerGroup = $this->route('group'); // Route parameter is 'group' from resource route
 
         return [
-            'name' => ['required', 'string', 'max:255', Rule::unique('customer_groups', 'name')->ignore($customerGroup?->id)],
+            'name' => ['required', 'string', 'max:255', Rule::unique('customer_groups', 'name')->ignore($customerGroup ? $customerGroup->id : null)],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
             'position' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }
-

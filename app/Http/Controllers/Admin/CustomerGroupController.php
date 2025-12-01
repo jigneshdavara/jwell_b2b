@@ -56,13 +56,13 @@ class CustomerGroupController extends Controller
             ->with('success', 'Customer group created successfully.');
     }
 
-    public function update(UpdateCustomerGroupRequest $request, CustomerGroup $customerGroup): RedirectResponse
+    public function update(UpdateCustomerGroupRequest $request, CustomerGroup $group): RedirectResponse
     {
         $data = $request->validated();
 
-        $customerGroup->update([
+        $group->update([
             'name' => $data['name'],
-            'slug' => $customerGroup->name === $data['name'] ? $customerGroup->slug : $this->uniqueSlug($data['name'], $customerGroup->id),
+            'slug' => $group->name === $data['name'] ? $group->slug : $this->uniqueSlug($data['name'], $group->id),
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
             'position' => $data['position'] ?? 0,
@@ -73,9 +73,9 @@ class CustomerGroupController extends Controller
             ->with('success', 'Customer group updated successfully.');
     }
 
-    public function destroy(CustomerGroup $customerGroup): RedirectResponse
+    public function destroy(CustomerGroup $group): RedirectResponse
     {
-        $customerGroup->delete();
+        $group->delete();
 
         return redirect()
             ->back()
@@ -99,9 +99,9 @@ class CustomerGroupController extends Controller
 
         while (
             CustomerGroup::query()
-                ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
-                ->where('slug', $slug)
-                ->exists()
+            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
+            ->where('slug', $slug)
+            ->exists()
         ) {
             $slug = sprintf('%s-%d', $base, $counter++);
         }
@@ -109,4 +109,3 @@ class CustomerGroupController extends Controller
         return $slug;
     }
 }
-

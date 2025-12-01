@@ -5,9 +5,9 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
 type PriceBreakdown = {
-    base?: number;
+    metal?: number;
+    diamond?: number;
     making?: number;
-    variant_adjustment?: number;
     subtotal?: number;
     discount?: number;
     total?: number;
@@ -250,8 +250,18 @@ export default function CartIndex() {
                                                                     <p className="mt-0.5 text-xs font-medium text-slate-500">{item.variant_label}</p>
                                                                 )}
                                                                 <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                                                                    <span>Base {formatter.format(item.price_breakdown.base ?? 0)}</span>
-                                                                    <span>·</span>
+                                                                    {item.price_breakdown.metal && item.price_breakdown.metal > 0 && (
+                                                                        <>
+                                                                            <span>Metal {formatter.format(item.price_breakdown.metal)}</span>
+                                                                            <span>·</span>
+                                                                        </>
+                                                                    )}
+                                                                    {item.price_breakdown.diamond && item.price_breakdown.diamond > 0 && (
+                                                                        <>
+                                                                            <span>Diamond {formatter.format(item.price_breakdown.diamond)}</span>
+                                                                            <span>·</span>
+                                                                        </>
+                                                                    )}
                                                                     <span>Making {formatter.format(item.price_breakdown.making ?? 0)}</span>
                                                                 </div>
                                                                 {(item.line_discount ?? 0) > 0 && (

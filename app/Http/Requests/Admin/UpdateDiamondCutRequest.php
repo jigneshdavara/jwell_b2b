@@ -11,14 +11,13 @@ class UpdateDiamondCutRequest extends StoreDiamondCutRequest
      */
     public function rules(): array
     {
-        $diamondCut = $this->route('diamond_cut');
+        $cut = $this->route('cut'); // Route parameter is 'cut' from resource route
 
         return [
-            'name' => ['required', 'string', 'max:255', Rule::unique('diamond_cuts', 'name')->ignore($diamondCut?->id)],
+            'name' => ['required', 'string', 'max:255', Rule::unique('diamond_cuts', 'name')->ignore($cut ? $cut->id : null)],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
             'position' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }
-

@@ -13,16 +13,16 @@ class UpdateCategoryRequest extends StoreCategoryRequest
     {
         $rules = parent::rules();
 
-        $category = $this->route('category');
+        $category = $this->route('category'); // Route parameter is 'category' from resource route
 
         $rules['slug'] = [
             'nullable',
             'string',
             'max:255',
-            Rule::unique('categories', 'slug')->ignore($category?->id),
+            Rule::unique('categories', 'slug')->ignore($category ? $category->id : null),
         ];
 
-        $rules['parent_id'][] = Rule::notIn([$category?->id]);
+        $rules['parent_id'][] = Rule::notIn([$category ? $category->id : null]);
 
         return $rules;
     }

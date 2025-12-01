@@ -11,14 +11,13 @@ class UpdateDiamondTypeRequest extends StoreDiamondTypeRequest
      */
     public function rules(): array
     {
-        $diamondType = $this->route('diamond_type');
+        $type = $this->route('type'); // Route parameter is 'type' from resource route
 
         return [
-            'name' => ['required', 'string', 'max:255', Rule::unique('diamond_types', 'name')->ignore($diamondType?->id)],
+            'name' => ['required', 'string', 'max:255', Rule::unique('diamond_types', 'name')->ignore($type ? $type->id : null)],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
             'position' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }
-

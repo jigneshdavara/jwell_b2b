@@ -24,8 +24,7 @@ class BrandController extends Controller
         }
 
         $brands = Brand::query()
-            ->withCount('products')
-            ->latest()
+            ->orderBy('name')
             ->paginate($perPage)
             ->withQueryString()
             ->through(function (Brand $brand) {
@@ -34,27 +33,43 @@ class BrandController extends Controller
                     'name' => $brand->name,
                     'slug' => $brand->slug,
                     'description' => $brand->description,
+                    'cover_image_path' => $brand->cover_image_path,
                     'cover_image_url' => $brand->cover_image_path ? Storage::url($brand->cover_image_path) : null,
                     'is_active' => $brand->is_active,
-                    'products_count' => $brand->products_count,
                 ];
             });
 
-        return Inertia::render('Admin/Catalog/Brands/Index', [
+        return Inertia::render('Admin/Brands/Index', [
             'brands' => $brands,
         ]);
     }
 
     public function store(StoreBrandRequest $request): RedirectResponse
     {
-        $coverImagePath = $request->file('cover_image')
-            ? $request->file('cover_image')->store('brand-covers', 'public')
-            : null;
+        $data = $request->validated();
+        $coverImagePath = null;
+
+        if ($request->hasFile('cover_image')) {
+            try {
+                $file = $request->file('cover_image');
+                $coverImagePath = $file->store('brands', 'public');
+
+                // Verify the file was actually stored
+                if (!Storage::disk('public')->exists($coverImagePath)) {
+                    throw new \Exception('File was not stored successfully');
+                }
+            } catch (\Exception $e) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['cover_image' => 'Failed to upload image: ' . $e->getMessage()])
+                    ->withInput();
+            }
+        }
 
         Brand::create([
-            'name' => $request->input('name'),
-            'slug' => $request->input('slug') ?: Str::slug($request->input('name')),
-            'description' => $request->input('description'),
+            'name' => $data['name'],
+            'slug' => $this->uniqueSlug($data['name']),
+            'description' => $data['description'] ?? null,
             'cover_image_path' => $coverImagePath,
             'is_active' => $request->boolean('is_active', true),
         ]);
@@ -66,30 +81,44 @@ class BrandController extends Controller
 
     public function update(UpdateBrandRequest $request, Brand $brand): RedirectResponse
     {
-        $payload = [
-            'name' => $request->input('name'),
-            'slug' => $request->input('slug') ?: Str::slug($request->input('name')),
-            'description' => $request->input('description'),
+        $data = $request->validated();
+
+        $updateData = [
+            'name' => $data['name'],
+            'slug' => $brand->name === $data['name'] ? $brand->slug : $this->uniqueSlug($data['name'], $brand->id),
+            'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
         ];
 
-        if ($request->boolean('remove_cover_image')) {
-            if ($brand->cover_image_path) {
-                Storage::disk('public')->delete($brand->cover_image_path);
-            }
-
-            $payload['cover_image_path'] = null;
-        }
-
+        // Only update image if a new file is uploaded
         if ($request->hasFile('cover_image')) {
-            if ($brand->cover_image_path) {
-                Storage::disk('public')->delete($brand->cover_image_path);
+            try {
+                $file = $request->file('cover_image');
+
+                // Delete old image if exists
+                if ($brand->cover_image_path && Storage::disk('public')->exists($brand->cover_image_path)) {
+                    Storage::disk('public')->delete($brand->cover_image_path);
+                }
+
+                $coverImagePath = $file->store('brands', 'public');
+
+                // Verify the file was actually stored
+                if (!Storage::disk('public')->exists($coverImagePath)) {
+                    throw new \Exception('File was not stored successfully');
+                }
+
+                $updateData['cover_image_path'] = $coverImagePath;
+            } catch (\Exception $e) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['cover_image' => 'Failed to upload image: ' . $e->getMessage()])
+                    ->withInput();
             }
-
-            $payload['cover_image_path'] = $request->file('cover_image')->store('brand-covers', 'public');
         }
+        // If no new image is uploaded, cover_image_path is not included in updateData
+        // This means the existing image path will be preserved
 
-        $brand->update($payload);
+        $brand->update($updateData);
 
         return redirect()
             ->back()
@@ -98,6 +127,11 @@ class BrandController extends Controller
 
     public function destroy(Brand $brand): RedirectResponse
     {
+        // Delete associated image if exists
+        if ($brand->cover_image_path) {
+            Storage::disk('public')->delete($brand->cover_image_path);
+        }
+
         $brand->delete();
 
         return redirect()
@@ -112,5 +146,23 @@ class BrandController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Selected brands deleted successfully.');
+    }
+
+    protected function uniqueSlug(string $name, ?int $ignoreId = null): string
+    {
+        $base = Str::slug($name);
+        $slug = $base;
+        $counter = 1;
+
+        while (
+            Brand::query()
+            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
+            ->where('slug', $slug)
+            ->exists()
+        ) {
+            $slug = sprintf('%s-%d', $base, $counter++);
+        }
+
+        return $slug;
     }
 }

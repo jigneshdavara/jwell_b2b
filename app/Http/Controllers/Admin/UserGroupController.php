@@ -59,13 +59,13 @@ class UserGroupController extends Controller
             ->with('success', "User group {$group->name} created successfully.");
     }
 
-    public function update(UpdateUserGroupRequest $request, UserGroup $userGroup): RedirectResponse
+    public function update(UpdateUserGroupRequest $request, UserGroup $group): RedirectResponse
     {
         $data = $request->validated();
 
-        $userGroup->update([
+        $group->update([
             'name' => $data['name'],
-            'slug' => $userGroup->name === $data['name'] ? $userGroup->slug : $this->uniqueSlug($data['name'], $userGroup->id),
+            'slug' => $group->name === $data['name'] ? $group->slug : $this->uniqueSlug($data['name'], $group->id),
             'description' => $data['description'] ?? null,
             'features' => $this->sanitizeFeatures($data['features'] ?? []),
             'is_active' => $request->boolean('is_active', true),
@@ -77,9 +77,9 @@ class UserGroupController extends Controller
             ->with('success', 'User group updated successfully.');
     }
 
-    public function destroy(UserGroup $userGroup): RedirectResponse
+    public function destroy(UserGroup $group): RedirectResponse
     {
-        $userGroup->delete();
+        $group->delete();
 
         return redirect()
             ->back()
@@ -119,7 +119,7 @@ class UserGroupController extends Controller
         $allowed = collect($this->availableFeatures())->pluck('value')->all();
 
         $cleaned = collect($features)
-            ->filter(fn ($feature) => is_string($feature) && in_array($feature, $allowed, true))
+            ->filter(fn($feature) => is_string($feature) && in_array($feature, $allowed, true))
             ->unique()
             ->values()
             ->all();
@@ -135,9 +135,9 @@ class UserGroupController extends Controller
 
         while (
             UserGroup::query()
-                ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
-                ->where('slug', $slug)
-                ->exists()
+            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
+            ->where('slug', $slug)
+            ->exists()
         ) {
             $slug = sprintf('%s-%d', $base, $counter++);
         }
@@ -145,4 +145,3 @@ class UserGroupController extends Controller
         return $slug;
     }
 }
-

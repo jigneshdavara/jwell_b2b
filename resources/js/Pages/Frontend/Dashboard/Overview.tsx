@@ -22,7 +22,7 @@ type DashboardProps = {
         sku: string;
         brand?: string | null;
         catalog?: string | null;
-        base_price: number;
+        price_total: number;
         thumbnail?: string | null;
     }>;
     featuredCatalogs: Array<{
@@ -211,9 +211,9 @@ export default function FrontendDashboardOverview() {
                                                 <p className="text-xs text-slate-400">SKU {product.sku}</p>
                                                 <div className="flex items-center justify-between">
                                                     <div>
-                                                        <p className="text-xs text-slate-400">Base price</p>
+                                                        <p className="text-xs text-slate-400">Price</p>
                                                         <p className="text-lg font-semibold text-slate-900">
-                                                            {currencyFormatter.format(product.base_price)}
+                                                            {currencyFormatter.format(product.price_total)}
                                                         </p>
                                                     </div>
                                                     <Link

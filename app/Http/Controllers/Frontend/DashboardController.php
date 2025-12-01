@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\ProductCatalog;
 use App\Models\Quotation;
 use App\Models\Brand;
+use App\Models\PriceRate;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -48,7 +49,7 @@ class DashboardController extends Controller
             ->latest()
             ->take(5)
             ->get()
-            ->map(fn (Order $order) => [
+            ->map(fn(Order $order) => [
                 'reference' => $order->reference,
                 'status' => $order->status,
                 'total' => (float) $order->total_amount,
@@ -62,7 +63,7 @@ class DashboardController extends Controller
             ->latest()
             ->take(5)
             ->get()
-            ->map(fn (Quotation $quotation) => [
+            ->map(fn(Quotation $quotation) => [
                 'id' => $quotation->id,
                 'status' => $quotation->jobwork_status,
                 'product' => optional($quotation->product)?->name,
@@ -75,7 +76,7 @@ class DashboardController extends Controller
             ->latest()
             ->take(5)
             ->get()
-            ->map(fn (Order $order) => [
+            ->map(fn(Order $order) => [
                 'reference' => $order->reference,
                 'total' => (float) $order->total_amount,
                 'placed_on' => optional($order->created_at)?->toDateTimeString(),
@@ -97,21 +98,63 @@ class DashboardController extends Controller
             ->with([
                 'brand',
                 'catalogs',
-                'media' => fn ($media) => $media->orderBy('position'),
+                'media' => fn($media) => $media->orderBy('position'),
+                'variants.metals.metal',
+                'variants.metals.metalPurity',
+                'variants.metals.metalTone',
             ])
             ->where('is_active', true)
             ->latest()
             ->take(6)
             ->get()
-            ->map(fn (Product $product) => [
-                'id' => $product->id,
-                'name' => $product->name,
-                'sku' => $product->sku,
-                'brand' => optional($product->brand)?->name,
-                'catalog' => optional($product->catalogs->first())?->name,
-                'base_price' => (float) $product->base_price,
-                'thumbnail' => optional($product->media->sortBy('position')->first())?->url,
-            ]);
+            ->map(function (Product $product) {
+                // Calculate priceTotal for the first variant (or default variant if available)
+                $variant = $product->variants->sortBy('id')->first();
+                $priceTotal = 0;
+
+                if ($variant) {
+                    // Calculate metal cost
+                    $metalCost = 0;
+                    foreach ($variant->metals as $variantMetal) {
+                        $metal = $variantMetal->metal;
+                        $purity = $variantMetal->metalPurity;
+                        $weight = $variantMetal->metal_weight ?? $variantMetal->weight_grams ?? null;
+
+                        if ($metal && $purity && $weight) {
+                            $metalName = strtolower(trim($metal->name ?? ''));
+                            $purityName = trim($purity->name ?? '');
+
+                            $priceRate = PriceRate::where('metal', $metalName)
+                                ->where('purity', $purityName)
+                                ->orderBy('effective_at', 'desc')
+                                ->first();
+
+                            if ($priceRate && $priceRate->price_per_gram) {
+                                $metalCost += (float) $weight * (float) $priceRate->price_per_gram;
+                            }
+                        }
+                    }
+                    $metalCost = round($metalCost, 2);
+
+                    // Calculate priceTotal: Metal + Diamond + Making Charge
+                    $diamondCost = 0; // Diamond cost calculation can be added later if needed
+                    $makingCharge = (float) ($product->making_charge ?? 0);
+                    $priceTotal = $metalCost + $diamondCost + $makingCharge;
+                } else {
+                    // If no variant, fallback to making charge only
+                    $priceTotal = (float) ($product->making_charge ?? 0);
+                }
+
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'sku' => $product->sku,
+                    'brand' => optional($product->brand)?->name,
+                    'catalog' => optional($product->catalogs->first())?->name,
+                    'price_total' => $priceTotal,
+                    'thumbnail' => optional($product->media->sortBy('position')->first())?->url,
+                ];
+            });
 
         $featuredCatalogs = ProductCatalog::query()
             ->withCount('products')
@@ -119,7 +162,7 @@ class DashboardController extends Controller
             ->latest('updated_at')
             ->take(6)
             ->get()
-            ->map(fn (ProductCatalog $catalog) => [
+            ->map(fn(ProductCatalog $catalog) => [
                 'id' => $catalog->id,
                 'name' => $catalog->name,
                 'slug' => $catalog->slug,
@@ -133,7 +176,7 @@ class DashboardController extends Controller
             ->orderByDesc('products_count')
             ->take(8)
             ->get()
-            ->map(fn (Category $category) => [
+            ->map(fn(Category $category) => [
                 'id' => $category->id,
                 'name' => $category->name,
                 'slug' => $category->slug,
@@ -147,7 +190,7 @@ class DashboardController extends Controller
             ->orderByDesc('products_count')
             ->take(6)
             ->get()
-            ->map(fn (Brand $brand) => [
+            ->map(fn(Brand $brand) => [
                 'id' => $brand->id,
                 'name' => $brand->name,
                 'products_count' => $brand->products_count,

@@ -56,13 +56,13 @@ class DiamondClarityController extends Controller
             ->with('success', 'Diamond clarity grade created successfully.');
     }
 
-    public function update(UpdateDiamondClarityRequest $request, DiamondClarity $diamondClarity): RedirectResponse
+    public function update(UpdateDiamondClarityRequest $request, DiamondClarity $clarity): RedirectResponse
     {
         $data = $request->validated();
 
-        $diamondClarity->update([
+        $clarity->update([
             'name' => $data['name'],
-            'slug' => $diamondClarity->name === $data['name'] ? $diamondClarity->slug : $this->uniqueSlug($data['name'], $diamondClarity->id),
+            'slug' => $clarity->name === $data['name'] ? $clarity->slug : $this->uniqueSlug($data['name'], $clarity->id),
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
             'position' => $data['position'] ?? 0,
@@ -73,9 +73,9 @@ class DiamondClarityController extends Controller
             ->with('success', 'Diamond clarity grade updated successfully.');
     }
 
-    public function destroy(DiamondClarity $diamondClarity): RedirectResponse
+    public function destroy(DiamondClarity $clarity): RedirectResponse
     {
-        $diamondClarity->delete();
+        $clarity->delete();
 
         return redirect()
             ->back()
@@ -99,9 +99,9 @@ class DiamondClarityController extends Controller
 
         while (
             DiamondClarity::query()
-                ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
-                ->where('slug', $slug)
-                ->exists()
+            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
+            ->where('slug', $slug)
+            ->exists()
         ) {
             $slug = sprintf('%s-%d', $base, $counter++);
         }
@@ -109,4 +109,3 @@ class DiamondClarityController extends Controller
         return $slug;
     }
 }
-

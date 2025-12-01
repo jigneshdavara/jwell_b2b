@@ -11,14 +11,13 @@ class UpdateDiamondShapeRequest extends StoreDiamondShapeRequest
      */
     public function rules(): array
     {
-        $diamondShape = $this->route('diamond_shape');
+        $shape = $this->route('shape'); // Route parameter is 'shape' from resource route
 
         return [
-            'name' => ['required', 'string', 'max:255', Rule::unique('diamond_shapes', 'name')->ignore($diamondShape?->id)],
+            'name' => ['required', 'string', 'max:255', Rule::unique('diamond_shapes', 'name')->ignore($shape ? $shape->id : null)],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
             'position' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }
-

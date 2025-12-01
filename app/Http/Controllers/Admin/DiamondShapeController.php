@@ -60,13 +60,13 @@ class DiamondShapeController extends Controller
             ->with('success', 'Diamond shape created successfully.');
     }
 
-    public function update(UpdateDiamondShapeRequest $request, DiamondShape $diamondShape): RedirectResponse
+    public function update(UpdateDiamondShapeRequest $request, DiamondShape $shape): RedirectResponse
     {
         $data = $request->validated();
 
-        $diamondShape->update([
+        $shape->update([
             'name' => $data['name'],
-            'slug' => $diamondShape->name === $data['name'] ? $diamondShape->slug : $this->uniqueSlug($data['name'], $diamondShape->id),
+            'slug' => $shape->name === $data['name'] ? $shape->slug : $this->uniqueSlug($data['name'], $shape->id),
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
             'position' => $data['position'] ?? 0,
@@ -77,9 +77,9 @@ class DiamondShapeController extends Controller
             ->with('success', 'Diamond shape updated successfully.');
     }
 
-    public function destroy(DiamondShape $diamondShape): RedirectResponse
+    public function destroy(DiamondShape $shape): RedirectResponse
     {
-        $diamondShape->delete();
+        $shape->delete();
 
         return redirect()
             ->back()
@@ -103,9 +103,9 @@ class DiamondShapeController extends Controller
 
         while (
             DiamondShape::query()
-                ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
-                ->where('slug', $slug)
-                ->exists()
+            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
+            ->where('slug', $slug)
+            ->exists()
         ) {
             $slug = sprintf('%s-%d', $base, $counter++);
         }
@@ -113,4 +113,3 @@ class DiamondShapeController extends Controller
         return $slug;
     }
 }
-

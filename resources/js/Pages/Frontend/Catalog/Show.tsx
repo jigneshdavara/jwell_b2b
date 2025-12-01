@@ -2,11 +2,11 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import type { PageProps as AppPageProps } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { FormEvent, type MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import CustomizationSection from '@/Components/Customization/CustomizationSection';
+import ProductDetailsPanel from '@/Components/Customization/ProductDetailsPanel';
 
 type VariantMetadata = {
     auto_label?: string;
-    gold_purity_id?: number | null;
-    silver_purity_id?: number | null;
     diamond_option_key?: string | null;
     size_cm?: number | string | null;
     [key: string]: unknown;
@@ -18,6 +18,31 @@ type ProductVariant = {
     price_adjustment: number;
     is_default: boolean;
     metadata?: VariantMetadata | null;
+    metals?: Array<{
+        id: number;
+        metal_id: number;
+        metal_purity_id: number | null;
+        metal_tone_id: number | null;
+        weight_grams: number | null;
+        metal: { id: number; name: string } | null;
+        metal_purity: { id: number; name: string } | null;
+        metal_tone: { id: number; name: string } | null;
+    }>;
+    diamonds?: Array<{
+        id: number;
+        diamond_type_id: number | null;
+        diamond_clarity_id: number | null;
+        diamond_color_id: number | null;
+        diamond_shape_id: number | null;
+        diamond_cut_id: number | null;
+        diamonds_count: number | null;
+        total_carat: number | null;
+        diamond_type: { id: number; name: string } | null;
+        diamond_clarity: { id: number; name: string } | null;
+        diamond_color: { id: number; name: string } | null;
+        diamond_shape: { id: number; name: string } | null;
+        diamond_cut: { id: number; name: string } | null;
+    }>;
 };
 
 type Product = {
@@ -38,32 +63,57 @@ type Product = {
     uses_gold: boolean;
     uses_silver: boolean;
     uses_diamond: boolean;
+    diamond_mixing_mode?: 'shared' | 'as_variant';
+    mixed_metal_tones_per_purity?: boolean;
+    mixed_metal_purities_per_tone?: boolean;
+    metal_mix_mode?: Record<number, 'normal' | 'mix_tones' | 'mix_purities'>;
     media: Array<{ url: string; alt: string }>;
     variants: ProductVariant[];
 };
 
-type OptionItem = {
-    id: number;
-    name: string;
-};
 
-type DiamondOption = {
-    key: string;
-    type_id?: number | null;
-    shape_id?: number | null;
-    color_id?: number | null;
-    clarity_id?: number | null;
-    cut_id?: number | null;
-    weight?: number | null;
+// Configuration option types - one option per variant
+interface ConfigMetal {
+    label: string;        // e.g. "18K Yellow Gold 3.50g"
+    metalId: number;
+    metalPurityId: number | null;
+    metalToneId: number | null;
+    weightGrams?: string | null;
+}
+
+interface ConfigDiamond {
+    label: string;        // e.g. "LG Oval F VVS1 EX 1.00ct (2)"
+    diamondTypeId: number;
+    diamondShapeId: number;
+    diamondColorId: number;
+    diamondClarityId: number;
+    diamondCutId: number;
+    stoneCount: number;
+    totalCarat: string;
+}
+
+interface ConfigurationOption {
+    variant_id: number;
     label: string;
-};
+    metal_label: string;
+    diamond_label: string;
+    metals: ConfigMetal[];
+    diamonds: ConfigDiamond[];
+    price_total: number;
+    price_breakup: {
+        base: number;
+        metal: number;
+        diamond: number;
+        making: number;
+        adjustment: number;
+    };
+    sku: string;
+}
 
 type CatalogShowPageProps = AppPageProps<{
     mode: 'purchase' | 'jobwork';
     product: Product;
-    goldPurities: OptionItem[];
-    silverPurities: OptionItem[];
-    diamondOptions: DiamondOption[];
+    configurationOptions: ConfigurationOption[];
 }>;
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
@@ -72,51 +122,39 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
     maximumFractionDigits: 0,
 });
 
-const fallbackMeta = (metadata?: VariantMetadata | null) => ({
-    gold_purity_id: typeof metadata?.gold_purity_id === 'number' ? metadata.gold_purity_id : null,
-    silver_purity_id: typeof metadata?.silver_purity_id === 'number' ? metadata.silver_purity_id : null,
-    diamond_option_key: typeof metadata?.diamond_option_key === 'string' ? metadata.diamond_option_key : null,
-    size_cm:
-        metadata?.size_cm !== undefined && metadata?.size_cm !== null
-            ? typeof metadata.size_cm === 'number'
-                ? metadata.size_cm.toString()
-                : String(metadata.size_cm)
-            : null,
-    auto_label: typeof metadata?.auto_label === 'string' ? metadata.auto_label : null,
-});
 
 export default function CatalogShow() {
     const page = usePage<CatalogShowPageProps & { wishlist?: { product_ids?: number[] } }>();
-    const { mode, product, goldPurities, silverPurities, diamondOptions } = page.props;
+    const { 
+        mode, 
+        product, 
+        configurationOptions
+    } = page.props;
     const wishlistProductIds = page.props.wishlist?.product_ids ?? [];
     const wishlistLookup = useMemo(() => new Set(wishlistProductIds), [wishlistProductIds]);
 
-    const defaultVariant = useMemo(
-        () => product.variants.find((variant) => variant.is_default) ?? product.variants[0] ?? null,
-        [product.variants],
+    // State for configuration selection
+    // selectedVariantId is the key that drives all updates:
+    // - Price/estimated total (via selectedConfig.price_total and price_breakup)
+    // - Metals display (via selectedConfig.metals array)
+    // - Diamonds display (via selectedConfig.diamonds array)
+    // - Request quotation payload (via data.product_variant_id)
+    const [selectedVariantId, setSelectedVariantId] = useState<number | null>(
+        configurationOptions[0]?.variant_id ?? null
     );
 
-    const defaultMeta = fallbackMeta(defaultVariant?.metadata);
+    // Get selected configuration from the full options list
+    // This selectedConfig object contains:
+    // - price_total: used for estimated total calculation
+    // - price_breakup: used for detailed price breakdown display
+    // - metals: array of metal details (with weights) shown in "Metals in this variant"
+    // - diamonds: array of diamond details shown in "Diamonds in this variant"
+    // - variant_id: sent to backend in Request quotation API
+    const selectedConfig = useMemo(
+        () => configurationOptions.find((c) => c.variant_id === selectedVariantId) ?? null,
+        [selectedVariantId, configurationOptions]
+    );
 
-    const sizeOptions = useMemo(() => {
-        const sizes = product.variants
-            .map((variant) => fallbackMeta(variant.metadata).size_cm)
-            .filter((value): value is string => value !== null && value !== undefined && value !== '');
-        return Array.from(new Set(sizes));
-    }, [product.variants]);
-
-    const [selectedGoldPurity, setSelectedGoldPurity] = useState<number | ''>(
-        product.uses_gold ? defaultMeta.gold_purity_id ?? '' : '',
-    );
-    const [selectedSilverPurity, setSelectedSilverPurity] = useState<number | ''>(
-        product.uses_silver ? defaultMeta.silver_purity_id ?? '' : '',
-    );
-    const [selectedDiamondOption, setSelectedDiamondOption] = useState<string>(
-        product.uses_diamond ? defaultMeta.diamond_option_key ?? '' : '',
-    );
-    const [selectedSize, setSelectedSize] = useState<string>(
-        sizeOptions.length > 0 ? defaultMeta.size_cm ?? sizeOptions[0] : '',
-    );
     const [selectedMode] = useState<'purchase' | 'jobwork'>('purchase');
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -145,24 +183,26 @@ export default function CatalogShow() {
         quantity: number;
         notes: string;
         selections: {
-            gold_purity_id: number | null | '';
-            silver_purity_id: number | null | '';
-            diamond_option_key: string | null;
+            metal_id: number | null | '';
+            metal_purity_id: number | null | '';
+            metal_tone_id: number | null | '';
+            diamond_option_keys: string[];
             size_cm: string | null;
         };
     };
 
     const { data, setData, post, processing, errors } = useForm<QuotationFormData>({
         product_id: product.id,
-        product_variant_id: defaultVariant?.id ?? null,
+        product_variant_id: selectedVariantId ?? null,
         mode: selectedMode,
         quantity: 1,
         notes: '',
         selections: {
-            gold_purity_id: selectedGoldPurity === '' ? null : selectedGoldPurity,
-            silver_purity_id: selectedSilverPurity === '' ? null : selectedSilverPurity,
-            diamond_option_key: selectedDiamondOption || null,
-            size_cm: selectedSize || null,
+            metal_id: null,
+            metal_purity_id: null,
+            metal_tone_id: null,
+            diamond_option_keys: [],
+            size_cm: null,
         },
     });
 
@@ -170,59 +210,17 @@ export default function CatalogShow() {
         setData('mode', selectedMode);
     }, [selectedMode, setData]);
 
-    const matchingVariant = useMemo(() => {
-        return product.variants.find((variant) => {
-            const meta = fallbackMeta(variant.metadata);
+    const isJobworkMode = mode === 'jobwork';
+    const jobworkNotAllowed = isJobworkMode && !product.is_jobwork_allowed;
 
-            if (product.uses_gold) {
-                const variantGold = meta.gold_purity_id ?? null;
-                const selectedGold = selectedGoldPurity === '' ? null : selectedGoldPurity;
-                if (variantGold !== selectedGold) {
-                    return false;
-                }
-            }
-
-            if (product.uses_silver) {
-                const variantSilver = meta.silver_purity_id ?? null;
-                const selectedSilver = selectedSilverPurity === '' ? null : selectedSilverPurity;
-                if (variantSilver !== selectedSilver) {
-                    return false;
-                }
-            }
-
-            if (product.uses_diamond) {
-                const variantDiamond = meta.diamond_option_key ?? null;
-                const selectedDiamond = selectedDiamondOption || null;
-                if (variantDiamond !== selectedDiamond) {
-                    return false;
-                }
-            }
-
-            if (sizeOptions.length > 0) {
-                const variantSize = meta.size_cm ?? null;
-                const targetSize = selectedSize || null;
-                if (variantSize !== targetSize) {
-                    return false;
-                }
-            }
-
-            return true;
-        }) ?? null;
-    }, [
-        product.variants,
-        product.uses_gold,
-        product.uses_silver,
-        product.uses_diamond,
-        selectedGoldPurity,
-        selectedSilverPurity,
-        selectedDiamondOption,
-        selectedSize,
-        sizeOptions.length,
-    ]);
-
+    // Update form data when variant changes
+    // This ensures the Request quotation API receives the correct variant_id
+    // The form's product_variant_id is bound to selectedVariantId, so when user
+    // selects a metal+diamond combination, the matching variant_id is automatically
+    // set in the form payload
     useEffect(() => {
-        setData('product_variant_id', matchingVariant?.id ?? null);
-    }, [matchingVariant, setData]);
+        setData('product_variant_id', selectedVariantId ?? null);
+    }, [selectedVariantId, setData]);
 
     const [wishlistPending, setWishlistPending] = useState(false);
     const [isWishlisted, setIsWishlisted] = useState(wishlistLookup.has(product.id));
@@ -242,32 +240,24 @@ export default function CatalogShow() {
     }, [activeImageIndex, mediaCount]);
 
 
-    useEffect(() => {
-        setData('selections', {
-            gold_purity_id: selectedGoldPurity === '' ? null : selectedGoldPurity,
-            silver_purity_id: selectedSilverPurity === '' ? null : selectedSilverPurity,
-            diamond_option_key: selectedDiamondOption || null,
-            size_cm: selectedSize || null,
-        });
-    }, [selectedGoldPurity, selectedSilverPurity, selectedDiamondOption, selectedSize, setData]);
 
-    const isJobworkMode = selectedMode === 'jobwork';
-    const jobworkNotAllowed = isJobworkMode && !product.is_jobwork_allowed;
-
+    // Calculate estimated total based on selectedVariant (via selectedConfig)
+    // Price updates automatically when selectedVariantId changes because selectedConfig is a useMemo
+    // that depends on selectedVariantId
     const estimatedTotal = useMemo(() => {
+        if (!selectedConfig) {
+            return 0;
+        }
+        
         if (isJobworkMode) {
             // For jobwork, only charge the making charge
-            const making = product.making_charge ?? 0;
-            const adjustment = matchingVariant?.price_adjustment ?? 0;
-            return making + adjustment;
+            return selectedConfig.price_breakup.making + selectedConfig.price_breakup.adjustment;
         } else {
-            // For purchase, charge base + making
-            const base = product.base_price ?? 0;
-            const making = product.making_charge ?? 0;
-            const adjustment = matchingVariant?.price_adjustment ?? 0;
-            return base + making + adjustment;
+            // For purchase, use price_total from configuration
+            return selectedConfig.price_total;
         }
-    }, [product.base_price, product.making_charge, matchingVariant, isJobworkMode]);
+    }, [selectedConfig, isJobworkMode]);
+
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -419,7 +409,7 @@ export default function CatalogShow() {
         }
     }, [activeImageIndex, lightboxOpen, resetLightboxZoom]);
 
-    const invalidCombination = product.variants.length > 0 && !matchingVariant;
+    const invalidCombination = configurationOptions.length > 0 && !selectedConfig;
 
     return (
         <AuthenticatedLayout>
@@ -430,171 +420,60 @@ export default function CatalogShow() {
                     <div className="space-y-6">
                         <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
                             <div className="mb-4">
-                                <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1">
-                                        <p className="text-xs font-medium text-slate-500">SKU {product.sku}</p>
-                                        <h1 className="mt-2 text-2xl font-semibold text-slate-900">{product.name}</h1>
-                                        <p className="mt-2 text-sm text-slate-500">By {product.brand ?? 'Elvee Atelier'}</p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={toggleWishlist}
-                                        disabled={wishlistPending}
-                                        className={`inline-flex h-12 w-12 items-center justify-center rounded-full border transition ${
-                                            isWishlisted
-                                                ? 'border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-300 hover:text-rose-700'
-                                                : 'border-slate-200 text-slate-500 hover:border-rose-200 hover:text-rose-600'
-                                        }`}
-                                        aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill={isWishlisted ? 'currentColor' : 'none'}
-                                            stroke="currentColor"
-                                            strokeWidth={1.5}
-                                            className="h-5 w-5"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 5.053 7.5 10.5 9 10.5s9-5.447 9-10.5z"
-                                            />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="flex flex-col gap-4 md:flex-row">
-                                {hasMedia && product.media.length > 1 && (
-                                    <div className="order-last flex gap-2 overflow-x-auto md:order-first md:h-[28rem] md:w-24 md:flex-col md:overflow-y-auto">
-                                        {product.media.map((media, index) => (
-                                            <button
-                                                key={`${media.url}-${index}`}
-                                                type="button"
-                                                onClick={() => setActiveImageIndex(index)}
-                                                className={`relative flex h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl border transition md:h-20 md:w-20 ${
-                                                    activeImageIndex === index
-                                                        ? 'border-feather-gold ring-2 ring-feather-gold/20'
-                                                        : 'border-slate-200 hover:border-slate-300'
-                                                }`}
-                                                aria-label={`View image ${index + 1}`}
-                                            >
-                                                <img
-                                                    src={media.url}
-                                                    alt={media.alt}
-                                                    className="h-full w-full object-cover"
-                                                    draggable={false}
-                                                />
-                                                {activeImageIndex === index && (
-                                                    <span className="absolute inset-0 border-2 border-feather-gold/80" aria-hidden />
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
+                                <h1 className="text-2xl font-bold text-slate-900">{product.name}</h1>
+                                {product.brand && (
+                                    <p className="mt-1 text-sm text-slate-500">by {product.brand}</p>
                                 )}
-                                <div className="relative flex-1">
-                                    <div
-                                        ref={galleryRef}
-                                        className="group relative aspect-square overflow-hidden rounded-3xl bg-slate-100"
-                                        onClick={openLightbox}
-                                        role="button"
-                                        tabIndex={0}
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter' || event.key === ' ') {
-                                                event.preventDefault();
-                                                openLightbox();
-                                            }
-                                        }}
-                                        aria-label="Open product gallery"
-                                    >
-                                        {activeMedia ? (
-                                            <img
-                                                src={activeMedia.url}
-                                                alt={activeMedia.alt}
-                                                className="h-full w-full object-cover"
-                                                draggable={false}
-                                            />
-                                        ) : (
-                                            <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">
-                                                Image coming soon
-                                            </div>
-                                        )}
-                                        <span className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center text-xs font-medium text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                                            Click to view full screen
-                                        </span>
+                            </div>
+
+                            {hasMedia && (
+                                <div className="relative mb-6">
+                                    <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-slate-100">
+                                        <img
+                                            src={activeMedia?.url}
+                                            alt={activeMedia?.alt ?? product.name}
+                                            className="h-full w-full object-cover"
+                                            onClick={openLightbox}
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.src = '/placeholder-image.png';
+                                            }}
+                                        />
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={openLightbox}
-                                        className="absolute right-4 bottom-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-slate-900"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth={1.5}
-                                            className="h-4 w-4"
-                                        >
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V6a2 2 0 012-2h2m6 0h2a2 2 0 012 2v2m0 6v2a2 2 0 01-2 2h-2m-6 0H6a2 2 0 01-2-2v-2" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 9h6v6H9z" />
-                                        </svg>
-                                        View fullscreen
-                                    </button>
+                                    {mediaCount > 1 && (
+                                        <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+                                            {product.media.map((media, index) => (
+                                                <button
+                                                    key={index}
+                                                    type="button"
+                                                    onClick={() => setActiveImageIndex(index)}
+                                                    className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border-2 transition ${
+                                                        index === activeImageIndex
+                                                            ? 'border-feather-gold'
+                                                            : 'border-transparent hover:border-slate-300'
+                                                    }`}
+                                                >
+                                                    <img
+                                                        src={media.url}
+                                                        alt={media.alt ?? product.name}
+                                                        className="h-full w-full object-cover"
+                                                        onError={(e) => {
+                                                            const target = e.target as HTMLImageElement;
+                                                            target.src = '/placeholder-image.png';
+                                                        }}
+                                                    />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        </div>
-                        <div className="rounded-3xl bg-white p-8 shadow-xl ring-1 ring-slate-200/80">
-                            <div className="mb-6">
-                                <div className="text-right">
-                                    <p className="text-xs font-medium text-slate-500">Base estimate</p>
-                                    <p className="text-2xl font-semibold text-slate-900">
-                                        {currencyFormatter.format(product.base_price ?? 0)}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                        Making {currencyFormatter.format(product.making_charge ?? 0)}
-                                    </p>
-                                </div>
-                            </div>
-                            <p className="text-sm leading-7 text-slate-600 whitespace-pre-line">
-                                {product.description?.trim() ? product.description : 'Detailed description coming soon.'}
-                            </p>
-                            <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
-                                    <dt className="text-slate-500">Material</dt>
-                                    <dd className="mt-1 font-semibold text-slate-900">{product.material ?? 'Custom blend'}</dd>
-                                </div>
-                                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
-                                    <dt className="text-slate-500">Purity</dt>
-                                    <dd className="mt-1 font-semibold text-slate-900">{product.purity ?? 'On request'}</dd>
-                                </div>
-                                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
-                                    <dt className="text-slate-500">Total weight</dt>
-                                    <dd className="mt-1 font-semibold text-slate-900">{formatWeight(product.total_weight)}</dd>
-                                </div>
-                            </dl>
-                            <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
-                                    <dt className="text-slate-500">Gold weight</dt>
-                                    <dd className="mt-1 font-semibold text-slate-900">{formatWeight(product.gold_weight)}</dd>
-                                </div>
-                                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
-                                    <dt className="text-slate-500">Silver weight</dt>
-                                    <dd className="mt-1 font-semibold text-slate-900">{formatWeight(product.silver_weight)}</dd>
-                                </div>
-                                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
-                                    <dt className="text-slate-500">Other materials</dt>
-                                    <dd className="mt-1 font-semibold text-slate-900">
-                                        {formatWeight(product.other_material_weight)}
-                                    </dd>
-                                </div>
-                                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
-                                    <dt className="text-slate-500">Jobwork ready</dt>
-                                    <dd className="mt-1 font-semibold text-slate-900">
-                                        {product.is_jobwork_allowed ? 'Yes' : 'On request'}
-                                    </dd>
-                                </div>
-                            </dl>
+                            )}
+
+                            {/* Product Details Panel - Below images */}
+                            <ProductDetailsPanel
+                                selectedConfig={selectedConfig}
+                                productDescription={product.description}
+                            />
                         </div>
                     </div>
 
@@ -612,130 +491,34 @@ export default function CatalogShow() {
                                 </p>
                             </div>
 
-                            {product.uses_gold && (
-                                <div className="space-y-2">
-                                    <p className="text-xs font-semibold text-slate-600">Gold purity</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {goldPurities.map((purity) => (
-                                            <button
-                                                key={purity.id}
-                                                type="button"
-                                                onClick={() => setSelectedGoldPurity(purity.id)}
-                                                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                                                    selectedGoldPurity === purity.id
-                                                        ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
-                                                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                                                }`}
-                                            >
-                                                {purity.name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+                            {/* Customization Section */}
+                            {configurationOptions.length > 0 && (
+                                <CustomizationSection
+                                    configurationOptions={configurationOptions}
+                                    selectedVariantId={selectedVariantId}
+                                    onVariantChange={setSelectedVariantId}
+                                />
                             )}
 
-                            {product.uses_silver && (
-                                <div className="space-y-2">
-                                    <p className="text-xs font-semibold text-slate-600">Silver purity</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {silverPurities.map((purity) => (
-                                            <button
-                                                key={purity.id}
-                                                type="button"
-                                                onClick={() => setSelectedSilverPurity(purity.id)}
-                                                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                                                    selectedSilverPurity === purity.id
-                                                        ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
-                                                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                                                }`}
-                                            >
-                                                {purity.name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {product.uses_diamond && (
-                                <div className="space-y-2">
-                                    <p className="text-xs font-semibold text-slate-600">Diamond mix</p>
-                                    <div className="grid gap-2">
-                                        {diamondOptions.map((option) => (
-                                            <label
-                                                key={option.key}
-                                                className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 text-sm transition ${
-                                                    selectedDiamondOption === option.key
-                                                        ? 'border-feather-gold bg-feather-gold/10 text-slate-900'
-                                                        : 'border-slate-200 bg-white text-slate-600 hover:border-feather-gold'
-                                                }`}
-                                            >
-                                                <span>{option.label}</span>
-                                                <input
-                                                    type="radio"
-                                                    name="diamond_option_key"
-                                                    value={option.key}
-                                                    checked={selectedDiamondOption === option.key}
-                                                    onChange={() => setSelectedDiamondOption(option.key)}
-                                                    className="h-4 w-4 text-elvee-blue focus:ring-feather-gold"
-                                                />
-                                            </label>
-                                        ))}
-                                        {diamondOptions.length === 0 && (
-                                            <p className="text-xs text-slate-400">No predefined diamond mixes for this design.</p>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {sizeOptions.length > 0 && (
-                                <div className="space-y-2">
-                                    <p className="text-xs font-semibold text-slate-600">Size (cm)</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {sizeOptions.map((size) => (
-                                            <button
-                                                key={size}
-                                                type="button"
-                                                onClick={() => setSelectedSize(size)}
-                                                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                                                    selectedSize === size
-                                                        ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
-                                                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                                                }`}
-                                            >
-                                                {size}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {invalidCombination && (
-                                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
-                                    No variant is available for the selected combination. Adjust purity, mix, or size to continue.
-                                </div>
-                            )}
-
-                            <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                <span>Quantity</span>
+                            <label className="block space-y-1">
+                                <span className="text-xs font-semibold text-slate-600">Quantity</span>
                                 <input
                                     type="number"
-                                    min={1}
+                                    min="1"
                                     value={data.quantity}
-                                    onChange={(event) => {
-                                        const next = Number(event.target.value);
-                                        setData('quantity', Number.isFinite(next) && next > 0 ? Math.floor(next) : 1);
-                                    }}
-                                    className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    onChange={(e) => setData('quantity', parseInt(e.target.value, 10) || 1)}
+                                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 />
                                 {errors.quantity && <span className="text-xs text-rose-500">{errors.quantity}</span>}
                             </label>
 
-                            <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                <span>Notes for merchandising team</span>
+                            <label className="block space-y-1">
+                                <span className="text-xs font-semibold text-slate-600">Notes (optional)</span>
                                 <textarea
+                                    rows={4}
                                     value={data.notes}
-                                    onChange={(event) => setData('notes', event.target.value)}
-                                    className="min-h-[120px] rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    onChange={(e) => setData('notes', e.target.value)}
+                                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                     placeholder="List required scope: hallmarking, hallmark packaging, diamond certification, delivery deadlines…"
                                 />
                                 {errors.notes && <span className="text-xs text-rose-500">{errors.notes}</span>}
@@ -743,33 +526,61 @@ export default function CatalogShow() {
 
                             <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
                                 <p className="font-semibold text-slate-700">Estimated total</p>
-                                <p className="mt-1 text-xl font-semibold text-slate-900">
-                                    {currencyFormatter.format(estimatedTotal)}
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                    {isJobworkMode
-                                        ? 'Includes making charge only. Final quotation may vary with labour costs.'
-                                        : 'Includes base & making. Final quotation may vary with bullion/diamond parity and labour.'}
-                                </p>
-                                {!isJobworkMode && (
-                                    <div className="mt-2 space-y-1 text-xs">
-                                        <p className="flex justify-between">
-                                            <span>Base:</span>
-                                            <span className="font-medium">{currencyFormatter.format(product.base_price ?? 0)}</span>
+                                {selectedConfig ? (
+                                    <>
+                                        <p className="mt-1 text-xl font-semibold text-slate-900">
+                                            {currencyFormatter.format(estimatedTotal)}
                                         </p>
-                                        <p className="flex justify-between">
-                                            <span>Making:</span>
-                                            <span className="font-medium">{currencyFormatter.format(product.making_charge ?? 0)}</span>
+                                        <p className="text-xs text-slate-500">
+                                            {isJobworkMode
+                                                ? 'Includes making charge only. Final quotation may vary with labour costs.'
+                                                : 'Includes metal, diamond, making charge & adjustment. Final quotation may vary with bullion/diamond parity and labour.'}
                                         </p>
-                                    </div>
-                                )}
-                                {isJobworkMode && (
-                                    <div className="mt-2 space-y-1 text-xs">
-                                        <p className="flex justify-between">
-                                            <span>Making charge:</span>
-                                            <span className="font-medium">{currencyFormatter.format(product.making_charge ?? 0)}</span>
-                                        </p>
-                                    </div>
+                                        {!isJobworkMode && (
+                                            <div className="mt-2 space-y-1 text-xs">
+                                                {selectedConfig.price_breakup.metal > 0 && (
+                                                    <p className="flex justify-between">
+                                                        <span>Metal:</span>
+                                                        <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.metal)}</span>
+                                                    </p>
+                                                )}
+                                                {selectedConfig.price_breakup.diamond > 0 && (
+                                                    <p className="flex justify-between">
+                                                        <span>Diamond:</span>
+                                                        <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.diamond)}</span>
+                                                    </p>
+                                                )}
+                                                <p className="flex justify-between">
+                                                    <span>Making:</span>
+                                                    <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.making)}</span>
+                                                </p>
+                                                {selectedConfig.price_breakup.adjustment !== 0 && (
+                                                    <p className="flex justify-between">
+                                                        <span>Adjustment:</span>
+                                                        <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.adjustment)}</span>
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                        {isJobworkMode && (
+                                            <div className="mt-2 space-y-1 text-xs">
+                                                <p className="flex justify-between">
+                                                    <span>Making charge:</span>
+                                                    <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.making)}</span>
+                                                </p>
+                                                {selectedConfig.price_breakup.adjustment !== 0 && (
+                                                    <p className="flex justify-between">
+                                                        <span>Adjustment:</span>
+                                                        <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.adjustment)}</span>
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <p className="mt-1 text-sm text-rose-600">
+                                        Please select a configuration to see pricing.
+                                    </p>
                                 )}
                             </div>
 
@@ -778,117 +589,15 @@ export default function CatalogShow() {
                                 disabled={processing || invalidCombination || jobworkNotAllowed}
                                 className="w-full rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                Add to quotation
+                                {processing ? 'Submitting…' : 'Request quotation'}
                             </button>
                         </form>
-
-                        <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                            <h3 className="text-sm font-semibold text-slate-700">Next steps</h3>
-                            <p className="mt-3 text-sm text-slate-600">
-                                Our merchandising team will review the configuration and share pricing or follow-up questions by email.
-                                Once you approve, the request moves to production and appears in your {mode === 'jobwork' ? 'jobwork timeline' : 'orders dashboard'}.
-                            </p>
-                            <Link
-                                href={route('frontend.quotations.index')}
-                                className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-elvee-blue hover:text-feather-gold"
-                            >
-                                View all quotations
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7-7 7M21 12H3" />
-                                </svg>
-                            </Link>
-                        </div>
                     </div>
                 </div>
             </div>
-            {lightboxOpen && activeMedia && (
-                <div className="fixed inset-0 z-[70] flex flex-col bg-slate-950/95">
-                    <div className="flex items-center justify-between px-6 py-4 text-white">
-                        <div>
-                            <p className="text-sm font-medium text-white/70">
-                                Image {activeImageIndex + 1} of {product.media.length}
-                            </p>
-                            <p className="text-lg font-semibold">{product.name}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => adjustLightboxZoom(-0.2)}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-lg font-semibold text-white transition hover:bg-white/10"
-                                aria-label="Zoom out"
-                            >
-                                –
-                            </button>
-                            <span className="text-sm font-medium text-white/70">
-                                {Math.round(lightboxZoom * 100)}%
-                            </span>
-                            <button
-                                type="button"
-                                onClick={() => adjustLightboxZoom(0.2)}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-lg font-semibold text-white transition hover:bg-white/10"
-                                aria-label="Zoom in"
-                            >
-                                +
-                            </button>
-                            <button
-                                type="button"
-                                onClick={resetLightboxZoom}
-                                className="rounded-full border border-white/20 px-3 py-1 text-sm font-medium text-white transition hover:bg-white/10"
-                            >
-                                Reset
-                            </button>
-                            <button
-                                type="button"
-                                onClick={closeLightbox}
-                                className="rounded-full border border-white/20 px-3 py-1 text-sm font-medium text-white transition hover:bg-white/10"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                    <div className="relative flex-1 overflow-hidden">
-                        {product.media.length > 1 && (
-                            <>
-                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-6">
-                                    <button
-                                        type="button"
-                                        onClick={showPreviousImage}
-                                        className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
-                                        aria-label="Previous image"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                                        </svg>
-                                    </button>
-                                </div>
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-6">
-                                    <button
-                                        type="button"
-                                        onClick={showNextImage}
-                                        className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
-                                        aria-label="Next image"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                        <div className="flex h-full w-full items-center justify-center overflow-auto px-10 pb-12">
-                            <img
-                                src={activeMedia.url}
-                                alt={activeMedia.alt}
-                                style={{ transform: `scale(${lightboxZoom})` }}
-                                className="max-h-[90vh] max-w-full select-none object-contain transition-transform duration-200"
-                                draggable={false}
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
+
             {confirmOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                     <div className="w-full max-w-md space-y-4 rounded-3xl bg-white p-6 shadow-2xl">
                         <h3 className="text-lg font-semibold text-slate-900">Confirm quotation</h3>
                         <p className="text-sm text-slate-600">
@@ -933,4 +642,3 @@ export default function CatalogShow() {
         </AuthenticatedLayout>
     );
 }
-

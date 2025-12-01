@@ -124,18 +124,6 @@ export default function Authenticated({
         [navigationData.catalogs],
     );
 
-    const brandLinks = useMemo(
-        () =>
-            (navigationData.brands ?? []).map((brand: any) => ({
-                id: brand.id,
-                name: brand.name,
-                href: route('frontend.catalog.index', {
-                    brand: brand.name,
-                }),
-            })),
-        [navigationData.brands],
-    );
-
     const primaryNav = useMemo(() => {
         const items: Array<
             | { type: 'link'; label: string; href: string; isActive?: boolean }
@@ -158,11 +146,6 @@ export default function Authenticated({
                 items: catalogLinks,
             },
             {
-                type: 'mega',
-                label: 'Brands',
-                items: brandLinks,
-            },
-            {
                 type: 'link',
                 label: 'Contact us',
                 href: 'mailto:support@elvee.in',
@@ -170,7 +153,7 @@ export default function Authenticated({
         ];
 
         return items;
-    }, [brandLinks, catalogLinks, categoriesLinks]);
+    }, [catalogLinks, categoriesLinks]);
 
     const accountLinks = useMemo(
         () => [
@@ -282,7 +265,7 @@ export default function Authenticated({
                                                     <path d="M3 4.5l3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
                                                 </svg>
                                             </button>
-                                            {item.items.length > 0 && (
+                                            {(item.items.length > 0 || item.label === 'Brands') && (
                                                 <div
                                                     className={`absolute left-1/2 z-30 mt-3 -translate-x-1/2 rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl transition ${
                                                         item.label === 'Categories'
@@ -299,44 +282,50 @@ export default function Authenticated({
                                                                 : 'sm:grid-cols-2'
                                                         }`}
                                                     >
-                                                        {item.items.map((link) =>
-                                                            item.label === 'Categories' ? (
-                                                                <Link
-                                                                    key={link.id}
-                                                                    href={link.href}
-                                                                    className="group/link relative overflow-hidden rounded-2xl border border-slate-100 bg-ivory p-5 transition hover:border-feather-gold hover:shadow-xl"
-                                                                >
-                                                                    {link.image ? (
-                                                                        <img
-                                                                            src={link.image}
-                                                                            alt={link.name}
-                                                                            className="absolute inset-0 h-full w-full object-cover opacity-30 transition group-hover/link:opacity-40"
-                                                                        />
-                                                                    ) : null}
-                                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/80 to-white/60" />
-                                                                    <div className="relative flex h-full flex-col justify-between">
-                                                                        <div>
-                                                                            <p className="text-sm font-semibold text-slate-900">
-                                                                                {link.name}
-                                                                            </p>
-                                                                            <p className="mt-1 text-xs font-medium text-slate-500">
-                                                                                Explore now
-                                                                            </p>
+                                                        {item.items.length > 0 ? (
+                                                            item.items.map((link) =>
+                                                                item.label === 'Categories' ? (
+                                                                    <Link
+                                                                        key={link.id}
+                                                                        href={link.href}
+                                                                        className="group/link relative overflow-hidden rounded-2xl border border-slate-100 bg-ivory p-5 transition hover:border-feather-gold hover:shadow-xl"
+                                                                    >
+                                                                        {link.image ? (
+                                                                            <img
+                                                                                src={link.image}
+                                                                                alt={link.name}
+                                                                                className="absolute inset-0 h-full w-full object-cover opacity-30 transition group-hover/link:opacity-40"
+                                                                            />
+                                                                        ) : null}
+                                                                        <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/80 to-white/60" />
+                                                                        <div className="relative flex h-full flex-col justify-between">
+                                                                            <div>
+                                                                                <p className="text-sm font-semibold text-slate-900">
+                                                                                    {link.name}
+                                                                                </p>
+                                                                                <p className="mt-1 text-xs font-medium text-slate-500">
+                                                                                    Explore now
+                                                                                </p>
+                                                                            </div>
+                                                                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition group-hover/link:border-feather-gold group-hover/link:text-feather-gold">
+                                                                                →
+                                                                            </span>
                                                                         </div>
-                                                                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition group-hover/link:border-feather-gold group-hover/link:text-feather-gold">
-                                                                            →
-                                                                        </span>
-                                                                    </div>
-                                                                </Link>
-                                                            ) : (
-                                                                <Link
-                                                                    key={link.id}
-                                                                    href={link.href}
-                                                                    className="block rounded-2xl bg-ivory px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-feather-gold/10 hover:text-feather-gold"
-                                                                >
-                                                                    {link.name}
-                                                                </Link>
-                                                            ),
+                                                                    </Link>
+                                                                ) : (
+                                                                    <Link
+                                                                        key={link.id}
+                                                                        href={link.href}
+                                                                        className="block rounded-2xl bg-ivory px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-feather-gold/10 hover:text-feather-gold"
+                                                                    >
+                                                                        {link.name}
+                                                                    </Link>
+                                                                ),
+                                                            )
+                                                        ) : (
+                                                            <div className="px-4 py-3 text-sm text-slate-500">
+                                                                No brands available
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>

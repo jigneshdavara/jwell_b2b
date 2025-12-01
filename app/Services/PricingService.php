@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Customer;
+use App\Models\PriceRate;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use Illuminate\Support\Collection;
 
 class PricingService
@@ -24,13 +26,46 @@ class PricingService
     public function calculateProductPrice(Product $product, ?Customer $user, array $options = []): Collection
     {
         $variant = $options['variant'] ?? null;
-        $priceAdjustment = is_array($variant) ? ($variant['price_adjustment'] ?? 0) : 0;
+        $variantModel = null;
+        
+        // Load variant model if variant ID is provided
+        if (is_array($variant) && isset($variant['id'])) {
+            $variantModel = ProductVariant::with(['metals.metal', 'metals.metalPurity', 'metals.metalTone'])
+                ->find($variant['id']);
+        } elseif ($variant instanceof ProductVariant) {
+            $variantModel = $variant->load(['metals.metal', 'metals.metalPurity', 'metals.metalTone']);
+        }
 
-        $base = (float) $product->base_price;
+        // Calculate metal cost from variant metals
+        $metalCost = 0.0;
+        if ($variantModel && $variantModel->metals) {
+            foreach ($variantModel->metals as $variantMetal) {
+                $metal = $variantMetal->metal;
+                $purity = $variantMetal->metalPurity;
+                $weight = $variantMetal->metal_weight ?? $variantMetal->weight_grams ?? null;
+
+                if ($metal && $purity && $weight) {
+                    $metalName = strtolower(trim($metal->name ?? ''));
+                    $purityName = trim($purity->name ?? '');
+
+                    $priceRate = PriceRate::where('metal', $metalName)
+                        ->where('purity', $purityName)
+                        ->orderBy('effective_at', 'desc')
+                        ->first();
+
+                    if ($priceRate && $priceRate->price_per_gram) {
+                        $metalCost += (float) $weight * (float) $priceRate->price_per_gram;
+                    }
+                }
+            }
+        }
+        $metalCost = round($metalCost, 2);
+
+        $diamondCost = 0.0; // Diamond cost calculation can be added later if needed
         $making = max(0.0, (float) $product->making_charge);
-        $variantCharge = (float) $priceAdjustment;
-
-        $unitSubtotal = $base + $making + $variantCharge;
+        
+        // Total price: Metal + Diamond + Making Charge (Base Price is NOT included)
+        $unitSubtotal = $metalCost + $diamondCost + $making;
         $quantity = max(1, (int) ($options['quantity'] ?? 1));
 
         $discountContext = array_merge($options, [
@@ -47,11 +82,10 @@ class PricingService
         $unitTotal = max(0.0, $unitSubtotal - $unitDiscount);
 
         return collect([
-            'base' => round($base, 2),
-            'metal' => 0.0,
-            'stones' => 0.0,
+            'metal' => round($metalCost, 2),
+            'diamond' => round($diamondCost, 2),
+            'stones' => round($diamondCost, 2), // Keep for backward compatibility
             'making' => round($making, 2),
-            'variant_adjustment' => round($variantCharge, 2),
             'subtotal' => round($unitSubtotal, 2),
             'discount' => $unitDiscount,
             'discount_details' => $discount,

@@ -17,12 +17,13 @@ use App\Models\DiamondColor;
 use App\Models\DiamondCut;
 use App\Models\DiamondShape;
 use App\Models\DiamondType;
-use App\Models\GoldPurity;
+use App\Models\Metal;
+use App\Models\MetalPurity;
+use App\Models\MetalTone;
 use App\Models\Product;
 use App\Models\ProductCatalog;
 use App\Models\ProductMedia;
 use App\Models\ProductVariant;
-use App\Models\SilverPurity;
 use App\Services\Catalog\ProductVariantSyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -98,10 +99,11 @@ class ProductController extends Controller
             'brands' => Brand::query()->pluck('name', 'id'),
             'categories' => Category::query()->pluck('name', 'id'),
             'productCatalogs' => ProductCatalog::query()->pluck('name', 'id'),
-            'goldPurities' => $this->goldPurityOptions(),
-            'silverPurities' => $this->silverPurityOptions(),
             'diamondCatalog' => $this->diamondCatalog(),
             'customerGroups' => $this->customerGroupOptions(),
+            'metals' => $this->metalOptions(),
+            'metalPurities' => $this->metalPurityOptions(),
+            'metalTones' => $this->metalToneOptions(),
         ]);
     }
 
@@ -120,7 +122,8 @@ class ProductController extends Controller
         return DB::transaction(function () use ($data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds) {
             $product = Product::create($data);
 
-            $variantSync->sync($product, $variants, $variantOptions);
+            $diamondOptions = $data['diamond_options'] ?? null;
+            $variantSync->sync($product, $variants, $variantOptions, $diamondOptions);
             $this->syncMedia($product, $mediaUploads, $removedMediaIds);
             $product->catalogs()->sync($catalogIds);
 
@@ -132,9 +135,17 @@ class ProductController extends Controller
 
     public function edit(Product $product): Response
     {
-        $product->load(['brand', 'category', 'material', 'catalogs', 'media' => fn ($query) => $query->orderBy('position'), 'variants' => function ($query) {
-            $query->orderByDesc('is_default')->orderBy('label');
-        }]);
+        $product->load([
+            'brand',
+            'category',
+            'material',
+            'catalogs',
+            'media' => fn($query) => $query->orderBy('position'),
+            'variants' => function ($query) {
+                $query->orderByDesc('is_default')->orderBy('label')
+                    ->with(['metals.metal', 'metals.metalPurity', 'metals.metalTone', 'diamonds.diamondType', 'diamonds.diamondShape', 'diamonds.diamondColor', 'diamonds.diamondClarity', 'diamonds.diamondCut']);
+            },
+        ]);
 
         return Inertia::render('Admin/Products/Edit', [
             'product' => [
@@ -169,11 +180,21 @@ class ProductController extends Controller
                 'standard_pricing' => $product->standard_pricing,
                 'variant_options' => $product->variant_options,
                 'is_variant_product' => $product->is_variant_product,
-                'uses_gold' => $product->uses_gold,
-                'uses_silver' => $product->uses_silver,
+                'mixed_metal_tones_per_purity' => $product->mixed_metal_tones_per_purity ?? false,
+                'mixed_metal_purities_per_tone' => $product->mixed_metal_purities_per_tone ?? false,
+                'metal_mix_mode' => is_array($product->metal_mix_mode) && count($product->metal_mix_mode) > 0
+                    ? $product->metal_mix_mode
+                    : (object)[],
                 'uses_diamond' => $product->uses_diamond,
-                'gold_purity_ids' => $product->gold_purity_ids ?? [],
-                'silver_purity_ids' => $product->silver_purity_ids ?? [],
+                'diamond_mixing_mode' => $product->diamond_mixing_mode ?? 'shared',
+                'metal_ids' => $product->metal_ids ?? [],
+                'metal_purity_ids' => $product->metal_purity_ids ?? [],
+                'metal_tone_ids' => $product->metal_tone_ids ?? [],
+                'diamond_type_ids' => $product->diamond_type_ids ?? [],
+                'diamond_clarity_ids' => $product->diamond_clarity_ids ?? [],
+                'diamond_color_ids' => $product->diamond_color_ids ?? [],
+                'diamond_shape_ids' => $product->diamond_shape_ids ?? [],
+                'diamond_cut_ids' => $product->diamond_cut_ids ?? [],
                 'diamond_options' => collect($product->diamond_options ?? [])
                     ->map(function (array $option) {
                         return [
@@ -184,27 +205,58 @@ class ProductController extends Controller
                             'clarity_id' => $option['clarity_id'] ?? null,
                             'cut_id' => $option['cut_id'] ?? null,
                             'weight' => isset($option['weight']) ? (string) $option['weight'] : '',
+                            'diamonds_count' => isset($option['diamonds_count']) ? (string) $option['diamonds_count'] : '',
                         ];
                     })
                     ->all(),
                 'metadata' => $product->metadata,
                 'product_catalog_ids' => $product->catalogs->pluck('id')->all(),
-                'variants' => $product->variants->map(fn (ProductVariant $variant) => [
+                'variants' => $product->variants->map(fn(ProductVariant $variant) => [
                     'id' => $variant->id,
                     'sku' => $variant->sku,
                     'label' => $variant->label,
+                    'inventory_quantity' => $variant->inventory_quantity ?? 0,
+                    'total_weight' => $variant->total_weight ?? null,
+                    // Legacy fields - kept for backwards compatibility
                     'metal_tone' => $variant->metal_tone,
                     'stone_quality' => $variant->stone_quality,
                     'size' => $variant->size,
                     'price_adjustment' => $variant->price_adjustment,
                     'is_default' => $variant->is_default,
                     'metadata' => $variant->metadata,
-                    'gold_purity_id' => $variant->metadata['gold_purity_id'] ?? null,
-                    'silver_purity_id' => $variant->metadata['silver_purity_id'] ?? null,
                     'diamond_option_key' => $variant->metadata['diamond_option_key'] ?? null,
                     'size_cm' => $variant->metadata['size_cm'] ?? null,
+                    // Optional: for multiple metals per variant
+                    'metals' => $variant->metals->map(fn($metal) => [
+                        'id' => $metal->id,
+                        'metal_id' => $metal->metal_id,
+                        'metal_purity_id' => $metal->metal_purity_id,
+                        'metal_tone_id' => $metal->metal_tone_id,
+                        'weight_grams' => $metal->weight_grams,
+                        'metal_weight' => $metal->metal_weight ?? $metal->weight_grams,
+                        'metadata' => $metal->metadata,
+                        'metal' => $metal->metal ? ['id' => $metal->metal->id, 'name' => $metal->metal->name] : null,
+                        'metal_purity' => $metal->metalPurity ? ['id' => $metal->metalPurity->id, 'name' => $metal->metalPurity->name] : null,
+                        'metal_tone' => $metal->metalTone ? ['id' => $metal->metalTone->id, 'name' => $metal->metalTone->name] : null,
+                    ])->values()->all(),
+                    'diamonds' => $variant->diamonds->map(fn($diamond) => [
+                        'id' => $diamond->id,
+                        'diamond_type_id' => $diamond->diamond_type_id,
+                        'diamond_shape_id' => $diamond->diamond_shape_id,
+                        'diamond_color_id' => $diamond->diamond_color_id,
+                        'diamond_clarity_id' => $diamond->diamond_clarity_id,
+                        'diamond_cut_id' => $diamond->diamond_cut_id,
+                        'diamonds_count' => $diamond->diamonds_count,
+                        'total_carat' => $diamond->total_carat,
+                        'metadata' => $diamond->metadata,
+                        'diamond_type' => $diamond->diamondType ? ['id' => $diamond->diamondType->id, 'name' => $diamond->diamondType->name] : null,
+                        'diamond_shape' => $diamond->diamondShape ? ['id' => $diamond->diamondShape->id, 'name' => $diamond->diamondShape->name] : null,
+                        'diamond_color' => $diamond->diamondColor ? ['id' => $diamond->diamondColor->id, 'name' => $diamond->diamondColor->name] : null,
+                        'diamond_clarity' => $diamond->diamondClarity ? ['id' => $diamond->diamondClarity->id, 'name' => $diamond->diamondClarity->name] : null,
+                        'diamond_cut' => $diamond->diamondCut ? ['id' => $diamond->diamondCut->id, 'name' => $diamond->diamondCut->name] : null,
+                    ])->values()->all(),
                 ]),
-                'media' => $product->media->map(fn (ProductMedia $media) => [
+                'media' => $product->media->map(fn(ProductMedia $media) => [
                     'id' => $media->id,
                     'type' => $media->type,
                     'url' => $media->url,
@@ -215,10 +267,11 @@ class ProductController extends Controller
             'brands' => Brand::query()->pluck('name', 'id'),
             'categories' => Category::query()->pluck('name', 'id'),
             'productCatalogs' => ProductCatalog::query()->pluck('name', 'id'),
-            'goldPurities' => $this->goldPurityOptions(),
-            'silverPurities' => $this->silverPurityOptions(),
             'diamondCatalog' => $this->diamondCatalog(),
             'customerGroups' => $this->customerGroupOptions(),
+            'metals' => $this->metalOptions(),
+            'metalPurities' => $this->metalPurityOptions(),
+            'metalTones' => $this->metalToneOptions(),
         ]);
     }
 
@@ -236,7 +289,8 @@ class ProductController extends Controller
 
         DB::transaction(function () use ($product, $data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds): void {
             $product->update($data);
-            $variantSync->sync($product, $variants, $variantOptions);
+            $diamondOptions = $data['diamond_options'] ?? null;
+            $variantSync->sync($product, $variants, $variantOptions, $diamondOptions);
             $this->syncMedia($product, $mediaUploads, $removedMediaIds);
             $product->catalogs()->sync($catalogIds);
         });
@@ -306,7 +360,7 @@ class ProductController extends Controller
         $newProduct = DB::transaction(function () use ($product) {
             $replica = $product->replicate();
             $replica->sku = $this->generateProductSku($product->sku);
-            $replica->name = $product->name.' (Copy)';
+            $replica->name = $product->name . ' (Copy)';
             $replica->is_active = false;
             $replica->push();
 
@@ -340,33 +394,6 @@ class ProductController extends Controller
         ];
     }
 
-    protected function goldPurityOptions(): array
-    {
-        return GoldPurity::query()
-            ->where('is_active', true)
-            ->orderBy('position')
-            ->orderBy('name')
-            ->get()
-            ->map(fn (GoldPurity $purity) => [
-                'id' => $purity->id,
-                'name' => $purity->name,
-            ])
-            ->all();
-    }
-
-    protected function silverPurityOptions(): array
-    {
-        return SilverPurity::query()
-            ->where('is_active', true)
-            ->orderBy('position')
-            ->orderBy('name')
-            ->get()
-            ->map(fn (SilverPurity $purity) => [
-                'id' => $purity->id,
-                'name' => $purity->name,
-            ])
-            ->all();
-    }
 
     protected function customerGroupOptions(): array
     {
@@ -375,7 +402,7 @@ class ProductController extends Controller
             ->orderBy('position')
             ->orderBy('name')
             ->get(['id', 'name'])
-            ->map(fn (CustomerGroup $group) => [
+            ->map(fn(CustomerGroup $group) => [
                 'id' => $group->id,
                 'name' => $group->name,
             ])
@@ -385,50 +412,147 @@ class ProductController extends Controller
     protected function diamondCatalog(): array
     {
         return [
-            'types' => DiamondType::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn (DiamondType $type) => [
+            'types' => DiamondType::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn(DiamondType $type) => [
                 'id' => $type->id,
                 'name' => $type->name,
             ])->all(),
-            'shapes' => DiamondShape::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn (DiamondShape $shape) => [
+            'shapes' => DiamondShape::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn(DiamondShape $shape) => [
                 'id' => $shape->id,
                 'name' => $shape->name,
             ])->all(),
-            'colors' => DiamondColor::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn (DiamondColor $color) => [
+            'colors' => DiamondColor::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn(DiamondColor $color) => [
                 'id' => $color->id,
                 'name' => $color->name,
             ])->all(),
-            'clarities' => DiamondClarity::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn (DiamondClarity $clarity) => [
+            'clarities' => DiamondClarity::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn(DiamondClarity $clarity) => [
                 'id' => $clarity->id,
                 'name' => $clarity->name,
             ])->all(),
-            'cuts' => DiamondCut::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn (DiamondCut $cut) => [
+            'cuts' => DiamondCut::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn(DiamondCut $cut) => [
                 'id' => $cut->id,
                 'name' => $cut->name,
             ])->all(),
         ];
     }
 
+    protected function metalOptions(): array
+    {
+        return Metal::query()
+            ->where('is_active', true)
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get()
+            ->map(fn(Metal $metal) => [
+                'id' => $metal->id,
+                'name' => $metal->name,
+                'slug' => $metal->slug,
+            ])
+            ->all();
+    }
+
+    protected function metalPurityOptions(): array
+    {
+        return MetalPurity::query()
+            ->where('is_active', true)
+            ->with('metal:id,name')
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get()
+            ->map(fn(MetalPurity $purity) => [
+                'id' => $purity->id,
+                'metal_id' => $purity->metal_id,
+                'name' => $purity->name,
+                'metal' => $purity->metal ? ['id' => $purity->metal->id, 'name' => $purity->metal->name] : null,
+            ])
+            ->all();
+    }
+
+    protected function metalToneOptions(): array
+    {
+        return MetalTone::query()
+            ->where('is_active', true)
+            ->with('metal:id,name')
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get()
+            ->map(fn(MetalTone $tone) => [
+                'id' => $tone->id,
+                'metal_id' => $tone->metal_id,
+                'name' => $tone->name,
+                'metal' => $tone->metal ? ['id' => $tone->metal->id, 'name' => $tone->metal->name] : null,
+            ])
+            ->all();
+    }
+
     protected function prepareProductPayload(array $data): array
     {
         $data['is_variant_product'] = (bool) ($data['is_variant_product'] ?? true);
-        $data['uses_gold'] = (bool) ($data['uses_gold'] ?? false);
-        $data['uses_silver'] = (bool) ($data['uses_silver'] ?? false);
-        $data['uses_diamond'] = (bool) ($data['uses_diamond'] ?? false);
+        $data['mixed_metal_tones_per_purity'] = (bool) ($data['mixed_metal_tones_per_purity'] ?? false);
+        $data['mixed_metal_purities_per_tone'] = (bool) ($data['mixed_metal_purities_per_tone'] ?? false);
 
-        $goldPurityIds = $this->sanitizeIds($data['gold_purity_ids'] ?? []);
-        $silverPurityIds = $this->sanitizeIds($data['silver_purity_ids'] ?? []);
+        // Ensure mutual exclusion: if both are true, prefer mixed_metal_tones_per_purity
+        if ($data['mixed_metal_tones_per_purity'] && $data['mixed_metal_purities_per_tone']) {
+            $data['mixed_metal_purities_per_tone'] = false;
+        }
+
+        // Sanitize metal_mix_mode: ensure it's an array with valid values
+        $metalMixMode = $data['metal_mix_mode'] ?? [];
+        if (! is_array($metalMixMode)) {
+            $metalMixMode = [];
+        }
+
+        // Validate and sanitize each metal's mode
+        $sanitizedMetalMixMode = [];
+        foreach ($metalMixMode as $metalId => $mode) {
+            $metalIdInt = is_numeric($metalId) ? (int) $metalId : null;
+            if ($metalIdInt && in_array($mode, ['normal', 'mix_tones', 'mix_purities'], true)) {
+                $sanitizedMetalMixMode[$metalIdInt] = $mode;
+            }
+        }
+        // Always set to array (empty array if no modes), never null (column has NOT NULL constraint)
+        $data['metal_mix_mode'] = $sanitizedMetalMixMode;
+
+        $data['uses_diamond'] = (bool) ($data['uses_diamond'] ?? false);
+        $data['diamond_mixing_mode'] = $data['diamond_mixing_mode'] ?? 'shared';
+
+        // Validate diamond_mixing_mode
+        if (!in_array($data['diamond_mixing_mode'], ['shared', 'as_variant'], true)) {
+            $data['diamond_mixing_mode'] = 'shared';
+        }
+
+        $metalIds = $this->sanitizeIds($data['metal_ids'] ?? []);
+        $metalPurityIds = $this->sanitizeIds($data['metal_purity_ids'] ?? []);
+        $metalToneIds = $this->sanitizeIds($data['metal_tone_ids'] ?? []);
+        $diamondTypeIds = $this->sanitizeIds($data['diamond_type_ids'] ?? []);
+        $diamondClarityIds = $this->sanitizeIds($data['diamond_clarity_ids'] ?? []);
+        $diamondColorIds = $this->sanitizeIds($data['diamond_color_ids'] ?? []);
+        $diamondShapeIds = $this->sanitizeIds($data['diamond_shape_ids'] ?? []);
+        $diamondCutIds = $this->sanitizeIds($data['diamond_cut_ids'] ?? []);
         $diamondOptions = $this->sanitizeDiamondOptions($data['diamond_options'] ?? []);
 
-        $data['gold_purity_ids'] = $data['uses_gold'] && ! empty($goldPurityIds) ? $goldPurityIds : null;
-        $data['silver_purity_ids'] = $data['uses_silver'] && ! empty($silverPurityIds) ? $silverPurityIds : null;
+        $data['metal_ids'] = ! empty($metalIds) ? $metalIds : null;
+        $data['metal_purity_ids'] = ! empty($metalPurityIds) ? $metalPurityIds : null;
+        $data['metal_tone_ids'] = ! empty($metalToneIds) ? $metalToneIds : null;
+        $data['diamond_type_ids'] = ! empty($diamondTypeIds) ? $diamondTypeIds : null;
+        $data['diamond_clarity_ids'] = ! empty($diamondClarityIds) ? $diamondClarityIds : null;
+        $data['diamond_color_ids'] = ! empty($diamondColorIds) ? $diamondColorIds : null;
+        $data['diamond_shape_ids'] = ! empty($diamondShapeIds) ? $diamondShapeIds : null;
+        $data['diamond_cut_ids'] = ! empty($diamondCutIds) ? $diamondCutIds : null;
+        // Save diamond_options when diamonds are enabled (used in both modes)
         $data['diamond_options'] = $data['uses_diamond'] && ! empty($diamondOptions) ? $diamondOptions : null;
 
         if (! $data['is_variant_product']) {
-            $data['uses_gold'] = false;
-            $data['uses_silver'] = false;
             $data['uses_diamond'] = false;
-            $data['gold_purity_ids'] = null;
-            $data['silver_purity_ids'] = null;
+            $data['diamond_mixing_mode'] = 'shared';
+            $data['metal_ids'] = null;
+            $data['metal_purity_ids'] = null;
+            $data['metal_tone_ids'] = null;
+            $data['metal_mix_mode'] = []; // Reset to empty array when variant product is disabled
+            $data['diamond_type_ids'] = null;
+            $data['diamond_clarity_ids'] = null;
+            $data['diamond_color_ids'] = null;
+            $data['diamond_shape_ids'] = null;
+            $data['diamond_cut_ids'] = null;
             $data['diamond_options'] = null;
         }
 
@@ -474,8 +598,8 @@ class ProductController extends Controller
     protected function sanitizeIds(array $ids): array
     {
         return collect($ids)
-            ->filter(fn ($value) => is_numeric($value))
-            ->map(fn ($value) => (int) $value)
+            ->filter(fn($value) => is_numeric($value))
+            ->map(fn($value) => (int) $value)
             ->unique()
             ->values()
             ->all();
@@ -495,6 +619,7 @@ class ProductController extends Controller
                     'clarity_id' => isset($option['clarity_id']) ? (int) $option['clarity_id'] : null,
                     'cut_id' => isset($option['cut_id']) ? (int) $option['cut_id'] : null,
                     'weight' => isset($option['weight']) ? (float) $option['weight'] : null,
+                    'diamonds_count' => isset($option['diamonds_count']) ? (int) $option['diamonds_count'] : null,
                 ];
             })
             ->filter(function (array $option) {
@@ -537,9 +662,9 @@ class ProductController extends Controller
         }
 
         $values = collect($sizeDimension['values'] ?? [])
-            ->filter(fn ($value) => is_numeric($value))
-            ->map(fn ($value) => round((float) $value, 3))
-            ->filter(fn ($value) => $value > 0)
+            ->filter(fn($value) => is_numeric($value))
+            ->map(fn($value) => round((float) $value, 3))
+            ->filter(fn($value) => $value > 0)
             ->values()
             ->all();
 
@@ -600,9 +725,13 @@ class ProductController extends Controller
             $mimeType = $upload->getMimeType() ?? '';
             $type = str_starts_with($mimeType, 'video/') ? 'video' : 'image';
 
+            // Generate URL and normalize double slashes (preserve http:// and https://)
+            $url = $publicDisk->url($path);
+            $url = preg_replace('#(?<!:)/{2,}#', '/', $url);
+
             $product->media()->create([
                 'type' => $type,
-                'url' => $publicDisk->url($path),
+                'url' => $url,
                 'position' => $nextPosition++,
                 'metadata' => [
                     'original_name' => $upload->getClientOriginalName(),

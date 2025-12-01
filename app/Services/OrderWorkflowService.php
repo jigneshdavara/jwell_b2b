@@ -32,7 +32,7 @@ class OrderWorkflowService
 
             OrderStatusHistory::create([
                 'order_id' => $order->id,
-                'user_id' => $customerId,
+                'user_id' => $customerId, // Only set if customer (admin users are not in customers table)
                 'status' => $status->value,
                 'meta' => array_merge(
                     $meta,
@@ -59,4 +59,3 @@ class OrderWorkflowService
         }
     }
 }
-
