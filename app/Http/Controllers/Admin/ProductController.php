@@ -161,7 +161,6 @@ class ProductController extends Controller
                 'silver_weight' => $product->silver_weight,
                 'other_material_weight' => $product->other_material_weight,
                 'total_weight' => $product->total_weight,
-                'base_price' => $product->base_price,
                 'making_charge' => $product->making_charge,
                 'making_charge_discount_type' => $product->making_charge_discount_type,
                 'making_charge_discount_value' => $product->making_charge_discount_value !== null ? (string) $product->making_charge_discount_value : '',
@@ -725,8 +724,10 @@ class ProductController extends Controller
             $mimeType = $upload->getMimeType() ?? '';
             $type = str_starts_with($mimeType, 'video/') ? 'video' : 'image';
 
-            // Generate URL and normalize double slashes (preserve http:// and https://)
-            $url = $publicDisk->url($path);
+            // Generate relative URL for better portability
+            // Use relative path starting with /storage/ instead of full URL
+            $url = '/storage/' . $path;
+            // Normalize double slashes
             $url = preg_replace('#(?<!:)/{2,}#', '/', $url);
 
             $product->media()->create([
