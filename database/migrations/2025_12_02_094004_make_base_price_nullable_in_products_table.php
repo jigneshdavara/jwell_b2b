@@ -1,8 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,9 +10,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-            $table->decimal('base_price', 12, 2)->nullable()->change();
-        });
+        DB::statement('ALTER TABLE products ALTER COLUMN base_price DROP NOT NULL');
     }
 
     /**
@@ -21,8 +18,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-            $table->decimal('base_price', 12, 2)->nullable(false)->change();
-        });
+        DB::statement('ALTER TABLE products ALTER COLUMN base_price SET NOT NULL');
     }
 };
