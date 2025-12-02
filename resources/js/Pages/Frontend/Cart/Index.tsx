@@ -169,7 +169,7 @@ export default function CartIndex() {
         Object.values(variantQuantities).forEach(({ variant, product, total }) => {
             if (variant === 0) {
                 errors.push(`${product} is currently out of stock.`);
-            } else if (variant !== null && total > variant) {
+            } else if (variant !== null && variant !== undefined && total > variant) {
                 errors.push(`Total quantity requested for ${product} is ${total}, but only ${variant} ${variant === 1 ? 'item is' : 'items are'} available.`);
             }
         });
@@ -205,7 +205,7 @@ export default function CartIndex() {
         Object.values(variantQuantities).forEach(({ variant, product, total }) => {
             if (variant === 0) {
                 inventoryErrors.push(`${product} is currently out of stock.`);
-            } else if (variant !== null && total > variant) {
+            } else if (variant !== null && variant !== undefined && total > variant) {
                 inventoryErrors.push(`Total quantity requested for ${product} is ${total}, but only ${variant} ${variant === 1 ? 'item is' : 'items are'} available.`);
             }
         });
@@ -404,7 +404,7 @@ export default function CartIndex() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => updateQuantity(item, 1)}
-                                                                    disabled={item.inventory_quantity !== null && (item.inventory_quantity === 0 || item.quantity >= item.inventory_quantity)}
+                                                                    disabled={item.inventory_quantity !== null && item.inventory_quantity !== undefined && (item.inventory_quantity === 0 || item.quantity >= item.inventory_quantity)}
                                                                     className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                                                                     aria-label="Increase quantity"
                                                                 >
@@ -413,7 +413,7 @@ export default function CartIndex() {
                                                                     </svg>
                                                                 </button>
                                                             </div>
-                                                            {item.inventory_quantity !== null && item.quantity > item.inventory_quantity && (
+                                                            {item.inventory_quantity !== null && item.inventory_quantity !== undefined && item.quantity > item.inventory_quantity && (
                                                                 <span className="text-xs text-rose-500">
                                                                     Only {item.inventory_quantity} {item.inventory_quantity === 1 ? 'item is' : 'items are'} available
                                                                 </span>
