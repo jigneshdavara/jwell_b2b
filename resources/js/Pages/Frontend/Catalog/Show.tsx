@@ -108,6 +108,7 @@ interface ConfigurationOption {
         adjustment: number;
     };
     sku: string;
+    inventory_quantity?: number;
 }
 
 type CatalogShowPageProps = AppPageProps<{
@@ -158,6 +159,7 @@ export default function CatalogShow() {
     const [selectedMode] = useState<'purchase' | 'jobwork'>('purchase');
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [quantityInput, setQuantityInput] = useState<string>('1');
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const galleryRef = useRef<HTMLDivElement | null>(null);
     const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -209,6 +211,11 @@ export default function CatalogShow() {
     useEffect(() => {
         setData('mode', selectedMode);
     }, [selectedMode, setData]);
+
+    // Sync quantityInput with form data when variant changes
+    useEffect(() => {
+        setQuantityInput(String(data.quantity));
+    }, [selectedVariantId, data.quantity]);
 
     const isJobworkMode = mode === 'jobwork';
     const jobworkNotAllowed = isJobworkMode && !product.is_jobwork_allowed;
@@ -410,6 +417,18 @@ export default function CatalogShow() {
     }, [activeImageIndex, lightboxOpen, resetLightboxZoom]);
 
     const invalidCombination = configurationOptions.length > 0 && !selectedConfig;
+    
+    // Check inventory availability
+    const maxQuantity = selectedConfig?.inventory_quantity ?? null;
+    const isOutOfStock = maxQuantity !== null && maxQuantity === 0;
+    const currentQuantity = parseInt(quantityInput, 10) || 1;
+    const quantityExceedsInventory = maxQuantity !== null && maxQuantity > 0 && currentQuantity > maxQuantity;
+    const inventoryUnavailable = isOutOfStock || quantityExceedsInventory;
+
+    // Sync quantityInput with form data when variant changes
+    useEffect(() => {
+        setQuantityInput(String(data.quantity));
+    }, [selectedVariantId]);
 
     return (
         <AuthenticatedLayout>
@@ -501,15 +520,53 @@ export default function CatalogShow() {
                             )}
 
                             <label className="block space-y-1">
-                                <span className="text-xs font-semibold text-slate-600">Quantity</span>
+                                <span className="text-xs font-semibold text-slate-600">
+                                    Quantity
+                                    {maxQuantity !== null && maxQuantity > 0 && !quantityExceedsInventory && (
+                                        <span className="ml-1 font-normal text-slate-500">
+                                            (Available: {maxQuantity})
+                                        </span>
+                                    )}
+                                </span>
                                 <input
                                     type="number"
                                     min="1"
-                                    value={data.quantity}
-                                    onChange={(e) => setData('quantity', parseInt(e.target.value, 10) || 1)}
-                                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    max={maxQuantity !== null && maxQuantity > 0 ? maxQuantity : undefined}
+                                    value={quantityInput}
+                                    onChange={(e) => {
+                                        // Allow completely free typing
+                                        const inputValue = e.target.value;
+                                        setQuantityInput(inputValue);
+                                        
+                                        // Update form data if it's a valid number
+                                        const numValue = parseInt(inputValue, 10);
+                                        if (!isNaN(numValue) && numValue >= 1) {
+                                            setData('quantity', numValue);
+                                        }
+                                    }}
+                                    onBlur={(e) => {
+                                        // On blur, validate and set proper value
+                                        const numValue = parseInt(quantityInput, 10);
+                                        if (isNaN(numValue) || numValue < 1) {
+                                            setQuantityInput('1');
+                                            setData('quantity', 1);
+                                        } else {
+                                            setQuantityInput(String(numValue));
+                                            setData('quantity', numValue);
+                                        }
+                                    }}
+                                    className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 ${
+                                        quantityExceedsInventory && !isOutOfStock
+                                            ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-rose-400/20'
+                                            : 'border-slate-200 bg-white focus:border-feather-gold focus:ring-feather-gold/20'
+                                    }`}
                                 />
                                 {errors.quantity && <span className="text-xs text-rose-500">{errors.quantity}</span>}
+                                {quantityExceedsInventory && !isOutOfStock && !errors.quantity && maxQuantity !== null && (
+                                    <span className="text-xs text-rose-500">
+                                        Only {maxQuantity} {maxQuantity === 1 ? 'item is' : 'items are'} available. Maximum {maxQuantity} {maxQuantity === 1 ? 'item' : 'items'} allowed for request.
+                                    </span>
+                                )}
                             </label>
 
                             <label className="block space-y-1">
@@ -584,9 +641,22 @@ export default function CatalogShow() {
                                 )}
                             </div>
 
+                            {isOutOfStock && (
+                                <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                    <div className="flex items-start gap-2">
+                                        <svg className="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                        <div>
+                                            <p className="font-semibold">Out of Stock</p>
+                                            <p className="text-xs mt-0.5">This product variant is currently out of stock. Quotation requests are not available.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             <button
                                 type="submit"
-                                disabled={processing || invalidCombination || jobworkNotAllowed}
+                                disabled={processing || invalidCombination || jobworkNotAllowed || inventoryUnavailable}
                                 className="w-full rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {processing ? 'Submitting…' : 'Request quotation'}

@@ -26,8 +26,7 @@ class QuotationController extends Controller
     public function __construct(
         protected CartService $cartService,
         protected PricingService $pricingService
-    ) {
-    }
+    ) {}
 
     public function index(): Response
     {
@@ -36,23 +35,27 @@ class QuotationController extends Controller
             ->where('user_id', Auth::id())
             ->latest();
 
-        // Group quotations by user_id and created_at (within same 5 minutes) to show combined modes
+        // Group quotations by quotation_group_id (or fallback to timestamp-based grouping for old data)
         $quotations = $query
             ->get()
             ->groupBy(function ($quotation) {
+                // Use quotation_group_id if available
+                if ($quotation->quotation_group_id) {
+                    return $quotation->quotation_group_id;
+                }
+                // Fallback for old quotations: group by user and date+hour+minute (rounded to 5 minutes)
                 $createdAt = optional($quotation->created_at);
-                // Group by user and date+hour+minute (rounded to 5 minutes)
                 if ($createdAt) {
                     $minute = floor($createdAt->format('i') / 5) * 5;
-                    return $quotation->user_id.'_'.$createdAt->format('Y-m-d H:').sprintf('%02d', $minute);
+                    return $quotation->user_id . '_' . $createdAt->format('Y-m-d H:') . sprintf('%02d', $minute);
                 }
-                return $quotation->user_id.'_'.time();
+                return $quotation->user_id . '_' . time();
             })
             ->map(function ($group) {
                 $first = $group->first();
                 $modes = $group->pluck('mode')->unique()->values();
                 $totalQuantity = $group->sum('quantity');
-                
+
                 return [
                     'id' => $first->id,
                     'ids' => $group->pluck('id')->values()->all(),
@@ -98,16 +101,20 @@ class QuotationController extends Controller
 
         $quotation->load(['user', 'product.media', 'variant', 'product.variants', 'order.statusHistory', 'messages.user']);
 
-        // Find all related quotations (same user, within 5 minutes)
-        $createdAt = $quotation->created_at;
-        $timeWindow = $createdAt ? $createdAt->copy()->subMinutes(5) : null;
-        $timeWindowEnd = $createdAt ? $createdAt->copy()->addMinutes(5) : null;
-
+        // Find all related quotations using quotation_group_id
         $relatedQuotations = Quotation::query()
-            ->where('user_id', $quotation->user_id)
             ->where('id', '!=', $quotation->id) // Exclude the main quotation
-            ->when($timeWindow && $timeWindowEnd, function ($q) use ($timeWindow, $timeWindowEnd) {
-                $q->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
+            ->when($quotation->quotation_group_id, function ($q) use ($quotation) {
+                $q->where('quotation_group_id', $quotation->quotation_group_id);
+            }, function ($q) use ($quotation) {
+                // Fallback for old quotations without group_id: use timestamp-based grouping
+                $createdAt = $quotation->created_at;
+                $timeWindow = $createdAt ? $createdAt->copy()->subMinutes(5) : null;
+                $timeWindowEnd = $createdAt ? $createdAt->copy()->addMinutes(5) : null;
+                if ($timeWindow && $timeWindowEnd) {
+                    $q->where('user_id', $quotation->user_id)
+                      ->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
+                }
             })
             ->with(['product.media', 'variant', 'product.variants'])
             ->orderBy('created_at')
@@ -156,11 +163,11 @@ class QuotationController extends Controller
                             'silver_weight' => $q->product->silver_weight,
                             'other_material_weight' => $q->product->other_material_weight,
                             'total_weight' => $q->product->total_weight,
-                            'media' => $q->product->media->sortBy('position')->values()->map(fn ($media) => [
+                            'media' => $q->product->media->sortBy('position')->values()->map(fn($media) => [
                                 'url' => $media->url,
                                 'alt' => $media->metadata['alt'] ?? $q->product->name,
                             ]),
-                            'variants' => $q->product->variants->map(fn ($variant) => [
+                            'variants' => $q->product->variants->map(fn($variant) => [
                                 'id' => $variant->id,
                                 'label' => $variant->label,
                                 'metadata' => $variant->metadata ?? [],
@@ -186,11 +193,11 @@ class QuotationController extends Controller
                     'silver_weight' => $quotation->product->silver_weight,
                     'other_material_weight' => $quotation->product->other_material_weight,
                     'total_weight' => $quotation->product->total_weight,
-                    'media' => $quotation->product->media->sortBy('position')->values()->map(fn ($media) => [
+                    'media' => $quotation->product->media->sortBy('position')->values()->map(fn($media) => [
                         'url' => $media->url,
                         'alt' => $media->metadata['alt'] ?? $quotation->product->name,
                     ]),
-                    'variants' => $quotation->product->variants->map(fn ($variant) => [
+                    'variants' => $quotation->product->variants->map(fn($variant) => [
                         'id' => $variant->id,
                         'label' => $variant->label,
                         'metadata' => $variant->metadata ?? [],
@@ -223,14 +230,14 @@ class QuotationController extends Controller
                     'reference' => $quotation->order->reference,
                     'status' => $quotation->order->status?->value ?? null,
                     'total_amount' => $quotation->order->total_amount,
-                    'history' => $quotation->order->statusHistory->map(fn ($history) => [
+                    'history' => $quotation->order->statusHistory->map(fn($history) => [
                         'id' => $history->id,
                         'status' => $history->status,
                         'created_at' => optional($history->created_at)?->toDateTimeString(),
                         'meta' => $history->meta,
                     ]),
                 ] : null,
-                'messages' => $quotation->messages->map(fn (QuotationMessage $message) => [
+                'messages' => $quotation->messages->map(fn(QuotationMessage $message) => [
                     'id' => $message->id,
                     'sender' => $message->sender,
                     'message' => $message->message,
@@ -256,11 +263,29 @@ class QuotationController extends Controller
         $product = Product::query()->findOrFail($data['product_id']);
 
         $variantId = $data['product_variant_id'] ?? null;
+        $variant = null;
         if ($variantId) {
             /** @var ProductVariant $variant */
             $variant = ProductVariant::query()->findOrFail($variantId);
             if ($variant->product_id !== $product->id) {
                 return back()->withErrors(['product_variant_id' => 'The selected variant does not belong to this product.']);
+            }
+
+            // Validate inventory availability
+            $inventoryQuantity = $variant->inventory_quantity ?? null;
+            if ($inventoryQuantity !== null) {
+                // If inventory is tracked and is 0, reject the request
+                if ($inventoryQuantity === 0) {
+                    return back()->withErrors([
+                        'quantity' => 'This product variant is currently out of stock. Quotation requests are not available.',
+                    ]);
+                }
+                // If inventory is tracked and quantity exceeds available, reject
+                if ($data['quantity'] > $inventoryQuantity) {
+                    return back()->withErrors([
+                        'quantity' => "The requested quantity ({$data['quantity']}) exceeds the available inventory ({$inventoryQuantity}).",
+                    ]);
+                }
             }
         }
 
@@ -268,8 +293,12 @@ class QuotationController extends Controller
             return back()->withErrors(['mode' => 'Jobwork quotations are not allowed for this product.']);
         }
 
+        // Generate a unique group ID for this quotation request
+        $quotationGroupId = \Illuminate\Support\Str::uuid()->toString();
+
         $quotation = Quotation::create([
             'user_id' => $request->user()->id,
+            'quotation_group_id' => $quotationGroupId,
             'product_id' => $product->id,
             'product_variant_id' => $variantId,
             'mode' => $data['mode'],
@@ -338,58 +367,120 @@ class QuotationController extends Controller
         }
 
         $quotations = [];
-        DB::transaction(function () use ($cart, $user, &$quotations): void {
-            foreach ($cart->items as $item) {
-                $product = $item->product;
-                if (! $product) {
-                    continue;
+        $errors = [];
+
+        try {
+            DB::transaction(function () use ($cart, $user, &$quotations, &$errors): void {
+                // Group items by product_variant_id to check total quantity per variant
+                $variantQuantities = [];
+                foreach ($cart->items as $item) {
+                    if ($item->product_variant_id) {
+                        $variantId = $item->product_variant_id;
+                        if (!isset($variantQuantities[$variantId])) {
+                            $variantQuantities[$variantId] = [
+                                'variant' => $item->variant,
+                                'product' => $item->product,
+                                'total_quantity' => 0,
+                                'items' => [],
+                            ];
+                        }
+                        $variantQuantities[$variantId]['total_quantity'] += $item->quantity;
+                        $variantQuantities[$variantId]['items'][] = $item;
+                    }
                 }
 
-                $configuration = $item->configuration ?? [];
-                $mode = in_array($configuration['mode'] ?? null, ['purchase', 'jobwork'], true)
-                    ? $configuration['mode']
-                    : 'purchase';
+                // Validate total quantity per variant
+                foreach ($variantQuantities as $variantId => $data) {
+                    $variant = $data['variant'];
+                    $product = $data['product'];
+                    $totalQuantity = $data['total_quantity'];
 
-                if ($mode === 'jobwork' && ! $product->is_jobwork_allowed) {
-                    $mode = 'purchase';
+                    if ($variant) {
+                        $inventoryQuantity = $variant->inventory_quantity ?? null;
+                        if ($inventoryQuantity !== null) {
+                            // If inventory is tracked and is 0, reject the request
+                            if ($inventoryQuantity === 0) {
+                                $errors[] = "{$product->name} ({$variant->label}) is currently out of stock. Quotation requests are not available.";
+                                continue;
+                            }
+                            // If total quantity for this variant exceeds available inventory, reject
+                            if ($totalQuantity > $inventoryQuantity) {
+                                $errors[] = "Total quantity requested for {$product->name} ({$variant->label}) is {$totalQuantity}, but only {$inventoryQuantity} " . ($inventoryQuantity === 1 ? 'item is' : 'items are') . " available.";
+                                continue;
+                            }
+                        }
+                    }
                 }
 
-                $selections = $configuration['selections'] ?? null;
-                if ($selections !== null && ! is_array($selections)) {
-                    $selections = null;
+                // If there are errors, don't proceed with creating quotations
+                if (!empty($errors)) {
+                    throw new \Exception(implode(' ', $errors));
                 }
 
-                $quotation = Quotation::create([
-                    'user_id' => $user->id,
-                    'product_id' => $product->id,
-                    'product_variant_id' => $item->product_variant_id,
-                    'mode' => $mode,
-                    'status' => 'pending',
-                    'quantity' => $item->quantity,
-                    'selections' => $selections,
-                    'notes' => $configuration['notes'] ?? null,
-                ]);
+                // Generate a unique group ID for all quotations in this submission
+                $quotationGroupId = \Illuminate\Support\Str::uuid()->toString();
 
-                if (! empty($configuration['notes'])) {
-                    $quotation->messages()->create([
+                foreach ($cart->items as $item) {
+                    $product = $item->product;
+                    if (! $product) {
+                        continue;
+                    }
+
+                    $configuration = $item->configuration ?? [];
+                    $mode = in_array($configuration['mode'] ?? null, ['purchase', 'jobwork'], true)
+                        ? $configuration['mode']
+                        : 'purchase';
+
+                    if ($mode === 'jobwork' && ! $product->is_jobwork_allowed) {
+                        $mode = 'purchase';
+                    }
+
+                    $selections = $configuration['selections'] ?? null;
+                    if ($selections !== null && ! is_array($selections)) {
+                        $selections = null;
+                    }
+
+                    $quotation = Quotation::create([
                         'user_id' => $user->id,
-                        'sender' => 'customer',
-                        'message' => (string) $configuration['notes'],
+                        'quotation_group_id' => $quotationGroupId, // Same group ID for all items
+                        'product_id' => $product->id,
+                        'product_variant_id' => $item->product_variant_id,
+                        'mode' => $mode,
+                        'status' => 'pending',
+                        'quantity' => $item->quantity,
+                        'selections' => $selections,
+                        'notes' => $configuration['notes'] ?? null,
                     ]);
+
+                    if (! empty($configuration['notes'])) {
+                        $quotation->messages()->create([
+                            'user_id' => $user->id,
+                            'sender' => 'customer',
+                            'message' => (string) $configuration['notes'],
+                        ]);
+                    }
+
+                    $quotations[] = $quotation;
                 }
 
-                $quotations[] = $quotation;
-            }
+                if (! empty($errors)) {
+                    throw new \Exception(implode(' ', $errors));
+                }
 
-            $this->cartService->clearItems($cart);
-        });
+                $this->cartService->clearItems($cart);
+            });
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('frontend.cart.index')
+                ->withErrors(['quantity' => $e->getMessage()]);
+        }
 
         // Send emails for all quotations
         $adminEmail = config('mail.from.address');
         foreach ($quotations as $quotation) {
             $quotation->load(['user', 'product']);
             Mail::to($quotation->user->email)->send(new QuotationSubmittedCustomerMail($quotation));
-            
+
             if ($adminEmail) {
                 Mail::to($adminEmail)->send(new QuotationSubmittedAdminMail($quotation));
             }
@@ -438,4 +529,3 @@ class QuotationController extends Controller
         return redirect()->route('frontend.quotations.index')->with('success', 'Quotation declined.');
     }
 }
-

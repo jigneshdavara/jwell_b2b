@@ -58,12 +58,16 @@ class QuotationController extends Controller
             });
         }
 
-        // Group quotations by user_id and created_at (within same 5 minutes) to show combined modes
+        // Group quotations by quotation_group_id (or fallback to timestamp-based grouping for old data)
         $quotations = $query
             ->get()
             ->groupBy(function ($quotation) {
+                // Use quotation_group_id if available
+                if ($quotation->quotation_group_id) {
+                    return $quotation->quotation_group_id;
+                }
+                // Fallback for old quotations: group by user and date+hour+minute (rounded to 5 minutes)
                 $createdAt = optional($quotation->created_at);
-                // Group by user and date+hour+minute (rounded to 5 minutes)
                 if ($createdAt) {
                     $minute = floor($createdAt->format('i') / 5) * 5;
                     return $quotation->user_id . '_' . $createdAt->format('Y-m-d H:') . sprintf('%02d', $minute);
@@ -137,16 +141,20 @@ class QuotationController extends Controller
     {
         $quotation->load(['user', 'product.media', 'variant', 'product.variants', 'order.statusHistory', 'messages.user']);
 
-        // Find all related quotations (same user, within 5 minutes)
-        $createdAt = $quotation->created_at;
-        $timeWindow = $createdAt ? $createdAt->copy()->subMinutes(5) : null;
-        $timeWindowEnd = $createdAt ? $createdAt->copy()->addMinutes(5) : null;
-
+        // Find all related quotations (same quotation_group_id)
         $relatedQuotations = Quotation::query()
-            ->where('user_id', $quotation->user_id)
             ->where('id', '!=', $quotation->id) // Exclude the main quotation
-            ->when($timeWindow && $timeWindowEnd, function ($q) use ($timeWindow, $timeWindowEnd) {
-                $q->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
+            ->when($quotation->quotation_group_id, function ($q) use ($quotation) {
+                $q->where('quotation_group_id', $quotation->quotation_group_id);
+            }, function ($q) use ($quotation) {
+                // Fallback for old quotations without group_id: use timestamp-based grouping
+                $createdAt = $quotation->created_at;
+                $timeWindow = $createdAt ? $createdAt->copy()->subMinutes(5) : null;
+                $timeWindowEnd = $createdAt ? $createdAt->copy()->addMinutes(5) : null;
+                if ($timeWindow && $timeWindowEnd) {
+                    $q->where('user_id', $quotation->user_id)
+                        ->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
+                }
             })
             ->with(['product.media', 'variant', 'product.variants'])
             ->orderBy('created_at')
@@ -297,31 +305,78 @@ class QuotationController extends Controller
             return redirect()->back()->with('error', 'Quotation must be confirmed by customer before approval.');
         }
 
+        // Find all related quotations in the same group
+        $relatedQuotations = $this->getRelatedQuotations($quotation)
+            ->whereIn('status', ['pending', 'customer_confirmed'])
+            ->get();
+
+        if ($relatedQuotations->isEmpty()) {
+            return redirect()->back()->with('error', 'No quotations found to approve.');
+        }
+
         $previousStatus = $quotation->status;
-        DB::transaction(function () use ($request, $quotation): void {
-            $quotation->fill([
-                'status' => 'approved',
-                'approved_at' => Carbon::now(),
-                'admin_notes' => $request->validated('admin_notes'),
-            ]);
+        $approvedQuotations = collect();
+        $order = null;
 
-            if ($quotation->mode === 'jobwork') {
-                $quotation->jobwork_status = 'material_sending';
-                $quotation->save();
+        DB::transaction(function () use ($request, $relatedQuotations, &$approvedQuotations, &$order): void {
+            $quotation = $relatedQuotations->first();
+            $quotation->loadMissing('user');
 
-                return;
+            // Separate purchase and jobwork quotations
+            $purchaseQuotations = $relatedQuotations->filter(fn($q) => $q->mode === 'purchase');
+            $jobworkQuotations = $relatedQuotations->filter(fn($q) => $q->mode === 'jobwork');
+
+            // Process all quotations
+            foreach ($relatedQuotations as $q) {
+                // Check if already approved
+                if ($q->status === 'approved') {
+                    continue;
+                }
+
+                // Update status
+                $q->fill([
+                    'status' => 'approved',
+                    'approved_at' => Carbon::now(),
+                    'admin_notes' => $request->validated('admin_notes'),
+                ]);
+
+                // Reduce inventory quantity when quotation is approved
+                if ($q->product_variant_id) {
+                    $variant = ProductVariant::query()->find($q->product_variant_id);
+                    if ($variant && $variant->inventory_quantity !== null) {
+                        $currentInventory = $variant->inventory_quantity ?? 0;
+                        $requestedQuantity = $q->quantity;
+                        $newInventory = max(0, $currentInventory - $requestedQuantity); // Prevent negative inventory
+                        $variant->update(['inventory_quantity' => $newInventory]);
+                    }
+                }
+
+                // Handle jobwork status
+                if ($q->mode === 'jobwork') {
+                    $q->jobwork_status = 'material_sending';
+                } else {
+                    $q->jobwork_status = null;
+                }
+
+                $q->save();
+                $approvedQuotations->push($q);
             }
 
-            $order = $this->createOrderFromQuotation($quotation);
+            // Create a single order for all purchase quotations
+            if ($purchaseQuotations->isNotEmpty() && !$order) {
+                $order = $this->createOrderFromQuotations($purchaseQuotations);
 
-            $quotation->order()->associate($order);
-            $quotation->jobwork_status = null;
-            $quotation->save();
+                // Associate order with all purchase quotations
+                foreach ($purchaseQuotations as $q) {
+                    $q->order()->associate($order);
+                    $q->save();
+                }
+            }
         });
 
         $quotation->load(['user', 'product', 'order']);
 
-        // Send approval email to customer
+        // Send approval email to customer (only once for the group)
         Mail::to($quotation->user->email)->send(new QuotationApprovedMail($quotation));
 
         // Send status update email
@@ -331,24 +386,48 @@ class QuotationController extends Controller
             $request->validated('admin_notes')
         ));
 
+        $count = $approvedQuotations->count();
+        $message = $count > 1
+            ? "All {$count} quotations approved successfully."
+            : 'Quotation approved successfully.';
+
         return redirect()
             ->route('admin.quotations.show', $quotation->id)
-            ->with('success', 'Quotation approved successfully.');
+            ->with('success', $message);
     }
 
     public function reject(ApproveQuotationRequest $request, Quotation $quotation): RedirectResponse
     {
+        // Find all related quotations in the same group
+        $relatedQuotations = $this->getRelatedQuotations($quotation)
+            ->where('status', '!=', 'rejected')
+            ->get();
+
+        if ($relatedQuotations->isEmpty()) {
+            return redirect()->back()->with('info', 'All quotations in this group are already rejected.');
+        }
+
         $previousStatus = $quotation->status;
         $reason = $request->validated('admin_notes');
+        $rejectedCount = 0;
 
-        $quotation->update([
-            'status' => 'rejected',
-            'admin_notes' => $reason,
-        ]);
+        DB::transaction(function () use ($relatedQuotations, $reason, &$rejectedCount): void {
+            foreach ($relatedQuotations as $q) {
+                if ($q->status === 'rejected') {
+                    continue;
+                }
+
+                $q->update([
+                    'status' => 'rejected',
+                    'admin_notes' => $reason,
+                ]);
+                $rejectedCount++;
+            }
+        });
 
         $quotation->load(['user', 'product']);
 
-        // Send rejection email to customer
+        // Send rejection email to customer (only once for the group)
         Mail::to($quotation->user->email)->send(new QuotationRejectedMail($quotation, $reason));
 
         // Send status update email
@@ -358,43 +437,64 @@ class QuotationController extends Controller
             $reason
         ));
 
+        $message = $rejectedCount > 1
+            ? "All {$rejectedCount} quotations rejected successfully."
+            : 'Quotation rejected.';
+
         return redirect()
             ->route('admin.quotations.show', $quotation->id)
-            ->with('success', 'Quotation rejected.');
+            ->with('success', $message);
     }
 
     public function updateJobworkStatus(UpdateJobworkStatusRequest $request, Quotation $quotation): RedirectResponse
     {
-        if ($quotation->mode !== 'jobwork') {
-            return redirect()->back()->with('error', 'Jobwork status is only applicable to jobwork quotations.');
+        // Find all related jobwork quotations in the same group
+        $relatedQuotations = $this->getRelatedQuotations($quotation)
+            ->where('mode', 'jobwork')
+            ->get();
+
+        if ($relatedQuotations->isEmpty()) {
+            return redirect()->back()->with('error', 'No jobwork quotations found in this group.');
         }
 
         $previousStatus = $quotation->jobwork_status;
         $notes = $request->validated('admin_notes');
+        $newStatus = $request->validated('jobwork_status');
+        $updatedCount = 0;
 
-        $quotation->update([
-            'jobwork_status' => $request->validated('jobwork_status'),
-            'admin_notes' => $notes,
-        ]);
+        DB::transaction(function () use ($relatedQuotations, $newStatus, $notes, &$updatedCount): void {
+            foreach ($relatedQuotations as $q) {
+                $q->update([
+                    'jobwork_status' => $newStatus,
+                    'admin_notes' => $notes,
+                ]);
+                $updatedCount++;
 
-        if ($request->validated('jobwork_status') === 'billing_confirmed' && ! $quotation->order) {
-            $order = $this->createOrderFromQuotation($quotation, OrderStatus::PendingPayment);
-            $quotation->order()->associate($order);
-            $quotation->save();
-        }
+                // Create order when billing is confirmed for all jobwork quotations
+                if ($newStatus === 'billing_confirmed' && ! $q->order) {
+                    $order = $this->createOrderFromQuotation($q, OrderStatus::PendingPayment);
+                    $q->order()->associate($order);
+                    $q->save();
+                }
+            }
+        });
 
         $quotation->load(['user', 'product']);
 
-        // Send status update email to customer
+        // Send status update email to customer (only once for the group)
         Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
             $quotation,
             $previousStatus ?? 'pending',
             $notes
         ));
 
+        $message = $updatedCount > 1
+            ? "Jobwork status updated for all {$updatedCount} quotations."
+            : 'Jobwork status updated.';
+
         return redirect()
             ->route('admin.quotations.show', $quotation->id)
-            ->with('success', 'Jobwork status updated.');
+            ->with('success', $message);
     }
 
     public function message(Quotation $quotation, StoreQuotationMessageRequest $request): RedirectResponse
@@ -414,36 +514,58 @@ class QuotationController extends Controller
 
     public function requestCustomerConfirmation(Request $request, Quotation $quotation): RedirectResponse
     {
+        // Find all related quotations in the same group
+        $relatedQuotations = $this->getRelatedQuotations($quotation)
+            ->whereIn('status', ['pending', 'approved', 'rejected'])
+            ->get();
+
+        if ($relatedQuotations->isEmpty()) {
+            return redirect()->back()->with('error', 'No quotations found to request confirmation.');
+        }
+
         $data = $request->validate([
             'quantity' => ['required', 'integer', 'min:1'],
             'product_variant_id' => ['nullable', 'integer'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        if ($data['product_variant_id'] ?? null) {
-            $variant = $quotation->product->variants()->findOrFail($data['product_variant_id']);
-            $quotation->product_variant_id = $variant->id;
-            $quotation->selections = array_merge($quotation->selections ?? [], [
-                'auto_label' => $variant->metadata['auto_label'] ?? $variant->label,
-            ]);
-        }
-
         $previousStatus = $quotation->status;
-        $quotation->quantity = $data['quantity'];
-        $quotation->status = 'pending_customer_confirmation';
-        if (! empty($data['notes'])) {
-            $quotation->admin_notes = $data['notes'];
-        }
-        $quotation->save();
-
-        $customerId = auth('web')->id();
         $message = $data['notes'] ?? 'Please review updated quotation details.';
+        $updatedCount = 0;
 
-        $quotation->messages()->create([
-            'user_id' => $customerId,
-            'sender' => 'admin',
-            'message' => $message,
-        ]);
+        DB::transaction(function () use ($relatedQuotations, $data, $message, $quotation, &$updatedCount): void {
+            foreach ($relatedQuotations as $q) {
+                // Update variant if provided (only for the main quotation or matching product)
+                if (($data['product_variant_id'] ?? null) && $q->product_id === $quotation->product_id) {
+                    $variant = $q->product->variants()->find($data['product_variant_id']);
+                    if ($variant) {
+                        $q->product_variant_id = $variant->id;
+                        $q->selections = array_merge($q->selections ?? [], [
+                            'auto_label' => $variant->metadata['auto_label'] ?? $variant->label,
+                        ]);
+                    }
+                }
+
+                // Update quantity if it's the main quotation
+                if ($q->id === $quotation->id) {
+                    $q->quantity = $data['quantity'];
+                }
+
+                $q->status = 'pending_customer_confirmation';
+                if (! empty($data['notes'])) {
+                    $q->admin_notes = $data['notes'];
+                }
+                $q->save();
+                $updatedCount++;
+
+                // Add message to each quotation
+                $q->messages()->create([
+                    'user_id' => auth('web')->id(),
+                    'sender' => 'admin',
+                    'message' => $message,
+                ]);
+            }
+        });
 
         $quotation->load(['user', 'product']);
 
@@ -460,6 +582,78 @@ class QuotationController extends Controller
         return redirect()
             ->route('admin.quotations.show', $quotation->id)
             ->with('success', 'Updated quotation and requested customer approval.');
+    }
+
+    public function addItem(Request $request, Quotation $quotation): RedirectResponse
+    {
+        $data = $request->validate([
+            'product_id' => ['required', 'exists:products,id'],
+            'product_variant_id' => ['nullable', 'exists:product_variants,id'],
+            'quantity' => ['required', 'integer', 'min:1'],
+            'mode' => ['required', 'in:purchase,jobwork'],
+            'admin_notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $product = Product::query()->findOrFail($data['product_id']);
+
+        if ($data['product_variant_id'] ?? null) {
+            $variant = ProductVariant::query()->findOrFail($data['product_variant_id']);
+            if ($variant->product_id !== $product->id) {
+                return redirect()->back()->withErrors(['product_variant_id' => 'The selected variant does not belong to this product.']);
+            }
+
+            // Validate inventory availability
+            $inventoryQuantity = $variant->inventory_quantity ?? null;
+            if ($inventoryQuantity !== null) {
+                if ($inventoryQuantity === 0) {
+                    return redirect()->back()->withErrors([
+                        'quantity' => 'This product variant is currently out of stock.',
+                    ]);
+                }
+                if ($data['quantity'] > $inventoryQuantity) {
+                    return redirect()->back()->withErrors([
+                        'quantity' => "The requested quantity ({$data['quantity']}) exceeds the available inventory ({$inventoryQuantity}).",
+                    ]);
+                }
+            }
+        }
+
+        if ($data['mode'] === 'jobwork' && ! $product->is_jobwork_allowed) {
+            return redirect()->back()->withErrors(['mode' => 'Jobwork quotations are not allowed for this product.']);
+        }
+
+        // Create a new quotation with the same quotation_group_id
+        $newQuotation = Quotation::create([
+            'user_id' => $quotation->user_id,
+            'quotation_group_id' => $quotation->quotation_group_id ?? \Illuminate\Support\Str::uuid()->toString(), // Use same group ID or create new one
+            'product_id' => $product->id,
+            'product_variant_id' => $data['product_variant_id'] ?? null,
+            'mode' => $data['mode'],
+            'status' => 'pending_customer_confirmation',
+            'quantity' => $data['quantity'],
+            'selections' => null,
+            'notes' => null,
+        ]);
+
+        $message = (string) ($data['admin_notes'] ?? "Added new product '{$product->name}' to quotation.");
+
+        $quotation->messages()->create([
+            'user_id' => auth('web')->id(),
+            'sender' => 'admin',
+            'message' => $message,
+        ]);
+
+        if (config('mail.from.address') && $quotation->user->email) {
+            Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
+                $quotation,
+                $quotation->status,
+                $message
+            ));
+        }
+
+        return redirect()
+            ->route('admin.quotations.show', $quotation->id)
+            ->with('success', 'Added new item to quotation and requested customer approval.');
     }
 
     public function updateProduct(Request $request, Quotation $quotation): RedirectResponse
@@ -521,17 +715,21 @@ class QuotationController extends Controller
 
     public function destroy(Quotation $quotation): RedirectResponse
     {
-        // Check if there are related quotations - if this is the main one, redirect to list
-        $createdAt = $quotation->created_at;
-        $timeWindow = $createdAt ? $createdAt->copy()->subMinutes(5) : null;
-        $timeWindowEnd = $createdAt ? $createdAt->copy()->addMinutes(5) : null;
-
+        // Check if there are related quotations using quotation_group_id
         $relatedQuotations = Quotation::query()
-            ->where('user_id', $quotation->user_id)
-            ->when($timeWindow && $timeWindowEnd, function ($q) use ($timeWindow, $timeWindowEnd) {
-                $q->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
-            })
             ->where('id', '!=', $quotation->id)
+            ->when($quotation->quotation_group_id, function ($q) use ($quotation) {
+                $q->where('quotation_group_id', $quotation->quotation_group_id);
+            }, function ($q) use ($quotation) {
+                // Fallback for old quotations: use timestamp-based grouping
+                $createdAt = $quotation->created_at;
+                $timeWindow = $createdAt ? $createdAt->copy()->subMinutes(5) : null;
+                $timeWindowEnd = $createdAt ? $createdAt->copy()->addMinutes(5) : null;
+                if ($timeWindow && $timeWindowEnd) {
+                    $q->where('user_id', $quotation->user_id)
+                        ->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
+                }
+            })
             ->count();
 
         $quotation->delete();
@@ -539,9 +737,17 @@ class QuotationController extends Controller
         if ($relatedQuotations > 0) {
             // If there are related quotations, redirect to the first one
             $firstRelated = Quotation::query()
-                ->where('user_id', $quotation->user_id)
-                ->when($timeWindow && $timeWindowEnd, function ($q) use ($timeWindow, $timeWindowEnd) {
-                    $q->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
+                ->when($quotation->quotation_group_id, function ($q) use ($quotation) {
+                    $q->where('quotation_group_id', $quotation->quotation_group_id);
+                }, function ($q) use ($quotation) {
+                    // Fallback for old quotations
+                    $createdAt = $quotation->created_at;
+                    $timeWindow = $createdAt ? $createdAt->copy()->subMinutes(5) : null;
+                    $timeWindowEnd = $createdAt ? $createdAt->copy()->addMinutes(5) : null;
+                    if ($timeWindow && $timeWindowEnd) {
+                        $q->where('user_id', $quotation->user_id)
+                            ->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
+                    }
                 })
                 ->orderBy('created_at')
                 ->first();
@@ -556,6 +762,148 @@ class QuotationController extends Controller
         return redirect()
             ->route('admin.quotations.index')
             ->with('success', 'Quotation removed.');
+    }
+
+    protected function createOrderFromQuotations($quotations, ?OrderStatus $statusOverride = null): Order
+    {
+        if ($quotations->isEmpty()) {
+            throw new \InvalidArgumentException('Cannot create order from empty quotations collection.');
+        }
+
+        $firstQuotation = $quotations->first();
+        $firstQuotation->loadMissing('user');
+
+        $totalAmount = 0;
+        $totalSubtotal = 0;
+        $totalDiscount = 0;
+        $orderItems = [];
+
+        // Calculate totals for all quotations
+        foreach ($quotations as $quotation) {
+            /** @var Product $product */
+            $product = Product::query()->findOrFail($quotation->product_id);
+            $variant = $quotation->product_variant_id
+                ? ProductVariant::query()->findOrFail($quotation->product_variant_id)
+                : null;
+
+            $pricing = $this->pricingService->calculateProductPrice(
+                $product,
+                $quotation->user,
+                [
+                    'variant' => $variant ? $variant->toArray() : null,
+                    'quantity' => $quotation->quantity,
+                    'customer_group_id' => $quotation->user?->customer_group_id ?? null,
+                    'customer_type' => $quotation->user?->type ?? null,
+                    'mode' => $quotation->mode,
+                ]
+            )->toArray();
+
+            $metalCost = (float) ($pricing['metal'] ?? 0);
+            $diamondCost = (float) ($pricing['diamond'] ?? 0);
+            $making = (float) ($pricing['making'] ?? $product->making_charge);
+            $unitSubtotal = (float) ($pricing['subtotal'] ?? ($metalCost + $diamondCost + $making));
+            $unitDiscount = (float) ($pricing['discount'] ?? 0);
+            $unitTotal = (float) ($pricing['total'] ?? ($unitSubtotal - $unitDiscount));
+
+            $lineSubtotal = $unitSubtotal * $quotation->quantity;
+            $lineDiscount = $unitDiscount * $quotation->quantity;
+            $lineTotal = $unitTotal * $quotation->quantity;
+
+            $totalAmount += $lineTotal;
+            $totalSubtotal += $lineSubtotal;
+            $totalDiscount += $lineDiscount;
+
+            $orderItems[] = [
+                'product' => $product,
+                'variant' => $variant,
+                'quotation' => $quotation,
+                'unit_total' => $unitTotal,
+                'line_total' => $lineTotal,
+                'line_subtotal' => $lineSubtotal,
+                'line_discount' => $lineDiscount,
+                'pricing' => $pricing,
+            ];
+        }
+
+        $initialStatus = OrderStatus::InProduction;
+
+        $order = Order::create([
+            'user_id' => $firstQuotation->user_id,
+            'status' => $statusOverride?->value ?? $initialStatus->value,
+            'reference' => Str::upper(Str::random(10)),
+            'currency' => 'INR',
+            'total_amount' => round($totalAmount, 2),
+            'subtotal_amount' => round($totalSubtotal, 2),
+            'tax_amount' => 0,
+            'discount_amount' => round($totalDiscount, 2),
+            'price_breakdown' => [
+                'items' => collect($orderItems)->map(function ($item) {
+                    return [
+                        'quotation_id' => $item['quotation']->id,
+                        'unit' => $item['pricing'],
+                        'quantity' => $item['quotation']->quantity,
+                        'line_subtotal' => round($item['line_subtotal'], 2),
+                        'line_discount' => round($item['line_discount'], 2),
+                    ];
+                })->all(),
+            ],
+            'locked_rates' => null,
+        ]);
+
+        // Create order items for each quotation
+        foreach ($orderItems as $item) {
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $item['product']->id,
+                'sku' => $item['product']->sku,
+                'name' => $item['product']->name,
+                'quantity' => $item['quotation']->quantity,
+                'unit_price' => round($item['unit_total'], 2),
+                'total_price' => round($item['line_total'], 2),
+                'configuration' => $item['quotation']->selections,
+                'metadata' => [
+                    'mode' => $item['quotation']->mode,
+                    'quotation_id' => $item['quotation']->id,
+                    'variant' => $item['variant'] ? [
+                        'id' => $item['variant']->id,
+                        'label' => $item['variant']->label,
+                        'metadata' => $item['variant']->metadata,
+                    ] : null,
+                ],
+            ]);
+        }
+
+        $order->statusHistory()->create([
+            'user_id' => null, // Admin users are not in customers table, so set to null
+            'status' => $order->status,
+            'meta' => [
+                'source' => 'quotation_approval',
+                'approved_by' => auth()->id(), // Store admin ID in meta for tracking
+                'quotation_ids' => $quotations->pluck('id')->all(),
+            ],
+        ]);
+
+        return $order;
+    }
+
+    /**
+     * Get all related quotations in the same group
+     */
+    protected function getRelatedQuotations(Quotation $quotation)
+    {
+        return Quotation::query()
+            ->when($quotation->quotation_group_id, function ($q) use ($quotation) {
+                $q->where('quotation_group_id', $quotation->quotation_group_id);
+            }, function ($q) use ($quotation) {
+                // Fallback for old quotations: use timestamp-based grouping
+                $createdAt = $quotation->created_at;
+                $timeWindow = $createdAt ? $createdAt->copy()->subMinutes(5) : null;
+                $timeWindowEnd = $createdAt ? $createdAt->copy()->addMinutes(5) : null;
+                if ($timeWindow && $timeWindowEnd) {
+                    $q->where('user_id', $quotation->user_id)
+                        ->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
+                }
+            });
     }
 
     protected function createOrderFromQuotation(Quotation $quotation, ?OrderStatus $statusOverride = null): Order

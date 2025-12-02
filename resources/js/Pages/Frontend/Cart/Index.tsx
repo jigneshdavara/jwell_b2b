@@ -23,9 +23,11 @@ type PriceBreakdown = {
 type CartItem = {
     id: number;
     product_id: number;
+    product_variant_id?: number | null;
     sku: string;
     name: string;
     quantity: number;
+    inventory_quantity?: number | null;
     unit_total: number;
     line_total: number;
     line_subtotal?: number;
@@ -66,6 +68,7 @@ export default function CartIndex() {
     const [submitting, setSubmitting] = useState(false);
     const [notesModalOpen, setNotesModalOpen] = useState<number | null>(null);
     const [notesValue, setNotesValue] = useState<Record<number, string>>({});
+    const [inventoryErrors, setInventoryErrors] = useState<string[]>([]);
     const totalQuantity = useMemo(() => cart.items.reduce((sum, item) => sum + item.quantity, 0), [cart.items]);
     const jobworkCount = useMemo(
         () => cart.items.filter((item) => (item.configuration?.mode ?? 'purchase') === 'jobwork').length,
@@ -87,6 +90,20 @@ export default function CartIndex() {
 
     const updateQuantity = (item: CartItem, delta: number) => {
         const nextQuantity = Math.max(1, item.quantity + delta);
+        
+        // Check inventory limit
+        const inventoryQuantity = item.inventory_quantity ?? null;
+        if (inventoryQuantity !== null) {
+            // If inventory is tracked and is 0, prevent update
+            if (inventoryQuantity === 0) {
+                return;
+            }
+            // If inventory is tracked, don't allow exceeding it
+            if (nextQuantity > inventoryQuantity) {
+                return;
+            }
+        }
+        
         router.patch(
             route('frontend.cart.items.update', item.id),
             { quantity: nextQuantity },
@@ -130,6 +147,34 @@ export default function CartIndex() {
             return;
         }
 
+        // Validate inventory before opening modal
+        const variantQuantities: Record<number, { variant: CartItem['inventory_quantity'], product: string, total: number }> = {};
+        const errors: string[] = [];
+
+        cart.items.forEach((item) => {
+            if (item.inventory_quantity !== null && item.inventory_quantity !== undefined && item.product_variant_id) {
+                const variantId = item.product_variant_id;
+                if (!variantQuantities[variantId]) {
+                    variantQuantities[variantId] = {
+                        variant: item.inventory_quantity,
+                        product: item.name,
+                        total: 0,
+                    };
+                }
+                variantQuantities[variantId].total += item.quantity;
+            }
+        });
+
+        // Check if any variant exceeds inventory
+        Object.values(variantQuantities).forEach(({ variant, product, total }) => {
+            if (variant === 0) {
+                errors.push(`${product} is currently out of stock.`);
+            } else if (variant !== null && total > variant) {
+                errors.push(`Total quantity requested for ${product} is ${total}, but only ${variant} ${variant === 1 ? 'item is' : 'items are'} available.`);
+            }
+        });
+
+        setInventoryErrors(errors);
         setConfirmOpen(true);
     };
 
@@ -138,6 +183,42 @@ export default function CartIndex() {
             return;
         }
 
+        // Validate inventory before submitting
+        const variantQuantities: Record<number, { variant: CartItem['inventory_quantity'], product: string, total: number }> = {};
+        const inventoryErrors: string[] = [];
+
+        cart.items.forEach((item) => {
+            if (item.inventory_quantity !== null && item.inventory_quantity !== undefined && item.product_variant_id) {
+                const variantId = item.product_variant_id;
+                if (!variantQuantities[variantId]) {
+                    variantQuantities[variantId] = {
+                        variant: item.inventory_quantity,
+                        product: item.name,
+                        total: 0,
+                    };
+                }
+                variantQuantities[variantId].total += item.quantity;
+            }
+        });
+
+        // Check if any variant exceeds inventory
+        Object.values(variantQuantities).forEach(({ variant, product, total }) => {
+            if (variant === 0) {
+                inventoryErrors.push(`${product} is currently out of stock.`);
+            } else if (variant !== null && total > variant) {
+                inventoryErrors.push(`Total quantity requested for ${product} is ${total}, but only ${variant} ${variant === 1 ? 'item is' : 'items are'} available.`);
+            }
+        });
+
+        if (inventoryErrors.length > 0) {
+            // Show error in modal and don't submit
+            setInventoryErrors(inventoryErrors);
+            return;
+        }
+        
+        // Clear any previous errors
+        setInventoryErrors([]);
+
         setSubmitting(true);
         router.post(
             route('frontend.quotations.store-from-cart'),
@@ -145,6 +226,12 @@ export default function CartIndex() {
             {
                 preserveScroll: true,
                 onSuccess: () => setConfirmOpen(false),
+                onError: (errors) => {
+                    // Handle backend validation errors
+                    if (errors.quantity) {
+                        alert(Array.isArray(errors.quantity) ? errors.quantity.join('\n') : errors.quantity);
+                    }
+                },
                 onFinish: () => setSubmitting(false),
             },
         );
@@ -301,28 +388,36 @@ export default function CartIndex() {
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-4">
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => updateQuantity(item, -1)}
-                                                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
-                                                                aria-label="Decrease quantity"
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
-                                                                </svg>
-                                                            </button>
-                                                            <span className="min-w-[2rem] text-center text-sm font-semibold text-slate-900">{item.quantity}</span>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => updateQuantity(item, 1)}
-                                                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
-                                                                aria-label="Increase quantity"
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                                                </svg>
-                                                            </button>
+                                                        <div className="flex flex-col items-center justify-center gap-1">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => updateQuantity(item, -1)}
+                                                                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                                                                    aria-label="Decrease quantity"
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+                                                                    </svg>
+                                                                </button>
+                                                                <span className="min-w-[2rem] text-center text-sm font-semibold text-slate-900">{item.quantity}</span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => updateQuantity(item, 1)}
+                                                                    disabled={item.inventory_quantity !== null && (item.inventory_quantity === 0 || item.quantity >= item.inventory_quantity)}
+                                                                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                    aria-label="Increase quantity"
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                            {item.inventory_quantity !== null && item.quantity > item.inventory_quantity && (
+                                                                <span className="text-xs text-rose-500">
+                                                                    Only {item.inventory_quantity} {item.inventory_quantity === 1 ? 'item is' : 'items are'} available
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-4 text-right text-sm font-medium text-slate-900">
@@ -433,13 +528,30 @@ export default function CartIndex() {
                 </div>
             </div>
 
-            <Modal show={confirmOpen} onClose={() => (!submitting ? setConfirmOpen(false) : undefined)} maxWidth="lg">
+            <Modal show={confirmOpen} onClose={() => (!submitting ? (setConfirmOpen(false), setInventoryErrors([])) : undefined)} maxWidth="lg">
                 <div className="space-y-5 p-6">
                     <h2 className="text-lg font-semibold text-slate-900">Submit all quotation requests?</h2>
                     <p className="text-sm text-slate-600">
                         We will create separate quotation tickets for each product so the merchandising team can review the
                         details. You can still add more items afterwards.
                     </p>
+                    {inventoryErrors.length > 0 && (
+                        <div className="rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-800">
+                            <div className="flex items-start gap-2">
+                                <svg className="h-5 w-5 flex-shrink-0 text-rose-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                                <div className="flex-1">
+                                    <p className="font-semibold mb-2">Inventory Not Available</p>
+                                    <ul className="list-disc list-inside space-y-1">
+                                        {inventoryErrors.map((error, index) => (
+                                            <li key={index}>{error}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
                         <p>
                             <span className="font-semibold text-slate-800">Products selected:</span> {cart.items.length}
@@ -474,7 +586,7 @@ export default function CartIndex() {
                         <button
                             type="button"
                             onClick={confirmSubmit}
-                            disabled={submitting}
+                            disabled={submitting || inventoryErrors.length > 0}
                             className="inline-flex items-center justify-center rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {submitting ? 'Submitting…' : 'Confirm & submit'}

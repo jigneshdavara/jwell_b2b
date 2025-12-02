@@ -153,9 +153,14 @@ const formatDate = (input?: string | null) =>
 export default function AdminQuotationShow() {
     const { quotation, jobworkStages } = usePage<AdminQuotationShowProps>().props;
     const [changeProductModalOpen, setChangeProductModalOpen] = useState<number | null>(null);
+    const [addItemModalOpen, setAddItemModalOpen] = useState(false);
     const [productSearch, setProductSearch] = useState('');
     const [searchResults, setSearchResults] = useState<Array<{ id: number; name: string; sku: string }>>([]);
     const [selectedProduct, setSelectedProduct] = useState<{ id: number; name: string; sku: string; variants: Array<{ id: number; label: string; price_adjustment: number }> } | null>(null);
+    const [addItemProductSearch, setAddItemProductSearch] = useState('');
+    const [addItemSearchResults, setAddItemSearchResults] = useState<Array<{ id: number; name: string; sku: string }>>([]);
+    const [addItemSelectedProduct, setAddItemSelectedProduct] = useState<{ id: number; name: string; sku: string; variants: Array<{ id: number; label: string; price_adjustment: number }> } | null>(null);
+    const [isManualAddItemSearch, setIsManualAddItemSearch] = useState(false);
     // Track if changes have been made that require customer confirmation
     const [hasChanges, setHasChanges] = useState(quotation.status === 'pending_customer_confirmation');
     const [actionType, setActionType] = useState<'approve' | 'reject' | 'request_confirmation' | 'jobwork_update' | ''>('');
@@ -181,8 +186,16 @@ export default function AdminQuotationShow() {
         quantity: 1,
         admin_notes: '',
     });
+    const addItemForm = useForm({
+        product_id: '',
+        product_variant_id: '',
+        quantity: 1,
+        mode: quotation.mode,
+        admin_notes: '',
+    });
 
-    // Get all quotations to display (including the main one)
+    // Get all quotations to display (including related ones from the same submission)
+    // Related quotations are those created within 5 minutes by the same user (same cart submission)
     const allQuotations = quotation.related_quotations && quotation.related_quotations.length > 0
         ? [quotation, ...quotation.related_quotations]
         : [quotation];
@@ -225,6 +238,41 @@ export default function AdminQuotationShow() {
 
         return () => clearTimeout(timeoutId);
     }, [productSearch, changeProductModalOpen, isManualSearch]);
+
+    // Search products for add item modal
+    useEffect(() => {
+        if (!addItemModalOpen || !isManualAddItemSearch || addItemProductSearch.length < 2) {
+            if (!isManualAddItemSearch) {
+                setAddItemSearchResults([]);
+            }
+            return;
+        }
+
+        const timeoutId = setTimeout(() => {
+            const url = new URL(route('admin.products.index'), window.location.origin);
+            url.searchParams.set('search', addItemProductSearch);
+            url.searchParams.set('per_page', '10');
+
+            fetch(url.toString(), {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'X-Inertia': 'true',
+                },
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    const products = data.props?.products?.data || [];
+                    setAddItemSearchResults(products.map((p: any) => ({ id: p.id, name: p.name, sku: p.sku })));
+                })
+                .catch(() => {
+                    setAddItemSearchResults([]);
+                });
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [addItemProductSearch, addItemModalOpen, isManualAddItemSearch]);
 
     const openChangeModal = (quotationItem: RelatedQuotation | QuotationDetails) => {
         setChangeProductModalOpen(quotationItem.id);
@@ -286,6 +334,62 @@ export default function AdminQuotationShow() {
                 setHasChanges(true);
                 setActionType('request_confirmation'); // Auto-select request confirmation when changes are made
                 closeChangeModal();
+            },
+        });
+    };
+
+    const openAddItemModal = () => {
+        setAddItemModalOpen(true);
+        setIsManualAddItemSearch(false);
+        addItemForm.setData({
+            product_id: '',
+            product_variant_id: '',
+            quantity: 1,
+            mode: quotation.mode,
+            admin_notes: '',
+        });
+        setAddItemProductSearch('');
+        setAddItemSelectedProduct(null);
+        setAddItemSearchResults([]);
+    };
+
+    const closeAddItemModal = () => {
+        setAddItemModalOpen(false);
+        setAddItemProductSearch('');
+        setAddItemSearchResults([]);
+        setAddItemSelectedProduct(null);
+        setIsManualAddItemSearch(false);
+        addItemForm.reset();
+    };
+
+    const selectAddItemProduct = (product: { id: number; name: string; sku: string }) => {
+        addItemForm.setData('product_id', product.id.toString());
+        addItemForm.setData('product_variant_id', '');
+        setAddItemProductSearch(product.name);
+        
+        const currentQuotation = allQuotations.find((q) => q.product.id === product.id);
+        if (currentQuotation?.product.variants) {
+            setAddItemSelectedProduct({
+                ...product,
+                variants: currentQuotation.product.variants,
+            });
+        } else {
+            setAddItemSelectedProduct({
+                ...product,
+                variants: [],
+            });
+        }
+    };
+
+    const submitAddItem = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        addItemForm.post(route('admin.quotations.add-item', quotation.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setHasChanges(true);
+                setActionType('request_confirmation');
+                closeAddItemModal();
             },
         });
     };
@@ -391,7 +495,19 @@ export default function AdminQuotationShow() {
 
                     {/* Products Table - Invoice Style */}
                     <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                        <h2 className="mb-4 text-lg font-semibold text-slate-900">Items</h2>
+                        <div className="mb-4 flex items-center justify-between">
+                            <h2 className="text-lg font-semibold text-slate-900">Items</h2>
+                            <button
+                                type="button"
+                                onClick={openAddItemModal}
+                                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Add Item
+                            </button>
+                        </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead className="border-b-2 border-slate-200 bg-slate-50">
@@ -427,7 +543,9 @@ export default function AdminQuotationShow() {
                                                             <p className="text-sm font-semibold text-slate-900">{item.product.name}</p>
                                                             <p className="text-xs text-slate-400">SKU {item.product.sku}</p>
                                                             {item.variant && (
-                                                                <p className="mt-0.5 text-xs font-medium text-slate-500">{item.variant.label}</p>
+                                                                <p className="mt-0.5 text-xs font-medium text-slate-500">
+                                                                    {(item.variant.metadata?.auto_label as string) || item.variant.label}
+                                                                </p>
                                                             )}
                                                             {item.notes && (
                                                                 <p className="mt-1 text-xs text-slate-500 italic">Note: {item.notes}</p>
@@ -1139,6 +1257,136 @@ export default function AdminQuotationShow() {
                                     className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
                                 >
                                     {changeProductForm.processing ? 'Updating...' : 'Update Product'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal show={addItemModalOpen} onClose={closeAddItemModal} maxWidth="4xl">
+                <div className="flex min-h-0 flex-col">
+                    <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-slate-900">Add Item</h3>
+                            <button
+                                type="button"
+                                onClick={closeAddItemModal}
+                                className="text-slate-400 hover:text-slate-600"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                        <form onSubmit={submitAddItem} className="space-y-4">
+                            <div>
+                                <label className="mb-2 block text-sm font-semibold text-slate-700">Search Product</label>
+                                <input
+                                    type="text"
+                                    value={addItemProductSearch}
+                                    onChange={(e) => {
+                                        setAddItemProductSearch(e.target.value);
+                                        setIsManualAddItemSearch(true);
+                                    }}
+                                    placeholder="Type product name or SKU..."
+                                    className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                />
+                                {addItemSearchResults.length > 0 && (
+                                    <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+                                        {addItemSearchResults.map((product) => (
+                                            <button
+                                                key={product.id}
+                                                type="button"
+                                                onClick={() => selectAddItemProduct(product)}
+                                                className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 transition"
+                                            >
+                                                <div className="font-semibold text-slate-900">{product.name}</div>
+                                                <div className="text-xs text-slate-400">SKU {product.sku}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {addItemSelectedProduct && (
+                                <>
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Selected Product</p>
+                                        <p className="mt-1 text-sm font-semibold text-slate-900">{addItemSelectedProduct.name}</p>
+                                        <p className="text-xs text-slate-400">SKU {addItemSelectedProduct.sku}</p>
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-2 block text-sm font-semibold text-slate-700">Mode</label>
+                                        <select
+                                            value={addItemForm.data.mode}
+                                            onChange={(e) => addItemForm.setData('mode', e.target.value as 'purchase' | 'jobwork')}
+                                            className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        >
+                                            <option value="purchase">Jewellery</option>
+                                            <option value="jobwork">Jobwork</option>
+                                        </select>
+                                    </div>
+
+                                    {addItemSelectedProduct.variants.length > 0 && (
+                                        <div>
+                                            <label className="mb-2 block text-sm font-semibold text-slate-700">Variant</label>
+                                            <select
+                                                value={addItemForm.data.product_variant_id}
+                                                onChange={(e) => addItemForm.setData('product_variant_id', e.target.value)}
+                                                className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            >
+                                                <option value="">No variant</option>
+                                                {addItemSelectedProduct.variants.map((variant) => (
+                                                    <option key={variant.id} value={variant.id}>
+                                                        {variant.label} (₹ {variant.price_adjustment.toLocaleString('en-IN')})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="mb-2 block text-sm font-semibold text-slate-700">Quantity</label>
+                                        <input
+                                            type="number"
+                                            value={addItemForm.data.quantity}
+                                            onChange={(e) => addItemForm.setData('quantity', parseInt(e.target.value) || 1)}
+                                            min={1}
+                                            className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-2 block text-sm font-semibold text-slate-700">Notes (optional)</label>
+                                        <textarea
+                                            value={addItemForm.data.admin_notes}
+                                            onChange={(e) => addItemForm.setData('admin_notes', e.target.value)}
+                                            placeholder="Add notes about this item..."
+                                            rows={3}
+                                            className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            <div className="flex justify-end gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={closeAddItemModal}
+                                    className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={addItemForm.processing || !addItemSelectedProduct}
+                                    className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                    {addItemForm.processing ? 'Adding...' : 'Add Item'}
                                 </button>
                             </div>
                         </form>
