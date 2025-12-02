@@ -124,11 +124,13 @@ class CartService
             return [
                 'id' => $item->id,
                 'product_id' => $item->product_id,
+                'product_variant_id' => $item->product_variant_id,
                 'variant_id' => $item->variant?->id,
                 'sku' => $item->product->sku,
                 'name' => $item->product->name,
                 'variant_label' => $item->variant?->label,
                 'quantity' => $item->quantity,
+                'inventory_quantity' => $item->variant?->inventory_quantity ?? null,
                 'unit_total' => round($unitTotal, 2),
                 'line_total' => round($lineTotal, 2),
                 'line_subtotal' => round($lineSubtotal, 2),

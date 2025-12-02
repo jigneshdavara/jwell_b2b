@@ -72,7 +72,31 @@ class CartController extends Controller
         $data = $request->validated();
 
         if (array_key_exists('quantity', $data) && $data['quantity'] !== null) {
-            $this->cartService->updateItemQuantity($item, (int) $data['quantity']);
+            $quantity = (int) $data['quantity'];
+            
+            // Validate inventory quantity if variant exists
+            if ($item->product_variant_id) {
+                $variant = $item->variant;
+                if ($variant) {
+                    $inventoryQuantity = $variant->inventory_quantity ?? null;
+                    if ($inventoryQuantity !== null) {
+                        // If inventory is tracked and is 0, reject the update
+                        if ($inventoryQuantity === 0) {
+                            return redirect()
+                                ->back()
+                                ->with('error', 'This product variant is currently out of stock.');
+                        }
+                        // If inventory is tracked, don't allow exceeding it
+                        if ($quantity > $inventoryQuantity) {
+                            return redirect()
+                                ->back()
+                                ->with('error', "Only {$inventoryQuantity} " . ($inventoryQuantity === 1 ? 'item is' : 'items are') . " available. Maximum {$inventoryQuantity} " . ($inventoryQuantity === 1 ? 'item' : 'items') . " allowed.");
+                        }
+                    }
+                }
+            }
+            
+            $this->cartService->updateItemQuantity($item, $quantity);
         }
 
         if (! empty($data['configuration'])) {

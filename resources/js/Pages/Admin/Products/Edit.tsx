@@ -68,7 +68,6 @@ type Product = {
     silver_weight?: number | string;
     other_material_weight?: number | string;
     total_weight?: number | string;
-    base_price?: number | string;
     making_charge?: number | string;
     making_charge_discount_type?: 'percentage' | 'fixed' | null;
     making_charge_discount_value?: string | number | null;
@@ -173,7 +172,6 @@ type FormData = {
     silver_weight: string;
     other_material_weight: string;
     total_weight: string;
-    base_price: string;
     making_charge: string;
     making_charge_discount_type: '' | 'percentage' | 'fixed' | null;
     making_charge_discount_value: string | number | null;
@@ -2066,9 +2064,52 @@ export default function AdminProductEdit() {
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
+        // Check for media uploads before transform (since transform may delete the field)
+        const hasMediaUploads = (form.data.media_uploads?.length ?? 0) > 0;
+
         form.transform((current) => {
             const formState = current as FormData;
             const payload: any = { ...formState };
+            
+            // Preserve File objects in media_uploads (they might be lost in spread)
+            if (formState.media_uploads && Array.isArray(formState.media_uploads) && formState.media_uploads.length > 0) {
+                payload.media_uploads = formState.media_uploads;
+            }
+            
+            // Ensure required string fields are preserved
+            payload.sku = formState.sku || '';
+            payload.name = formState.name || '';
+            payload.description = formState.description || '';
+            
+            // Convert string IDs to numbers for backend validation
+            // Ensure brand_id and category_id are always numbers (required fields)
+            const brandIdValue = formState.brand_id;
+            if (brandIdValue !== '' && brandIdValue !== null && brandIdValue !== undefined) {
+                const brandIdNum = Number(brandIdValue);
+                payload.brand_id = isNaN(brandIdNum) ? null : brandIdNum;
+            } else {
+                payload.brand_id = null;
+            }
+            
+            const categoryIdValue = formState.category_id;
+            if (categoryIdValue !== '' && categoryIdValue !== null && categoryIdValue !== undefined) {
+                const categoryIdNum = Number(categoryIdValue);
+                payload.category_id = isNaN(categoryIdNum) ? null : categoryIdNum;
+            } else {
+                payload.category_id = null;
+            }
+            
+            payload.product_catalog_ids = formState.product_catalog_ids.map((id: string) => Number(id)).filter((id: number) => !isNaN(id) && id > 0);
+            
+            // Convert making_charge to number (required field)
+            const makingChargeValue = formState.making_charge;
+            if (makingChargeValue === '' || makingChargeValue === null || makingChargeValue === undefined) {
+                payload.making_charge = 0;
+            } else {
+                const numValue = Number(makingChargeValue);
+                payload.making_charge = isNaN(numValue) ? 0 : numValue;
+            }
+            
             payload.uses_diamond = formState.uses_diamond;
             // Always send diamond_mixing_mode to preserve the user's selection
             payload.diamond_mixing_mode = formState.diamond_mixing_mode || 'shared';
@@ -2232,28 +2273,57 @@ export default function AdminProductEdit() {
                 payload.diamond_cut_ids = [];
             }
 
-            if ((payload.media_uploads?.length ?? 0) === 0) {
+            // Only delete media_uploads if it's truly empty (not if it has files)
+            // Files are File objects and need to be preserved for upload
+            if (!payload.media_uploads || (Array.isArray(payload.media_uploads) && payload.media_uploads.length === 0)) {
                 delete payload.media_uploads;
             }
-            if ((payload.removed_media_ids?.length ?? 0) === 0) {
+            // Only delete removed_media_ids if it's empty
+            if (!payload.removed_media_ids || (Array.isArray(payload.removed_media_ids) && payload.removed_media_ids.length === 0)) {
                 delete payload.removed_media_ids;
+            }
+
+            // Ensure variants are always included when is_variant_product is true
+            if (formState.is_variant_product && (!payload.variants || payload.variants.length === 0)) {
+                // If variants are missing but product is variant product, ensure we send empty array
+                // This will trigger validation error which is correct behavior
+                payload.variants = [];
+            }
+
+            // Ensure all required fields are explicitly set (don't rely on spread operator alone)
+            if (!payload.sku) payload.sku = '';
+            if (!payload.name) payload.name = '';
+            if (payload.brand_id === undefined) payload.brand_id = null;
+            if (payload.category_id === undefined) payload.category_id = null;
+            if (payload.making_charge === undefined) payload.making_charge = 0;
+
+            // Add method spoofing for PUT requests when files are present (Laravel requirement)
+            if (product?.id && hasMediaUploads) {
+                payload._method = 'PUT';
             }
 
             return payload;
         });
 
+        const submitOptions = {
+            preserveScroll: true,
+            forceFormData: hasMediaUploads,
+            onFinish: () => {
+                // Reset transform so it doesn't affect other requests
+                form.transform((data) => data);
+            },
+        };
+
         if (product?.id) {
-            if ((data.media_uploads?.length ?? 0) > 0) {
-                put(route('admin.products.update', product.id), { forceFormData: true });
+            // Use POST with _method=PUT for file uploads (Laravel requirement)
+            // Otherwise use PUT for regular updates
+            if (hasMediaUploads) {
+                post(route('admin.products.update', product.id), submitOptions);
             } else {
-                put(route('admin.products.update', product.id));
+                put(route('admin.products.update', product.id), submitOptions);
             }
         } else {
-            if ((data.media_uploads?.length ?? 0) > 0) {
-                post(route('admin.products.store'), { forceFormData: true });
-            } else {
-                post(route('admin.products.store'));
-            }
+            post(route('admin.products.store'), submitOptions);
         }
     };
 
@@ -2431,6 +2501,7 @@ export default function AdminProductEdit() {
                                     <input
                                         type="number"
                                         step="0.01"
+                                        min="0"
                                         value={data.making_charge}
                                         onChange={(event) => setData('making_charge', event.target.value)}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
@@ -2500,6 +2571,10 @@ export default function AdminProductEdit() {
                                                     src={mediaItem.url}
                                                     className="h-48 w-full rounded-t-3xl bg-black object-cover"
                                                     controls
+                                                    onError={(e) => {
+                                                        console.error('Video load error:', mediaItem.url);
+                                                        (e.target as HTMLVideoElement).style.display = 'none';
+                                                    }}
                                                 >
                                                     Your browser does not support the video tag.
                                                 </video>
@@ -2508,6 +2583,10 @@ export default function AdminProductEdit() {
                                                     src={mediaItem.url}
                                                     alt="Product media"
                                                     className="h-48 w-full rounded-t-3xl object-cover"
+                                                    onError={(e) => {
+                                                        console.error('Image load error:', mediaItem.url);
+                                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23ddd" width="400" height="300"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="18" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3EImage not found%3C/text%3E%3C/svg%3E';
+                                                    }}
                                                 />
                                             )}
                                             <div className="flex items-center justify-between px-4 py-3 text-xs text-slate-500">

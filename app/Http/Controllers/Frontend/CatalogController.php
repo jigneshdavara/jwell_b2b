@@ -673,6 +673,7 @@ class CatalogController extends Controller
                     'adjustment' => $priceAdjustment,
                 ],
                 'sku' => $variant->sku ?? $product->sku,
+                'inventory_quantity' => $variant->inventory_quantity ?? 0,
             ];
         }
 

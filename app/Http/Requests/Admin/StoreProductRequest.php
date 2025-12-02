@@ -55,7 +55,6 @@ class StoreProductRequest extends FormRequest
             'silver_weight' => ['nullable', 'numeric', 'min:0'],
             'other_material_weight' => ['nullable', 'numeric', 'min:0'],
             'total_weight' => ['nullable', 'numeric', 'min:0'],
-            'base_price' => ['required', 'numeric', 'min:0'],
             'making_charge' => ['required', 'numeric', 'min:0'],
             'making_charge_discount_type' => ['nullable', 'in:percentage,fixed'],
             'making_charge_discount_value' => ['nullable', 'numeric', 'min:0', 'required_with:making_charge_discount_type'],
