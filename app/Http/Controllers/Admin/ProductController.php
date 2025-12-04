@@ -4,13 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkAssignProductBrandRequest;
-use App\Http\Requests\Admin\BulkAssignProductCategoryRequest;
 use App\Http\Requests\Admin\BulkProductsRequest;
 use App\Http\Requests\Admin\BulkUpdateProductStatusRequest;
 use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Brand;
-use App\Models\Category;
 use App\Models\CustomerGroup;
 use App\Models\Metal;
 use App\Models\MetalPurity;
@@ -33,7 +31,7 @@ class ProductController extends Controller
 {
     public function index(): Response
     {
-        $filters = request()->only(['search', 'brand', 'category', 'status']);
+        $filters = request()->only(['search', 'brand', 'status']);
         $perPage = (int) request('per_page', 20);
 
         if (! in_array($perPage, [10, 25, 50, 100], true)) {
@@ -41,7 +39,7 @@ class ProductController extends Controller
         }
 
         $products = Product::query()
-            ->with(['brand', 'category'])
+            ->with(['brand'])
             ->withCount('variants')
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
@@ -51,9 +49,6 @@ class ProductController extends Controller
             })
             ->when($filters['brand'] ?? null, function ($query, $brand) {
                 $query->where('brand_id', $brand);
-            })
-            ->when($filters['category'] ?? null, function ($query, $category) {
-                $query->where('category_id', $category);
             })
             ->when($filters['status'] ?? null, function ($query, $status) {
                 if ($status === 'active') {
@@ -72,7 +67,6 @@ class ProductController extends Controller
                     'name' => $product->name,
                     'is_active' => $product->is_active,
                     'brand' => $product->brand?->only(['id', 'name']),
-                    'category' => $product->category?->only(['id', 'name']),
                     'variants_count' => $product->variants_count,
                 ];
             });
@@ -80,7 +74,6 @@ class ProductController extends Controller
         return Inertia::render('Admin/Products/Index', [
             'products' => $products,
             'brands' => Brand::query()->orderBy('name')->pluck('name', 'id'),
-            'categories' => Category::query()->orderBy('name')->pluck('name', 'id'),
             'filters' => $filters,
             'perPageOptions' => [10, 25, 50, 100],
             'perPage' => $perPage,
@@ -92,7 +85,6 @@ class ProductController extends Controller
         return Inertia::render('Admin/Products/Edit', [
             'product' => null,
             'brands' => Brand::query()->pluck('name', 'id'),
-            'categories' => Category::query()->pluck('name', 'id'),
             'productCatalogs' => ProductCatalog::query()->pluck('name', 'id'),
             'customerGroups' => $this->customerGroupOptions(),
             'metals' => $this->metalOptions(),
@@ -130,7 +122,6 @@ class ProductController extends Controller
     {
         $product->load([
             'brand',
-            'category',
             'material',
             'catalogs',
             'media' => fn($query) => $query->orderBy('position'),
@@ -147,7 +138,6 @@ class ProductController extends Controller
                 'name' => $product->name,
                 'description' => $product->description,
                 'brand_id' => $product->brand_id,
-                'category_id' => $product->category_id,
                 'gross_weight' => $product->gross_weight,
                 'net_weight' => $product->net_weight,
                 'gold_weight' => $product->gold_weight,
@@ -219,7 +209,6 @@ class ProductController extends Controller
                 ]),
             ],
             'brands' => Brand::query()->pluck('name', 'id'),
-            'categories' => Category::query()->pluck('name', 'id'),
             'productCatalogs' => ProductCatalog::query()->pluck('name', 'id'),
             'customerGroups' => $this->customerGroupOptions(),
             'metals' => $this->metalOptions(),
@@ -294,16 +283,6 @@ class ProductController extends Controller
             ->with('success', 'Brand assigned to selected products.');
     }
 
-    public function bulkAssignCategory(BulkAssignProductCategoryRequest $request): RedirectResponse
-    {
-        Product::whereIn('id', $request->validated('ids'))->update([
-            'category_id' => $request->validated('category_id'),
-        ]);
-
-        return redirect()
-            ->back()
-            ->with('success', 'Category assigned to selected products.');
-    }
 
     public function copy(Product $product): RedirectResponse
     {

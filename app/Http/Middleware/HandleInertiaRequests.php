@@ -77,7 +77,7 @@ class HandleInertiaRequests extends Middleware
             };
 
             $navCategories = Category::query()
-                ->select(['id', 'name', 'slug', 'cover_image_path'])
+                ->select(['id', 'name', 'cover_image'])
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->take(8)
@@ -85,8 +85,7 @@ class HandleInertiaRequests extends Middleware
                 ->map(fn (Category $category) => [
                     'id' => $category->id,
                     'name' => $category->name,
-                    'slug' => $category->slug,
-                    'cover_image_url' => $resolveImageUrl($category->cover_image_path),
+                    'cover_image_url' => $resolveImageUrl($category->cover_image),
                 ])
                 ->toArray();
 

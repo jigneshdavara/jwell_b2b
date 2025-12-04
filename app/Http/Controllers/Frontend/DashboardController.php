@@ -179,9 +179,8 @@ class DashboardController extends Controller
             ->map(fn(Category $category) => [
                 'id' => $category->id,
                 'name' => $category->name,
-                'slug' => $category->slug,
                 'products_count' => $category->products_count,
-                'cover_image_url' => $coverImageUrl($category->cover_image_path),
+                'cover_image_url' => $coverImageUrl($category->cover_image),
             ]);
 
         $brandSpotlight = Brand::query()

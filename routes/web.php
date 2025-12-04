@@ -11,7 +11,6 @@ use App\Http\Controllers\Admin\RateController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserGroupController;
 use App\Http\Controllers\Admin\TeamUserController;
-use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\MaterialController;
 use App\Http\Controllers\Admin\MaterialTypeController;
 use App\Http\Controllers\Admin\ProductCatalogController;
@@ -31,6 +30,7 @@ use App\Http\Controllers\Admin\MetalToneController;
 use App\Http\Controllers\Admin\MetalPurityController;
 use App\Http\Controllers\Admin\SizeController;
 use App\Http\Controllers\Admin\StyleController;
+use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CustomerTypeController;
 use App\Http\Controllers\Admin\CustomerGroupController;
 use App\Http\Controllers\Admin\OrderStatusController;
@@ -174,12 +174,9 @@ Route::prefix('admin')
 
         Route::post('products/bulk/status', [ProductController::class, 'bulkStatus'])->name('products.bulk-status');
         Route::post('products/bulk/brand', [ProductController::class, 'bulkAssignBrand'])->name('products.bulk-brand');
-        Route::post('products/bulk/category', [ProductController::class, 'bulkAssignCategory'])->name('products.bulk-category');
         Route::delete('products/bulk', [ProductController::class, 'bulkDestroy'])->name('products.bulk-destroy');
         Route::post('products/{product}/copy', [ProductController::class, 'copy'])->name('products.copy');
         Route::resource('products', ProductController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
-        Route::delete('catalog/categories/bulk', [CategoryController::class, 'bulkDestroy'])->name('catalog.categories.bulk-destroy');
-        Route::resource('catalog/categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy'])->names('catalog.categories');
         Route::delete('catalog/product-catalogs/bulk', [ProductCatalogController::class, 'bulkDestroy'])->name('catalog.product-catalogs.bulk-destroy');
         Route::post('catalog/product-catalogs/{product_catalog}/assign-products', [ProductCatalogController::class, 'assignProducts'])->name('catalog.product-catalogs.assign-products');
         Route::resource('catalog/product-catalogs', ProductCatalogController::class)->only(['index', 'store', 'update', 'destroy'])->names('catalog.product-catalogs');
@@ -242,6 +239,9 @@ Route::prefix('admin')
 
         Route::delete('styles/bulk', [StyleController::class, 'bulkDestroy'])->name('styles.bulk-destroy');
         Route::resource('styles', StyleController::class)->only(['index', 'store', 'update', 'destroy'])->names('styles');
+
+        Route::delete('categories/bulk', [CategoryController::class, 'bulkDestroy'])->name('categories.bulk-destroy');
+        Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy'])->names('categories');
 
         Route::prefix('orders')->name('orders.')->group(function () {
             Route::delete('statuses/bulk', [OrderStatusController::class, 'bulkDestroy'])->name('statuses.bulk-destroy');

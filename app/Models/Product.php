@@ -17,7 +17,6 @@ class Product extends Model
         'name',
         'description',
         'brand_id',
-        'category_id',
         'material_id',
         'gross_weight',
         'net_weight',
@@ -77,10 +76,6 @@ class Product extends Model
         return $this->belongsTo(Brand::class);
     }
 
-    public function category(): BelongsTo
-    {
-        return $this->belongsTo(Category::class);
-    }
 
     public function material(): BelongsTo
     {

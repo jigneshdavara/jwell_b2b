@@ -18,13 +18,13 @@ class StoreCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['nullable', 'string', 'max:255', Rule::unique('categories', 'slug')],
-            'description' => ['nullable', 'string'],
             'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
-            'cover_image' => ['nullable', 'image', 'max:5120'],
-            'remove_cover_image' => ['sometimes', 'boolean'],
+            'code' => ['nullable', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', Rule::unique('categories', 'name')],
+            'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
+            'display_order' => ['nullable', 'integer', 'min:0'],
+            'cover_image' => ['nullable', 'image', 'max:2048'],
         ];
     }
 }

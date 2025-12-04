@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class BulkDestroyCategoriesRequest extends FormRequest
 {
@@ -18,7 +19,7 @@ class BulkDestroyCategoriesRequest extends FormRequest
     {
         return [
             'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer', 'exists:categories,id'],
+            'ids.*' => ['required', 'integer', Rule::exists('categories', 'id')],
         ];
     }
 }

@@ -47,7 +47,6 @@ const adminNavigation: NavItem[] = [
         label: 'Catalog',
         icon: 'collection',
         children: [
-            { label: 'Categories', route: 'admin.catalog.categories.index', match: 'admin.catalog.categories.*', icon: 'layers' },
             {
                 label: 'Product catalog',
                 route: 'admin.catalog.product-catalogs.index',
@@ -57,6 +56,7 @@ const adminNavigation: NavItem[] = [
             { label: 'Products', route: 'admin.products.index', match: 'admin.products.*', icon: 'diamond' },
         ],
     },
+    { label: 'Categories', route: 'admin.categories.index', match: 'admin.categories.*', icon: 'layers' },
     { label: 'Brands', route: 'admin.brands.index', match: 'admin.brands.*', icon: 'sparkle' },
     {
         label: 'Metals',
