@@ -8,7 +8,6 @@ use App\Http\Requests\Admin\StoreDiamondClarityRequest;
 use App\Http\Requests\Admin\UpdateDiamondClarityRequest;
 use App\Models\DiamondClarity;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,21 +15,26 @@ class DiamondClarityController extends Controller
 {
     public function index(): Response
     {
-        $perPage = request()->integer('per_page', 20);
-        $perPage = in_array($perPage, [10, 25, 50, 100]) ? $perPage : 20;
+        $perPage = (int) request('per_page', 20);
+
+        if (! in_array($perPage, [10, 25, 50, 100], true)) {
+            $perPage = 20;
+        }
 
         $clarities = DiamondClarity::query()
-            ->orderBy('position')
+            ->orderBy('display_order')
             ->orderBy('name')
             ->paginate($perPage)
+            ->withQueryString()
             ->through(function (DiamondClarity $clarity) {
                 return [
                     'id' => $clarity->id,
+                    'code' => $clarity->code,
                     'name' => $clarity->name,
-                    'slug' => $clarity->slug,
+                    'ecat_name' => $clarity->ecat_name,
                     'description' => $clarity->description,
+                    'display_order' => $clarity->display_order,
                     'is_active' => $clarity->is_active,
-                    'position' => $clarity->position,
                 ];
             });
 
@@ -44,16 +48,17 @@ class DiamondClarityController extends Controller
         $data = $request->validated();
 
         DiamondClarity::create([
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => $this->uniqueSlug($data['name']),
+            'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
+            'display_order' => $data['display_order'] ?? 0,
             'is_active' => $request->boolean('is_active', true),
-            'position' => $data['position'] ?? 0,
         ]);
 
         return redirect()
             ->back()
-            ->with('success', 'Diamond clarity grade created successfully.');
+            ->with('success', 'Diamond clarity created successfully.');
     }
 
     public function update(UpdateDiamondClarityRequest $request, DiamondClarity $clarity): RedirectResponse
@@ -61,16 +66,17 @@ class DiamondClarityController extends Controller
         $data = $request->validated();
 
         $clarity->update([
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => $clarity->name === $data['name'] ? $clarity->slug : $this->uniqueSlug($data['name'], $clarity->id),
+            'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
+            'display_order' => $data['display_order'] ?? 0,
             'is_active' => $request->boolean('is_active', true),
-            'position' => $data['position'] ?? 0,
         ]);
 
         return redirect()
             ->back()
-            ->with('success', 'Diamond clarity grade updated successfully.');
+            ->with('success', 'Diamond clarity updated successfully.');
     }
 
     public function destroy(DiamondClarity $clarity): RedirectResponse
@@ -79,7 +85,7 @@ class DiamondClarityController extends Controller
 
         return redirect()
             ->back()
-            ->with('success', 'Diamond clarity grade removed.');
+            ->with('success', 'Diamond clarity removed.');
     }
 
     public function bulkDestroy(BulkDestroyDiamondClaritiesRequest $request): RedirectResponse
@@ -88,24 +94,6 @@ class DiamondClarityController extends Controller
 
         return redirect()
             ->back()
-            ->with('success', 'Selected diamond clarity grades deleted successfully.');
-    }
-
-    protected function uniqueSlug(string $name, ?int $ignoreId = null): string
-    {
-        $base = Str::slug($name);
-        $slug = $base;
-        $counter = 1;
-
-        while (
-            DiamondClarity::query()
-            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
-            ->where('slug', $slug)
-            ->exists()
-        ) {
-            $slug = sprintf('%s-%d', $base, $counter++);
-        }
-
-        return $slug;
+            ->with('success', 'Selected diamond clarities deleted successfully.');
     }
 }

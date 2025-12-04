@@ -12,11 +12,6 @@ use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\CustomerGroup;
-use App\Models\DiamondClarity;
-use App\Models\DiamondColor;
-use App\Models\DiamondCut;
-use App\Models\DiamondShape;
-use App\Models\DiamondType;
 use App\Models\Metal;
 use App\Models\MetalPurity;
 use App\Models\MetalTone;
@@ -99,7 +94,6 @@ class ProductController extends Controller
             'brands' => Brand::query()->pluck('name', 'id'),
             'categories' => Category::query()->pluck('name', 'id'),
             'productCatalogs' => ProductCatalog::query()->pluck('name', 'id'),
-            'diamondCatalog' => $this->diamondCatalog(),
             'customerGroups' => $this->customerGroupOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
@@ -122,8 +116,7 @@ class ProductController extends Controller
         return DB::transaction(function () use ($data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds) {
             $product = Product::create($data);
 
-            $diamondOptions = $data['diamond_options'] ?? null;
-            $variantSync->sync($product, $variants, $variantOptions, $diamondOptions);
+            $variantSync->sync($product, $variants, $variantOptions, null);
             $this->syncMedia($product, $mediaUploads, $removedMediaIds);
             $product->catalogs()->sync($catalogIds);
 
@@ -143,7 +136,7 @@ class ProductController extends Controller
             'media' => fn($query) => $query->orderBy('position'),
             'variants' => function ($query) {
                 $query->orderByDesc('is_default')->orderBy('label')
-                    ->with(['metals.metal', 'metals.metalPurity', 'metals.metalTone', 'diamonds.diamondType', 'diamonds.diamondShape', 'diamonds.diamondColor', 'diamonds.diamondClarity', 'diamonds.diamondCut']);
+                    ->with(['metals.metal', 'metals.metalPurity', 'metals.metalTone']);
             },
         ]);
 
@@ -184,30 +177,9 @@ class ProductController extends Controller
                 'metal_mix_mode' => is_array($product->metal_mix_mode) && count($product->metal_mix_mode) > 0
                     ? $product->metal_mix_mode
                     : (object)[],
-                'uses_diamond' => $product->uses_diamond,
-                'diamond_mixing_mode' => $product->diamond_mixing_mode ?? 'shared',
                 'metal_ids' => $product->metal_ids ?? [],
                 'metal_purity_ids' => $product->metal_purity_ids ?? [],
                 'metal_tone_ids' => $product->metal_tone_ids ?? [],
-                'diamond_type_ids' => $product->diamond_type_ids ?? [],
-                'diamond_clarity_ids' => $product->diamond_clarity_ids ?? [],
-                'diamond_color_ids' => $product->diamond_color_ids ?? [],
-                'diamond_shape_ids' => $product->diamond_shape_ids ?? [],
-                'diamond_cut_ids' => $product->diamond_cut_ids ?? [],
-                'diamond_options' => collect($product->diamond_options ?? [])
-                    ->map(function (array $option) {
-                        return [
-                            'key' => $option['key'] ?? (string) Str::uuid(),
-                            'type_id' => $option['type_id'] ?? null,
-                            'shape_id' => $option['shape_id'] ?? null,
-                            'color_id' => $option['color_id'] ?? null,
-                            'clarity_id' => $option['clarity_id'] ?? null,
-                            'cut_id' => $option['cut_id'] ?? null,
-                            'weight' => isset($option['weight']) ? (string) $option['weight'] : '',
-                            'diamonds_count' => isset($option['diamonds_count']) ? (string) $option['diamonds_count'] : '',
-                        ];
-                    })
-                    ->all(),
                 'metadata' => $product->metadata,
                 'product_catalog_ids' => $product->catalogs->pluck('id')->all(),
                 'variants' => $product->variants->map(fn(ProductVariant $variant) => [
@@ -223,7 +195,6 @@ class ProductController extends Controller
                     'price_adjustment' => $variant->price_adjustment,
                     'is_default' => $variant->is_default,
                     'metadata' => $variant->metadata,
-                    'diamond_option_key' => $variant->metadata['diamond_option_key'] ?? null,
                     'size_cm' => $variant->metadata['size_cm'] ?? null,
                     // Optional: for multiple metals per variant
                     'metals' => $variant->metals->map(fn($metal) => [
@@ -238,22 +209,6 @@ class ProductController extends Controller
                         'metal_purity' => $metal->metalPurity ? ['id' => $metal->metalPurity->id, 'name' => $metal->metalPurity->name] : null,
                         'metal_tone' => $metal->metalTone ? ['id' => $metal->metalTone->id, 'name' => $metal->metalTone->name] : null,
                     ])->values()->all(),
-                    'diamonds' => $variant->diamonds->map(fn($diamond) => [
-                        'id' => $diamond->id,
-                        'diamond_type_id' => $diamond->diamond_type_id,
-                        'diamond_shape_id' => $diamond->diamond_shape_id,
-                        'diamond_color_id' => $diamond->diamond_color_id,
-                        'diamond_clarity_id' => $diamond->diamond_clarity_id,
-                        'diamond_cut_id' => $diamond->diamond_cut_id,
-                        'diamonds_count' => $diamond->diamonds_count,
-                        'total_carat' => $diamond->total_carat,
-                        'metadata' => $diamond->metadata,
-                        'diamond_type' => $diamond->diamondType ? ['id' => $diamond->diamondType->id, 'name' => $diamond->diamondType->name] : null,
-                        'diamond_shape' => $diamond->diamondShape ? ['id' => $diamond->diamondShape->id, 'name' => $diamond->diamondShape->name] : null,
-                        'diamond_color' => $diamond->diamondColor ? ['id' => $diamond->diamondColor->id, 'name' => $diamond->diamondColor->name] : null,
-                        'diamond_clarity' => $diamond->diamondClarity ? ['id' => $diamond->diamondClarity->id, 'name' => $diamond->diamondClarity->name] : null,
-                        'diamond_cut' => $diamond->diamondCut ? ['id' => $diamond->diamondCut->id, 'name' => $diamond->diamondCut->name] : null,
-                    ])->values()->all(),
                 ]),
                 'media' => $product->media->map(fn(ProductMedia $media) => [
                     'id' => $media->id,
@@ -266,7 +221,6 @@ class ProductController extends Controller
             'brands' => Brand::query()->pluck('name', 'id'),
             'categories' => Category::query()->pluck('name', 'id'),
             'productCatalogs' => ProductCatalog::query()->pluck('name', 'id'),
-            'diamondCatalog' => $this->diamondCatalog(),
             'customerGroups' => $this->customerGroupOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
@@ -288,8 +242,7 @@ class ProductController extends Controller
 
         DB::transaction(function () use ($product, $data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds): void {
             $product->update($data);
-            $diamondOptions = $data['diamond_options'] ?? null;
-            $variantSync->sync($product, $variants, $variantOptions, $diamondOptions);
+            $variantSync->sync($product, $variants, $variantOptions, null);
             $this->syncMedia($product, $mediaUploads, $removedMediaIds);
             $product->catalogs()->sync($catalogIds);
         });
@@ -408,31 +361,6 @@ class ProductController extends Controller
             ->all();
     }
 
-    protected function diamondCatalog(): array
-    {
-        return [
-            'types' => DiamondType::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn(DiamondType $type) => [
-                'id' => $type->id,
-                'name' => $type->name,
-            ])->all(),
-            'shapes' => DiamondShape::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn(DiamondShape $shape) => [
-                'id' => $shape->id,
-                'name' => $shape->name,
-            ])->all(),
-            'colors' => DiamondColor::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn(DiamondColor $color) => [
-                'id' => $color->id,
-                'name' => $color->name,
-            ])->all(),
-            'clarities' => DiamondClarity::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn(DiamondClarity $clarity) => [
-                'id' => $clarity->id,
-                'name' => $clarity->name,
-            ])->all(),
-            'cuts' => DiamondCut::query()->where('is_active', true)->orderBy('position')->orderBy('name')->get()->map(fn(DiamondCut $cut) => [
-                'id' => $cut->id,
-                'name' => $cut->name,
-            ])->all(),
-        ];
-    }
 
     protected function metalOptions(): array
     {
@@ -511,48 +439,19 @@ class ProductController extends Controller
         // Always set to array (empty array if no modes), never null (column has NOT NULL constraint)
         $data['metal_mix_mode'] = $sanitizedMetalMixMode;
 
-        $data['uses_diamond'] = (bool) ($data['uses_diamond'] ?? false);
-        $data['diamond_mixing_mode'] = $data['diamond_mixing_mode'] ?? 'shared';
-
-        // Validate diamond_mixing_mode
-        if (!in_array($data['diamond_mixing_mode'], ['shared', 'as_variant'], true)) {
-            $data['diamond_mixing_mode'] = 'shared';
-        }
-
         $metalIds = $this->sanitizeIds($data['metal_ids'] ?? []);
         $metalPurityIds = $this->sanitizeIds($data['metal_purity_ids'] ?? []);
         $metalToneIds = $this->sanitizeIds($data['metal_tone_ids'] ?? []);
-        $diamondTypeIds = $this->sanitizeIds($data['diamond_type_ids'] ?? []);
-        $diamondClarityIds = $this->sanitizeIds($data['diamond_clarity_ids'] ?? []);
-        $diamondColorIds = $this->sanitizeIds($data['diamond_color_ids'] ?? []);
-        $diamondShapeIds = $this->sanitizeIds($data['diamond_shape_ids'] ?? []);
-        $diamondCutIds = $this->sanitizeIds($data['diamond_cut_ids'] ?? []);
-        $diamondOptions = $this->sanitizeDiamondOptions($data['diamond_options'] ?? []);
 
         $data['metal_ids'] = ! empty($metalIds) ? $metalIds : null;
         $data['metal_purity_ids'] = ! empty($metalPurityIds) ? $metalPurityIds : null;
         $data['metal_tone_ids'] = ! empty($metalToneIds) ? $metalToneIds : null;
-        $data['diamond_type_ids'] = ! empty($diamondTypeIds) ? $diamondTypeIds : null;
-        $data['diamond_clarity_ids'] = ! empty($diamondClarityIds) ? $diamondClarityIds : null;
-        $data['diamond_color_ids'] = ! empty($diamondColorIds) ? $diamondColorIds : null;
-        $data['diamond_shape_ids'] = ! empty($diamondShapeIds) ? $diamondShapeIds : null;
-        $data['diamond_cut_ids'] = ! empty($diamondCutIds) ? $diamondCutIds : null;
-        // Save diamond_options when diamonds are enabled (used in both modes)
-        $data['diamond_options'] = $data['uses_diamond'] && ! empty($diamondOptions) ? $diamondOptions : null;
 
         if (! $data['is_variant_product']) {
-            $data['uses_diamond'] = false;
-            $data['diamond_mixing_mode'] = 'shared';
             $data['metal_ids'] = null;
             $data['metal_purity_ids'] = null;
             $data['metal_tone_ids'] = null;
             $data['metal_mix_mode'] = []; // Reset to empty array when variant product is disabled
-            $data['diamond_type_ids'] = null;
-            $data['diamond_clarity_ids'] = null;
-            $data['diamond_color_ids'] = null;
-            $data['diamond_shape_ids'] = null;
-            $data['diamond_cut_ids'] = null;
-            $data['diamond_options'] = null;
         }
 
         $data['making_charge_discount_type'] = $data['making_charge_discount_type'] ?? null;
@@ -604,29 +503,6 @@ class ProductController extends Controller
             ->all();
     }
 
-    protected function sanitizeDiamondOptions(array $options): array
-    {
-        return collect($options)
-            ->map(function (array $option) {
-                $key = $option['key'] ?? (string) Str::uuid();
-
-                return [
-                    'key' => $key,
-                    'type_id' => isset($option['type_id']) ? (int) $option['type_id'] : null,
-                    'shape_id' => isset($option['shape_id']) ? (int) $option['shape_id'] : null,
-                    'color_id' => isset($option['color_id']) ? (int) $option['color_id'] : null,
-                    'clarity_id' => isset($option['clarity_id']) ? (int) $option['clarity_id'] : null,
-                    'cut_id' => isset($option['cut_id']) ? (int) $option['cut_id'] : null,
-                    'weight' => isset($option['weight']) ? (float) $option['weight'] : null,
-                    'diamonds_count' => isset($option['diamonds_count']) ? (int) $option['diamonds_count'] : null,
-                ];
-            })
-            ->filter(function (array $option) {
-                return $option['type_id'] || $option['shape_id'] || $option['color_id'] || $option['clarity_id'] || $option['cut_id'] || $option['weight'];
-            })
-            ->values()
-            ->all();
-    }
 
     protected function sanitizeDiscountOverrides(array $overrides): array
     {

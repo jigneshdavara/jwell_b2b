@@ -8,7 +8,6 @@ use App\Http\Requests\Admin\StoreDiamondColorRequest;
 use App\Http\Requests\Admin\UpdateDiamondColorRequest;
 use App\Models\DiamondColor;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,18 +22,19 @@ class DiamondColorController extends Controller
         }
 
         $colors = DiamondColor::query()
-            ->orderBy('position')
+            ->orderBy('display_order')
             ->orderBy('name')
             ->paginate($perPage)
             ->withQueryString()
             ->through(function (DiamondColor $color) {
                 return [
                     'id' => $color->id,
+                    'code' => $color->code,
                     'name' => $color->name,
-                    'slug' => $color->slug,
+                    'ecat_name' => $color->ecat_name,
                     'description' => $color->description,
+                    'display_order' => $color->display_order,
                     'is_active' => $color->is_active,
-                    'position' => $color->position,
                 ];
             });
 
@@ -48,11 +48,12 @@ class DiamondColorController extends Controller
         $data = $request->validated();
 
         DiamondColor::create([
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => $this->uniqueSlug($data['name']),
+            'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
+            'display_order' => $data['display_order'] ?? 0,
             'is_active' => $request->boolean('is_active', true),
-            'position' => $data['position'] ?? 0,
         ]);
 
         return redirect()
@@ -65,11 +66,12 @@ class DiamondColorController extends Controller
         $data = $request->validated();
 
         $color->update([
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => $color->name === $data['name'] ? $color->slug : $this->uniqueSlug($data['name'], $color->id),
+            'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
+            'display_order' => $data['display_order'] ?? 0,
             'is_active' => $request->boolean('is_active', true),
-            'position' => $data['position'] ?? 0,
         ]);
 
         return redirect()
@@ -93,23 +95,5 @@ class DiamondColorController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Selected diamond colors deleted successfully.');
-    }
-
-    protected function uniqueSlug(string $name, ?int $ignoreId = null): string
-    {
-        $base = Str::slug($name);
-        $slug = $base;
-        $counter = 1;
-
-        while (
-            DiamondColor::query()
-            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
-            ->where('slug', $slug)
-            ->exists()
-        ) {
-            $slug = sprintf('%s-%d', $base, $counter++);
-        }
-
-        return $slug;
     }
 }

@@ -10,15 +10,16 @@ class DiamondClarity extends Model
     use HasFactory;
 
     protected $fillable = [
+        'code',
         'name',
-        'slug',
+        'ecat_name',
         'description',
+        'display_order',
         'is_active',
-        'position',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'display_order' => 'integer',
     ];
 }
-
