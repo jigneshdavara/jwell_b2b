@@ -35,7 +35,7 @@ export default function AdminDiamondShapesIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingShape, setEditingShape] = useState<DiamondShapeRow | null>(null);
     const [selectedShapes, setSelectedShapes] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(shapes.per_page ?? 20);
+    const [perPage, setPerPage] = useState(shapes.per_page ?? 10);
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondShapeRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 

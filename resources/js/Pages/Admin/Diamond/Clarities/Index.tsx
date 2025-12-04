@@ -35,7 +35,7 @@ export default function AdminDiamondClaritiesIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingClarity, setEditingClarity] = useState<DiamondClarityRow | null>(null);
     const [selectedClarities, setSelectedClarities] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(clarities.per_page ?? 20);
+    const [perPage, setPerPage] = useState(clarities.per_page ?? 10);
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondClarityRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 

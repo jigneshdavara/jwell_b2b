@@ -67,7 +67,7 @@ export default function AdminDiamondsIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingDiamond, setEditingDiamond] = useState<DiamondRow | null>(null);
     const [selectedDiamonds, setSelectedDiamonds] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(diamonds.per_page ?? 20);
+    const [perPage, setPerPage] = useState(diamonds.per_page ?? 10);
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [shapeSizes, setShapeSizes] = useState<DiamondShapeSize[]>([]);

@@ -35,7 +35,7 @@ export default function AdminDiamondColorsIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingColor, setEditingColor] = useState<DiamondColorRow | null>(null);
     const [selectedColors, setSelectedColors] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(colors.per_page ?? 20);
+    const [perPage, setPerPage] = useState(colors.per_page ?? 10);
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondColorRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 

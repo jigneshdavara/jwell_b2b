@@ -11,16 +11,27 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Drop foreign key constraints first if they exist
+        if (Schema::hasTable('metal_purities')) {
+            Schema::table('metal_purities', function (Blueprint $table) {
+                $table->dropForeign(['metal_id']);
+            });
+        }
+        Schema::dropIfExists('metal_purities');
+
         Schema::create('metal_purities', function (Blueprint $table) {
             $table->id();
             $table->foreignId('metal_id')->constrained()->cascadeOnDelete();
-            $table->string('label'); // e.g. "18K", "22K", "925"
+            $table->string('code')->nullable();
+            $table->string('name');
             $table->text('description')->nullable();
+            $table->integer('display_order')->default(0);
             $table->boolean('is_active')->default(true);
-            $table->integer('position')->default(0);
             $table->timestampsTz();
 
-            $table->unique(['metal_id', 'label']);
+            $table->index('code');
+            $table->index('display_order');
+            $table->unique(['metal_id', 'name']);
         });
     }
 

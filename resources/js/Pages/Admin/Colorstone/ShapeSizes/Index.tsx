@@ -44,7 +44,7 @@ export default function AdminColorstoneShapeSizesIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingSize, setEditingSize] = useState<ColorstoneShapeSizeRow | null>(null);
     const [selectedSizes, setSelectedSizes] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(sizes.per_page ?? 20);
+    const [perPage, setPerPage] = useState(sizes.per_page ?? 10);
     const [deleteConfirm, setDeleteConfirm] = useState<ColorstoneShapeSizeRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 

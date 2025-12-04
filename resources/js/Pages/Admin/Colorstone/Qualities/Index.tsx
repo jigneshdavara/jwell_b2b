@@ -33,7 +33,7 @@ export default function AdminColorstoneQualitiesIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingQuality, setEditingQuality] = useState<ColorstoneQualityRow | null>(null);
     const [selectedQualities, setSelectedQualities] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(qualities.per_page ?? 20);
+    const [perPage, setPerPage] = useState(qualities.per_page ?? 10);
     const [deleteConfirm, setDeleteConfirm] = useState<ColorstoneQualityRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 

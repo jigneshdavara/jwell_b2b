@@ -67,7 +67,7 @@ export default function AdminColorstonesIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingColorstone, setEditingColorstone] = useState<ColorstoneRow | null>(null);
     const [selectedColorstones, setSelectedColorstones] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(colorstones.per_page ?? 20);
+    const [perPage, setPerPage] = useState(colorstones.per_page ?? 10);
     const [deleteConfirm, setDeleteConfirm] = useState<ColorstoneRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [shapeSizes, setShapeSizes] = useState<ColorstoneShapeSize[]>([]);

@@ -19,6 +19,7 @@ class StoreMetalPurityRequest extends FormRequest
     {
         return [
             'metal_id' => ['required', 'integer', 'exists:metals,id'],
+            'code' => ['nullable', 'string', 'max:255'],
             'name' => [
                 'required',
                 'string',
@@ -27,7 +28,7 @@ class StoreMetalPurityRequest extends FormRequest
             ],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
-            'position' => ['nullable', 'integer', 'min:0'],
+            'display_order' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

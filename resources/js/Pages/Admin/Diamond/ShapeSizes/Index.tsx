@@ -44,7 +44,7 @@ export default function AdminDiamondShapeSizesIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingSize, setEditingSize] = useState<DiamondShapeSizeRow | null>(null);
     const [selectedSizes, setSelectedSizes] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(sizes.per_page ?? 20);
+    const [perPage, setPerPage] = useState(sizes.per_page ?? 10);
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondShapeSizeRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
