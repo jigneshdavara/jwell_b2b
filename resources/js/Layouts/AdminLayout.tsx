@@ -89,6 +89,8 @@ const adminNavigation: NavItem[] = [
             { label: 'Shape sizes', route: 'admin.colorstone.shape-sizes.index', match: 'admin.colorstone.shape-sizes.*' },
         ],
     },
+    { label: 'Sizes', route: 'admin.sizes.index', match: 'admin.sizes.*', icon: 'collection' },
+    { label: 'Styles', route: 'admin.styles.index', match: 'admin.styles.*', icon: 'sparkle' },
     {
         label: 'Orders',
         icon: 'clipboard',

@@ -29,6 +29,8 @@ use App\Http\Controllers\Admin\ColorstoneController;
 use App\Http\Controllers\Admin\MetalController;
 use App\Http\Controllers\Admin\MetalToneController;
 use App\Http\Controllers\Admin\MetalPurityController;
+use App\Http\Controllers\Admin\SizeController;
+use App\Http\Controllers\Admin\StyleController;
 use App\Http\Controllers\Admin\CustomerTypeController;
 use App\Http\Controllers\Admin\CustomerGroupController;
 use App\Http\Controllers\Admin\OrderStatusController;
@@ -235,6 +237,11 @@ Route::prefix('admin')
         Route::delete('metal-purities/bulk', [MetalPurityController::class, 'bulkDestroy'])->name('metal-purities.bulk-destroy');
         Route::resource('metal-purities', MetalPurityController::class)->only(['index', 'store', 'update', 'destroy'])->names('metal-purities');
 
+        Route::delete('sizes/bulk', [SizeController::class, 'bulkDestroy'])->name('sizes.bulk-destroy');
+        Route::resource('sizes', SizeController::class)->only(['index', 'store', 'update', 'destroy'])->names('sizes');
+
+        Route::delete('styles/bulk', [StyleController::class, 'bulkDestroy'])->name('styles.bulk-destroy');
+        Route::resource('styles', StyleController::class)->only(['index', 'store', 'update', 'destroy'])->names('styles');
 
         Route::prefix('orders')->name('orders.')->group(function () {
             Route::delete('statuses/bulk', [OrderStatusController::class, 'bulkDestroy'])->name('statuses.bulk-destroy');
