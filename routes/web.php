@@ -14,7 +14,6 @@ use App\Http\Controllers\Admin\TeamUserController;
 use App\Http\Controllers\Admin\MaterialController;
 use App\Http\Controllers\Admin\MaterialTypeController;
 use App\Http\Controllers\Admin\ProductCatalogController;
-use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\DiamondClarityController;
 use App\Http\Controllers\Admin\DiamondColorController;
 use App\Http\Controllers\Admin\DiamondController;
@@ -31,6 +30,7 @@ use App\Http\Controllers\Admin\MetalPurityController;
 use App\Http\Controllers\Admin\SizeController;
 use App\Http\Controllers\Admin\StyleController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CustomerTypeController;
 use App\Http\Controllers\Admin\CustomerGroupController;
 use App\Http\Controllers\Admin\OrderStatusController;
@@ -173,7 +173,6 @@ Route::prefix('admin')
         Route::post('/customers/bulk/group', [UserController::class, 'bulkGroupUpdate'])->name('customers.bulk-group-update');
 
         Route::post('products/bulk/status', [ProductController::class, 'bulkStatus'])->name('products.bulk-status');
-        Route::post('products/bulk/brand', [ProductController::class, 'bulkAssignBrand'])->name('products.bulk-brand');
         Route::delete('products/bulk', [ProductController::class, 'bulkDestroy'])->name('products.bulk-destroy');
         Route::post('products/{product}/copy', [ProductController::class, 'copy'])->name('products.copy');
         Route::resource('products', ProductController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
@@ -191,6 +190,7 @@ Route::prefix('admin')
 
         Route::delete('brands/bulk', [BrandController::class, 'bulkDestroy'])->name('brands.bulk-destroy');
         Route::resource('brands', BrandController::class)->only(['index', 'store', 'update', 'destroy'])->names('brands');
+
 
         Route::prefix('diamond')->name('diamond.')->group(function () {
             Route::delete('clarities/bulk', [DiamondClarityController::class, 'bulkDestroy'])->name('clarities.bulk-destroy');

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
-use App\Models\Brand;
 use App\Models\Category;
 use App\Models\DiamondClarity;
 use App\Models\DiamondColor;
@@ -31,7 +30,6 @@ class CatalogController extends Controller
         }
 
         $filters = $request->only([
-            'brand',
             'metal',
             'metal_purity',
             'metal_tone',
@@ -48,7 +46,6 @@ class CatalogController extends Controller
 
         $query = Product::query()
             ->with([
-                'brand',
                 'category',
                 'material',
                 'catalogs:id,name,slug',
@@ -73,10 +70,6 @@ class CatalogController extends Controller
             $query->whereNotNull('base_price')->where('base_price', '>', 0);
         }
 
-        $brandFilters = array_filter((array) ($filters['brand'] ?? []), fn($value) => filled($value));
-        if (! empty($brandFilters)) {
-            $query->whereHas('brand', fn($q) => $q->whereIn('name', $brandFilters));
-        }
 
         // Filter by metal
         if (! empty($filters['metal'])) {
@@ -164,7 +157,6 @@ class CatalogController extends Controller
         }
         $sort = $request->string('sort')->value();
 
-        $filters['brand'] = array_values($brandFilters);
         $filters['metal'] = array_values(array_filter((array) ($filters['metal'] ?? []), fn($value) => filled($value)));
         $filters['metal_purity'] = array_values(array_filter((array) ($filters['metal_purity'] ?? []), fn($value) => filled($value)));
         $filters['metal_tone'] = array_values(array_filter((array) ($filters['metal_tone'] ?? []), fn($value) => filled($value)));
@@ -268,7 +260,6 @@ class CatalogController extends Controller
                     'id' => $product->id,
                     'name' => $product->name,
                     'sku' => $product->sku,
-                    'brand' => optional($product->brand)?->name,
                     'category' => optional($product->category)?->name,
                     'material' => optional($product->material)?->name,
                     'purity' => $product->metadata['purity'] ?? $product->material?->purity,
@@ -303,7 +294,6 @@ class CatalogController extends Controller
             });
 
         $facets = [
-            'brands' => Brand::orderBy('name')->pluck('name'),
             'categories' => Category::query()
                 ->where('is_active', true)
                 ->orderBy('name')

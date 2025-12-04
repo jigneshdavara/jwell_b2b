@@ -18,8 +18,7 @@ class BulkDestroyBrandsRequest extends FormRequest
     {
         return [
             'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer', 'exists:brands,id'],
+            'ids.*' => ['required', 'integer', 'exists:brands,id'],
         ];
     }
 }
-

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
-use App\Models\Brand;
 use App\Models\JobworkRequest;
 use App\Models\Offer;
 use App\Models\Order;
@@ -28,20 +27,13 @@ class HomeController extends Controller
             'active_offers' => Offer::where('is_active', true)->count(),
         ];
 
-        $brands = Brand::query()
-            ->inRandomOrder()
-            ->limit(6)
-            ->pluck('name')
-            ->toArray();
-
-        $spotlight = Product::with('brand')
+        $spotlight = Product::query()
             ->latest()
             ->limit(3)
             ->get()
             ->map(fn ($product) => [
                 'id' => $product->id,
                 'name' => $product->name,
-                'brand' => optional($product->brand)->name,
                 'price' => (float) $product->base_price,
                 'making_charge' => (float) $product->making_charge,
             ]);
@@ -63,7 +55,6 @@ class HomeController extends Controller
 
         return Inertia::render('Frontend/Home/Index', [
             'stats' => $stats,
-            'brands' => $brands,
             'spotlight' => $spotlight,
             'features' => $features,
         ]);

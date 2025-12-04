@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\BulkAssignProductBrandRequest;
 use App\Http\Requests\Admin\BulkProductsRequest;
 use App\Http\Requests\Admin\BulkUpdateProductStatusRequest;
 use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
-use App\Models\Brand;
 use App\Models\CustomerGroup;
 use App\Models\Metal;
 use App\Models\MetalPurity;
@@ -31,7 +29,7 @@ class ProductController extends Controller
 {
     public function index(): Response
     {
-        $filters = request()->only(['search', 'brand', 'status']);
+        $filters = request()->only(['search', 'status']);
         $perPage = (int) request('per_page', 20);
 
         if (! in_array($perPage, [10, 25, 50, 100], true)) {
@@ -39,16 +37,12 @@ class ProductController extends Controller
         }
 
         $products = Product::query()
-            ->with(['brand'])
             ->withCount('variants')
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('sku', 'like', "%{$search}%")
                         ->orWhere('name', 'like', "%{$search}%");
                 });
-            })
-            ->when($filters['brand'] ?? null, function ($query, $brand) {
-                $query->where('brand_id', $brand);
             })
             ->when($filters['status'] ?? null, function ($query, $status) {
                 if ($status === 'active') {
@@ -66,14 +60,12 @@ class ProductController extends Controller
                     'sku' => $product->sku,
                     'name' => $product->name,
                     'is_active' => $product->is_active,
-                    'brand' => $product->brand?->only(['id', 'name']),
                     'variants_count' => $product->variants_count,
                 ];
             });
 
         return Inertia::render('Admin/Products/Index', [
             'products' => $products,
-            'brands' => Brand::query()->orderBy('name')->pluck('name', 'id'),
             'filters' => $filters,
             'perPageOptions' => [10, 25, 50, 100],
             'perPage' => $perPage,
@@ -84,7 +76,6 @@ class ProductController extends Controller
     {
         return Inertia::render('Admin/Products/Edit', [
             'product' => null,
-            'brands' => Brand::query()->pluck('name', 'id'),
             'productCatalogs' => ProductCatalog::query()->pluck('name', 'id'),
             'customerGroups' => $this->customerGroupOptions(),
             'metals' => $this->metalOptions(),
@@ -121,7 +112,6 @@ class ProductController extends Controller
     public function edit(Product $product): Response
     {
         $product->load([
-            'brand',
             'material',
             'catalogs',
             'media' => fn($query) => $query->orderBy('position'),
@@ -137,7 +127,6 @@ class ProductController extends Controller
                 'sku' => $product->sku,
                 'name' => $product->name,
                 'description' => $product->description,
-                'brand_id' => $product->brand_id,
                 'gross_weight' => $product->gross_weight,
                 'net_weight' => $product->net_weight,
                 'gold_weight' => $product->gold_weight,
@@ -208,7 +197,6 @@ class ProductController extends Controller
                     'metadata' => $media->metadata,
                 ]),
             ],
-            'brands' => Brand::query()->pluck('name', 'id'),
             'productCatalogs' => ProductCatalog::query()->pluck('name', 'id'),
             'customerGroups' => $this->customerGroupOptions(),
             'metals' => $this->metalOptions(),
@@ -272,16 +260,6 @@ class ProductController extends Controller
             ->with('success', 'Product visibility updated.');
     }
 
-    public function bulkAssignBrand(BulkAssignProductBrandRequest $request): RedirectResponse
-    {
-        Product::whereIn('id', $request->validated('ids'))->update([
-            'brand_id' => $request->validated('brand_id'),
-        ]);
-
-        return redirect()
-            ->back()
-            ->with('success', 'Brand assigned to selected products.');
-    }
 
 
     public function copy(Product $product): RedirectResponse

@@ -3,16 +3,17 @@ import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import React, { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 type BrandRow = {
     id: number;
+    code: string | null;
     name: string;
-    slug: string;
     description?: string | null;
-    cover_image_path?: string | null;
-    cover_image_url?: string | null;
     is_active: boolean;
+    display_order: number;
+    cover_image?: string | null;
+    cover_image_url?: string | null;
 };
 
 type Pagination<T> = {
@@ -35,7 +36,7 @@ export default function AdminBrandsIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingBrand, setEditingBrand] = useState<BrandRow | null>(null);
     const [selectedBrands, setSelectedBrands] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(brands.per_page ?? 20);
+    const [perPage, setPerPage] = useState(brands.per_page ?? 10);
     const [deleteConfirm, setDeleteConfirm] = useState<BrandRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
@@ -43,10 +44,13 @@ export default function AdminBrandsIndex() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const form = useForm({
+        code: '',
         name: '',
         description: '',
-        cover_image: null as File | null,
         is_active: true,
+        display_order: 0,
+        cover_image: null as File | null,
+        remove_cover_image: false,
     });
 
     useEffect(() => {
@@ -80,13 +84,14 @@ export default function AdminBrandsIndex() {
         setModalOpen(false);
         form.reset();
         form.setData('is_active', true);
+        form.setData('display_order', 0);
         form.setData('cover_image', null);
+        form.setData('remove_cover_image', false);
+        setCoverPreview(null);
         if (coverObjectUrl) {
             URL.revokeObjectURL(coverObjectUrl);
             setCoverObjectUrl(null);
         }
-        setCoverPreview(null);
-        // Clear file input
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -100,46 +105,84 @@ export default function AdminBrandsIndex() {
     const openEditModal = (brand: BrandRow) => {
         setEditingBrand(brand);
         form.setData({
+            code: brand.code ?? '',
             name: brand.name,
             description: brand.description ?? '',
-            cover_image: null,
             is_active: brand.is_active,
+            display_order: brand.display_order,
+            cover_image: null,
+            remove_cover_image: false,
         });
-        if (coverObjectUrl) {
-            URL.revokeObjectURL(coverObjectUrl);
-            setCoverObjectUrl(null);
-        }
-        // Show existing image in preview when editing
         setCoverPreview(brand.cover_image_url ?? null);
         setModalOpen(true);
     };
 
+    useEffect(() => {
+        return () => {
+            if (coverObjectUrl) {
+                URL.revokeObjectURL(coverObjectUrl);
+            }
+        };
+    }, [coverObjectUrl]);
+
+    const handleCoverChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0] ?? null;
+        form.setData('cover_image', file);
+        form.setData('remove_cover_image', false);
+
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+
+        if (file) {
+            const objectUrl = URL.createObjectURL(file);
+            setCoverPreview(objectUrl);
+            setCoverObjectUrl(objectUrl);
+        } else {
+            setCoverPreview(editingBrand?.cover_image_url ?? null);
+        }
+    };
+
+    const removeCoverImage = () => {
+        form.setData('cover_image', null);
+        form.setData('remove_cover_image', true);
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+        setCoverPreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-    
-        const trimmedName = form.data.name?.trim() || '';
-        const trimmedDescription = form.data.description?.trim() || '';
-        const isActive = !!form.data.is_active;
+
         const hasFile = form.data.cover_image instanceof File;
-    
-        // Frontend validation
-        if (!trimmedName) {
-            form.setError('name', 'The name field is required.');
-            return;
-        }
-    
-        // Set up transform ON THE FORM (not in options)
-        form.transform((data) => ({
-            ...data,
-            name: trimmedName,
-            description: trimmedDescription,
-            is_active: isActive ? 1 : 0,
-            ...(editingBrand ? { _method: 'PUT' } : {}), // method spoofing for update
-        }));
-    
+        const coverImage = form.data.cover_image;
+        const removeCoverImage = form.data.remove_cover_image;
+
+        form.transform((data) => {
+            const transformed: any = {
+                ...data,
+                remove_cover_image: removeCoverImage,
+                ...(editingBrand ? { _method: 'PUT' } : {}),
+            };
+
+            if (hasFile) {
+                transformed.cover_image = coverImage;
+            } else {
+                delete transformed.cover_image;
+            }
+
+            return transformed;
+        });
+
         const submitOptions = {
             preserveScroll: true,
-            forceFormData: hasFile, // required when file present
+            forceFormData: hasFile,
             onSuccess: () => {
                 resetForm();
             },
@@ -147,25 +190,24 @@ export default function AdminBrandsIndex() {
                 console.error('Form submission errors:', errors);
             },
             onFinish: () => {
-                // reset transform so it doesn't affect other requests
                 form.transform((data) => data);
             },
         };
-    
+
         if (editingBrand) {
-            // UPDATE: POST + _method=PUT (Laravel-friendly for file uploads)
             form.post(route('admin.brands.update', editingBrand.id), submitOptions);
         } else {
-            // CREATE: normal POST
             form.post(route('admin.brands.store'), submitOptions);
         }
     };
-    
+
     const toggleBrand = (brand: BrandRow) => {
         router.put(route('admin.brands.update', brand.id), {
+            code: brand.code,
             name: brand.name,
             description: brand.description,
             is_active: !brand.is_active,
+            display_order: brand.display_order,
         }, {
             preserveScroll: true,
         });
@@ -216,46 +258,6 @@ export default function AdminBrandsIndex() {
         const newPerPage = Number(event.target.value);
         setPerPage(newPerPage);
         router.get(route('admin.brands.index'), { per_page: newPerPage }, { preserveState: true, preserveScroll: true });
-    };
-
-    useEffect(() => {
-        return () => {
-            if (coverObjectUrl) {
-                URL.revokeObjectURL(coverObjectUrl);
-            }
-        };
-    }, [coverObjectUrl]);
-
-    const handleCoverChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0] ?? null;
-        form.setData('cover_image', file);
-
-        if (coverObjectUrl) {
-            URL.revokeObjectURL(coverObjectUrl);
-            setCoverObjectUrl(null);
-        }
-
-        if (file) {
-            const objectUrl = URL.createObjectURL(file);
-            setCoverPreview(objectUrl);
-            setCoverObjectUrl(objectUrl);
-        } else {
-            // If no file selected, show existing image if editing, or clear preview if creating
-            setCoverPreview(editingBrand?.cover_image_url ?? null);
-        }
-    };
-
-    const removeCoverImage = () => {
-        form.setData('cover_image', null);
-        if (coverObjectUrl) {
-            URL.revokeObjectURL(coverObjectUrl);
-            setCoverObjectUrl(null);
-        }
-        setCoverPreview(editingBrand?.cover_image_url ?? null);
-        // Clear file input
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
     };
 
     return (
@@ -319,9 +321,9 @@ export default function AdminBrandsIndex() {
                                         aria-label="Select all brands"
                                     />
                                 </th>
-                                <th className="px-5 py-3 text-left">Image</th>
+                                <th className="px-5 py-3 text-left">Code</th>
                                 <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Slug</th>
+                                <th className="px-5 py-3 text-left">Order</th>
                                 <th className="px-5 py-3 text-left">Status</th>
                                 <th className="px-5 py-3 text-right">Actions</th>
                             </tr>
@@ -338,26 +340,14 @@ export default function AdminBrandsIndex() {
                                             aria-label={`Select brand ${brand.name}`}
                                         />
                                     </td>
-                                    <td className="px-5 py-3">
-                                        {brand.cover_image_url ? (
-                                            <img
-                                                src={brand.cover_image_url}
-                                                alt={brand.name}
-                                                className="h-12 w-12 rounded-lg object-cover ring-1 ring-slate-200"
-                                            />
-                                        ) : (
-                                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-400">
-                                                No image
-                                            </div>
-                                        )}
-                                    </td>
+                                    <td className="px-5 py-3 text-slate-700">{brand.code || '-'}</td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">
                                         <div className="flex flex-col gap-1">
                                             <span>{brand.name}</span>
                                             {brand.description && <span className="text-xs text-slate-500">{brand.description}</span>}
                                         </div>
                                     </td>
-                                    <td className="px-5 py-3 text-slate-500">{brand.slug}</td>
+                                    <td className="px-5 py-3 text-slate-500">{brand.display_order}</td>
                                     <td className="px-5 py-3">
                                         <span
                                             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -501,7 +491,18 @@ export default function AdminBrandsIndex() {
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Name <span className="text-rose-500">*</span></span>
+                                            <span>Code</span>
+                                            <input
+                                                type="text"
+                                                value={form.data.code}
+                                                onChange={(event) => form.setData('code', event.target.value)}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                placeholder="e.g., BRD001"
+                                            />
+                                            {form.errors.code && <span className="text-xs text-rose-500">{form.errors.code}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Name</span>
                                             <input
                                                 type="text"
                                                 value={form.data.name}
@@ -511,48 +512,79 @@ export default function AdminBrandsIndex() {
                                             />
                                             {form.errors.name && <span className="text-xs text-rose-500">{form.errors.name}</span>}
                                         </label>
-                                    </div>
-
-                                    <label className="flex flex-col gap-3 text-sm text-slate-600">
-                                        <span>Brand Cover Image</span>
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleCoverChange}
-                                            className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-700"
-                                        />
-                                        {form.errors.cover_image && (
-                                            <span className="text-xs text-rose-500">{form.errors.cover_image}</span>
-                                        )}
-                                        {coverPreview && (
-                                            <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
-                                                <img
-                                                    src={coverPreview}
-                                                    alt="Brand cover preview"
-                                                    className="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
-                                                />
-                                                <div className="flex flex-col gap-2">
-                                                    <span className="text-xs text-slate-500">
-                                                        {coverObjectUrl && editingBrand
-                                                            ? 'This preview will replace the existing brand image once saved.'
-                                                            : coverObjectUrl
-                                                            ? 'This image will be used as the brand cover image.'
-                                                            : 'Current brand image. Upload a new file to replace it.'}
-                                                    </span>
-                                                    {coverObjectUrl && (
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Display order</span>
+                                            <input
+                                                type="number"
+                                                value={form.data.display_order}
+                                                onChange={(event) => form.setData('display_order', Number(event.target.value))}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                min={0}
+                                            />
+                                            {form.errors.display_order && <span className="text-xs text-rose-500">{form.errors.display_order}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-3 text-sm text-slate-600">
+                                            <span>Cover Image</span>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleCoverChange}
+                                                className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-700"
+                                            />
+                                            {form.errors.cover_image && (
+                                                <span className="text-xs text-rose-500">{form.errors.cover_image}</span>
+                                            )}
+                                            {coverPreview && (
+                                                <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
+                                                    <img
+                                                        src={coverPreview}
+                                                        alt="Cover preview"
+                                                        className="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
+                                                    />
+                                                    <div className="flex flex-col gap-2">
+                                                        <span className="text-xs text-slate-500">
+                                                            {coverObjectUrl && editingBrand
+                                                                ? 'This preview will replace the existing brand image once saved.'
+                                                                : coverObjectUrl
+                                                                ? 'This image will be used as the brand cover image.'
+                                                                : 'Current brand image. Upload a new file to replace it.'}
+                                                        </span>
+                                                        {coverObjectUrl && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={removeCoverImage}
+                                                                className="self-start rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                                            >
+                                                                Remove selected image
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {!coverPreview && editingBrand?.cover_image_url && (
+                                                <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
+                                                    <img
+                                                        src={editingBrand.cover_image_url}
+                                                        alt="Current cover"
+                                                        className="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
+                                                    />
+                                                    <div className="flex flex-col gap-2">
+                                                        <span className="text-xs text-slate-500">
+                                                            Current brand image. Upload a new file to replace it.
+                                                        </span>
                                                         <button
                                                             type="button"
                                                             onClick={removeCoverImage}
                                                             className="self-start rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
                                                         >
-                                                            Remove selected image
+                                                            Remove image
                                                         </button>
-                                                    )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
-                                    </label>
+                                            )}
+                                        </label>
+                                    </div>
 
                                     <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
                                         <input
@@ -572,7 +604,7 @@ export default function AdminBrandsIndex() {
                                             value={form.data.description}
                                             onChange={(event) => form.setData('description', event.target.value)}
                                             className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            placeholder="Optional description for the brand."
+                                            placeholder="Optional notes for team (e.g. usage, brand)."
                                         />
                                         {form.errors.description && <span className="text-xs text-rose-500">{form.errors.description}</span>}
                                     </label>
@@ -605,4 +637,3 @@ export default function AdminBrandsIndex() {
         </AdminLayout>
     );
 }
-

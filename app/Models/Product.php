@@ -16,7 +16,6 @@ class Product extends Model
         'sku',
         'name',
         'description',
-        'brand_id',
         'material_id',
         'gross_weight',
         'net_weight',
@@ -70,12 +69,6 @@ class Product extends Model
         'other_material_weight' => 'float',
         'total_weight' => 'float',
     ];
-
-    public function brand(): BelongsTo
-    {
-        return $this->belongsTo(Brand::class);
-    }
-
 
     public function material(): BelongsTo
     {

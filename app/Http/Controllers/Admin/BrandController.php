@@ -9,7 +9,6 @@ use App\Http\Requests\Admin\UpdateBrandRequest;
 use App\Models\Brand;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,25 +16,27 @@ class BrandController extends Controller
 {
     public function index(): Response
     {
-        $perPage = (int) request('per_page', 20);
+        $perPage = (int) request('per_page', 10);
 
         if (! in_array($perPage, [10, 25, 50, 100], true)) {
-            $perPage = 20;
+            $perPage = 10;
         }
 
         $brands = Brand::query()
+            ->orderBy('display_order')
             ->orderBy('name')
             ->paginate($perPage)
             ->withQueryString()
             ->through(function (Brand $brand) {
                 return [
                     'id' => $brand->id,
+                    'code' => $brand->code,
                     'name' => $brand->name,
-                    'slug' => $brand->slug,
                     'description' => $brand->description,
-                    'cover_image_path' => $brand->cover_image_path,
-                    'cover_image_url' => $brand->cover_image_path ? Storage::url($brand->cover_image_path) : null,
                     'is_active' => $brand->is_active,
+                    'display_order' => $brand->display_order,
+                    'cover_image' => $brand->cover_image,
+                    'cover_image_url' => $brand->cover_image ? Storage::url($brand->cover_image) : null,
                 ];
             });
 
@@ -67,11 +68,12 @@ class BrandController extends Controller
         }
 
         Brand::create([
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => $this->uniqueSlug($data['name']),
             'description' => $data['description'] ?? null,
-            'cover_image_path' => $coverImagePath,
             'is_active' => $request->boolean('is_active', true),
+            'display_order' => $data['display_order'] ?? 0,
+            'cover_image' => $coverImagePath,
         ]);
 
         return redirect()
@@ -84,20 +86,21 @@ class BrandController extends Controller
         $data = $request->validated();
 
         $updateData = [
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => $brand->name === $data['name'] ? $brand->slug : $this->uniqueSlug($data['name'], $brand->id),
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
+            'display_order' => $data['display_order'] ?? 0,
         ];
 
-        // Only update image if a new file is uploaded
+        // Handle file upload
         if ($request->hasFile('cover_image')) {
             try {
                 $file = $request->file('cover_image');
 
                 // Delete old image if exists
-                if ($brand->cover_image_path && Storage::disk('public')->exists($brand->cover_image_path)) {
-                    Storage::disk('public')->delete($brand->cover_image_path);
+                if ($brand->cover_image && Storage::disk('public')->exists($brand->cover_image)) {
+                    Storage::disk('public')->delete($brand->cover_image);
                 }
 
                 $coverImagePath = $file->store('brands', 'public');
@@ -107,15 +110,21 @@ class BrandController extends Controller
                     throw new \Exception('File was not stored successfully');
                 }
 
-                $updateData['cover_image_path'] = $coverImagePath;
+                $updateData['cover_image'] = $coverImagePath;
             } catch (\Exception $e) {
                 return redirect()
                     ->back()
                     ->withErrors(['cover_image' => 'Failed to upload image: ' . $e->getMessage()])
                     ->withInput();
             }
+        } elseif ($request->boolean('remove_cover_image', false)) {
+            // Delete image if remove flag is set
+            if ($brand->cover_image && Storage::disk('public')->exists($brand->cover_image)) {
+                Storage::disk('public')->delete($brand->cover_image);
+            }
+            $updateData['cover_image'] = null;
         }
-        // If no new image is uploaded, cover_image_path is not included in updateData
+        // If no new image is uploaded and remove flag is not set, cover_image is not included in updateData
         // This means the existing image path will be preserved
 
         $brand->update($updateData);
@@ -128,8 +137,8 @@ class BrandController extends Controller
     public function destroy(Brand $brand): RedirectResponse
     {
         // Delete associated image if exists
-        if ($brand->cover_image_path) {
-            Storage::disk('public')->delete($brand->cover_image_path);
+        if ($brand->cover_image) {
+            Storage::disk('public')->delete($brand->cover_image);
         }
 
         $brand->delete();
@@ -141,28 +150,18 @@ class BrandController extends Controller
 
     public function bulkDestroy(BulkDestroyBrandsRequest $request): RedirectResponse
     {
+        $brands = Brand::whereIn('id', $request->validated('ids'))->get();
+
+        foreach ($brands as $brand) {
+            if ($brand->cover_image) {
+                Storage::disk('public')->delete($brand->cover_image);
+            }
+        }
+
         Brand::whereIn('id', $request->validated('ids'))->delete();
 
         return redirect()
             ->back()
             ->with('success', 'Selected brands deleted successfully.');
-    }
-
-    protected function uniqueSlug(string $name, ?int $ignoreId = null): string
-    {
-        $base = Str::slug($name);
-        $slug = $base;
-        $counter = 1;
-
-        while (
-            Brand::query()
-            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
-            ->where('slug', $slug)
-            ->exists()
-        ) {
-            $slug = sprintf('%s-%d', $base, $counter++);
-        }
-
-        return $slug;
     }
 }
