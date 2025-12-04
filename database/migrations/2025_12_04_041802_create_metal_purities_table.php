@@ -11,14 +11,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Drop foreign key constraints first if they exist
-        if (Schema::hasTable('metal_purities')) {
-            Schema::table('metal_purities', function (Blueprint $table) {
-                $table->dropForeign(['metal_id']);
-            });
-        }
-        Schema::dropIfExists('metal_purities');
-
         Schema::create('metal_purities', function (Blueprint $table) {
             $table->id();
             $table->foreignId('metal_id')->constrained()->cascadeOnDelete();

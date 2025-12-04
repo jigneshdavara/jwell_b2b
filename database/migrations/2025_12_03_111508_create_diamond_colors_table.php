@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('code')->nullable()->comment('diamondcolorcode');
             $table->string('name')->comment('diamondcolorname');
+            $table->string('ecat_name')->nullable();
             $table->text('description')->nullable();
             $table->integer('display_order')->default(0);
             $table->boolean('is_active')->default(true);

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('metal_id')->constrained()->cascadeOnDelete();
             $table->foreignId('metal_purity_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('metal_tone_id')->nullable()->constrained()->nullOnDelete();
-            $table->decimal('weight_grams', 10, 3)->nullable();
+            $table->decimal('metal_weight', 10, 3)->nullable();
             $table->jsonb('metadata')->nullable();
             $table->integer('position')->default(0);
             $table->timestampsTz();

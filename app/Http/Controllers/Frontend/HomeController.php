@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
 use App\Models\JobworkRequest;
 use App\Models\Offer;
 use App\Models\Order;
@@ -31,7 +32,7 @@ class HomeController extends Controller
             ->latest()
             ->limit(3)
             ->get()
-            ->map(fn ($product) => [
+            ->map(fn($product) => [
                 'id' => $product->id,
                 'name' => $product->name,
                 'price' => (float) $product->base_price,
@@ -53,8 +54,16 @@ class HomeController extends Controller
             ],
         ];
 
+        $brands = Brand::query()
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->pluck('name')
+            ->toArray();
+
         return Inertia::render('Frontend/Home/Index', [
             'stats' => $stats,
+            'brands' => $brands,
             'spotlight' => $spotlight,
             'features' => $features,
         ]);

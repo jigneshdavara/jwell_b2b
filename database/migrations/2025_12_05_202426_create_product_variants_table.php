@@ -16,10 +16,9 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->string('sku')->nullable()->unique();
             $table->string('label');
-            $table->string('metal_tone')->nullable();
-            $table->string('stone_quality')->nullable();
             $table->string('size')->nullable();
             $table->decimal('price_adjustment', 12, 2)->default(0);
+            $table->integer('inventory_quantity')->default(0);
             $table->boolean('is_default')->default(false);
             $table->jsonb('metadata')->nullable();
             $table->timestampsTz();

@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('material_types', function (Blueprint $table) {
+        Schema::create('quotation_messages', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
-            $table->string('slug')->unique();
-            $table->text('description')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->foreignId('quotation_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained('customers')->cascadeOnDelete();
+            $table->enum('sender', ['customer', 'admin']);
+            $table->text('message');
             $table->timestampsTz();
         });
     }
@@ -26,7 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('material_types');
+        Schema::dropIfExists('quotation_messages');
     }
 };
-

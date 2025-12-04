@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('quotations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('customers')->cascadeOnDelete();
+            $table->string('quotation_group_id')->nullable();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_variant_id')->nullable()->constrained()->nullOnDelete();
             $table->enum('mode', ['purchase', 'jobwork'])->default('purchase');
@@ -22,7 +23,13 @@ return new class extends Migration
             $table->jsonb('selections')->nullable();
             $table->text('notes')->nullable();
             $table->jsonb('metadata')->nullable();
+            $table->foreignId('order_id')->nullable()->constrained()->nullOnDelete();
+            $table->timestampTz('approved_at')->nullable();
+            $table->string('jobwork_status')->nullable();
+            $table->text('admin_notes')->nullable();
             $table->timestampsTz();
+
+            $table->index('quotation_group_id');
         });
     }
 

@@ -25,6 +25,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestampTz('starts_at')->nullable();
             $table->timestampTz('ends_at')->nullable();
+            $table->jsonb('customer_types')->nullable();
             $table->timestampsTz();
 
             $table->index(['is_active', 'starts_at', 'ends_at']);
