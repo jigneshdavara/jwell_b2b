@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Customer;
-use App\Models\ProductCatalog;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
@@ -43,7 +42,6 @@ class HandleInertiaRequests extends Middleware
         $wishlistCount = 0;
         $wishlistProductIds = [];
         $navCategories = [];
-        $navCatalogs = [];
         $navBrands = [];
         if ($customer instanceof Customer) {
             $customer->loadMissing([
@@ -89,18 +87,6 @@ class HandleInertiaRequests extends Middleware
                 ])
                 ->toArray();
 
-            $navCatalogs = ProductCatalog::query()
-                ->select(['id', 'name', 'slug'])
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->take(8)
-                ->get()
-                ->map(fn (ProductCatalog $catalog) => [
-                    'id' => $catalog->id,
-                    'name' => $catalog->name,
-                    'slug' => $catalog->slug,
-                ])
-                ->toArray();
 
             $navBrands = Brand::query()
                 ->select(['id', 'name', 'slug'])
@@ -133,7 +119,6 @@ class HandleInertiaRequests extends Middleware
             ],
             'navigation' => [
                 'categories' => $navCategories,
-                'catalogs' => $navCatalogs,
                 'brands' => $navBrands,
             ],
             'flash' => [

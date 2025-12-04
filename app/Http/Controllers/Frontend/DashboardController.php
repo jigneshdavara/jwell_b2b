@@ -8,7 +8,6 @@ use App\Models\Category;
 use App\Models\Offer;
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\ProductCatalog;
 use App\Models\Quotation;
 use App\Models\PriceRate;
 use Carbon\Carbon;
@@ -95,7 +94,6 @@ class DashboardController extends Controller
 
         $recentProducts = Product::query()
             ->with([
-                'catalogs',
                 'media' => fn($media) => $media->orderBy('position'),
                 'variants.metals.metal',
                 'variants.metals.metalPurity',
@@ -147,7 +145,6 @@ class DashboardController extends Controller
                     'id' => $product->id,
                     'name' => $product->name,
                     'sku' => $product->sku,
-                    'catalog' => optional($product->catalogs->first())?->name,
                     'price_total' => $priceTotal,
                     'thumbnail' => optional($product->media->sortBy('position')->first())?->url,
                 ];

@@ -92,6 +92,6 @@ class Product extends Model
 
     public function catalogs(): BelongsToMany
     {
-        return $this->belongsToMany(ProductCatalog::class)->withTimestamps();
+        return $this->belongsToMany(Catalog::class, 'catalog_products')->withTimestamps();
     }
 }

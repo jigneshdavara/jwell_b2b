@@ -12,7 +12,6 @@ use App\Models\Metal;
 use App\Models\MetalPurity;
 use App\Models\MetalTone;
 use App\Models\Product;
-use App\Models\ProductCatalog;
 use App\Models\ProductMedia;
 use App\Models\ProductVariant;
 use App\Services\Catalog\ProductVariantSyncService;
@@ -76,7 +75,6 @@ class ProductController extends Controller
     {
         return Inertia::render('Admin/Products/Edit', [
             'product' => null,
-            'productCatalogs' => ProductCatalog::query()->pluck('name', 'id'),
             'customerGroups' => $this->customerGroupOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
@@ -93,15 +91,12 @@ class ProductController extends Controller
         $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
 
         $data = $this->prepareProductPayload($data);
-        $catalogIds = $this->sanitizeIds($data['product_catalog_ids'] ?? []);
-        unset($data['product_catalog_ids']);
 
-        return DB::transaction(function () use ($data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds) {
+        return DB::transaction(function () use ($data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds) {
             $product = Product::create($data);
 
             $variantSync->sync($product, $variants, $variantOptions, null);
             $this->syncMedia($product, $mediaUploads, $removedMediaIds);
-            $product->catalogs()->sync($catalogIds);
 
             return redirect()
                 ->route('admin.products.edit', $product)
@@ -113,7 +108,6 @@ class ProductController extends Controller
     {
         $product->load([
             'material',
-            'catalogs',
             'media' => fn($query) => $query->orderBy('position'),
             'variants' => function ($query) {
                 $query->orderByDesc('is_default')->orderBy('label')
@@ -160,7 +154,6 @@ class ProductController extends Controller
                 'metal_purity_ids' => $product->metal_purity_ids ?? [],
                 'metal_tone_ids' => $product->metal_tone_ids ?? [],
                 'metadata' => $product->metadata,
-                'product_catalog_ids' => $product->catalogs->pluck('id')->all(),
                 'variants' => $product->variants->map(fn(ProductVariant $variant) => [
                     'id' => $variant->id,
                     'sku' => $variant->sku,
@@ -197,7 +190,6 @@ class ProductController extends Controller
                     'metadata' => $media->metadata,
                 ]),
             ],
-            'productCatalogs' => ProductCatalog::query()->pluck('name', 'id'),
             'customerGroups' => $this->customerGroupOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
@@ -214,14 +206,11 @@ class ProductController extends Controller
         $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
 
         $data = $this->prepareProductPayload($data);
-        $catalogIds = $this->sanitizeIds($data['product_catalog_ids'] ?? []);
-        unset($data['product_catalog_ids']);
 
-        DB::transaction(function () use ($product, $data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds): void {
+        DB::transaction(function () use ($product, $data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds): void {
             $product->update($data);
             $variantSync->sync($product, $variants, $variantOptions, null);
             $this->syncMedia($product, $mediaUploads, $removedMediaIds);
-            $product->catalogs()->sync($catalogIds);
         });
 
         return redirect()

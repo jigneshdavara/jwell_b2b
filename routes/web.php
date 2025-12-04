@@ -13,7 +13,6 @@ use App\Http\Controllers\Admin\UserGroupController;
 use App\Http\Controllers\Admin\TeamUserController;
 use App\Http\Controllers\Admin\MaterialController;
 use App\Http\Controllers\Admin\MaterialTypeController;
-use App\Http\Controllers\Admin\ProductCatalogController;
 use App\Http\Controllers\Admin\DiamondClarityController;
 use App\Http\Controllers\Admin\DiamondColorController;
 use App\Http\Controllers\Admin\DiamondController;
@@ -31,6 +30,7 @@ use App\Http\Controllers\Admin\SizeController;
 use App\Http\Controllers\Admin\StyleController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\BrandController;
+use App\Http\Controllers\Admin\CatalogController as AdminCatalogController;
 use App\Http\Controllers\Admin\CustomerTypeController;
 use App\Http\Controllers\Admin\CustomerGroupController;
 use App\Http\Controllers\Admin\OrderStatusController;
@@ -176,9 +176,6 @@ Route::prefix('admin')
         Route::delete('products/bulk', [ProductController::class, 'bulkDestroy'])->name('products.bulk-destroy');
         Route::post('products/{product}/copy', [ProductController::class, 'copy'])->name('products.copy');
         Route::resource('products', ProductController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
-        Route::delete('catalog/product-catalogs/bulk', [ProductCatalogController::class, 'bulkDestroy'])->name('catalog.product-catalogs.bulk-destroy');
-        Route::post('catalog/product-catalogs/{product_catalog}/assign-products', [ProductCatalogController::class, 'assignProducts'])->name('catalog.product-catalogs.assign-products');
-        Route::resource('catalog/product-catalogs', ProductCatalogController::class)->only(['index', 'store', 'update', 'destroy'])->names('catalog.product-catalogs');
         Route::delete('catalog/materials/bulk', [MaterialController::class, 'bulkDestroy'])->name('catalog.materials.bulk-destroy');
         Route::resource('catalog/materials', MaterialController::class)->only(['index', 'store', 'update', 'destroy'])->names('catalog.materials');
 
@@ -190,6 +187,11 @@ Route::prefix('admin')
 
         Route::delete('brands/bulk', [BrandController::class, 'bulkDestroy'])->name('brands.bulk-destroy');
         Route::resource('brands', BrandController::class)->only(['index', 'store', 'update', 'destroy'])->names('brands');
+
+        Route::delete('catalogs/bulk', [AdminCatalogController::class, 'bulkDestroy'])->name('catalogs.bulk-destroy');
+        Route::get('catalogs/{catalog}/assign-products', [AdminCatalogController::class, 'showAssignProducts'])->name('catalogs.assign-products');
+        Route::post('catalogs/{catalog}/assign-products', [AdminCatalogController::class, 'assignProducts'])->name('catalogs.assign-products.store');
+        Route::resource('catalogs', AdminCatalogController::class)->only(['index', 'store', 'update', 'destroy'])->names('catalogs');
 
 
         Route::prefix('diamond')->name('diamond.')->group(function () {

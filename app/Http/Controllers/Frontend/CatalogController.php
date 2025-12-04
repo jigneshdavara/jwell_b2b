@@ -14,7 +14,6 @@ use App\Models\MetalPurity;
 use App\Models\MetalTone;
 use App\Models\PriceRate;
 use App\Models\Product;
-use App\Models\ProductCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -38,7 +37,6 @@ class CatalogController extends Controller
             'price_max',
             'search',
             'category',
-            'catalog',
             'sort',
             'jobwork_available',
             'ready_made',
@@ -48,7 +46,6 @@ class CatalogController extends Controller
             ->with([
                 'category',
                 'material',
-                'catalogs:id,name,slug',
                 'media' => fn($media) => $media->orderBy('position'),
                 'variants' => function ($variants) {
                     $variants->orderByAsc('id')
@@ -166,22 +163,6 @@ class CatalogController extends Controller
         $filters['jobwork_available'] = ($filters['jobwork_available'] ?? null) === '1' ? '1' : null;
         $filters['ready_made'] = ($filters['ready_made'] ?? null) === '1' ? '1' : null;
 
-        if ($filters['catalog'] ?? null) {
-            $catalogFilter = $filters['catalog'];
-            $catalogQuery = ProductCatalog::query()->where('slug', $catalogFilter);
-
-            // Only add id comparison if the filter value is numeric
-            if (is_numeric($catalogFilter)) {
-                $catalogQuery->orWhere('id', (int) $catalogFilter);
-            }
-
-            $catalog = $catalogQuery->first();
-
-            if ($catalog) {
-                $query->whereHas('catalogs', fn($catalogQuery) => $catalogQuery->where('product_catalogs.id', $catalog->id));
-            }
-        }
-
         if ($filters['search'] ?? null) {
             $query->where(function ($q) use ($filters) {
                 $q->where('name', 'like', '%' . $filters['search'] . '%')
@@ -278,11 +259,6 @@ class CatalogController extends Controller
                     'uses_gold' => (bool) $product->uses_gold,
                     'uses_silver' => (bool) $product->uses_silver,
                     'uses_diamond' => (bool) $product->uses_diamond,
-                    'catalogs' => $product->catalogs->map(fn(ProductCatalog $catalog) => [
-                        'id' => $catalog->id,
-                        'name' => $catalog->name,
-                        'slug' => $catalog->slug,
-                    ]),
                     'variants' => $product->variants->map(fn($variant) => [
                         'id' => $variant->id,
                         'label' => $variant->label,
@@ -302,15 +278,6 @@ class CatalogController extends Controller
                     'id' => $category->id,
                     'name' => $category->name,
                     'slug' => $category->slug,
-                ]),
-            'catalogs' => ProductCatalog::query()
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get(['id', 'name', 'slug'])
-                ->map(fn(ProductCatalog $catalog) => [
-                    'id' => $catalog->id,
-                    'name' => $catalog->name,
-                    'slug' => $catalog->slug,
                 ]),
             'metals' => Metal::query()
                 ->where('is_active', true)

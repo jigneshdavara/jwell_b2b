@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('diamonds', function (Blueprint $table) {
             $table->id();
+            $table->string('name');
             $table->foreignId('diamond_clarity_id')->nullable()->constrained('diamond_clarities')->nullOnDelete();
             $table->foreignId('diamond_color_id')->nullable()->constrained('diamond_colors')->nullOnDelete();
             $table->foreignId('diamond_shape_id')->nullable()->constrained('diamond_shapes')->nullOnDelete();

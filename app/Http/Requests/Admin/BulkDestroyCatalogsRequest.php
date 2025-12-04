@@ -4,7 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class AssignProductsToCatalogRequest extends FormRequest
+class BulkDestroyCatalogsRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,8 +17,8 @@ class AssignProductsToCatalogRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'product_ids' => ['nullable', 'array'],
-            'product_ids.*' => ['integer', 'exists:products,id'],
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['required', 'integer', 'exists:catalogs,id'],
         ];
     }
 }

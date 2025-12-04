@@ -15,11 +15,11 @@ class DatabaseSeeder extends Seeder
             MetalSeeder::class,
             MetalPuritySeeder::class,
             MetalToneSeeder::class,
-            CatalogSeeder::class,
             OrderStatusSeeder::class,
             CommerceSeeder::class,
             ProductionSeeder::class,
             BrandSeeder::class,
+            CatalogSeeder::class,
         ]);
     }
 }
