@@ -9,17 +9,19 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            PaymentGatewaySeeder::class,
-            ReferenceDataSeeder::class,
-            UserAndKycSeeder::class,
-            MetalSeeder::class,
+            BrandSeeder::class,
+            CategorySeeder::class,
+            ColorstoneDataSeeder::class,
+            DiamondDataSeeder::class,
             MetalPuritySeeder::class,
+            MetalSeeder::class,
             MetalToneSeeder::class,
             OrderStatusSeeder::class,
-            CommerceSeeder::class,
-            ProductionSeeder::class,
-            BrandSeeder::class,
-            CatalogSeeder::class,
+            PaymentGatewaySeeder::class,
+            SizeSeeder::class,
+            StyleSeeder::class,
+            UserAndKycSeeder::class,
+
         ]);
     }
 }

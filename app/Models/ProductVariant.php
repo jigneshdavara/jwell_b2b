@@ -46,4 +46,9 @@ class ProductVariant extends Model
     {
         return $this->hasMany(ProductVariantDiamond::class)->orderBy('position');
     }
+
+    public function colorstones(): HasMany
+    {
+        return $this->hasMany(ProductVariantColorstone::class)->orderBy('position');
+    }
 }

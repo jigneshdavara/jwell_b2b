@@ -7,7 +7,12 @@ use App\Http\Requests\Admin\BulkProductsRequest;
 use App\Http\Requests\Admin\BulkUpdateProductStatusRequest;
 use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
+use App\Models\Brand;
+use App\Models\Category;
 use App\Models\CustomerGroup;
+use App\Models\DiamondClarity;
+use App\Models\DiamondColor;
+use App\Models\DiamondShape;
 use App\Models\Metal;
 use App\Models\MetalPurity;
 use App\Models\MetalTone;
@@ -36,6 +41,7 @@ class ProductController extends Controller
         }
 
         $products = Product::query()
+            ->with(['brand:id,name', 'category:id,name'])
             ->withCount('variants')
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where(function ($query) use ($search) {
@@ -59,12 +65,16 @@ class ProductController extends Controller
                     'sku' => $product->sku,
                     'name' => $product->name,
                     'is_active' => $product->is_active,
+                    'brand' => $product->brand ? ['name' => $product->brand->name] : null,
+                    'category' => $product->category ? ['name' => $product->category->name] : null,
                     'variants_count' => $product->variants_count,
                 ];
             });
 
         return Inertia::render('Admin/Products/Index', [
             'products' => $products,
+            'brands' => $this->brandList(),
+            'categories' => $this->categoryList(),
             'filters' => $filters,
             'perPageOptions' => [10, 25, 50, 100],
             'perPage' => $perPage,
@@ -76,6 +86,9 @@ class ProductController extends Controller
         return Inertia::render('Admin/Products/Edit', [
             'product' => null,
             'customerGroups' => $this->customerGroupOptions(),
+            'brands' => $this->brandList(),
+            'categories' => $this->categoryList(),
+            'diamondCatalog' => $this->diamondCatalogOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
             'metalTones' => $this->metalToneOptions(),
@@ -107,7 +120,8 @@ class ProductController extends Controller
     public function edit(Product $product): Response
     {
         $product->load([
-            'material',
+            'brand',
+            'category',
             'media' => fn($query) => $query->orderBy('position'),
             'variants' => function ($query) {
                 $query->orderByDesc('is_default')->orderBy('label')
@@ -121,6 +135,8 @@ class ProductController extends Controller
                 'sku' => $product->sku,
                 'name' => $product->name,
                 'description' => $product->description,
+                'brand_id' => $product->brand_id,
+                'category_id' => $product->category_id,
                 'gross_weight' => $product->gross_weight,
                 'net_weight' => $product->net_weight,
                 'gold_weight' => $product->gold_weight,
@@ -191,6 +207,9 @@ class ProductController extends Controller
                 ]),
             ],
             'customerGroups' => $this->customerGroupOptions(),
+            'brands' => $this->brandList(),
+            'categories' => $this->categoryList(),
+            'diamondCatalog' => $this->diamondCatalogOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
             'metalTones' => $this->metalToneOptions(),
@@ -312,13 +331,13 @@ class ProductController extends Controller
     {
         return Metal::query()
             ->where('is_active', true)
-            ->orderBy('position')
+            ->orderBy('display_order')
             ->orderBy('name')
             ->get()
             ->map(fn(Metal $metal) => [
                 'id' => $metal->id,
                 'name' => $metal->name,
-                'slug' => $metal->slug,
+                'slug' => $metal->slug ?? null,
             ])
             ->all();
     }
@@ -328,7 +347,7 @@ class ProductController extends Controller
         return MetalPurity::query()
             ->where('is_active', true)
             ->with('metal:id,name')
-            ->orderBy('position')
+            ->orderBy('display_order')
             ->orderBy('name')
             ->get()
             ->map(fn(MetalPurity $purity) => [
@@ -345,7 +364,7 @@ class ProductController extends Controller
         return MetalTone::query()
             ->where('is_active', true)
             ->with('metal:id,name')
-            ->orderBy('position')
+            ->orderBy('display_order')
             ->orderBy('name')
             ->get()
             ->map(fn(MetalTone $tone) => [
@@ -355,6 +374,83 @@ class ProductController extends Controller
                 'metal' => $tone->metal ? ['id' => $tone->metal->id, 'name' => $tone->metal->name] : null,
             ])
             ->all();
+    }
+
+    protected function brandOptions(): array
+    {
+        return Brand::query()
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn(Brand $brand) => [
+                'id' => $brand->id,
+                'name' => $brand->name,
+            ])
+            ->all();
+    }
+
+    protected function categoryOptions(): array
+    {
+        return Category::query()
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn(Category $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+            ])
+            ->all();
+    }
+
+    protected function brandList(): array
+    {
+        return Brand::query()
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    protected function categoryList(): array
+    {
+        return Category::query()
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    protected function diamondCatalogOptions(): array
+    {
+        return [
+            'types' => [], // DiamondType model doesn't exist yet
+            'shapes' => DiamondShape::query()
+                ->where('is_active', true)
+                ->orderBy('display_order') // diamond_shapes uses 'position'
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
+                ->all(),
+            'colors' => DiamondColor::query()
+                ->where('is_active', true)
+                ->orderBy('display_order') // diamond_colors uses 'display_order'
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
+                ->all(),
+            'clarities' => DiamondClarity::query()
+                ->where('is_active', true)
+                ->orderBy('display_order') // diamond_clarities uses 'display_order'
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
+                ->all(),
+            'cuts' => [], // DiamondCut model doesn't exist yet
+        ];
     }
 
     protected function prepareProductPayload(array $data): array

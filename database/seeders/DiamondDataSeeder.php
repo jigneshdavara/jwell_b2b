@@ -106,20 +106,20 @@ class DiamondDataSeeder extends Seeder
         $this->command->info('Seeding diamond shapes...');
 
         $shapes = [
-            ['code' => 'UnGraded', 'name' => 'UnGraded', 'ecat_name' => '', 'position' => 0],
-            ['code' => 'RND', 'name' => 'RND', 'ecat_name' => 'Round', 'position' => 1],
-            ['code' => 'RND-S', 'name' => 'RND-S', 'ecat_name' => 'Round Single Cut', 'position' => 2],
-            ['code' => 'BUG', 'name' => 'BUG', 'ecat_name' => 'Baguette', 'position' => 3],
-            ['code' => 'HRT', 'name' => 'HRT', 'ecat_name' => 'Heart', 'position' => 4],
-            ['code' => 'MRQ', 'name' => 'MRQ', 'ecat_name' => 'Marquise', 'position' => 5],
-            ['code' => 'OVL', 'name' => 'OVL', 'ecat_name' => 'Ovel', 'position' => 6],
-            ['code' => 'PRI', 'name' => 'PRI', 'ecat_name' => 'Princess', 'position' => 7],
-            ['code' => 'EMR', 'name' => 'EMR', 'ecat_name' => 'Emerald', 'position' => 8],
-            ['code' => 'PRS', 'name' => 'PRS', 'ecat_name' => 'Pears', 'position' => 9],
-            ['code' => 'CSN', 'name' => 'CSN', 'ecat_name' => 'Cushion', 'position' => 10],
-            ['code' => 'ASH', 'name' => 'ASH', 'ecat_name' => 'Asscher', 'position' => 11],
-            ['code' => 'CUS', 'name' => 'CUS', 'ecat_name' => 'Customize', 'position' => 12],
-            ['code' => 'RSC', 'name' => 'RSC', 'ecat_name' => 'Rose Cut', 'position' => 13],
+            ['code' => 'UnGraded', 'name' => 'UnGraded', 'ecat_name' => '', 'display_order' => 0],
+            ['code' => 'RND', 'name' => 'RND', 'ecat_name' => 'Round', 'display_order' => 1],
+            ['code' => 'RND-S', 'name' => 'RND-S', 'ecat_name' => 'Round Single Cut', 'display_order' => 2],
+            ['code' => 'BUG', 'name' => 'BUG', 'ecat_name' => 'Baguette', 'display_order' => 3],
+            ['code' => 'HRT', 'name' => 'HRT', 'ecat_name' => 'Heart', 'display_order' => 4],
+            ['code' => 'MRQ', 'name' => 'MRQ', 'ecat_name' => 'Marquise', 'display_order' => 5],
+            ['code' => 'OVL', 'name' => 'OVL', 'ecat_name' => 'Ovel', 'display_order' => 6],
+            ['code' => 'PRI', 'name' => 'PRI', 'ecat_name' => 'Princess', 'display_order' => 7],
+            ['code' => 'EMR', 'name' => 'EMR', 'ecat_name' => 'Emerald', 'display_order' => 8],
+            ['code' => 'PRS', 'name' => 'PRS', 'ecat_name' => 'Pears', 'display_order' => 9],
+            ['code' => 'CSN', 'name' => 'CSN', 'ecat_name' => 'Cushion', 'display_order' => 10],
+            ['code' => 'ASH', 'name' => 'ASH', 'ecat_name' => 'Asscher', 'display_order' => 11],
+            ['code' => 'CUS', 'name' => 'CUS', 'ecat_name' => 'Customize', 'display_order' => 12],
+            ['code' => 'RSC', 'name' => 'RSC', 'ecat_name' => 'Rose Cut', 'display_order' => 13],
         ];
 
         foreach ($shapes as $shape) {
@@ -129,7 +129,7 @@ class DiamondDataSeeder extends Seeder
                     'code' => $shape['code'] ?: null,
                     'ecat_name' => $shape['ecat_name'] ?: null,
                     'description' => null,
-                    'position' => $shape['position'],
+                    'display_order' => $shape['display_order'],
                     'is_active' => true,
                 ]
             );

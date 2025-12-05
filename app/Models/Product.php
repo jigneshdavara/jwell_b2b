@@ -16,6 +16,8 @@ class Product extends Model
         'sku',
         'name',
         'description',
+        'brand_id',
+        'category_id',
         'material_id',
         'gross_weight',
         'net_weight',
@@ -73,6 +75,16 @@ class Product extends Model
     public function material(): BelongsTo
     {
         return $this->belongsTo(Material::class);
+    }
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function media(): HasMany

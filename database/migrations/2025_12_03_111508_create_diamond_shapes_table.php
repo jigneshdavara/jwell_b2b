@@ -18,11 +18,11 @@ return new class extends Migration
             $table->string('ecat_name')->nullable();
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->integer('position')->default(0);
+            $table->integer('display_order')->default(0);
             $table->timestampsTz();
 
             $table->index('code');
-            $table->index('position');
+            $table->index('display_order');
         });
     }
 
