@@ -11,7 +11,7 @@ type DiamondShapeRow = {
     name: string;
     ecat_name: string | null;
     description?: string | null;
-    position: number;
+    display_order: number;
     is_active: boolean;
 };
 
@@ -44,7 +44,7 @@ export default function AdminDiamondShapesIndex() {
         name: '',
         ecat_name: '',
         description: '',
-        position: 0,
+        display_order: 0,
         is_active: true,
     });
 
@@ -79,7 +79,7 @@ export default function AdminDiamondShapesIndex() {
         setModalOpen(false);
         form.reset();
         form.setData('is_active', true);
-        form.setData('position', 0);
+        form.setData('display_order', 0);
     };
 
     const openCreateModal = () => {
@@ -94,7 +94,7 @@ export default function AdminDiamondShapesIndex() {
             name: shape.name,
             ecat_name: shape.ecat_name ?? '',
             description: shape.description ?? '',
-            position: shape.position,
+            display_order: shape.display_order,
             is_active: shape.is_active,
         });
         setModalOpen(true);
@@ -123,7 +123,7 @@ export default function AdminDiamondShapesIndex() {
             ecat_name: shape.ecat_name,
             description: shape.description,
             is_active: !shape.is_active,
-            position: shape.position,
+            display_order: shape.display_order,
         }, {
             preserveScroll: true,
         });
@@ -265,7 +265,7 @@ export default function AdminDiamondShapesIndex() {
                                         </div>
                                     </td>
                                     <td className="px-5 py-3 text-slate-500">{shape.ecat_name || '-'}</td>
-                                    <td className="px-5 py-3 text-slate-500">{shape.position}</td>
+                                    <td className="px-5 py-3 text-slate-500">{shape.display_order}</td>
                                     <td className="px-5 py-3">
                                         <span
                                             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -444,12 +444,12 @@ export default function AdminDiamondShapesIndex() {
                                             <span>Position</span>
                                             <input
                                                 type="number"
-                                                value={form.data.position}
-                                                onChange={(event) => form.setData('position', Number(event.target.value))}
+                                                value={form.data.display_order}
+                                                onChange={(event) => form.setData('display_order', Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                             />
-                                            {form.errors.position && <span className="text-xs text-rose-500">{form.errors.position}</span>}
+                                            {form.errors.display_order && <span className="text-xs text-rose-500">{form.errors.display_order}</span>}
                                         </label>
                                     </div>
 

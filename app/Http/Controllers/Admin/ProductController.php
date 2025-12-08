@@ -10,6 +10,11 @@ use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\CustomerGroup;
+use App\Models\Colorstone;
+use App\Models\ColorstoneColor;
+use App\Models\ColorstoneQuality;
+use App\Models\ColorstoneShape;
+use App\Models\Diamond;
 use App\Models\DiamondClarity;
 use App\Models\DiamondColor;
 use App\Models\DiamondShape;
@@ -89,6 +94,9 @@ class ProductController extends Controller
             'brands' => $this->brandList(),
             'categories' => $this->categoryList(),
             'diamondCatalog' => $this->diamondCatalogOptions(),
+            'colorstoneCatalog' => $this->colorstoneCatalogOptions(),
+            'diamonds' => $this->diamondOptions(),
+            'colorstones' => $this->colorstoneOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
             'metalTones' => $this->metalToneOptions(),
@@ -125,7 +133,17 @@ class ProductController extends Controller
             'media' => fn($query) => $query->orderBy('position'),
             'variants' => function ($query) {
                 $query->orderByDesc('is_default')->orderBy('label')
-                    ->with(['metals.metal', 'metals.metalPurity', 'metals.metalTone']);
+                    ->with([
+                        'metals.metal',
+                        'metals.metalPurity',
+                        'metals.metalTone',
+                        'diamonds.diamondShape',
+                        'diamonds.diamondColor',
+                        'diamonds.diamondClarity',
+                        'colorstones.colorstoneShape',
+                        'colorstones.colorstoneColor',
+                        'colorstones.colorstoneQuality',
+                    ]);
             },
         ]);
 
@@ -134,9 +152,13 @@ class ProductController extends Controller
                 'id' => $product->id,
                 'sku' => $product->sku,
                 'name' => $product->name,
+                'titleline' => $product->titleline ?? '',
                 'description' => $product->description,
                 'brand_id' => $product->brand_id,
                 'category_id' => $product->category_id,
+                'collection' => $product->collection ?? '',
+                'producttype' => $product->producttype ?? '',
+                'gender' => $product->gender ?? '',
                 'gross_weight' => $product->gross_weight,
                 'net_weight' => $product->net_weight,
                 'gold_weight' => $product->gold_weight,
@@ -156,11 +178,12 @@ class ProductController extends Controller
                     })
                     ->values()
                     ->all(),
-                'is_jobwork_allowed' => $product->is_jobwork_allowed,
-                'visibility' => $product->visibility,
-                'standard_pricing' => $product->standard_pricing,
+                'is_active' => $product->is_active ?? true,
+                'is_jobwork_allowed' => $product->is_jobwork_allowed ?? false,
+                'visibility' => $product->visibility ?? 'public',
+                'standard_pricing' => $product->standard_pricing ?? false,
                 'variant_options' => $product->variant_options,
-                'is_variant_product' => $product->is_variant_product,
+                'is_variant_product' => $product->is_variant_product ?? false,
                 'mixed_metal_tones_per_purity' => $product->mixed_metal_tones_per_purity ?? false,
                 'mixed_metal_purities_per_tone' => $product->mixed_metal_purities_per_tone ?? false,
                 'metal_mix_mode' => is_array($product->metal_mix_mode) && count($product->metal_mix_mode) > 0
@@ -197,6 +220,26 @@ class ProductController extends Controller
                         'metal_purity' => $metal->metalPurity ? ['id' => $metal->metalPurity->id, 'name' => $metal->metalPurity->name] : null,
                         'metal_tone' => $metal->metalTone ? ['id' => $metal->metalTone->id, 'name' => $metal->metalTone->name] : null,
                     ])->values()->all(),
+                    // Diamonds for this variant - include all attribute IDs
+                    'diamonds' => $variant->diamonds->map(fn($diamond) => [
+                        'id' => $diamond->id,
+                        'diamond_shape_id' => $diamond->diamond_shape_id,
+                        'diamond_color_id' => $diamond->diamond_color_id,
+                        'diamond_clarity_id' => $diamond->diamond_clarity_id,
+                        'diamonds_count' => $diamond->diamonds_count,
+                        'total_carat' => $diamond->total_carat,
+                        'metadata' => $diamond->metadata,
+                    ])->values()->all(),
+                    // Colorstones for this variant - include all attribute IDs
+                    'colorstones' => $variant->colorstones->map(fn($colorstone) => [
+                        'id' => $colorstone->id,
+                        'colorstone_shape_id' => $colorstone->colorstone_shape_id,
+                        'colorstone_color_id' => $colorstone->colorstone_color_id,
+                        'colorstone_quality_id' => $colorstone->colorstone_quality_id,
+                        'stones_count' => $colorstone->stones_count,
+                        'total_carat' => $colorstone->total_carat,
+                        'metadata' => $colorstone->metadata,
+                    ])->values()->all(),
                 ]),
                 'media' => $product->media->map(fn(ProductMedia $media) => [
                     'id' => $media->id,
@@ -210,6 +253,9 @@ class ProductController extends Controller
             'brands' => $this->brandList(),
             'categories' => $this->categoryList(),
             'diamondCatalog' => $this->diamondCatalogOptions(),
+            'colorstoneCatalog' => $this->colorstoneCatalogOptions(),
+            'diamonds' => $this->diamondOptions(),
+            'colorstones' => $this->colorstoneOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
             'metalTones' => $this->metalToneOptions(),
@@ -430,7 +476,7 @@ class ProductController extends Controller
             'types' => [], // DiamondType model doesn't exist yet
             'shapes' => DiamondShape::query()
                 ->where('is_active', true)
-                ->orderBy('display_order') // diamond_shapes uses 'position'
+                ->orderBy('display_order')
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
@@ -451,6 +497,53 @@ class ProductController extends Controller
                 ->all(),
             'cuts' => [], // DiamondCut model doesn't exist yet
         ];
+    }
+
+    protected function colorstoneCatalogOptions(): array
+    {
+        return [
+            'shapes' => ColorstoneShape::query()
+                ->where('is_active', true)
+                ->orderBy('display_order')
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
+                ->all(),
+            'colors' => ColorstoneColor::query()
+                ->where('is_active', true)
+                ->orderBy('display_order')
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
+                ->all(),
+            'qualities' => ColorstoneQuality::query()
+                ->where('is_active', true)
+                ->orderBy('display_order')
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
+                ->all(),
+        ];
+    }
+
+    protected function diamondOptions(): array
+    {
+        return Diamond::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
+            ->all();
+    }
+
+    protected function colorstoneOptions(): array
+    {
+        return Colorstone::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
+            ->all();
     }
 
     protected function prepareProductPayload(array $data): array

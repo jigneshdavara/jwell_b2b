@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Catalog;
 use App\Models\Category;
 use App\Models\Offer;
 use App\Models\Order;
@@ -150,16 +151,15 @@ class DashboardController extends Controller
                 ];
             });
 
-        $featuredCatalogs = ProductCatalog::query()
+        $featuredCatalogs = Catalog::query()
             ->withCount('products')
             ->where('is_active', true)
             ->latest('updated_at')
             ->take(6)
             ->get()
-            ->map(fn(ProductCatalog $catalog) => [
+            ->map(fn(Catalog $catalog) => [
                 'id' => $catalog->id,
                 'name' => $catalog->name,
-                'slug' => $catalog->slug,
                 'description' => $catalog->description,
                 'products_count' => $catalog->products_count,
             ]);

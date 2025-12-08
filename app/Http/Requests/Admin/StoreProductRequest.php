@@ -34,8 +34,6 @@ class StoreProductRequest extends FormRequest
             $removedMediaRule = $removedMediaRule->where('product_id', $productId);
         }
 
-        $isVariantProduct = $this->boolean('is_variant_product', true);
-
         return [
             'sku' => [
                 'required',
@@ -44,14 +42,13 @@ class StoreProductRequest extends FormRequest
                 Rule::unique('products', 'sku')->ignore($productId),
             ],
             'name' => ['required', 'string', 'max:255'],
+            'titleline' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'brand_id' => ['required', 'exists:brands,id'],
             'category_id' => ['required', 'exists:categories,id'],
-            'gross_weight' => ['nullable', 'numeric', 'min:0'],
-            'net_weight' => ['nullable', 'numeric', 'min:0'],
-            'gold_weight' => ['nullable', 'numeric', 'min:0'],
-            'silver_weight' => ['nullable', 'numeric', 'min:0'],
-            'other_material_weight' => ['nullable', 'numeric', 'min:0'],
-            'total_weight' => ['nullable', 'numeric', 'min:0'],
+            'collection' => ['required', 'string', 'max:255'],
+            'producttype' => ['required', 'string', 'max:255'],
+            'gender' => ['required', 'string', 'max:50', Rule::in(['Men', 'Women', 'Unisex', 'Kids'])],
             'making_charge' => ['required', 'numeric', 'min:0'],
             'making_charge_discount_type' => ['nullable', 'in:percentage,fixed'],
             'making_charge_discount_value' => ['nullable', 'numeric', 'min:0', 'required_with:making_charge_discount_type'],
@@ -59,115 +56,29 @@ class StoreProductRequest extends FormRequest
             'making_charge_discount_overrides.*.customer_group_id' => ['required', 'integer', 'exists:customer_groups,id'],
             'making_charge_discount_overrides.*.type' => ['required', 'in:percentage,fixed'],
             'making_charge_discount_overrides.*.value' => ['required', 'numeric', 'min:0'],
-            'standard_pricing' => ['nullable', 'array'],
-            'standard_pricing.labour_brand' => ['nullable', 'string', 'max:255'],
-            'standard_pricing.diamond_rate' => ['nullable', 'numeric', 'min:0'],
-            'standard_pricing.gold_rate' => ['nullable', 'numeric', 'min:0'],
-            'standard_pricing.colourstone_rate' => ['nullable', 'numeric', 'min:0'],
-            'is_jobwork_allowed' => ['boolean'],
-            'visibility' => ['nullable', 'string', 'max:50'],
             'is_active' => ['boolean'],
-            'is_variant_product' => ['boolean'],
-            'mixed_metal_tones_per_purity' => ['boolean'],
-            'mixed_metal_purities_per_tone' => ['boolean'],
-            'metal_mix_mode' => ['nullable', 'array'],
-            // metal_mix_mode is an object with numeric keys (metal IDs) and string values (modes)
-            // Validation is handled in prepareProductPayload() method in ProductController
-            'uses_diamond' => ['boolean'],
-            'diamond_mixing_mode' => ['nullable', 'string', 'in:shared,as_variant'],
-            'metal_ids' => ['nullable', 'array'],
-            'metal_ids.*' => ['integer', 'exists:metals,id'],
-            'metal_purity_ids' => ['nullable', 'array'],
-            'metal_purity_ids.*' => ['integer', 'exists:metal_purities,id'],
-            'metal_tone_ids' => ['nullable', 'array'],
-            'metal_tone_ids.*' => ['integer', 'exists:metal_tones,id'],
-            'diamond_options' => ['nullable', 'array'],
-            'diamond_options.*.key' => ['required', 'string'],
-            'diamond_options.*.type_id' => ['nullable', 'integer', 'exists:diamond_types,id'],
-            'diamond_options.*.shape_id' => ['nullable', 'integer', 'exists:diamond_shapes,id'],
-            'diamond_options.*.color_id' => ['nullable', 'integer', 'exists:diamond_colors,id'],
-            'diamond_options.*.clarity_id' => ['nullable', 'integer', 'exists:diamond_clarities,id'],
-            'diamond_options.*.cut_id' => ['nullable', 'integer', 'exists:diamond_cuts,id'],
-            'diamond_options.*.weight' => ['nullable', 'numeric', 'min:0'],
-            'diamond_options.*.diamonds_count' => ['nullable', 'integer', 'min:0'],
-            'metadata' => ['nullable', 'array'],
-            'metadata.size_dimension' => ['nullable', 'array'],
-            'metadata.size_dimension.unit' => ['required_with:metadata.size_dimension', 'in:mm,cm'],
-            'metadata.size_dimension.values' => ['nullable', 'array'],
-            'metadata.size_dimension.values.*' => ['numeric', 'min:0'],
-            'variants' => [
-                Rule::requiredIf($isVariantProduct),
-                'array',
-                Rule::when($isVariantProduct, ['min:1']),
-            ],
-            'variants.*.id' => ['nullable', 'integer', 'exists:product_variants,id'],
-            'variants.*.sku' => ['nullable', 'string', 'max:100'],
-            'variants.*.label' => [Rule::requiredIf($isVariantProduct), 'string', 'max:255'],
-            'variants.*.metal_tone' => ['nullable', 'string', 'max:100'],
-            'variants.*.stone_quality' => ['nullable', 'string', 'max:100'],
-            'variants.*.size' => ['nullable', 'string', 'max:100'],
-            'variants.*.price_adjustment' => ['nullable', 'numeric'],
-            'variants.*.inventory_quantity' => ['nullable', 'integer', 'min:0'],
-            'variants.*.total_weight' => ['nullable', 'numeric', 'min:0'],
-            'variants.*.is_default' => ['boolean'],
-            'variants.*.metal_id' => ['nullable', 'integer', 'exists:metals,id'],
-            'variants.*.metal_purity_id' => ['nullable', 'integer', 'exists:metal_purities,id'],
-            'variants.*.diamond_option_key' => ['nullable', 'string'],
-            'variants.*.size_cm' => ['nullable', 'numeric', 'min:0'],
-            'variants.*.metadata' => ['nullable', 'array'],
-            // Variant metals array (for multiple metals per variant)
-            'variants.*.metals' => ['nullable', 'array'],
-            'variants.*.metals.*.id' => ['nullable', 'integer', 'exists:product_variant_metals,id'],
-            'variants.*.metals.*.metal_id' => ['required_with:variants.*.metals.*', 'integer', 'exists:metals,id'],
-            'variants.*.metals.*.metal_purity_id' => ['nullable', 'integer', 'exists:metal_purities,id'],
-            'variants.*.metals.*.metal_tone_id' => ['nullable', 'integer', 'exists:metal_tones,id'],
-            'variants.*.metals.*.weight_grams' => ['nullable', 'numeric', 'min:0'],
-            'variants.*.metals.*.metal_weight' => ['required_with:variants.*.metals.*', 'numeric', 'min:0.001'],
-            'variants.*.metals.*.metadata' => ['nullable', 'array'],
-            // Variant diamonds array (for multiple diamonds per variant)
-            'variants.*.diamonds' => ['nullable', 'array'],
-            'variants.*.diamonds.*.id' => ['nullable', 'integer', 'exists:product_variant_diamonds,id'],
-            'variants.*.diamonds.*.diamond_type_id' => ['nullable', 'integer', 'exists:diamond_types,id'],
-            'variants.*.diamonds.*.diamond_shape_id' => ['nullable', 'integer', 'exists:diamond_shapes,id'],
-            'variants.*.diamonds.*.diamond_color_id' => ['nullable', 'integer', 'exists:diamond_colors,id'],
-            'variants.*.diamonds.*.diamond_clarity_id' => ['nullable', 'integer', 'exists:diamond_clarities,id'],
-            'variants.*.diamonds.*.diamond_cut_id' => ['nullable', 'integer', 'exists:diamond_cuts,id'],
-            'variants.*.diamonds.*.diamonds_count' => ['nullable', 'integer', 'min:0'],
-            'variants.*.diamonds.*.total_carat' => ['nullable', 'numeric', 'min:0'],
-            'variants.*.diamonds.*.metadata' => ['nullable', 'array'],
             'media_uploads' => ['nullable', 'array'],
             'media_uploads.*' => [
                 File::types(['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'mov', 'm4v', 'webm'])->max(51200),
             ],
             'removed_media_ids' => ['nullable', 'array'],
             'removed_media_ids.*' => ['integer', $removedMediaRule],
+            'variants' => ['nullable', 'array'],
+            'variants.*.label' => ['required', 'string', 'max:255'],
+            'variants.*.sku' => ['nullable', 'string', 'max:100'],
+            'variants.*.price_adjustment' => ['nullable', 'numeric'],
+            'variants.*.inventory_quantity' => ['nullable', 'integer', 'min:0'],
+            'variants.*.is_default' => ['nullable', 'boolean'],
+            'variants.*.metadata' => ['nullable', 'array'],
+            'variants.*.metals' => ['nullable', 'array'],
+            'variants.*.diamonds' => ['nullable', 'array'],
+            'variants.*.colorstones' => ['nullable', 'array'],
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            if (! $this->boolean('is_variant_product', true)) {
-                return;
-            }
-
-            $variants = collect($this->input('variants', []));
-
-            if ($variants->isEmpty()) {
-                $validator->errors()->add('variants', 'Add at least one variant option for the product.');
-
-                return;
-            }
-
-            if ($variants->where('is_default', true)->count() === 0) {
-                $validator->errors()->add('variants', 'Select a default variant for catalogue display.');
-            }
-
-            $skus = $variants->pluck('sku')->filter();
-            if ($skus->count() !== $skus->unique()->count()) {
-                $validator->errors()->add('variants', 'Variant SKU values must be unique.');
-            }
-
             $overrides = collect($this->input('making_charge_discount_overrides', []));
             $duplicateGroups = $overrides
                 ->pluck('customer_group_id')

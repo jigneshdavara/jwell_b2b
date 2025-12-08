@@ -82,14 +82,24 @@ interface ConfigMetal {
 }
 
 interface ConfigDiamond {
-    label: string;        // e.g. "LG Oval F VVS1 EX 1.00ct (2)"
-    diamondTypeId: number;
+    label: string;        // e.g. "Oval F VVS1 1.00ct (2)" (type and cut removed as they don't exist in table)
     diamondShapeId: number;
     diamondColorId: number;
     diamondClarityId: number;
-    diamondCutId: number;
     stoneCount: number;
     totalCarat: string;
+}
+
+interface ConfigColorstone {
+    label: string;        // e.g. "Ruby Red Oval AAA 1.00ct (2)"
+    colorstoneShapeId: number;
+    colorstoneColorId: number;
+    colorstoneQualityId: number;
+    stoneCount: number;
+    totalCarat: string;
+    shapeName?: string | null;
+    colorName?: string | null;
+    qualityName?: string | null;
 }
 
 interface ConfigurationOption {
@@ -97,8 +107,10 @@ interface ConfigurationOption {
     label: string;
     metal_label: string;
     diamond_label: string;
+    colorstone_label: string;
     metals: ConfigMetal[];
     diamonds: ConfigDiamond[];
+    colorstones: ConfigColorstone[];
     price_total: number;
     price_breakup: {
         base: number;

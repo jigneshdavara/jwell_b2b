@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Diamond;
 use App\Models\DiamondClarity;
 use App\Models\DiamondColor;
 use App\Models\DiamondShape;
@@ -19,6 +20,7 @@ class DiamondDataSeeder extends Seeder
         $this->seedDiamondColors();
         $this->seedDiamondShapes();
         $this->seedDiamondShapeSizes();
+        $this->seedDiamonds();
     }
 
     protected function seedDiamondClarities(): void
@@ -447,5 +449,118 @@ class DiamondDataSeeder extends Seeder
         }
 
         $this->command->info("Imported {$count} diamond shape sizes. Skipped {$skipped} due to missing shapes.");
+    }
+
+    protected function seedDiamonds(): void
+    {
+        $this->command->info('Seeding diamonds...');
+
+        // Get reference data
+        $clarities = DiamondClarity::where('is_active', true)->get()->keyBy('name');
+        $colors = DiamondColor::where('is_active', true)->get()->keyBy('name');
+        $shapes = DiamondShape::where('is_active', true)->get()->keyBy('name');
+        $shapeSizes = DiamondShapeSize::all()->groupBy('diamond_shape_id');
+
+        // Common combinations for dummy data
+        $diamondData = [
+            // Round diamonds - various qualities
+            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '1.00', 'price' => 5000.00, 'name' => 'Round VVS DEF 1.00ct'],
+            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'VS', 'size' => '1.00', 'price' => 4500.00, 'name' => 'Round VS DEF 1.00ct'],
+            ['shape' => 'RND', 'color' => 'EF', 'clarity' => 'VVS', 'size' => '1.50', 'price' => 7500.00, 'name' => 'Round VVS EF 1.50ct'],
+            ['shape' => 'RND', 'color' => 'GH', 'clarity' => 'VS', 'size' => '2.00', 'price' => 12000.00, 'name' => 'Round VS GH 2.00ct'],
+            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'VVS1', 'size' => '3.00', 'price' => 25000.00, 'name' => 'Round VVS1 DEF 3.00ct'],
+            ['shape' => 'RND', 'color' => 'FG', 'clarity' => 'SI', 'size' => '0.90', 'price' => 3500.00, 'name' => 'Round SI FG 0.90ct'],
+            ['shape' => 'RND', 'color' => 'HI', 'clarity' => 'VS', 'size' => '1.25', 'price' => 5500.00, 'name' => 'Round VS HI 1.25ct'],
+            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'VVS-VS', 'size' => '1.80', 'price' => 8500.00, 'name' => 'Round VVS-VS DEF 1.80ct'],
+
+            // Princess cut diamonds
+            ['shape' => 'PRI', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '1.00', 'price' => 4800.00, 'name' => 'Princess VVS DEF 1.00ct'],
+            ['shape' => 'PRI', 'color' => 'EF', 'clarity' => 'VS', 'size' => '1.50', 'price' => 7000.00, 'name' => 'Princess VS EF 1.50ct'],
+            ['shape' => 'PRI', 'color' => 'GH', 'clarity' => 'SI', 'size' => '2.00', 'price' => 10000.00, 'name' => 'Princess SI GH 2.00ct'],
+            ['shape' => 'PRI', 'color' => 'FG', 'clarity' => 'VVS', 'size' => '2.50', 'price' => 15000.00, 'name' => 'Princess VVS FG 2.50ct'],
+
+            // Emerald cut diamonds
+            ['shape' => 'EMR', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00x4.00', 'price' => 22000.00, 'name' => 'Emerald VVS DEF 3.00x4.00'],
+            ['shape' => 'EMR', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00x5.00', 'price' => 28000.00, 'name' => 'Emerald VS EF 4.00x5.00'],
+            ['shape' => 'EMR', 'color' => 'GH', 'clarity' => 'VVS', 'size' => '5.00x7.00', 'price' => 45000.00, 'name' => 'Emerald VVS GH 5.00x7.00'],
+
+            // Cushion cut diamonds
+            ['shape' => 'CSN', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00', 'price' => 20000.00, 'name' => 'Cushion VVS DEF 3.00ct'],
+            ['shape' => 'CSN', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00', 'price' => 30000.00, 'name' => 'Cushion VS EF 4.00ct'],
+            ['shape' => 'CSN', 'color' => 'GH', 'clarity' => 'SI', 'size' => '5.00', 'price' => 40000.00, 'name' => 'Cushion SI GH 5.00ct'],
+
+            // Marquise cut diamonds
+            ['shape' => 'MRQ', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '2.00x3.00', 'price' => 15000.00, 'name' => 'Marquise VVS DEF 2.00x3.00'],
+            ['shape' => 'MRQ', 'color' => 'EF', 'clarity' => 'VS', 'size' => '3.00x5.00', 'price' => 25000.00, 'name' => 'Marquise VS EF 3.00x5.00'],
+
+            // Oval cut diamonds
+            ['shape' => 'OVL', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00x4.00', 'price' => 21000.00, 'name' => 'Oval VVS DEF 3.00x4.00'],
+            ['shape' => 'OVL', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00x6.00', 'price' => 35000.00, 'name' => 'Oval VS EF 4.00x6.00'],
+
+            // Heart cut diamonds
+            ['shape' => 'HRT', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00', 'price' => 22000.00, 'name' => 'Heart VVS DEF 3.00ct'],
+            ['shape' => 'HRT', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00', 'price' => 32000.00, 'name' => 'Heart VS EF 4.00ct'],
+
+            // Pear cut diamonds
+            ['shape' => 'PRS', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '2.00x3.00', 'price' => 16000.00, 'name' => 'Pear VVS DEF 2.00x3.00'],
+            ['shape' => 'PRS', 'color' => 'EF', 'clarity' => 'VS', 'size' => '3.00x5.00', 'price' => 28000.00, 'name' => 'Pear VS EF 3.00x5.00'],
+
+            // Asscher cut diamonds
+            ['shape' => 'ASH', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00', 'price' => 21000.00, 'name' => 'Asscher VVS DEF 3.00ct'],
+            ['shape' => 'ASH', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00', 'price' => 31000.00, 'name' => 'Asscher VS EF 4.00ct'],
+
+            // Baguette diamonds
+            ['shape' => 'BUG', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '2.00x1.00(S)', 'price' => 8000.00, 'name' => 'Baguette VVS DEF 2.00x1.00'],
+            ['shape' => 'BUG', 'color' => 'EF', 'clarity' => 'VS', 'size' => '3.00x1.50(S)', 'price' => 12000.00, 'name' => 'Baguette VS EF 3.00x1.50'],
+
+            // Lab grown diamonds
+            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'C-VVS', 'size' => '1.00', 'price' => 3000.00, 'name' => 'Lab Grown Round C-VVS DEF 1.00ct'],
+            ['shape' => 'RND', 'color' => 'EF', 'clarity' => 'C-VS', 'size' => '1.50', 'price' => 4500.00, 'name' => 'Lab Grown Round C-VS EF 1.50ct'],
+            ['shape' => 'PRI', 'color' => 'GH', 'clarity' => 'C-VVS-VS', 'size' => '2.00', 'price' => 6000.00, 'name' => 'Lab Grown Princess C-VVS-VS GH 2.00ct'],
+
+            // Lower quality options
+            ['shape' => 'RND', 'color' => 'IJ', 'clarity' => 'SI', 'size' => '1.00', 'price' => 2500.00, 'name' => 'Round SI IJ 1.00ct'],
+            ['shape' => 'RND', 'color' => 'JK', 'clarity' => 'I1', 'size' => '1.00', 'price' => 1500.00, 'name' => 'Round I1 JK 1.00ct'],
+            ['shape' => 'PRI', 'color' => 'HI', 'clarity' => 'SI2', 'size' => '1.50', 'price' => 3500.00, 'name' => 'Princess SI2 HI 1.50ct'],
+        ];
+
+        $count = 0;
+        $skipped = 0;
+
+        foreach ($diamondData as $diamond) {
+            $shape = $shapes->get($diamond['shape']);
+            $color = $colors->get($diamond['color']);
+            $clarity = $clarities->get($diamond['clarity']);
+
+            if (!$shape || !$color || !$clarity) {
+                $skipped++;
+                $this->command->warn("Missing reference data for: {$diamond['name']}");
+                continue;
+            }
+
+            // Find matching shape size
+            $shapeSize = null;
+            if (isset($shapeSizes[$shape->id])) {
+                $shapeSize = $shapeSizes[$shape->id]->firstWhere('size', $diamond['size']);
+            }
+
+            Diamond::updateOrCreate(
+                [
+                    'name' => $diamond['name'],
+                    'diamond_shape_id' => $shape->id,
+                    'diamond_color_id' => $color->id,
+                    'diamond_clarity_id' => $clarity->id,
+                ],
+                [
+                    'diamond_shape_size_id' => $shapeSize?->id,
+                    'price' => $diamond['price'],
+                    'description' => "Premium {$diamond['shape']} cut diamond with {$diamond['color']} color and {$diamond['clarity']} clarity.",
+                    'is_active' => true,
+                ]
+            );
+            $count++;
+        }
+
+        $this->command->info("Imported {$count} diamonds. Skipped {$skipped} due to missing reference data.");
     }
 }

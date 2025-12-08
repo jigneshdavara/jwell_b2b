@@ -65,7 +65,7 @@ class DiamondController extends Controller
             'diamonds' => $diamonds,
             'clarities' => DiamondClarity::where('is_active', true)->orderBy('display_order')->get(['id', 'name', 'code']),
             'colors' => DiamondColor::where('is_active', true)->orderBy('display_order')->get(['id', 'name', 'code']),
-            'shapes' => DiamondShape::where('is_active', true)->orderBy('position')->get(['id', 'name', 'code']),
+            'shapes' => DiamondShape::where('is_active', true)->orderBy('display_order')->get(['id', 'name', 'code']),
         ]);
     }
 

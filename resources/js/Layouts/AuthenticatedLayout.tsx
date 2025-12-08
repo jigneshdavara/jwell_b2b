@@ -118,7 +118,7 @@ export default function Authenticated({
                 id: catalog.id,
                 name: catalog.name,
                 href: route('frontend.catalog.index', {
-                    catalog: catalog.slug ?? catalog.id,
+                    catalog: catalog.id,
                 }),
             })),
         [navigationData.catalogs],
@@ -268,7 +268,7 @@ export default function Authenticated({
                                             {(item.items.length > 0 || item.label === 'Brands') && (
                                                 <div
                                                     className={`absolute left-1/2 z-30 mt-3 -translate-x-1/2 rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl transition ${
-                                                        item.label === 'Categories'
+                                                        item.label === 'Categories' || item.label === 'Catalog'
                                                             ? 'w-[38rem] lg:w-[46rem]'
                                                             : 'w-[28rem] lg:w-[32rem]'
                                                     } ${openMenu === item.label ? 'visible opacity-100 pointer-events-auto' : 'invisible opacity-0 pointer-events-none'}`}
@@ -277,14 +277,14 @@ export default function Authenticated({
                                                 >
                                                     <div
                                                         className={`grid gap-3 ${
-                                                            item.label === 'Categories'
+                                                            item.label === 'Categories' || item.label === 'Catalog'
                                                                 ? 'sm:grid-cols-2 lg:grid-cols-3'
                                                                 : 'sm:grid-cols-2'
                                                         }`}
                                                     >
                                                         {item.items.length > 0 ? (
                                                             item.items.map((link) =>
-                                                                item.label === 'Categories' ? (
+                                                                item.label === 'Categories' || item.label === 'Catalog' ? (
                                                                     <Link
                                                                         key={link.id}
                                                                         href={link.href}

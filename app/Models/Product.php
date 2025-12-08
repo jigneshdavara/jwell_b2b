@@ -15,67 +15,25 @@ class Product extends Model
     protected $fillable = [
         'sku',
         'name',
+        'titleline',
         'description',
         'brand_id',
         'category_id',
-        'material_id',
-        'gross_weight',
-        'net_weight',
-        'gold_weight',
-        'silver_weight',
-        'other_material_weight',
-        'total_weight',
-        'base_price',
+        'collection',
+        'producttype',
+        'gender',
         'making_charge',
         'making_charge_discount_type',
         'making_charge_discount_value',
         'making_charge_discount_overrides',
-        'is_jobwork_allowed',
-        'visibility',
         'is_active',
-        'metadata',
-        'material_type',
-        'style',
-        'standard_pricing',
-        'variant_options',
-        'is_variant_product',
-        'mixed_metal_tones_per_purity',
-        'mixed_metal_purities_per_tone',
-        'metal_mix_mode',
-        'uses_gold',
-        'uses_silver',
-        'metal_ids',
-        'metal_purity_ids',
-        'metal_tone_ids',
     ];
 
     protected $casts = [
-        'is_jobwork_allowed' => 'boolean',
         'is_active' => 'boolean',
-        'metadata' => 'array',
-        'standard_pricing' => 'array',
-        'variant_options' => 'array',
-        'is_variant_product' => 'boolean',
-        'mixed_metal_tones_per_purity' => 'boolean',
-        'mixed_metal_purities_per_tone' => 'boolean',
-        'metal_mix_mode' => 'array',
-        'uses_gold' => 'boolean',
-        'uses_silver' => 'boolean',
-        'metal_ids' => 'array',
-        'metal_purity_ids' => 'array',
-        'metal_tone_ids' => 'array',
         'making_charge_discount_value' => 'float',
         'making_charge_discount_overrides' => 'array',
-        'gold_weight' => 'float',
-        'silver_weight' => 'float',
-        'other_material_weight' => 'float',
-        'total_weight' => 'float',
     ];
-
-    public function material(): BelongsTo
-    {
-        return $this->belongsTo(Material::class);
-    }
 
     public function brand(): BelongsTo
     {

@@ -22,7 +22,7 @@ class DiamondShapeController extends Controller
         }
 
         $shapes = DiamondShape::query()
-            ->orderBy('position')
+            ->orderBy('display_order')
             ->orderBy('name')
             ->paginate($perPage)
             ->withQueryString()
@@ -34,7 +34,7 @@ class DiamondShapeController extends Controller
                     'ecat_name' => $shape->ecat_name,
                     'description' => $shape->description,
                     'is_active' => $shape->is_active,
-                    'position' => $shape->position,
+                    'display_order' => $shape->display_order,
                 ];
             });
 
@@ -52,7 +52,7 @@ class DiamondShapeController extends Controller
             'name' => $data['name'],
             'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
-            'position' => $data['position'] ?? 0,
+            'display_order' => $data['display_order'] ?? 0,
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -70,7 +70,7 @@ class DiamondShapeController extends Controller
             'name' => $data['name'],
             'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
-            'position' => $data['position'] ?? 0,
+            'display_order' => $data['display_order'] ?? 0,
             'is_active' => $request->boolean('is_active', true),
         ]);
 

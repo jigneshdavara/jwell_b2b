@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Brand;
+use App\Models\Catalog;
 use App\Models\Category;
 use App\Models\Customer;
 use Illuminate\Support\Facades\Storage;
@@ -43,9 +44,10 @@ class HandleInertiaRequests extends Middleware
         $wishlistProductIds = [];
         $navCategories = [];
         $navBrands = [];
+        $navCatalogs = [];
         if ($customer instanceof Customer) {
             $customer->loadMissing([
-                'carts' => fn ($query) => $query->withCount('items')->where('status', 'active')->latest(),
+                'carts' => fn($query) => $query->withCount('items')->where('status', 'active')->latest(),
                 'wishlist.items',
             ]);
 
@@ -80,7 +82,7 @@ class HandleInertiaRequests extends Middleware
                 ->orderBy('name')
                 ->take(8)
                 ->get()
-                ->map(fn (Category $category) => [
+                ->map(fn(Category $category) => [
                     'id' => $category->id,
                     'name' => $category->name,
                     'cover_image_url' => $resolveImageUrl($category->cover_image),
@@ -89,15 +91,26 @@ class HandleInertiaRequests extends Middleware
 
 
             $navBrands = Brand::query()
-                ->select(['id', 'name', 'slug'])
+                ->select(['id', 'name'])
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->take(8)
                 ->get()
-                ->map(fn (Brand $brand) => [
+                ->map(fn(Brand $brand) => [
                     'id' => $brand->id,
                     'name' => $brand->name,
-                    'slug' => $brand->slug,
+                ])
+                ->toArray();
+
+            $navCatalogs = Catalog::query()
+                ->select(['id', 'name'])
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->take(8)
+                ->get()
+                ->map(fn(Catalog $catalog) => [
+                    'id' => $catalog->id,
+                    'name' => $catalog->name,
                 ])
                 ->toArray();
         }
@@ -120,6 +133,7 @@ class HandleInertiaRequests extends Middleware
             'navigation' => [
                 'categories' => $navCategories,
                 'brands' => $navBrands,
+                'catalogs' => $navCatalogs,
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),

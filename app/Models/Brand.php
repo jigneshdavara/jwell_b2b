@@ -23,3 +23,6 @@ class Brand extends Model
     ];
 }
 
+
+
+

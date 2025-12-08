@@ -2,12 +2,15 @@
 
 namespace App\Services\Catalog;
 
+use App\Models\Colorstone;
+use App\Models\Diamond;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\ProductVariantDiamond;
 use App\Models\ProductVariantMetal;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -15,6 +18,11 @@ class ProductVariantSyncService
 {
     public function sync(Product $product, array $variants, ?array $variantOptions = null, ?array $diamondOptions = null): void
     {
+        // Ensure variants is always an array
+        if (!is_array($variants)) {
+            $variants = [];
+        }
+
         // Get diamond options from parameter or product for lookup
         $diamondOptionsData = $diamondOptions ?? $product->diamond_options ?? [];
         $diamondOptionsMap = collect($diamondOptionsData)
@@ -24,6 +32,11 @@ class ProductVariantSyncService
         $variantsCollection = collect($variants)
             ->map(function (array $payload) use ($diamondOptionsMap) {
                 $metadata = $payload['metadata'] ?? [];
+
+                // Ensure size_cm is included in metadata if provided
+                if (isset($payload['size_cm']) && $payload['size_cm'] !== '' && $payload['size_cm'] !== null) {
+                    $metadata['size_cm'] = $payload['size_cm'];
+                }
 
                 // Convert diamond_option_key to diamond entry if needed
                 $diamondOptionKey = $metadata['diamond_option_key'] ?? null;
@@ -40,26 +53,30 @@ class ProductVariantSyncService
                     ];
                 }
 
+                // Ensure label is always present and not empty (required field in database)
+                $label = $payload['label'] ?? '';
+                if (empty($label) || trim($label) === '') {
+                    // Generate a fallback label if missing
+                    $label = 'Variant ' . ($payload['sku'] ?? 'Unknown');
+                }
+
                 return [
                     'id' => $payload['id'] ?? null,
                     'sku' => $payload['sku'] ?? null,
-                    'label' => $payload['label'],
+                    'label' => $label,
                     'metal_id' => $payload['metal_id'] ?? null,
                     'metal_purity_id' => $payload['metal_purity_id'] ?? null,
-                    'metal_tone' => $payload['metal_tone'] ?? null,
-                    'stone_quality' => $payload['stone_quality'] ?? null,
                     'size' => $payload['size'] ?? null,
                     'price_adjustment' => (float) ($payload['price_adjustment'] ?? 0),
                     'inventory_quantity' => isset($payload['inventory_quantity']) && $payload['inventory_quantity'] !== '' && $payload['inventory_quantity'] !== null
                         ? (int) $payload['inventory_quantity']
                         : 0,
-                    'total_weight' => isset($payload['total_weight']) && $payload['total_weight'] !== '' && $payload['total_weight'] !== null
-                        ? (float) $payload['total_weight']
-                        : null,
                     'is_default' => (bool) ($payload['is_default'] ?? false),
                     'metadata' => $metadata,
+                    'size_cm' => $payload['size_cm'] ?? null, // Keep for extraction before saving
                     'metals' => $payload['metals'] ?? [],
                     'diamonds' => $payload['diamonds'] ?? [],
+                    'colorstones' => $payload['colorstones'] ?? [],
                 ];
             });
 
@@ -74,9 +91,10 @@ class ProductVariantSyncService
         $persistedIds = [];
 
         $variantsCollection->each(function (array $variant) use ($product, &$persistedIds, $diamondOptionsMap): void {
-            // Extract metals and diamonds arrays from payload
+            // Extract metals, diamonds, and colorstones arrays from payload BEFORE processing
             $metals = Arr::pull($variant, 'metals', []);
             $diamonds = Arr::pull($variant, 'diamonds', []);
+            $colorstones = Arr::pull($variant, 'colorstones', []);
 
             // Normalize metals array: filter out empty entries and ensure proper structure
             $metals = array_filter($metals, function ($metal) {
@@ -92,7 +110,7 @@ class ProductVariantSyncService
                         ? (int) $variant['metal_purity_id']
                         : null,
                     'metal_tone_id' => null,
-                    'weight_grams' => null,
+                    'metal_weight' => null,
                     'metadata' => [],
                 ]];
             }
@@ -104,7 +122,8 @@ class ProductVariantSyncService
                     || !empty($diamond['diamond_shape_id'])
                     || !empty($diamond['diamond_color_id'])
                     || !empty($diamond['diamond_clarity_id'])
-                    || !empty($diamond['diamond_cut_id']);
+                    || !empty($diamond['diamond_cut_id'])
+                    || !empty($diamond['diamond_id']); // Also check for diamond_id
             });
 
             // If diamonds array is empty but diamond_option_key is in metadata, create a diamond entry
@@ -134,18 +153,22 @@ class ProductVariantSyncService
 
             // Remove fields that are not columns on product_variants table
             // metal_id, metal_purity_id are only used to create metals entries if metals array is empty
-            // metals and diamonds arrays are used to sync related records
+            // metals, diamonds, and colorstones arrays are used to sync related records
             // diamond_option_key and size_cm are stored in metadata, not as direct columns
             // total_weight is on products table, not product_variants
+            // metal_tone and stone_quality are legacy fields that don't exist in the database
             $attributes = Arr::except($variant, [
                 'id',
                 'metal_id',
                 'metal_purity_id',
                 'metals',
                 'diamonds',
+                'colorstones',
                 'diamond_option_key',
                 'size_cm',
                 'total_weight',
+                'metal_tone', // Legacy field - not in database
+                'stone_quality', // Legacy field - not in database
             ]);
 
             /** @var \App\Models\ProductVariant|null $model */
@@ -166,6 +189,7 @@ class ProductVariantSyncService
                 $model->update($attributes);
                 $this->syncVariantMetals($model, $metals);
                 $this->syncVariantDiamonds($model, $diamonds);
+                $this->syncVariantColorstones($model, $colorstones);
                 $persistedIds[] = $model->id;
 
                 return;
@@ -180,6 +204,7 @@ class ProductVariantSyncService
                     $existingBySku->update($attributes);
                     $this->syncVariantMetals($existingBySku, $metals);
                     $this->syncVariantDiamonds($existingBySku, $diamonds);
+                    $this->syncVariantColorstones($existingBySku, $colorstones);
                     $persistedIds[] = $existingBySku->id;
 
                     return;
@@ -193,12 +218,18 @@ class ProductVariantSyncService
                 }
             }
 
+            // Ensure label is present before creating (required field)
+            if (empty($attributes['label']) || trim($attributes['label']) === '') {
+                $attributes['label'] = 'Variant ' . ($attributes['sku'] ?? 'Unknown');
+            }
+
             // Create new variant only if it doesn't exist
             // Use try-catch to handle race conditions where SKU might be created between check and insert
             try {
                 $created = $product->variants()->create($attributes);
                 $this->syncVariantMetals($created, $metals);
                 $this->syncVariantDiamonds($created, $diamonds);
+                $this->syncVariantColorstones($created, $colorstones);
                 $persistedIds[] = $created->id;
             } catch (\Illuminate\Database\QueryException $e) {
                 // Handle unique constraint violation (race condition)
@@ -209,6 +240,7 @@ class ProductVariantSyncService
                         $created = $product->variants()->create($attributes);
                         $this->syncVariantMetals($created, $metals);
                         $this->syncVariantDiamonds($created, $diamonds);
+                        $this->syncVariantColorstones($created, $colorstones);
                         $persistedIds[] = $created->id;
                     } else {
                         // If no SKU provided, create without SKU
@@ -216,12 +248,29 @@ class ProductVariantSyncService
                         $created = $product->variants()->create($attributes);
                         $this->syncVariantMetals($created, $metals);
                         $this->syncVariantDiamonds($created, $diamonds);
+                        $this->syncVariantColorstones($created, $colorstones);
                         $persistedIds[] = $created->id;
                     }
                 } else {
+                    // Log the error for debugging
+                    Log::error('Failed to create product variant', [
+                        'product_id' => $product->id,
+                        'attributes' => $attributes,
+                        'error' => $e->getMessage(),
+                        'code' => $e->getCode(),
+                    ]);
                     // Re-throw if it's a different error
                     throw $e;
                 }
+            } catch (\Exception $e) {
+                // Log any other exceptions
+                Log::error('Unexpected error creating product variant', [
+                    'product_id' => $product->id,
+                    'attributes' => $attributes,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                throw $e;
             }
         });
 
@@ -242,7 +291,7 @@ class ProductVariantSyncService
 
     protected function prepareVariantOptions(Collection $variants, array $provided): array
     {
-        $keys = ['metal_tone', 'stone_quality', 'size'];
+        $keys = ['size'];
 
         $baseline = collect($keys)->mapWithKeys(function ($key) use ($variants, $provided) {
             $submitted = $variants->pluck($key)->filter()->unique()->values()->all();
@@ -282,9 +331,6 @@ class ProductVariantSyncService
                 'metal_tone_id' => isset($metal['metal_tone_id']) && $metal['metal_tone_id'] !== '' && $metal['metal_tone_id'] !== null && $metal['metal_tone_id'] > 0
                     ? (int) $metal['metal_tone_id']
                     : null,
-                'weight_grams' => isset($metal['weight_grams']) && $metal['weight_grams'] !== '' && $metal['weight_grams'] !== null
-                    ? (float) $metal['weight_grams']
-                    : null,
                 'metal_weight' => isset($metal['metal_weight']) && $metal['metal_weight'] !== '' && $metal['metal_weight'] !== null
                     ? (float) $metal['metal_weight']
                     : (isset($metal['weight_grams']) && $metal['weight_grams'] !== '' && $metal['weight_grams'] !== null
@@ -319,24 +365,42 @@ class ProductVariantSyncService
         // Normalize: ensure diamonds is an array (not null)
         $diamonds = $diamonds ?? [];
 
-        // Filter out any invalid entries (at least one diamond attribute must be present)
-        $diamonds = array_filter($diamonds, function ($diamond) {
-            return !empty($diamond['diamond_type_id'])
-                || !empty($diamond['diamond_shape_id'])
-                || !empty($diamond['diamond_color_id'])
-                || !empty($diamond['diamond_clarity_id'])
-                || !empty($diamond['diamond_cut_id']);
-        });
+        // Handle both formats: diamond_id (from diamond_selections) or direct shape/color/clarity IDs
+        $processedDiamonds = [];
+        foreach ($diamonds as $diamond) {
+            // If diamond_id is provided, look up the diamond and extract its attributes
+            if (!empty($diamond['diamond_id']) && $diamond['diamond_id'] > 0) {
+                $diamondModel = Diamond::find($diamond['diamond_id']);
+                if ($diamondModel) {
+                    $processedDiamonds[] = [
+                        'id' => $diamond['id'] ?? null,
+                        'diamond_shape_id' => $diamondModel->diamond_shape_id,
+                        'diamond_color_id' => $diamondModel->diamond_color_id,
+                        'diamond_clarity_id' => $diamondModel->diamond_clarity_id,
+                        'diamonds_count' => $diamond['diamonds_count'] ?? null,
+                        'total_carat' => $diamond['total_carat'] ?? null,
+                        'metadata' => $diamond['metadata'] ?? [],
+                    ];
+                }
+            } else {
+                // Direct shape/color/clarity IDs provided
+                // Only include if at least one attribute is present
+                if (
+                    !empty($diamond['diamond_shape_id'])
+                    || !empty($diamond['diamond_color_id'])
+                    || !empty($diamond['diamond_clarity_id'])
+                ) {
+                    $processedDiamonds[] = $diamond;
+                }
+            }
+        }
 
         $persistedIds = [];
 
-        foreach ($diamonds as $index => $diamond) {
+        foreach ($processedDiamonds as $index => $diamond) {
             $diamondId = $diamond['id'] ?? null;
 
             $attributes = [
-                'diamond_type_id' => isset($diamond['diamond_type_id']) && $diamond['diamond_type_id'] !== '' && $diamond['diamond_type_id'] !== null && $diamond['diamond_type_id'] > 0
-                    ? (int) $diamond['diamond_type_id']
-                    : null,
                 'diamond_shape_id' => isset($diamond['diamond_shape_id']) && $diamond['diamond_shape_id'] !== '' && $diamond['diamond_shape_id'] !== null && $diamond['diamond_shape_id'] > 0
                     ? (int) $diamond['diamond_shape_id']
                     : null,
@@ -345,9 +409,6 @@ class ProductVariantSyncService
                     : null,
                 'diamond_clarity_id' => isset($diamond['diamond_clarity_id']) && $diamond['diamond_clarity_id'] !== '' && $diamond['diamond_clarity_id'] !== null && $diamond['diamond_clarity_id'] > 0
                     ? (int) $diamond['diamond_clarity_id']
-                    : null,
-                'diamond_cut_id' => isset($diamond['diamond_cut_id']) && $diamond['diamond_cut_id'] !== '' && $diamond['diamond_cut_id'] !== null && $diamond['diamond_cut_id'] > 0
-                    ? (int) $diamond['diamond_cut_id']
                     : null,
                 'diamonds_count' => isset($diamond['diamonds_count']) && $diamond['diamonds_count'] !== '' && $diamond['diamonds_count'] !== null && $diamond['diamonds_count'] >= 0
                     ? (int) $diamond['diamonds_count']
@@ -376,6 +437,86 @@ class ProductVariantSyncService
         } else {
             // If no diamonds provided, delete all existing diamonds for this variant
             $variant->diamonds()->delete();
+        }
+    }
+
+    protected function syncVariantColorstones(ProductVariant $variant, array $colorstones): void
+    {
+        // Normalize: ensure colorstones is an array (not null)
+        $colorstones = $colorstones ?? [];
+
+        // Handle both formats: colorstone_id (from colorstone_selections) or direct shape/color/quality IDs
+        $processedColorstones = [];
+        foreach ($colorstones as $colorstone) {
+            // If colorstone_id is provided, look up the colorstone and extract its attributes
+            if (!empty($colorstone['colorstone_id']) && $colorstone['colorstone_id'] > 0) {
+                $colorstoneModel = Colorstone::find($colorstone['colorstone_id']);
+                if ($colorstoneModel) {
+                    $processedColorstones[] = [
+                        'id' => $colorstone['id'] ?? null,
+                        'colorstone_shape_id' => $colorstoneModel->colorstone_shape_id,
+                        'colorstone_color_id' => $colorstoneModel->colorstone_color_id,
+                        'colorstone_quality_id' => $colorstoneModel->colorstone_quality_id,
+                        'stones_count' => $colorstone['stones_count'] ?? null,
+                        'total_carat' => $colorstone['total_carat'] ?? null,
+                        'metadata' => $colorstone['metadata'] ?? [],
+                    ];
+                }
+            } else {
+                // Direct shape/color/quality IDs provided
+                // Only include if at least one attribute is present
+                if (
+                    !empty($colorstone['colorstone_shape_id'])
+                    || !empty($colorstone['colorstone_color_id'])
+                    || !empty($colorstone['colorstone_quality_id'])
+                ) {
+                    $processedColorstones[] = $colorstone;
+                }
+            }
+        }
+
+        $persistedIds = [];
+
+        foreach ($processedColorstones as $index => $colorstone) {
+            $colorstoneId = $colorstone['id'] ?? null;
+
+            $attributes = [
+                'colorstone_shape_id' => isset($colorstone['colorstone_shape_id']) && $colorstone['colorstone_shape_id'] !== '' && $colorstone['colorstone_shape_id'] !== null && $colorstone['colorstone_shape_id'] > 0
+                    ? (int) $colorstone['colorstone_shape_id']
+                    : null,
+                'colorstone_color_id' => isset($colorstone['colorstone_color_id']) && $colorstone['colorstone_color_id'] !== '' && $colorstone['colorstone_color_id'] !== null && $colorstone['colorstone_color_id'] > 0
+                    ? (int) $colorstone['colorstone_color_id']
+                    : null,
+                'colorstone_quality_id' => isset($colorstone['colorstone_quality_id']) && $colorstone['colorstone_quality_id'] !== '' && $colorstone['colorstone_quality_id'] !== null && $colorstone['colorstone_quality_id'] > 0
+                    ? (int) $colorstone['colorstone_quality_id']
+                    : null,
+                'stones_count' => isset($colorstone['stones_count']) && $colorstone['stones_count'] !== '' && $colorstone['stones_count'] !== null && $colorstone['stones_count'] >= 0
+                    ? (int) $colorstone['stones_count']
+                    : null,
+                'total_carat' => isset($colorstone['total_carat']) && $colorstone['total_carat'] !== '' && $colorstone['total_carat'] !== null && $colorstone['total_carat'] > 0
+                    ? (float) $colorstone['total_carat']
+                    : null,
+                'metadata' => $colorstone['metadata'] ?? [],
+                'position' => $index,
+            ];
+
+            // Update existing colorstone entry if ID is provided and exists
+            if ($colorstoneId && $variant->colorstones()->where('id', $colorstoneId)->exists()) {
+                $variant->colorstones()->where('id', $colorstoneId)->update($attributes);
+                $persistedIds[] = $colorstoneId;
+            } else {
+                // Create new colorstone entry
+                $created = $variant->colorstones()->create($attributes);
+                $persistedIds[] = $created->id;
+            }
+        }
+
+        // Delete any colorstones that are not in the persisted list (removed colorstones)
+        if (! empty($persistedIds)) {
+            $variant->colorstones()->whereNotIn('id', $persistedIds)->delete();
+        } else {
+            // If no colorstones provided, delete all existing colorstones for this variant
+            $variant->colorstones()->delete();
         }
     }
 

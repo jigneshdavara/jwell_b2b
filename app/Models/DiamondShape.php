@@ -16,12 +16,12 @@ class DiamondShape extends Model
         'ecat_name',
         'description',
         'is_active',
-        'position',
+        'display_order',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'position' => 'integer',
+        'display_order' => 'integer',
     ];
 
     public function sizes(): HasMany

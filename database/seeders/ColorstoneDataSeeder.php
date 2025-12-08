@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Colorstone;
 use App\Models\ColorstoneColor;
 use App\Models\ColorstoneQuality;
 use App\Models\ColorstoneShape;
@@ -19,6 +20,7 @@ class ColorstoneDataSeeder extends Seeder
         $this->seedColorstoneQualities();
         $this->seedColorstoneShapes();
         $this->seedColorstoneShapeSizes();
+        $this->seedColorstones();
     }
 
     protected function seedColorstoneColors(): void
@@ -277,5 +279,155 @@ class ColorstoneDataSeeder extends Seeder
 
         $this->command->info("Imported {$count} colorstone shape sizes (sample).");
         $this->command->warn('Note: This is a sample. Add all entries from the Excel file for complete data.');
+    }
+
+    protected function seedColorstones(): void
+    {
+        $this->command->info('Seeding colorstones...');
+
+        // Get reference data
+        $colors = ColorstoneColor::where('is_active', true)->get()->keyBy('name');
+        $qualities = ColorstoneQuality::where('is_active', true)->get()->keyBy('name');
+        $shapes = ColorstoneShape::where('is_active', true)->get()->keyBy('name');
+        $shapeSizes = ColorstoneShapeSize::all()->groupBy('colorstone_shape_id');
+
+        // Common combinations for dummy data
+        $colorstoneData = [
+            // Ruby stones - various qualities
+            ['shape' => 'RND', 'color' => 'RED', 'quality' => 'N-RUB', 'size' => '3.00', 'price' => 15000.00, 'name' => 'Round Natural Ruby 3.00ct'],
+            ['shape' => 'RND', 'color' => 'RED', 'quality' => 'S-RUB', 'size' => '3.00', 'price' => 8000.00, 'name' => 'Round Synthetic Ruby 3.00ct'],
+            ['shape' => 'OVL', 'color' => 'RED', 'quality' => 'N-RUB', 'size' => '4.00x6.00', 'price' => 25000.00, 'name' => 'Oval Natural Ruby 4.00x6.00'],
+            ['shape' => 'PRI', 'color' => 'RED', 'quality' => 'S-RUB', 'size' => '2.00', 'price' => 6000.00, 'name' => 'Princess Synthetic Ruby 2.00ct'],
+            ['shape' => 'CSN', 'color' => 'RED', 'quality' => 'L-RUB', 'size' => '5.00', 'price' => 12000.00, 'name' => 'Cushion Lab Ruby 5.00ct'],
+
+            // Emerald stones
+            ['shape' => 'RND', 'color' => 'GRN', 'quality' => 'N-EMR', 'size' => '3.00', 'price' => 18000.00, 'name' => 'Round Natural Emerald 3.00ct'],
+            ['shape' => 'RND', 'color' => 'GRN', 'quality' => 'S-EMR', 'size' => '3.00', 'price' => 9000.00, 'name' => 'Round Synthetic Emerald 3.00ct'],
+            ['shape' => 'EMR', 'color' => 'GRN', 'quality' => 'N-EMR', 'size' => '4.00x5.00', 'price' => 30000.00, 'name' => 'Emerald Natural Emerald 4.00x5.00'],
+            ['shape' => 'OVL', 'color' => 'GRN', 'quality' => 'L-EMR', 'size' => '5.00x7.00', 'price' => 15000.00, 'name' => 'Oval Lab Emerald 5.00x7.00'],
+
+            // Sapphire stones - Blue
+            ['shape' => 'RND', 'color' => 'BLU', 'quality' => 'N-SPR', 'size' => '3.00', 'price' => 20000.00, 'name' => 'Round Natural Blue Sapphire 3.00ct'],
+            ['shape' => 'RND', 'color' => 'BLU', 'quality' => 'S-SPR', 'size' => '3.00', 'price' => 10000.00, 'name' => 'Round Synthetic Blue Sapphire 3.00ct'],
+            ['shape' => 'OVL', 'color' => 'BLU', 'quality' => 'N-SPR', 'size' => '4.00x6.00', 'price' => 35000.00, 'name' => 'Oval Natural Blue Sapphire 4.00x6.00'],
+            ['shape' => 'PRI', 'color' => 'BLU', 'quality' => 'S-SPR', 'size' => '2.50', 'price' => 12000.00, 'name' => 'Princess Synthetic Blue Sapphire 2.50ct'],
+
+            // Sapphire stones - Pink
+            ['shape' => 'RND', 'color' => 'PNK', 'quality' => 'N-SPR', 'size' => '3.00', 'price' => 22000.00, 'name' => 'Round Natural Pink Sapphire 3.00ct'],
+            ['shape' => 'OVL', 'color' => 'PNK', 'quality' => 'S-SPR', 'size' => '4.00x6.00', 'price' => 18000.00, 'name' => 'Oval Synthetic Pink Sapphire 4.00x6.00'],
+
+            // Sapphire stones - Yellow
+            ['shape' => 'RND', 'color' => 'YLW', 'quality' => 'N-SPR', 'size' => '3.00', 'price' => 15000.00, 'name' => 'Round Natural Yellow Sapphire 3.00ct'],
+            ['shape' => 'CSN', 'color' => 'YLW', 'quality' => 'S-SPR', 'size' => '4.00', 'price' => 8000.00, 'name' => 'Cushion Synthetic Yellow Sapphire 4.00ct'],
+
+            // Amethyst stones
+            ['shape' => 'RND', 'color' => 'PUR', 'quality' => 'N-AME', 'size' => '3.00', 'price' => 5000.00, 'name' => 'Round Natural Amethyst 3.00ct'],
+            ['shape' => 'RND', 'color' => 'PUR', 'quality' => 'S-AME', 'size' => '3.00', 'price' => 2500.00, 'name' => 'Round Synthetic Amethyst 3.00ct'],
+            ['shape' => 'OVL', 'color' => 'PUR', 'quality' => 'N-AME', 'size' => '4.00x6.00', 'price' => 8000.00, 'name' => 'Oval Natural Amethyst 4.00x6.00'],
+
+            // Citrine stones
+            ['shape' => 'RND', 'color' => 'YLW', 'quality' => 'N-CIT', 'size' => '3.00', 'price' => 3000.00, 'name' => 'Round Natural Citrine 3.00ct'],
+            ['shape' => 'RND', 'color' => 'YLW', 'quality' => 'S-CIT', 'size' => '3.00', 'price' => 1500.00, 'name' => 'Round Synthetic Citrine 3.00ct'],
+            ['shape' => 'PRI', 'color' => 'YLW', 'quality' => 'N-CIT', 'size' => '2.50', 'price' => 4000.00, 'name' => 'Princess Natural Citrine 2.50ct'],
+
+            // Topaz stones - Blue
+            ['shape' => 'RND', 'color' => 'BLU', 'quality' => 'N-TPZ', 'size' => '3.00', 'price' => 4000.00, 'name' => 'Round Natural Blue Topaz 3.00ct'],
+            ['shape' => 'RND', 'color' => 'BLU', 'quality' => 'S-TPZ', 'size' => '3.00', 'price' => 2000.00, 'name' => 'Round Synthetic Blue Topaz 3.00ct'],
+            ['shape' => 'OVL', 'color' => 'LBL', 'quality' => 'N-TPZ', 'size' => '4.00x6.00', 'price' => 6000.00, 'name' => 'Oval Natural Light Blue Topaz 4.00x6.00'],
+
+            // Topaz stones - Pink
+            ['shape' => 'RND', 'color' => 'PNK', 'quality' => 'N-TPZ', 'size' => '3.00', 'price' => 4500.00, 'name' => 'Round Natural Pink Topaz 3.00ct'],
+            ['shape' => 'CSN', 'color' => 'PNK', 'quality' => 'S-TPZ', 'size' => '4.00', 'price' => 2500.00, 'name' => 'Cushion Synthetic Pink Topaz 4.00ct'],
+
+            // Tanzanite stones
+            ['shape' => 'RND', 'color' => 'BLU', 'quality' => 'N-TNZ', 'size' => '3.00', 'price' => 12000.00, 'name' => 'Round Natural Tanzanite 3.00ct'],
+            ['shape' => 'RND', 'color' => 'BLU', 'quality' => 'S-TNZ', 'size' => '3.00', 'price' => 6000.00, 'name' => 'Round Synthetic Tanzanite 3.00ct'],
+            ['shape' => 'OVL', 'color' => 'PUR', 'quality' => 'L-TNZ', 'size' => '4.00x6.00', 'price' => 10000.00, 'name' => 'Oval Lab Tanzanite 4.00x6.00'],
+
+            // Peridot stones
+            ['shape' => 'RND', 'color' => 'GRN', 'quality' => 'N-PRL', 'size' => '3.00', 'price' => 6000.00, 'name' => 'Round Natural Peridot 3.00ct'],
+            ['shape' => 'RND', 'color' => 'LGN', 'quality' => 'S-PRL', 'size' => '3.00', 'price' => 3000.00, 'name' => 'Round Synthetic Peridot 3.00ct'],
+            ['shape' => 'PRI', 'color' => 'GRN', 'quality' => 'N-PRL', 'size' => '2.50', 'price' => 8000.00, 'name' => 'Princess Natural Peridot 2.50ct'],
+
+            // Garnet stones
+            ['shape' => 'RND', 'color' => 'RED', 'quality' => 'N-GRT', 'size' => '3.00', 'price' => 3500.00, 'name' => 'Round Natural Garnet 3.00ct'],
+            ['shape' => 'RND', 'color' => 'RED', 'quality' => 'S-GRT', 'size' => '3.00', 'price' => 1800.00, 'name' => 'Round Synthetic Garnet 3.00ct'],
+            ['shape' => 'OVL', 'color' => 'RED', 'quality' => 'N-GRT', 'size' => '4.00x6.00', 'price' => 5500.00, 'name' => 'Oval Natural Garnet 4.00x6.00'],
+
+            // Aquamarine stones
+            ['shape' => 'RND', 'color' => 'BLU', 'quality' => 'N-AQM', 'size' => '3.00', 'price' => 5000.00, 'name' => 'Round Natural Aquamarine 3.00ct'],
+            ['shape' => 'RND', 'color' => 'LBL', 'quality' => 'S-AQM', 'size' => '3.00', 'price' => 2500.00, 'name' => 'Round Synthetic Aquamarine 3.00ct'],
+            ['shape' => 'EMR', 'color' => 'BLU', 'quality' => 'N-AQM', 'size' => '4.00x5.00', 'price' => 8000.00, 'name' => 'Emerald Natural Aquamarine 4.00x5.00'],
+
+            // Opal stones
+            ['shape' => 'RND', 'color' => 'RNB', 'quality' => 'N-OPL', 'size' => '3.00', 'price' => 8000.00, 'name' => 'Round Natural Opal 3.00ct'],
+            ['shape' => 'RND', 'color' => 'WHT', 'quality' => 'S-OPL', 'size' => '3.00', 'price' => 4000.00, 'name' => 'Round Synthetic White Opal 3.00ct'],
+            ['shape' => 'OVL', 'color' => 'RNB', 'quality' => 'N-OPL', 'size' => '4.00x6.00', 'price' => 12000.00, 'name' => 'Oval Natural Rainbow Opal 4.00x6.00'],
+
+            // Onyx stones
+            ['shape' => 'RND', 'color' => 'BLK', 'quality' => 'N-ONX', 'size' => '3.00', 'price' => 2000.00, 'name' => 'Round Natural Black Onyx 3.00ct'],
+            ['shape' => 'RND', 'color' => 'BLK', 'quality' => 'S-ONX', 'size' => '3.00', 'price' => 1000.00, 'name' => 'Round Synthetic Black Onyx 3.00ct'],
+            ['shape' => 'BUG', 'color' => 'BLK', 'quality' => 'N-ONX', 'size' => '2.00x1.00(S)', 'price' => 1500.00, 'name' => 'Baguette Natural Black Onyx 2.00x1.00'],
+
+            // Pearl stones
+            ['shape' => 'RND', 'color' => 'WHT', 'quality' => 'N-MOP', 'size' => '3.00', 'price' => 6000.00, 'name' => 'Round Natural Mother of Pearl 3.00ct'],
+            ['shape' => 'RND', 'color' => 'WHT', 'quality' => 'S-MOL', 'size' => '3.00', 'price' => 3000.00, 'name' => 'Round Synthetic Pearl 3.00ct'],
+
+            // Moissanite
+            ['shape' => 'RND', 'color' => 'WHT', 'quality' => 'MOZ', 'size' => '3.00', 'price' => 10000.00, 'name' => 'Round Moissanite 3.00ct'],
+            ['shape' => 'PRI', 'color' => 'WHT', 'quality' => 'MOZ', 'size' => '2.00', 'price' => 8000.00, 'name' => 'Princess Moissanite 2.00ct'],
+
+            // Cubic Zirconia
+            ['shape' => 'RND', 'color' => 'WHT', 'quality' => 'CZ', 'size' => '3.00', 'price' => 500.00, 'name' => 'Round Cubic Zirconia 3.00ct'],
+            ['shape' => 'OVL', 'color' => 'WHT', 'quality' => 'CZ', 'size' => '4.00x6.00', 'price' => 800.00, 'name' => 'Oval Cubic Zirconia 4.00x6.00'],
+            ['shape' => 'PRI', 'color' => 'WHT', 'quality' => 'CZ', 'size' => '2.50', 'price' => 600.00, 'name' => 'Princess Cubic Zirconia 2.50ct'],
+
+            // Tourmaline stones
+            ['shape' => 'RND', 'color' => 'GRN', 'quality' => 'N-TRM', 'size' => '3.00', 'price' => 4000.00, 'name' => 'Round Natural Green Tourmaline 3.00ct'],
+            ['shape' => 'RND', 'color' => 'PNK', 'quality' => 'S-TRM', 'size' => '3.00', 'price' => 2000.00, 'name' => 'Round Synthetic Pink Tourmaline 3.00ct'],
+
+            // Morganite stones
+            ['shape' => 'RND', 'color' => 'PNK', 'quality' => 'N-MLA', 'size' => '3.00', 'price' => 7000.00, 'name' => 'Round Natural Morganite 3.00ct'],
+            ['shape' => 'OVL', 'color' => 'LPK', 'quality' => 'S-MLA', 'size' => '4.00x6.00', 'price' => 5000.00, 'name' => 'Oval Synthetic Morganite 4.00x6.00'],
+        ];
+
+        $count = 0;
+        $skipped = 0;
+
+        foreach ($colorstoneData as $stone) {
+            $shape = $shapes->get($stone['shape']);
+            $color = $colors->get($stone['color']);
+            $quality = $qualities->get($stone['quality']);
+
+            if (!$shape || !$color || !$quality) {
+                $skipped++;
+                $this->command->warn("Missing reference data for: {$stone['name']}");
+                continue;
+            }
+
+            // Find matching shape size
+            $shapeSize = null;
+            if (isset($shapeSizes[$shape->id])) {
+                $shapeSize = $shapeSizes[$shape->id]->firstWhere('size', $stone['size']);
+            }
+
+            Colorstone::updateOrCreate(
+                [
+                    'name' => $stone['name'],
+                    'colorstone_shape_id' => $shape->id,
+                    'colorstone_color_id' => $color->id,
+                    'colorstone_quality_id' => $quality->id,
+                ],
+                [
+                    'colorstone_shape_size_id' => $shapeSize ? $shapeSize->id : null,
+                    'price' => $stone['price'],
+                    'description' => "Premium {$stone['shape']} cut {$stone['quality']} {$stone['color']} colorstone.",
+                    'is_active' => true,
+                ]
+            );
+            $count++;
+        }
+
+        $this->command->info("Imported {$count} colorstones. Skipped {$skipped} due to missing reference data.");
     }
 }

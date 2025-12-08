@@ -34,4 +34,9 @@ class Category extends Model
     {
         return $this->hasMany(Category::class, 'parent_id')->orderBy('display_order');
     }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
 }

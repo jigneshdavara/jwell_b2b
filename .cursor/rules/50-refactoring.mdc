@@ -1,0 +1,413 @@
+---
+alwaysApply: true
+---
+
+# Code Quality, Cleanup, DRY & Refactoring Rules
+
+## General Principles
+
+- **Refactor incrementally** – small, safe changes over large rewrites
+- **Preserve behavior** – refactors must not change functionality silently
+- **Test first** – for non-trivial refactors, add/keep tests before changing code
+- **One source of truth** – eliminate duplication, centralize shared logic
+- **When in doubt, mark as TBD** – don't delete or refactor if unsure
+
+## Dead Code & Unused Files
+
+### Detection Process
+
+**Before deleting anything, search for usages in**:
+1. Code files (controllers, services, models, components)
+2. Routes (`routes/web.php`, `routes/api.php`)
+3. Config files (`config/*.php`)
+4. Tests (`tests/**/*.php`)
+5. Frontend code (imports, references in TS/TSX files)
+6. Database migrations (if dropping tables/columns)
+7. Seeders (if removing models)
+
+### Safe Deletion Workflow
+
+1. **Mark as deprecated** (if unsure):
+   - Add `@deprecated` PHPDoc tag
+   - Add `// TODO: Remove after [date]` comment
+   - Document in code why it's deprecated
+
+2. **Verify no references**:
+   - Use IDE search (grep/ripgrep) for class/function/file names
+   - Check git history for recent usage
+   - Search across all portals (Frontend, Admin, Production)
+
+3. **Delete safely**:
+   - Remove unused classes/functions/files
+   - If database-related, create migration to drop columns/tables
+   - Document removal in commit message or PR notes
+
+### What NOT to Delete
+
+- **Legacy columns** that might have historical data value
+- **Unused enums** that might be referenced in old data
+- **Helper functions** that might be used in edge cases
+- **Config entries** that might be referenced elsewhere
+
+**If unsure**: Mark as deprecated and leave for now, or add `// TBD – confirm with user` comment
+
+## Tables & Columns Cleanup
+
+### Before Removing Database Entities
+
+**Search usages in**:
+- Models (`app/Models/*.php`)
+- Migrations (`database/migrations/*.php`)
+- Seeders (`database/seeders/*.php`)
+- Queries in services/controllers
+- Frontend TypeScript types (`resources/js/types/*.d.ts`)
+- Frontend components that reference the data
+
+### Safe Removal Process
+
+1. **Verify no active usage**:
+   ```bash
+   # Search for table/column name across codebase
+   grep -r "table_name" app/ resources/ database/
+   ```
+
+2. **Check for historical value**:
+   - Is this data needed for historical orders/records?
+   - Can it be archived instead of deleted?
+
+3. **Create migration**:
+   ```php
+   // Migration to drop column
+   Schema::table('products', function (Blueprint $table) {
+       $table->dropColumn('old_column');
+   });
+   ```
+
+4. **Update models**:
+   - Remove from `$fillable` or `$casts`
+   - Remove relationships if dropping foreign keys
+
+5. **Update frontend types**:
+   - Remove from TypeScript interfaces
+   - Update components that reference the field
+
+### If Not Safe to Remove
+
+- **Mark as deprecated** in model PHPDoc
+- **Add comment** in migration explaining why it's kept
+- **Document** in rules or docs that this column is legacy
+
+## DRY – Don't Repeat Yourself
+
+### Identify Duplication
+
+**Common duplication patterns to watch for**:
+
+1. **Repeated queries**:
+   - Same `Product::with(['brand', 'category'])->where(...)` in multiple controllers
+   - Extract to model scope or service method
+
+2. **Repeated pricing logic**:
+   - Price calculations copied in controllers, components, or multiple services
+   - Must use `PricingService` – single source of truth
+
+3. **Repeated variant matching**:
+   - Variant selection logic duplicated in components
+   - Extract to shared helper or service
+
+4. **Repeated UI blocks**:
+   - Same table structure in multiple pages
+   - Same form fields repeated
+   - Same button groups or filters
+
+5. **Repeated validation**:
+   - Same validation rules in multiple FormRequests
+   - Extract to shared rules or custom validation classes
+
+### Extraction Patterns
+
+**Backend (Laravel)**:
+
+- **Services**: Complex business logic (`app/Services/`)
+  - Example: `PricingService`, `OrderWorkflowService`, `ProductVariantSyncService`
+  - Use dependency injection in controllers
+
+- **Model Scopes**: Repeated query patterns
+  ```php
+  // In Product model
+  public function scopeActive($query) {
+      return $query->where('is_active', true);
+  }
+  ```
+
+- **Traits**: Shared model behavior
+  - Use sparingly, only for truly reusable behavior
+
+- **Helpers**: Simple utility functions
+  - Location: `app/Helpers/` (if exists) or service methods
+
+- **FormRequest classes**: Validation rules
+  - Location: `app/Http/Requests/`
+  - Reuse rules via `rules()` method composition if needed
+
+**Frontend (React/TypeScript)**:
+
+- **Shared Components**: `resources/js/Components/`
+  - Buttons, inputs, tables, modals, cards
+  - Reuse across Customer, Admin, Production portals
+
+- **Custom Hooks**: `resources/js/hooks/` (if exists) or in component files
+  - Extract complex state logic
+  - Example: `useVariantSelector()`, `usePriceCalculator()`
+
+- **Utility Functions**: `resources/js/utils/` (if exists)
+  - Pure functions for calculations, formatting
+  - Example: variant matching, price formatting
+
+- **Type Definitions**: `resources/js/types/`
+  - Shared interfaces/types
+  - Mirror backend structures
+
+### One Source of Truth Rules
+
+**These must NEVER be duplicated**:
+
+1. **Variant Resolution**:
+   - Use centralized matching logic (service or helper)
+   - Location: `app/Services/Catalog/ProductVariantSyncService.php` or frontend helper
+
+2. **Pricing Calculation**:
+   - Always use `app/Services/PricingService.php`
+   - Never calculate prices in controllers or components directly
+
+3. **Status Transitions**:
+   - Use workflow services: `OrderWorkflowService`, etc.
+   - Never hard-code status changes
+
+4. **Common UI Elements**:
+   - Use shared components: `PrimaryButton`, `TextInput`, `Modal`, etc.
+   - Don't recreate button/input styles
+
+5. **Brand Colors**:
+   - Use Tailwind classes: `bg-elvee-blue`, `text-feather-gold`
+   - Defined in `tailwind.config.js`
+   - Never hard-code hex values in components
+
+## Common Function & Service Creation
+
+### When Adding New Features
+
+**Decision tree**:
+
+1. **Does it fit an existing service?**
+   - Yes → Add method to existing service
+   - Example: New discount type → add to `MakingChargeDiscountService`
+
+2. **Is it a new domain area?**
+   - Yes → Create new service in `app/Services/`
+   - Example: `InventoryService`, `ReportingService`
+
+3. **Is it simple utility logic?**
+   - Yes → Add to model (scope/accessor) or helper function
+   - Example: Date formatting, status label generation
+
+### Service Creation Guidelines
+
+**New service structure**:
+```php
+namespace App\Services;
+
+class NewService
+{
+    public function __construct(
+        protected RelatedService $relatedService
+    ) {
+    }
+
+    public function doSomething(): mixed
+    {
+        // Implementation
+    }
+}
+```
+
+**Rules**:
+- Keep services focused on single domain
+- Use dependency injection for other services
+- Return structured data (Collections, arrays, DTOs)
+- Handle exceptions appropriately
+
+### Frontend Service/Helper Creation
+
+**For complex frontend logic**:
+
+- **Custom Hooks**: Extract stateful logic
+  ```typescript
+  // useVariantSelector.ts
+  export function useVariantSelector(product: Product) {
+    // Variant selection logic
+  }
+  ```
+
+- **Utility Functions**: Pure functions
+  ```typescript
+  // utils/variantMatching.ts
+  export function matchVariant(options: VariantOptions): ProductVariant | null {
+    // Matching logic
+  }
+  ```
+
+- **Shared Components**: Reusable UI
+  - Location: `resources/js/Components/`
+  - Make props flexible for reuse
+
+## Code Cleanup Style
+
+### Remove Unused Code
+
+- **Unused imports**: Remove unused `use` statements
+- **Unused variables**: Remove variables that are never read
+- **Unused parameters**: Remove function parameters that aren't used
+- **Dead code paths**: Remove unreachable code (after `return`, etc.)
+
+### Method/Component Size
+
+- **Split long methods**: If method > 50 lines, consider splitting
+- **Split long components**: If component > 200 lines, extract sub-components
+- **Extract complex logic**: Move complex calculations to helper functions
+
+### Naming Consistency
+
+- **Use domain terminology**: `product`, `variant`, `quotation`, `jobwork`, `work_order`
+- **Avoid abbreviations**: Use full names (`ProductVariant` not `ProdVar`)
+- **Match existing patterns**: Follow naming in similar files
+- **Be descriptive**: `calculateProductPriceWithDiscounts()` not `calcPrice()`
+
+### Magic Numbers/Strings
+
+**Avoid**:
+```php
+if ($status === 'pending') { } // Magic string
+if ($price > 1000) { } // Magic number
+```
+
+**Prefer**:
+```php
+if ($status === OrderStatus::Pending->value) { } // Enum
+if ($price > self::MIN_PRICE_THRESHOLD) { } // Constant
+```
+
+**Constants/Enums locations**:
+- Status values: `app/Enums/*.php`
+- Business rules: Class constants or config files
+- Frontend: TypeScript enums or constants file
+
+### Comments
+
+**Good comments** (explain "why"):
+```php
+// Use PricingService to ensure consistent calculation across all portals
+$price = $pricingService->calculateProductPrice($product, $user);
+```
+
+**Bad comments** (obvious "what"):
+```php
+// Calculate the price
+$price = $product->base_price + $product->making_charge;
+```
+
+**Rules**:
+- Focus on **intent** and **business context**
+- Explain **why** something is done a certain way
+- Don't comment obvious code
+- Update comments when code changes
+
+## Safety When Refactoring
+
+### Pre-Refactor Checklist
+
+1. **Understand current behavior**:
+   - Read existing code thoroughly
+   - Check related services/models
+   - Review tests if they exist
+
+2. **Identify dependencies**:
+   - What calls this code?
+   - What does this code call?
+   - Are there side effects?
+
+3. **Plan the refactor**:
+   - Small, incremental steps
+   - Can it be done in phases?
+   - What tests are needed?
+
+### Refactoring Process
+
+1. **Add tests first** (if non-trivial):
+   - Write tests for current behavior
+   - Ensure tests pass
+   - Refactor code
+   - Ensure tests still pass
+
+2. **Refactor incrementally**:
+   - One method/component at a time
+   - Commit after each safe step
+   - Test after each change
+
+3. **Verify behavior**:
+   - Run existing tests
+   - Manual testing if needed
+   - Check all portals affected
+
+### Risky Refactors
+
+**These require extra care**:
+
+- **Pricing logic changes**: Must not break existing orders/quotations
+- **Variant matching changes**: Must not break product display
+- **Status transition changes**: Must follow workflow rules
+- **Database schema changes**: Must handle existing data
+- **API contract changes**: Must update frontend types
+
+**For risky refactors**:
+- Write detailed plan first
+- Get approval if needed
+- Add `// TODO: Refactor this carefully` comment
+- Document in rules or PR description
+
+### When NOT to Refactor
+
+- **Working code with no issues**: Don't refactor "just because"
+- **Large, complex refactors**: Break into smaller pieces
+- **Unclear requirements**: Wait for clarification
+- **Time pressure**: Prefer small, safe changes
+
+**If refactor is too risky**:
+- Mark with `// TODO: Refactor when [condition]`
+- Document the issue in code comments
+- Create a separate task/issue for later
+
+## Code Quality Tools
+
+### Backend
+
+- **Laravel Pint**: Code formatting
+  - Run: `./vendor/bin/pint`
+  - Follows PSR-12 standards
+
+- **PHPStan/Psalm**: Static analysis (TBD – confirm if used)
+
+### Frontend
+
+- **TypeScript**: Strict typing
+  - Avoid `any` types
+  - Use proper interfaces
+
+- **ESLint/Prettier**: (TBD – confirm if configured)
+
+## Refactoring References in Other Rules
+
+- **Backend** (`20-backend.mdc`): Controllers must use services, not duplicate logic
+- **Frontend** (`30-frontend.mdc`): Extract reusable components and hooks
+- **Domain** (`10-domain.mdc`): Pricing and variant logic must be centralized
+- **Database** (`21-database.mdc`): Safe migration practices for schema changes

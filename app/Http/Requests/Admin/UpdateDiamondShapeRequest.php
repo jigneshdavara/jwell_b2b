@@ -24,7 +24,7 @@ class UpdateDiamondShapeRequest extends FormRequest
             'name' => ['required', 'string', 'max:255', Rule::unique('diamond_shapes', 'name')->ignore($shape ? $shape->id : null)],
             'ecat_name' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'position' => ['nullable', 'integer', 'min:0'],
+            'display_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],
         ];
     }

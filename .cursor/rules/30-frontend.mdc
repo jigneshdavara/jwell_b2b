@@ -1,0 +1,227 @@
+---
+alwaysApply: true
+---
+
+# Frontend Architecture Rules (React + TypeScript + Inertia.js)
+
+## Technology Stack
+
+- **React**: 18.2+
+- **TypeScript**: 5.0+
+- **Inertia.js**: 2.0 (server-driven React)
+- **Tailwind CSS**: 3.2+ with Headless UI components
+- **Build Tool**: Vite 7.0
+- **Payment UI**: Stripe React components (`@stripe/react-stripe-js`, `@stripe/stripe-js`)
+
+## Project Structure
+
+### Pages
+
+**Location**: `resources/js/Pages/`
+
+**Organization**:
+- `Frontend/` - Customer portal pages
+  - `Catalog/Index.tsx`, `Catalog/Show.tsx`
+  - `Cart/Index.tsx`
+  - `Checkout/Index.tsx`
+  - `Orders/Index.tsx`, `Orders/Show.tsx`
+  - `Quotations/Index.tsx`, `Quotations/Show.tsx`
+  - `Jobwork/Index.tsx`
+  - `Wishlist/Index.tsx`
+  - `Dashboard/Overview.tsx`
+  - `Home/Index.tsx`
+  - `Onboarding/Kyc/Show.tsx`
+
+- `Admin/` - Admin portal pages
+  - `Products/Index.tsx`, `Products/Edit.tsx`
+  - `Orders/Index.tsx`, `Orders/Show.tsx`
+  - `Quotations/Index.tsx`, `Quotations/Show.tsx`
+  - `Customers/` (KYC review, groups, types)
+  - `Catalog/` (brands, categories, materials)
+  - `Diamond/`, `Colorstone/`, `Metals/` (attribute management)
+  - `Rates/Index.tsx`
+  - `Offers/Index.tsx`
+  - `Settings/` (general, payments, taxes)
+
+- `Production/` - Production portal pages
+  - `WorkOrders/Index.tsx`
+  - `Dashboard/Overview.tsx`
+
+- `Auth/` - Authentication pages (Login, Register, etc.)
+- `Profile/` - User profile pages
+
+### Components
+
+**Location**: `resources/js/Components/`
+
+**Shared Components**:
+- `PrimaryButton.tsx`, `SecondaryButton.tsx`, `DangerButton.tsx`
+- `TextInput.tsx`, `InputLabel.tsx`, `InputError.tsx`
+- `Checkbox.tsx`
+- `Modal.tsx`, `AlertModal.tsx`, `ConfirmationModal.tsx`
+- `Dropdown.tsx`
+- `FlashMessage.tsx`
+- `NavLink.tsx`, `ResponsiveNavLink.tsx`
+- `ApplicationLogo.tsx`
+- `CustomerHeader.tsx`, `CustomerFooter.tsx`
+- `RichTextEditor.tsx`
+- `Customization/` - Product customization components
+
+### Layouts
+
+**Location**: `resources/js/Layouts/`
+
+- `AuthenticatedLayout.tsx` - Customer portal layout
+- `AdminLayout.tsx` - Admin portal layout
+- `ProductionLayout.tsx` - Production portal layout
+- `GuestLayout.tsx` - Public/guest layout
+
+### Types
+
+**Location**: `resources/js/types/`
+
+- `index.d.ts` - TypeScript type definitions
+- `global.d.ts` - Global type declarations
+- `vite-env.d.ts` - Vite environment types
+
+## Inertia.js Patterns
+
+### Page Components
+
+- **Use Inertia's `usePage()`** to access shared props (user, flash messages)
+- **Use `router.visit()`** for navigation
+- **Use `router.post()`, `router.patch()`, `router.delete()`** for form submissions
+- **Handle loading states** with Inertia's built-in loading indicator
+
+### Data Fetching
+
+- **Let Inertia handle data fetching** – data comes from backend via page props
+- **Use `useForm()` hook** for form state management
+- **Use `router.reload()`** to refresh current page data
+
+### Form Handling
+
+```typescript
+import { useForm } from '@inertiajs/react';
+
+const { data, setData, post, processing, errors } = useForm({
+  name: '',
+  email: '',
+});
+
+const submit = (e: React.FormEvent) => {
+  e.preventDefault();
+  post('/route');
+};
+```
+
+## TypeScript Rules
+
+### Type Definitions
+
+- **Define interfaces/types** for all data structures
+- **Mirror backend structures** with TypeScript types
+- **Use strict typing** – avoid `any` type
+- **Define props interfaces** for all components
+
+### Example Patterns
+
+```typescript
+interface Product {
+  id: number;
+  sku: string;
+  name: string;
+  base_price: number;
+  variants: ProductVariant[];
+}
+
+interface ProductVariant {
+  id: number;
+  sku: string;
+  label: string;
+  price_adjustment: number;
+  metadata: {
+    diamond_option_key?: string;
+    size_cm?: number;
+  };
+}
+```
+
+## Component Patterns
+
+### Component Structure
+
+- **Keep components small and focused**
+- **Use functional components** with hooks
+- **Extract reusable logic** into custom hooks
+- **Compose complex UIs** from smaller components
+
+### State Management
+
+- **Use React hooks** (`useState`, `useEffect`, `useMemo`, `useCallback`)
+- **Use Inertia's `useForm()`** for form state
+- **Avoid prop drilling** beyond 2 levels – extract to context or component composition
+- **For global state**: Consider Zustand if needed (TBD – confirm with user if currently used)
+
+### Component Naming
+
+- **PascalCase** for component names: `ProductCard.tsx`, `VariantSelector.tsx`
+- **Match file name** to component name
+- **Use descriptive names** that indicate purpose
+
+## Variant Selection Logic
+
+**Location**: `resources/js/Pages/Frontend/Catalog/Show.tsx`
+
+**Pattern**:
+- User selects: metal, purity, tone, diamond option, colorstone option, size
+- Match selection to variant using:
+  - `metal_id`, `metal_purity_id`, `metal_tone_id`
+  - `diamond_option_key` (from metadata)
+  - `colorstone_option_key` (from metadata)
+  - `size_cm` (from metadata)
+- Display price for matched variant
+- Keep matching logic centralized (helper function or service)
+
+## Product Variant Matrix (Admin)
+
+**Location**: `resources/js/Pages/Admin/Products/Edit.tsx`
+
+**Key Functions**:
+- `generateVariantMatrix()` - Creates Cartesian product of options
+- `recalculateVariants()` - Generates labels and SKUs
+- `buildVariantMeta()` - Builds variant metadata
+
+**Rules**:
+- Matrix generation happens in frontend
+- Backend syncs via `ProductVariantSyncService`
+- Preserve existing variants when regenerating (match by stable key)
+
+## Styling Integration
+
+- **Use Tailwind CSS** for all styling
+- **Follow brand guidelines** (see `31-frontend-style.mdc`)
+- **Use Headless UI** for accessible components (modals, dropdowns)
+- **Keep styles consistent** across portals
+
+## Error Handling
+
+- **Display validation errors** using `InputError` component
+- **Show flash messages** using `FlashMessage` component
+- **Handle API errors** gracefully with user-friendly messages
+- **Use confirmation modals** for destructive actions
+
+## Performance
+
+- **Lazy load** heavy components if needed
+- **Memoize expensive calculations** with `useMemo`
+- **Optimize re-renders** with `React.memo` where appropriate
+- **Code split** large pages if bundle size becomes an issue
+
+## Code Quality & Refactoring
+
+- **Extract repeated UI blocks** to shared components
+- **Extract complex logic** to custom hooks or utility functions
+- **Remove unused imports and variables**
+- **Split large components** (>200 lines) into smaller pieces
+- **Follow DRY principle** – see `50-refactoring.mdc` for detailed cleanup rules

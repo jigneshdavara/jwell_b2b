@@ -43,15 +43,14 @@ class RateController extends Controller
         // Get all available metals from the database
         $availableMetals = \App\Models\Metal::query()
             ->where('is_active', true)
-            ->orderBy('position')
+            ->orderBy('display_order')
             ->orderBy('name')
             ->get()
             ->map(function ($metal) {
                 return [
                     'id' => $metal->id,
                     'name' => $metal->name,
-                    'slug' => $metal->slug,
-                    'value' => Str::lower($metal->slug), // Use slug as value for matching
+                    'value' => Str::lower($metal->name), // Use name as value for matching
                 ];
             })
             ->all();
@@ -63,14 +62,13 @@ class RateController extends Controller
             if ($metalModel) {
                 $metalPuritiesMap[$metal['value']] = $metalModel->purities()
                     ->where('is_active', true)
-                    ->orderBy('position')
+                    ->orderBy('display_order')
                     ->orderBy('name')
                     ->get()
                     ->map(function ($purity) {
                         return [
                             'id' => $purity->id,
                             'name' => $purity->name,
-                            'slug' => $purity->slug,
                         ];
                     })
                     ->all();

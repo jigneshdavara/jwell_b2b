@@ -1,0 +1,143 @@
+---
+alwaysApply: true
+---
+
+# Testing & Quality Rules
+
+## General Principles
+
+- **Business-critical platform** – key flows must be covered by tests
+- **Add tests when**:
+  - Implementing new non-trivial logic
+  - Changing existing workflows
+  - Fixing bugs (regression tests)
+
+## Backend Tests (PHPUnit)
+
+**Location**: `tests/Feature/`, `tests/Unit/`
+
+**Testing Framework**: PHPUnit 11.5
+
+### Critical Test Areas
+
+**1. Pricing** (`app/Services/PricingService.php`):
+- Metal rate calculations
+- Making charge calculations
+- Discount application (making charge discounts, offers)
+- Tax calculations
+- Price breakdowns used in cart, quotation, and order summaries
+
+**2. Variants** (`app/Services/Catalog/ProductVariantSyncService.php`):
+- Variant generation from product configuration
+- Variant matching based on selected options
+- Metal/diamond/colorstone associations
+- SKU and label generation
+
+**3. Workflows**:
+- **Orders**: Status transitions (`app/Services/OrderWorkflowService.php`)
+  - Test valid transitions
+  - Test invalid transitions (should fail)
+  - Test event firing on status changes
+- **Quotations**: Approvals/rejections and conversion to orders
+- **Jobwork**: Jobwork request progression
+- **Work Orders**: Production stage transitions
+
+**4. Security**:
+- Portal/role-based access (middleware tests)
+- KYC-gated features (ensure KYC approval required)
+- Authorization checks in controllers
+
+### Testing Guidelines
+
+- **For new services**: Create unit tests covering main branches and edge cases
+- **Mock integrations**: Rate APIs, payments, notifications in tests
+- **Use factories**: `database/factories/` for test data generation
+- **Test database**: Use separate test database or in-memory SQLite
+- **Feature tests**: Test full request/response cycles
+- **Unit tests**: Test isolated service methods
+
+### Test Structure
+
+```php
+// Feature test example
+class OrderWorkflowTest extends TestCase
+{
+    public function test_order_status_can_transition_from_pending_to_approved(): void
+    {
+        // Arrange
+        $order = Order::factory()->create(['status' => OrderStatus::Pending]);
+        
+        // Act
+        $service = new OrderWorkflowService();
+        $service->updateStatus($order, OrderStatus::Approved);
+        
+        // Assert
+        $this->assertEquals(OrderStatus::Approved, $order->fresh()->status);
+    }
+}
+```
+
+## Frontend Tests
+
+**Status**: TBD – confirm with user if frontend tests are currently set up
+
+**If implemented, should cover**:
+
+**Component Tests**:
+- Variant selector component
+- Pricing breakdown component
+- Forms with complex validation
+- Data tables with filters
+
+**End-to-End Tests** (Playwright or similar):
+- **Customer journey**: Login → browse catalog → configure variant → add to cart → checkout → order
+- **Admin journey**: Login → review KYC → approve → manage quotations → manage orders
+- **Production journey**: Login → view work orders → update production/QC/dispatch statuses
+
+## Regression & Stability
+
+**When a bug is reported**:
+1. Reproduce it with a failing test
+2. Fix the code
+3. Keep the new test as a guard
+
+**Do NOT delete tests** unless:
+- The functionality is explicitly removed and documented
+
+## Performance Testing
+
+**For heavy operations**:
+- Variant generation (bulk operations)
+- Bulk rate sync
+- Mass price recalculation
+
+**Add tests ensuring**:
+- Operations run via queued jobs (not blocking requests)
+- Handle realistic data volumes without crashing
+- Sanity checks for:
+  - Empty configurations
+  - Missing optional data
+  - Boundaries (min/max sizes, weights, price limits)
+
+## Test Data
+
+**Use factories** (`database/factories/`):
+- Product factories
+- Variant factories
+- Order factories
+- User factories
+- etc.
+
+**Seed test data** when needed:
+- Reference data (metals, purities, tones, diamond attributes)
+- Test products with variants
+- Test users with different roles
+
+## Code Quality
+
+**Laravel Pint**: Use for code formatting (PHP)
+- Run: `./vendor/bin/pint`
+
+**TypeScript**: Use strict mode, avoid `any` types
+
+**Linting**: TBD – confirm with user if ESLint/TSLint is configured
