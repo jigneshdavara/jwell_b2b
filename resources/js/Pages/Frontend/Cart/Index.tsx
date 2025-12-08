@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 type PriceBreakdown = {
     metal?: number;
     diamond?: number;
+    colorstone?: number;
     making?: number;
     subtotal?: number;
     discount?: number;
@@ -346,6 +347,12 @@ export default function CartIndex() {
                                                                     {item.price_breakdown.diamond && item.price_breakdown.diamond > 0 && (
                                                                         <>
                                                                             <span>Diamond {formatter.format(item.price_breakdown.diamond)}</span>
+                                                                            <span>·</span>
+                                                                        </>
+                                                                    )}
+                                                                    {item.price_breakdown.colorstone && item.price_breakdown.colorstone > 0 && (
+                                                                        <>
+                                                                            <span>Colorstone {formatter.format(item.price_breakdown.colorstone)}</span>
                                                                             <span>·</span>
                                                                         </>
                                                                     )}

@@ -156,11 +156,12 @@ class MigrateVariantMetalsAndDiamonds extends Command
                 $purity = MetalPurity::firstOrCreate(
                     [
                         'metal_id' => $metal->id,
-                        'label' => $purityStr,
+                        'name' => $purityStr,
                     ],
                     [
+                        'code' => $purityStr,
                         'is_active' => true,
-                        'position' => 0,
+                        'display_order' => 0,
                     ]
                 );
                 $this->purityCache[$cacheKey] = $purity;

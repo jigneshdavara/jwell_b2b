@@ -30,11 +30,9 @@ class ProductVariantDimensionService
             'metals.metal',
             'metals.metalPurity',
             'metals.metalTone',
-            'diamonds.diamondType',
             'diamonds.diamondClarity',
             'diamonds.diamondColor',
             'diamonds.diamondShape',
-            'diamonds.diamondCut',
         ])->orderByDesc('is_default')->orderBy('label')->get();
 
         // Extract normalized variant data
@@ -151,11 +149,9 @@ class ProductVariantDimensionService
                         'metal_tone' => $m->metalTone ? ['id' => $m->metalTone->id, 'name' => $m->metalTone->name] : null,
                     ])->toArray(),
                     'diamonds' => $variant->diamonds->map(fn($d) => [
-                        'diamond_type_id' => $d->diamond_type_id,
                         'diamond_clarity_id' => $d->diamond_clarity_id,
                         'diamond_color_id' => $d->diamond_color_id,
                         'diamond_shape_id' => $d->diamond_shape_id,
-                        'diamond_cut_id' => $d->diamond_cut_id,
                         'total_carat' => $d->total_carat,
                         'diamonds_count' => $d->diamonds_count,
                     ])->toArray(),
@@ -270,11 +266,9 @@ class ProductVariantDimensionService
         }
 
         $parts = [];
-        if ($first->diamond_type_id) $parts[] = "type_{$first->diamond_type_id}";
         if ($first->diamond_shape_id) $parts[] = "shape_{$first->diamond_shape_id}";
         if ($first->diamond_clarity_id) $parts[] = "clarity_{$first->diamond_clarity_id}";
         if ($first->diamond_color_id) $parts[] = "color_{$first->diamond_color_id}";
-        if ($first->diamond_cut_id) $parts[] = "cut_{$first->diamond_cut_id}";
         if ($first->total_carat) $parts[] = "carat_{$first->total_carat}";
 
         return !empty($parts) ? 'diamond_' . implode('_', $parts) : 'diamond_unknown';
@@ -291,14 +285,11 @@ class ProductVariantDimensionService
         }
 
         $parts = [];
-        if ($first->diamondType) $parts[] = $first->diamondType->name;
         if ($first->diamondShape) $parts[] = $first->diamondShape->name;
         if ($first->diamondClarity) $parts[] = $first->diamondClarity->name;
         if ($first->diamondColor) $parts[] = $first->diamondColor->name;
-        if ($first->diamondCut) $parts[] = $first->diamondCut->name;
         if ($first->total_carat) $parts[] = number_format((float) $first->total_carat, 2) . 'ct';
 
         return !empty($parts) ? implode(' — ', $parts) : 'Diamond';
     }
 }
-

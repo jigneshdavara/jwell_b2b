@@ -5,7 +5,7 @@ interface ConfigMetal {
     metalId: number;
     metalPurityId: number | null;
     metalToneId: number | null;
-    weightGrams?: string | null;
+    metalWeight?: string | null;
 }
 
 interface ConfigDiamond {
@@ -43,6 +43,7 @@ interface ConfigurationOption {
         base: number;
         metal: number;
         diamond: number;
+        colorstone: number;
         making: number;
         adjustment: number;
     };
@@ -95,10 +96,10 @@ export default function ProductDetailsPanel({
             const materialColour = (metal as any).toneName || '—';
 
             // Gross metal weight for this specific metal
-            // ✅ Always use weightGrams from backend; do NOT parse from label
+            // ✅ Always use metalWeight from backend; do NOT parse from label
             let grossMetalWeight = '—';
-            if (metal.weightGrams) {
-                const parsed = parseFloat(metal.weightGrams);
+            if (metal.metalWeight) {
+                const parsed = parseFloat(metal.metalWeight);
                 if (!isNaN(parsed) && parsed > 0) {
                     grossMetalWeight =
                         parsed % 1 === 0 ? `${parsed.toFixed(0)} g` : `${parsed.toFixed(2)} g`;
@@ -610,6 +611,14 @@ export default function ProductDetailsPanel({
                                 <span className="text-sm text-gray-600">Diamond</span>
                                 <span className="text-sm font-semibold text-[#0E244D]">
                                     ₹{selectedConfig.price_breakup.diamond.toLocaleString('en-IN')}
+                                </span>
+                            </div>
+                        )}
+                        {selectedConfig.price_breakup.colorstone > 0 && (
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600">Colorstone</span>
+                                <span className="text-sm font-semibold text-[#0E244D]">
+                                    ₹{selectedConfig.price_breakup.colorstone.toLocaleString('en-IN')}
                                 </span>
                             </div>
                         )}

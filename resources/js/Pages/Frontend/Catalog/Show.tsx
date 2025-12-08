@@ -23,25 +23,21 @@ type ProductVariant = {
         metal_id: number;
         metal_purity_id: number | null;
         metal_tone_id: number | null;
-        weight_grams: number | null;
+        metal_weight: number | null;
         metal: { id: number; name: string } | null;
         metal_purity: { id: number; name: string } | null;
         metal_tone: { id: number; name: string } | null;
     }>;
     diamonds?: Array<{
         id: number;
-        diamond_type_id: number | null;
         diamond_clarity_id: number | null;
         diamond_color_id: number | null;
         diamond_shape_id: number | null;
-        diamond_cut_id: number | null;
         diamonds_count: number | null;
         total_carat: number | null;
-        diamond_type: { id: number; name: string } | null;
         diamond_clarity: { id: number; name: string } | null;
         diamond_color: { id: number; name: string } | null;
         diamond_shape: { id: number; name: string } | null;
-        diamond_cut: { id: number; name: string } | null;
     }>;
 };
 
@@ -78,7 +74,7 @@ interface ConfigMetal {
     metalId: number;
     metalPurityId: number | null;
     metalToneId: number | null;
-    weightGrams?: string | null;
+    metalWeight?: string | null;
 }
 
 interface ConfigDiamond {
@@ -116,6 +112,7 @@ interface ConfigurationOption {
         base: number;
         metal: number;
         diamond: number;
+        colorstone: number;
         making: number;
         adjustment: number;
     };
@@ -603,7 +600,7 @@ export default function CatalogShow() {
                                         <p className="text-xs text-slate-500">
                                             {isJobworkMode
                                                 ? 'Includes making charge only. Final quotation may vary with labour costs.'
-                                                : 'Includes metal, diamond, making charge & adjustment. Final quotation may vary with bullion/diamond parity and labour.'}
+                                                : 'Includes metal, diamond, colorstone, making charge & adjustment. Final quotation may vary with bullion/diamond parity and labour.'}
                                         </p>
                                         {!isJobworkMode && (
                                             <div className="mt-2 space-y-1 text-xs">
@@ -617,6 +614,12 @@ export default function CatalogShow() {
                                                     <p className="flex justify-between">
                                                         <span>Diamond:</span>
                                                         <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.diamond)}</span>
+                                                    </p>
+                                                )}
+                                                {selectedConfig.price_breakup.colorstone > 0 && (
+                                                    <p className="flex justify-between">
+                                                        <span>Colorstone:</span>
+                                                        <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.colorstone)}</span>
                                                     </p>
                                                 )}
                                                 <p className="flex justify-between">

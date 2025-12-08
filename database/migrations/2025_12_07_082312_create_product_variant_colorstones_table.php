@@ -14,15 +14,11 @@ return new class extends Migration
         Schema::create('product_variant_colorstones', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_variant_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('colorstone_shape_id')->nullable()->constrained('colorstone_shapes')->nullOnDelete();
-            $table->foreignId('colorstone_color_id')->nullable()->constrained('colorstone_colors')->nullOnDelete();
-            $table->foreignId('colorstone_quality_id')->nullable()->constrained('colorstone_qualities')->nullOnDelete();
-            $table->integer('stones_count')->nullable();
-            $table->decimal('total_carat', 10, 3)->nullable();
+            $table->foreignId('colorstone_id')->constrained()->cascadeOnDelete();
+            $table->integer('stones_count')->default(0);
             $table->jsonb('metadata')->nullable();
             $table->integer('position')->default(0);
             $table->timestampsTz();
-
             $table->index('product_variant_id');
         });
     }
