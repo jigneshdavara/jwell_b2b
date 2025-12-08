@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             MetalToneSeeder::class,
             OrderStatusSeeder::class,
             PaymentGatewaySeeder::class,
+            PriceRateSeeder::class,
             SizeSeeder::class,
             StyleSeeder::class,
             UserAndKycSeeder::class,
