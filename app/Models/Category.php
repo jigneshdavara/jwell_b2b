@@ -12,26 +12,27 @@ class Category extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'slug',
-        'description',
-        'cover_image_path',
-        'is_active',
         'parent_id',
+        'code',
+        'name',
+        'description',
+        'display_order',
+        'is_active',
+        'cover_image',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
     ];
 
-    public function parent()
+    public function parent(): BelongsTo
     {
-        return $this->belongsTo(self::class, 'parent_id');
+        return $this->belongsTo(Category::class, 'parent_id');
     }
 
     public function children(): HasMany
     {
-        return $this->hasMany(self::class, 'parent_id');
+        return $this->hasMany(Category::class, 'parent_id')->orderBy('display_order');
     }
 
     public function products(): HasMany

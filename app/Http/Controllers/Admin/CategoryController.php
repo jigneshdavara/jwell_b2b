@@ -8,9 +8,7 @@ use App\Http\Requests\Admin\StoreCategoryRequest;
 use App\Http\Requests\Admin\UpdateCategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,117 +16,79 @@ class CategoryController extends Controller
 {
     public function index(): Response
     {
-        $filters = request()->only(['search', 'status', 'parent_id']);
-        $perPage = (int) request('per_page', 20);
+        $perPage = (int) request('per_page', 10);
 
         if (! in_array($perPage, [10, 25, 50, 100], true)) {
-            $perPage = 20;
+            $perPage = 10;
         }
 
-        $allCategories = Category::select('id', 'name', 'parent_id')->get()->keyBy('id');
-
-        $depthCache = [];
-
         $categories = Category::query()
-            ->with(['parent'])
-            ->withCount(['products', 'children'])
-            ->when($filters['search'] ?? null, function ($query, $search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%")
-                        ->orWhere('slug', 'like', "%{$search}%");
-                });
-            })
-            ->when($filters['status'] ?? null, function ($query, $status) {
-                if ($status === 'active') {
-                    $query->where('is_active', true);
-                }
-
-                if ($status === 'inactive') {
-                    $query->where('is_active', false);
-                }
-            })
-            ->when($filters['parent_id'] ?? null, function ($query, $parentId) {
-                $query->where('parent_id', $parentId === 'root' ? null : $parentId);
-            })
-            ->latest()
+            ->with('parent:id,name')
+            ->orderBy('display_order')
+            ->orderBy('name')
             ->paginate($perPage)
             ->withQueryString()
-            ->through(function (Category $category) use ($allCategories, &$depthCache) {
+            ->through(function (Category $category) {
                 return [
                     'id' => $category->id,
-                    'name' => $category->name,
-                    'slug' => $category->slug,
-                    'description' => $category->description,
-                    'cover_image_url' => $category->cover_image_path ? Storage::url($category->cover_image_path) : null,
-                    'is_active' => $category->is_active,
-                    'products_count' => $category->products_count,
                     'parent_id' => $category->parent_id,
-                    'parent_name' => optional($category->parent)->name,
-                    'depth' => $this->depthFor($allCategories, $category, $depthCache),
-                    'children_count' => $category->children_count,
+                    'parent' => $category->parent ? ['id' => $category->parent->id, 'name' => $category->parent->name] : null,
+                    'code' => $category->code,
+                    'name' => $category->name,
+                    'description' => $category->description,
+                    'is_active' => $category->is_active,
+                    'display_order' => $category->display_order,
+                    'cover_image' => $category->cover_image,
+                    'cover_image_url' => $category->cover_image ? Storage::url($category->cover_image) : null,
                 ];
             });
 
-        return Inertia::render('Admin/Catalog/Categories/Index', [
+        return Inertia::render('Admin/Categories/Index', [
             'categories' => $categories,
-            'filters' => $filters,
-            'parents' => $this->parentOptions($allCategories),
-        ]);
-    }
-
-    protected function parentOptions(Collection $categories): Collection
-    {
-        $depthCache = [];
-
-        return $categories
-            ->sortBy('name')
-            ->map(function (Category $category) use ($categories, &$depthCache) {
-                $depth = $this->depthFor($categories, $category, $depthCache);
-                return [
+            'parentCategories' => Category::query()
+                ->whereNull('parent_id')
+                ->where('is_active', true)
+                ->orderBy('display_order')
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn(Category $category) => [
                     'id' => $category->id,
-                    'name' => str_repeat('— ', $depth).$category->name,
-                ];
-            })
-            ->values();
-    }
-
-    protected function depthFor(Collection $categories, Category $category, array &$cache): int
-    {
-        if (isset($cache[$category->id])) {
-            return $cache[$category->id];
-        }
-
-        $depth = 0;
-        $currentParentId = $category->parent_id;
-
-        while ($currentParentId && $categories->has($currentParentId)) {
-            if (isset($cache[$currentParentId])) {
-                $depth += $cache[$currentParentId] + 1;
-                $currentParentId = null;
-                break;
-            }
-
-            $depth++;
-            $currentParent = $categories->get($currentParentId);
-            $currentParentId = $currentParent?->parent_id;
-        }
-
-        return $cache[$category->id] = $depth;
+                    'name' => $category->name,
+                ])
+                ->all(),
+        ]);
     }
 
     public function store(StoreCategoryRequest $request): RedirectResponse
     {
-        $coverImagePath = $request->file('cover_image')
-            ? $request->file('cover_image')->store('category-covers', 'public')
-            : null;
+        $data = $request->validated();
+        $coverImagePath = null;
+
+        if ($request->hasFile('cover_image')) {
+            try {
+                $file = $request->file('cover_image');
+                $coverImagePath = $file->store('categories', 'public');
+
+                // Verify the file was actually stored
+                if (!Storage::disk('public')->exists($coverImagePath)) {
+                    throw new \Exception('File was not stored successfully');
+                }
+            } catch (\Exception $e) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['cover_image' => 'Failed to upload image: ' . $e->getMessage()])
+                    ->withInput();
+            }
+        }
 
         Category::create([
-            'name' => $request->input('name'),
-            'slug' => $request->input('slug') ?: Str::slug($request->input('name')),
-            'description' => $request->input('description'),
-            'parent_id' => $request->input('parent_id') ?: null,
-            'cover_image_path' => $coverImagePath,
+            'parent_id' => $data['parent_id'] ?? null,
+            'code' => $data['code'] ?? null,
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
+            'display_order' => $data['display_order'] ?? 0,
+            'cover_image' => $coverImagePath,
         ]);
 
         return redirect()
@@ -138,31 +98,52 @@ class CategoryController extends Controller
 
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
     {
-        $payload = [
-            'name' => $request->input('name'),
-            'slug' => $request->input('slug') ?: Str::slug($request->input('name')),
-            'description' => $request->input('description'),
-            'parent_id' => $request->input('parent_id') ?: null,
+        $data = $request->validated();
+
+        $updateData = [
+            'parent_id' => $data['parent_id'] ?? null,
+            'code' => $data['code'] ?? null,
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
+            'display_order' => $data['display_order'] ?? 0,
         ];
 
-        if ($request->boolean('remove_cover_image')) {
-            if ($category->cover_image_path) {
-                Storage::disk('public')->delete($category->cover_image_path);
-            }
-
-            $payload['cover_image_path'] = null;
-        }
-
+        // Handle file upload
         if ($request->hasFile('cover_image')) {
-            if ($category->cover_image_path) {
-                Storage::disk('public')->delete($category->cover_image_path);
+            try {
+                $file = $request->file('cover_image');
+
+                // Delete old image if exists
+                if ($category->cover_image && Storage::disk('public')->exists($category->cover_image)) {
+                    Storage::disk('public')->delete($category->cover_image);
+                }
+
+                $coverImagePath = $file->store('categories', 'public');
+
+                // Verify the file was actually stored
+                if (!Storage::disk('public')->exists($coverImagePath)) {
+                    throw new \Exception('File was not stored successfully');
+                }
+
+                $updateData['cover_image'] = $coverImagePath;
+            } catch (\Exception $e) {
+                return redirect()
+                    ->back()
+                    ->withErrors(['cover_image' => 'Failed to upload image: ' . $e->getMessage()])
+                    ->withInput();
             }
-
-            $payload['cover_image_path'] = $request->file('cover_image')->store('category-covers', 'public');
+        } elseif ($request->boolean('remove_cover_image', false)) {
+            // Delete image if remove flag is set
+            if ($category->cover_image && Storage::disk('public')->exists($category->cover_image)) {
+                Storage::disk('public')->delete($category->cover_image);
+            }
+            $updateData['cover_image'] = null;
         }
+        // If no new image is uploaded and remove flag is not set, cover_image is not included in updateData
+        // This means the existing image path will be preserved
 
-        $category->update($payload);
+        $category->update($updateData);
 
         return redirect()
             ->back()
@@ -171,10 +152,9 @@ class CategoryController extends Controller
 
     public function destroy(Category $category): RedirectResponse
     {
-        if ($category->children()->exists()) {
-            return redirect()
-                ->back()
-                ->with('error', 'This category has subcategories. Reassign or delete them first.');
+        // Delete associated image if exists
+        if ($category->cover_image) {
+            Storage::disk('public')->delete($category->cover_image);
         }
 
         $category->delete();
@@ -186,17 +166,7 @@ class CategoryController extends Controller
 
     public function bulkDestroy(BulkDestroyCategoriesRequest $request): RedirectResponse
     {
-        $ids = collect($request->validated('ids'));
-
-        $blocked = Category::whereIn('parent_id', $ids)->exists();
-
-        if ($blocked) {
-            return redirect()
-                ->back()
-                ->with('error', 'One or more selected categories have subcategories. Clear them first.');
-        }
-
-        Category::whereIn('id', $ids)->delete();
+        Category::whereIn('id', $request->validated('ids'))->delete();
 
         return redirect()
             ->back()

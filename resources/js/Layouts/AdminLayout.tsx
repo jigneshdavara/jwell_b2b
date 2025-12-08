@@ -43,32 +43,10 @@ const adminNavigation: NavItem[] = [
             { label: 'User groups', route: 'admin.users.groups.index', match: 'admin.users.groups.*' },
         ],
     },
-    {
-        label: 'Catalog',
-        icon: 'collection',
-        children: [
-            { label: 'Categories', route: 'admin.catalog.categories.index', match: 'admin.catalog.categories.*', icon: 'layers' },
-            {
-                label: 'Product catalog',
-                route: 'admin.catalog.product-catalogs.index',
-                match: 'admin.catalog.product-catalogs.*',
-                icon: 'collection',
-            },
-            { label: 'Products', route: 'admin.products.index', match: 'admin.products.*', icon: 'diamond' },
-        ],
-    },
+    { label: 'Products', route: 'admin.products.index', match: 'admin.products.*', icon: 'diamond' },
+    { label: 'Categories', route: 'admin.categories.index', match: 'admin.categories.*', icon: 'layers' },
     { label: 'Brands', route: 'admin.brands.index', match: 'admin.brands.*', icon: 'sparkle' },
-    {
-        label: 'Diamonds',
-        icon: 'gem',
-        children: [
-            { label: 'Shapes', route: 'admin.diamond.shapes.index', match: 'admin.diamond.shapes.*' },
-            { label: 'Colors', route: 'admin.diamond.colors.index', match: 'admin.diamond.colors.*' },
-            { label: 'Clarity', route: 'admin.diamond.clarities.index', match: 'admin.diamond.clarities.*' },
-            { label: 'Cut', route: 'admin.diamond.cuts.index', match: 'admin.diamond.cuts.*' },
-            { label: 'Types', route: 'admin.diamond.types.index', match: 'admin.diamond.types.*' },
-        ],
-    },
+    { label: 'Catalogs', route: 'admin.catalogs.index', match: 'admin.catalogs.*', icon: 'collection' },
     {
         label: 'Metals',
         icon: 'ingot',
@@ -78,6 +56,30 @@ const adminNavigation: NavItem[] = [
             { label: 'Purities', route: 'admin.metal-purities.index', match: 'admin.metal-purities.*' },
         ],
     },
+    {
+        label: 'Diamonds',
+        icon: 'diamond',
+        children: [
+            { label: 'Diamonds', route: 'admin.diamond.diamonds.index', match: 'admin.diamond.diamonds.*' },
+            { label: 'Clarities', route: 'admin.diamond.clarities.index', match: 'admin.diamond.clarities.*' },
+            { label: 'Colors', route: 'admin.diamond.colors.index', match: 'admin.diamond.colors.*' },
+            { label: 'Shapes', route: 'admin.diamond.shapes.index', match: 'admin.diamond.shapes.*' },
+            { label: 'Shape sizes', route: 'admin.diamond.shape-sizes.index', match: 'admin.diamond.shape-sizes.*' },
+        ],
+    },
+    {
+        label: 'Colorstones',
+        icon: 'sparkle',
+        children: [
+            { label: 'Colorstones', route: 'admin.colorstone.colorstones.index', match: 'admin.colorstone.colorstones.*' },
+            { label: 'Colors', route: 'admin.colorstone.colors.index', match: 'admin.colorstone.colors.*' },
+            { label: 'Qualities', route: 'admin.colorstone.qualities.index', match: 'admin.colorstone.qualities.*' },
+            { label: 'Shapes', route: 'admin.colorstone.shapes.index', match: 'admin.colorstone.shapes.*' },
+            { label: 'Shape sizes', route: 'admin.colorstone.shape-sizes.index', match: 'admin.colorstone.shape-sizes.*' },
+        ],
+    },
+    { label: 'Sizes', route: 'admin.sizes.index', match: 'admin.sizes.*', icon: 'collection' },
+    { label: 'Styles', route: 'admin.styles.index', match: 'admin.styles.*', icon: 'sparkle' },
     {
         label: 'Orders',
         icon: 'clipboard',

@@ -8,7 +8,6 @@ use App\Http\Requests\Admin\StoreMetalRequest;
 use App\Http\Requests\Admin\UpdateMetalRequest;
 use App\Models\Metal;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,25 +15,25 @@ class MetalController extends Controller
 {
     public function index(): Response
     {
-        $perPage = (int) request('per_page', 20);
+        $perPage = (int) request('per_page', 10);
 
         if (! in_array($perPage, [10, 25, 50, 100], true)) {
-            $perPage = 20;
+            $perPage = 10;
         }
 
         $metals = Metal::query()
-            ->orderBy('position')
+            ->orderBy('display_order')
             ->orderBy('name')
             ->paginate($perPage)
             ->withQueryString()
             ->through(function (Metal $metal) {
                 return [
                     'id' => $metal->id,
+                    'code' => $metal->code,
                     'name' => $metal->name,
-                    'slug' => $metal->slug,
                     'description' => $metal->description,
                     'is_active' => $metal->is_active,
-                    'position' => $metal->position,
+                    'display_order' => $metal->display_order,
                 ];
             });
 
@@ -48,11 +47,11 @@ class MetalController extends Controller
         $data = $request->validated();
 
         Metal::create([
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => $this->uniqueSlug($data['name']),
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'position' => $data['position'] ?? 0,
+            'display_order' => $data['display_order'] ?? 0,
         ]);
 
         return redirect()
@@ -65,11 +64,11 @@ class MetalController extends Controller
         $data = $request->validated();
 
         $metal->update([
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => $metal->name === $data['name'] ? $metal->slug : $this->uniqueSlug($data['name'], $metal->id),
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'position' => $data['position'] ?? 0,
+            'display_order' => $data['display_order'] ?? 0,
         ]);
 
         return redirect()
@@ -94,26 +93,4 @@ class MetalController extends Controller
             ->back()
             ->with('success', 'Selected metals deleted successfully.');
     }
-
-    protected function uniqueSlug(string $name, ?int $ignoreId = null): string
-    {
-        $base = Str::slug($name);
-        $slug = $base;
-        $counter = 1;
-
-        while (
-            Metal::query()
-                ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
-                ->where('slug', $slug)
-                ->exists()
-        ) {
-            $slug = sprintf('%s-%d', $base, $counter++);
-        }
-
-        return $slug;
-    }
 }
-
-
-
-

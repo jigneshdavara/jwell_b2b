@@ -28,20 +28,13 @@ class HomeController extends Controller
             'active_offers' => Offer::where('is_active', true)->count(),
         ];
 
-        $brands = Brand::query()
-            ->inRandomOrder()
-            ->limit(6)
-            ->pluck('name')
-            ->toArray();
-
-        $spotlight = Product::with('brand')
+        $spotlight = Product::query()
             ->latest()
             ->limit(3)
             ->get()
-            ->map(fn ($product) => [
+            ->map(fn($product) => [
                 'id' => $product->id,
                 'name' => $product->name,
-                'brand' => optional($product->brand)->name,
                 'price' => (float) $product->base_price,
                 'making_charge' => (float) $product->making_charge,
             ]);
@@ -60,6 +53,13 @@ class HomeController extends Controller
                 'description' => 'Segment retailers vs wholesalers, push promotions, and monitor ROI on every campaign.',
             ],
         ];
+
+        $brands = Brand::query()
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->pluck('name')
+            ->toArray();
 
         return Inertia::render('Frontend/Home/Index', [
             'stats' => $stats,

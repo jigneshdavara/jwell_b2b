@@ -11,11 +11,11 @@ class Metal extends Model
     use HasFactory;
 
     protected $fillable = [
+        'code',
         'name',
-        'slug',
         'description',
         'is_active',
-        'position',
+        'display_order',
     ];
 
     protected $casts = [

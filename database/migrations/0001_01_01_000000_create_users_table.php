@@ -23,7 +23,8 @@ return new class extends Migration
             $table->string('kyc_status')->default('pending');
             $table->text('kyc_notes')->nullable();
             $table->string('preferred_language')->nullable();
-            $table->decimal('credit_limit', 12, 2)->nullable();
+            $table->decimal('credit_limit', 12, 2)->nullable()->default(0);
+            $table->boolean('is_active')->default(true);
             $table->rememberToken();
             $table->timestampsTz();
         });

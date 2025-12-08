@@ -54,6 +54,7 @@ type CatalogFiltersInput = {
     metal_purity?: string | string[] | null;
     metal_tone?: string | string[] | null;
     diamond?: string | string[] | null;
+    colorstone?: string | string[] | null;
     price_min?: string | null;
     price_max?: string | null;
     search?: string | string[] | null;
@@ -87,6 +88,11 @@ type CatalogProps = {
             clarities: Array<{ id: number; name: string }>;
             cuts: Array<{ id: number; name: string }>;
         };
+        colorstoneOptions: {
+            shapes: Array<{ id: number; name: string }>;
+            colors: Array<{ id: number; name: string }>;
+            qualities: Array<{ id: number; name: string }>;
+        };
     };
 };
 
@@ -105,11 +111,12 @@ type CatalogFilters = {
     metal_purity: string[];
     metal_tone: string[];
     diamond: string[];
+    colorstone: string[];
     price_min?: string;
     price_max?: string;
     search?: string;
     category: string[];
-    catalog?: string;
+    catalog: string[];
     sort?: string;
     jobwork_available?: string;
     ready_made?: string;
@@ -152,8 +159,8 @@ export default function CatalogIndex() {
         metalPurities: true,
         metalTones: true,
         diamond: true,
+        colorstone: true,
         price: false,
-        availability: false,
     });
 
     const filters = useMemo<CatalogFilters>(() => {
@@ -181,10 +188,11 @@ export default function CatalogIndex() {
             metal_purity: normalizeArray(rawFilters.metal_purity),
             metal_tone: normalizeArray(rawFilters.metal_tone),
             diamond: normalizeArray(rawFilters.diamond),
+            colorstone: normalizeArray(rawFilters.colorstone),
             price_min: normalizeSingle(rawFilters.price_min),
             price_max: normalizeSingle(rawFilters.price_max),
             category: normalizeArray(rawFilters.category),
-            catalog: normalizeSingle(rawFilters.catalog),
+            catalog: normalizeArray(rawFilters.catalog),
             sort: normalizeSingle(rawFilters.sort),
             jobwork_available: normalizeSingle(rawFilters.jobwork_available),
             ready_made: normalizeSingle(rawFilters.ready_made),
@@ -312,17 +320,18 @@ export default function CatalogIndex() {
         facets.metals.forEach((metal) => map.set(`metal:${metal.id}`, metal.name));
         facets.metalPurities.forEach((purity) => map.set(`metal_purity:${purity.id}`, purity.name));
         facets.metalTones.forEach((tone) => map.set(`metal_tone:${tone.id}`, tone.name));
-        facets.diamondOptions.types.forEach((option) => map.set(`diamond:type:${option.id}`, option.name));
         facets.diamondOptions.shapes.forEach((option) => map.set(`diamond:shape:${option.id}`, option.name));
         facets.diamondOptions.colors.forEach((option) => map.set(`diamond:color:${option.id}`, option.name));
         facets.diamondOptions.clarities.forEach((option) => map.set(`diamond:clarity:${option.id}`, option.name));
-        facets.diamondOptions.cuts.forEach((option) => map.set(`diamond:cut:${option.id}`, option.name));
+        facets.colorstoneOptions.shapes.forEach((option) => map.set(`colorstone:shape:${option.id}`, option.name));
+        facets.colorstoneOptions.colors.forEach((option) => map.set(`colorstone:color:${option.id}`, option.name));
+        facets.colorstoneOptions.qualities.forEach((option) => map.set(`colorstone:quality:${option.id}`, option.name));
         facets.brands.forEach((brand) => map.set(`brand:${brand}`, brand));
         facets.categories.forEach((category) => {
             map.set(`category:${category.slug ?? category.id}`, category.name);
         });
         facets.catalogs.forEach((catalog) => {
-            map.set(`catalog:${catalog.slug ?? catalog.id}`, catalog.name);
+            map.set(`catalog:${catalog.id}`, catalog.name);
         });
         (navigation.categories ?? []).forEach((category: any) => {
             map.set(`category:${category.slug ?? category.id}`, category.name);
@@ -448,27 +457,36 @@ export default function CatalogIndex() {
             });
         });
 
-        if (filters.catalog) {
+        filters.catalog.forEach((value) => {
             entries.push({
                 key: 'catalog',
-                value: filters.catalog,
+                value,
                 label: FILTER_LABELS.catalog,
-                valueLabel: valueNameMap.get(`catalog:${filters.catalog}`) ?? filters.catalog,
+                valueLabel: valueNameMap.get(`catalog:${value}`) ?? value,
             });
-        }
+        });
 
         filters.diamond.forEach((value) => {
+            const [kind, id] = value.includes(':') ? value.split(':') : [null, value];
+            const mapKey = kind ? `diamond:${kind}:${id}` : null;
+            
             entries.push({
                 key: 'diamond',
                 value,
                 label: 'Diamond',
-                valueLabel:
-                    valueNameMap.get(`diamond:type:${value}`) ??
-                    valueNameMap.get(`diamond:shape:${value}`) ??
-                    valueNameMap.get(`diamond:color:${value}`) ??
-                    valueNameMap.get(`diamond:clarity:${value}`) ??
-                    valueNameMap.get(`diamond:cut:${value}`) ??
-                    value,
+                valueLabel: mapKey ? valueNameMap.get(mapKey) ?? value : value,
+            });
+        });
+
+        filters.colorstone.forEach((value) => {
+            const [kind, id] = value.includes(':') ? value.split(':') : [null, value];
+            const mapKey = kind ? `colorstone:${kind}:${id}` : null;
+            
+            entries.push({
+                key: 'colorstone',
+                value,
+                label: 'Colorstone',
+                valueLabel: mapKey ? valueNameMap.get(mapKey) ?? value : value,
             });
         });
 
@@ -616,7 +634,9 @@ export default function CatalogIndex() {
                                     key === 'metal_purity' ||
                                     key === 'metal_tone' ||
                                     key === 'category' ||
-                                    key === 'diamond'
+                                    key === 'catalog' ||
+                                    key === 'diamond' ||
+                                    key === 'colorstone'
                                 ) {
                                     const existing = Array.isArray(filters[key]) ? (filters[key] as string[]) : [];
                                     const updated = existing.filter((entry) => entry !== value);
@@ -714,50 +734,6 @@ export default function CatalogIndex() {
                         <div>
                             <button
                                 type="button"
-                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, availability: !prev.availability }))}
-                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
-                            >
-                                <span>Availability</span>
-                                <svg
-                                    className={`h-4 w-4 transition-transform ${collapsedFilters.availability ? '' : 'rotate-180'}`}
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                                </svg>
-                            </button>
-                            {!collapsedFilters.availability && (
-                                <div className="mt-3 space-y-1.5 text-sm">
-                                    <label className="flex items-center gap-2.5 py-1.5 text-sm transition text-slate-600">
-                                        <input
-                                            type="checkbox"
-                                            className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
-                                            checked={filters.jobwork_available === '1'}
-                                            onChange={(event) => {
-                                                applyFilter('jobwork_available', event.target.checked ? '1' : undefined);
-                                            }}
-                                        />
-                                        <span>Available for jobwork</span>
-                                    </label>
-                                    <label className="flex items-center gap-2.5 py-1.5 text-sm transition text-slate-600">
-                                        <input
-                                            type="checkbox"
-                                            className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
-                                            checked={filters.ready_made === '1'}
-                                            onChange={(event) => {
-                                                applyFilter('ready_made', event.target.checked ? '1' : undefined);
-                                            }}
-                                        />
-                                        <span>Ready made jewelry</span>
-                                    </label>
-                                </div>
-                            )}
-                        </div>
-
-                        <div>
-                            <button
-                                type="button"
                                 onClick={() => setCollapsedFilters((prev) => ({ ...prev, catalogs: !prev.catalogs }))}
                                 className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
                             >
@@ -772,34 +748,41 @@ export default function CatalogIndex() {
                                 </svg>
                             </button>
                             {!collapsedFilters.catalogs && (
-                                <div className="mt-3 flex flex-wrap gap-2">
+                                <div className="mt-3 space-y-1.5 text-sm">
                                     {facets.catalogs.map((catalog) => {
-                                        const value = catalog.slug ?? String(catalog.id);
-                                        const selected = filters.catalog === value;
+                                        const value = String(catalog.id);
+                                        const selected = filters.catalog.includes(value);
 
                                         return (
-                                            <button
+                                            <label
                                                 key={catalog.id}
-                                                type="button"
-                                                onClick={() =>
-                                                    applyFilter(
-                                                        'catalog',
-                                                        selected ? undefined : value,
-                                                    )
-                                                }
-                                                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition ${
-                                                    selected
-                                                        ? 'bg-slate-900 text-white shadow-sm shadow-slate-800/30'
-                                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                                                className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                    selected ? 'text-slate-900' : 'text-slate-600'
                                                 }`}
                                             >
-                                                {catalog.name}
-                                                {selected && (
-                                                    <span className="text-[11px] font-medium text-slate-500">
-                                                        ×
-                                                    </span>
-                                                )}
-                                            </button>
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                                    checked={selected}
+                                                    onChange={(event) => {
+                                                        const list = [...filters.catalog];
+
+                                                        if (event.target.checked) {
+                                                            if (!list.includes(value)) {
+                                                                list.push(value);
+                                                            }
+                                                        } else {
+                                                            const index = list.indexOf(value);
+                                                            if (index >= 0) {
+                                                                list.splice(index, 1);
+                                                            }
+                                                        }
+
+                                                        applyFilter('catalog', list.length ? list : undefined);
+                                                    }}
+                                                />
+                                                <span>{catalog.name}</span>
+                                            </label>
                                         );
                                     })}
                                 </div>
@@ -1047,11 +1030,9 @@ export default function CatalogIndex() {
                             {!collapsedFilters.diamond && (
                                 <div className="mt-3 space-y-4 text-sm">
                                     {[
-                                        { title: 'Types', kind: 'type', options: facets.diamondOptions.types },
                                         { title: 'Shapes', kind: 'shape', options: facets.diamondOptions.shapes },
                                         { title: 'Colors', kind: 'color', options: facets.diamondOptions.colors },
                                         { title: 'Clarities', kind: 'clarity', options: facets.diamondOptions.clarities },
-                                        { title: 'Cuts', kind: 'cut', options: facets.diamondOptions.cuts },
                                     ].map(({ title, kind, options }) => (
                                         <div key={kind}>
                                             <p className="text-xs font-semibold text-slate-500">{title}</p>
@@ -1086,6 +1067,75 @@ export default function CatalogIndex() {
                                                                     }
 
                                                                     applyFilter('diamond', list.length ? list : undefined);
+                                                                }}
+                                                            />
+                                                            <span>{option.name}</span>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, colorstone: !prev.colorstone }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Colorstone</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.colorstone ? '' : 'rotate-180'}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.colorstone && (
+                                <div className="mt-3 space-y-4 text-sm">
+                                    {[
+                                        { title: 'Shapes', kind: 'shape', options: facets.colorstoneOptions.shapes },
+                                        { title: 'Colors', kind: 'color', options: facets.colorstoneOptions.colors },
+                                        { title: 'Qualities', kind: 'quality', options: facets.colorstoneOptions.qualities },
+                                    ].map(({ title, kind, options }) => (
+                                        <div key={kind}>
+                                            <p className="text-xs font-semibold text-slate-500">{title}</p>
+                                            <div className="mt-2 space-y-1.5">
+                                                {options.map((option) => {
+                                                    const value = `${kind}:${option.id}`;
+                                                    const selected = filters.colorstone.includes(value);
+
+                                                    return (
+                                                        <label
+                                                            key={value}
+                                                            className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                                selected ? 'text-slate-900' : 'text-slate-600'
+                                                            }`}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                                                checked={selected}
+                                                                onChange={(event) => {
+                                                                    const list = [...filters.colorstone];
+
+                                                                    if (event.target.checked) {
+                                                                        if (!list.includes(value)) {
+                                                                            list.push(value);
+                                                                        }
+                                                                    } else {
+                                                                        const index = list.indexOf(value);
+                                                                        if (index >= 0) {
+                                                                            list.splice(index, 1);
+                                                                        }
+                                                                    }
+
+                                                                    applyFilter('colorstone', list.length ? list : undefined);
                                                                 }}
                                                             />
                                                             <span>{option.name}</span>

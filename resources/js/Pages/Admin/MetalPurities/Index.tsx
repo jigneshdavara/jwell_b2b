@@ -9,11 +9,11 @@ type MetalPurityRow = {
     id: number;
     metal_id: number;
     metal: { id: number; name: string } | null;
+    code: string | null;
     name: string;
-    slug: string;
     description?: string | null;
     is_active: boolean;
-    position: number;
+    display_order: number;
 };
 
 type MetalOption = {
@@ -42,7 +42,7 @@ export default function AdminMetalPuritiesIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingPurity, setEditingPurity] = useState<MetalPurityRow | null>(null);
     const [selectedPurities, setSelectedPurities] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(purities.per_page ?? 20);
+    const [perPage, setPerPage] = useState(purities.per_page ?? 10);
     const [deleteConfirm, setDeleteConfirm] = useState<MetalPurityRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
@@ -51,7 +51,7 @@ export default function AdminMetalPuritiesIndex() {
         name: '',
         description: '',
         is_active: true,
-        position: 0,
+        display_order: 0,
     });
 
     useEffect(() => {
@@ -85,7 +85,7 @@ export default function AdminMetalPuritiesIndex() {
         setModalOpen(false);
         form.reset();
         form.setData('is_active', true);
-        form.setData('position', 0);
+        form.setData('display_order', 0);
         form.setData('metal_id', '');
     };
 
@@ -101,7 +101,7 @@ export default function AdminMetalPuritiesIndex() {
             name: purity.name,
             description: purity.description ?? '',
             is_active: purity.is_active,
-            position: purity.position,
+            display_order: purity.display_order,
         });
         setModalOpen(true);
     };
@@ -128,7 +128,7 @@ export default function AdminMetalPuritiesIndex() {
             name: purity.name,
             description: purity.description,
             is_active: !purity.is_active,
-            position: purity.position,
+            display_order: purity.display_order,
         }, {
             preserveScroll: true,
         });
@@ -243,8 +243,8 @@ export default function AdminMetalPuritiesIndex() {
                                     />
                                 </th>
                                 <th className="px-5 py-3 text-left">Metal</th>
+                                <th className="px-5 py-3 text-left">Code</th>
                                 <th className="px-5 py-3 text-left">Purity name</th>
-                                <th className="px-5 py-3 text-left">Slug</th>
                                 <th className="px-5 py-3 text-left">Order</th>
                                 <th className="px-5 py-3 text-left">Status</th>
                                 <th className="px-5 py-3 text-right">Actions</th>
@@ -265,14 +265,14 @@ export default function AdminMetalPuritiesIndex() {
                                     <td className="px-5 py-3 font-medium text-slate-700">
                                         {purity.metal?.name ?? '—'}
                                     </td>
+                                    <td className="px-5 py-3 text-slate-700">{purity.code || '-'}</td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">
                                         <div className="flex flex-col gap-1">
                                             <span>{purity.name}</span>
                                             {purity.description && <span className="text-xs text-slate-500">{purity.description}</span>}
                                         </div>
                                     </td>
-                                    <td className="px-5 py-3 text-slate-500">{purity.slug}</td>
-                                    <td className="px-5 py-3 text-slate-500">{purity.position}</td>
+                                    <td className="px-5 py-3 text-slate-500">{purity.display_order}</td>
                                     <td className="px-5 py-3">
                                         <span
                                             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -448,12 +448,12 @@ export default function AdminMetalPuritiesIndex() {
                                             <span>Display order</span>
                                             <input
                                                 type="number"
-                                                value={form.data.position}
-                                                onChange={(event) => form.setData('position', Number(event.target.value))}
+                                                value={form.data.display_order}
+                                                onChange={(event) => form.setData('display_order', Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                             />
-                                            {form.errors.position && <span className="text-xs text-rose-500">{form.errors.position}</span>}
+                                            {form.errors.display_order && <span className="text-xs text-rose-500">{form.errors.display_order}</span>}
                                         </label>
                                     </div>
 

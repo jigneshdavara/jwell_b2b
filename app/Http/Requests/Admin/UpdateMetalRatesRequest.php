@@ -22,7 +22,7 @@ class UpdateMetalRatesRequest extends FormRequest
 
         // Get the metal model to find its purities
         $metalModel = Metal::query()
-            ->whereRaw('LOWER(slug) = ?', [$normalizedMetal])
+            ->whereRaw('LOWER(name) = ?', [$normalizedMetal])
             ->first();
 
         $validPurityNames = [];

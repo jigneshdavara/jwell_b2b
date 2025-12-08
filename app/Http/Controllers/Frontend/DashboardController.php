@@ -4,13 +4,12 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Catalog;
 use App\Models\Category;
 use App\Models\Offer;
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\ProductCatalog;
 use App\Models\Quotation;
-use App\Models\Brand;
 use App\Models\PriceRate;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -96,8 +95,6 @@ class DashboardController extends Controller
 
         $recentProducts = Product::query()
             ->with([
-                'brand',
-                'catalogs',
                 'media' => fn($media) => $media->orderBy('position'),
                 'variants.metals.metal',
                 'variants.metals.metalPurity',
@@ -149,23 +146,20 @@ class DashboardController extends Controller
                     'id' => $product->id,
                     'name' => $product->name,
                     'sku' => $product->sku,
-                    'brand' => optional($product->brand)?->name,
-                    'catalog' => optional($product->catalogs->first())?->name,
                     'price_total' => $priceTotal,
                     'thumbnail' => optional($product->media->sortBy('position')->first())?->url,
                 ];
             });
 
-        $featuredCatalogs = ProductCatalog::query()
+        $featuredCatalogs = Catalog::query()
             ->withCount('products')
             ->where('is_active', true)
             ->latest('updated_at')
             ->take(6)
             ->get()
-            ->map(fn(ProductCatalog $catalog) => [
+            ->map(fn(Catalog $catalog) => [
                 'id' => $catalog->id,
                 'name' => $catalog->name,
-                'slug' => $catalog->slug,
                 'description' => $catalog->description,
                 'products_count' => $catalog->products_count,
             ]);
@@ -179,22 +173,8 @@ class DashboardController extends Controller
             ->map(fn(Category $category) => [
                 'id' => $category->id,
                 'name' => $category->name,
-                'slug' => $category->slug,
                 'products_count' => $category->products_count,
-                'cover_image_url' => $coverImageUrl($category->cover_image_path),
-            ]);
-
-        $brandSpotlight = Brand::query()
-            ->withCount('products')
-            ->where('is_active', true)
-            ->orderByDesc('products_count')
-            ->take(6)
-            ->get()
-            ->map(fn(Brand $brand) => [
-                'id' => $brand->id,
-                'name' => $brand->name,
-                'products_count' => $brand->products_count,
-                'cover_image_url' => $coverImageUrl($brand->cover_image_path),
+                'cover_image_url' => $coverImageUrl($category->cover_image),
             ]);
 
         return Inertia::render('Frontend/Dashboard/Overview', [
@@ -202,7 +182,6 @@ class DashboardController extends Controller
             'recentProducts' => $recentProducts,
             'featuredCatalogs' => $featuredCatalogs,
             'featuredCategories' => $featuredCategories,
-            'brandSpotlight' => $brandSpotlight,
         ]);
     }
 }

@@ -12,11 +12,9 @@ class ProductVariantDiamond extends Model
 
     protected $fillable = [
         'product_variant_id',
-        'diamond_type_id',
         'diamond_shape_id',
         'diamond_color_id',
         'diamond_clarity_id',
-        'diamond_cut_id',
         'diamonds_count',
         'total_carat',
         'metadata',
@@ -27,16 +25,12 @@ class ProductVariantDiamond extends Model
         'diamonds_count' => 'integer',
         'total_carat' => 'float',
         'metadata' => 'array',
+        'position' => 'integer',
     ];
 
     public function productVariant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class);
-    }
-
-    public function diamondType(): BelongsTo
-    {
-        return $this->belongsTo(DiamondType::class);
     }
 
     public function diamondShape(): BelongsTo
@@ -52,10 +46,5 @@ class ProductVariantDiamond extends Model
     public function diamondClarity(): BelongsTo
     {
         return $this->belongsTo(DiamondClarity::class);
-    }
-
-    public function diamondCut(): BelongsTo
-    {
-        return $this->belongsTo(DiamondCut::class);
     }
 }

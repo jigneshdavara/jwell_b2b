@@ -13,18 +13,18 @@ class MetalSeeder extends Seeder
     public function run(): void
     {
         $metals = [
-            ['name' => 'Gold', 'slug' => 'gold'],
-            ['name' => 'Silver', 'slug' => 'silver'],
-            ['name' => 'Platinum', 'slug' => 'platinum'],
+            ['code' => 'AU', 'name' => 'Gold', 'display_order' => 1],
+            ['code' => 'AG', 'name' => 'Silver', 'display_order' => 2],
+            ['code' => 'PT', 'name' => 'Platinum', 'display_order' => 3],
         ];
 
         foreach ($metals as $metal) {
             Metal::updateOrCreate(
-                ['slug' => $metal['slug']],
+                ['name' => $metal['name']],
                 [
-                    'name' => $metal['name'],
+                    'code' => $metal['code'],
                     'is_active' => true,
-                    'position' => 0,
+                    'display_order' => $metal['display_order'],
                 ]
             );
         }

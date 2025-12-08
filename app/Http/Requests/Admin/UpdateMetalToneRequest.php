@@ -15,6 +15,7 @@ class UpdateMetalToneRequest extends StoreMetalToneRequest
 
         return [
             'metal_id' => ['required', 'integer', 'exists:metals,id'],
+            'code' => ['nullable', 'string', 'max:255'],
             'name' => [
                 'required',
                 'string',
@@ -25,11 +26,7 @@ class UpdateMetalToneRequest extends StoreMetalToneRequest
             ],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
-            'position' => ['nullable', 'integer', 'min:0'],
+            'display_order' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }
-
-
-
-

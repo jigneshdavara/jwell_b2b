@@ -7,11 +7,12 @@ import { useEffect, useMemo, useState } from 'react';
 
 type DiamondShapeRow = {
     id: number;
+    code: string | null;
     name: string;
-    slug: string;
+    ecat_name: string | null;
     description?: string | null;
+    display_order: number;
     is_active: boolean;
-    position: number;
 };
 
 type Pagination<T> = {
@@ -34,15 +35,17 @@ export default function AdminDiamondShapesIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingShape, setEditingShape] = useState<DiamondShapeRow | null>(null);
     const [selectedShapes, setSelectedShapes] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(shapes.per_page ?? 20);
+    const [perPage, setPerPage] = useState(shapes.per_page ?? 10);
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondShapeRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
+        code: '',
         name: '',
+        ecat_name: '',
         description: '',
+        display_order: 0,
         is_active: true,
-        position: 0,
     });
 
     useEffect(() => {
@@ -76,7 +79,7 @@ export default function AdminDiamondShapesIndex() {
         setModalOpen(false);
         form.reset();
         form.setData('is_active', true);
-        form.setData('position', 0);
+        form.setData('display_order', 0);
     };
 
     const openCreateModal = () => {
@@ -87,10 +90,12 @@ export default function AdminDiamondShapesIndex() {
     const openEditModal = (shape: DiamondShapeRow) => {
         setEditingShape(shape);
         form.setData({
+            code: shape.code ?? '',
             name: shape.name,
+            ecat_name: shape.ecat_name ?? '',
             description: shape.description ?? '',
+            display_order: shape.display_order,
             is_active: shape.is_active,
-            position: shape.position,
         });
         setModalOpen(true);
     };
@@ -113,10 +118,12 @@ export default function AdminDiamondShapesIndex() {
 
     const toggleShape = (shape: DiamondShapeRow) => {
         router.put(route('admin.diamond.shapes.update', shape.id), {
+            code: shape.code,
             name: shape.name,
+            ecat_name: shape.ecat_name,
             description: shape.description,
             is_active: !shape.is_active,
-            position: shape.position,
+            display_order: shape.display_order,
         }, {
             preserveScroll: true,
         });
@@ -177,7 +184,7 @@ export default function AdminDiamondShapesIndex() {
                 <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div>
                         <h1 className="text-2xl font-semibold text-slate-900">Diamond shapes</h1>
-                        <p className="mt-2 text-sm text-slate-500">Manage allowable diamond outlines for catalogue specifications.</p>
+                        <p className="mt-2 text-sm text-slate-500">Manage diamond shapes for catalogue specifications.</p>
                     </div>
                     <button
                         type="button"
@@ -230,8 +237,9 @@ export default function AdminDiamondShapesIndex() {
                                         aria-label="Select all diamond shapes"
                                     />
                                 </th>
+                                <th className="px-5 py-3 text-left">Code</th>
                                 <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Slug</th>
+                                <th className="px-5 py-3 text-left">Ecat Name</th>
                                 <th className="px-5 py-3 text-left">Order</th>
                                 <th className="px-5 py-3 text-left">Status</th>
                                 <th className="px-5 py-3 text-right">Actions</th>
@@ -249,14 +257,15 @@ export default function AdminDiamondShapesIndex() {
                                             aria-label={`Select diamond shape ${shape.name}`}
                                         />
                                     </td>
+                                    <td className="px-5 py-3 text-slate-700">{shape.code || '-'}</td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">
                                         <div className="flex flex-col gap-1">
                                             <span>{shape.name}</span>
                                             {shape.description && <span className="text-xs text-slate-500">{shape.description}</span>}
                                         </div>
                                     </td>
-                                    <td className="px-5 py-3 text-slate-500">{shape.slug}</td>
-                                    <td className="px-5 py-3 text-slate-500">{shape.position}</td>
+                                    <td className="px-5 py-3 text-slate-500">{shape.ecat_name || '-'}</td>
+                                    <td className="px-5 py-3 text-slate-500">{shape.display_order}</td>
                                     <td className="px-5 py-3">
                                         <span
                                             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -311,7 +320,7 @@ export default function AdminDiamondShapesIndex() {
                             ))}
                             {shapes.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-5 py-6 text-center text-sm text-slate-500">
+                                    <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
                                         No diamond shapes defined yet.
                                     </td>
                                 </tr>
@@ -400,7 +409,18 @@ export default function AdminDiamondShapesIndex() {
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Name</span>
+                                            <span>Code</span>
+                                            <input
+                                                type="text"
+                                                value={form.data.code}
+                                                onChange={(event) => form.setData('code', event.target.value)}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                placeholder="e.g., RND, PRI"
+                                            />
+                                            {form.errors.code && <span className="text-xs text-rose-500">{form.errors.code}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Name *</span>
                                             <input
                                                 type="text"
                                                 value={form.data.name}
@@ -411,15 +431,25 @@ export default function AdminDiamondShapesIndex() {
                                             {form.errors.name && <span className="text-xs text-rose-500">{form.errors.name}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Display order</span>
+                                            <span>Ecat Name</span>
+                                            <input
+                                                type="text"
+                                                value={form.data.ecat_name}
+                                                onChange={(event) => form.setData('ecat_name', event.target.value)}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            />
+                                            {form.errors.ecat_name && <span className="text-xs text-rose-500">{form.errors.ecat_name}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Position</span>
                                             <input
                                                 type="number"
-                                                value={form.data.position}
-                                                onChange={(event) => form.setData('position', Number(event.target.value))}
+                                                value={form.data.display_order}
+                                                onChange={(event) => form.setData('display_order', Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                             />
-                                            {form.errors.position && <span className="text-xs text-rose-500">{form.errors.position}</span>}
+                                            {form.errors.display_order && <span className="text-xs text-rose-500">{form.errors.display_order}</span>}
                                         </label>
                                     </div>
 
@@ -441,7 +471,7 @@ export default function AdminDiamondShapesIndex() {
                                             value={form.data.description}
                                             onChange={(event) => form.setData('description', event.target.value)}
                                             className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            placeholder="Optional notes for team (e.g. facets, category usage)."
+                                            placeholder="Optional notes for team."
                                         />
                                         {form.errors.description && <span className="text-xs text-rose-500">{form.errors.description}</span>}
                                     </label>
@@ -474,3 +504,5 @@ export default function AdminDiamondShapesIndex() {
         </AdminLayout>
     );
 }
+
+

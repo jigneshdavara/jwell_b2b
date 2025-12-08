@@ -12,11 +12,11 @@ class MetalTone extends Model
 
     protected $fillable = [
         'metal_id',
+        'code',
         'name',
-        'slug',
         'description',
         'is_active',
-        'position',
+        'display_order',
     ];
 
     protected $casts = [

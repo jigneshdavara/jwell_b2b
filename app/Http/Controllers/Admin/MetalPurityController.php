@@ -9,7 +9,6 @@ use App\Http\Requests\Admin\UpdateMetalPurityRequest;
 use App\Models\Metal;
 use App\Models\MetalPurity;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,15 +16,15 @@ class MetalPurityController extends Controller
 {
     public function index(): Response
     {
-        $perPage = (int) request('per_page', 20);
+        $perPage = (int) request('per_page', 10);
 
         if (! in_array($perPage, [10, 25, 50, 100], true)) {
-            $perPage = 20;
+            $perPage = 10;
         }
 
         $purities = MetalPurity::query()
             ->with('metal:id,name')
-            ->orderBy('position')
+            ->orderBy('display_order')
             ->orderBy('name')
             ->paginate($perPage)
             ->withQueryString()
@@ -34,11 +33,11 @@ class MetalPurityController extends Controller
                     'id' => $purity->id,
                     'metal_id' => $purity->metal_id,
                     'metal' => $purity->metal ? ['id' => $purity->metal->id, 'name' => $purity->metal->name] : null,
+                    'code' => $purity->code,
                     'name' => $purity->name,
-                    'slug' => $purity->slug,
                     'description' => $purity->description,
                     'is_active' => $purity->is_active,
-                    'position' => $purity->position,
+                    'display_order' => $purity->display_order,
                 ];
             });
 
@@ -46,7 +45,7 @@ class MetalPurityController extends Controller
             'purities' => $purities,
             'metals' => Metal::query()
                 ->where('is_active', true)
-                ->orderBy('position')
+                ->orderBy('display_order')
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn(Metal $metal) => [
@@ -63,11 +62,11 @@ class MetalPurityController extends Controller
 
         MetalPurity::create([
             'metal_id' => $data['metal_id'],
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => $this->uniqueSlug($data['name'], $data['metal_id']),
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'position' => $data['position'] ?? 0,
+            'display_order' => $data['display_order'] ?? 0,
         ]);
 
         return redirect()
@@ -81,13 +80,11 @@ class MetalPurityController extends Controller
 
         $metalPurity->update([
             'metal_id' => $data['metal_id'],
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => ($metalPurity->name === $data['name'] && $metalPurity->metal_id === $data['metal_id'])
-                ? $metalPurity->slug
-                : $this->uniqueSlug($data['name'], $data['metal_id'], $metalPurity->id),
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'position' => $data['position'] ?? 0,
+            'display_order' => $data['display_order'] ?? 0,
         ]);
 
         return redirect()
@@ -111,24 +108,5 @@ class MetalPurityController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Selected metal purities deleted successfully.');
-    }
-
-    protected function uniqueSlug(string $name, int $metalId, ?int $ignoreId = null): string
-    {
-        $base = Str::slug($name);
-        $slug = $base;
-        $counter = 1;
-
-        while (
-            MetalPurity::query()
-            ->where('metal_id', $metalId)
-            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
-            ->where('slug', $slug)
-            ->exists()
-        ) {
-            $slug = sprintf('%s-%d', $base, $counter++);
-        }
-
-        return $slug;
     }
 }

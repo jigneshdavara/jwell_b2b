@@ -37,7 +37,7 @@ const prettifyKey = (key: string) =>
         .join(' ');
 
 export default function HomeIndex() {
-    const { stats, brands, spotlight, features } = usePage<PageProps<HomePageProps>>().props;
+    const { stats, brands = [], spotlight, features } = usePage<PageProps<HomePageProps>>().props;
 
     const headerLinks = [
         { label: 'Solutions', href: '#solutions' },

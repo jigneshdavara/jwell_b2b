@@ -1,0 +1,164 @@
+---
+alwaysApply: true
+---
+
+# Domain Rules – Products, Variants, Pricing & Workflows
+
+## Products & Variants
+
+### Product Model Structure
+
+- **Product** (`app/Models/Product.php`): Base jewellery design
+  - Contains: `sku`, `name`, `description`, `base_price`, `making_charge`
+  - Configuration: `variant_options` (JSON), `metal_ids`, `metal_purity_ids`, `metal_tone_ids`
+  - Flags: `is_variant_product`, `is_jobwork_allowed`, `is_active`
+  - Relationships: `hasMany(ProductVariant)`, `belongsTo(Brand)`, `belongsTo(Category)`, `hasMany(ProductMedia)`
+
+- **ProductVariant** (`app/Models/ProductVariant.php`): Specific sellable configuration
+  - Contains: `sku` (auto-generated), `label` (auto-generated), `price_adjustment`, `metadata` (JSON)
+  - Relationships: `belongsTo(Product)`, `hasMany(ProductVariantMetal)`, `hasMany(ProductVariantDiamond)`, `hasMany(ProductVariantColorstone)`
+
+### Variant Generation Matrix
+
+**Location**: `resources/js/Pages/Admin/Products/Edit.tsx` (frontend), `app/Services/Catalog/ProductVariantSyncService.php` (backend)
+
+**Process**:
+1. Admin selects: metals, purities, tones, diamond options, colorstone options, sizes
+2. Frontend generates Cartesian product: `metals × purities × tones × diamonds × colorstones × sizes`
+3. Each variant gets:
+   - Auto-generated SKU: `{BASE_SKU}-{INDEX}`
+   - Auto-generated label: `"Diamond Label / Metal Purity / Size"` (e.g., `"VVS / 22K Gold / 6cm"`)
+   - Metadata with `diamond_option_key`, `size_cm`, `size_value`, `size_unit`
+4. Backend syncs via `ProductVariantSyncService::sync()`:
+   - Creates/updates variants
+   - Associates metals via `product_variant_metals` table
+   - Associates diamonds via `product_variant_diamonds` table
+   - Associates colorstones via `product_variant_colorstones` table
+
+**Variant Matching** (Customer Portal):
+- When user selects options, match by: `metal_id`, `metal_purity_id`, `metal_tone_id`, `diamond_option_key`, `colorstone_option_key`, `size_cm`
+- Matching logic should be centralized (service or helper), not scattered in components
+
+### Metals & Mixing
+
+- **Structured data**: `metals`, `metal_purities`, `metal_tones` tables
+- **Product configuration** drives mixing rules:
+  - `metal_mix_mode` (JSON)
+  - `mixed_metal_tones_per_purity` (boolean)
+  - `mixed_metal_purities_per_tone` (boolean)
+- Do NOT hard-code mixing rules in UI; read from product config
+
+### Stones (Diamonds & Colorstones)
+
+- **Diamonds**: Structured attributes (shape, color, clarity, cut, type, weight)
+  - Tables: `diamond_shapes`, `diamond_colors`, `diamond_clarities`, `diamond_cuts`, `diamond_types`
+  - Each diamond option has a key (e.g., `diamond-option-1`) stored in variant metadata
+- **Colorstones**: Similar structure (color, shape, quality)
+  - Tables: `colorstone_colors`, `colorstone_shapes`, `colorstone_qualities`
+- Store counts/weights in join tables: `product_variant_diamonds`, `product_variant_colorstones`
+
+## Pricing & Rates
+
+### Price Calculation Components
+
+**Service**: `app/Services/PricingService.php`
+
+Price = Base Price + Making Charge + Variant Price Adjustment + Metal Rate (weight × rate) + Stone Price - Making Charge Discount + Tax
+
+**Components**:
+1. `Product.base_price` - Base product price
+2. `Product.making_charge` - Manufacturing charge
+3. `ProductVariant.price_adjustment` - Variant-specific adjustment
+4. Metal cost: `weight_grams × metal_rate × purity_multiplier`
+5. Stone cost: Diamond/colorstone rates
+6. Making charge discount: `app/Services/MakingChargeDiscountService.php`
+7. Offers: `app/Services/OfferService.php`
+
+**Rules**:
+- Keep pricing logic in `PricingService`, NOT in controllers or views
+- Provide structured price breakdown to frontend (for UI display)
+- When modifying pricing, ensure historical orders/quotations are not broken (use snapshot fields if needed)
+
+### Metal Rates
+
+**Service**: `app/Services/RateSyncService.php`
+
+- **Supported metals**: Gold (XAU), Silver (XAG)
+- **Rate storage**: `price_rates` table
+- **Purity multipliers**: 24K, 22K, 18K, 14K (Gold); 999, 958, 925 (Silver)
+- **Rate locking**: Rates locked at checkout time for orders
+- **Sync**: Manual sync via admin or scheduled job
+
+## Workflows
+
+### Orders
+
+**Status Enum**: `app/Enums/OrderStatus.php`
+
+**Flow**: Pending → Pending Payment → Paid → Approved → Awaiting Materials → In Production → Quality Check → Ready To Dispatch → Dispatched → Delivered
+
+**Service**: `app/Services/OrderWorkflowService.php`
+
+**Rules**:
+- Status transitions must be validated via workflow service
+- Fire events for key transitions (e.g., `OrderStatusUpdated` event)
+- Never use arbitrary status strings; use enum values
+
+### Quotations
+
+**Flow**: Customer submits → Pending → Admin reviews → Approved/Rejected → Customer confirms (converted to order) or declines
+
+**Controllers**: `app/Http/Controllers/Frontend/QuotationController.php`, `app/Http/Controllers/Admin/QuotationController.php`
+
+**Rules**:
+- Preserve quotation history and revision information
+- Keep links to products/variants used
+- Approved quotations can be converted to orders
+
+### KYC
+
+**Status Enum**: `app/Enums/KycStatus.php`
+
+**Flow**: Pending → Review → Approved/Rejected
+
+**KYC-Gated Features** (require `ensure.kyc.approved` middleware):
+- Product catalog access
+- Shopping cart
+- Checkout
+- Orders
+- Full quotation access
+
+**Controllers**: `app/Http/Controllers/Frontend/KycOnboardingController.php`, `app/Http/Controllers/Admin/KycController.php`
+
+**Rules**:
+- Do NOT bypass KYC checks in shortcuts or debug code
+- Check KYC status via middleware, not inline conditionals
+
+### Jobwork & Work Orders
+
+**Jobwork Status**: `app/Enums/JobworkStatus.php` (Submitted → Approved → In Progress → Completed → Cancelled)
+
+**Work Order Status**: `app/Enums/WorkOrderStatus.php` (Draft → In Production → Quality Check → Ready To Dispatch → Dispatched → Closed)
+
+**Controllers**: `app/Http/Controllers/Frontend/JobworkController.php`, `app/Http/Controllers/Production/WorkOrderController.php`
+
+**Rules**:
+- Jobwork links to products/variants and work orders
+- Work order status updates driven by workflow/service, not arbitrary strings
+- Track production stages systematically
+
+## Domain Consistency
+
+- **Always use existing enums** for statuses (OrderStatus, QuotationStatus, KycStatus, JobworkStatus, WorkOrderStatus)
+- When adding new statuses:
+  1. Update enum file
+  2. Update database migration if needed
+  3. Update all affected flows (backend + frontend UI)
+  4. Document clearly
+
+## Code Quality & Refactoring
+
+- **Pricing logic must be centralized** in `PricingService` – never duplicate in controllers/components
+- **Variant matching must be centralized** – use service or shared helper, not scattered logic
+- **Status transitions must use workflow services** – never hard-code status changes
+- **See `50-refactoring.mdc`** for detailed DRY and cleanup rules

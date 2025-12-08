@@ -26,7 +26,6 @@ class StoreMakingChargeDiscountRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'discount_type' => ['required', 'in:percentage,fixed'],
             'value' => ['required', 'numeric', 'min:0'],
-            'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'customer_group_id' => ['nullable', 'integer', 'exists:customer_groups,id'],
             'customer_types' => ['nullable', 'array'],

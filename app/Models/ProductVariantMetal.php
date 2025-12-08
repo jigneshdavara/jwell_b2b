@@ -15,14 +15,12 @@ class ProductVariantMetal extends Model
         'metal_id',
         'metal_purity_id',
         'metal_tone_id',
-        'weight_grams',
         'metal_weight',
         'metadata',
         'position',
     ];
 
     protected $casts = [
-        'weight_grams' => 'float',
         'metal_weight' => 'float',
         'metadata' => 'array',
     ];

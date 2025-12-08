@@ -12,7 +12,6 @@ class MakingChargeDiscount extends Model
         'description',
         'discount_type',
         'value',
-        'brand_id',
         'category_id',
         'customer_group_id',
         'customer_types',
@@ -32,11 +31,6 @@ class MakingChargeDiscount extends Model
         'ends_at' => 'datetime',
         'customer_types' => 'array',
     ];
-
-    public function brand(): BelongsTo
-    {
-        return $this->belongsTo(Brand::class);
-    }
 
     public function category(): BelongsTo
     {

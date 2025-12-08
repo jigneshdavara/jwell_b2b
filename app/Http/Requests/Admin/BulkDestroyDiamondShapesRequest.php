@@ -22,4 +22,3 @@ class BulkDestroyDiamondShapesRequest extends FormRequest
         ];
     }
 }
-

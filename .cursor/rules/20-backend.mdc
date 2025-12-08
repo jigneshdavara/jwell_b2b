@@ -1,0 +1,188 @@
+---
+alwaysApply: true
+---
+
+# Backend Architecture Rules (Laravel 12)
+
+## Multi-Portal Structure
+
+Three portal namespaces with separate controllers:
+
+- **Customer Portal**: `app/Http/Controllers/Frontend/*`
+- **Admin Portal**: `app/Http/Controllers/Admin/*`
+- **Production Portal**: `app/Http/Controllers/Production/*`
+
+**Rules**:
+- Each portal has separate route groups with prefix + middleware
+- Do NOT leak admin/production data into customer endpoints
+- Shared logic lives in Services, Models, or shared components
+
+## Controller Structure
+
+### Naming & Organization
+
+- **Resource controllers** for CRUD: `index`, `show`, `store`, `update`, `destroy`
+- **Explicit action methods** for custom operations: `approve`, `reject`, `confirm`, `cancel`, `syncRates`, `recalculatePricing`
+- **Controller location**: Match portal namespace (Frontend/Admin/Production)
+
+### Controller Best Practices
+
+- **Keep controllers thin** – orchestrate, don't implement heavy business logic
+- **Use FormRequest classes** for validation (located in `app/Http/Requests/`)
+- **Dependency injection** for services in constructor
+- **Return Inertia responses** for frontend pages: `Inertia::render('Page/Name', ['data' => $data])`
+- **Return JSON/redirects** for API actions
+
+### Route Patterns
+
+**Location**: `routes/web.php`
+
+**Patterns**:
+```php
+// Customer portal
+Route::middleware(['auth', 'portal.customer', 'ensure.kyc.approved'])->group(function () {
+    Route::get('/catalog', [CatalogController::class, 'index']);
+});
+
+// Admin portal
+Route::prefix('admin')->middleware(['auth', 'role:admin|super-admin'])->group(function () {
+    Route::resource('products', ProductController::class);
+});
+
+// Production portal
+Route::prefix('production')->middleware(['auth', 'role:production|super-admin'])->group(function () {
+    Route::get('/work-orders', [WorkOrderController::class, 'index']);
+});
+```
+
+## Service Layer
+
+### Service Organization
+
+**Location**: `app/Services/`
+
+**Existing Services**:
+- `PricingService.php` - Price calculations
+- `CartService.php` - Cart management
+- `CheckoutService.php` - Checkout process
+- `OrderWorkflowService.php` - Order status transitions
+- `RateSyncService.php` - Metal rate synchronization
+- `OfferService.php` - Discount offers
+- `MakingChargeDiscountService.php` - Making charge discounts
+- `NotificationService.php` - Email/SMS/WhatsApp
+- `WishlistService.php` - Wishlist management
+- `Catalog/ProductVariantSyncService.php` - Variant synchronization
+- `Catalog/ProductVariantDimensionService.php` - Variant dimensions
+- `Payments/PaymentGatewayManager.php` - Payment gateway abstraction
+- `Payments/Drivers/StripeGateway.php` - Stripe implementation
+- `Payments/Drivers/FakeGateway.php` - Testing gateway
+
+### Service Best Practices
+
+- **Encapsulate business logic** in services, not controllers
+- **Use dependency injection** for service dependencies
+- **Return structured data** (Collections, arrays, DTOs)
+- **Handle exceptions** appropriately (throw domain exceptions, not generic ones)
+- **Keep services focused** – one service per domain area
+
+### Service Naming
+
+- Use descriptive names: `PricingService`, `OrderWorkflowService`
+- Group related services in subdirectories: `Catalog/`, `Payments/`
+- Services should be stateless (or state managed internally)
+
+## Model Layer
+
+### Model Structure
+
+**Location**: `app/Models/`
+
+**Key Models**:
+- `Product`, `ProductVariant`, `ProductVariantMetal`, `ProductVariantDiamond`, `ProductVariantColorstone`
+- `Order`, `OrderItem`, `Quotation`, `JobworkRequest`, `WorkOrder`
+- `User`, `Customer`, `UserKycProfile`, `UserKycDocument`
+- `Cart`, `CartItem`, `Wishlist`
+- `Brand`, `Category`, `Material`, `Metal`, `MetalPurity`, `MetalTone`
+- `DiamondShape`, `DiamondColor`, `DiamondClarity`, `DiamondCut`, `DiamondType`
+- `Colorstone`, `ColorstoneColor`, `ColorstoneShape`, `ColorstoneQuality`
+
+### Model Best Practices
+
+- **Define relationships** clearly (belongsTo, hasMany, belongsToMany)
+- **Use fillable/guarded** appropriately
+- **Cast attributes** (JSON, boolean, date, etc.)
+- **Add scopes** for common queries
+- **Keep models focused** – avoid "god models" with hundreds of lines
+- **Use Eloquent relationships** instead of manual joins where possible
+
+### Query Optimization
+
+- **Eager load relationships** with `with()` and `withCount()` for list pages
+- **Use `whereHas()`** for filtering by related entities
+- **Add indexes** on foreign keys and frequently filtered columns
+- **Paginate large result sets** (use `paginate()` or `simplePaginate()`)
+
+## Enums
+
+**Location**: `app/Enums/`
+
+**Existing Enums**:
+- `UserType.php` - User roles
+- `OrderStatus.php` - Order status values
+- `KycStatus.php` - KYC status values
+- `JobworkStatus.php` - Jobwork status values
+- `WorkOrderStatus.php` - Work order status values
+- `PaymentStatus.php` - Payment status values
+
+**Rules**:
+- Always use enums for status values, never magic strings
+- When adding new status, update enum and all affected code
+- Use enum cases in type hints: `OrderStatus::Pending`
+
+## Events & Listeners
+
+**Location**: `app/Events/`, `app/Listeners/`
+
+**Existing Events**:
+- `OrderConfirmed` - Fired when order is confirmed
+- `OrderStatusUpdated` - Fired on order status changes
+
+**Existing Listeners**:
+- `SendOrderConfirmationEmail`
+- `NotifyAdminOfNewOrder`
+- `SendWelcomeEmail`
+- `NotifyAdminOfRegistration`
+
+**Rules**:
+- Fire events for important domain actions
+- Keep listeners focused on single responsibility
+- Use queued listeners for heavy operations
+
+## Form Requests (Validation)
+
+**Location**: `app/Http/Requests/`
+
+**Patterns**:
+- Separate request class per action (e.g., `StoreProductRequest`, `UpdateProductRequest`)
+- Use `authorize()` for permission checks
+- Use `rules()` for validation rules
+- Return validated data via `validated()` method
+
+## Middleware
+
+**Existing Middleware**:
+- `portal.customer` - Ensures user is retailer/wholesaler
+- `ensure.kyc.approved` - Ensures KYC is approved
+- Role-based middleware for admin/production access
+
+**Rules**:
+- Use middleware for cross-cutting concerns (auth, KYC, roles)
+- Keep middleware focused and reusable
+
+## Code Quality & Refactoring
+
+- **Controllers must NOT contain business logic** – use services instead
+- **Extract repeated queries** to model scopes or service methods
+- **Use dependency injection** for services in constructors
+- **Follow DRY principle** – see `50-refactoring.mdc` for detailed cleanup rules
+- **Remove unused code** – clean up imports, variables, dead code paths

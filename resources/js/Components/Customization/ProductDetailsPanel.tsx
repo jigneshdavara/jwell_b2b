@@ -10,13 +10,23 @@ interface ConfigMetal {
 
 interface ConfigDiamond {
     label: string;
-    diamondTypeId: number;
     diamondShapeId: number;
     diamondColorId: number;
     diamondClarityId: number;
-    diamondCutId: number;
     stoneCount: number;
     totalCarat: string;
+}
+
+interface ConfigColorstone {
+    label: string;
+    colorstoneShapeId: number;
+    colorstoneColorId: number;
+    colorstoneQualityId: number;
+    stoneCount: number;
+    totalCarat: string;
+    shapeName?: string | null;
+    colorName?: string | null;
+    qualityName?: string | null;
 }
 
 interface ConfigurationOption {
@@ -24,8 +34,10 @@ interface ConfigurationOption {
     label: string;
     metal_label: string;
     diamond_label: string;
+    colorstone_label: string;
     metals: ConfigMetal[];
     diamonds: ConfigDiamond[];
+    colorstones: ConfigColorstone[];
     price_total: number;
     price_breakup: {
         base: number;
@@ -54,7 +66,7 @@ export default function ProductDetailsPanel({
 }: ProductDetailsPanelProps) {
     const [activeTab, setActiveTab] = useState<'details' | 'price'>('details');
     const [expandedSections, setExpandedSections] = useState<Set<string>>(
-        new Set(['metal', 'diamond', 'general', 'description'])
+        new Set(['metal', 'diamond', 'colorstone', 'general', 'description'])
     );
 
     const toggleSection = (section: string) => {
@@ -71,27 +83,16 @@ export default function ProductDetailsPanel({
 
     // Process individual metals - each metal gets its own data
     const individualMetalData = useMemo(() => {
-        if (!selectedConfig || selectedConfig.metals.length === 0) {
+        if (!selectedConfig || !selectedConfig.metals || selectedConfig.metals.length === 0) {
             return [];
         }
 
         return selectedConfig.metals.map((metal) => {
-            // Extract karatage (e.g., "18K", "22K", "925")
-            const karatageMatch = metal.label.match(/(\d+K|\d{3})/i);
-            const karatage = karatageMatch ? karatageMatch[1].toUpperCase() : '—';
+            // Use purity name directly from backend (e.g., "18K", "22K", "925")
+            const karatage = (metal as any).purityName || metal.label.match(/(\d+K|\d{3})/i)?.[1]?.toUpperCase() || '—';
 
-            // Extract material color (tone)
-            const parts = metal.label.split(' ');
-            const toneIndex = parts.findIndex((p) =>
-                ['Gold', 'Silver', 'Platinum'].some((metalType) => p.includes(metalType))
-            );
-            let materialColour = '—';
-            if (toneIndex > 0) {
-                materialColour = parts[toneIndex - 1];
-            } else if (parts.length >= 2) {
-                // Fallback: use second part if available
-                materialColour = parts[1];
-            }
+            // Use tone name directly from backend
+            const materialColour = (metal as any).toneName || '—';
 
             // Gross metal weight for this specific metal
             // ✅ Always use weightGrams from backend; do NOT parse from label
@@ -104,15 +105,11 @@ export default function ProductDetailsPanel({
                 }
             }
 
-            // Metal type (e.g., "Gold", "Silver", "Platinum")
-            let metalType = '—';
-            if (metal.label.toLowerCase().includes('gold')) {
-                metalType = 'Gold';
-            } else if (metal.label.toLowerCase().includes('silver')) {
-                metalType = 'Silver';
-            } else if (metal.label.toLowerCase().includes('platinum')) {
-                metalType = 'Platinum';
-            }
+            // Use metal name directly from backend
+            const metalType = (metal as any).metalName || 
+                (metal.label.toLowerCase().includes('gold') ? 'Gold' :
+                 metal.label.toLowerCase().includes('silver') ? 'Silver' :
+                 metal.label.toLowerCase().includes('platinum') ? 'Platinum' : '—');
 
             // Build clean label for section title (purity + tone + metal name)
             const cleanLabel = metal.label
@@ -200,6 +197,50 @@ export default function ProductDetailsPanel({
         };
     }, [selectedConfig]);
 
+    // Calculate colorstone aggregates
+    const colorstoneData = useMemo(() => {
+        if (!selectedConfig || !selectedConfig.colorstones || selectedConfig.colorstones.length === 0) {
+            return null;
+        }
+
+        const colorstones = selectedConfig.colorstones;
+
+        // Extract quality from first colorstone
+        const firstColorstone = colorstones[0];
+        const parts = firstColorstone.label
+            .split(' ')
+            .filter(
+                (p) =>
+                    p.length > 0 &&
+                    !p.match(/^\d+\.\d+ct$/i) &&
+                    !p.match(/^\(\d+\)$/)
+            );
+
+        // Use shape, color, quality names directly from backend if available
+        const colorstoneShape = firstColorstone.shapeName || parts[0] || '—';
+        const colorstoneColor = firstColorstone.colorName || parts[1] || '—';
+        const colorstoneQuality = firstColorstone.qualityName || parts[2] || '—';
+
+        // Total carat weight
+        const totalCarat = colorstones.reduce((sum, c) => {
+            const carat = parseFloat(c.totalCarat || '0');
+            return sum + (isNaN(carat) ? 0 : carat);
+        }, 0);
+        const totalCaratWeight = totalCarat > 0 ? `${totalCarat.toFixed(2)} ct` : '—';
+
+        // Total number of colorstones
+        const totalCount = colorstones.reduce((sum, c) => sum + (c.stoneCount || 0), 0);
+        const numberOfColorstones = totalCount > 0 ? totalCount.toString() : '—';
+
+        return {
+            colorstoneShape,
+            colorstoneColor,
+            colorstoneQuality,
+            totalCaratWeight,
+            numberOfColorstones,
+        };
+    }, [selectedConfig]);
+
     return (
         <div className="mt-6 space-y-4">
             {/* Tabs */}
@@ -232,9 +273,7 @@ export default function ProductDetailsPanel({
             {activeTab === 'details' && (
                 <div className="space-y-4">
                     {/* Metal Details Accordion - All metals in one dropdown with separate portions */}
-                    {selectedConfig &&
-                        selectedConfig.metals.length > 0 &&
-                        individualMetalData.length > 0 && (
+                    {selectedConfig && (
                             <div className="rounded-2xl bg-white border border-[#0E244D]/10 shadow-sm overflow-hidden">
                                 <button
                                     type="button"
@@ -262,63 +301,67 @@ export default function ProductDetailsPanel({
                                 </button>
                                 {expandedSections.has('metal') && (
                                     <div className="px-6 pb-6 space-y-6">
-                                        {individualMetalData.map((metalData, index) => (
-                                            <div
-                                                key={metalData.id}
-                                                className={
-                                                    index > 0
-                                                        ? 'pt-6 border-t border-gray-200'
-                                                        : ''
-                                                }
-                                            >
-                                                <h4 className="text-sm font-semibold text-[#0E244D] mb-4">
-                                                    {metalData.title}
-                                                </h4>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div>
-                                                        <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                                                            Karatage
+                                        {individualMetalData.length > 0 ? (
+                                            individualMetalData.map((metalData, index) => (
+                                                <div
+                                                    key={metalData.id}
+                                                    className={
+                                                        index > 0
+                                                            ? 'pt-6 border-t border-gray-200'
+                                                            : ''
+                                                    }
+                                                >
+                                                    <h4 className="text-sm font-semibold text-[#0E244D] mb-4">
+                                                        {metalData.title}
+                                                    </h4>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                                Karatage
+                                                            </div>
+                                                            <div className="text-lg font-semibold text-[#0E244D]">
+                                                                {metalData.karatage}
+                                                            </div>
                                                         </div>
-                                                        <div className="text-lg font-semibold text-[#0E244D]">
-                                                            {metalData.karatage}
+                                                        <div>
+                                                            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                                Material Colour
+                                                            </div>
+                                                            <div className="text-lg font-semibold text-[#0E244D]">
+                                                                {metalData.materialColour}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                                                            Material Colour
+                                                        <div>
+                                                            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                                Gross Metal Weight
+                                                            </div>
+                                                            <div className="text-lg font-semibold text-[#0E244D]">
+                                                                {metalData.grossMetalWeight}
+                                                            </div>
                                                         </div>
-                                                        <div className="text-lg font-semibold text-[#0E244D]">
-                                                            {metalData.materialColour}
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                                                            Gross Metal Weight
-                                                        </div>
-                                                        <div className="text-lg font-semibold text-[#0E244D]">
-                                                            {metalData.grossMetalWeight}
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                                                            Metal
-                                                        </div>
-                                                        <div className="text-lg font-semibold text-[#0E244D]">
-                                                            {metalData.metal}
+                                                        <div>
+                                                            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                                Metal
+                                                            </div>
+                                                            <div className="text-lg font-semibold text-[#0E244D]">
+                                                                {metalData.metal}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
+                                            ))
+                                        ) : (
+                                            <div className="text-sm text-gray-500">
+                                                No metal details available for this configuration.
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
                                 )}
                             </div>
                         )}
 
                     {/* Diamond Details Accordion */}
-                    {selectedConfig &&
-                        selectedConfig.diamonds.length > 0 &&
-                        diamondData && (
+                    {selectedConfig && (
                             <div className="rounded-2xl bg-white border border-[#0E244D]/10 shadow-sm overflow-hidden">
                                 <button
                                     type="button"
@@ -346,40 +389,128 @@ export default function ProductDetailsPanel({
                                 </button>
                                 {expandedSections.has('diamond') && (
                                     <div className="px-6 pb-6">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                                                    Diamond Quality
+                                        {diamondData ? (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                        Diamond Quality
+                                                    </div>
+                                                    <div className="text-lg font-semibold text-[#0E244D]">
+                                                        {diamondData.diamondQuality}
+                                                    </div>
                                                 </div>
-                                                <div className="text-lg font-semibold text-[#0E244D]">
-                                                    {diamondData.diamondQuality}
+                                                <div>
+                                                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                        Diamond Shape
+                                                    </div>
+                                                    <div className="text-lg font-semibold text-[#0E244D]">
+                                                        {diamondData.diamondShape}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                        Total Carat Weight
+                                                    </div>
+                                                    <div className="text-lg font-semibold text-[#0E244D]">
+                                                        {diamondData.totalCaratWeight}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                        Number of Diamonds
+                                                    </div>
+                                                    <div className="text-lg font-semibold text-[#0E244D]">
+                                                        {diamondData.numberOfDiamonds}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                                                    Diamond Shape
+                                        ) : (
+                                            <div className="text-sm text-gray-500">
+                                                No diamond details available for this configuration.
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                    {/* Colorstone Details Accordion */}
+                    {selectedConfig && (
+                            <div className="rounded-2xl bg-white border border-[#0E244D]/10 shadow-sm overflow-hidden">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleSection('colorstone')}
+                                    className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-[#F8F5F0]/50 transition-colors"
+                                >
+                                    <h3 className="text-base font-semibold text-[#0E244D]">
+                                        Colorstone Details
+                                    </h3>
+                                    <svg
+                                        className={`w-5 h-5 text-[#0E244D] transition-transform ${
+                                            expandedSections.has('colorstone') ? 'rotate-180' : ''
+                                        }`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 9l-7 7-7-7"
+                                        />
+                                    </svg>
+                                </button>
+                                {expandedSections.has('colorstone') && (
+                                    <div className="px-6 pb-6">
+                                        {colorstoneData ? (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                        Colorstone Type
+                                                    </div>
+                                                    <div className="text-lg font-semibold text-[#0E244D]">
+                                                        {colorstoneData.colorstoneColor}
+                                                    </div>
                                                 </div>
-                                                <div className="text-lg font-semibold text-[#0E244D]">
-                                                    {diamondData.diamondShape}
+                                                <div>
+                                                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                        Shape
+                                                    </div>
+                                                    <div className="text-lg font-semibold text-[#0E244D]">
+                                                        {colorstoneData.colorstoneShape}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                        Quality
+                                                    </div>
+                                                    <div className="text-lg font-semibold text-[#0E244D]">
+                                                        {colorstoneData.colorstoneQuality}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                        Total Carat Weight
+                                                    </div>
+                                                    <div className="text-lg font-semibold text-[#0E244D]">
+                                                        {colorstoneData.totalCaratWeight}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                        Number of Colorstones
+                                                    </div>
+                                                    <div className="text-lg font-semibold text-[#0E244D]">
+                                                        {colorstoneData.numberOfColorstones}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                                                    Total Carat Weight
-                                                </div>
-                                                <div className="text-lg font-semibold text-[#0E244D]">
-                                                    {diamondData.totalCaratWeight}
-                                                </div>
+                                        ) : (
+                                            <div className="text-sm text-gray-500">
+                                                No colorstone details available for this configuration.
                                             </div>
-                                            <div>
-                                                <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                                                    Number of Diamonds
-                                                </div>
-                                                <div className="text-lg font-semibold text-[#0E244D]">
-                                                    {diamondData.numberOfDiamonds}
-                                                </div>
-                                            </div>
-                                        </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

@@ -11,11 +11,9 @@ interface ConfigMetal {
 
 interface ConfigDiamond {
     label: string;
-    diamondTypeId: number;
     diamondShapeId: number;
     diamondColorId: number;
     diamondClarityId: number;
-    diamondCutId: number;
     stoneCount: number;
     totalCarat: string;
 }

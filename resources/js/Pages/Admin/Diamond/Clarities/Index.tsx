@@ -7,11 +7,12 @@ import { useEffect, useMemo, useState } from 'react';
 
 type DiamondClarityRow = {
     id: number;
+    code: string | null;
     name: string;
-    slug: string;
+    ecat_name: string | null;
     description?: string | null;
+    display_order: number;
     is_active: boolean;
-    position: number;
 };
 
 type Pagination<T> = {
@@ -34,15 +35,17 @@ export default function AdminDiamondClaritiesIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingClarity, setEditingClarity] = useState<DiamondClarityRow | null>(null);
     const [selectedClarities, setSelectedClarities] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(clarities.per_page ?? 20);
+    const [perPage, setPerPage] = useState(clarities.per_page ?? 10);
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondClarityRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
+        code: '',
         name: '',
+        ecat_name: '',
         description: '',
+        display_order: 0,
         is_active: true,
-        position: 0,
     });
 
     useEffect(() => {
@@ -76,7 +79,7 @@ export default function AdminDiamondClaritiesIndex() {
         setModalOpen(false);
         form.reset();
         form.setData('is_active', true);
-        form.setData('position', 0);
+        form.setData('display_order', 0);
     };
 
     const openCreateModal = () => {
@@ -87,10 +90,12 @@ export default function AdminDiamondClaritiesIndex() {
     const openEditModal = (clarity: DiamondClarityRow) => {
         setEditingClarity(clarity);
         form.setData({
+            code: clarity.code ?? '',
             name: clarity.name,
+            ecat_name: clarity.ecat_name ?? '',
             description: clarity.description ?? '',
+            display_order: clarity.display_order,
             is_active: clarity.is_active,
-            position: clarity.position,
         });
         setModalOpen(true);
     };
@@ -113,10 +118,12 @@ export default function AdminDiamondClaritiesIndex() {
 
     const toggleClarity = (clarity: DiamondClarityRow) => {
         router.put(route('admin.diamond.clarities.update', clarity.id), {
+            code: clarity.code,
             name: clarity.name,
+            ecat_name: clarity.ecat_name,
             description: clarity.description,
             is_active: !clarity.is_active,
-            position: clarity.position,
+            display_order: clarity.display_order,
         }, {
             preserveScroll: true,
         });
@@ -171,13 +178,13 @@ export default function AdminDiamondClaritiesIndex() {
 
     return (
         <AdminLayout>
-            <Head title="Diamond clarity grades" />
+            <Head title="Diamond clarities" />
 
             <div className="space-y-8">
                 <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-900">Diamond clarity grades</h1>
-                        <p className="mt-2 text-sm text-slate-500">Define clarity scales (e.g. IF, VVS1) for quoting and catalogue metadata.</p>
+                        <h1 className="text-2xl font-semibold text-slate-900">Diamond clarities</h1>
+                        <p className="mt-2 text-sm text-slate-500">Manage diamond clarity grades for catalogue specifications.</p>
                     </div>
                     <button
                         type="button"
@@ -187,14 +194,14 @@ export default function AdminDiamondClaritiesIndex() {
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
                         </svg>
-                        New clarity grade
+                        New clarity
                     </button>
                 </div>
 
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
                         <div className="font-semibold text-slate-700">
-                            Clarity grades ({clarities.total})
+                            Clarities ({clarities.total})
                         </div>
                         <div className="flex items-center gap-3 text-xs text-slate-500">
                             <span>{selectedClarities.length} selected</span>
@@ -227,11 +234,12 @@ export default function AdminDiamondClaritiesIndex() {
                                         checked={allSelected}
                                         onChange={toggleSelectAll}
                                         className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                        aria-label="Select all clarity grades"
+                                        aria-label="Select all diamond clarities"
                                     />
                                 </th>
+                                <th className="px-5 py-3 text-left">Code</th>
                                 <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Slug</th>
+                                <th className="px-5 py-3 text-left">Ecat Name</th>
                                 <th className="px-5 py-3 text-left">Order</th>
                                 <th className="px-5 py-3 text-left">Status</th>
                                 <th className="px-5 py-3 text-right">Actions</th>
@@ -246,17 +254,18 @@ export default function AdminDiamondClaritiesIndex() {
                                             checked={selectedClarities.includes(clarity.id)}
                                             onChange={() => toggleSelection(clarity.id)}
                                             className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                            aria-label={`Select clarity grade ${clarity.name}`}
+                                            aria-label={`Select diamond clarity ${clarity.name}`}
                                         />
                                     </td>
+                                    <td className="px-5 py-3 text-slate-700">{clarity.code || '-'}</td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">
                                         <div className="flex flex-col gap-1">
                                             <span>{clarity.name}</span>
                                             {clarity.description && <span className="text-xs text-slate-500">{clarity.description}</span>}
                                         </div>
                                     </td>
-                                    <td className="px-5 py-3 text-slate-500">{clarity.slug}</td>
-                                    <td className="px-5 py-3 text-slate-500">{clarity.position}</td>
+                                    <td className="px-5 py-3 text-slate-500">{clarity.ecat_name || '-'}</td>
+                                    <td className="px-5 py-3 text-slate-500">{clarity.display_order}</td>
                                     <td className="px-5 py-3">
                                         <span
                                             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -272,7 +281,7 @@ export default function AdminDiamondClaritiesIndex() {
                                                 type="button"
                                                 onClick={() => openEditModal(clarity)}
                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-                                                title="Edit clarity grade"
+                                                title="Edit clarity"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
@@ -283,7 +292,7 @@ export default function AdminDiamondClaritiesIndex() {
                                                 type="button"
                                                 onClick={() => toggleClarity(clarity)}
                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600"
-                                                title={clarity.is_active ? 'Pause clarity grade' : 'Activate clarity grade'}
+                                                title={clarity.is_active ? 'Pause clarity' : 'Activate clarity'}
                                             >
                                                 {clarity.is_active ? (
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
@@ -299,7 +308,7 @@ export default function AdminDiamondClaritiesIndex() {
                                                 type="button"
                                                 onClick={() => deleteClarity(clarity)}
                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
-                                                title="Delete clarity grade"
+                                                title="Delete clarity"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
@@ -311,8 +320,8 @@ export default function AdminDiamondClaritiesIndex() {
                             ))}
                             {clarities.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-5 py-6 text-center text-sm text-slate-500">
-                                        No clarity grades defined yet.
+                                    <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
+                                        No diamond clarities defined yet.
                                     </td>
                                 </tr>
                             )}
@@ -400,7 +409,18 @@ export default function AdminDiamondClaritiesIndex() {
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Name</span>
+                                            <span>Code</span>
+                                            <input
+                                                type="text"
+                                                value={form.data.code}
+                                                onChange={(event) => form.setData('code', event.target.value)}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                placeholder="e.g., A1, VVS"
+                                            />
+                                            {form.errors.code && <span className="text-xs text-rose-500">{form.errors.code}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Name *</span>
                                             <input
                                                 type="text"
                                                 value={form.data.name}
@@ -411,15 +431,25 @@ export default function AdminDiamondClaritiesIndex() {
                                             {form.errors.name && <span className="text-xs text-rose-500">{form.errors.name}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Display order</span>
+                                            <span>Ecat Name</span>
+                                            <input
+                                                type="text"
+                                                value={form.data.ecat_name}
+                                                onChange={(event) => form.setData('ecat_name', event.target.value)}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            />
+                                            {form.errors.ecat_name && <span className="text-xs text-rose-500">{form.errors.ecat_name}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Display Order</span>
                                             <input
                                                 type="number"
-                                                value={form.data.position}
-                                                onChange={(event) => form.setData('position', Number(event.target.value))}
+                                                value={form.data.display_order}
+                                                onChange={(event) => form.setData('display_order', Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                             />
-                                            {form.errors.position && <span className="text-xs text-rose-500">{form.errors.position}</span>}
+                                            {form.errors.display_order && <span className="text-xs text-rose-500">{form.errors.display_order}</span>}
                                         </label>
                                     </div>
 
@@ -441,7 +471,7 @@ export default function AdminDiamondClaritiesIndex() {
                                             value={form.data.description}
                                             onChange={(event) => form.setData('description', event.target.value)}
                                             className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            placeholder="Optional notes (e.g. GIA inclusions guidance)."
+                                            placeholder="Optional notes for team."
                                         />
                                         {form.errors.description && <span className="text-xs text-rose-500">{form.errors.description}</span>}
                                     </label>
@@ -467,10 +497,12 @@ export default function AdminDiamondClaritiesIndex() {
                 onClose={() => setBulkDeleteConfirm(false)}
                 onConfirm={handleBulkDelete}
                 title="Delete Diamond Clarities"
-                message={`Are you sure you want to delete ${selectedClarities.length} selected diamond clarity grade(s)?`}
+                message={`Are you sure you want to delete ${selectedClarities.length} selected diamond clarity/clarities?`}
                 confirmText="Delete"
                 variant="danger"
             />
         </AdminLayout>
     );
 }
+
+

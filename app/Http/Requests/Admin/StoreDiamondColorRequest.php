@@ -18,11 +18,12 @@ class StoreDiamondColorRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'code' => ['nullable', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255', Rule::unique('diamond_colors', 'name')],
+            'ecat_name' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'display_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],
-            'position' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }
-

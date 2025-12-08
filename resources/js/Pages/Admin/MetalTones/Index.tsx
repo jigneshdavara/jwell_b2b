@@ -9,11 +9,11 @@ type MetalToneRow = {
     id: number;
     metal_id: number;
     metal: { id: number; name: string } | null;
+    code: string | null;
     name: string;
-    slug: string;
     description?: string | null;
     is_active: boolean;
-    position: number;
+    display_order: number;
 };
 
 type MetalOption = {
@@ -42,7 +42,7 @@ export default function AdminMetalTonesIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingTone, setEditingTone] = useState<MetalToneRow | null>(null);
     const [selectedTones, setSelectedTones] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(tones.per_page ?? 20);
+    const [perPage, setPerPage] = useState(tones.per_page ?? 10);
     const [deleteConfirm, setDeleteConfirm] = useState<MetalToneRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
@@ -51,7 +51,7 @@ export default function AdminMetalTonesIndex() {
         name: '',
         description: '',
         is_active: true,
-        position: 0,
+        display_order: 0,
     });
 
     useEffect(() => {
@@ -85,7 +85,7 @@ export default function AdminMetalTonesIndex() {
         setModalOpen(false);
         form.reset();
         form.setData('is_active', true);
-        form.setData('position', 0);
+        form.setData('display_order', 0);
         form.setData('metal_id', '');
     };
 
@@ -101,7 +101,7 @@ export default function AdminMetalTonesIndex() {
             name: tone.name,
             description: tone.description ?? '',
             is_active: tone.is_active,
-            position: tone.position,
+            display_order: tone.display_order,
         });
         setModalOpen(true);
     };
@@ -128,7 +128,7 @@ export default function AdminMetalTonesIndex() {
             name: tone.name,
             description: tone.description,
             is_active: !tone.is_active,
-            position: tone.position,
+            display_order: tone.display_order,
         }, {
             preserveScroll: true,
         });
@@ -243,8 +243,8 @@ export default function AdminMetalTonesIndex() {
                                     />
                                 </th>
                                 <th className="px-5 py-3 text-left">Metal</th>
+                                <th className="px-5 py-3 text-left">Code</th>
                                 <th className="px-5 py-3 text-left">Tone name</th>
-                                <th className="px-5 py-3 text-left">Slug</th>
                                 <th className="px-5 py-3 text-left">Order</th>
                                 <th className="px-5 py-3 text-left">Status</th>
                                 <th className="px-5 py-3 text-right">Actions</th>
@@ -265,14 +265,14 @@ export default function AdminMetalTonesIndex() {
                                     <td className="px-5 py-3 font-medium text-slate-700">
                                         {tone.metal?.name ?? '—'}
                                     </td>
+                                    <td className="px-5 py-3 text-slate-700">{tone.code || '-'}</td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">
                                         <div className="flex flex-col gap-1">
                                             <span>{tone.name}</span>
                                             {tone.description && <span className="text-xs text-slate-500">{tone.description}</span>}
                                         </div>
                                     </td>
-                                    <td className="px-5 py-3 text-slate-500">{tone.slug}</td>
-                                    <td className="px-5 py-3 text-slate-500">{tone.position}</td>
+                                    <td className="px-5 py-3 text-slate-500">{tone.display_order}</td>
                                     <td className="px-5 py-3">
                                         <span
                                             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -447,12 +447,12 @@ export default function AdminMetalTonesIndex() {
                                             <span>Display order</span>
                                             <input
                                                 type="number"
-                                                value={form.data.position}
-                                                onChange={(event) => form.setData('position', Number(event.target.value))}
+                                                value={form.data.display_order}
+                                                onChange={(event) => form.setData('display_order', Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                             />
-                                            {form.errors.position && <span className="text-xs text-rose-500">{form.errors.position}</span>}
+                                            {form.errors.display_order && <span className="text-xs text-rose-500">{form.errors.display_order}</span>}
                                         </label>
                                     </div>
 

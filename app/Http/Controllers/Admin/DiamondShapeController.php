@@ -8,7 +8,6 @@ use App\Http\Requests\Admin\StoreDiamondShapeRequest;
 use App\Http\Requests\Admin\UpdateDiamondShapeRequest;
 use App\Models\DiamondShape;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,25 +15,26 @@ class DiamondShapeController extends Controller
 {
     public function index(): Response
     {
-        $perPage = (int) request('per_page', 20);
+        $perPage = (int) request('per_page', 10);
 
         if (! in_array($perPage, [10, 25, 50, 100], true)) {
-            $perPage = 20;
+            $perPage = 10;
         }
 
         $shapes = DiamondShape::query()
-            ->orderBy('position')
+            ->orderBy('display_order')
             ->orderBy('name')
             ->paginate($perPage)
             ->withQueryString()
             ->through(function (DiamondShape $shape) {
                 return [
                     'id' => $shape->id,
+                    'code' => $shape->code,
                     'name' => $shape->name,
-                    'slug' => $shape->slug,
+                    'ecat_name' => $shape->ecat_name,
                     'description' => $shape->description,
                     'is_active' => $shape->is_active,
-                    'position' => $shape->position,
+                    'display_order' => $shape->display_order,
                 ];
             });
 
@@ -48,11 +48,12 @@ class DiamondShapeController extends Controller
         $data = $request->validated();
 
         DiamondShape::create([
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => $this->uniqueSlug($data['name']),
+            'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
+            'display_order' => $data['display_order'] ?? 0,
             'is_active' => $request->boolean('is_active', true),
-            'position' => $data['position'] ?? 0,
         ]);
 
         return redirect()
@@ -65,11 +66,12 @@ class DiamondShapeController extends Controller
         $data = $request->validated();
 
         $shape->update([
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => $shape->name === $data['name'] ? $shape->slug : $this->uniqueSlug($data['name'], $shape->id),
+            'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
+            'display_order' => $data['display_order'] ?? 0,
             'is_active' => $request->boolean('is_active', true),
-            'position' => $data['position'] ?? 0,
         ]);
 
         return redirect()
@@ -93,23 +95,5 @@ class DiamondShapeController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Selected diamond shapes deleted successfully.');
-    }
-
-    protected function uniqueSlug(string $name, ?int $ignoreId = null): string
-    {
-        $base = Str::slug($name);
-        $slug = $base;
-        $counter = 1;
-
-        while (
-            DiamondShape::query()
-            ->when($ignoreId, fn($query) => $query->whereKeyNot($ignoreId))
-            ->where('slug', $slug)
-            ->exists()
-        ) {
-            $slug = sprintf('%s-%d', $base, $counter++);
-        }
-
-        return $slug;
     }
 }

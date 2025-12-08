@@ -18,11 +18,12 @@ class StoreBrandRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:191', Rule::unique('brands', 'name')],
+            'code' => ['nullable', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', Rule::unique('brands', 'name')],
             'description' => ['nullable', 'string'],
-            'cover_image' => ['nullable', 'image', 'max:2048'],
             'is_active' => ['boolean'],
+            'display_order' => ['nullable', 'integer', 'min:0'],
+            'cover_image' => ['nullable', 'image', 'max:2048'],
         ];
     }
 }
-

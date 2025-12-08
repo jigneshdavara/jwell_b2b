@@ -15,28 +15,29 @@ class MetalPuritySeeder extends Seeder
     {
         $purities = [
             // Gold purities
-            ['metal' => 'gold', 'label' => '18K', 'position' => 1],
-            ['metal' => 'gold', 'label' => '22K', 'position' => 2],
-            ['metal' => 'gold', 'label' => '24K', 'position' => 3],
+            ['metal' => 'Gold', 'code' => '18K', 'name' => '18K', 'display_order' => 1],
+            ['metal' => 'Gold', 'code' => '22K', 'name' => '22K', 'display_order' => 2],
+            ['metal' => 'Gold', 'code' => '24K', 'name' => '24K', 'display_order' => 3],
             // Silver purities
-            ['metal' => 'silver', 'label' => '925', 'position' => 1],
-            ['metal' => 'silver', 'label' => '999', 'position' => 2],
+            ['metal' => 'Silver', 'code' => '925', 'name' => '925', 'display_order' => 1],
+            ['metal' => 'Silver', 'code' => '999', 'name' => '999', 'display_order' => 2],
             // Platinum purities
-            ['metal' => 'platinum', 'label' => '950', 'position' => 1],
+            ['metal' => 'Platinum', 'code' => '950', 'name' => '950', 'display_order' => 1],
         ];
 
         foreach ($purities as $purity) {
-            $metal = Metal::where('slug', $purity['metal'])->first();
+            $metal = Metal::where('name', $purity['metal'])->first();
 
             if ($metal) {
                 MetalPurity::updateOrCreate(
                     [
                         'metal_id' => $metal->id,
-                        'label' => $purity['label'],
+                        'name' => $purity['name'],
                     ],
                     [
+                        'code' => $purity['code'],
                         'is_active' => true,
-                        'position' => $purity['position'],
+                        'display_order' => $purity['display_order'],
                     ]
                 );
             }

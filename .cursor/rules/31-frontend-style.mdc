@@ -1,0 +1,158 @@
+---
+alwaysApply: true
+---
+
+# Frontend Styling Rules (Elvee Brand)
+
+## Brand Identity
+
+- **Brand**: Elvee Jewels Pvt. Ltd.
+- **Positioning**: Elegant · Confident · Warm · Modern
+- **Visual Style**: Premium, minimal jewellery – not cheap/flashy marketplace
+
+## Color Palette
+
+**Defined in**: `tailwind.config.js`
+
+**Primary Colors**:
+- **Elvee Blue**: `#0E244D` (use class: `bg-elvee-blue`, `text-elvee-blue`)
+- **Feather Gold**: `#AE8135` (use class: `bg-feather-gold`, `text-feather-gold`)
+- **Ivory White**: `#F8F5F0` (use class: `bg-ivory`, `text-ivory`)
+
+**Support Colors**:
+- **Warm Gold**: `#927038`
+- **Steel**: `#B6B6B6`
+- **Navy**: `#0A1F47`
+- **Ink**: `#0C1424`
+
+**Rules**:
+- Use Elvee Blue and Feather Gold for primary UI elements
+- Avoid random color additions – stick to brand palette
+- Keep palette minimal and consistent across all portals (Customer, Admin, Production)
+- Use soft neutral greys (Tailwind grey shades) for borders/background tints
+
+## Typography
+
+**Primary Font**: Avenir
+
+**Font Stack** (defined in `tailwind.config.js`):
+```javascript
+fontFamily: {
+  sans: ['Avenir', 'Montserrat', 'Nunito', ...defaultTheme.fontFamily.sans],
+}
+```
+
+**Hierarchy**:
+- **Page Titles**: Bold, larger size, Elvee Blue (`text-elvee-blue font-bold text-2xl` or similar)
+- **Section Headings**: Medium/bold, consistent sizing (`text-lg font-semibold`)
+- **Body Text**: Regular weight, good line-height, dark text on light background (`text-gray-900`)
+
+**Rules**:
+- Use Avenir as primary font (fallback to system fonts)
+- Maintain consistent typography hierarchy
+- Ensure good readability with proper line-height
+
+## Layout & Spacing
+
+**Principles**:
+- Use whitespace generously – avoid cramped UIs
+- Rely on grid/flex layouts – minimize ad-hoc margins
+- Prefer clean card layouts with subtle radius and shadows
+
+**Tailwind Utility Order** (enforce this order):
+1. Layout (container, block, flex, grid)
+2. Spacing (p-4, m-2, gap-4)
+3. Sizing (w-full, h-screen)
+4. Typography (text-lg, font-bold)
+5. Backgrounds (bg-white, bg-elvee-blue)
+6. Borders (border-gray-300, rounded-lg)
+
+**Example**:
+```tsx
+<div className="flex p-4 w-full text-lg bg-white border border-gray-300 rounded-lg">
+```
+
+## Components
+
+### Buttons
+
+**Primary Button**:
+- Background: Elvee Blue (`bg-elvee-blue`)
+- Text: White (`text-white`)
+- Hover: Slightly darker blue
+- Use: `PrimaryButton` component
+
+**Secondary Button**:
+- Outline or subtle fill with Ivory/neutral backgrounds
+- Text: Elvee Blue (`text-elvee-blue`)
+- Use: `SecondaryButton` component
+
+**Destructive Actions**:
+- Muted red, minimal but clear
+- Use: `DangerButton` component
+
+**Rules**:
+- All buttons must have hover, active, and disabled states
+- Maintain adequate tap/click area (min 44x44px)
+- Use consistent button components across portals
+
+### Cards
+
+- Clean card layouts with subtle radius (`rounded-lg`)
+- Light shadows (`shadow-sm` or `shadow-md`)
+- Ivory or white backgrounds
+- Elvee Blue borders for emphasis when needed
+
+### Tables
+
+- Clean, aligned columns
+- Light borders or row striping
+- Provide filters/search/sort for heavy B2B lists
+- Use consistent spacing
+
+### Forms
+
+- Group related fields
+- Show inline validation near fields (use `InputError` component)
+- Use consistent spacing and labels
+- Elvee Blue for focus states
+
+## Imagery
+
+**Photography Style**:
+- High-quality jewellery photography
+- Clean ivory/beige or soft backgrounds
+- Focus on craftsmanship and detail
+
+**Avoid**:
+- Pixelated or cluttered images
+- Cartoonish illustrations
+- Random stock photos that break the brand
+
+## Voice & Tone in UI
+
+**Tone**: Elegant, warm, confident, professional
+
+**Copy Guidelines**:
+- Keep messages short and clear
+- Good: "Your quotation has been approved."
+- Bad: "Awesome!!! Your quote is live 😍🔥"
+- Show empathy but stay concise, especially in error and empty states
+
+## Implementation
+
+**Component Library**:
+- Centralize base UI components in `resources/js/Components/`
+- Reuse across all portals (Customer, Admin, Production)
+- Components: buttons, cards, inputs, dropdowns, modals
+
+**When Adding New Screens**:
+- Reuse layout wrappers/components
+- Respect brand colors and typography
+- Avoid ad-hoc styles – use Tailwind utilities
+- Follow the utility class order specified above
+
+**Tailwind Configuration**:
+- Colors defined in `tailwind.config.js`
+- Font family defined in `tailwind.config.js`
+- Use `@tailwindcss/forms` plugin for form styling

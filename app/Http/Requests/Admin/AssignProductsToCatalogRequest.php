@@ -8,15 +8,17 @@ class AssignProductsToCatalogRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('access admin portal') ?? false;
+        return $this->user()?->can('manage products') ?? false;
     }
 
+    /**
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
         return [
-            'product_ids' => ['required', 'array'],
+            'product_ids' => ['nullable', 'array'],
             'product_ids.*' => ['integer', 'exists:products,id'],
         ];
     }
 }
-

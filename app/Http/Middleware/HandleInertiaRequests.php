@@ -3,9 +3,9 @@
 namespace App\Http\Middleware;
 
 use App\Models\Brand;
+use App\Models\Catalog;
 use App\Models\Category;
 use App\Models\Customer;
-use App\Models\ProductCatalog;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
@@ -43,11 +43,11 @@ class HandleInertiaRequests extends Middleware
         $wishlistCount = 0;
         $wishlistProductIds = [];
         $navCategories = [];
-        $navCatalogs = [];
         $navBrands = [];
+        $navCatalogs = [];
         if ($customer instanceof Customer) {
             $customer->loadMissing([
-                'carts' => fn ($query) => $query->withCount('items')->where('status', 'active')->latest(),
+                'carts' => fn($query) => $query->withCount('items')->where('status', 'active')->latest(),
                 'wishlist.items',
             ]);
 
@@ -77,42 +77,40 @@ class HandleInertiaRequests extends Middleware
             };
 
             $navCategories = Category::query()
-                ->select(['id', 'name', 'slug', 'cover_image_path'])
+                ->select(['id', 'name', 'cover_image'])
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->take(8)
                 ->get()
-                ->map(fn (Category $category) => [
+                ->map(fn(Category $category) => [
                     'id' => $category->id,
                     'name' => $category->name,
-                    'slug' => $category->slug,
-                    'cover_image_url' => $resolveImageUrl($category->cover_image_path),
+                    'cover_image_url' => $resolveImageUrl($category->cover_image),
                 ])
                 ->toArray();
 
-            $navCatalogs = ProductCatalog::query()
-                ->select(['id', 'name', 'slug'])
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->take(8)
-                ->get()
-                ->map(fn (ProductCatalog $catalog) => [
-                    'id' => $catalog->id,
-                    'name' => $catalog->name,
-                    'slug' => $catalog->slug,
-                ])
-                ->toArray();
 
             $navBrands = Brand::query()
-                ->select(['id', 'name', 'slug'])
+                ->select(['id', 'name'])
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->take(8)
                 ->get()
-                ->map(fn (Brand $brand) => [
+                ->map(fn(Brand $brand) => [
                     'id' => $brand->id,
                     'name' => $brand->name,
-                    'slug' => $brand->slug,
+                ])
+                ->toArray();
+
+            $navCatalogs = Catalog::query()
+                ->select(['id', 'name'])
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->take(8)
+                ->get()
+                ->map(fn(Catalog $catalog) => [
+                    'id' => $catalog->id,
+                    'name' => $catalog->name,
                 ])
                 ->toArray();
         }
@@ -134,8 +132,8 @@ class HandleInertiaRequests extends Middleware
             ],
             'navigation' => [
                 'categories' => $navCategories,
-                'catalogs' => $navCatalogs,
                 'brands' => $navBrands,
+                'catalogs' => $navCatalogs,
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),

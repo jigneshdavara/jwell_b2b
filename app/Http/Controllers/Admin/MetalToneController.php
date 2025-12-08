@@ -9,7 +9,6 @@ use App\Http\Requests\Admin\UpdateMetalToneRequest;
 use App\Models\Metal;
 use App\Models\MetalTone;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,15 +16,15 @@ class MetalToneController extends Controller
 {
     public function index(): Response
     {
-        $perPage = (int) request('per_page', 20);
+        $perPage = (int) request('per_page', 10);
 
         if (! in_array($perPage, [10, 25, 50, 100], true)) {
-            $perPage = 20;
+            $perPage = 10;
         }
 
         $tones = MetalTone::query()
             ->with('metal:id,name')
-            ->orderBy('position')
+            ->orderBy('display_order')
             ->orderBy('name')
             ->paginate($perPage)
             ->withQueryString()
@@ -34,11 +33,11 @@ class MetalToneController extends Controller
                     'id' => $tone->id,
                     'metal_id' => $tone->metal_id,
                     'metal' => $tone->metal ? ['id' => $tone->metal->id, 'name' => $tone->metal->name] : null,
+                    'code' => $tone->code,
                     'name' => $tone->name,
-                    'slug' => $tone->slug,
                     'description' => $tone->description,
                     'is_active' => $tone->is_active,
-                    'position' => $tone->position,
+                    'display_order' => $tone->display_order,
                 ];
             });
 
@@ -46,7 +45,7 @@ class MetalToneController extends Controller
             'tones' => $tones,
             'metals' => Metal::query()
                 ->where('is_active', true)
-                ->orderBy('position')
+                ->orderBy('display_order')
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn(Metal $metal) => [
@@ -63,11 +62,11 @@ class MetalToneController extends Controller
 
         MetalTone::create([
             'metal_id' => $data['metal_id'],
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => $this->uniqueSlug($data['name'], $data['metal_id']),
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'position' => $data['position'] ?? 0,
+            'display_order' => $data['display_order'] ?? 0,
         ]);
 
         return redirect()
@@ -81,13 +80,11 @@ class MetalToneController extends Controller
 
         $metalTone->update([
             'metal_id' => $data['metal_id'],
+            'code' => $data['code'] ?? null,
             'name' => $data['name'],
-            'slug' => ($metalTone->name === $data['name'] && $metalTone->metal_id === $data['metal_id'])
-                ? $metalTone->slug
-                : $this->uniqueSlug($data['name'], $data['metal_id'], $metalTone->id),
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'position' => $data['position'] ?? 0,
+            'display_order' => $data['display_order'] ?? 0,
         ]);
 
         return redirect()
@@ -112,27 +109,4 @@ class MetalToneController extends Controller
             ->back()
             ->with('success', 'Selected metal tones deleted successfully.');
     }
-
-    protected function uniqueSlug(string $name, int $metalId, ?int $ignoreId = null): string
-    {
-        $base = Str::slug($name);
-        $slug = $base;
-        $counter = 1;
-
-        while (
-            MetalTone::query()
-                ->where('metal_id', $metalId)
-                ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
-                ->where('slug', $slug)
-                ->exists()
-        ) {
-            $slug = sprintf('%s-%d', $base, $counter++);
-        }
-
-        return $slug;
-    }
 }
-
-
-
-
