@@ -136,21 +136,25 @@ class DashboardController extends Controller
                     $metalCost = round($metalCost, 2);
 
                     // Calculate diamond cost from variant diamonds
+                    // Price in diamonds table is per stone, so multiply by count
                     $diamondCost = 0;
                     foreach ($variant->diamonds as $variantDiamond) {
                         $diamond = $variantDiamond->diamond;
+                        $count = (int) ($variantDiamond->diamonds_count ?? 1);
                         if ($diamond && $diamond->price) {
-                            $diamondCost += (float) $diamond->price;
+                            $diamondCost += (float) $diamond->price * $count;
                         }
                     }
                     $diamondCost = round($diamondCost, 2);
 
                     // Calculate colorstone cost from variant colorstones
+                    // Price in colorstones table is per stone, so multiply by count
                     $colorstoneCost = 0;
                     foreach ($variant->colorstones as $variantColorstone) {
                         $colorstone = $variantColorstone->colorstone;
+                        $count = (int) ($variantColorstone->stones_count ?? 1);
                         if ($colorstone && $colorstone->price) {
-                            $colorstoneCost += (float) $colorstone->price;
+                            $colorstoneCost += (float) $colorstone->price * $count;
                         }
                     }
                     $colorstoneCost = round($colorstoneCost, 2);
