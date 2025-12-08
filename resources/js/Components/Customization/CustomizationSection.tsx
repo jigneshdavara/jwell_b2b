@@ -7,6 +7,9 @@ interface ConfigMetal {
     metalPurityId: number | null;
     metalToneId: number | null;
     metalWeight?: string | null;
+    purityName?: string;
+    toneName?: string;
+    metalName?: string;
 }
 
 interface ConfigDiamond {
@@ -67,21 +70,41 @@ export default function CustomizationSection({
 }: CustomizationSectionProps) {
     /**
      * Build a clean metal label from a single metal (purity + tone + metal name only)
-     * Example: "18K Yellow Gold" (removes weight)
+     * Example: "18K Yellow Gold" or "18K Yellow & White Gold" (removes weight)
+     * Uses backend-provided names if available, otherwise parses from label
      */
     const buildSingleMetalLabel = (metal: ConfigMetal): string => {
+        // If we have the individual components from backend, use them directly
+        if (metal.purityName && metal.toneName && metal.metalName) {
+            return `${metal.purityName} ${metal.toneName}`;
+        }
+        
+        // Fallback: parse from label
         // Remove weight pattern (e.g., "3.50g", "1.25g", "1g") at the end
         let cleanLabel = metal.label
             .replace(/\s+\d+\.?\d*\s*g\s*$/i, '')
             .replace(/\s+\d+\.?\d*\s*grams?\s*$/i, '')
             .trim();
         
-        // Split by space and take exactly the first 3 parts to ensure we only get purity + tone + metal
+        // Split by space
         const parts = cleanLabel.split(/\s+/).filter(p => p.length > 0);
-        if (parts.length >= 3) {
-            return parts.slice(0, 3).join(' ');
+        
+        if (parts.length === 0) {
+            return cleanLabel;
         }
-        return parts.join(' ');
+        
+        // First part is always purity (e.g., "18K", "22K", "925")
+        const purity = parts[0];
+        
+        // Last part is always metal name (e.g., "Gold", "Silver", "Platinum")
+        const metalName = parts[parts.length - 1];
+        
+        // Everything in between is the tone (could be multiple words like "Yellow & White")
+        const toneParts = parts.slice(1, parts.length - 1);
+        const tone = toneParts.join(' ');
+        
+        // Reconstruct: purity + tone + metal name
+        return `${purity} ${tone}`.trim();
     };
 
     /**
