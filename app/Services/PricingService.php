@@ -81,10 +81,8 @@ class PricingService
                 $count = $variantDiamond->diamonds_count ?? 1;
 
                 if ($diamond && $diamond->price) {
-                    // If price is per carat, we'd need carat weight here
-                    // For now, assume price is per stone and use it directly (don't multiply by count)
-                    // This prevents over-calculation if price is already high
-                    $diamondCost += (float) $diamond->price;
+                    // Price is per stone, so multiply by count
+                    $diamondCost += (float) $diamond->price * (int) $count;
                 }
             }
         }
@@ -100,10 +98,8 @@ class PricingService
                 $count = $variantColorstone->stones_count ?? 1;
 
                 if ($colorstone && $colorstone->price) {
-                    // If price is per carat, we'd need carat weight here
-                    // For now, assume price is per stone and use it directly (don't multiply by count)
-                    // This prevents over-calculation if price is already high
-                    $colorstoneCost += (float) $colorstone->price;
+                    // Price is per stone, so multiply by count
+                    $colorstoneCost += (float) $colorstone->price * (int) $count;
                 }
             }
         }

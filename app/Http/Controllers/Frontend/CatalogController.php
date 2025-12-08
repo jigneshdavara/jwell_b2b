@@ -811,29 +811,29 @@ class CatalogController extends Controller
             $metalCost = round($metalCost, 2);
 
             // Calculate diamond cost from variant diamonds
-            // Note: Use price directly without multiplying by count to avoid over-calculation
-            // If price is per carat, we'd need carat weight - for now use price as-is
+            // Price in diamonds table is per stone, so multiply by count
             $diamondCost = 0;
             foreach ($variant->diamonds as $variantDiamond) {
                 $diamond = $variantDiamond->diamond;
+                $count = (int) ($variantDiamond->diamonds_count ?? 1);
 
                 if ($diamond && $diamond->price) {
-                    // Use price directly (price might already account for the diamond configuration)
-                    $diamondCost += (float) $diamond->price;
+                    // Price is per stone, so multiply by count
+                    $diamondCost += (float) $diamond->price * $count;
                 }
             }
             $diamondCost = round($diamondCost, 2);
 
             // Calculate colorstone cost from variant colorstones
-            // Note: Use price directly without multiplying by count to avoid over-calculation
-            // If price is per carat, we'd need carat weight - for now use price as-is
+            // Price in colorstones table is per stone, so multiply by count
             $colorstoneCost = 0;
             foreach ($variant->colorstones as $variantColorstone) {
                 $colorstone = $variantColorstone->colorstone;
+                $count = (int) ($variantColorstone->stones_count ?? 1);
 
                 if ($colorstone && $colorstone->price) {
-                    // Use price directly (price might already account for the colorstone configuration)
-                    $colorstoneCost += (float) $colorstone->price;
+                    // Price is per stone, so multiply by count
+                    $colorstoneCost += (float) $colorstone->price * $count;
                 }
             }
             $colorstoneCost = round($colorstoneCost, 2);
