@@ -188,7 +188,7 @@ Each variant stores comprehensive metadata:
 **ProductVariant → ProductVariantMetal (One-to-Many)**
 - Each variant can have multiple metals
 - Metals are stored with position ordering
-- Supports metal_tone_id and weight_grams
+- Supports metal_tone_id and metal_weight
 
 **ProductVariant → ProductVariantDiamond (One-to-Many)**
 - Each variant can have multiple diamond entries
@@ -295,7 +295,7 @@ The system handles size conversion between millimeters (mm) and centimeters (cm)
 - `metal_id` (foreign key)
 - `metal_purity_id` (foreign key, nullable)
 - `metal_tone_id` (foreign key, nullable)
-- `weight_grams` (decimal, nullable)
+- `metal_weight` (decimal, nullable)
 - `position` (integer)
 - `metadata` (JSON)
 

@@ -12,18 +12,14 @@ class ProductVariantColorstone extends Model
 
     protected $fillable = [
         'product_variant_id',
-        'colorstone_shape_id',
-        'colorstone_color_id',
-        'colorstone_quality_id',
+        'colorstone_id',
         'stones_count',
-        'total_carat',
         'metadata',
         'position',
     ];
 
     protected $casts = [
         'stones_count' => 'integer',
-        'total_carat' => 'float',
         'metadata' => 'array',
         'position' => 'integer',
     ];
@@ -33,18 +29,8 @@ class ProductVariantColorstone extends Model
         return $this->belongsTo(ProductVariant::class);
     }
 
-    public function colorstoneShape(): BelongsTo
+    public function colorstone(): BelongsTo
     {
-        return $this->belongsTo(ColorstoneShape::class);
-    }
-
-    public function colorstoneColor(): BelongsTo
-    {
-        return $this->belongsTo(ColorstoneColor::class);
-    }
-
-    public function colorstoneQuality(): BelongsTo
-    {
-        return $this->belongsTo(ColorstoneQuality::class);
+        return $this->belongsTo(Colorstone::class);
     }
 }

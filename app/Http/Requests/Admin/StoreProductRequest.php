@@ -72,7 +72,11 @@ class StoreProductRequest extends FormRequest
             'variants.*.metadata' => ['nullable', 'array'],
             'variants.*.metals' => ['nullable', 'array'],
             'variants.*.diamonds' => ['nullable', 'array'],
+            'variants.*.diamonds.*.diamond_id' => ['required', 'integer', 'exists:diamonds,id'],
+            'variants.*.diamonds.*.diamonds_count' => ['nullable', 'integer', 'min:0'],
             'variants.*.colorstones' => ['nullable', 'array'],
+            'variants.*.colorstones.*.colorstone_id' => ['required', 'integer', 'exists:colorstones,id'],
+            'variants.*.colorstones.*.stones_count' => ['nullable', 'integer', 'min:0'],
         ];
     }
 

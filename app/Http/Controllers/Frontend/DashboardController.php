@@ -99,6 +99,8 @@ class DashboardController extends Controller
                 'variants.metals.metal',
                 'variants.metals.metalPurity',
                 'variants.metals.metalTone',
+                'variants.diamonds.diamond',
+                'variants.colorstones.colorstone',
             ])
             ->where('is_active', true)
             ->latest()
@@ -115,7 +117,7 @@ class DashboardController extends Controller
                     foreach ($variant->metals as $variantMetal) {
                         $metal = $variantMetal->metal;
                         $purity = $variantMetal->metalPurity;
-                        $weight = $variantMetal->metal_weight ?? $variantMetal->weight_grams ?? null;
+                        $weight = $variantMetal->metal_weight ?? null;
 
                         if ($metal && $purity && $weight) {
                             $metalName = strtolower(trim($metal->name ?? ''));
@@ -133,10 +135,29 @@ class DashboardController extends Controller
                     }
                     $metalCost = round($metalCost, 2);
 
-                    // Calculate priceTotal: Metal + Diamond + Making Charge
-                    $diamondCost = 0; // Diamond cost calculation can be added later if needed
+                    // Calculate diamond cost from variant diamonds
+                    $diamondCost = 0;
+                    foreach ($variant->diamonds as $variantDiamond) {
+                        $diamond = $variantDiamond->diamond;
+                        if ($diamond && $diamond->price) {
+                            $diamondCost += (float) $diamond->price;
+                        }
+                    }
+                    $diamondCost = round($diamondCost, 2);
+
+                    // Calculate colorstone cost from variant colorstones
+                    $colorstoneCost = 0;
+                    foreach ($variant->colorstones as $variantColorstone) {
+                        $colorstone = $variantColorstone->colorstone;
+                        if ($colorstone && $colorstone->price) {
+                            $colorstoneCost += (float) $colorstone->price;
+                        }
+                    }
+                    $colorstoneCost = round($colorstoneCost, 2);
+
+                    // Calculate priceTotal: Metal + Diamond + Colorstone + Making Charge
                     $makingCharge = (float) ($product->making_charge ?? 0);
-                    $priceTotal = $metalCost + $diamondCost + $makingCharge;
+                    $priceTotal = $metalCost + $diamondCost + $colorstoneCost + $makingCharge;
                 } else {
                     // If no variant, fallback to making charge only
                     $priceTotal = (float) ($product->making_charge ?? 0);

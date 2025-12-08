@@ -6,7 +6,7 @@ interface ConfigMetal {
     metalId: number;
     metalPurityId: number | null;
     metalToneId: number | null;
-    weightGrams?: string | null;
+    metalWeight?: string | null;
 }
 
 interface ConfigDiamond {
@@ -187,7 +187,7 @@ export default function CustomizationSection({
 
             // Create a unique key based on the diamond combination
             const sortedDiamonds = config.diamonds
-                .map(d => `${d.diamondTypeId}_${d.diamondShapeId}_${d.diamondColorId}_${d.diamondClarityId}_${d.diamondCutId}`)
+                .map(d => `${d.diamondShapeId}_${d.diamondColorId}_${d.diamondClarityId}`)
                 .sort()
                 .join('|');
             
@@ -234,7 +234,7 @@ export default function CustomizationSection({
             return null;
         }
         const sortedDiamonds = selectedConfig.diamonds
-            .map(d => `${d.diamondTypeId}_${d.diamondShapeId}_${d.diamondColorId}_${d.diamondClarityId}_${d.diamondCutId}`)
+            .map(d => `${d.diamondShapeId}_${d.diamondColorId}_${d.diamondClarityId}`)
             .sort()
             .join('|');
         return `diamonds_${sortedDiamonds}`;
@@ -257,7 +257,7 @@ export default function CustomizationSection({
                     const config = configurationOptions.find(c => c.variant_id === variantId);
                     if (config && config.diamonds.length > 0) {
                         const sortedDiamonds = config.diamonds
-                            .map(d => `${d.diamondTypeId}_${d.diamondShapeId}_${d.diamondColorId}_${d.diamondClarityId}_${d.diamondCutId}`)
+                            .map(d => `${d.diamondShapeId}_${d.diamondColorId}_${d.diamondClarityId}`)
                             .sort()
                             .join('|');
                         const diamondKey = `diamonds_${sortedDiamonds}`;
@@ -401,7 +401,7 @@ export default function CustomizationSection({
             )}
 
             {/* Diamond Combination Options */}
-            {diamondCombinationOptions.length > 0 && (
+            {/* {diamondCombinationOptions.length > 0 && (
                 <div className="space-y-3">
                     <label className="block text-sm font-semibold text-[#0E244D]">Diamond Quality</label>
                     <div className="flex flex-wrap gap-3">
@@ -420,7 +420,7 @@ export default function CustomizationSection({
                         })}
                     </div>
                 </div>
-            )}
+            )} */}
 
             {/* Invalid combination message */}
             {isInvalidCombination && (

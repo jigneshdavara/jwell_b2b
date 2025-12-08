@@ -10,26 +10,19 @@ type VariantMetalForm = {
     metal_id: number | '';
     metal_purity_id: number | '';
     metal_tone_id: number | '';
-    weight_grams: string;
     metal_weight: string;
 };
 
 type VariantDiamondForm = {
     id?: number;
-    diamond_shape_id: number | '';
-    diamond_color_id: number | '';
-    diamond_clarity_id: number | '';
-    diamonds_count: string;
-    total_carat: string;
+    diamond_id?: number | '';
+    diamonds_count?: string;
 };
 
 type VariantColorstoneForm = {
     id?: number;
-    colorstone_shape_id: number | '';
-    colorstone_color_id: number | '';
-    colorstone_quality_id: number | '';
-    stones_count: string;
-    total_carat: string;
+    colorstone_id?: number | '';
+    stones_count?: string;
 };
 
 type VariantForm = {
@@ -53,11 +46,9 @@ type VariantForm = {
 
 type ProductDiamondOption = {
     key?: string | null;
-    type_id: number | null;
     shape_id: number | null;
     color_id: number | null;
     clarity_id: number | null;
-    cut_id: number | null;
     weight: number | null;
     diamonds_count: number | null;
 };
@@ -100,24 +91,17 @@ type Product = {
             metal_id?: number | '';
             metal_purity_id?: number | '';
             metal_tone_id?: number | '';
-            weight_grams?: number | string;
             metal_weight?: number | string;
         }>;
         diamonds?: Array<{
             id?: number;
-            diamond_shape_id?: number | '';
-            diamond_color_id?: number | '';
-            diamond_clarity_id?: number | '';
+            diamond_id?: number | '';
             diamonds_count?: number | string;
-            total_carat?: number | string;
         }>;
         colorstones?: Array<{
             id?: number;
-            colorstone_shape_id?: number | '';
-            colorstone_color_id?: number | '';
-            colorstone_quality_id?: number | '';
+            colorstone_id?: number | '';
             stones_count?: number | string;
-            total_carat?: number | string;
         }>;
     }>;
 };
@@ -198,19 +182,25 @@ type FormData = {
     metal_ids?: number[];
     metal_purity_ids?: number[];
     metal_tone_ids?: number[];
+    metal_mix_mode?: Record<string, string>;
     diamond_selections?: Array<{ diamond_id: number | ''; count: string }>;
+    diamond_options?: DiamondOptionForm[];
+    diamond_mixing_mode?: 'shared' | 'as_variant';
+    uses_diamond?: boolean;
     colorstone_selections?: Array<{ colorstone_id: number | ''; count: string }>;
     media_uploads?: File[];
     removed_media_ids?: number[];
+    variant_options?: Record<string, any>;
+    size_unit?: 'mm' | 'cm';
+    size_values?: string[];
+    size_dimension_enabled?: boolean;
 };
 
 type DiamondOptionForm = {
     key: string;
-    type_id: number | '';
     shape_id: number | '';
     color_id: number | '';
     clarity_id: number | '';
-    cut_id: number | '';
     weight: string;
     diamonds_count: string;
 };
@@ -255,11 +245,9 @@ const generateLocalKey = () => {
 
 const createDiamondOption = (): DiamondOptionForm => ({
     key: generateLocalKey(),
-    type_id: '',
     shape_id: '',
     color_id: '',
     clarity_id: '',
-    cut_id: '',
     weight: '',
     diamonds_count: '',
 });
@@ -268,26 +256,19 @@ const createEmptyMetal = (): VariantMetalForm => ({
     metal_id: '',
     metal_purity_id: '',
     metal_tone_id: '',
-    weight_grams: '',
     metal_weight: '',
 });
 
 const createEmptyDiamond = (): VariantDiamondForm => ({
     id: undefined,
-    diamond_shape_id: '',
-    diamond_color_id: '',
-    diamond_clarity_id: '',
+    diamond_id: '',
     diamonds_count: '',
-    total_carat: '',
 });
 
 const createEmptyColorstone = (): VariantColorstoneForm => ({
     id: undefined,
-    colorstone_shape_id: '',
-    colorstone_color_id: '',
-    colorstone_quality_id: '',
+    colorstone_id: '',
     stones_count: '',
-    total_carat: '',
 });
 
 const createDiscountOverride = (): DiscountOverrideForm => ({
@@ -335,24 +316,17 @@ export default function AdminProductEdit() {
                   metal_id: metal.metal_id ?? '',
                   metal_purity_id: metal.metal_purity_id ?? '',
                   metal_tone_id: metal.metal_tone_id ?? '',
-                  weight_grams: metal.weight_grams ? String(metal.weight_grams) : '',
-                  metal_weight: metal.metal_weight ? String(metal.metal_weight) : (metal.weight_grams ? String(metal.weight_grams) : ''),
+                  metal_weight: metal.metal_weight ? String(metal.metal_weight) : '',
               })) ?? [],
               diamonds: variant.diamonds?.map((diamond: any) => ({
                   id: diamond.id,
-                  diamond_shape_id: diamond.diamond_shape_id ?? '',
-                  diamond_color_id: diamond.diamond_color_id ?? '',
-                  diamond_clarity_id: diamond.diamond_clarity_id ?? '',
+                  diamond_id: diamond.diamond_id ?? '',
                   diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
-                  total_carat: diamond.total_carat ? String(diamond.total_carat) : '',
               })) ?? [],
               colorstones: variant.colorstones?.map((colorstone: any) => ({
                   id: colorstone.id,
-                  colorstone_shape_id: colorstone.colorstone_shape_id ?? '',
-                  colorstone_color_id: colorstone.colorstone_color_id ?? '',
-                  colorstone_quality_id: colorstone.colorstone_quality_id ?? '',
+                  colorstone_id: colorstone.colorstone_id ?? '',
                   stones_count: colorstone.stones_count ? String(colorstone.stones_count) : '',
-                  total_carat: colorstone.total_carat ? String(colorstone.total_carat) : '',
               })) ?? [],
           }))
         : [emptyVariant(true)];
@@ -368,6 +342,82 @@ export default function AdminProductEdit() {
               value: override.value !== null && override.value !== undefined ? String(override.value) : '',
           }))
         : [];
+
+    // Extract metal_ids, purities, tones, diamonds, and colorstones from existing variants
+    const extractSelectionsFromVariants = useMemo(() => {
+        if (!product?.variants?.length) {
+            return {
+                metalIds: [] as number[],
+                metalPurityIds: [] as number[],
+                metalToneIds: [] as number[],
+                diamondOptions: [] as DiamondOptionForm[],
+                colorstoneSelections: [] as Array<{ colorstone_id: number | ''; count: string }>,
+            };
+        }
+
+        const metalIdsSet = new Set<number>();
+        const metalPurityIdsSet = new Set<number>();
+        const metalToneIdsSet = new Set<number>();
+        const diamondSelectionsMap = new Map<number, { diamond_id: number; count: string }>();
+        const colorstoneSelectionsMap = new Map<number, { colorstone_id: number; count: string }>();
+
+        product.variants.forEach((variant: any) => {
+            // Extract metals
+            if (variant.metals?.length) {
+                variant.metals.forEach((metal: any) => {
+                    if (metal.metal_id && metal.metal_id !== '') {
+                        metalIdsSet.add(typeof metal.metal_id === 'number' ? metal.metal_id : Number(metal.metal_id));
+                    }
+                    if (metal.metal_purity_id && metal.metal_purity_id !== '') {
+                        metalPurityIdsSet.add(typeof metal.metal_purity_id === 'number' ? metal.metal_purity_id : Number(metal.metal_purity_id));
+                    }
+                    if (metal.metal_tone_id && metal.metal_tone_id !== '') {
+                        metalToneIdsSet.add(typeof metal.metal_tone_id === 'number' ? metal.metal_tone_id : Number(metal.metal_tone_id));
+                    }
+                });
+            }
+
+            // Extract diamonds - use diamond_id (simplified structure)
+            if (variant.diamonds?.length) {
+                variant.diamonds.forEach((diamond: any) => {
+                    if (diamond.diamond_id && diamond.diamond_id !== '' && diamond.diamond_id !== null) {
+                        const diamondId = typeof diamond.diamond_id === 'number' ? diamond.diamond_id : Number(diamond.diamond_id);
+                        // Only add if not already in the map (avoid duplicates)
+                        if (!diamondSelectionsMap.has(diamondId)) {
+                            diamondSelectionsMap.set(diamondId, {
+                                diamond_id: diamondId,
+                                count: diamond.diamonds_count && diamond.diamonds_count !== '' && diamond.diamonds_count !== null ? String(diamond.diamonds_count) : '',
+                            });
+                        }
+                    }
+                });
+            }
+
+            // Extract colorstones - use colorstone_id (simplified structure)
+            if (variant.colorstones?.length) {
+                variant.colorstones.forEach((colorstone: any) => {
+                    if (colorstone.colorstone_id && colorstone.colorstone_id !== '' && colorstone.colorstone_id !== null) {
+                        const colorstoneId = typeof colorstone.colorstone_id === 'number' ? colorstone.colorstone_id : Number(colorstone.colorstone_id);
+                        // Only add if not already in the map (avoid duplicates)
+                        if (!colorstoneSelectionsMap.has(colorstoneId)) {
+                            colorstoneSelectionsMap.set(colorstoneId, {
+                                colorstone_id: colorstoneId,
+                                count: colorstone.stones_count && colorstone.stones_count !== '' && colorstone.stones_count !== null ? String(colorstone.stones_count) : '',
+                            });
+                        }
+                    }
+                });
+            }
+        });
+
+        return {
+            metalIds: Array.from(metalIdsSet),
+            metalPurityIds: Array.from(metalPurityIdsSet),
+            metalToneIds: Array.from(metalToneIdsSet),
+            diamondSelections: Array.from(diamondSelectionsMap.values()),
+            colorstoneSelections: Array.from(colorstoneSelectionsMap.values()),
+        };
+    }, [product]);
 
     const form = useForm<Record<string, any>>(() => ({
         sku: product?.sku ?? '',
@@ -407,32 +457,27 @@ export default function AdminProductEdit() {
                       metal_id: metal.metal_id ?? '',
                       metal_purity_id: metal.metal_purity_id ?? '',
                       metal_tone_id: metal.metal_tone_id ?? '',
-                      weight_grams: metal.weight_grams ? String(metal.weight_grams) : '',
-                      metal_weight: metal.metal_weight ? String(metal.metal_weight) : (metal.weight_grams ? String(metal.weight_grams) : ''),
+                      metal_weight: metal.metal_weight ? String(metal.metal_weight) : '',
                   })) ?? [],
                   diamonds: variant.diamonds?.map((diamond: any) => ({
                       id: diamond.id,
-                      diamond_shape_id: diamond.diamond_shape_id ?? '',
-                      diamond_color_id: diamond.diamond_color_id ?? '',
-                      diamond_clarity_id: diamond.diamond_clarity_id ?? '',
+                      diamond_id: diamond.diamond_id ?? '',
                       diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
-                      total_carat: diamond.total_carat ? String(diamond.total_carat) : '',
                   })) ?? [],
                   colorstones: variant.colorstones?.map((colorstone: any) => ({
                       id: colorstone.id,
-                      colorstone_shape_id: colorstone.colorstone_shape_id ?? '',
-                      colorstone_color_id: colorstone.colorstone_color_id ?? '',
-                      colorstone_quality_id: colorstone.colorstone_quality_id ?? '',
+                      colorstone_id: colorstone.colorstone_id ?? '',
                       stones_count: colorstone.stones_count ? String(colorstone.stones_count) : '',
-                      total_carat: colorstone.total_carat ? String(colorstone.total_carat) : '',
                   })) ?? [],
               }))
             : [emptyVariant(true)],
-        metal_ids: [],
-        metal_purity_ids: [],
-        metal_tone_ids: [],
-        diamond_selections: [],
-        colorstone_selections: [],
+        metal_ids: extractSelectionsFromVariants.metalIds,
+        metal_purity_ids: extractSelectionsFromVariants.metalPurityIds,
+        metal_tone_ids: extractSelectionsFromVariants.metalToneIds,
+        diamond_options: [],
+        uses_diamond: (extractSelectionsFromVariants.diamondSelections?.length ?? 0) > 0,
+        diamond_selections: extractSelectionsFromVariants.diamondSelections ?? [],
+        colorstone_selections: extractSelectionsFromVariants.colorstoneSelections ?? [],
         media_uploads: [],
         removed_media_ids: [],
     }) as Record<string, any>);
@@ -588,12 +633,6 @@ export default function AdminProductEdit() {
             }
             if (option.color_id) {
                 parts.push(diamondNameMaps.colors[Number(option.color_id)] ?? '');
-            }
-            if (option.type_id) {
-                parts.push(diamondNameMaps.types[Number(option.type_id)] ?? '');
-            }
-            if (option.cut_id) {
-                parts.push(diamondNameMaps.cuts[Number(option.cut_id)] ?? '');
             }
 
             return parts.filter(Boolean).join(' - ');
@@ -809,7 +848,7 @@ export default function AdminProductEdit() {
 
     const recalculateVariants = useCallback(
         (draft: FormData) =>
-            draft.variants.map((variant, index) => {
+            (draft.variants || []).map((variant, index) => {
                 const meta = buildVariantMeta(variant, draft);
                 const previousAutoLabel = (variant.metadata?.auto_label as string | undefined) ?? '';
                 const shouldReplaceLabel = !variant.label || variant.label === previousAutoLabel;
@@ -890,8 +929,8 @@ export default function AdminProductEdit() {
                 return prev;
             }
 
-            const convertedValues = prev.size_values.map((value) => {
-                const centimeters = convertToCentimeters(value, prev.size_unit);
+            const convertedValues = (prev.size_values || []).map((value) => {
+                const centimeters = convertToCentimeters(value, prev.size_unit || 'cm');
                 return centimeters ? convertFromCentimeters(centimeters, unit) : value;
             });
 
@@ -899,7 +938,7 @@ export default function AdminProductEdit() {
                 ...prev,
                 size_unit: unit,
                 size_values: convertedValues,
-                variants: prev.variants.map((variant: VariantForm) => {
+                variants: (prev.variants || []).map((variant: VariantForm) => {
                     if (!variant.size_cm) {
                         return {
                             ...variant,
@@ -948,13 +987,13 @@ export default function AdminProductEdit() {
         const normalized = formatDecimal(numeric);
 
         setData((prev: FormData) => {
-            if (prev.size_values.includes(normalized)) {
+            if ((prev.size_values || []).includes(normalized)) {
                 return prev;
             }
 
             const draft: FormData = {
                 ...prev,
-                size_values: [...prev.size_values, normalized],
+                size_values: [...(prev.size_values || []), normalized],
             };
 
             draft.variants = recalculateVariants(draft);
@@ -969,7 +1008,7 @@ export default function AdminProductEdit() {
         setData((prev: FormData) => {
             const draft: FormData = {
                 ...prev,
-                size_values: prev.size_values.filter((entry) => entry !== value),
+                size_values: (prev.size_values || []).filter((entry) => entry !== value),
             };
 
             draft.variants = recalculateVariants(draft);
@@ -1118,7 +1157,7 @@ export default function AdminProductEdit() {
         setData((prev: FormData) => {
             const draft: FormData = {
                 ...prev,
-                diamond_options: [...prev.diamond_options, createDiamondOption()],
+                diamond_options: [...(prev.diamond_options || []), createDiamondOption()],
             };
             draft.variants = recalculateVariants(draft);
             return draft;
@@ -1131,7 +1170,7 @@ export default function AdminProductEdit() {
         value: string | number | null,
     ) => {
         setData((prev: FormData) => {
-            const diamond_options = prev.diamond_options.map((option: DiamondOptionForm) => {
+            const diamond_options = (prev.diamond_options || []).map((option: DiamondOptionForm) => {
                 if (option.key !== key) {
                     return option;
                 }
@@ -1171,11 +1210,11 @@ export default function AdminProductEdit() {
 
     const removeDiamondOptionRow = (key: string) => {
         setData((prev: FormData) => {
-            const diamond_options = prev.diamond_options.filter((option: DiamondOptionForm) => option.key !== key);
+            const diamond_options = (prev.diamond_options || []).filter((option: DiamondOptionForm) => option.key !== key);
             const draft: FormData = {
                 ...prev,
                 diamond_options,
-                variants: prev.variants.map((variant: VariantForm) =>
+                variants: (prev.variants || []).map((variant: VariantForm) =>
                     variant.diamond_option_key === key
                         ? {
                               ...variant,
@@ -1193,11 +1232,11 @@ export default function AdminProductEdit() {
 
     const removeVariant = (index: number) => {
         setData((prev: FormData) => {
-            if (prev.variants.length === 1) {
+            if ((prev.variants || []).length === 1) {
                 return prev;
             }
 
-            const remaining = prev.variants.filter((_, idx: number) => idx !== index);
+            const remaining = (prev.variants || []).filter((_, idx: number) => idx !== index);
             if (remaining.every((variant) => !variant.is_default) && remaining.length > 0) {
                 remaining[0].is_default = true;
             }
@@ -1215,7 +1254,7 @@ export default function AdminProductEdit() {
 
     const updateVariant = (index: number, field: keyof VariantForm, value: string | boolean | number | null) => {
         setData((prev: FormData) => {
-            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
+            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== index) {
                     return variant;
                 }
@@ -1298,7 +1337,7 @@ export default function AdminProductEdit() {
 
     const updateVariantMetadata = (index: number, changes: Record<string, FormDataConvertible | null>) => {
         setData((prev: FormData) => {
-            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
+            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== index) {
                     return variant;
                 }
@@ -1333,7 +1372,7 @@ export default function AdminProductEdit() {
     const markDefault = (index: number) => {
         setData((prev: FormData) => ({
             ...prev,
-            variants: prev.variants.map((variant: VariantForm, idx: number) => ({
+            variants: (prev.variants || []).map((variant: VariantForm, idx: number) => ({
                 ...variant,
                 is_default: idx === index,
             })),
@@ -1343,7 +1382,7 @@ export default function AdminProductEdit() {
     // Diamond management functions (per-variant, manual)
     const addDiamondToVariant = (variantIndex: number) => {
         setData((prev: FormData) => {
-            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
+            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
@@ -1362,7 +1401,7 @@ export default function AdminProductEdit() {
 
     const removeDiamondFromVariant = (variantIndex: number, diamondIndex: number) => {
         setData((prev: FormData) => {
-            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
+            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
@@ -1386,7 +1425,7 @@ export default function AdminProductEdit() {
         value: string | number | '',
     ) => {
         setData((prev: FormData) => {
-            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
+            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
@@ -1420,7 +1459,7 @@ export default function AdminProductEdit() {
         value: string | number | '',
     ) => {
         setData((prev: FormData) => {
-            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
+            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
@@ -1449,7 +1488,7 @@ export default function AdminProductEdit() {
     // Colorstone management functions (per-variant)
     const addColorstoneToVariant = (variantIndex: number) => {
         setData((prev: FormData) => {
-            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
+            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
@@ -1468,7 +1507,7 @@ export default function AdminProductEdit() {
 
     const removeColorstoneFromVariant = (variantIndex: number, colorstoneIndex: number) => {
         setData((prev: FormData) => {
-            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
+            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
@@ -1492,7 +1531,7 @@ export default function AdminProductEdit() {
         value: string | number | '',
     ) => {
         setData((prev: FormData) => {
-            const variants = prev.variants.map((variant: VariantForm, idx: number) => {
+            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== variantIndex) {
                     return variant;
                 }
@@ -1655,17 +1694,19 @@ export default function AdminProductEdit() {
                 let metalMode: 'normal' | 'mix_tones' | 'mix_purities' = 'normal';
                 if (prev.metal_mix_mode) {
                     // Try direct numeric key lookup
-                    metalMode = prev.metal_mix_mode[metalId] || metalMode;
+                    const mode1 = prev.metal_mix_mode[metalId];
+                    metalMode = (mode1 === 'normal' || mode1 === 'mix_tones' || mode1 === 'mix_purities') ? mode1 : metalMode;
                     // If not found, try string key lookup
-                    if (metalMode === 'normal' && prev.metal_mix_mode[String(metalId) as unknown as number]) {
-                        metalMode = prev.metal_mix_mode[String(metalId) as unknown as number] || metalMode;
+                    if (metalMode === 'normal') {
+                        const mode2 = prev.metal_mix_mode[String(metalId) as unknown as number];
+                        metalMode = (mode2 === 'normal' || mode2 === 'mix_tones' || mode2 === 'mix_purities') ? mode2 : metalMode;
                     }
                     // If still not found, iterate through all keys
                     if (metalMode === 'normal') {
                         Object.keys(prev.metal_mix_mode).forEach((key) => {
                             const keyNum = Number(key);
                             if (keyNum === metalId) {
-                                const value = prev.metal_mix_mode[keyNum];
+                                const value = prev.metal_mix_mode?.[keyNum];
                                 if (value === 'normal' || value === 'mix_tones' || value === 'mix_purities') {
                                     metalMode = value;
                                 }
@@ -1727,42 +1768,36 @@ export default function AdminProductEdit() {
             // In 'as_variant' mode: diamonds multiply variants (Cartesian product)
             const diamondCombinations: Array<{
                 key: string;
-                type_id: number | null;
                 clarity_id: number | null;
                 color_id: number | null;
                 shape_id: number | null;
-                cut_id: number | null;
             }> = [];
             
-            if (prev.uses_diamond && prev.diamond_options.length > 0) {
+            if (prev.uses_diamond && (prev.diamond_options || []).length > 0) {
                 // Build diamond combinations from diamond_options
-                prev.diamond_options.forEach((option) => {
+                (prev.diamond_options || []).forEach((option) => {
                     diamondCombinations.push({
                         key: option.key,
-                        type_id: option.type_id !== '' ? Number(option.type_id) : null,
                         clarity_id: option.clarity_id !== '' ? Number(option.clarity_id) : null,
                         color_id: option.color_id !== '' ? Number(option.color_id) : null,
                         shape_id: option.shape_id !== '' ? Number(option.shape_id) : null,
-                        cut_id: option.cut_id !== '' ? Number(option.cut_id) : null,
                     });
                 });
             } else {
                 // No diamonds, use null placeholder
                 diamondCombinations.push({
                     key: '',
-                    type_id: null,
                     clarity_id: null,
                     color_id: null,
                     shape_id: null,
-                    cut_id: null,
                 });
             }
             
             const sizeOptions =
-                prev.size_dimension_enabled && prev.size_values.length > 0 ? prev.size_values : [null];
+                prev.size_dimension_enabled && (prev.size_values || []).length > 0 ? (prev.size_values || []) : [null];
 
             // Check if we have at least one option to generate variants
-            const hasSizes = prev.size_dimension_enabled && sizeOptions.length > 0 && sizeOptions[0] !== null;
+            const hasSizes = prev.size_dimension_enabled && (sizeOptions || []).length > 0 && (sizeOptions || [])[0] !== null;
             const hasDiamonds = prev.uses_diamond && diamondCombinations.length > 0 && diamondCombinations[0].key !== '';
             const mixingMode = prev.diamond_mixing_mode || 'shared';
             
@@ -1778,11 +1813,9 @@ export default function AdminProductEdit() {
                 metals: MetalEntryCombination[];
                 diamond: {
                     key: string;
-                    type_id: number | null;
                     clarity_id: number | null;
                     color_id: number | null;
                     shape_id: number | null;
-                    cut_id: number | null;
                 };
                 size: string | null;
             }> = [];
@@ -1800,7 +1833,7 @@ export default function AdminProductEdit() {
             
             if (allMetalCombinations.length > 0) {
                 allMetalCombinations.forEach((metalEntries) => {
-                    sizeOptions.forEach((sizeOption) => {
+                    (sizeOptions || []).forEach((sizeOption) => {
                         baseCombinations.push({
                             metals: metalEntries,
                             size: sizeOption ?? null,
@@ -1828,11 +1861,9 @@ export default function AdminProductEdit() {
                 // Use the first diamond combination (or null if no diamonds)
                 const sharedDiamond = hasDiamonds ? diamondCombinations[0] : {
                     key: '',
-                    type_id: null,
                     clarity_id: null,
                     color_id: null,
                     shape_id: null,
-                    cut_id: null,
                 };
                 
                 baseCombinations.forEach((baseCombo) => {
@@ -1859,11 +1890,9 @@ export default function AdminProductEdit() {
                             metals: baseCombo.metals,
                             diamond: {
                                 key: '',
-                                type_id: null,
                                 clarity_id: null,
                                 color_id: null,
                                 shape_id: null,
-                                cut_id: null,
                             },
                             size: baseCombo.size,
                         });
@@ -1878,12 +1907,12 @@ export default function AdminProductEdit() {
             // Create a map to preserve existing metal weights and diamond counts
             // Key: variant identifier based on metals + size + diamond
             const existingVariantData = new Map<string, {
-                metals: Array<{ metal_id: number; metal_purity_id: number | null; metal_tone_id: number | null; metal_weight: string; weight_grams: string }>;
-                diamonds: Array<{ diamond_type_id: number | null; diamond_shape_id: number | null; diamond_color_id: number | null; diamond_clarity_id: number | null; diamond_cut_id: number | null; diamonds_count: string; total_carat: string }>;
+                metals: Array<{ metal_id: number; metal_purity_id: number | null; metal_tone_id: number | null; metal_weight: string }>;
+                diamonds: Array<{ diamond_id: number | null; diamonds_count: string }>;
             }>();
 
             // Build lookup map from existing variants
-            prev.variants.forEach((existingVariant) => {
+            (prev.variants || []).forEach((existingVariant) => {
                 if (!existingVariant.metals || existingVariant.metals.length === 0) return;
                 
                 // Create a key based on metal combination + size + diamond
@@ -1902,17 +1931,11 @@ export default function AdminProductEdit() {
                         metal_id: typeof m.metal_id === 'number' ? m.metal_id : 0,
                         metal_purity_id: m.metal_purity_id !== '' && m.metal_purity_id !== null ? (typeof m.metal_purity_id === 'number' ? m.metal_purity_id : Number(m.metal_purity_id)) : null,
                         metal_tone_id: m.metal_tone_id !== '' && m.metal_tone_id !== null ? (typeof m.metal_tone_id === 'number' ? m.metal_tone_id : Number(m.metal_tone_id)) : null,
-                        metal_weight: m.metal_weight || m.weight_grams || '',
-                        weight_grams: m.weight_grams || m.metal_weight || '',
+                        metal_weight: m.metal_weight || '',
                     })),
                     diamonds: (existingVariant.diamonds || []).map(d => ({
-                        diamond_type_id: d.diamond_type_id !== '' && d.diamond_type_id !== null ? (typeof d.diamond_type_id === 'number' ? d.diamond_type_id : Number(d.diamond_type_id)) : null,
-                        diamond_shape_id: d.diamond_shape_id !== '' && d.diamond_shape_id !== null ? (typeof d.diamond_shape_id === 'number' ? d.diamond_shape_id : Number(d.diamond_shape_id)) : null,
-                        diamond_color_id: d.diamond_color_id !== '' && d.diamond_color_id !== null ? (typeof d.diamond_color_id === 'number' ? d.diamond_color_id : Number(d.diamond_color_id)) : null,
-                        diamond_clarity_id: d.diamond_clarity_id !== '' && d.diamond_clarity_id !== null ? (typeof d.diamond_clarity_id === 'number' ? d.diamond_clarity_id : Number(d.diamond_clarity_id)) : null,
-                        diamond_cut_id: d.diamond_cut_id !== '' && d.diamond_cut_id !== null ? (typeof d.diamond_cut_id === 'number' ? d.diamond_cut_id : Number(d.diamond_cut_id)) : null,
+                        diamond_id: d.diamond_id !== '' && d.diamond_id !== null ? (typeof d.diamond_id === 'number' ? d.diamond_id : Number(d.diamond_id)) : null,
                         diamonds_count: d.diamonds_count || '',
-                        total_carat: d.total_carat || '',
                     })),
                 });
             });
@@ -1946,7 +1969,6 @@ export default function AdminProductEdit() {
                         metal_id: metalEntry.metal_id,
                         metal_purity_id: metalEntry.metal_purity_id ?? '',
                         metal_tone_id: metalEntry.metal_tone_id ?? '',
-                        weight_grams: existingMetal?.weight_grams || '',
                         metal_weight: existingMetal?.metal_weight || '',
                     };
                 });
@@ -1973,71 +1995,37 @@ export default function AdminProductEdit() {
                             .map((selection) => {
                                 // Try to find matching existing diamond entry
                                 const existingDiamond = existingData?.diamonds.find(
-                                    ed => ed.diamond_id === (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id))
+                                    ed => (ed as any).diamond_id === (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id))
                                 );
                                 
                                 return {
-                                    id: existingDiamond?.id,
+                                    id: (existingDiamond as any)?.id,
                                     diamond_id: typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id),
-                                    diamonds_count: existingDiamond?.diamonds_count || selection.count || '',
+                                    diamonds_count: (existingDiamond as any)?.diamonds_count || selection.count || '',
                                 };
                             });
                         variant.diamond_option_key = null;
-                    } else if (prev.uses_diamond && prev.diamond_options.length > 0) {
-                        // Fallback to diamond_options (old approach with type_id, shape_id, etc.)
-                        variant.diamonds = prev.diamond_options.map((option) => {
-                            // Try to find matching existing diamond entry
-                            const existingDiamond = existingData?.diamonds.find(
-                                ed => ed.diamond_type_id === (option.type_id !== '' ? option.type_id : null) &&
-                                ed.diamond_shape_id === (option.shape_id !== '' ? option.shape_id : null) &&
-                                ed.diamond_color_id === (option.color_id !== '' ? option.color_id : null) &&
-                                ed.diamond_clarity_id === (option.clarity_id !== '' ? option.clarity_id : null) &&
-                                ed.diamond_cut_id === (option.cut_id !== '' ? option.cut_id : null)
-                            );
-                            
-                            return {
-                                id: undefined,
-                                diamond_type_id: option.type_id !== '' ? option.type_id : '',
-                                diamond_clarity_id: option.clarity_id !== '' ? option.clarity_id : '',
-                                diamond_color_id: option.color_id !== '' ? option.color_id : '',
-                                diamond_shape_id: option.shape_id !== '' ? option.shape_id : '',
-                                diamond_cut_id: option.cut_id !== '' ? option.cut_id : '',
-                                diamonds_count: existingDiamond?.diamonds_count || (option.diamonds_count !== '' && option.diamonds_count !== null && option.diamonds_count !== undefined ? option.diamonds_count : ''),
-                                total_carat: existingDiamond?.total_carat || option.weight || '',
-                            };
-                        });
-                        // Use first diamond option key for backward compatibility
-                        variant.diamond_option_key = prev.diamond_options[0].key || null;
                     } else {
                         variant.diamond_option_key = null;
                         variant.diamonds = [];
                     }
                 } else {
-                    // 'as_variant' mode: Each variant has its specific diamond from the combination
-                    const diamondOptionKey = combo.diamond.key || null;
-                    variant.diamond_option_key = diamondOptionKey;
+                    // 'as_variant' mode: Use diamond_selections from the form
+                    variant.diamond_option_key = null;
                     
-                    // Build diamonds array from diamond combination
-                    if (diamondOptionKey && (combo.diamond.type_id || combo.diamond.clarity_id || combo.diamond.color_id || combo.diamond.shape_id || combo.diamond.cut_id)) {
-                        // Try to find matching existing diamond entry
-                        const existingDiamond = existingData?.diamonds.find(
-                            ed => ed.diamond_type_id === (combo.diamond.type_id ?? null) &&
-                            ed.diamond_shape_id === (combo.diamond.shape_id ?? null) &&
-                            ed.diamond_color_id === (combo.diamond.color_id ?? null) &&
-                            ed.diamond_clarity_id === (combo.diamond.clarity_id ?? null) &&
-                            ed.diamond_cut_id === (combo.diamond.cut_id ?? null)
-                        );
-                        
-                        variant.diamonds = [{
-                            id: undefined,
-                            diamond_type_id: combo.diamond.type_id ?? '',
-                            diamond_clarity_id: combo.diamond.clarity_id ?? '',
-                            diamond_color_id: combo.diamond.color_id ?? '',
-                            diamond_shape_id: combo.diamond.shape_id ?? '',
-                            diamond_cut_id: combo.diamond.cut_id ?? '',
-                            diamonds_count: existingDiamond?.diamonds_count || '',
-                            total_carat: existingDiamond?.total_carat || '',
-                        }];
+                    if ((prev.diamond_selections || []).length > 0) {
+                        // Use diamond_selections for all variants (they're shared)
+                        variant.diamonds = (prev.diamond_selections || []).map((selection) => {
+                            const existingDiamond = existingData?.diamonds.find(
+                                ed => ed.diamond_id === (selection.diamond_id !== '' && selection.diamond_id !== null ? (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id)) : null)
+                            );
+                            
+                            return {
+                                id: undefined,
+                                diamond_id: selection.diamond_id !== '' && selection.diamond_id !== null ? (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id)) : '',
+                                diamonds_count: existingDiamond?.diamonds_count || selection.count || '',
+                            };
+                        });
                     } else {
                         variant.diamonds = [];
                     }
@@ -2049,7 +2037,7 @@ export default function AdminProductEdit() {
                 };
 
                 if (combo.size) {
-                    const centimeters = convertToCentimeters(combo.size, prev.size_unit);
+                    const centimeters = convertToCentimeters(combo.size, prev.size_unit || 'cm');
                     variant.size_cm = centimeters;
                     metadata.size_value = combo.size;
                     metadata.size_unit = prev.size_unit;
@@ -2065,11 +2053,9 @@ export default function AdminProductEdit() {
                     if (variantDiamondMixingMode === 'as_variant') {
                         // In 'as_variant' mode, store the specific diamond for this variant
                         metadata.diamond = {
-                            type_id: combo.diamond.type_id,
                             clarity_id: combo.diamond.clarity_id,
                             color_id: combo.diamond.color_id,
                             shape_id: combo.diamond.shape_id,
-                            cut_id: combo.diamond.cut_id,
                         };
                     }
                     // In 'shared' mode, all variants share the same diamond list (stored in variant.diamonds)
@@ -2081,7 +2067,7 @@ export default function AdminProductEdit() {
                         .filter((selection) => selection.colorstone_id !== '' && selection.colorstone_id !== null)
                         .map((selection) => {
                             // Try to find matching existing colorstone entry from the variant's existing colorstones
-                            const existingVariant = prev.variants.find((v: VariantForm) => {
+                            const existingVariant = (prev.variants || []).find((v: VariantForm) => {
                                 // Find any variant that has colorstones to preserve their IDs
                                 return v.colorstones && v.colorstones.length > 0;
                             });
@@ -2750,15 +2736,15 @@ export default function AdminProductEdit() {
                                                     Add size
                                                 </button>
                                             </div>
-                                            {data.size_values.length === 0 && (
+                                            {(data.size_values || []).length === 0 && (
                                                 <span className="text-xs text-slate-400">
                                                     Add at least one size value to use in the variant matrix.
                                                 </span>
                                             )}
                                         </div>
-                                        {data.size_values.length > 0 && (
+                                        {(data.size_values || []).length > 0 && (
                                             <div className="flex flex-wrap gap-2">
-                                                {data.size_values.map((value) => (
+                                                {(data.size_values || []).map((value) => (
                                                     <span
                                                         key={`${value}-${data.size_unit}`}
                                                         className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600"
@@ -2932,13 +2918,13 @@ export default function AdminProductEdit() {
                                             </div>
                                     
                                     {/* Variant count preview */}
-                                    {data.metal_ids.length > 0 && (
+                                    {(data.metal_ids || []).length > 0 && (
                                         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                             <div className="flex items-center justify-between">
                                                 <div>
                                                     <p className="text-sm font-semibold text-slate-700">Preview generated variants</p>
                                                     <p className="mt-1 text-xs text-slate-500">
-                                                        This setup will generate approximately <span className="font-semibold text-slate-900">{data.variants.length}</span> variant{data.variants.length !== 1 ? 's' : ''} based on your current configuration.
+                                                        This setup will generate approximately <span className="font-semibold text-slate-900">{(data.variants || []).length}</span> variant{(data.variants || []).length !== 1 ? 's' : ''} based on your current configuration.
                                                     </p>
                                     </div>
                                                 <button
@@ -3148,7 +3134,7 @@ export default function AdminProductEdit() {
                                     
                                     // Calculate total metal weight
                                     const totalMetalWeight = variantMetals.reduce((sum, metal) => {
-                                        const weight = parseFloat(metal.metal_weight || metal.weight_grams || '0');
+                                        const weight = parseFloat(metal.metal_weight || '0');
                                         return sum + (isNaN(weight) ? 0 : weight);
                                     }, 0);
                                     
@@ -3245,20 +3231,27 @@ export default function AdminProductEdit() {
                                     const toneDisplay = toneNames.length > 0 ? toneNames.join(' / ') : '—';
                                     
                                     // Build diamond display from variant.diamonds array (variant-specific)
-                                    // Handle both new format (diamond_id) and old format (diamond_type_id, etc.)
-                                    let variantDiamonds: Array<{ diamond_id: number; diamonds_count: string }> = (variant.diamonds || [])
-                                        .filter((d) => {
-                                            // New format: has diamond_id
-                                            return d.diamond_id !== '' && d.diamond_id !== null && d.diamond_id !== undefined;
-                                        })
+                                    // Show only diamond name and count, not all details
+                                    let variantDiamonds: Array<{ diamond_id: number | null; diamonds_count: string }> = [];
+                                    
+                                    // Check if variant has diamonds with diamond_id (from diamond_selections flow)
+                                    const diamondsWithId = (variant.diamonds || [])
+                                        .filter((d) => d.diamond_id !== '' && d.diamond_id !== null && d.diamond_id !== undefined)
                                         .map((d) => ({
                                             diamond_id: typeof d.diamond_id === 'number' ? d.diamond_id : Number(d.diamond_id),
                                             diamonds_count: d.diamonds_count || '',
                                         }));
                                     
-                                    // If no variant-specific diamonds, check product-level diamond_selections
-                                    if (variantDiamonds.length === 0 && (data.diamond_selections || []).length > 0) {
-                                        // Convert diamond_selections to variantDiamonds format for display
+                                    if (diamondsWithId.length > 0) {
+                                        variantDiamonds = diamondsWithId;
+                                    } else if ((variant.diamonds || []).length > 0) {
+                                        // Variant has diamonds with shape/color/clarity IDs - show simplified display
+                                        variantDiamonds = (variant.diamonds || []).map((d) => ({
+                                            diamond_id: null, // No direct diamond_id, will show as "Diamond"
+                                            diamonds_count: d.diamonds_count || '',
+                                        }));
+                                    } else if ((data.diamond_selections || []).length > 0) {
+                                        // Fallback to product-level diamond_selections
                                         variantDiamonds = (data.diamond_selections || [])
                                             .filter((selection) => selection.diamond_id !== '' && selection.diamond_id !== null && selection.diamond_id !== undefined)
                                             .map((selection) => ({
@@ -3268,72 +3261,33 @@ export default function AdminProductEdit() {
                                     }
                                     
                                     // Build colorstone display from variant.colorstones array (variant-specific)
-                                    // Handle both new format (colorstone_id) and old format
-                                    let variantColorstones: Array<{ colorstone_id: number; stones_count: string }> = (variant.colorstones || [])
-                                        .filter((c) => {
-                                            // New format: has colorstone_id
-                                            return c.colorstone_id !== '' && c.colorstone_id !== null && c.colorstone_id !== undefined;
-                                        })
+                                    // Show only colorstone name and count, not all details
+                                    let variantColorstones: Array<{ colorstone_id: number | null; stones_count: string }> = [];
+                                    
+                                    // Check if variant has colorstones with colorstone_id (from colorstone_selections flow)
+                                    const colorstonesWithId = (variant.colorstones || [])
+                                        .filter((c) => c.colorstone_id !== '' && c.colorstone_id !== null && c.colorstone_id !== undefined)
                                         .map((c) => ({
                                             colorstone_id: typeof c.colorstone_id === 'number' ? c.colorstone_id : Number(c.colorstone_id),
                                             stones_count: c.stones_count || '',
                                         }));
                                     
-                                    // If no variant-specific colorstones, check product-level colorstone_selections
-                                    if (variantColorstones.length === 0 && (data.colorstone_selections || []).length > 0) {
-                                        // Convert colorstone_selections to variantColorstones format for display
+                                    if (colorstonesWithId.length > 0) {
+                                        variantColorstones = colorstonesWithId;
+                                    } else if ((variant.colorstones || []).length > 0) {
+                                        // Variant has colorstones with shape/color/quality IDs - show simplified display
+                                        variantColorstones = (variant.colorstones || []).map((c) => ({
+                                            colorstone_id: null, // No direct colorstone_id, will show as "Colorstone"
+                                            stones_count: c.stones_count || '',
+                                        }));
+                                    } else if ((data.colorstone_selections || []).length > 0) {
+                                        // Fallback to product-level colorstone_selections
                                         variantColorstones = (data.colorstone_selections || [])
                                             .filter((selection) => selection.colorstone_id !== '' && selection.colorstone_id !== null && selection.colorstone_id !== undefined)
                                             .map((selection) => ({
                                                 colorstone_id: typeof selection.colorstone_id === 'number' ? selection.colorstone_id : Number(selection.colorstone_id),
                                                 stones_count: selection.count || '',
                                             }));
-                                    }
-                                    
-                                    // Build diamond display - prioritize variant-specific diamonds, fallback to product-level selections
-                                    const diamondDisplay: string[] = [];
-                                    
-                                    // Add variant-specific diamonds first
-                                    variantDiamonds.forEach((diamond) => {
-                                        if (diamond.diamond_id && typeof diamond.diamond_id === 'number') {
-                                            const diamondName = (diamonds || []).find(d => d.id === diamond.diamond_id)?.name || 'Unknown Diamond';
-                                            const count = diamond.diamonds_count ? ` (${diamond.diamonds_count})` : '';
-                                            diamondDisplay.push(`${diamondName}${count}`);
-                                        }
-                                    });
-                                    
-                                    // Add product-level diamond selections if variant doesn't have specific diamonds
-                                    if (diamondDisplay.length === 0 && (data.diamond_selections || []).length > 0) {
-                                        (data.diamond_selections || []).forEach((selection) => {
-                                            if (selection.diamond_id && typeof selection.diamond_id === 'number') {
-                                                const diamondName = (diamonds || []).find(d => d.id === selection.diamond_id)?.name || 'Unknown Diamond';
-                                                const count = selection.count ? ` (${selection.count})` : '';
-                                                diamondDisplay.push(`${diamondName}${count}`);
-                                            }
-                                        });
-                                    }
-                                    
-                                    // Build colorstone display - prioritize variant-specific colorstones, fallback to product-level selections
-                                    const colorstoneDisplay: string[] = [];
-                                    
-                                    // Add variant-specific colorstones first
-                                    variantColorstones.forEach((colorstone) => {
-                                        if (colorstone.colorstone_id && typeof colorstone.colorstone_id === 'number') {
-                                            const colorstoneName = (colorstones || []).find(c => c.id === colorstone.colorstone_id)?.name || 'Unknown Colorstone';
-                                            const count = colorstone.stones_count ? ` (${colorstone.stones_count})` : '';
-                                            colorstoneDisplay.push(`${colorstoneName}${count}`);
-                                        }
-                                    });
-                                    
-                                    // Add product-level colorstone selections if variant doesn't have specific colorstones
-                                    if (colorstoneDisplay.length === 0 && (data.colorstone_selections || []).length > 0) {
-                                        (data.colorstone_selections || []).forEach((selection) => {
-                                            if (selection.colorstone_id && typeof selection.colorstone_id === 'number') {
-                                                const colorstoneName = (colorstones || []).find(c => c.id === selection.colorstone_id)?.name || 'Unknown Colorstone';
-                                                const count = selection.count ? ` (${selection.count})` : '';
-                                                colorstoneDisplay.push(`${colorstoneName}${count}`);
-                                            }
-                                        });
                                     }
                                     
                                     const variantMetadata = (variant.metadata ?? {}) as Record<string, FormDataConvertible>;
@@ -3397,7 +3351,7 @@ export default function AdminProductEdit() {
                                                             const toneName = metal.metal_tone_id && typeof metal.metal_tone_id === 'number'
                                                                 ? metalTones.find(t => t.id === metal.metal_tone_id)?.name || ''
                                                                 : '';
-                                                            const weight = metal.metal_weight || metal.weight_grams || '';
+                                                            const weight = metal.metal_weight || '';
                                                             
                                                             return (
                                                                 <div key={metalIndex} className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
@@ -3431,10 +3385,6 @@ export default function AdminProductEdit() {
                                                                             onChange={(e) => {
                                                                                 const value = e.target.value;
                                                                                 updateMetalInVariant(index, metalIndex, 'metal_weight', value);
-                                                                                // Also update weight_grams for backward compatibility
-                                                                                if (!metal.weight_grams || metal.weight_grams === '') {
-                                                                                    updateMetalInVariant(index, metalIndex, 'weight_grams', value);
-                                                                                }
                                                                             }}
                                                                             className={`w-full rounded-lg border px-2.5 py-1.5 text-sm font-mono transition-colors ${
                                                                                 (!weight || weight === '') 
@@ -3459,21 +3409,19 @@ export default function AdminProductEdit() {
                                                 <div className="space-y-3 min-w-[250px]">
                                                     {variantDiamonds.length > 0 ? (
                                                         variantDiamonds.map((diamond, diamondIndex) => {
-                                                            const diamondData = diamonds?.find(d => d.id === diamond.diamond_id);
-                                                            const diamondName = diamondData?.name || 'Unknown Diamond';
+                                                            const diamondName = diamond.diamond_id 
+                                                                ? (diamonds?.find(d => d.id === diamond.diamond_id)?.name || 'Diamond')
+                                                                : 'Diamond';
                                                             const count = diamond.diamonds_count || '';
                                                             
                                                             return (
-                                                                <div key={diamondIndex} className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
-                                                                    {/* Diamond Name */}
-                                                                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                                                <div key={diamondIndex} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+                                                                    <div className="flex-1">
                                                                         <div className="text-xs font-medium text-slate-500 mb-1">Diamond</div>
                                                                         <div className="text-sm font-semibold text-slate-800">{diamondName}</div>
                                                                     </div>
-                                                                    
-                                                                    {/* Count */}
-                                                                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                                                                        <div className="text-xs font-medium text-slate-500 mb-1.5">Count</div>
+                                                                    <div className="w-24">
+                                                                        <div className="text-xs font-medium text-slate-500 mb-1">Count</div>
                                                                         <input
                                                                             type="number"
                                                                             min="1"
@@ -3491,9 +3439,6 @@ export default function AdminProductEdit() {
                                                                             } focus:outline-none focus:ring-1 focus:ring-sky-200`}
                                                                             placeholder="0"
                                                                         />
-                                                                        {(!count || count === '') && (
-                                                                            <span className="mt-1 text-[10px] text-rose-500">Required</span>
-                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             );
@@ -3507,21 +3452,19 @@ export default function AdminProductEdit() {
                                                 <div className="space-y-3 min-w-[250px]">
                                                     {variantColorstones.length > 0 ? (
                                                         variantColorstones.map((colorstone, colorstoneIndex) => {
-                                                            const colorstoneData = colorstones?.find(c => c.id === colorstone.colorstone_id);
-                                                            const colorstoneName = colorstoneData?.name || 'Unknown Colorstone';
+                                                            const colorstoneName = colorstone.colorstone_id 
+                                                                ? (colorstones?.find(c => c.id === colorstone.colorstone_id)?.name || 'Colorstone')
+                                                                : 'Colorstone';
                                                             const count = colorstone.stones_count || '';
                                                             
                                                             return (
-                                                                <div key={colorstoneIndex} className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
-                                                                    {/* Colorstone Name */}
-                                                                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                                                <div key={colorstoneIndex} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+                                                                    <div className="flex-1">
                                                                         <div className="text-xs font-medium text-slate-500 mb-1">Colorstone</div>
                                                                         <div className="text-sm font-semibold text-slate-800">{colorstoneName}</div>
                                                                     </div>
-                                                                    
-                                                                    {/* Count */}
-                                                                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                                                                        <div className="text-xs font-medium text-slate-500 mb-1.5">Count</div>
+                                                                    <div className="w-24">
+                                                                        <div className="text-xs font-medium text-slate-500 mb-1">Count</div>
                                                                         <input
                                                                             type="number"
                                                                             min="1"
@@ -3539,9 +3482,6 @@ export default function AdminProductEdit() {
                                                                             } focus:outline-none focus:ring-1 focus:ring-sky-200`}
                                                                             placeholder="0"
                                                                         />
-                                                                        {(!count || count === '') && (
-                                                                            <span className="mt-1 text-[10px] text-rose-500">Required</span>
-                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             );
@@ -3678,23 +3618,19 @@ export default function AdminProductEdit() {
                                                                                         step="0.001"
                                                                                         min="0.001"
                                                                                         required
-                                                                                        value={metal.metal_weight || metal.weight_grams || ''}
+                                                                                        value={metal.metal_weight || ''}
                                                                                         onChange={(e) => {
                                                                                             const value = e.target.value;
                                                                                             updateMetalInVariant(index, metalIndex, 'metal_weight', value);
-                                                                                            // Also update weight_grams for backward compatibility
-                                                                                            if (!metal.weight_grams || metal.weight_grams === '') {
-                                                                                                updateMetalInVariant(index, metalIndex, 'weight_grams', value);
-                                                                                            }
                                                                                         }}
                                                                                         className={`rounded-xl border-2 px-3 py-2 text-sm font-medium transition-colors ${
-                                                                                            (!metal.metal_weight && !metal.weight_grams) 
+                                                                                            !metal.metal_weight 
                                                                                                 ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:bg-white' 
                                                                                                 : 'border-slate-200 bg-white focus:border-sky-400'
                                                                                         } focus:outline-none focus:ring-2 focus:ring-sky-200`}
                                                                                         placeholder="Enter weight (required)"
                                                                                     />
-                                                                                    {(!metal.metal_weight && !metal.weight_grams) && (
+                                                                                    {!metal.metal_weight && (
                                                                                         <span className="text-xs text-rose-600 font-medium">⚠️ This field is required</span>
                                                                                     )}
                                                                                 </label>
@@ -3772,7 +3708,7 @@ export default function AdminProductEdit() {
                                                                             <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">
                                                                                 Diamond
                                                                                 <select
-                                                                                    value={diamond.diamond_id === '' ? '' : diamond.diamond_id}
+                                                                                    value={typeof diamond.diamond_id === 'string' || !diamond.diamond_id ? '' : String(diamond.diamond_id)}
                                                                                     onChange={(e) => updateDiamondInVariant(index, diamondIndex, 'diamond_id', e.target.value === '' ? '' : Number(e.target.value))}
                                                                                     className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                                                 >
@@ -3808,7 +3744,7 @@ export default function AdminProductEdit() {
                                         </>
                                     );
                                 })}
-                                {data.variants.length === 0 && (
+                                 {(data.variants || []).length === 0 && (
                                     <tr>
                                         <td
                                             colSpan={17}

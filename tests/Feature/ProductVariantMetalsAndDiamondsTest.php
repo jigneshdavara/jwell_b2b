@@ -366,12 +366,12 @@ class ProductVariantMetalsAndDiamondsTest extends TestCase
                             'metal_id' => $gold->id,
                             'metal_purity_id' => $gold18K->id,
                             'metal_tone_id' => $yellowGold->id,
-                            'weight_grams' => 5.5,
+                            'metal_weight' => 5.5,
                         ],
                         [
                             'metal_id' => $silver->id,
                             'metal_purity_id' => $silver925->id,
-                            'weight_grams' => 2.3,
+                            'metal_weight' => 2.3,
                         ],
                     ],
                     'diamonds' => [],
@@ -394,14 +394,14 @@ class ProductVariantMetalsAndDiamondsTest extends TestCase
             'metal_id' => $gold->id,
             'metal_purity_id' => $gold18K->id,
             'metal_tone_id' => $yellowGold->id,
-            'weight_grams' => 5.5,
+            'metal_weight' => 5.5,
             'position' => 0,
         ]);
         $this->assertDatabaseHas('product_variant_metals', [
             'product_variant_id' => $variant->id,
             'metal_id' => $silver->id,
             'metal_purity_id' => $silver925->id,
-            'weight_grams' => 2.3,
+            'metal_weight' => 2.3,
             'position' => 1,
         ]);
     }

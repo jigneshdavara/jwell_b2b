@@ -14,11 +14,8 @@ return new class extends Migration
         Schema::create('product_variant_diamonds', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_variant_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('diamond_shape_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('diamond_color_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('diamond_clarity_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('diamond_id')->nullable()->constrained('diamonds')->nullOnDelete();
             $table->integer('diamonds_count')->nullable();
-            $table->decimal('total_carat', 10, 3)->nullable();
             $table->jsonb('metadata')->nullable();
             $table->integer('position')->default(0);
             $table->timestampsTz();

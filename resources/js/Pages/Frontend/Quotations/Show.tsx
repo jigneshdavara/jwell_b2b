@@ -38,6 +38,7 @@ type RelatedQuotation = {
     price_breakdown?: {
         metal?: number;
         diamond?: number;
+        colorstone?: number;
         making?: number;
         subtotal?: number;
         discount?: number;
@@ -100,6 +101,7 @@ type QuotationDetails = {
     price_breakdown?: {
         metal?: number;
         diamond?: number;
+        colorstone?: number;
         making?: number;
         subtotal?: number;
         discount?: number;
@@ -284,8 +286,9 @@ export default function FrontendQuotationShow() {
                                         const priceBreakdown = item.price_breakdown || {};
                                         const metalCost = Number(priceBreakdown.metal) || 0;
                                         const diamondCost = Number(priceBreakdown.diamond) || 0;
+                                        const colorstoneCost = Number(priceBreakdown.colorstone) || 0;
                                         const makingCharge = Number(priceBreakdown.making) || 0;
-                                        const unitPrice = Number(priceBreakdown.total) || (metalCost + diamondCost + makingCharge);
+                                        const unitPrice = Number(priceBreakdown.total) || (metalCost + diamondCost + colorstoneCost + makingCharge);
                                         const lineTotal = unitPrice * (Number(item.quantity) || 0);
                                         return (
                                             <tr key={item.id} className="hover:bg-slate-50/50 transition">
@@ -325,9 +328,11 @@ export default function FrontendQuotationShow() {
                                                     <div className="text-sm font-semibold text-slate-900">{currencyFormatter.format(unitPrice)}</div>
                                                     <div className="text-xs text-slate-400">
                                                         {metalCost > 0 && `Metal: ${currencyFormatter.format(metalCost)}`}
-                                                        {metalCost > 0 && (diamondCost > 0 || makingCharge > 0) && ' + '}
+                                                        {metalCost > 0 && (diamondCost > 0 || colorstoneCost > 0 || makingCharge > 0) && ' + '}
                                                         {diamondCost > 0 && `Diamond: ${currencyFormatter.format(diamondCost)}`}
-                                                        {diamondCost > 0 && makingCharge > 0 && ' + '}
+                                                        {diamondCost > 0 && (colorstoneCost > 0 || makingCharge > 0) && ' + '}
+                                                        {colorstoneCost > 0 && `Colorstone: ${currencyFormatter.format(colorstoneCost)}`}
+                                                        {colorstoneCost > 0 && makingCharge > 0 && ' + '}
                                                         {makingCharge > 0 && `Making: ${currencyFormatter.format(makingCharge)}`}
                                                     </div>
                                                 </td>
@@ -361,8 +366,9 @@ export default function FrontendQuotationShow() {
                                             const priceBreakdown = item.price_breakdown || {};
                                             const metalCost = Number(priceBreakdown.metal) || 0;
                                             const diamondCost = Number(priceBreakdown.diamond) || 0;
+                                            const colorstoneCost = Number(priceBreakdown.colorstone) || 0;
                                             const makingCharge = Number(priceBreakdown.making) || 0;
-                                            const unitTotal = Number(priceBreakdown.total) || (metalCost + diamondCost + makingCharge);
+                                            const unitTotal = Number(priceBreakdown.total) || (metalCost + diamondCost + colorstoneCost + makingCharge);
                                             const quantity = Number(item.quantity) || 0;
                                             const lineTotal = unitTotal * quantity;
                                             
@@ -691,8 +697,9 @@ export default function FrontendQuotationShow() {
                                             const priceBreakdown = productDetailsModalOpen.price_breakdown || {};
                                             const metalCost = Number(priceBreakdown.metal) || 0;
                                             const diamondCost = Number(priceBreakdown.diamond) || 0;
+                                            const colorstoneCost = Number(priceBreakdown.colorstone) || 0;
                                             const makingCharge = Number(priceBreakdown.making) || 0;
-                                            const total = Number(priceBreakdown.total) || (metalCost + diamondCost + makingCharge);
+                                            const total = Number(priceBreakdown.total) || (metalCost + diamondCost + colorstoneCost + makingCharge);
                                             
                                             return (
                                                 <>
@@ -706,6 +713,12 @@ export default function FrontendQuotationShow() {
                                                         <div className="flex justify-between">
                                                             <span className="text-slate-600">Diamond:</span>
                                                             <span className="font-semibold text-slate-900">{currencyFormatter.format(diamondCost)}</span>
+                                                        </div>
+                                                    )}
+                                                    {colorstoneCost > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Colorstone:</span>
+                                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(colorstoneCost)}</span>
                                                         </div>
                                                     )}
                                                     {makingCharge > 0 && (
