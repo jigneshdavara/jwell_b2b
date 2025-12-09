@@ -18,6 +18,7 @@ use App\Models\ProductVariant;
 use App\Models\Quotation;
 use App\Models\QuotationMessage;
 use App\Services\PricingService;
+use App\Services\TaxService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,10 @@ use Inertia\Response;
 
 class QuotationController extends Controller
 {
-    public function __construct(protected PricingService $pricingService) {}
+    public function __construct(
+        protected PricingService $pricingService,
+        protected TaxService $taxService
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -275,6 +279,8 @@ class QuotationController extends Controller
                         'meta' => $history->meta,
                     ]),
                 ] : null,
+                'tax_rate' => $this->taxService->getDefaultTaxRate(),
+                'tax_summary' => $this->calculateQuotationTaxSummary($quotation, $relatedQuotations),
                 'messages' => $quotation->messages->map(fn(QuotationMessage $message) => [
                     'id' => $message->id,
                     'sender' => $message->sender,
@@ -825,6 +831,11 @@ class QuotationController extends Controller
             ];
         }
 
+        // Calculate tax on subtotal after discount
+        $taxableAmount = $totalSubtotal - $totalDiscount;
+        $taxAmount = $this->taxService->calculateTax($taxableAmount);
+        $totalAmountWithTax = $totalSubtotal + $taxAmount - $totalDiscount;
+
         $initialStatus = OrderStatus::InProduction;
 
         $order = Order::create([
@@ -832,9 +843,9 @@ class QuotationController extends Controller
             'status' => $statusOverride?->value ?? $initialStatus->value,
             'reference' => Str::upper(Str::random(10)),
             'currency' => 'INR',
-            'total_amount' => round($totalAmount, 2),
+            'total_amount' => round($totalAmountWithTax, 2),
             'subtotal_amount' => round($totalSubtotal, 2),
-            'tax_amount' => 0,
+            'tax_amount' => round($taxAmount, 2),
             'discount_amount' => round($totalDiscount, 2),
             'price_breakdown' => [
                 'items' => collect($orderItems)->map(function ($item) {
@@ -939,6 +950,11 @@ class QuotationController extends Controller
         $lineDiscount = $unitDiscount * $quotation->quantity;
         $lineTotal = $unitTotal * $quotation->quantity;
 
+        // Calculate tax on subtotal after discount
+        $taxableAmount = $lineSubtotal - $lineDiscount;
+        $taxAmount = $this->taxService->calculateTax($taxableAmount);
+        $totalAmountWithTax = $lineSubtotal + $taxAmount - $lineDiscount;
+
         $initialStatus = $quotation->mode === 'jobwork'
             ? OrderStatus::AwaitingMaterials
             : OrderStatus::InProduction;
@@ -948,9 +964,9 @@ class QuotationController extends Controller
             'status' => $statusOverride?->value ?? $initialStatus->value,
             'reference' => Str::upper(Str::random(10)),
             'currency' => 'INR',
-            'total_amount' => round($lineTotal, 2),
+            'total_amount' => round($totalAmountWithTax, 2),
             'subtotal_amount' => round($lineSubtotal, 2),
-            'tax_amount' => 0,
+            'tax_amount' => round($taxAmount, 2),
             'discount_amount' => round($lineDiscount, 2),
             'price_breakdown' => [
                 'unit' => $pricing,
@@ -991,5 +1007,41 @@ class QuotationController extends Controller
         ]);
 
         return $order;
+    }
+
+    protected function calculateQuotationTaxSummary(Quotation $quotation, $relatedQuotations): array
+    {
+        $allQuotations = collect([$quotation])->merge($relatedQuotations);
+
+        $totalSubtotal = 0;
+
+        foreach ($allQuotations as $q) {
+            $pricing = $this->pricingService->calculateProductPrice(
+                $q->product,
+                $q->user,
+                [
+                    'variant' => $q->variant ? $q->variant->toArray() : null,
+                    'quantity' => $q->quantity,
+                    'customer_group_id' => $q->user?->customer_group_id ?? null,
+                    'customer_type' => $q->user?->type ?? null,
+                    'mode' => $q->mode,
+                ]
+            )->toArray();
+
+            $unitSubtotal = $pricing['subtotal'] ?? (($pricing['metal'] ?? 0) + ($pricing['diamond'] ?? 0) + ($pricing['colorstone'] ?? 0) + ($pricing['making'] ?? 0));
+            $unitDiscount = $pricing['discount'] ?? 0;
+            $lineSubtotal = ($unitSubtotal - $unitDiscount) * $q->quantity;
+
+            $totalSubtotal += $lineSubtotal;
+        }
+
+        $taxAmount = $this->taxService->calculateTax($totalSubtotal);
+        $grandTotal = $totalSubtotal + $taxAmount;
+
+        return [
+            'subtotal' => round($totalSubtotal, 2),
+            'tax' => round($taxAmount, 2),
+            'total' => round($grandTotal, 2),
+        ];
     }
 }

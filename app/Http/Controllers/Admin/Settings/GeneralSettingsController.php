@@ -60,7 +60,7 @@ class GeneralSettingsController extends Controller
             'app_timezone' => ['required', 'string', 'max:50'],
             'app_currency' => ['required', 'string', 'max:3'],
         ]);
-        
+
         // Convert empty strings to null for nullable fields
         $nullableFields = ['company_address', 'company_city', 'company_state', 'company_pincode', 'company_phone', 'company_email', 'company_gstin'];
         foreach ($nullableFields as $field) {

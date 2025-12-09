@@ -107,6 +107,12 @@ type QuotationDetails = {
         discount?: number;
         total?: number;
     };
+    tax_rate?: number;
+    tax_summary?: {
+        subtotal: number;
+        tax: number;
+        total: number;
+    };
     messages: Array<{
         id: number;
         sender: 'customer' | 'admin';
@@ -381,10 +387,12 @@ export default function FrontendQuotationShow() {
                                             return acc;
                                         }, { totalJobwork: 0, totalBase: 0 });
                                         
-                                        const subtotal = totals.totalJobwork + totals.totalBase;
-                                        const taxRate = 0.18; // 18% GST
-                                        const tax = subtotal * taxRate;
-                                        const grandTotal = subtotal + tax;
+                                        // Use backend-calculated tax summary if available, otherwise calculate from totals
+                                        const taxSummary = quotation.tax_summary;
+                                        const subtotal = taxSummary ? taxSummary.subtotal : (totals.totalJobwork + totals.totalBase);
+                                        const tax = taxSummary ? taxSummary.tax : 0;
+                                        const grandTotal = taxSummary ? taxSummary.total : (subtotal + tax);
+                                        const taxRate = quotation.tax_rate ?? 18;
                                         
                                         return (
                                             <>
@@ -421,7 +429,7 @@ export default function FrontendQuotationShow() {
                                                 </tr>
                                                 <tr>
                                                     <td colSpan={3} className="px-4 py-2 text-right text-sm text-slate-600">
-                                                        GST (18%)
+                                                        GST ({taxRate}%)
                                                     </td>
                                                     <td className="px-4 py-2"></td>
                                                     <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">

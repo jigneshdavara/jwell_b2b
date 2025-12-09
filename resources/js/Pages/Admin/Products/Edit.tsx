@@ -61,6 +61,7 @@ type Product = {
     description?: string;
     brand_id?: number;
     category_id?: number;
+    catalog_ids?: number[];
     collection?: string;
     producttype?: string;
     gender?: string;
@@ -147,10 +148,20 @@ type MetalToneOption = {
     metal: { id: number; name: string } | null;
 };
 
+type CatalogOption = {
+    id: number;
+    code: string | null;
+    name: string;
+    products_count: number;
+    display_order: number;
+    is_active: boolean;
+};
+
 type AdminProductEditPageProps = AppPageProps<{
     product: Product | null;
     brands: OptionList;
     categories: OptionList;
+    catalogs: CatalogOption[];
     diamondCatalog: DiamondCatalog;
     colorstoneCatalog: ColorstoneCatalog;
     diamonds: OptionListItem[];
@@ -188,6 +199,7 @@ type FormData = {
     diamond_mixing_mode?: 'shared' | 'as_variant';
     uses_diamond?: boolean;
     colorstone_selections?: Array<{ colorstone_id: number | ''; count: string }>;
+    catalog_ids?: number[];
     media_uploads?: File[];
     removed_media_ids?: number[];
     variant_options?: Record<string, any>;
@@ -278,12 +290,247 @@ const createDiscountOverride = (): DiscountOverrideForm => ({
     value: '',
 });
 
+// Catalog Multi-Select Component
+type CatalogMultiSelectProps = {
+    catalogs: CatalogOption[];
+    selectedIds: number[];
+    onChange: (selectedIds: number[]) => void;
+    error?: string;
+};
+
+function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogMultiSelectProps) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Filter catalogs based on search
+    const filteredCatalogs = useMemo(() => {
+        if (!searchTerm.trim()) {
+            return catalogs;
+        }
+        const search = searchTerm.toLowerCase();
+        return catalogs.filter((catalog) =>
+            catalog.name.toLowerCase().includes(search) ||
+            catalog.code?.toLowerCase().includes(search)
+        );
+    }, [catalogs, searchTerm]);
+
+    // Toggle catalog selection
+    const toggleCatalog = (catalogId: number) => {
+        if (selectedIds.includes(catalogId)) {
+            onChange(selectedIds.filter(id => id !== catalogId));
+        } else {
+            onChange([...selectedIds, catalogId]);
+        }
+    };
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+                setSearchTerm('');
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]);
+
+    // Get selected catalog data for display
+    const selectedCatalogs = useMemo(() => {
+        return selectedIds
+            .map(id => {
+                const catalog = catalogs.find(c => c.id === id);
+                return catalog ? { id, name: catalog.name } : null;
+            })
+            .filter(Boolean) as Array<{ id: number; name: string }>;
+    }, [selectedIds, catalogs]);
+
+    // Remove catalog from selection
+    const removeCatalog = (catalogId: number) => {
+        onChange(selectedIds.filter(id => id !== catalogId));
+    };
+
+    return (
+        <label className="flex flex-col gap-2 text-sm text-slate-600">
+            <div className="flex items-center justify-between">
+                <span>Catalogs</span>
+                {selectedIds.length > 0 && (
+                    <span className="text-xs font-medium text-sky-600">
+                        {selectedIds.length} selected
+                    </span>
+                )}
+            </div>
+            <div className="relative" ref={dropdownRef}>
+                {/* Dropdown Button */}
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={`w-full rounded-2xl border ${
+                        error ? 'border-rose-300' : 'border-slate-200'
+                    } bg-white px-4 py-2.5 text-left focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 transition-all ${
+                        isOpen ? 'border-sky-400 ring-2 ring-sky-200' : ''
+                    }`}
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-h-[20px] flex flex-wrap gap-1.5">
+                            {selectedIds.length === 0 ? (
+                                <span className="text-slate-400">Select catalogs...</span>
+                            ) : (
+                                selectedCatalogs.map((catalog) => (
+                                    <span
+                                        key={catalog.id}
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 border border-sky-200"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <span>{catalog.name}</span>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                removeCatalog(catalog.id);
+                                            }}
+                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors"
+                                        >
+                                            <svg 
+                                                className="h-3 w-3 text-sky-600" 
+                                                fill="none" 
+                                                viewBox="0 0 24 24" 
+                                                stroke="currentColor"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </span>
+                                ))
+                            )}
+                        </div>
+                        <svg
+                            className={`ml-2 h-5 w-5 text-slate-400 transition-transform flex-shrink-0 ${
+                                isOpen ? 'rotate-180' : ''
+                            }`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isOpen && (
+                    <div className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
+                        {/* Search Input */}
+                        {catalogs.length > 5 && (
+                            <div className="border-b border-slate-100 p-3">
+                                <div className="relative">
+                                    <svg 
+                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" 
+                                        fill="none" 
+                                        viewBox="0 0 24 24" 
+                                        stroke="currentColor"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <input
+                                        type="text"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        placeholder="Search catalogs..."
+                                        className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Catalog List */}
+                        <div className="max-h-64 overflow-y-auto p-2">
+                            {filteredCatalogs.length === 0 ? (
+                                <div className="px-3 py-6 text-center text-sm text-slate-400">
+                                    {searchTerm ? 'No catalogs found' : 'No catalogs available'}
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    {filteredCatalogs.map((catalog) => {
+                                        const isSelected = selectedIds.includes(catalog.id);
+                                        return (
+                                            <button
+                                                key={catalog.id}
+                                                type="button"
+                                                onClick={() => toggleCatalog(catalog.id)}
+                                                className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                                                    isSelected
+                                                        ? 'bg-sky-50 text-sky-700'
+                                                        : 'text-slate-700 hover:bg-slate-50'
+                                                }`}
+                                            >
+                                                {/* Checkbox */}
+                                                <div
+                                                    className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
+                                                        isSelected
+                                                            ? 'border-sky-500 bg-sky-500'
+                                                            : 'border-slate-300'
+                                                    }`}
+                                                >
+                                                    {isSelected && (
+                                                        <svg 
+                                                            className="h-3.5 w-3.5 text-white" 
+                                                            fill="none" 
+                                                            viewBox="0 0 24 24" 
+                                                            stroke="currentColor"
+                                                            strokeWidth={3}
+                                                        >
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                                
+                                                {/* Catalog Info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-sm font-medium truncate ${
+                                                            isSelected ? 'text-sky-900' : 'text-slate-900'
+                                                        }`}>
+                                                            {catalog.name}
+                                                        </span>
+                                                        {catalog.code && (
+                                                            <span className={`text-xs font-mono ${
+                                                                isSelected ? 'text-sky-600' : 'text-slate-500'
+                                                            }`}>
+                                                                ({catalog.code})
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+            {error && <span className="text-xs text-rose-500">{error}</span>}
+        </label>
+    );
+}
+
 export default function AdminProductEdit() {
     const { props } = usePage<AdminProductEditPageProps>();
     const {
         product,
         brands,
         categories,
+        catalogs,
         diamondCatalog,
         colorstoneCatalog,
         diamonds,
@@ -424,6 +671,7 @@ export default function AdminProductEdit() {
         name: product?.name ?? '',
         titleline: product?.titleline ?? '',
         description: product?.description ?? '',
+        catalog_ids: product?.catalog_ids ?? [],
         brand_id: String(product?.brand_id ?? ''),
         category_id: String(product?.category_id ?? ''),
         collection: product?.collection ?? '',
@@ -2016,12 +2264,12 @@ export default function AdminProductEdit() {
                     if ((prev.diamond_selections || []).length > 0) {
                         // Use diamond_selections for all variants (they're shared)
                         variant.diamonds = (prev.diamond_selections || []).map((selection) => {
-                        const existingDiamond = existingData?.diamonds.find(
+                            const existingDiamond = existingData?.diamonds.find(
                                 ed => ed.diamond_id === (selection.diamond_id !== '' && selection.diamond_id !== null ? (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id)) : null)
-                        );
-                        
+                            );
+                            
                             return {
-                            id: undefined,
+                                id: undefined,
                                 diamond_id: selection.diamond_id !== '' && selection.diamond_id !== null ? (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id)) : '',
                                 diamonds_count: existingDiamond?.diamonds_count || selection.count || '',
                             };
@@ -2409,6 +2657,12 @@ export default function AdminProductEdit() {
                                     </select>
                                     {errors.brand_id && <span className="text-xs text-rose-500">{errors.brand_id}</span>}
                                 </label>
+                                <CatalogMultiSelect
+                                    catalogs={catalogs}
+                                    selectedIds={Array.isArray(data.catalog_ids) ? data.catalog_ids : []}
+                                    onChange={(selectedIds) => setData('catalog_ids', selectedIds)}
+                                    error={errors.catalog_ids}
+                                />
                             </div>
 
                             <div className="space-y-4">

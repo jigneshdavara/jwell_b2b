@@ -46,6 +46,8 @@ class StoreProductRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'brand_id' => ['required', 'exists:brands,id'],
             'category_id' => ['required', 'exists:categories,id'],
+            'catalog_ids' => ['nullable', 'array'],
+            'catalog_ids.*' => ['integer', 'exists:catalogs,id'],
             'collection' => ['required', 'string', 'max:255'],
             'producttype' => ['required', 'string', 'max:255'],
             'gender' => ['required', 'string', 'max:50', Rule::in(['Men', 'Women', 'Unisex', 'Kids'])],
