@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             ColorstoneDataSeeder::class,
             DiamondDataSeeder::class,
+            GeneralSettingsSeeder::class,
             MetalPuritySeeder::class,
             MetalSeeder::class,
             MetalToneSeeder::class,
