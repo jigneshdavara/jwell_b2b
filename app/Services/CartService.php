@@ -10,9 +10,10 @@ use App\Models\ProductVariant;
 
 class CartService
 {
-    public function __construct(protected PricingService $pricingService)
-    {
-    }
+    public function __construct(
+        protected PricingService $pricingService,
+        protected TaxService $taxService
+    ) {}
 
     public function getActiveCart(Customer $user): Cart
     {
@@ -30,8 +31,23 @@ class CartService
 
         $quantity = max(1, $quantity);
 
-        $existingItem = $cart->items
-            ->firstWhere(fn (CartItem $item) => $item->product_id === $product->id && $item->product_variant_id === optional($variant)->id && $item->configuration == $configuration);
+        // Normalize configuration for comparison (only compare relevant fields)
+        $normalizedConfig = $this->normalizeConfiguration($configuration);
+
+        // Find existing item with same product, variant, and configuration
+        $existingItem = $cart->items->first(function (CartItem $item) use ($product, $variant, $normalizedConfig) {
+            if ($item->product_id !== $product->id) {
+                return false;
+            }
+
+            if ($item->product_variant_id !== optional($variant)->id) {
+                return false;
+            }
+
+            // Compare normalized configurations
+            $itemNormalizedConfig = $this->normalizeConfiguration($item->configuration ?? []);
+            return $itemNormalizedConfig === $normalizedConfig;
+        });
 
         $targetQuantity = $existingItem ? $existingItem->quantity + $quantity : $quantity;
         $mode = $configuration['mode'] ?? 'purchase';
@@ -141,9 +157,10 @@ class CartService
             ];
         });
 
-        $subtotal = $items->sum(fn (array $item) => $item['line_subtotal'] ?? $item['line_total']);
-        $tax = 0.0;
-        $discount = $items->sum(fn (array $item) => $item['line_discount'] ?? 0.0);
+        $subtotal = $items->sum(fn(array $item) => $item['line_subtotal'] ?? $item['line_total']);
+        $discount = $items->sum(fn(array $item) => $item['line_discount'] ?? 0.0);
+        $taxableAmount = $subtotal - $discount; // Tax is calculated on subtotal after discount
+        $tax = $this->taxService->calculateTax($taxableAmount);
         $shipping = 0.0;
         $total = $subtotal + $tax - $discount + $shipping;
 
@@ -174,5 +191,27 @@ class CartService
     {
         $cart->items()->delete();
         $cart->update(['status' => 'active']);
+    }
+
+    /**
+     * Normalize configuration for comparison by extracting only relevant fields
+     * (mode, selections, notes) and ignoring extra fields like 'variant' label.
+     */
+    protected function normalizeConfiguration(array $configuration): string
+    {
+        // Extract only the fields that matter for matching
+        $relevantFields = [
+            'mode' => $configuration['mode'] ?? 'purchase',
+            'selections' => $configuration['selections'] ?? null,
+            'notes' => $configuration['notes'] ?? null,
+        ];
+
+        // Sort selections if it's an array to ensure consistent comparison
+        if (is_array($relevantFields['selections'])) {
+            ksort($relevantFields['selections']);
+        }
+
+        // Convert to JSON string for reliable comparison
+        return json_encode($relevantFields, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }

@@ -16,9 +16,7 @@ use Inertia\Response;
 
 class CartController extends Controller
 {
-    public function __construct(protected CartService $cartService)
-    {
-    }
+    public function __construct(protected CartService $cartService) {}
 
     public function index(): Response
     {
@@ -73,7 +71,9 @@ class CartController extends Controller
 
         if (array_key_exists('quantity', $data) && $data['quantity'] !== null) {
             $quantity = (int) $data['quantity'];
-            
+            $currentQuantity = $item->quantity;
+            $isDecreasing = $quantity < $currentQuantity;
+
             // Validate inventory quantity if variant exists
             if ($item->product_variant_id) {
                 $variant = $item->variant;
@@ -86,8 +86,9 @@ class CartController extends Controller
                                 ->back()
                                 ->with('error', 'This product variant is currently out of stock.');
                         }
-                        // If inventory is tracked, don't allow exceeding it
-                        if ($quantity > $inventoryQuantity) {
+                        // Only prevent exceeding inventory when increasing (not when decreasing)
+                        // Allow decreasing even if new quantity still exceeds inventory (user needs to fix it)
+                        if (!$isDecreasing && $quantity > $inventoryQuantity) {
                             return redirect()
                                 ->back()
                                 ->with('error', "Only {$inventoryQuantity} " . ($inventoryQuantity === 1 ? 'item is' : 'items are') . " available. Maximum {$inventoryQuantity} " . ($inventoryQuantity === 1 ? 'item' : 'items') . " allowed.");
@@ -95,7 +96,7 @@ class CartController extends Controller
                     }
                 }
             }
-            
+
             $this->cartService->updateItemQuantity($item, $quantity);
         }
 
