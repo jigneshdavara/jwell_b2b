@@ -2016,12 +2016,12 @@ export default function AdminProductEdit() {
                     if ((prev.diamond_selections || []).length > 0) {
                         // Use diamond_selections for all variants (they're shared)
                         variant.diamonds = (prev.diamond_selections || []).map((selection) => {
-                            const existingDiamond = existingData?.diamonds.find(
+                        const existingDiamond = existingData?.diamonds.find(
                                 ed => ed.diamond_id === (selection.diamond_id !== '' && selection.diamond_id !== null ? (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id)) : null)
-                            );
-                            
+                        );
+                        
                             return {
-                                id: undefined,
+                            id: undefined,
                                 diamond_id: selection.diamond_id !== '' && selection.diamond_id !== null ? (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id)) : '',
                                 diamonds_count: existingDiamond?.diamonds_count || selection.count || '',
                             };
