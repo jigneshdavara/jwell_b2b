@@ -16,8 +16,7 @@ class OrderController extends Controller
 {
     public function __construct(
         protected OrderWorkflowService $orderWorkflowService
-    ) {
-    }
+    ) {}
 
     public function index(): Response
     {
@@ -90,26 +89,26 @@ class OrderController extends Controller
                             'silver_weight' => $item->product->silver_weight,
                             'other_material_weight' => $item->product->other_material_weight,
                             'total_weight' => $item->product->total_weight,
-                            'media' => $item->product->media->sortBy('position')->values()->map(fn ($media) => [
+                            'media' => $item->product->media->sortBy('position')->values()->map(fn($media) => [
                                 'url' => $media->url,
                                 'alt' => $media->metadata['alt'] ?? $item->product->name,
                             ]),
                         ] : null,
                     ];
                 }),
-                'status_history' => $order->statusHistory->map(fn ($entry) => [
+                'status_history' => $order->statusHistory->map(fn($entry) => [
                     'id' => $entry->id,
                     'status' => $entry->status,
                     'created_at' => optional($entry->created_at)?->toDateTimeString(),
                     'meta' => $entry->meta,
                 ]),
-                'payments' => $order->payments->map(fn ($payment) => [
+                'payments' => $order->payments->map(fn($payment) => [
                     'id' => $payment->id,
                     'status' => $payment->status,
                     'amount' => $payment->amount,
                     'created_at' => optional($payment->created_at)?->toDateTimeString(),
                 ]),
-                'quotations' => $order->quotations->map(fn ($quotation) => [
+                'quotations' => $order->quotations->map(fn($quotation) => [
                     'id' => $quotation->id,
                     'mode' => $quotation->mode,
                     'status' => $quotation->status,
@@ -118,14 +117,14 @@ class OrderController extends Controller
                         'id' => $quotation->product->id,
                         'name' => $quotation->product->name,
                         'sku' => $quotation->product->sku,
-                        'media' => $quotation->product->media->sortBy('position')->values()->map(fn ($media) => [
+                        'media' => $quotation->product->media->sortBy('position')->values()->map(fn($media) => [
                             'url' => $media->url,
                             'alt' => $media->metadata['alt'] ?? $quotation->product->name,
                         ]),
                     ] : null,
                 ]),
             ],
-            'statusOptions' => collect(OrderStatus::cases())->map(fn (OrderStatus $status) => [
+            'statusOptions' => collect(OrderStatus::cases())->map(fn(OrderStatus $status) => [
                 'value' => $status->value,
                 'label' => Str::headline($status->value),
             ]),

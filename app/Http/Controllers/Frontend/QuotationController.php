@@ -12,6 +12,7 @@ use App\Models\Quotation;
 use App\Models\QuotationMessage;
 use App\Services\CartService;
 use App\Services\PricingService;
+use App\Services\TaxService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,8 @@ class QuotationController extends Controller
 {
     public function __construct(
         protected CartService $cartService,
-        protected PricingService $pricingService
+        protected PricingService $pricingService,
+        protected TaxService $taxService
     ) {}
 
     public function index(): Response
@@ -113,7 +115,7 @@ class QuotationController extends Controller
                 $timeWindowEnd = $createdAt ? $createdAt->copy()->addMinutes(5) : null;
                 if ($timeWindow && $timeWindowEnd) {
                     $q->where('user_id', $quotation->user_id)
-                      ->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
+                        ->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
                 }
             })
             ->with(['product.media', 'variant', 'product.variants'])
@@ -237,6 +239,8 @@ class QuotationController extends Controller
                         'meta' => $history->meta,
                     ]),
                 ] : null,
+                'tax_rate' => $this->taxService->getDefaultTaxRate(),
+                'tax_summary' => $this->calculateQuotationTaxSummary($quotation, $relatedQuotations),
                 'messages' => $quotation->messages->map(fn(QuotationMessage $message) => [
                     'id' => $message->id,
                     'sender' => $message->sender,
@@ -527,5 +531,41 @@ class QuotationController extends Controller
         ]);
 
         return redirect()->route('frontend.quotations.index')->with('success', 'Quotation declined.');
+    }
+
+    protected function calculateQuotationTaxSummary(Quotation $quotation, $relatedQuotations): array
+    {
+        $allQuotations = collect([$quotation])->merge($relatedQuotations);
+
+        $totalSubtotal = 0;
+
+        foreach ($allQuotations as $q) {
+            $pricing = $this->pricingService->calculateProductPrice(
+                $q->product,
+                $q->user,
+                [
+                    'variant' => $q->variant ? $q->variant->toArray() : null,
+                    'quantity' => $q->quantity,
+                    'customer_group_id' => $q->user?->customer_group_id ?? null,
+                    'customer_type' => $q->user?->type ?? null,
+                    'mode' => $q->mode,
+                ]
+            )->toArray();
+
+            $unitSubtotal = $pricing['subtotal'] ?? (($pricing['metal'] ?? 0) + ($pricing['diamond'] ?? 0) + ($pricing['colorstone'] ?? 0) + ($pricing['making'] ?? 0));
+            $unitDiscount = $pricing['discount'] ?? 0;
+            $lineSubtotal = ($unitSubtotal - $unitDiscount) * $q->quantity;
+
+            $totalSubtotal += $lineSubtotal;
+        }
+
+        $taxAmount = $this->taxService->calculateTax($totalSubtotal);
+        $grandTotal = $totalSubtotal + $taxAmount;
+
+        return [
+            'subtotal' => round($totalSubtotal, 2),
+            'tax' => round($taxAmount, 2),
+            'total' => round($grandTotal, 2),
+        ];
     }
 }
