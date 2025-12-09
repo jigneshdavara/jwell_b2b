@@ -101,3 +101,5 @@ Defined in `app/Enums/UserType.php`:
 - When unsure about business logic, preserve current behavior and mark `// TODO` instead of guessing
 - Before touching critical domains, check existing services, enums, and routes
 - Extend existing code rather than building parallel logic
+- **When adding important rules**: Use the format "Add to rules: [description]" with context (category, related files, priority). See `.cursor/rules/README-UPDATING-RULES.md` for details
+- **When creating files**: Analyze requirements, check existing patterns, and create files dynamically based on codebase structure. See `FILE-CREATION-INSTRUCTIONS.mdc` for detailed guidelines. DO NOT use fixed templates - create files that match existing codebase patterns.

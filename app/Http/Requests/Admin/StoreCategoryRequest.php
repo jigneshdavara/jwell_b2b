@@ -25,6 +25,10 @@ class StoreCategoryRequest extends FormRequest
             'is_active' => ['boolean'],
             'display_order' => ['nullable', 'integer', 'min:0'],
             'cover_image' => ['nullable', 'image', 'max:2048'],
+            'style_ids' => ['nullable', 'array'],
+            'style_ids.*' => ['integer', 'exists:styles,id'],
+            'size_ids' => ['nullable', 'array'],
+            'size_ids.*' => ['integer', 'exists:sizes,id'],
         ];
     }
 }
