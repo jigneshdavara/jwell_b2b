@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\BulkUpdateProductStatusRequest;
 use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Brand;
+use App\Models\Catalog;
 use App\Models\Category;
 use App\Models\CustomerGroup;
 use App\Models\Colorstone;
@@ -93,6 +94,7 @@ class ProductController extends Controller
             'customerGroups' => $this->customerGroupOptions(),
             'brands' => $this->brandList(),
             'categories' => $this->categoryList(),
+            'catalogs' => $this->catalogList(),
             'diamondCatalog' => $this->diamondCatalogOptions(),
             'colorstoneCatalog' => $this->colorstoneCatalogOptions(),
             'diamonds' => $this->diamondOptions(),
@@ -110,14 +112,20 @@ class ProductController extends Controller
         $variantOptions = Arr::pull($data, 'variant_options', []);
         $mediaUploads = Arr::pull($data, 'media_uploads', []);
         $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
+        $catalogIds = Arr::pull($data, 'catalog_ids', []);
 
         $data = $this->prepareProductPayload($data);
 
-        return DB::transaction(function () use ($data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds) {
+        return DB::transaction(function () use ($data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds) {
             $product = Product::create($data);
 
             $variantSync->sync($product, $variants, $variantOptions, null);
             $this->syncMedia($product, $mediaUploads, $removedMediaIds);
+            
+            // Sync catalogs if any are selected
+            if (!empty($catalogIds)) {
+                $product->catalogs()->sync($catalogIds);
+            }
 
             return redirect()
                 ->route('admin.products.edit', $product)
@@ -130,6 +138,7 @@ class ProductController extends Controller
         $product->load([
             'brand',
             'category',
+            'catalogs',
             'media' => fn($query) => $query->orderBy('position'),
             'variants' => function ($query) {
                 $query->orderByDesc('is_default')->orderBy('label')
@@ -192,6 +201,7 @@ class ProductController extends Controller
                 'metal_ids' => $product->metal_ids ?? [],
                 'metal_purity_ids' => $product->metal_purity_ids ?? [],
                 'metal_tone_ids' => $product->metal_tone_ids ?? [],
+                'catalog_ids' => $product->catalogs->pluck('id')->toArray(),
                 'metadata' => $product->metadata,
                 'variants' => $product->variants->map(fn(ProductVariant $variant) => [
                     'id' => $variant->id,
@@ -245,6 +255,7 @@ class ProductController extends Controller
             'customerGroups' => $this->customerGroupOptions(),
             'brands' => $this->brandList(),
             'categories' => $this->categoryList(),
+            'catalogs' => $this->catalogList(),
             'diamondCatalog' => $this->diamondCatalogOptions(),
             'colorstoneCatalog' => $this->colorstoneCatalogOptions(),
             'diamonds' => $this->diamondOptions(),
@@ -262,13 +273,17 @@ class ProductController extends Controller
         $variantOptions = Arr::pull($data, 'variant_options', []);
         $mediaUploads = Arr::pull($data, 'media_uploads', []);
         $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
+        $catalogIds = Arr::pull($data, 'catalog_ids', []);
 
         $data = $this->prepareProductPayload($data);
 
-        DB::transaction(function () use ($product, $data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds): void {
+        DB::transaction(function () use ($product, $data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds): void {
             $product->update($data);
             $variantSync->sync($product, $variants, $variantOptions, null);
             $this->syncMedia($product, $mediaUploads, $removedMediaIds);
+            
+            // Sync catalogs (empty array will detach all catalogs)
+            $product->catalogs()->sync($catalogIds ?? []);
         });
 
         return redirect()
@@ -460,6 +475,25 @@ class ProductController extends Controller
             ->orderBy('display_order')
             ->orderBy('name')
             ->pluck('name', 'id')
+            ->all();
+    }
+
+    protected function catalogList(): array
+    {
+        return Catalog::query()
+            ->where('is_active', true)
+            ->withCount('products')
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name', 'display_order', 'is_active'])
+            ->map(fn(Catalog $catalog) => [
+                'id' => $catalog->id,
+                'code' => $catalog->code,
+                'name' => $catalog->name,
+                'products_count' => $catalog->products_count,
+                'display_order' => $catalog->display_order,
+                'is_active' => $catalog->is_active,
+            ])
             ->all();
     }
 
