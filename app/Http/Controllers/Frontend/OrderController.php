@@ -75,10 +75,6 @@ class OrderController extends Controller
                         'sku' => $item->product->sku,
                         'base_price' => $item->product->base_price,
                         'making_charge_amount' => $item->product->making_charge_amount,
-                        'gold_weight' => $item->product->gold_weight,
-                        'silver_weight' => $item->product->silver_weight,
-                        'other_material_weight' => $item->product->other_material_weight,
-                        'total_weight' => $item->product->total_weight,
                         'media' => $item->product->media->sortBy('position')->values()->map(fn ($media) => [
                             'url' => $media->url,
                             'alt' => $media->metadata['alt'] ?? $item->product->name,

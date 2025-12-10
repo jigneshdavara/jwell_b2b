@@ -35,11 +35,8 @@ class JobworkController extends Controller
                     'sku' => $productModel->sku,
                     'material' => optional($productModel->material)?->name,
                     'purity' => $productModel->metadata['purity'] ?? $productModel->material?->purity,
-                    'gross_weight' => $productModel->gross_weight,
-                    'net_weight' => $productModel->net_weight,
                     'base_price' => $productModel->base_price,
                     'making_charge_amount' => $productModel->making_charge_amount,
-                    'standard_pricing' => $productModel->standard_pricing,
                     'variants' => $productModel->variants->map(fn($variant) => [
                         'id' => $variant->id,
                         'label' => $variant->label,
@@ -177,7 +174,6 @@ class JobworkController extends Controller
                     'product_snapshot' => $product ? [
                         'name' => $product->name,
                         'sku' => $product->sku,
-                        'standard_pricing' => $product->standard_pricing,
                     ] : null,
                     'variant_snapshot' => $variant ? $variant->only(['label', 'price_adjustment']) : null,
                 ],
