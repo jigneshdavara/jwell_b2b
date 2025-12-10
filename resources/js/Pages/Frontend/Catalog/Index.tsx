@@ -283,20 +283,6 @@ export default function CatalogIndex() {
         );
     };
 
-    const changeMode = (nextMode: 'purchase' | 'jobwork') => {
-        if (nextMode === mode) return;
-        router.get(
-            route('frontend.catalog.index'),
-            {
-                ...rawFilters,
-                mode: nextMode,
-            },
-            {
-                preserveScroll: true,
-                preserveState: true,
-            },
-        );
-    };
 
     const navigation = page.props.navigation ?? {};
     const valueNameMap = useMemo(() => {

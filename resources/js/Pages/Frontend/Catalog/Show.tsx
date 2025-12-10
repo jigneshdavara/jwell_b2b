@@ -1,9 +1,15 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import type { PageProps as AppPageProps } from '@/types';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { FormEvent, type MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import CustomizationSection from '@/Components/Customization/CustomizationSection';
-import ProductDetailsPanel from '@/Components/Customization/ProductDetailsPanel';
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import type { PageProps as AppPageProps } from "@/types";
+import { Head, router, useForm, usePage } from "@inertiajs/react";
+import {
+    FormEvent,
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+import CustomizationSection from "@/Components/Customization/CustomizationSection";
+import ProductDetailsPanel from "@/Components/Customization/ProductDetailsPanel";
 
 type VariantMetadata = {
     auto_label?: string;
@@ -57,10 +63,9 @@ type Product = {
     variants: ProductVariant[];
 };
 
-
 // Configuration option types - one option per variant
 interface ConfigMetal {
-    label: string;        // e.g. "18K Yellow Gold 3.50g"
+    label: string; // e.g. "18K Yellow Gold 3.50g"
     metalId: number;
     metalPurityId: number | null;
     metalToneId: number | null;
@@ -68,14 +73,13 @@ interface ConfigMetal {
 }
 
 interface ConfigDiamond {
-    label: string;        // e.g. "Oval F VVS1 1.00ct (2)" (type and cut removed as they don't exist in table)
+    label: string; // e.g. "Oval F VVS1 1.00ct (2)" (type and cut removed as they don't exist in table)
     diamondShapeId: number;
     diamondColorId: number;
     diamondClarityId: number;
     stoneCount: number;
     totalCarat: string;
 }
-
 
 interface ConfigurationOption {
     variant_id: number;
@@ -96,27 +100,27 @@ interface ConfigurationOption {
 }
 
 type CatalogShowPageProps = AppPageProps<{
-    mode: 'purchase' | 'jobwork';
+    mode: "purchase" | "jobwork";
     product: Product;
     configurationOptions: ConfigurationOption[];
 }>;
 
-const currencyFormatter = new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
+const currencyFormatter = new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
     maximumFractionDigits: 0,
 });
 
-
 export default function CatalogShow() {
-    const page = usePage<CatalogShowPageProps & { wishlist?: { product_ids?: number[] } }>();
-    const { 
-        mode, 
-        product, 
-        configurationOptions
-    } = page.props;
+    const page = usePage<
+        CatalogShowPageProps & { wishlist?: { product_ids?: number[] } }
+    >();
+    const { mode, product, configurationOptions } = page.props;
     const wishlistProductIds = page.props.wishlist?.product_ids ?? [];
-    const wishlistLookup = useMemo(() => new Set(wishlistProductIds), [wishlistProductIds]);
+    const wishlistLookup = useMemo(
+        () => new Set(wishlistProductIds),
+        [wishlistProductIds]
+    );
 
     // State for configuration selection
     // selectedVariantId is the key that drives all updates:
@@ -136,16 +140,18 @@ export default function CatalogShow() {
     // - diamonds: array of diamond details shown in "Diamonds in this variant"
     // - variant_id: sent to backend in Request quotation API
     const selectedConfig = useMemo(
-        () => configurationOptions.find((c) => c.variant_id === selectedVariantId) ?? null,
+        () =>
+            configurationOptions.find(
+                (c) => c.variant_id === selectedVariantId
+            ) ?? null,
         [selectedVariantId, configurationOptions]
     );
 
-    const [selectedMode] = useState<'purchase' | 'jobwork'>('purchase');
+    const [selectedMode] = useState<"purchase" | "jobwork">("purchase");
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [quantityInput, setQuantityInput] = useState<string>('1');
+    const [quantityInput, setQuantityInput] = useState<string>("1");
     const [activeImageIndex, setActiveImageIndex] = useState(0);
-    const galleryRef = useRef<HTMLDivElement | null>(null);
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxZoom, setLightboxZoom] = useState(1.5);
     const mediaCount = product.media.length;
@@ -153,45 +159,41 @@ export default function CatalogShow() {
     const activeMedia = hasMedia
         ? product.media[Math.min(activeImageIndex, mediaCount - 1)]
         : null;
-    const formatWeight = (value?: number | null) => {
-        if (value === null || value === undefined) {
-            return '—';
-        }
-
-        return `${value.toFixed(2)} g`;
-    };
-    const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+    const clamp = (value: number, min: number, max: number) =>
+        Math.min(max, Math.max(min, value));
 
     type QuotationFormData = {
         product_id: number;
         product_variant_id: number | null;
-        mode: 'purchase' | 'jobwork';
+        mode: "purchase" | "jobwork";
         quantity: number;
         notes: string;
         selections: {
-            metal_id: number | null | '';
-            metal_purity_id: number | null | '';
-            metal_tone_id: number | null | '';
+            metal_id: number | null | "";
+            metal_purity_id: number | null | "";
+            metal_tone_id: number | null | "";
             diamond_option_keys: string[];
         };
     };
 
-    const { data, setData, post, processing, errors } = useForm<QuotationFormData>({
-        product_id: product.id,
-        product_variant_id: selectedVariantId ?? null,
-        mode: selectedMode,
-        quantity: 1,
-        notes: '',
-        selections: {
-            metal_id: null,
-            metal_purity_id: null,
-            metal_tone_id: null,
-            diamond_option_keys: [],
-        },
-    });
+    const { data, setData, post, processing, errors } =
+        useForm<QuotationFormData>({
+            product_id: product.id,
+            product_variant_id: selectedVariantId ?? null,
+            mode: selectedMode,
+            quantity: 1,
+            notes: "",
+            selections: {
+                metal_id: null,
+                metal_purity_id: null,
+                metal_tone_id: null,
+                diamond_option_keys: [],
+                size_cm: null,
+            },
+        });
 
     useEffect(() => {
-        setData('mode', selectedMode);
+        setData("mode", selectedMode);
     }, [selectedMode, setData]);
 
     // Sync quantityInput with form data when variant changes
@@ -207,11 +209,13 @@ export default function CatalogShow() {
     // selects a metal+diamond combination, the matching variant_id is automatically
     // set in the form payload
     useEffect(() => {
-        setData('product_variant_id', selectedVariantId ?? null);
+        setData("product_variant_id", selectedVariantId ?? null);
     }, [selectedVariantId, setData]);
 
     const [wishlistPending, setWishlistPending] = useState(false);
-    const [isWishlisted, setIsWishlisted] = useState(wishlistLookup.has(product.id));
+    const [isWishlisted, setIsWishlisted] = useState(
+        wishlistLookup.has(product.id)
+    );
 
     useEffect(() => {
         setIsWishlisted(wishlistLookup.has(product.id));
@@ -227,9 +231,6 @@ export default function CatalogShow() {
         }
     }, [activeImageIndex, mediaCount]);
 
-
-
-
     // Calculate estimated total based on selectedVariant (via selectedConfig)
     // Price updates automatically when selectedVariantId changes because selectedConfig is a useMemo
     // that depends on selectedVariantId
@@ -240,13 +241,15 @@ export default function CatalogShow() {
 
         if (isJobworkMode) {
             // For jobwork, only charge the making charge
-            return selectedConfig.price_breakup.making;
+            return (
+                selectedConfig.price_breakup.making +
+                selectedConfig.price_breakup.adjustment
+            );
         } else {
             // For purchase, use price_total from configuration
             return selectedConfig.price_total;
         }
     }, [selectedConfig, isJobworkMode]);
-
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -267,7 +270,7 @@ export default function CatalogShow() {
             },
         };
 
-        router.post(route('frontend.cart.items.store'), payload, {
+        router.post(route("frontend.cart.items.store"), payload, {
             preserveScroll: true,
         });
     };
@@ -276,7 +279,7 @@ export default function CatalogShow() {
         if (processing || submitting) return;
 
         setSubmitting(true);
-        post(route('frontend.quotations.store'), {
+        post(route("frontend.quotations.store"), {
             preserveScroll: true,
             onSuccess: () => setConfirmOpen(false),
             onFinish: () => setSubmitting(false),
@@ -295,44 +298,13 @@ export default function CatalogShow() {
             },
         };
 
-        router.post(route('frontend.cart.items.store'), payload, {
+        router.post(route("frontend.cart.items.store"), payload, {
             preserveScroll: true,
             onSuccess: () => {
                 setConfirmOpen(false);
             },
         });
     };
-
-    const toggleWishlist = () => {
-        if (wishlistPending) {
-            return;
-        }
-
-        setWishlistPending(true);
-
-        if (isWishlisted) {
-            router.delete(route('frontend.wishlist.items.destroy-by-product', product.id), {
-                data: {
-                    product_variant_id: data.product_variant_id,
-                },
-                preserveScroll: true,
-                onFinish: () => setWishlistPending(false),
-            });
-        } else {
-            router.post(
-                route('frontend.wishlist.items.store'),
-                {
-                    product_id: product.id,
-                    product_variant_id: data.product_variant_id,
-                },
-                {
-                    preserveScroll: true,
-                    onFinish: () => setWishlistPending(false),
-                },
-            );
-        }
-    };
-
 
     const openLightbox = useCallback(() => {
         if (hasMedia) {
@@ -342,10 +314,6 @@ export default function CatalogShow() {
 
     const closeLightbox = useCallback(() => {
         setLightboxOpen(false);
-    }, []);
-
-    const adjustLightboxZoom = useCallback((delta: number) => {
-        setLightboxZoom((previous) => clamp(previous + delta, 1, 3));
     }, []);
 
     const resetLightboxZoom = useCallback(() => setLightboxZoom(1.5), []);
@@ -367,28 +335,28 @@ export default function CatalogShow() {
     }, [hasMedia, mediaCount]);
 
     useEffect(() => {
-        if (!lightboxOpen || typeof document === 'undefined') {
+        if (!lightboxOpen || typeof document === "undefined") {
             return;
         }
 
         const previous = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflow = "hidden";
 
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
+            if (event.key === "Escape") {
                 closeLightbox();
-            } else if (event.key === 'ArrowRight') {
+            } else if (event.key === "ArrowRight") {
                 showNextImage();
-            } else if (event.key === 'ArrowLeft') {
+            } else if (event.key === "ArrowLeft") {
                 showPreviousImage();
             }
         };
 
-        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener("keydown", handleKeyDown);
 
         return () => {
             document.body.style.overflow = previous;
-            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener("keydown", handleKeyDown);
         };
     }, [lightboxOpen, closeLightbox, showNextImage, showPreviousImage]);
 
@@ -398,13 +366,17 @@ export default function CatalogShow() {
         }
     }, [activeImageIndex, lightboxOpen, resetLightboxZoom]);
 
-    const invalidCombination = configurationOptions.length > 0 && !selectedConfig;
-    
+    const invalidCombination =
+        configurationOptions.length > 0 && !selectedConfig;
+
     // Check inventory availability
     const maxQuantity = selectedConfig?.inventory_quantity ?? null;
     const isOutOfStock = maxQuantity !== null && maxQuantity === 0;
     const currentQuantity = parseInt(quantityInput, 10) || 1;
-    const quantityExceedsInventory = maxQuantity !== null && maxQuantity > 0 && currentQuantity > maxQuantity;
+    const quantityExceedsInventory =
+        maxQuantity !== null &&
+        maxQuantity > 0 &&
+        currentQuantity > maxQuantity;
     const inventoryUnavailable = isOutOfStock || quantityExceedsInventory;
 
     // Sync quantityInput with form data when variant changes
@@ -421,9 +393,13 @@ export default function CatalogShow() {
                     <div className="space-y-6">
                         <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
                             <div className="mb-4">
-                                <h1 className="text-2xl font-bold text-slate-900">{product.name}</h1>
+                                <h1 className="text-2xl font-bold text-slate-900">
+                                    {product.name}
+                                </h1>
                                 {product.brand && (
-                                    <p className="mt-1 text-sm text-slate-500">by {product.brand}</p>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        by {product.brand}
+                                    </p>
                                 )}
                             </div>
 
@@ -432,39 +408,55 @@ export default function CatalogShow() {
                                     <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-slate-100">
                                         <img
                                             src={activeMedia?.url}
-                                            alt={activeMedia?.alt ?? product.name}
+                                            alt={
+                                                activeMedia?.alt ?? product.name
+                                            }
                                             className="h-full w-full object-cover"
                                             onClick={openLightbox}
                                             onError={(e) => {
-                                                const target = e.target as HTMLImageElement;
-                                                target.src = '/placeholder-image.png';
+                                                const target =
+                                                    e.target as HTMLImageElement;
+                                                target.src =
+                                                    "/placeholder-image.png";
                                             }}
                                         />
                                     </div>
                                     {mediaCount > 1 && (
                                         <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-                                            {product.media.map((media, index) => (
-                                                <button
-                                                    key={index}
-                                                    type="button"
-                                                    onClick={() => setActiveImageIndex(index)}
-                                                    className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border-2 transition ${
-                                                        index === activeImageIndex
-                                                            ? 'border-feather-gold'
-                                                            : 'border-transparent hover:border-slate-300'
-                                                    }`}
-                                                >
-                                                    <img
-                                                        src={media.url}
-                                                        alt={media.alt ?? product.name}
-                                                        className="h-full w-full object-cover"
-                                                        onError={(e) => {
-                                                            const target = e.target as HTMLImageElement;
-                                                            target.src = '/placeholder-image.png';
-                                                        }}
-                                                    />
-                                                </button>
-                                            ))}
+                                            {product.media.map(
+                                                (media, index) => (
+                                                    <button
+                                                        key={index}
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setActiveImageIndex(
+                                                                index
+                                                            )
+                                                        }
+                                                        className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border-2 transition ${
+                                                            index ===
+                                                            activeImageIndex
+                                                                ? "border-feather-gold"
+                                                                : "border-transparent hover:border-slate-300"
+                                                        }`}
+                                                    >
+                                                        <img
+                                                            src={media.url}
+                                                            alt={
+                                                                media.alt ??
+                                                                product.name
+                                                            }
+                                                            className="h-full w-full object-cover"
+                                                            onError={(e) => {
+                                                                const target =
+                                                                    e.target as HTMLImageElement;
+                                                                target.src =
+                                                                    "/placeholder-image.png";
+                                                            }}
+                                                        />
+                                                    </button>
+                                                )
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -488,7 +480,9 @@ export default function CatalogShow() {
                                     Request quotation
                                 </h2>
                                 <p className="text-xs text-slate-500">
-                                    Select your configuration and our merchandising desk will share pricing shortly.
+                                    Select your configuration and our
+                                    merchandising desk will share pricing
+                                    shortly.
                                 </p>
                             </div>
 
@@ -504,71 +498,111 @@ export default function CatalogShow() {
                             <label className="block space-y-1">
                                 <span className="text-xs font-semibold text-slate-600">
                                     Quantity
-                                    {maxQuantity !== null && maxQuantity > 0 && !quantityExceedsInventory && (
-                                        <span className="ml-1 font-normal text-slate-500">
-                                            (Available: {maxQuantity})
-                                        </span>
-                                    )}
+                                    {maxQuantity !== null &&
+                                        maxQuantity > 0 &&
+                                        !quantityExceedsInventory && (
+                                            <span className="ml-1 font-normal text-slate-500">
+                                                (Available: {maxQuantity})
+                                            </span>
+                                        )}
                                 </span>
                                 <input
                                     type="number"
                                     min="1"
-                                    max={maxQuantity !== null && maxQuantity > 0 ? maxQuantity : undefined}
+                                    max={
+                                        maxQuantity !== null && maxQuantity > 0
+                                            ? maxQuantity
+                                            : undefined
+                                    }
                                     value={quantityInput}
                                     onChange={(e) => {
                                         // Allow completely free typing
                                         const inputValue = e.target.value;
                                         setQuantityInput(inputValue);
-                                        
+
                                         // Update form data if it's a valid number
-                                        const numValue = parseInt(inputValue, 10);
+                                        const numValue = parseInt(
+                                            inputValue,
+                                            10
+                                        );
                                         if (!isNaN(numValue) && numValue >= 1) {
-                                            setData('quantity', numValue);
+                                            setData("quantity", numValue);
                                         }
                                     }}
                                     onBlur={(e) => {
                                         // On blur, validate and set proper value
-                                        const numValue = parseInt(quantityInput, 10);
+                                        const numValue = parseInt(
+                                            quantityInput,
+                                            10
+                                        );
                                         if (isNaN(numValue) || numValue < 1) {
-                                            setQuantityInput('1');
-                                            setData('quantity', 1);
+                                            setQuantityInput("1");
+                                            setData("quantity", 1);
                                         } else {
                                             setQuantityInput(String(numValue));
-                                            setData('quantity', numValue);
+                                            setData("quantity", numValue);
                                         }
                                     }}
                                     className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 ${
-                                        quantityExceedsInventory && !isOutOfStock
-                                            ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-rose-400/20'
-                                            : 'border-slate-200 bg-white focus:border-feather-gold focus:ring-feather-gold/20'
+                                        quantityExceedsInventory &&
+                                        !isOutOfStock
+                                            ? "border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-rose-400/20"
+                                            : "border-slate-200 bg-white focus:border-feather-gold focus:ring-feather-gold/20"
                                     }`}
                                 />
-                                {errors.quantity && <span className="text-xs text-rose-500">{errors.quantity}</span>}
-                                {quantityExceedsInventory && !isOutOfStock && !errors.quantity && maxQuantity !== null && (
+                                {errors.quantity && (
                                     <span className="text-xs text-rose-500">
-                                        Only {maxQuantity} {maxQuantity === 1 ? 'item is' : 'items are'} available. Maximum {maxQuantity} {maxQuantity === 1 ? 'item' : 'items'} allowed for request.
+                                        {errors.quantity}
+                                    </span>
+                                )}
+                                {quantityExceedsInventory &&
+                                    !isOutOfStock &&
+                                    !errors.quantity &&
+                                    maxQuantity !== null && (
+                                        <span className="text-xs text-rose-500">
+                                            Only {maxQuantity}{" "}
+                                            {maxQuantity === 1
+                                                ? "item is"
+                                                : "items are"}{" "}
+                                            available. Maximum {maxQuantity}{" "}
+                                            {maxQuantity === 1
+                                                ? "item"
+                                                : "items"}{" "}
+                                            allowed for request.
+                                        </span>
+                                    )}
+                            </label>
+
+                            <label className="block space-y-1">
+                                <span className="text-xs font-semibold text-slate-600">
+                                    Notes (optional)
+                                </span>
+                                <textarea
+                                    rows={4}
+                                    value={data.notes}
+                                    onChange={(e) =>
+                                        setData("notes", e.target.value)
+                                    }
+                                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    placeholder="List required scope: hallmarking, hallmark packaging, diamond certification, delivery deadlines…"
+                                />
+                                {errors.notes && (
+                                    <span className="text-xs text-rose-500">
+                                        {errors.notes}
                                     </span>
                                 )}
                             </label>
 
-                            <label className="block space-y-1">
-                                <span className="text-xs font-semibold text-slate-600">Notes (optional)</span>
-                                <textarea
-                                    rows={4}
-                                    value={data.notes}
-                                    onChange={(e) => setData('notes', e.target.value)}
-                                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                    placeholder="List required scope: hallmarking, hallmark packaging, diamond certification, delivery deadlines…"
-                                />
-                                {errors.notes && <span className="text-xs text-rose-500">{errors.notes}</span>}
-                            </label>
-
                             <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                                <p className="font-semibold text-slate-700">Estimated total</p>
+                                <p className="font-semibold text-slate-700">
+                                    Estimated total
+                                </p>
                                 {selectedConfig ? (
                                     <>
                                         <p className="mt-1 text-xl font-semibold text-slate-900">
-                                            {currencyFormatter.format(estimatedTotal)}
+                                            {currencyFormatter.format(
+                                                estimatedTotal
+                                            )}
                                         </p>
                                         <p className="text-xs text-slate-500">
                                             {isJobworkMode
@@ -577,26 +611,40 @@ export default function CatalogShow() {
                                         </p>
                                         {!isJobworkMode && (
                                             <div className="mt-2 space-y-1 text-xs">
-                                                {selectedConfig.price_breakup.metal > 0 && (
+                                                {selectedConfig.price_breakup
+                                                    .metal > 0 && (
                                                     <p className="flex justify-between">
                                                         <span>Metal:</span>
                                                         <span className="font-medium">
-                                                            {currencyFormatter.format(selectedConfig.price_breakup.metal)}
+                                                            {currencyFormatter.format(
+                                                                selectedConfig
+                                                                    .price_breakup
+                                                                    .metal
+                                                            )}
                                                         </span>
                                                     </p>
                                                 )}
-                                                {selectedConfig.price_breakup.diamond > 0 && (
+                                                {selectedConfig.price_breakup
+                                                    .diamond > 0 && (
                                                     <p className="flex justify-between">
                                                         <span>Diamond:</span>
                                                         <span className="font-medium">
-                                                            {currencyFormatter.format(selectedConfig.price_breakup.diamond)}
+                                                            {currencyFormatter.format(
+                                                                selectedConfig
+                                                                    .price_breakup
+                                                                    .diamond
+                                                            )}
                                                         </span>
                                                     </p>
                                                 )}
                                                 <p className="flex justify-between">
                                                     <span>Making:</span>
                                                     <span className="font-medium">
-                                                        {currencyFormatter.format(selectedConfig.price_breakup.making)}
+                                                        {currencyFormatter.format(
+                                                            selectedConfig
+                                                                .price_breakup
+                                                                .making
+                                                        )}
                                                     </span>
                                                 </p>
                                             </div>
@@ -605,14 +653,21 @@ export default function CatalogShow() {
                                             <div className="mt-2 space-y-1 text-xs">
                                                 <p className="flex justify-between">
                                                     <span>Making charge:</span>
-                                                    <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.making)}</span>
+                                                    <span className="font-medium">
+                                                        {currencyFormatter.format(
+                                                            selectedConfig
+                                                                .price_breakup
+                                                                .making
+                                                        )}
+                                                    </span>
                                                 </p>
                                             </div>
                                         )}
                                     </>
                                 ) : (
                                     <p className="mt-1 text-sm text-rose-600">
-                                        Please select a configuration to see pricing.
+                                        Please select a configuration to see
+                                        pricing.
                                     </p>
                                 )}
                             </div>
@@ -620,12 +675,27 @@ export default function CatalogShow() {
                             {isOutOfStock && (
                                 <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                                     <div className="flex items-start gap-2">
-                                        <svg className="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        <svg
+                                            className="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                clipRule="evenodd"
+                                            />
                                         </svg>
                                         <div>
-                                            <p className="font-semibold">Out of Stock</p>
-                                            <p className="text-xs mt-0.5">This product variant is currently out of stock. Quotation requests are not available.</p>
+                                            <p className="font-semibold">
+                                                Out of Stock
+                                            </p>
+                                            <p className="text-xs mt-0.5">
+                                                This product variant is
+                                                currently out of stock.
+                                                Quotation requests are not
+                                                available.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -635,7 +705,9 @@ export default function CatalogShow() {
                                 disabled={processing || invalidCombination || inventoryUnavailable}
                                 className="w-full rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {processing ? 'Submitting…' : 'Request quotation'}
+                                {processing
+                                    ? "Submitting…"
+                                    : "Request quotation"}
                             </button>
                         </form>
                     </div>
@@ -645,15 +717,26 @@ export default function CatalogShow() {
             {confirmOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                     <div className="w-full max-w-md space-y-4 rounded-3xl bg-white p-6 shadow-2xl">
-                        <h3 className="text-lg font-semibold text-slate-900">Confirm quotation</h3>
+                        <h3 className="text-lg font-semibold text-slate-900">
+                            Confirm quotation
+                        </h3>
                         <p className="text-sm text-slate-600">
-                            Submit this quotation request with the selected configuration? Our merchandising desk will review and respond
-                            shortly.
+                            Submit this quotation request with the selected
+                            configuration? Our merchandising desk will review
+                            and respond shortly.
                         </p>
                         <div className="space-y-2 rounded-2xl bg-slate-50 p-4 text-xs text-slate-500">
-                            <p><span className="font-semibold text-slate-700">Mode:</span> {mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}</p>
                             <p>
-                                <span className="font-semibold text-slate-700">Quantity:</span> {data.quantity}
+                                <span className="font-semibold text-slate-700">
+                                    Mode:
+                                </span>{" "}
+                                {mode === "jobwork" ? "Jobwork" : "Jewellery"}
+                            </p>
+                            <p>
+                                <span className="font-semibold text-slate-700">
+                                    Quantity:
+                                </span>{" "}
+                                {data.quantity}
                             </p>
                         </div>
                         <div className="flex justify-end gap-3">
@@ -679,7 +762,9 @@ export default function CatalogShow() {
                                 onClick={confirmSubmit}
                                 disabled={submitting}
                             >
-                                {submitting ? 'Submitting…' : 'Confirm submission'}
+                                {submitting
+                                    ? "Submitting…"
+                                    : "Confirm submission"}
                             </button>
                         </div>
                     </div>

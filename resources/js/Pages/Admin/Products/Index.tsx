@@ -52,7 +52,7 @@ type AdminProductsPageProps = AppPageProps<{
 
 export default function AdminProductsIndex() {
     const { props } = usePage<AdminProductsPageProps>();
-    const { products, brands, categories, filters, perPageOptions, perPage: initialPerPage } = props;
+    const { products, brands, categories, filters, perPage: initialPerPage } = props;
 
     const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
     const [filterState, setFilterState] = useState({
@@ -121,25 +121,6 @@ export default function AdminProductsIndex() {
                 category: merged.category !== 'all' ? merged.category : undefined,
                 status: merged.status !== 'all' ? merged.status : undefined,
                 per_page: perPage,
-            },
-            {
-                preserveState: true,
-                replace: true,
-                preserveScroll: true,
-            },
-        );
-    };
-
-    const handlePerPageChange = (value: number) => {
-        setPerPage(value);
-        router.get(
-            route('admin.products.index'),
-            {
-                search: filterState.search || undefined,
-                brand: filterState.brand !== 'all' ? filterState.brand : undefined,
-                category: filterState.category !== 'all' ? filterState.category : undefined,
-                status: filterState.status !== 'all' ? filterState.status : undefined,
-                per_page: value,
             },
             {
                 preserveState: true,

@@ -72,7 +72,7 @@ type DiamondsPageProps = PageProps<{
 }>;
 
 export default function AdminDiamondsIndex() {
-    const { diamonds, types, clarities, colors, shapes } = usePage<DiamondsPageProps>().props;
+    const { diamonds, types } = usePage<DiamondsPageProps>().props;
     const [modalOpen, setModalOpen] = useState(false);
     const [editingDiamond, setEditingDiamond] = useState<DiamondRow | null>(null);
     const [selectedDiamonds, setSelectedDiamonds] = useState<number[]>([]);
