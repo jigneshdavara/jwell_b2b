@@ -23,7 +23,7 @@ alwaysApply: true
 
 **Process**:
 1. Admin selects: metals, purities, tones, diamond options, colorstone options, sizes
-2. Frontend generates Cartesian product: `metals × purities × tones × diamonds × colorstones × sizes`
+2. Frontend generates Cartesian product: `metals × purities × tones × diamonds × sizes`
 3. Each variant gets:
    - Auto-generated SKU: `{BASE_SKU}-{INDEX}`
    - Auto-generated label: `"Diamond Label / Metal Purity / Size"` (e.g., `"VVS / 22K Gold / 6cm"`)
@@ -32,7 +32,6 @@ alwaysApply: true
    - Creates/updates variants
    - Associates metals via `product_variant_metals` table
    - Associates diamonds via `product_variant_diamonds` table
-   - Associates colorstones via `product_variant_colorstones` table
 
 **Variant Matching** (Customer Portal):
 - When user selects options, match by: `metal_id`, `metal_purity_id`, `metal_tone_id`, `diamond_option_key`, `colorstone_option_key`, `size_cm`
@@ -49,8 +48,6 @@ alwaysApply: true
   - Tables: `diamond_shapes`, `diamond_colors`, `diamond_clarities`, `diamond_cuts`, `diamond_types`
   - Each diamond option has a key (e.g., `diamond-option-1`) stored in variant metadata
 - **Colorstones**: Similar structure (color, shape, quality)
-  - Tables: `colorstone_colors`, `colorstone_shapes`, `colorstone_qualities`
-- Store counts/weights in join tables: `product_variant_diamonds`, `product_variant_colorstones`
 
 ## Pricing & Rates
 

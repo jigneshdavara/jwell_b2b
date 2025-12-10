@@ -1092,7 +1092,6 @@ The application supports multiple user types with distinct portals:
 - Payment, PaymentGateway
 - Quotation, QuotationMessage
 - JobworkRequest
-- WorkOrder
 - Wishlist, WishlistItem
 
 #### Catalog Models

@@ -35,11 +35,11 @@ class ProductVariant extends Model
 
     public function metals(): HasMany
     {
-        return $this->hasMany(ProductVariantMetal::class)->orderBy('position');
+        return $this->hasMany(ProductVariantMetal::class)->orderBy('display_order');
     }
 
     public function diamonds(): HasMany
     {
-        return $this->hasMany(ProductVariantDiamond::class)->orderBy('position');
+        return $this->hasMany(ProductVariantDiamond::class)->orderBy('display_order');
     }
 }

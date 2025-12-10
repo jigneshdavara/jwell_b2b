@@ -21,13 +21,6 @@ type AdminDashboardProps = {
         kyc_status: string;
         joined_at: string;
     }>;
-    jobworkQueue: Array<{
-        id: number;
-        type: string;
-        status: string;
-        deadline: string | null;
-        created_at: string | null;
-    }>;
 };
 
 const labels: Record<string, string> = {
@@ -37,7 +30,7 @@ const labels: Record<string, string> = {
 };
 
 export default function AdminDashboardOverview() {
-    const { metrics, recentPartners, jobworkQueue } =
+    const { metrics, recentPartners } =
         usePage<PageProps<AdminDashboardProps>>().props;
 
     return (
@@ -130,54 +123,6 @@ export default function AdminDashboardOverview() {
                             {recentPartners.length === 0 && (
                                 <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
                                     No new registrations today.
-                                </div>
-                            )}
-                        </div>
-                    </section>
-
-                    <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h2 className="text-lg font-semibold text-slate-900">Jobwork Watchlist</h2>
-                                <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500/70">Awaiting production allocation</p>
-                            </div>
-                            {/* <Link
-                                href={route('production.work-orders.index')}
-                                className="text-xs font-semibold text-sky-600 hover:text-sky-500"
-                            >
-                                Delegate
-                            </Link> */}
-                        </div>
-                        <div className="mt-6 space-y-4">
-                            {jobworkQueue.map((job) => (
-                                <div
-                                    key={job.id}
-                                    className="flex items-center justify-between rounded-2xl border border-slate-200 p-4"
-                                >
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-800">Request #{job.id}</p>
-                                        <p className="text-xs text-slate-500">{job.type.replace(/_/g, ' ')}</p>
-                                        <p className="mt-1 text-xs text-slate-400">
-                                            Logged {job.created_at ? new Date(job.created_at).toLocaleDateString('en-IN') : 'N/A'}
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <span
-                                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                                statusColors[job.status] ?? 'bg-slate-100 text-slate-700'
-                                            }`}
-                                        >
-                                            {job.status.replace(/_/g, ' ')}
-                                        </span>
-                                        <p className="mt-2 text-xs text-slate-400">
-                                            Deadline {job.deadline ? new Date(job.deadline).toLocaleDateString('en-IN') : '–'}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
-                            {jobworkQueue.length === 0 && (
-                                <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
-                                    All jobwork requests are up-to-date.
                                 </div>
                             )}
                         </div>

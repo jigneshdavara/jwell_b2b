@@ -132,7 +132,7 @@ class ProductController extends Controller
             'brand',
             'category',
             'catalogs',
-            'media' => fn($query) => $query->orderBy('position'),
+            'media' => fn($query) => $query->orderBy('display_order'),
             'variants' => function ($query) {
                 $query->orderByDesc('is_default')->orderBy('label')
                     ->with([
@@ -161,18 +161,6 @@ class ProductController extends Controller
                 'gender' => $product->gender ?? '',
                 'making_charge_amount' => $product->making_charge_amount,
                 'making_charge_percentage' => $product->making_charge_percentage,
-                'making_charge_discount_type' => $product->making_charge_discount_type,
-                'making_charge_discount_value' => $product->making_charge_discount_value !== null ? (string) $product->making_charge_discount_value : '',
-                'making_charge_discount_overrides' => collect($product->making_charge_discount_overrides ?? [])
-                    ->map(function (array $override) {
-                        return [
-                            'customer_group_id' => $override['customer_group_id'] ?? null,
-                            'type' => $override['type'] ?? 'percentage',
-                            'value' => isset($override['value']) ? (string) $override['value'] : '',
-                        ];
-                    })
-                    ->values()
-                    ->all(),
                 'is_active' => $product->is_active ?? true,
                 'catalog_ids' => $product->catalogs->pluck('id')->toArray(),
                 'metadata' => $product->metadata,
@@ -209,7 +197,7 @@ class ProductController extends Controller
                     'id' => $media->id,
                     'type' => $media->type,
                     'url' => $media->url,
-                    'position' => $media->position,
+                    'display_order' => $media->display_order,
                     'metadata' => $media->metadata,
                 ]),
             ],
@@ -443,19 +431,6 @@ class ProductController extends Controller
             $data['making_charge_percentage'] = null;
         }
 
-        $data['making_charge_discount_type'] = $data['making_charge_discount_type'] ?? null;
-        if (! $data['making_charge_discount_type']) {
-            $data['making_charge_discount_type'] = null;
-            $data['making_charge_discount_value'] = null;
-        } else {
-            $data['making_charge_discount_value'] = isset($data['making_charge_discount_value'])
-                ? (float) $data['making_charge_discount_value']
-                : null;
-        }
-
-        $discountOverrides = $this->sanitizeDiscountOverrides($data['making_charge_discount_overrides'] ?? []);
-        $data['making_charge_discount_overrides'] = ! empty($discountOverrides) ? $discountOverrides : null;
-
         if (array_key_exists('metadata', $data)) {
             $metadata = is_array($data['metadata']) ? $data['metadata'] : [];
 
@@ -469,26 +444,6 @@ class ProductController extends Controller
         }
 
         return $data;
-    }
-
-    protected function sanitizeDiscountOverrides(array $overrides): array
-    {
-        return collect($overrides)
-            ->filter(function ($override) {
-                return is_array($override)
-                    && isset($override['customer_group_id'], $override['type'], $override['value'])
-                    && $override['customer_group_id'] !== null;
-            })
-            ->map(function (array $override) {
-                return [
-                    'customer_group_id' => (int) $override['customer_group_id'],
-                    'type' => $override['type'] === 'fixed' ? 'fixed' : 'percentage',
-                    'value' => (float) $override['value'],
-                ];
-            })
-            ->unique('customer_group_id')
-            ->values()
-            ->all();
     }
 
     protected function sanitizeSizeDimension($sizeDimension): ?array
@@ -553,7 +508,7 @@ class ProductController extends Controller
             return;
         }
 
-        $nextPosition = (int) (($product->media()->max('position')) ?? -1) + 1;
+        $nextDisplayOrder = (int) (($product->media()->max('display_order')) ?? -1) + 1;
 
         foreach ($uploads as $upload) {
             if (! $upload instanceof UploadedFile) {
@@ -573,7 +528,7 @@ class ProductController extends Controller
             $product->media()->create([
                 'type' => $type,
                 'url' => $url,
-                'position' => $nextPosition++,
+                'display_order' => $nextDisplayOrder++,
                 'metadata' => [
                     'original_name' => $upload->getClientOriginalName(),
                     'size' => $upload->getSize(),

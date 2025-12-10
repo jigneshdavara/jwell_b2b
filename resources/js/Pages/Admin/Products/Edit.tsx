@@ -58,13 +58,6 @@ type Product = {
     gender?: string;
     making_charge_amount?: number | string;
     making_charge_percentage?: number | string;
-    making_charge_discount_type?: 'percentage' | 'fixed' | null;
-    making_charge_discount_value?: string | number | null;
-    making_charge_discount_overrides?: Array<{
-        customer_group_id: number | null;
-        type: 'percentage' | 'fixed';
-        value: string | number | null;
-    }>;
     is_active?: boolean;
     media?: ProductMedia[];
     variants?: Array<{
@@ -154,9 +147,6 @@ type FormData = {
     making_charge_amount: string;
     making_charge_types: ('fixed' | 'percentage')[];
     making_charge_percentage: string;
-    making_charge_discount_type: '' | 'percentage' | 'fixed' | null;
-    making_charge_discount_value: string | number | null;
-    making_charge_discount_overrides: DiscountOverrideForm[];
     is_active: boolean;
     variants?: VariantForm[];
     diamond_selections?: Array<{ diamond_id: number | ''; count: string }>;
@@ -186,18 +176,11 @@ type DiamondOptionForm = {
     diamonds_count: string;
 };
 
-type DiscountOverrideForm = {
-    localKey: string;
-    customer_group_id: number | '';
-    type: 'percentage' | 'fixed';
-    value: string | number | null;
-};
-
 type ProductMedia = {
     id: number;
     type: string;
     url: string;
-    position: number;
+    display_order: number;
     metadata?: Record<string, unknown> | null;
 };
 
@@ -234,14 +217,6 @@ const createEmptyDiamond = (): VariantDiamondForm => ({
     id: undefined,
     diamond_id: '',
     diamonds_count: '',
-});
-
-
-const createDiscountOverride = (): DiscountOverrideForm => ({
-    localKey: generateLocalKey(),
-    customer_group_id: '',
-    type: 'percentage',
-    value: '',
 });
 
 // Catalog Multi-Select Component
@@ -495,18 +470,6 @@ export default function AdminProductEdit() {
     // Note: Variants are no longer managed at the product level
     // Variants should be managed separately through product_variants table
 
-    const initialDiscountOverrides: DiscountOverrideForm[] = product?.making_charge_discount_overrides?.length
-        ? product.making_charge_discount_overrides.map((override, index) => ({
-              localKey: `${generateLocalKey()}-${index}`,
-              customer_group_id:
-                  override.customer_group_id !== null && override.customer_group_id !== undefined
-                      ? Number(override.customer_group_id)
-                      : '',
-              type: (override.type as 'percentage' | 'fixed') ?? 'percentage',
-              value: override.value !== null && override.value !== undefined ? String(override.value) : '',
-          }))
-        : [];
-
     // Extract purities, tones, diamonds, and metals from existing variants
     const extractSelectionsFromVariants = useMemo(() => {
         if (!product?.variants?.length) {
@@ -608,13 +571,6 @@ export default function AdminProductEdit() {
             return ['fixed']; // Default to fixed
         })(),
         making_charge_percentage: product?.making_charge_percentage ? String(product.making_charge_percentage) : '',
-        making_charge_discount_type:
-            (product?.making_charge_discount_type as 'percentage' | 'fixed' | null) ?? null,
-        making_charge_discount_value:
-            product?.making_charge_discount_value !== null && product?.making_charge_discount_value !== undefined
-                ? String(product.making_charge_discount_value)
-                : null,
-        making_charge_discount_overrides: initialDiscountOverrides,
         is_active: product?.is_active ?? true,
         variants: product?.variants?.length
             ? product.variants.map((variant: any, index) => ({
@@ -1834,19 +1790,6 @@ export default function AdminProductEdit() {
                 return typeof value === 'number' ? value : Number(value);
             };
 
-            payload.making_charge_discount_type = formState.making_charge_discount_type || null;
-            payload.making_charge_discount_value = formState.making_charge_discount_type
-                ? toNullableNumber(formState.making_charge_discount_value)
-                : null;
-            payload.making_charge_discount_overrides = formState.making_charge_discount_overrides
-                .map((override: DiscountOverrideForm) => ({
-                    customer_group_id:
-                        override.customer_group_id !== '' ? Number(override.customer_group_id) : null,
-                    type: override.type,
-                    value: toNullableNumber(override.value),
-                }))
-                .filter((override) => override.customer_group_id !== null && override.value !== null);
-
             // Add is_active field
             payload.is_active = formState.is_active ?? true;
 
@@ -1926,7 +1869,7 @@ export default function AdminProductEdit() {
             return [];
         }
 
-        return [...product.media].sort((a, b) => a.position - b.position);
+        return [...product.media].sort((a, b) => a.display_order - b.display_order);
     }, [product?.media]);
 
     const toggleRemoveMedia = (id: number) => {

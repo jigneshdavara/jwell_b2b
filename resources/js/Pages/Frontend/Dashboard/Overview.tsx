@@ -10,7 +10,6 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
 
 const titleMap: Record<string, string> = {
     open_orders: 'Open orders',
-    jobwork_requests: 'Jobwork requests',
     active_offers: 'Active offers',
 };
 

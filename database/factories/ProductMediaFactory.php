@@ -19,7 +19,7 @@ class ProductMediaFactory extends Factory
         return [
             'type' => fake()->randomElement(['image', 'video', '360']),
             'url' => fake()->imageUrl(800, 800, 'jewellery', true),
-            'position' => fake()->numberBetween(0, 5),
+            'display_order' => fake()->numberBetween(0, 5),
             'metadata' => [
                 'alt' => fake()->sentence(3),
             ],

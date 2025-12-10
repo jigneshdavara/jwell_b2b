@@ -28,7 +28,7 @@ class StoreProductRequest extends FormRequest
      */
     protected function baseRules(?int $productId = null): array
     {
-        $removedMediaRule = Rule::exists('product_media', 'id');
+        $removedMediaRule = Rule::exists('product_medias', 'id');
 
         if ($productId) {
             $removedMediaRule = $removedMediaRule->where('product_id', $productId);
@@ -55,12 +55,6 @@ class StoreProductRequest extends FormRequest
             'gender' => ['required', 'string', 'max:50', Rule::in(['Men', 'Women', 'Unisex', 'Kids'])],
             'making_charge_amount' => ['nullable', 'numeric', 'min:0'],
             'making_charge_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'making_charge_discount_type' => ['nullable', 'in:percentage,fixed'],
-            'making_charge_discount_value' => ['nullable', 'numeric', 'min:0', 'required_with:making_charge_discount_type'],
-            'making_charge_discount_overrides' => ['nullable', 'array'],
-            'making_charge_discount_overrides.*.customer_group_id' => ['required', 'integer', 'exists:customer_groups,id'],
-            'making_charge_discount_overrides.*.type' => ['required', 'in:percentage,fixed'],
-            'making_charge_discount_overrides.*.value' => ['required', 'numeric', 'min:0'],
             'is_active' => ['boolean'],
             'media_uploads' => ['nullable', 'array'],
             'media_uploads.*' => [
@@ -100,16 +94,6 @@ class StoreProductRequest extends FormRequest
                 if (!$hasPercentage && in_array('percentage', $makingChargeTypes)) {
                     $validator->errors()->add('making_charge_percentage', 'Percentage value is required when Percentage is selected.');
                 }
-            }
-
-            $overrides = collect($this->input('making_charge_discount_overrides', []));
-            $duplicateGroups = $overrides
-                ->pluck('customer_group_id')
-                ->filter()
-                ->duplicates();
-
-            if ($duplicateGroups->isNotEmpty()) {
-                $validator->errors()->add('making_charge_discount_overrides', 'Duplicate customer group entries detected.');
             }
         });
     }

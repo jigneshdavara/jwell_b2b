@@ -17,16 +17,15 @@ return new class extends Migration
             $table->string('titleline')->nullable();
             $table->foreignId('brand_id')->constrained()->cascadeOnDelete();
             $table->foreignId('category_id')->constrained()->cascadeOnDelete();
+            $table->jsonb('subcategory_ids')->nullable();
             $table->string('collection')->nullable();
             $table->string('producttype')->nullable();
             $table->string('gender')->nullable();
             $table->string('sku')->unique();
             $table->text('description')->nullable();
-            $table->decimal('making_charge', 12, 2)->default(0);
+            $table->decimal('making_charge_amount', 12, 2)->nullable();
+            $table->decimal('making_charge_percentage', 10, 2)->nullable();
             $table->boolean('is_active')->default(true);
-            $table->enum('making_charge_discount_type', ['percentage', 'fixed'])->nullable();
-            $table->decimal('making_charge_discount_value', 10, 2)->nullable();
-            $table->jsonb('making_charge_discount_overrides')->nullable();
             $table->timestampsTz();
         });
     }

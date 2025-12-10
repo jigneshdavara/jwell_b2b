@@ -14,12 +14,12 @@ class ProductMedia extends Model
         'product_id',
         'type',
         'url',
-        'position',
+        'display_order',
         'metadata',
     ];
 
     protected $casts = [
-        'position' => 'integer',
+        'display_order' => 'integer',
         'metadata' => 'array',
     ];
 

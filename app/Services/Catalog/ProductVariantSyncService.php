@@ -264,7 +264,7 @@ class ProductVariantSyncService
                     ? (float) $metal['metal_weight']
                     : null,
                 'metadata' => $metal['metadata'] ?? [],
-                'position' => $index,
+                'display_order' => $index,
             ];
 
             // Update existing metal entry if ID is provided and exists
@@ -319,7 +319,7 @@ class ProductVariantSyncService
                 'diamond_id' => $diamond['diamond_id'],
                 'diamonds_count' => $diamond['diamonds_count'],
                 'metadata' => $diamond['metadata'],
-                'position' => $index,
+                'display_order' => $index,
             ];
 
             // Update existing diamond entry if ID is provided and exists

@@ -36,10 +36,6 @@ class DashboardController extends Controller
             'open_orders' => Order::where('user_id', $user->id)
                 ->whereIn('status', $openOrderStatuses)
                 ->count(),
-            'jobwork_requests' => Quotation::where('user_id', $user->id)
-                ->where('mode', 'jobwork')
-                ->where('status', 'approved')
-                ->count(),
             'active_offers' => Offer::where('is_active', true)->count(),
         ];
 
@@ -70,7 +66,7 @@ class DashboardController extends Controller
 
         $recentProducts = Product::query()
             ->with([
-                'media' => fn($media) => $media->orderBy('position'),
+                'media' => fn($media) => $media->orderBy('display_order'),
                 'variants.metals.metal',
                 'variants.metals.metalPurity',
                 'variants.metals.metalTone',
@@ -134,7 +130,7 @@ class DashboardController extends Controller
                     'name' => $product->name,
                     'sku' => $product->sku,
                     'price_total' => $priceTotal,
-                    'thumbnail' => optional($product->media->sortBy('position')->first())?->url,
+                    'thumbnail' => optional($product->media->sortBy('display_order')->first())?->url,
                 ];
             });
 
