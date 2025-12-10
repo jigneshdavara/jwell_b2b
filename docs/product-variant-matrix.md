@@ -135,21 +135,6 @@ Database: product_variants, product_variant_metals, product_variant_diamonds
 
 ## Key Features
 
-### 1. Metal + Purity Grouping
-
-The system intelligently groups purities by metal to ensure only valid combinations are created:
-
-```typescript
-// Purities are filtered by their metal_id
-const puritiesByMetal = new Map<number, number[]>();
-prev.metal_purity_ids.forEach((purityId) => {
-    const purity = metalPurities.find((p) => p.id === purityId);
-    if (purity && prev.metal_ids.includes(purity.metal_id)) {
-        // Add to map
-    }
-});
-```
-
 ### 2. Flexible Attribute Handling
 
 - **Metals without purities**: Creates variants with `metal_purity_id = 0`
@@ -285,7 +270,6 @@ The system handles size conversion between millimeters (mm) and centimeters (cm)
 - `product_id` (foreign key)
 - `sku` (string)
 - `label` (string)
-- `price_adjustment` (decimal)
 - `is_default` (boolean)
 - `metadata` (JSON)
 

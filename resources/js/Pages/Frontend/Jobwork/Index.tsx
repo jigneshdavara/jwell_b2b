@@ -14,7 +14,6 @@ type PrefillProduct = {
     variants: Array<{
         id: number;
         label: string;
-        price_adjustment: number;
         is_default: boolean;
     }>;
     media: Array<{ url: string; alt: string }>;
@@ -200,10 +199,9 @@ export default function JobworkIndex() {
         }
         const base = prefillProduct.base_price ?? 0;
         const making = prefillProduct.making_charge_amount ?? 0;
-        const adjustment = selectedVariant?.price_adjustment ?? 0;
 
-        return base + making + adjustment;
-    }, [prefillProduct, selectedVariant]);
+        return base + making;
+    }, [prefillProduct]);
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -306,11 +304,6 @@ export default function JobworkIndex() {
                                                 <div className="grid gap-2">
                                                     {prefillProduct.variants.map((variant) => {
                                                         const isSelected = data.product_variant_id === variant.id;
-                                                        const adjustment = variant.price_adjustment;
-                                                        const adjustmentLabel =
-                                                            adjustment === 0
-                                                                ? 'Standard'
-                                                                : `${adjustment > 0 ? '+' : ''}₹ ${Math.abs(adjustment).toLocaleString('en-IN')}`;
 
                                                         return (
                                                             <label
@@ -323,7 +316,6 @@ export default function JobworkIndex() {
                                                             >
                                                                 <span>{variant.label}</span>
                                                                 <span className="flex items-center gap-2">
-                                                                    <span className="text-xs font-semibold text-slate-500">{adjustmentLabel}</span>
                                                                     <input
                                                                         type="radio"
                                                                         name="product_variant_id"

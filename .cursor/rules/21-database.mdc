@@ -27,7 +27,7 @@ alwaysApply: true
   - Relationships: `brand_id`, `category_id`, `material_id`
   
 - **`product_variants`**: Specific sellable configurations
-  - Key fields: `product_id`, `sku`, `label`, `price_adjustment`, `metadata` (JSON), `is_default`
+  - Key fields: `product_id`, `sku`, `label`, `metadata` (JSON), `is_default`
   - Relationships: `product_id` (FK)
   
 - **`product_variant_metals`**: Variant-metal associations (many-to-many)
@@ -47,8 +47,7 @@ alwaysApply: true
 - **`catalog_products`**: Pivot table for catalog-product associations
 - **`materials`**: Material types (Gold, Silver, etc.)
 - **`metal_purities`**: Metal purity levels (24K, 22K, 18K, 14K, 999, 958, 925)
-- **`metal_tones`**: Metal tones (Yellow, White, Rose, etc.)
-- **`sizes`**: Size definitions
+image.png- **`sizes`**: Size definitions
 - **`styles`**: Product styles
 
 ### Commerce Tables

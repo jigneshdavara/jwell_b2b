@@ -19,6 +19,7 @@ class Product extends Model
         'description',
         'brand_id',
         'category_id',
+        'subcategory_ids',
         'collection',
         'producttype',
         'gender',
@@ -35,6 +36,7 @@ class Product extends Model
         'making_charge_discount_value' => 'float',
         'making_charge_discount_overrides' => 'array',
         'making_charge_percentage' => 'float',
+        'subcategory_ids' => 'array',
     ];
 
     public function brand(): BelongsTo

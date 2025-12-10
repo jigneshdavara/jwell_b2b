@@ -23,13 +23,11 @@ type RelatedQuotation = {
             id: number;
             label: string;
             metadata?: Record<string, unknown> | null;
-            price_adjustment: number;
         }>;
     };
     variant?: {
         id: number;
         label: string;
-        price_adjustment: number;
         metadata?: Record<string, unknown> | null;
     } | null;
     price_breakdown?: {
@@ -66,13 +64,11 @@ type QuotationDetails = {
             id: number;
             label: string;
             metadata?: Record<string, unknown> | null;
-            price_adjustment: number;
         }>;
     };
     variant?: {
         id: number;
         label: string;
-        price_adjustment: number;
         metadata?: Record<string, unknown> | null;
     } | null;
     user?: {
@@ -154,10 +150,10 @@ export default function AdminQuotationShow() {
     const [addItemModalOpen, setAddItemModalOpen] = useState(false);
     const [productSearch, setProductSearch] = useState('');
     const [searchResults, setSearchResults] = useState<Array<{ id: number; name: string; sku: string }>>([]);
-    const [selectedProduct, setSelectedProduct] = useState<{ id: number; name: string; sku: string; variants: Array<{ id: number; label: string; price_adjustment: number }> } | null>(null);
+    const [selectedProduct, setSelectedProduct] = useState<{ id: number; name: string; sku: string; variants: Array<{ id: number; label: string }> } | null>(null);
     const [addItemProductSearch, setAddItemProductSearch] = useState('');
     const [addItemSearchResults, setAddItemSearchResults] = useState<Array<{ id: number; name: string; sku: string }>>([]);
-    const [addItemSelectedProduct, setAddItemSelectedProduct] = useState<{ id: number; name: string; sku: string; variants: Array<{ id: number; label: string; price_adjustment: number }> } | null>(null);
+    const [addItemSelectedProduct, setAddItemSelectedProduct] = useState<{ id: number; name: string; sku: string; variants: Array<{ id: number; label: string }> } | null>(null);
     const [isManualAddItemSearch, setIsManualAddItemSearch] = useState(false);
     // Track if changes have been made that require customer confirmation
     const [hasChanges, setHasChanges] = useState(quotation.status === 'pending_customer_confirmation');
@@ -1157,7 +1153,7 @@ export default function AdminQuotationShow() {
                                                 <option value="">No variant</option>
                                                 {selectedProduct.variants.map((variant) => (
                                                     <option key={variant.id} value={variant.id}>
-                                                        {variant.label} (₹ {variant.price_adjustment.toLocaleString('en-IN')})
+                                                        {variant.label}
                                                     </option>
                                                 ))}
                                             </select>
@@ -1287,7 +1283,7 @@ export default function AdminQuotationShow() {
                                                 <option value="">No variant</option>
                                                 {addItemSelectedProduct.variants.map((variant) => (
                                                     <option key={variant.id} value={variant.id}>
-                                                        {variant.label} (₹ {variant.price_adjustment.toLocaleString('en-IN')})
+                                                        {variant.label}
                                                     </option>
                                                 ))}
                                             </select>

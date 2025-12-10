@@ -37,7 +37,6 @@ type Product = {
     variants: Array<{
         id: number;
         label: string;
-        price_adjustment: number;
         is_default: boolean;
         metadata?: Record<string, unknown>;
     }>;

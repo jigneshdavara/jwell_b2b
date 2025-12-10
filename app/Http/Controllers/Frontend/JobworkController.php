@@ -40,7 +40,6 @@ class JobworkController extends Controller
                     'variants' => $productModel->variants->map(fn($variant) => [
                         'id' => $variant->id,
                         'label' => $variant->label,
-                        'price_adjustment' => $variant->price_adjustment,
                         'is_default' => $variant->is_default,
                     ]),
                     'media' => $productModel->media->map(fn($media) => [
@@ -175,7 +174,7 @@ class JobworkController extends Controller
                         'name' => $product->name,
                         'sku' => $product->sku,
                     ] : null,
-                    'variant_snapshot' => $variant ? $variant->only(['label', 'price_adjustment']) : null,
+                    'variant_snapshot' => $variant ? $variant->only(['label']) : null,
                 ],
             ]);
         });
