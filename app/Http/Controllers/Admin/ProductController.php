@@ -106,6 +106,10 @@ class ProductController extends Controller
         $mediaUploads = Arr::pull($data, 'media_uploads', []);
         $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
         $catalogIds = Arr::pull($data, 'catalog_ids', []);
+        $categoryIds = Arr::pull($data, 'category_ids', []);
+
+        // Store subcategory_ids as JSON array
+        $data['subcategory_ids'] = !empty($categoryIds) ? $categoryIds : null;
 
         $data = $this->prepareProductPayload($data);
 
@@ -154,7 +158,8 @@ class ProductController extends Controller
                 'titleline' => $product->titleline ?? '',
                 'description' => $product->description,
                 'brand_id' => $product->brand_id,
-                'category_id' => $product->category_id,
+                'category_id' => $product->category_id, // This is the parent category ID
+                'category_ids' => $product->subcategory_ids ?? [], // These are the subcategory IDs
                 'collection' => $product->collection ?? '',
                 'producttype' => $product->producttype ?? '',
                 'gender' => $product->gender ?? '',
@@ -235,6 +240,10 @@ class ProductController extends Controller
         $mediaUploads = Arr::pull($data, 'media_uploads', []);
         $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
         $catalogIds = Arr::pull($data, 'catalog_ids', []);
+        $categoryIds = Arr::pull($data, 'category_ids', []);
+
+        // Store subcategory_ids as JSON array
+        $data['subcategory_ids'] = !empty($categoryIds) ? $categoryIds : null;
 
         $data = $this->prepareProductPayload($data);
 
@@ -435,7 +444,12 @@ class ProductController extends Controller
             ->where('is_active', true)
             ->orderBy('display_order')
             ->orderBy('name')
-            ->pluck('name', 'id')
+            ->get(['id', 'name', 'parent_id'])
+            ->map(fn(Category $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'parent_id' => $category->parent_id,
+            ])
             ->all();
     }
 
