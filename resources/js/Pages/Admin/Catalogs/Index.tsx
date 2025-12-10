@@ -78,7 +78,10 @@ export default function AdminCatalogsIndex() {
         setEditingCatalog(null);
         setModalOpen(false);
         form.reset();
+        form.clearErrors();
         form.setData('code', '');
+        form.setData('name', '');
+        form.setData('description', '');
         form.setData('is_active', true);
         form.setData('display_order', 0);
     };
@@ -90,6 +93,7 @@ export default function AdminCatalogsIndex() {
 
     const openEditModal = (catalog: CatalogRow) => {
         setEditingCatalog(catalog);
+        form.clearErrors();
         form.setData({
             code: catalog.code ?? '',
             name: catalog.name,

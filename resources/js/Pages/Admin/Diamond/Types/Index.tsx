@@ -76,6 +76,10 @@ export default function AdminDiamondTypesIndex() {
         setEditingType(null);
         setModalOpen(false);
         form.reset();
+        form.clearErrors();
+        form.setData('code', '');
+        form.setData('name', '');
+        form.setData('description', '');
         form.setData('is_active', true);
         form.setData('display_order', 0);
     };
@@ -87,6 +91,7 @@ export default function AdminDiamondTypesIndex() {
 
     const openEditModal = (type: DiamondTypeRow) => {
         setEditingType(type);
+        form.clearErrors();
         form.setData({
             code: type.code,
             name: type.name,

@@ -85,8 +85,11 @@ export default function AdminMetalPuritiesIndex() {
         setEditingPurity(null);
         setModalOpen(false);
         form.reset();
+        form.clearErrors();
         form.setData('metal_id', '');
         form.setData('code', '');
+        form.setData('name', '');
+        form.setData('description', '');
         form.setData('is_active', true);
         form.setData('display_order', 0);
     };
@@ -98,6 +101,7 @@ export default function AdminMetalPuritiesIndex() {
 
     const openEditModal = (purity: MetalPurityRow) => {
         setEditingPurity(purity);
+        form.clearErrors();
         form.setData({
             metal_id: String(purity.metal_id),
             code: purity.code,

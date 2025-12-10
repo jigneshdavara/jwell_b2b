@@ -85,10 +85,13 @@ export default function AdminMetalTonesIndex() {
         setEditingTone(null);
         setModalOpen(false);
         form.reset();
-        form.setData('is_active', true);
-        form.setData('display_order', 0);
+        form.clearErrors();
         form.setData('metal_id', '');
         form.setData('code', '');
+        form.setData('name', '');
+        form.setData('description', '');
+        form.setData('is_active', true);
+        form.setData('display_order', 0);
     };
 
     const openCreateModal = () => {
@@ -98,6 +101,7 @@ export default function AdminMetalTonesIndex() {
 
     const openEditModal = (tone: MetalToneRow) => {
         setEditingTone(tone);
+        form.clearErrors();
         form.setData({
             metal_id: String(tone.metal_id),
             code: tone.code,

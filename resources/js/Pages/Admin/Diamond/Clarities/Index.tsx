@@ -86,10 +86,13 @@ export default function AdminDiamondClaritiesIndex() {
         setEditingClarity(null);
         setModalOpen(false);
         form.reset();
-        form.setData('is_active', true);
-        form.setData('display_order', 0);
+        form.clearErrors();
         form.setData('diamond_type_id', '');
         form.setData('code', '');
+        form.setData('name', '');
+        form.setData('description', '');
+        form.setData('is_active', true);
+        form.setData('display_order', 0);
     };
 
     const openCreateModal = () => {
@@ -99,6 +102,7 @@ export default function AdminDiamondClaritiesIndex() {
 
     const openEditModal = (clarity: DiamondClarityRow) => {
         setEditingClarity(clarity);
+        form.clearErrors();
         form.setData({
             diamond_type_id: String(clarity.diamond_type_id),
             code: clarity.code,

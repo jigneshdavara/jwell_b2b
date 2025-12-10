@@ -86,10 +86,13 @@ export default function AdminDiamondColorsIndex() {
         setEditingColor(null);
         setModalOpen(false);
         form.reset();
-        form.setData('is_active', true);
-        form.setData('display_order', 0);
+        form.clearErrors();
         form.setData('diamond_type_id', '');
         form.setData('code', '');
+        form.setData('name', '');
+        form.setData('description', '');
+        form.setData('is_active', true);
+        form.setData('display_order', 0);
     };
 
     const openCreateModal = () => {
@@ -99,6 +102,7 @@ export default function AdminDiamondColorsIndex() {
 
     const openEditModal = (color: DiamondColorRow) => {
         setEditingColor(color);
+        form.clearErrors();
         form.setData({
             diamond_type_id: String(color.diamond_type_id),
             code: color.code,
@@ -134,7 +138,7 @@ export default function AdminDiamondColorsIndex() {
 
     const toggleColor = (color: DiamondColorRow) => {
         router.put(route('admin.diamond.colors.update', color.id), {
-            diamond_type_id: String(color.diamond_type_id),
+            diamond_type_id: color.diamond_type_id,
             code: color.code,
             name: color.name,
             description: color.description,

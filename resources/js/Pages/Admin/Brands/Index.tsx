@@ -82,7 +82,10 @@ export default function AdminBrandsIndex() {
         setEditingBrand(null);
         setModalOpen(false);
         form.reset();
+        form.clearErrors();
         form.setData('code', '');
+        form.setData('name', '');
+        form.setData('description', '');
         form.setData('is_active', true);
         form.setData('display_order', 0);
         form.setData('cover_image', null);
@@ -104,6 +107,7 @@ export default function AdminBrandsIndex() {
 
     const openEditModal = (brand: BrandRow) => {
         setEditingBrand(brand);
+        form.clearErrors();
         form.setData({
             code: brand.code ?? '',
             name: brand.name,

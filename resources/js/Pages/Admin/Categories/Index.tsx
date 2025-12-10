@@ -102,11 +102,15 @@ export default function AdminCategoriesIndex() {
         setEditingCategory(null);
         setModalOpen(false);
         form.reset();
-        form.setData('is_active', true);
-        form.setData('display_order', 0);
+        form.clearErrors();
         form.setData('parent_id', '');
+        form.setData('code', '');
+        form.setData('name', '');
+        form.setData('description', '');
         form.setData('cover_image', null);
         form.setData('remove_cover_image', false);
+        form.setData('is_active', true);
+        form.setData('display_order', 0);
         form.setData('style_ids', []);
         form.setData('size_ids', []);
         setStyleSearchQuery('');
@@ -128,6 +132,7 @@ export default function AdminCategoriesIndex() {
 
     const openEditModal = (category: CategoryRow) => {
         setEditingCategory(category);
+        form.clearErrors();
         form.setData({
             parent_id: category.parent_id ? String(category.parent_id) : '',
             code: category.code ?? '',
