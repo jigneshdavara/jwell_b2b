@@ -66,7 +66,6 @@ type Product = {
     producttype?: string;
     gender?: string;
     making_charge_amount?: number | string;
-    making_charge_type?: 'fixed' | 'percentage' | 'both';
     making_charge_percentage?: number | string;
     making_charge_discount_type?: 'percentage' | 'fixed' | null;
     making_charge_discount_value?: string | number | null;
@@ -186,7 +185,6 @@ type FormData = {
     producttype: string;
     gender: string;
     making_charge_amount: string;
-    making_charge_type: 'fixed' | 'percentage' | 'both';
     making_charge_types: ('fixed' | 'percentage')[];
     making_charge_percentage: string;
     making_charge_discount_type: '' | 'percentage' | 'fixed' | null;
@@ -683,7 +681,6 @@ export default function AdminProductEdit() {
         producttype: product?.producttype ?? '',
         gender: product?.gender ?? '',
         making_charge_amount: product?.making_charge_amount ? String(product.making_charge_amount) : '',
-        making_charge_type: (product?.making_charge_type as 'fixed' | 'percentage' | 'both') ?? 'fixed', // For display only, inferred from values
         making_charge_types: (() => {
             // Infer from values: if both have values, both are selected
             const hasFixed = product?.making_charge_amount && Number(product.making_charge_amount) > 0;

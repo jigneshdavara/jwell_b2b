@@ -55,7 +55,6 @@ type Product = {
     total_weight?: number | null;
     base_price?: number;
     making_charge_amount?: number;
-    making_charge_type?: 'fixed' | 'percentage' | 'both';
     making_charge_percentage?: number | null;
     is_jobwork_allowed: boolean;
     uses_gold: boolean;
