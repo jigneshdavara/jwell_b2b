@@ -400,27 +400,6 @@ export default function AdminQuotationShow() {
         });
     };
 
-    const submitApprove = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        approveForm.post(route('admin.quotations.approve', quotation.id), {
-            preserveScroll: true,
-        });
-    };
-
-    const submitReject = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        rejectForm.post(route('admin.quotations.reject', quotation.id), {
-            preserveScroll: true,
-        });
-    };
-
-    const submitJobwork = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        jobworkForm.post(route('admin.quotations.jobwork-status', quotation.id), {
-            preserveScroll: true,
-        });
-    };
-
     const submitMessage = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!messageForm.data.message.trim()) {

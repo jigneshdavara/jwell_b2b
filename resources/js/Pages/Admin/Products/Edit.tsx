@@ -246,13 +246,6 @@ const createDiamondOption = (): DiamondOptionForm => ({
     diamonds_count: '',
 });
 
-const createEmptyMetal = (): VariantMetalForm => ({
-    metal_id: '',
-    metal_purity_id: '',
-    metal_tone_id: '',
-    metal_weight: '',
-});
-
 const createEmptyDiamond = (): VariantDiamondForm => ({
     id: undefined,
     diamond_id: '',
@@ -510,7 +503,6 @@ export default function AdminProductEdit() {
         catalogs,
         diamondCatalog,
         diamonds,
-        customerGroups,
         metals,
         metalPurities,
         metalTones,
@@ -519,34 +511,6 @@ export default function AdminProductEdit() {
 
     // Note: Variants are no longer managed at the product level
     // Variants should be managed separately through product_variants table
-    const initialVariants: VariantForm[] = product?.variants?.length
-        ? product.variants.map((variant: any, index) => ({
-              id: variant.id,
-              sku: variant.sku ?? '',
-              label: variant.label ?? '',
-              metal_id: variant.metal_id ?? '',
-              metal_purity_id: variant.metal_purity_id ?? '',
-              diamond_option_key: (variant.diamond_option_key as string | null) ?? null,
-              size_cm: variant.size_cm ? String(variant.size_cm) : '',
-              price_adjustment: String(variant.price_adjustment ?? 0),
-              is_default: variant.is_default ?? index === 0,
-              inventory_quantity: variant.inventory_quantity !== undefined && variant.inventory_quantity !== null ? Number(variant.inventory_quantity) : 0,
-              metadata: variant.metadata ?? {},
-              // Optional: for multiple metals per variant
-              metals: variant.metals?.map((metal: any) => ({
-                  id: metal.id,
-                  metal_id: metal.metal_id ?? '',
-                  metal_purity_id: metal.metal_purity_id ?? '',
-                  metal_tone_id: metal.metal_tone_id ?? '',
-                  metal_weight: metal.metal_weight ? String(metal.metal_weight) : '',
-              })) ?? [],
-              diamonds: variant.diamonds?.map((diamond: any) => ({
-                  id: diamond.id,
-                  diamond_id: diamond.diamond_id ?? '',
-                  diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
-              })) ?? [],
-          }))
-        : [emptyVariant(true)];
 
     const initialDiscountOverrides: DiscountOverrideForm[] = product?.making_charge_discount_overrides?.length
         ? product.making_charge_discount_overrides.map((override, index) => ({
@@ -727,31 +691,6 @@ export default function AdminProductEdit() {
     // Allow multiple variants to be expanded simultaneously
     const [expandedDiamondVariantIndices, setExpandedDiamondVariantIndices] = useState<Set<number>>(new Set());
     const [expandedMetalVariantIndices, setExpandedMetalVariantIndices] = useState<Set<number>>(new Set());
-    
-    // Helper functions to toggle expansion
-    const toggleMetalExpansion = useCallback((index: number) => {
-        setExpandedMetalVariantIndices(prev => {
-            const next = new Set(prev);
-            if (next.has(index)) {
-                next.delete(index);
-            } else {
-                next.add(index);
-            }
-            return next;
-        });
-    }, []);
-    
-    const toggleDiamondExpansion = useCallback((index: number) => {
-        setExpandedDiamondVariantIndices(prev => {
-            const next = new Set(prev);
-            if (next.has(index)) {
-                next.delete(index);
-            } else {
-                next.add(index);
-            }
-            return next;
-        });
-    }, []);
 
 
     const formatDecimal = (value: number): string => {
@@ -804,31 +743,6 @@ export default function AdminProductEdit() {
             clarities: Object.fromEntries(diamondCatalog.clarities.map((item) => [item.id, item.name])),
         }),
         [diamondCatalog],
-    );
-
-    const buildDiamondOptionLabel = useCallback(
-        (option?: DiamondOptionForm | null) => {
-            if (!option) {
-                return '';
-            }
-
-            const parts: string[] = [];
-            if (option.weight) {
-                parts.push(`${option.weight} Ct`);
-            }
-            if (option.shape_id) {
-                parts.push(diamondNameMaps.shapes[Number(option.shape_id)] ?? '');
-            }
-            if (option.clarity_id) {
-                parts.push(diamondNameMaps.clarities[Number(option.clarity_id)] ?? '');
-            }
-            if (option.color_id) {
-                parts.push(diamondNameMaps.colors[Number(option.color_id)] ?? '');
-            }
-
-            return parts.filter(Boolean).join(' - ');
-        },
-        [diamondNameMaps],
     );
 
     const buildVariantMeta = useCallback(
@@ -1085,28 +999,12 @@ export default function AdminProductEdit() {
             selectedMetalIds.includes(tone.metal_id)
         );
     }, [data.metal_ids, metalTones]);
-
-    // Get selected purities and tones
-    // Note: metal_purity_ids and metal_tone_ids removed from products table
-    const selectedPurities = useMemo(() => [], []);
-    const selectedTones = useMemo(() => [], []);
-
-    // Note: diamond_options removed from products table
-    const diamondOptionLabels = useMemo(() => [], []);
-
-    // Note: diamond_options removed from products table
-    const diamondLabelMap = useMemo(() => ({}), []);
-
+    
     const toggleVariantProduct = (checked: boolean) => {
         setData((prev: FormData) => ({
             ...prev,
             is_variant_product: checked,
         }));
-    };
-
-    // Note: Diamond options removed from products table
-    const toggleUsesDiamond = (checked: boolean) => {
-        // No-op: diamond options removed from products table
     };
 
     // Note: Size dimension removed from products table
@@ -1304,84 +1202,6 @@ export default function AdminProductEdit() {
                 ...prev,
                 diamond_selections: updatedSelections,
             };
-        });
-    };
-
-
-    const addDiamondOptionRow = () => {
-        setData((prev: FormData) => {
-            const draft: FormData = {
-                ...prev,
-                diamond_options: [...(prev.diamond_options || []), createDiamondOption()],
-            };
-            draft.variants = recalculateVariants(draft);
-            return draft;
-        });
-    };
-
-    const updateDiamondOption = (
-        key: string,
-        field: Exclude<keyof DiamondOptionForm, 'key'>,
-        value: string | number | null,
-    ) => {
-        setData((prev: FormData) => {
-            const diamond_options = (prev.diamond_options || []).map((option: DiamondOptionForm) => {
-                if (option.key !== key) {
-                    return option;
-                }
-
-                if (field === 'weight' || field === 'diamonds_count') {
-                    return {
-                        ...option,
-                        [field]: value === null ? '' : String(value),
-                    };
-                }
-
-                const nextValue =
-                    value === null || value === ''
-                        ? ''
-                        : typeof value === 'number'
-                        ? value
-                        : value === ''
-                        ? ''
-                        : Number(value);
-
-                return {
-                    ...option,
-                    [field]: nextValue as DiamondOptionForm[typeof field],
-                };
-            });
-
-            const draft: FormData = {
-                ...prev,
-                diamond_options,
-            };
-
-            draft.variants = recalculateVariants(draft);
-
-            return draft;
-        });
-    };
-
-    const removeDiamondOptionRow = (key: string) => {
-        setData((prev: FormData) => {
-            const diamond_options = (prev.diamond_options || []).filter((option: DiamondOptionForm) => option.key !== key);
-            const draft: FormData = {
-                ...prev,
-                diamond_options,
-                variants: (prev.variants || []).map((variant: VariantForm) =>
-                    variant.diamond_option_key === key
-                        ? {
-                              ...variant,
-                              diamond_option_key: null,
-                          }
-                        : variant,
-                ),
-            };
-
-            draft.variants = recalculateVariants(draft);
-
-            return draft;
         });
     };
 
@@ -2167,28 +1987,6 @@ export default function AdminProductEdit() {
         setData((prev: FormData) => generateVariantMatrixForData(prev));
     };
 
-    const addDiscountOverrideRow = () => {
-        setData((prev: FormData) => ({
-            ...prev,
-            making_charge_discount_overrides: [...prev.making_charge_discount_overrides, createDiscountOverride()],
-        }));
-    };
-
-    const updateDiscountOverrideRow = (index: number, changes: Partial<DiscountOverrideForm>) => {
-        setData((prev: FormData) => ({
-            ...prev,
-            making_charge_discount_overrides: prev.making_charge_discount_overrides.map((override: DiscountOverrideForm, idx: number) =>
-                idx === index ? { ...override, ...changes } : override,
-            ),
-        }));
-    };
-
-    const removeDiscountOverrideRow = (index: number) => {
-        setData((prev: FormData) => ({
-            ...prev,
-            making_charge_discount_overrides: prev.making_charge_discount_overrides.filter((_, idx: number) => idx !== index),
-        }));
-    };
 
     // Diamonds are NOT part of automatic variant generation
     // No useEffect needed for diamond attributes

@@ -32,7 +32,7 @@ type CatalogsPageProps = PageProps<{
 }>;
 
 export default function AdminCatalogsIndex() {
-    const { catalogs, availableProducts } = usePage<CatalogsPageProps>().props;
+    const { catalogs } = usePage<CatalogsPageProps>().props;
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCatalog, setEditingCatalog] = useState<CatalogRow | null>(null);
     const [selectedCatalogs, setSelectedCatalogs] = useState<number[]>([]);
