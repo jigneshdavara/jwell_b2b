@@ -963,19 +963,7 @@ export default function AdminProductEdit() {
 
 
     // Get all available purities and tones
-    const availablePurities = useMemo(() => {
-        return metalPurities || [];
-    }, [metalPurities]);
 
-    const availableTones = useMemo(() => {
-        const selectedMetalIds = data.metal_ids || [];
-        if (selectedMetalIds.length === 0) {
-            return metalTones || [];
-        }
-        return (metalTones || []).filter((tone) => 
-            selectedMetalIds.includes(tone.metal_id)
-        );
-    }, [data.metal_ids, metalTones]);
 
     // Get selected purities and tones
     // Note: metal_purity_ids and metal_tone_ids removed from products table
@@ -1985,7 +1973,6 @@ export default function AdminProductEdit() {
                 .map(([, message]) => message),
         [errors],
     );
-
     const currentMedia = useMemo(() => {
         if (!product?.media) {
             return [];
