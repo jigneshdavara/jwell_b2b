@@ -21,11 +21,24 @@ class UpdateDiamondClarityRequest extends FormRequest
 
         return [
             'diamond_type_id' => ['required', 'integer', 'exists:diamond_types,id'],
-            'code' => ['nullable', 'string', 'max:255'],
-            'name' => ['required', 'string', 'max:255', Rule::unique('diamond_clarities', 'name')->ignore($clarity ? $clarity->id : null)],
-            'ecat_name' => ['nullable', 'string', 'max:255'],
+            'code' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('diamond_clarities', 'code')
+                    ->where('diamond_type_id', $this->input('diamond_type_id'))
+                    ->ignore($clarity?->id),
+            ],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('diamond_clarities', 'name')
+                    ->where('diamond_type_id', $this->input('diamond_type_id'))
+                    ->ignore($clarity?->id),
+            ],
             'description' => ['nullable', 'string'],
-            'display_order' => ['nullable', 'integer', 'min:0'],
+            'display_order' => ['required', 'integer', 'min:0'],
             'is_active' => ['boolean'],
         ];
     }

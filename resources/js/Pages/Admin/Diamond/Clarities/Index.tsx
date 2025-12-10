@@ -15,9 +15,8 @@ type DiamondClarityRow = {
     id: number;
     diamond_type_id: number;
     type: DiamondType | null;
-    code: string | null;
+    code: string;
     name: string;
-    ecat_name: string | null;
     description?: string | null;
     display_order: number;
     is_active: boolean;
@@ -49,10 +48,9 @@ export default function AdminDiamondClaritiesIndex() {
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
-        diamond_type_id: 0 as number,
+        diamond_type_id: '',
         code: '',
         name: '',
-        ecat_name: '',
         description: '',
         display_order: 0,
         is_active: true,
@@ -90,11 +88,8 @@ export default function AdminDiamondClaritiesIndex() {
         form.reset();
         form.setData('is_active', true);
         form.setData('display_order', 0);
-        // Set default to Natural Diamond type (first type or type with code 'NAT')
-        // const naturalType = types.find((t) => t.code === 'NAT') || types[0];
-        // if (naturalType) {
-        //     form.setData('diamond_type_id', naturalType.id);
-        // }
+        form.setData('diamond_type_id', '');
+        form.setData('code', '');
     };
 
     const openCreateModal = () => {
@@ -105,10 +100,9 @@ export default function AdminDiamondClaritiesIndex() {
     const openEditModal = (clarity: DiamondClarityRow) => {
         setEditingClarity(clarity);
         form.setData({
-            diamond_type_id: clarity.diamond_type_id!,
-            code: clarity.code ?? '',
+            diamond_type_id: String(clarity.diamond_type_id),
+            code: clarity.code,
             name: clarity.name,
-            ecat_name: clarity.ecat_name ?? '',
             description: clarity.description ?? '',
             display_order: clarity.display_order,
             is_active: clarity.is_active,
@@ -118,6 +112,12 @@ export default function AdminDiamondClaritiesIndex() {
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        // Convert diamond_type_id to number before submission
+        form.transform((data) => ({
+            ...data,
+            diamond_type_id: Number(data.diamond_type_id),
+        }));
 
         if (editingClarity) {
             form.put(route('admin.diamond.clarities.update', editingClarity.id), {
@@ -134,10 +134,9 @@ export default function AdminDiamondClaritiesIndex() {
 
     const toggleClarity = (clarity: DiamondClarityRow) => {
         router.put(route('admin.diamond.clarities.update', clarity.id), {
-            diamond_type_id: clarity.diamond_type_id,
+            diamond_type_id: String(clarity.diamond_type_id),
             code: clarity.code,
             name: clarity.name,
-            ecat_name: clarity.ecat_name,
             description: clarity.description,
             is_active: !clarity.is_active,
             display_order: clarity.display_order,
@@ -257,7 +256,6 @@ export default function AdminDiamondClaritiesIndex() {
                                 <th className="px-5 py-3 text-left">Type</th>
                                 <th className="px-5 py-3 text-left">Code</th>
                                 <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Ecat Name</th>
                                 <th className="px-5 py-3 text-left">Order</th>
                                 <th className="px-5 py-3 text-left">Status</th>
                                 <th className="px-5 py-3 text-right">Actions</th>
@@ -276,14 +274,13 @@ export default function AdminDiamondClaritiesIndex() {
                                         />
                                     </td>
                                     <td className="px-5 py-3 text-slate-700">{clarity.type ? clarity.type.name : '-'}</td>
-                                    <td className="px-5 py-3 text-slate-700">{clarity.code || '-'}</td>
+                                    <td className="px-5 py-3 text-slate-700">{clarity.code}</td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">
                                         <div className="flex flex-col gap-1">
                                             <span>{clarity.name}</span>
                                             {clarity.description && <span className="text-xs text-slate-500">{clarity.description}</span>}
                                         </div>
                                     </td>
-                                    <td className="px-5 py-3 text-slate-500">{clarity.ecat_name || '-'}</td>
                                     <td className="px-5 py-3 text-slate-500">{clarity.display_order}</td>
                                     <td className="px-5 py-3">
                                         <span
@@ -339,7 +336,7 @@ export default function AdminDiamondClaritiesIndex() {
                             ))}
                             {clarities.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={8} className="px-5 py-6 text-center text-sm text-slate-500">
+                                    <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
                                         No diamond clarities defined yet.
                                     </td>
                                 </tr>
@@ -428,10 +425,10 @@ export default function AdminDiamondClaritiesIndex() {
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Type *</span>
+                                            <span>Type <span className="text-rose-500">*</span></span>
                                             <select
-                                                value={form.data.diamond_type_id || ''}
-                                                onChange={(event) => form.setData('diamond_type_id', Number(event.target.value))}
+                                                value={form.data.diamond_type_id}
+                                                onChange={(event) => form.setData('diamond_type_id', event.target.value)}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 required
                                             >
@@ -445,18 +442,19 @@ export default function AdminDiamondClaritiesIndex() {
                                             {form.errors.diamond_type_id && <span className="text-xs text-rose-500">{form.errors.diamond_type_id}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Code</span>
+                                            <span>Code <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="text"
                                                 value={form.data.code}
                                                 onChange={(event) => form.setData('code', event.target.value)}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 placeholder="e.g., A1, VVS"
+                                                required
                                             />
                                             {form.errors.code && <span className="text-xs text-rose-500">{form.errors.code}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Name *</span>
+                                            <span>Name <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="text"
                                                 value={form.data.name}
@@ -467,23 +465,14 @@ export default function AdminDiamondClaritiesIndex() {
                                             {form.errors.name && <span className="text-xs text-rose-500">{form.errors.name}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Ecat Name</span>
-                                            <input
-                                                type="text"
-                                                value={form.data.ecat_name}
-                                                onChange={(event) => form.setData('ecat_name', event.target.value)}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            />
-                                            {form.errors.ecat_name && <span className="text-xs text-rose-500">{form.errors.ecat_name}</span>}
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Display Order</span>
+                                            <span>Display Order <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="number"
                                                 value={form.data.display_order}
                                                 onChange={(event) => form.setData('display_order', Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
+                                                required
                                             />
                                             {form.errors.display_order && <span className="text-xs text-rose-500">{form.errors.display_order}</span>}
                                         </label>
