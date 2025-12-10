@@ -51,7 +51,8 @@ class StoreProductRequest extends FormRequest
             'collection' => ['required', 'string', 'max:255'],
             'producttype' => ['required', 'string', 'max:255'],
             'gender' => ['required', 'string', 'max:50', Rule::in(['Men', 'Women', 'Unisex', 'Kids'])],
-            'making_charge' => ['required', 'numeric', 'min:0'],
+            'making_charge_amount' => ['nullable', 'numeric', 'min:0'],
+            'making_charge_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'making_charge_discount_type' => ['nullable', 'in:percentage,fixed'],
             'making_charge_discount_value' => ['nullable', 'numeric', 'min:0', 'required_with:making_charge_discount_type'],
             'making_charge_discount_overrides' => ['nullable', 'array'],
@@ -85,6 +86,24 @@ class StoreProductRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            // Ensure at least one making charge option is provided
+            $makingChargeTypes = $this->input('making_charge_types', []);
+            $makingChargeAmount = $this->input('making_charge_amount');
+            $makingChargePercentage = $this->input('making_charge_percentage');
+            
+            $hasFixed = in_array('fixed', $makingChargeTypes) && $makingChargeAmount !== null && $makingChargeAmount !== '' && (float) $makingChargeAmount > 0;
+            $hasPercentage = in_array('percentage', $makingChargeTypes) && $makingChargePercentage !== null && $makingChargePercentage !== '' && (float) $makingChargePercentage > 0;
+            
+            if (empty($makingChargeTypes) || (!$hasFixed && !$hasPercentage)) {
+                $validator->errors()->add('making_charge_type', 'Please select at least one making charge option (Fixed Amount or Percentage).');
+                if (!$hasFixed && in_array('fixed', $makingChargeTypes)) {
+                    $validator->errors()->add('making_charge_amount', 'Fixed making charge value is required when Fixed Amount is selected.');
+                }
+                if (!$hasPercentage && in_array('percentage', $makingChargeTypes)) {
+                    $validator->errors()->add('making_charge_percentage', 'Percentage value is required when Percentage is selected.');
+                }
+            }
+
             $overrides = collect($this->input('making_charge_discount_overrides', []));
             $duplicateGroups = $overrides
                 ->pluck('customer_group_id')

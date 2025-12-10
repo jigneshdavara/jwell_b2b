@@ -84,7 +84,7 @@ class OrderController extends Controller
                             'name' => $item->product->name,
                             'sku' => $item->product->sku,
                             'base_price' => $item->product->base_price,
-                            'making_charge' => $item->product->making_charge,
+                            'making_charge_amount' => $item->product->making_charge_amount,
                             'gold_weight' => $item->product->gold_weight,
                             'silver_weight' => $item->product->silver_weight,
                             'other_material_weight' => $item->product->other_material_weight,

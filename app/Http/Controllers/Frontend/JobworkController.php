@@ -38,7 +38,7 @@ class JobworkController extends Controller
                     'gross_weight' => $productModel->gross_weight,
                     'net_weight' => $productModel->net_weight,
                     'base_price' => $productModel->base_price,
-                    'making_charge' => $productModel->making_charge,
+                    'making_charge_amount' => $productModel->making_charge_amount,
                     'standard_pricing' => $productModel->standard_pricing,
                     'variants' => $productModel->variants->map(fn($variant) => [
                         'id' => $variant->id,

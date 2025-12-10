@@ -200,7 +200,7 @@ class QuotationController extends Controller
                             'name' => $q->product->name,
                             'sku' => $q->product->sku,
                             'base_price' => $q->product->base_price,
-                            'making_charge' => $q->product->making_charge,
+                            'making_charge_amount' => $q->product->making_charge_amount,
                             'gold_weight' => $q->product->gold_weight,
                             'silver_weight' => $q->product->silver_weight,
                             'other_material_weight' => $q->product->other_material_weight,
@@ -806,7 +806,7 @@ class QuotationController extends Controller
 
             $metalCost = (float) ($pricing['metal'] ?? 0);
             $diamondCost = (float) ($pricing['diamond'] ?? 0);
-            $making = (float) ($pricing['making'] ?? $product->making_charge);
+            $making = (float) ($pricing['making'] ?? $product->making_charge_amount);
             $unitSubtotal = (float) ($pricing['subtotal'] ?? ($metalCost + $diamondCost + $making));
             $unitDiscount = (float) ($pricing['discount'] ?? 0);
             $unitTotal = (float) ($pricing['total'] ?? ($unitSubtotal - $unitDiscount));

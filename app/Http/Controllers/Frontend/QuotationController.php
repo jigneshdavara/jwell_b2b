@@ -160,7 +160,7 @@ class QuotationController extends Controller
                             'name' => $q->product->name,
                             'sku' => $q->product->sku,
                             'base_price' => $q->product->base_price,
-                            'making_charge' => $q->product->making_charge,
+                            'making_charge_amount' => $q->product->making_charge_amount,
                             'gold_weight' => $q->product->gold_weight,
                             'silver_weight' => $q->product->silver_weight,
                             'other_material_weight' => $q->product->other_material_weight,

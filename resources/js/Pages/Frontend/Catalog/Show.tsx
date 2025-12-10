@@ -54,7 +54,9 @@ type Product = {
     other_material_weight?: number | null;
     total_weight?: number | null;
     base_price?: number;
-    making_charge?: number;
+    making_charge_amount?: number;
+    making_charge_type?: 'fixed' | 'percentage' | 'both';
+    making_charge_percentage?: number | null;
     is_jobwork_allowed: boolean;
     uses_gold: boolean;
     uses_silver: boolean;
@@ -257,6 +259,7 @@ export default function CatalogShow() {
 
 
 
+
     // Calculate estimated total based on selectedVariant (via selectedConfig)
     // Price updates automatically when selectedVariantId changes because selectedConfig is a useMemo
     // that depends on selectedVariantId
@@ -264,7 +267,7 @@ export default function CatalogShow() {
         if (!selectedConfig) {
             return 0;
         }
-        
+
         if (isJobworkMode) {
             // For jobwork, only charge the making charge
             return selectedConfig.price_breakup.making + selectedConfig.price_breakup.adjustment;
@@ -607,24 +610,32 @@ export default function CatalogShow() {
                                                 {selectedConfig.price_breakup.metal > 0 && (
                                                     <p className="flex justify-between">
                                                         <span>Metal:</span>
-                                                        <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.metal)}</span>
+                                                        <span className="font-medium">
+                                                            {currencyFormatter.format(selectedConfig.price_breakup.metal)}
+                                                        </span>
                                                     </p>
                                                 )}
                                                 {selectedConfig.price_breakup.diamond > 0 && (
                                                     <p className="flex justify-between">
                                                         <span>Diamond:</span>
-                                                        <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.diamond)}</span>
+                                                        <span className="font-medium">
+                                                            {currencyFormatter.format(selectedConfig.price_breakup.diamond)}
+                                                        </span>
                                                     </p>
                                                 )}
                                                 {selectedConfig.price_breakup.colorstone > 0 && (
                                                     <p className="flex justify-between">
                                                         <span>Colorstone:</span>
-                                                        <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.colorstone)}</span>
+                                                        <span className="font-medium">
+                                                            {currencyFormatter.format(selectedConfig.price_breakup.colorstone)}
+                                                        </span>
                                                     </p>
                                                 )}
                                                 <p className="flex justify-between">
                                                     <span>Making:</span>
-                                                    <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.making)}</span>
+                                                    <span className="font-medium">
+                                                        {currencyFormatter.format(selectedConfig.price_breakup.making)}
+                                                    </span>
                                                 </p>
                                                 {selectedConfig.price_breakup.adjustment !== 0 && (
                                                     <p className="flex justify-between">

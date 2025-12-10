@@ -17,6 +17,7 @@ use App\Models\MetalPurity;
 use App\Models\MetalTone;
 use App\Models\PriceRate;
 use App\Models\Product;
+use App\Services\PricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -24,6 +25,10 @@ use Inertia\Response;
 
 class CatalogController extends Controller
 {
+    public function __construct(
+        protected PricingService $pricingService
+    ) {}
+
     public function index(Request $request): Response
     {
         $mode = $request->string('mode')->lower()->value();
@@ -313,7 +318,7 @@ class CatalogController extends Controller
                     $colorstoneCost = round($colorstoneCost, 2);
 
                     // Calculate priceTotal: Metal + Diamond + Colorstone + Making Charge
-                    $makingCharge = (float) ($product->making_charge ?? 0);
+                    $makingCharge = (float) ($product->making_charge_amount ?? 0);
                     $priceTotal = $metalCost + $diamondCost + $colorstoneCost + $makingCharge;
                 } else {
                     // If no variant, fallback to making charge only
@@ -332,7 +337,7 @@ class CatalogController extends Controller
                     'other_material_weight' => $product->other_material_weight !== null ? (float) $product->other_material_weight : null,
                     'total_weight' => $product->total_weight !== null ? (float) $product->total_weight : null,
                     'price_total' => $priceTotal,
-                    'making_charge' => (float) $product->making_charge,
+                    'making_charge_amount' => (float) $product->making_charge_amount,
                     'is_jobwork_allowed' => (bool) $product->is_jobwork_allowed,
                     'thumbnail' => optional($product->media->sortBy('position')->first())?->url,
                     'media' => $product->media->sortBy('position')->values()->map(fn($media) => [
@@ -508,6 +513,8 @@ class CatalogController extends Controller
                 'total_weight' => $product->total_weight !== null ? (float) $product->total_weight : null,
                 'base_price' => (float) $product->base_price,
                 'making_charge' => (float) $product->making_charge,
+                'making_charge_type' => $product->making_charge_type, // Accessor will infer from values
+                'making_charge_percentage' => $product->making_charge_percentage ? (float) $product->making_charge_percentage : null,
                 'is_jobwork_allowed' => (bool) $product->is_jobwork_allowed,
                 'uses_gold' => (bool) $product->uses_gold,
                 'uses_silver' => (bool) $product->uses_silver,
@@ -846,10 +853,16 @@ class CatalogController extends Controller
             }
             $colorstoneCost = round($colorstoneCost, 2);
 
-            // Calculate pricing
+            // Calculate making charge using PricingService
+            $priceBreakdown = $this->pricingService->calculateProductPrice(
+                $product,
+                auth()->user(),
+                ['variant' => $variant]
+            );
+            
             $basePrice = (float) ($product->base_price ?? 0);
-            $makingCharge = (float) ($product->making_charge ?? 0);
-            $priceAdjustment = 0; //(float) ($variant->price_adjustment ?? 0);
+            $makingCharge = (float) $priceBreakdown->get('making', 0);
+            $priceAdjustment = (float) ($variant->price_adjustment ?? 0);
             // Total price: Metal + Diamond + Colorstone + Making Charge + Adjustment (Base Price is NOT included)
             $priceTotal = $metalCost + $diamondCost + $colorstoneCost + $makingCharge;
 
@@ -1258,4 +1271,5 @@ class CatalogController extends Controller
 
         return $variantMap;
     }
+
 }
