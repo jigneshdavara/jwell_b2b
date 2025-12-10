@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 type DiamondTypeRow = {
     id: number;
-    code: string | null;
+    code: string;
     name: string;
     description?: string | null;
     display_order: number;
@@ -88,7 +88,7 @@ export default function AdminDiamondTypesIndex() {
     const openEditModal = (type: DiamondTypeRow) => {
         setEditingType(type);
         form.setData({
-            code: type.code ?? '',
+            code: type.code,
             name: type.name,
             description: type.description ?? '',
             display_order: type.display_order,
@@ -252,7 +252,7 @@ export default function AdminDiamondTypesIndex() {
                                             aria-label={`Select diamond type ${type.name}`}
                                         />
                                     </td>
-                                    <td className="px-5 py-3 text-slate-700">{type.code || '-'}</td>
+                                    <td className="px-5 py-3 text-slate-700">{type.code}</td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">
                                         <div className="flex flex-col gap-1">
                                             <span>{type.name}</span>
@@ -403,18 +403,19 @@ export default function AdminDiamondTypesIndex() {
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Code</span>
+                                            <span>Code <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="text"
                                                 value={form.data.code}
                                                 onChange={(event) => form.setData('code', event.target.value)}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 placeholder="e.g., NAT, LAB"
+                                                required
                                             />
                                             {form.errors.code && <span className="text-xs text-rose-500">{form.errors.code}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Name *</span>
+                                            <span>Name <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="text"
                                                 value={form.data.name}
@@ -425,13 +426,14 @@ export default function AdminDiamondTypesIndex() {
                                             {form.errors.name && <span className="text-xs text-rose-500">{form.errors.name}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Position</span>
+                                            <span>Display order <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="number"
                                                 value={form.data.display_order}
                                                 onChange={(event) => form.setData('display_order', Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
+                                                required
                                             />
                                             {form.errors.display_order && <span className="text-xs text-rose-500">{form.errors.display_order}</span>}
                                         </label>

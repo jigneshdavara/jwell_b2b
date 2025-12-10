@@ -47,10 +47,10 @@ class DiamondTypeController extends Controller
         $data = $request->validated();
 
         DiamondType::create([
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -64,10 +64,10 @@ class DiamondTypeController extends Controller
         $data = $request->validated();
 
         $type->update([
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -94,5 +94,3 @@ class DiamondTypeController extends Controller
             ->with('success', 'Selected diamond types deleted successfully.');
     }
 }
-
-
