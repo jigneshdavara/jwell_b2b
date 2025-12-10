@@ -54,6 +54,7 @@ type Product = {
     description?: string;
     brand_id?: number;
     category_id?: number;
+    category_ids?: number[];
     catalog_ids?: number[];
     collection?: string;
     producttype?: string;
@@ -140,10 +141,16 @@ type CatalogOption = {
     is_active: boolean;
 };
 
+type CategoryOption = {
+    id: number;
+    name: string;
+    parent_id: number | null;
+};
+
 type AdminProductEditPageProps = AppPageProps<{
     product: Product | null;
     brands: OptionList;
-    categories: OptionList;
+    categories: CategoryOption[];
     catalogs: CatalogOption[];
     diamondCatalog: DiamondCatalog;
     diamonds: OptionListItem[];
@@ -160,7 +167,9 @@ type FormData = {
     titleline: string;
     description: string;
     brand_id: string;
+    parent_category_id: string;
     category_id: string;
+    subcategory_ids?: number[];
     collection: string;
     producttype: string;
     gender: string;
@@ -494,6 +503,235 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
     );
 }
 
+type SubcategoryMultiSelectProps = {
+    subcategories: CategoryOption[];
+    selectedIds: number[];
+    onChange: (selectedIds: number[]) => void;
+    error?: string;
+    disabled?: boolean;
+};
+
+function SubcategoryMultiSelect({ subcategories, selectedIds, onChange, error, disabled }: SubcategoryMultiSelectProps) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Filter subcategories based on search
+    const filteredSubcategories = useMemo(() => {
+        if (!searchTerm.trim()) {
+            return subcategories;
+        }
+        const search = searchTerm.toLowerCase();
+        return subcategories.filter((category) =>
+            category.name.toLowerCase().includes(search)
+        );
+    }, [subcategories, searchTerm]);
+
+    // Toggle subcategory selection
+    const toggleSubcategory = (categoryId: number) => {
+        if (selectedIds.includes(categoryId)) {
+            onChange(selectedIds.filter(id => id !== categoryId));
+        } else {
+            onChange([...selectedIds, categoryId]);
+        }
+    };
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+                setSearchTerm('');
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]);
+
+    // Get selected subcategory data for display
+    const selectedSubcategories = useMemo(() => {
+        return selectedIds
+            .map(id => {
+                const category = subcategories.find(c => c.id === id);
+                return category ? { id, name: category.name } : null;
+            })
+            .filter(Boolean) as Array<{ id: number; name: string }>;
+    }, [selectedIds, subcategories]);
+
+    // Remove subcategory from selection
+    const removeSubcategory = (categoryId: number) => {
+        onChange(selectedIds.filter(id => id !== categoryId));
+    };
+
+    return (
+        <label className="flex flex-col gap-2 text-sm text-slate-600">
+            <div className="flex items-center justify-between">
+                <span>Sub Categories (Optional)</span>
+                {selectedIds.length > 0 && (
+                    <span className="text-xs font-medium text-sky-600">
+                        {selectedIds.length} selected
+                    </span>
+                )}
+            </div>
+            <div className="relative" ref={dropdownRef}>
+                {/* Dropdown Button */}
+                <button
+                    type="button"
+                    onClick={() => !disabled && setIsOpen(!isOpen)}
+                    disabled={disabled}
+                    className={`w-full rounded-2xl border ${
+                        error ? 'border-rose-300' : 'border-slate-200'
+                    } bg-white px-4 py-2.5 text-left focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 transition-all ${
+                        isOpen ? 'border-sky-400 ring-2 ring-sky-200' : ''
+                    } ${disabled ? 'bg-slate-100 cursor-not-allowed opacity-60' : ''}`}
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-h-[20px] flex flex-wrap gap-1.5">
+                            {selectedIds.length === 0 ? (
+                                <span className="text-slate-400">
+                                    {disabled ? 'Select parent category first' : 'Select subcategories...'}
+                                </span>
+                            ) : (
+                                selectedSubcategories.map((category) => (
+                                    <span
+                                        key={category.id}
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 border border-sky-200"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <span>{category.name}</span>
+                                        {!disabled && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    removeSubcategory(category.id);
+                                                }}
+                                                className="hover:bg-sky-100 rounded-full p-0.5 transition-colors"
+                                            >
+                                                <svg
+                                                    className="h-3 w-3 text-sky-600"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                    </span>
+                                ))
+                            )}
+                        </div>
+                        <svg
+                            className={`ml-2 h-5 w-5 text-slate-400 transition-transform flex-shrink-0 ${
+                                isOpen ? 'rotate-180' : ''
+                            }`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isOpen && !disabled && (
+                    <div className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
+                        {/* Search Input */}
+                        {subcategories.length > 5 && (
+                            <div className="border-b border-slate-100 p-3">
+                                <div className="relative">
+                                    <svg
+                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <input
+                                        type="text"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        placeholder="Search subcategories..."
+                                        className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Subcategory List */}
+                        <div className="max-h-64 overflow-y-auto p-2">
+                            {filteredSubcategories.length === 0 ? (
+                                <div className="px-3 py-6 text-center text-sm text-slate-400">
+                                    {searchTerm ? 'No subcategories found' : 'No subcategories available'}
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    {filteredSubcategories.map((category) => {
+                                        const isSelected = selectedIds.includes(category.id);
+                                        return (
+                                            <button
+                                                key={category.id}
+                                                type="button"
+                                                onClick={() => toggleSubcategory(category.id)}
+                                                className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                                                    isSelected
+                                                        ? 'bg-sky-50 text-sky-700'
+                                                        : 'text-slate-700 hover:bg-slate-50'
+                                                }`}
+                                            >
+                                                {/* Checkbox */}
+                                                <div
+                                                    className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
+                                                        isSelected
+                                                            ? 'border-sky-500 bg-sky-500'
+                                                            : 'border-slate-300'
+                                                    }`}
+                                                >
+                                                    {isSelected && (
+                                                        <svg
+                                                            className="h-3.5 w-3.5 text-white"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                            strokeWidth={3}
+                                                        >
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+
+                                                {/* Category Info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <span className={`text-sm font-medium truncate ${
+                                                        isSelected ? 'text-sky-900' : 'text-slate-900'
+                                                    }`}>
+                                                        {category.name}
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+            {error && <span className="text-xs text-rose-500">{error}</span>}
+        </label>
+    );
+}
+
 export default function AdminProductEdit() {
     const { props } = usePage<AdminProductEditPageProps>();
     const {
@@ -605,72 +843,98 @@ export default function AdminProductEdit() {
         };
     }, [product]);
 
-    const form = useForm<Record<string, any>>(() => ({
-        sku: product?.sku ?? '',
-        name: product?.name ?? '',
-        titleline: product?.titleline ?? '',
-        description: product?.description ?? '',
-        catalog_ids: product?.catalog_ids ?? [],
-        brand_id: String(product?.brand_id ?? ''),
-        category_id: String(product?.category_id ?? ''),
-        collection: product?.collection ?? '',
-        producttype: product?.producttype ?? '',
-        gender: product?.gender ?? '',
-        making_charge_amount: product?.making_charge_amount ? String(product.making_charge_amount) : '',
-        making_charge_types: (() => {
-            // Infer from values: if both have values, both are selected
-            const hasFixed = product?.making_charge_amount && Number(product.making_charge_amount) > 0;
-            const hasPercentage = product?.making_charge_percentage && Number(product.making_charge_percentage) > 0;
-            if (hasFixed && hasPercentage) return ['fixed', 'percentage'];
-            if (hasPercentage) return ['percentage'];
-            if (hasFixed) return ['fixed'];
-            return ['fixed']; // Default to fixed
-        })(),
-        making_charge_percentage: product?.making_charge_percentage ? String(product.making_charge_percentage) : '',
-        making_charge_discount_type:
-            (product?.making_charge_discount_type as 'percentage' | 'fixed' | null) ?? null,
-        making_charge_discount_value:
-            product?.making_charge_discount_value !== null && product?.making_charge_discount_value !== undefined
-                ? String(product.making_charge_discount_value)
-                : null,
-        making_charge_discount_overrides: initialDiscountOverrides,
-        is_active: product?.is_active ?? true,
-        variants: product?.variants?.length
-            ? product.variants.map((variant: any, index) => ({
-                  id: variant.id,
-                  sku: variant.sku ?? '',
-                  label: variant.label ?? '',
-                  metal_id: variant.metal_id ?? '',
-                  metal_purity_id: variant.metal_purity_id ?? '',
-                  diamond_option_key: (variant.diamond_option_key as string | null) ?? null,
-                  size_cm: variant.size_cm ? String(variant.size_cm) : '',
-                  price_adjustment: String(variant.price_adjustment ?? 0),
-                  is_default: variant.is_default ?? index === 0,
-                  inventory_quantity: variant.inventory_quantity !== undefined && variant.inventory_quantity !== null ? Number(variant.inventory_quantity) : 0,
-                  metadata: variant.metadata ?? {},
-                  metals: variant.metals?.map((metal: any) => ({
-                      id: metal.id,
-                      metal_id: metal.metal_id ?? '',
-                      metal_purity_id: metal.metal_purity_id ?? '',
-                      metal_tone_id: metal.metal_tone_id ?? '',
-                      metal_weight: metal.metal_weight ? String(metal.metal_weight) : '',
-                  })) ?? [],
-                  diamonds: variant.diamonds?.map((diamond: any) => ({
-                      id: diamond.id,
-                      diamond_id: diamond.diamond_id ?? '',
-                      diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
-                  })) ?? [],
-              }))
-            : [emptyVariant(true)],
-        diamond_options: [],
-        uses_diamond: (extractSelectionsFromVariants.diamondSelections?.length ?? 0) > 0,
-        diamond_selections: extractSelectionsFromVariants.diamondSelections ?? [],
-        media_uploads: [],
-        removed_media_ids: [],
-    }) as Record<string, any>);
+    // Compute initial form data including parent category
+    const initialFormData = useMemo(() => {
+        // category_id in product = parent category ID
+        const parentCategoryId = product?.category_id ? String(product.category_id) : '';
+        const existingSubcategoryIds = product?.category_ids ?? [];
+
+        // Set parent category ID from product.category_id
+        const subcategoryIds: number[] = existingSubcategoryIds.filter((id): id is number => typeof id === 'number');
+
+        return {
+            sku: product?.sku ?? '',
+            name: product?.name ?? '',
+            titleline: product?.titleline ?? '',
+            description: product?.description ?? '',
+            catalog_ids: product?.catalog_ids ?? [],
+            brand_id: String(product?.brand_id ?? ''),
+            parent_category_id: parentCategoryId,
+            category_id: '',
+            subcategory_ids: subcategoryIds,
+            collection: product?.collection ?? '',
+            producttype: product?.producttype ?? '',
+            gender: product?.gender ?? '',
+            making_charge_amount: product?.making_charge_amount ? String(product.making_charge_amount) : '',
+            making_charge_types: (() => {
+                // Infer from values: if both have values, both are selected
+                const hasFixed = product?.making_charge_amount && Number(product.making_charge_amount) > 0;
+                const hasPercentage = product?.making_charge_percentage && Number(product.making_charge_percentage) > 0;
+                if (hasFixed && hasPercentage) return ['fixed', 'percentage'];
+                if (hasPercentage) return ['percentage'];
+                if (hasFixed) return ['fixed'];
+                return ['fixed']; // Default to fixed
+            })(),
+            making_charge_percentage: product?.making_charge_percentage ? String(product.making_charge_percentage) : '',
+            making_charge_discount_type:
+                    (product?.making_charge_discount_type as 'percentage' | 'fixed' | null) ?? null,
+            making_charge_discount_value:
+                    product?.making_charge_discount_value !== null && product?.making_charge_discount_value !== undefined
+                        ? String(product.making_charge_discount_value)
+                        : null,
+            making_charge_discount_overrides: initialDiscountOverrides,
+                is_active: product?.is_active ?? true,
+                variants: product?.variants?.length
+                    ? product.variants.map((variant: any, index) => ({
+                        id: variant.id,
+                        sku: variant.sku ?? '',
+                        label: variant.label ?? '',
+                        metal_id: variant.metal_id ?? '',
+                        metal_purity_id: variant.metal_purity_id ?? '',
+                        diamond_option_key: (variant.diamond_option_key as string | null) ?? null,
+                        size_cm: variant.size_cm ? String(variant.size_cm) : '',
+                        price_adjustment: String(variant.price_adjustment ?? 0),
+                        is_default: variant.is_default ?? index === 0,
+                        inventory_quantity: variant.inventory_quantity !== undefined && variant.inventory_quantity !== null ? Number(variant.inventory_quantity) : 0,
+                        metadata: variant.metadata ?? {},
+                        metals: variant.metals?.map((metal: any) => ({
+                            id: metal.id,
+                            metal_id: metal.metal_id ?? '',
+                            metal_purity_id: metal.metal_purity_id ?? '',
+                            metal_tone_id: metal.metal_tone_id ?? '',
+                            metal_weight: metal.metal_weight ? String(metal.metal_weight) : '',
+                        })) ?? [],
+                        diamonds: variant.diamonds?.map((diamond: any) => ({
+                            id: diamond.id,
+                            diamond_id: diamond.diamond_id ?? '',
+                            diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
+                        })) ?? [],
+                    }))
+                    : [emptyVariant(true)],
+            diamond_options: [],
+            uses_diamond: (extractSelectionsFromVariants.diamondSelections?.length ?? 0) > 0,
+            diamond_selections: extractSelectionsFromVariants.diamondSelections ?? [],
+            media_uploads: [],
+            removed_media_ids: [],
+        } as Record<string, any>;
+    }, [product, categories, initialDiscountOverrides, extractSelectionsFromVariants]);
+
+    const form = useForm<Record<string, any>>(initialFormData);
     const { setData, post, put, processing } = form;
     const data = form.data as FormData;
-    
+
+    // Compute parent categories (categories with no parent_id)
+    const parentCategories = useMemo(() => {
+        return categories.filter(cat => cat.parent_id === null);
+    }, [categories]);
+
+    // Compute subcategories based on selected parent category
+    const subCategories = useMemo(() => {
+        const parentId = data.parent_category_id ? Number(data.parent_category_id) : null;
+        if (!parentId) return [];
+        return categories.filter(cat => cat.parent_id === parentId);
+    }, [categories, data.parent_category_id]);
+
     // Local state for description to prevent re-renders on every keystroke
     const [localDescription, setLocalDescription] = useState(data.description);
     const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -2023,16 +2287,24 @@ export default function AdminProductEdit() {
             } else {
                 payload.brand_id = null;
             }
-            
-            const categoryIdValue = formState.category_id;
-            if (categoryIdValue !== '' && categoryIdValue !== null && categoryIdValue !== undefined) {
-                const categoryIdNum = Number(categoryIdValue);
+            // category_id = parent category ID (required)
+            const parentCategoryId = formState.parent_category_id;
+            const subcategoryIds = formState.subcategory_ids ?? [];
+
+            // Set category_id to parent category ID
+            if (parentCategoryId !== '' && parentCategoryId !== null && parentCategoryId !== undefined) {
+                const categoryIdNum = Number(parentCategoryId);
                 payload.category_id = isNaN(categoryIdNum) ? null : categoryIdNum;
             } else {
                 payload.category_id = null;
             }
-            
-            
+
+            // Set subcategory_ids as array (will be stored in JSON column)
+            payload.category_ids = subcategoryIds.length > 0 ? subcategoryIds : [];
+
+            // Remove frontend-only fields from payload
+            delete payload.parent_category_id;
+            delete payload.subcategory_ids;
             // Handle making charge values - type will be inferred from values on backend
             const selectedTypes = formState.making_charge_types || [];
             
@@ -2246,6 +2518,17 @@ export default function AdminProductEdit() {
                                     {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
                                 </label>
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                    <span>Product Type *</span>
+                                    <input
+                                        type="text"
+                                        value={data.producttype}
+                                        onChange={(event) => setData('producttype', event.target.value)}
+                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        placeholder="Enter product type"
+                                    />
+                                    {errors.producttype && <span className="text-xs text-rose-500">{errors.producttype}</span>}
+                                </label>
+                                <label className="flex flex-col gap-2 text-sm text-slate-600">
                                     <span>Title Line *</span>
                                     <input
                                         type="text"
@@ -2256,7 +2539,44 @@ export default function AdminProductEdit() {
                                     />
                                     {errors.titleline && <span className="text-xs text-rose-500">{errors.titleline}</span>}
                                 </label>
+
+                                <CatalogMultiSelect
+                                    catalogs={catalogs}
+                                    selectedIds={Array.isArray(data.catalog_ids) ? data.catalog_ids : []}
+                                    onChange={(selectedIds) => setData('catalog_ids', selectedIds)}
+                                    error={errors.catalog_ids}
+                                />
+                            </div>
+
+                            <div className="space-y-4">
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                    <span>Category *</span>
+                                    <select
+                                        value={data.parent_category_id}
+                                        onChange={(event) => {
+                                            setData('parent_category_id', event.target.value);
+                                            // Clear subcategories when parent changes
+                                            setData('subcategory_ids', []);
+                                            setData('category_id', '');
+                                        }}
+                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    >
+                                        <option value="">Select parent category</option>
+                                        {parentCategories.map((category) => (
+                                            <option key={category.id} value={category.id}>
+                                                {category.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <SubcategoryMultiSelect
+                                    subcategories={subCategories}
+                                    selectedIds={Array.isArray(data.subcategory_ids) ? data.subcategory_ids : []}
+                                    onChange={(selectedIds) => setData('subcategory_ids', selectedIds)}
+                                    error={errors.subcategory_ids}
+                                    disabled={!data.parent_category_id}
+                                />
+                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
                                     <span>Brand *</span>
                                     <select
                                         value={data.brand_id}
@@ -2272,31 +2592,6 @@ export default function AdminProductEdit() {
                                     </select>
                                     {errors.brand_id && <span className="text-xs text-rose-500">{errors.brand_id}</span>}
                                 </label>
-                                <CatalogMultiSelect
-                                    catalogs={catalogs}
-                                    selectedIds={Array.isArray(data.catalog_ids) ? data.catalog_ids : []}
-                                    onChange={(selectedIds) => setData('catalog_ids', selectedIds)}
-                                    error={errors.catalog_ids}
-                                />
-                            </div>
-
-                            <div className="space-y-4">
-                                <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                    <span>Category *</span>
-                                    <select
-                                        value={data.category_id}
-                                        onChange={(event) => setData('category_id', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                    >
-                                        <option value="">Select category</option>
-                                        {Object.entries(categories).map(([id, name]) => (
-                                            <option key={id} value={id}>
-                                                {name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {errors.category_id && <span className="text-xs text-rose-500">{errors.category_id}</span>}
-                                </label>
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
                                     <span>Collection *</span>
                                     <input
@@ -2307,17 +2602,6 @@ export default function AdminProductEdit() {
                                         placeholder="Enter collection name"
                                     />
                                     {errors.collection && <span className="text-xs text-rose-500">{errors.collection}</span>}
-                                </label>
-                                <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                    <span>Product Type *</span>
-                                    <input
-                                        type="text"
-                                        value={data.producttype}
-                                        onChange={(event) => setData('producttype', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        placeholder="Enter product type"
-                                    />
-                                    {errors.producttype && <span className="text-xs text-rose-500">{errors.producttype}</span>}
                                 </label>
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
                                     <span>Gender *</span>
@@ -3063,7 +3347,7 @@ export default function AdminProductEdit() {
                                                                 ? (diamonds?.find(d => d.id === diamond.diamond_id)?.name || 'Diamond')
                                                                 : 'Diamond';
                                                             const count = diamond.diamonds_count || '';
-                                                            
+
                                                             return (
                                                                 <div key={diamondIndex} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
                                                                     <div className="flex-1">
@@ -3204,7 +3488,7 @@ export default function AdminProductEdit() {
                                                                     const toneName = metal.metal_tone_id && typeof metal.metal_tone_id === 'number'
                                                                         ? metalTones.find(t => t.id === metal.metal_tone_id)?.name || ''
                                                                         : '';
-                                                                    
+
                                                                     return (
                                                                         <div key={metalIndex} className="rounded-xl border border-slate-200 bg-white p-4">
                                                                             <div className="mb-3 flex items-center justify-between">
