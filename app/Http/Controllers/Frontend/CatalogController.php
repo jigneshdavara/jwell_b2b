@@ -366,7 +366,6 @@ class CatalogController extends Controller
                     'id' => $clarity->id,
                     'name' => $clarity->name,
                 ]),
-                'cuts' => [], // DiamondCut model doesn't exist yet
             ],
             'brands' => Brand::query()
                 ->where('is_active', true)
@@ -1086,5 +1085,4 @@ class CatalogController extends Controller
 
         return $variantMap;
     }
-
 }

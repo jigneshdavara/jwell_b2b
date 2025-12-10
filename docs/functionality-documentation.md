@@ -243,10 +243,6 @@ The application supports multiple user types with distinct portals:
 - Clarity grades (FL, IF, VVS1, etc.)
 - Clarity management
 
-#### Diamond Cuts (`/admin/diamond/cuts`)
-- Cut quality grades
-- Cut management
-
 #### Diamond Types (`/admin/diamond/types`)
 - Natural, lab-grown, etc.
 - Type management
