@@ -9,7 +9,7 @@ type MetalPurityRow = {
     id: number;
     metal_id: number;
     metal: { id: number; name: string } | null;
-    code: string | null;
+    code: string;
     name: string;
     description?: string | null;
     is_active: boolean;
@@ -48,6 +48,7 @@ export default function AdminMetalPuritiesIndex() {
 
     const form = useForm({
         metal_id: '',
+        code: '',
         name: '',
         description: '',
         is_active: true,
@@ -84,9 +85,10 @@ export default function AdminMetalPuritiesIndex() {
         setEditingPurity(null);
         setModalOpen(false);
         form.reset();
+        form.setData('metal_id', '');
+        form.setData('code', '');
         form.setData('is_active', true);
         form.setData('display_order', 0);
-        form.setData('metal_id', '');
     };
 
     const openCreateModal = () => {
@@ -98,6 +100,7 @@ export default function AdminMetalPuritiesIndex() {
         setEditingPurity(purity);
         form.setData({
             metal_id: String(purity.metal_id),
+            code: purity.code,
             name: purity.name,
             description: purity.description ?? '',
             is_active: purity.is_active,
@@ -125,6 +128,7 @@ export default function AdminMetalPuritiesIndex() {
     const togglePurity = (purity: MetalPurityRow) => {
         router.put(route('admin.metal-purities.update', purity.id), {
             metal_id: String(purity.metal_id),
+            code: purity.code,
             name: purity.name,
             description: purity.description,
             is_active: !purity.is_active,
@@ -416,7 +420,7 @@ export default function AdminMetalPuritiesIndex() {
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Metal</span>
+                                            <span>Metal <span className="text-rose-500">*</span></span>
                                             <select
                                                 value={form.data.metal_id}
                                                 onChange={(event) => form.setData('metal_id', event.target.value)}
@@ -433,7 +437,19 @@ export default function AdminMetalPuritiesIndex() {
                                             {form.errors.metal_id && <span className="text-xs text-rose-500">{form.errors.metal_id}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Purity name</span>
+                                            <span>Code <span className="text-rose-500">*</span></span>
+                                            <input
+                                                type="text"
+                                                value={form.data.code}
+                                                onChange={(event) => form.setData('code', event.target.value)}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                placeholder="e.g., 18K, 22K, 925"
+                                                required
+                                            />
+                                            {form.errors.code && <span className="text-xs text-rose-500">{form.errors.code}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Purity name <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="text"
                                                 value={form.data.name}
@@ -445,13 +461,14 @@ export default function AdminMetalPuritiesIndex() {
                                             {form.errors.name && <span className="text-xs text-rose-500">{form.errors.name}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Display order</span>
+                                            <span>Display order <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="number"
                                                 value={form.data.display_order}
                                                 onChange={(event) => form.setData('display_order', Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
+                                                required
                                             />
                                             {form.errors.display_order && <span className="text-xs text-rose-500">{form.errors.display_order}</span>}
                                         </label>

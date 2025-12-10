@@ -503,7 +503,7 @@ export default function AdminBrandsIndex() {
                                             {form.errors.code && <span className="text-xs text-rose-500">{form.errors.code}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Name</span>
+                                            <span>Name <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="text"
                                                 value={form.data.name}

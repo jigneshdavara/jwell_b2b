@@ -18,11 +18,11 @@ class StoreMetalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code' => ['nullable', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:255', Rule::unique('metals', 'code')],
             'name' => ['required', 'string', 'max:255', Rule::unique('metals', 'name')],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
-            'display_order' => ['nullable', 'integer', 'min:0'],
+            'display_order' => ['required', 'integer', 'min:0'],
         ];
     }
 }

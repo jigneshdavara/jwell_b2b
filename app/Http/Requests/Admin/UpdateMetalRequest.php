@@ -14,11 +14,11 @@ class UpdateMetalRequest extends StoreMetalRequest
         $metal = $this->route('metal');
 
         return [
-            'code' => ['nullable', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:255', Rule::unique('metals', 'code')->ignore($metal?->id)],
             'name' => ['required', 'string', 'max:255', Rule::unique('metals', 'name')->ignore($metal?->id)],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
-            'display_order' => ['nullable', 'integer', 'min:0'],
+            'display_order' => ['required', 'integer', 'min:0'],
         ];
     }
 }
