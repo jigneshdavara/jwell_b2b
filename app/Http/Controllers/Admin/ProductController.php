@@ -283,8 +283,6 @@ class ProductController extends Controller
             ->with('success', 'Product visibility updated.');
     }
 
-
-
     public function copy(Product $product): RedirectResponse
     {
         $product->load(['variants', 'media']);
@@ -316,14 +314,6 @@ class ProductController extends Controller
             ->route('admin.products.edit', $newProduct)
             ->with('status', 'product_copied');
     }
-
-    protected function variantLibrary(): array
-    {
-        return [
-            'size' => ProductVariant::query()->whereNotNull('size')->distinct()->orderBy('size')->pluck('size')->values()->all(),
-        ];
-    }
-
 
     protected function customerGroupOptions(): array
     {
@@ -385,34 +375,6 @@ class ProductController extends Controller
                 'metal_id' => $tone->metal_id,
                 'name' => $tone->name,
                 'metal' => $tone->metal ? ['id' => $tone->metal->id, 'name' => $tone->metal->name] : null,
-            ])
-            ->all();
-    }
-
-    protected function brandOptions(): array
-    {
-        return Brand::query()
-            ->where('is_active', true)
-            ->orderBy('display_order')
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn(Brand $brand) => [
-                'id' => $brand->id,
-                'name' => $brand->name,
-            ])
-            ->all();
-    }
-
-    protected function categoryOptions(): array
-    {
-        return Category::query()
-            ->where('is_active', true)
-            ->orderBy('display_order')
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn(Category $category) => [
-                'id' => $category->id,
-                'name' => $category->name,
             ])
             ->all();
     }
@@ -509,17 +471,6 @@ class ProductController extends Controller
         return $data;
     }
 
-    protected function sanitizeIds(array $ids): array
-    {
-        return collect($ids)
-            ->filter(fn($value) => is_numeric($value))
-            ->map(fn($value) => (int) $value)
-            ->unique()
-            ->values()
-            ->all();
-    }
-
-
     protected function sanitizeDiscountOverrides(array $overrides): array
     {
         return collect($overrides)
@@ -603,9 +554,6 @@ class ProductController extends Controller
         }
 
         $nextPosition = (int) (($product->media()->max('position')) ?? -1) + 1;
-
-        /** @var \Illuminate\Filesystem\FilesystemAdapter $publicDisk */
-        $publicDisk = Storage::disk('public');
 
         foreach ($uploads as $upload) {
             if (! $upload instanceof UploadedFile) {

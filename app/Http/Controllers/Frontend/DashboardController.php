@@ -56,31 +56,6 @@ class DashboardController extends Controller
                 'placed_on' => Carbon::parse($order->created_at)->toDateTimeString(),
             ]);
 
-        $jobworkTimeline = Quotation::where('user_id', $user->id)
-            ->where('mode', 'jobwork')
-            ->where('status', 'approved')
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(fn(Quotation $quotation) => [
-                'id' => $quotation->id,
-                'status' => $quotation->jobwork_status,
-                'product' => optional($quotation->product)?->name,
-                'quantity' => $quotation->quantity,
-                'submitted_on' => optional($quotation->created_at)?->toDateTimeString(),
-            ]);
-
-        $dueOrders = Order::where('user_id', $user->id)
-            ->where('status', OrderStatus::PendingPayment->value)
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(fn(Order $order) => [
-                'reference' => $order->reference,
-                'total' => (float) $order->total_amount,
-                'placed_on' => optional($order->created_at)?->toDateTimeString(),
-            ]);
-
         $coverImageUrl = static function (?string $path): ?string {
             if (! $path) {
                 return null;
