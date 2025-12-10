@@ -14,7 +14,7 @@ alwaysApply: true
   - Relationships: `hasMany(ProductVariant)`, `belongsTo(Brand)`, `belongsTo(Category)`, `hasMany(ProductMedia)`
 
 - **ProductVariant** (`app/Models/ProductVariant.php`): Specific sellable configuration
-  - Contains: `sku` (auto-generated), `label` (auto-generated), `price_adjustment`, `metadata` (JSON)
+  - Contains: `sku` (auto-generated), `label` (auto-generated), `metadata` (JSON)
   - Relationships: `belongsTo(Product)`, `hasMany(ProductVariantMetal)`, `hasMany(ProductVariantDiamond)`, `hasMany(ProductVariantColorstone)`
 
 ### Variant Generation Matrix
@@ -40,7 +40,7 @@ alwaysApply: true
 
 ### Metals & Mixing
 
-- **Structured data**: `metals`, `metal_purities`, `metal_tones` tables
+- **Structured data**: `metals`, `metal_purities` tables
 - Do NOT hard-code mixing rules in UI; read from product config
 
 ### Stones (Diamonds & Colorstones)
@@ -63,7 +63,6 @@ Price = Base Price + Making Charge + Variant Price Adjustment + Metal Rate (weig
 **Components**:
 1. `Product.base_price` - Base product price
 2. `Product.making_charge` - Manufacturing charge
-3. `ProductVariant.price_adjustment` - Variant-specific adjustment
 4. Metal cost: `weight_grams × metal_rate × purity_multiplier`
 5. Stone cost: Diamond/colorstone rates
 6. Making charge discount: `app/Services/MakingChargeDiscountService.php`

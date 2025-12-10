@@ -12,9 +12,6 @@ use App\Models\Catalog;
 use App\Models\Category;
 use App\Models\CustomerGroup;
 use App\Models\Diamond;
-use App\Models\DiamondClarity;
-use App\Models\DiamondColor;
-use App\Models\DiamondShape;
 use App\Models\Metal;
 use App\Models\MetalPurity;
 use App\Models\MetalTone;
@@ -91,7 +88,6 @@ class ProductController extends Controller
             'brands' => $this->brandList(),
             'categories' => $this->categoryList(),
             'catalogs' => $this->catalogList(),
-            'diamondCatalog' => $this->diamondCatalogOptions(),
             'diamonds' => $this->diamondOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
@@ -186,13 +182,9 @@ class ProductController extends Controller
                     'label' => $variant->label,
                     'inventory_quantity' => $variant->inventory_quantity ?? 0,
                     // Legacy fields - kept for backwards compatibility
-                    'metal_tone' => $variant->metal_tone,
-                    'stone_quality' => $variant->stone_quality,
                     'size' => $variant->size,
-                    'price_adjustment' => $variant->price_adjustment,
                     'is_default' => $variant->is_default,
                     'metadata' => $variant->metadata,
-                    'size_cm' => $variant->metadata['size_cm'] ?? null,
                     // Optional: for multiple metals per variant
                     'metals' => $variant->metals->map(fn($metal) => [
                         'id' => $metal->id,
@@ -225,7 +217,6 @@ class ProductController extends Controller
             'brands' => $this->brandList(),
             'categories' => $this->categoryList(),
             'catalogs' => $this->catalogList(),
-            'diamondCatalog' => $this->diamondCatalogOptions(),
             'diamonds' => $this->diamondOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
@@ -329,8 +320,6 @@ class ProductController extends Controller
     protected function variantLibrary(): array
     {
         return [
-            'metal_tone' => ProductVariant::query()->whereNotNull('metal_tone')->distinct()->orderBy('metal_tone')->pluck('metal_tone')->values()->all(),
-            'stone_quality' => ProductVariant::query()->whereNotNull('stone_quality')->distinct()->orderBy('stone_quality')->pluck('stone_quality')->values()->all(),
             'size' => ProductVariant::query()->whereNotNull('size')->distinct()->orderBy('size')->pluck('size')->values()->all(),
         ];
     }
@@ -470,34 +459,6 @@ class ProductController extends Controller
                 'is_active' => $catalog->is_active,
             ])
             ->all();
-    }
-
-    protected function diamondCatalogOptions(): array
-    {
-        return [
-            'types' => [], // DiamondType model doesn't exist yet
-            'shapes' => DiamondShape::query()
-                ->where('is_active', true)
-                ->orderBy('display_order')
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-                ->all(),
-            'colors' => DiamondColor::query()
-                ->where('is_active', true)
-                ->orderBy('display_order') // diamond_colors uses 'display_order'
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-                ->all(),
-            'clarities' => DiamondClarity::query()
-                ->where('is_active', true)
-                ->orderBy('display_order') // diamond_clarities uses 'display_order'
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-                ->all(),
-        ];
     }
 
     protected function diamondOptions(): array

@@ -22,13 +22,11 @@ type RelatedQuotation = {
             id: number;
             label: string;
             metadata?: Record<string, unknown> | null;
-            price_adjustment: number;
         }>;
     };
     variant?: {
         id: number;
         label: string;
-        price_adjustment: number;
         metadata?: Record<string, unknown> | null;
     } | null;
     price_breakdown?: {
@@ -65,13 +63,11 @@ type QuotationDetails = {
             id: number;
             label: string;
             metadata?: Record<string, unknown> | null;
-            price_adjustment: number;
         }>;
     };
     variant?: {
         id: number;
         label: string;
-        price_adjustment: number;
         metadata?: Record<string, unknown> | null;
     } | null;
     user?: {

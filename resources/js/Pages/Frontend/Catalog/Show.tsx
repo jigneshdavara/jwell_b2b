@@ -8,14 +8,12 @@ import ProductDetailsPanel from '@/Components/Customization/ProductDetailsPanel'
 type VariantMetadata = {
     auto_label?: string;
     diamond_option_key?: string | null;
-    size_cm?: number | string | null;
     [key: string]: unknown;
 };
 
 type ProductVariant = {
     id: number;
     label: string;
-    price_adjustment: number;
     is_default: boolean;
     metadata?: VariantMetadata | null;
     metals?: Array<{
@@ -55,7 +53,6 @@ type Product = {
     uses_gold: boolean;
     uses_silver: boolean;
     uses_diamond: boolean;
-    diamond_mixing_mode?: 'shared' | 'as_variant';
     media: Array<{ url: string; alt: string }>;
     variants: ProductVariant[];
 };
@@ -93,7 +90,6 @@ interface ConfigurationOption {
         metal: number;
         diamond: number;
         making: number;
-        adjustment: number;
     };
     sku: string;
     inventory_quantity?: number;
@@ -177,7 +173,6 @@ export default function CatalogShow() {
             metal_purity_id: number | null | '';
             metal_tone_id: number | null | '';
             diamond_option_keys: string[];
-            size_cm: string | null;
         };
     };
 
@@ -192,7 +187,6 @@ export default function CatalogShow() {
             metal_purity_id: null,
             metal_tone_id: null,
             diamond_option_keys: [],
-            size_cm: null,
         },
     });
 
@@ -246,7 +240,7 @@ export default function CatalogShow() {
 
         if (isJobworkMode) {
             // For jobwork, only charge the making charge
-            return selectedConfig.price_breakup.making + selectedConfig.price_breakup.adjustment;
+            return selectedConfig.price_breakup.making;
         } else {
             // For purchase, use price_total from configuration
             return selectedConfig.price_total;
@@ -579,7 +573,7 @@ export default function CatalogShow() {
                                         <p className="text-xs text-slate-500">
                                             {isJobworkMode
                                                 ? 'Includes making charge only. Final quotation may vary with labour costs.'
-                                                : 'Includes metal, diamond, making charge & adjustment. Final quotation may vary with bullion/diamond parity and labour.'}
+                                                : 'Includes metal, diamond, and making charge. Final quotation may vary with bullion/diamond parity and labour.'}
                                         </p>
                                         {!isJobworkMode && (
                                             <div className="mt-2 space-y-1 text-xs">
@@ -605,12 +599,6 @@ export default function CatalogShow() {
                                                         {currencyFormatter.format(selectedConfig.price_breakup.making)}
                                                     </span>
                                                 </p>
-                                                {selectedConfig.price_breakup.adjustment !== 0 && (
-                                                    <p className="flex justify-between">
-                                                        <span>Adjustment:</span>
-                                                        <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.adjustment)}</span>
-                                                    </p>
-                                                )}
                                             </div>
                                         )}
                                         {isJobworkMode && (
@@ -619,12 +607,6 @@ export default function CatalogShow() {
                                                     <span>Making charge:</span>
                                                     <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.making)}</span>
                                                 </p>
-                                                {selectedConfig.price_breakup.adjustment !== 0 && (
-                                                    <p className="flex justify-between">
-                                                        <span>Adjustment:</span>
-                                                        <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.adjustment)}</span>
-                                                    </p>
-                                                )}
                                             </div>
                                         )}
                                     </>

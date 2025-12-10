@@ -10,7 +10,6 @@ type PriceBreakdown = {
     metal?: number;
     diamond?: number;
     making?: number;
-    adjustment?: number;
     subtotal?: number;
     discount?: number;
     total?: number;
@@ -1005,7 +1004,6 @@ export default function CartIndex() {
                                             const metalCost = Number(priceBreakdown.metal) || 0;
                                             const diamondCost = Number(priceBreakdown.diamond) || 0;
                                             const makingCharge = Number(priceBreakdown.making) || 0;
-                                            const adjustment = Number(priceBreakdown.adjustment) || 0;
                                             const unitTotal = productDetailsModalOpen.unit_total;
                                             const lineTotal = productDetailsModalOpen.line_total;
 
@@ -1028,14 +1026,6 @@ export default function CartIndex() {
                                                             <div className="flex justify-between">
                                                                 <span className="text-slate-600">Making:</span>
                                                                 <span className="font-semibold text-slate-900">{formatter.format(makingCharge)}</span>
-                                                            </div>
-                                                        )}
-                                                        {adjustment !== 0 && (
-                                                            <div className="flex justify-between">
-                                                                <span className="text-slate-600">Adjustment:</span>
-                                                                <span className={`font-semibold ${adjustment > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                                    {adjustment > 0 ? '+' : ''}{formatter.format(adjustment)}
-                                                                </span>
                                                             </div>
                                                         )}
                                                     </div>

@@ -169,13 +169,11 @@ class QuotationController extends Controller
                                 'id' => $variant->id,
                                 'label' => $variant->label,
                                 'metadata' => $variant->metadata ?? [],
-                                'price_adjustment' => $variant->price_adjustment,
                             ]),
                         ],
                         'variant' => $q->variant ? [
                             'id' => $q->variant->id,
                             'label' => $q->variant->label,
-                            'price_adjustment' => $q->variant->price_adjustment,
                             'metadata' => $q->variant->metadata ?? [],
                         ] : null,
                         'price_breakdown' => $pricing,
@@ -195,13 +193,11 @@ class QuotationController extends Controller
                         'id' => $variant->id,
                         'label' => $variant->label,
                         'metadata' => $variant->metadata ?? [],
-                        'price_adjustment' => $variant->price_adjustment,
                     ]),
                 ],
                 'variant' => $quotation->variant ? [
                     'id' => $quotation->variant->id,
                     'label' => $quotation->variant->label,
-                    'price_adjustment' => $quotation->variant->price_adjustment,
                     'metadata' => $quotation->variant->metadata ?? [],
                 ] : null,
                 'price_breakdown' => $this->pricingService->calculateProductPrice(

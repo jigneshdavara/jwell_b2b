@@ -71,7 +71,6 @@ class StoreProductRequest extends FormRequest
             'variants' => ['nullable', 'array'],
             'variants.*.label' => ['required', 'string', 'max:255'],
             'variants.*.sku' => ['nullable', 'string', 'max:100'],
-            'variants.*.price_adjustment' => ['nullable', 'numeric'],
             'variants.*.inventory_quantity' => ['nullable', 'integer', 'min:0'],
             'variants.*.is_default' => ['nullable', 'boolean'],
             'variants.*.metadata' => ['nullable', 'array'],

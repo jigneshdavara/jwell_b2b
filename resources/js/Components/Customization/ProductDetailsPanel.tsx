@@ -31,7 +31,6 @@ interface ConfigurationOption {
         metal: number;
         diamond: number;
         making: number;
-        adjustment: number;
     };
     sku: string;
 }
@@ -482,16 +481,6 @@ export default function ProductDetailsPanel({
                                 ₹{selectedConfig.price_breakup.making.toLocaleString('en-IN')}
                             </span>
                         </div>
-                        {selectedConfig.price_breakup.adjustment !== 0 && (
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-600">Adjustment</span>
-                                <span className="text-sm font-semibold text-[#0E244D]">
-                                    ₹{selectedConfig.price_breakup.adjustment.toLocaleString(
-                                        'en-IN'
-                                    )}
-                                </span>
-                            </div>
-                        )}
                         <div className="border-t border-gray-200 pt-3 mt-3">
                             <div className="flex justify-between items-center">
                                 <span className="text-base font-semibold text-[#0E244D]">

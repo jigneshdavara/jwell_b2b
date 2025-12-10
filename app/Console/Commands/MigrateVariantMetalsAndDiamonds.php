@@ -6,7 +6,6 @@ use App\Models\Metal;
 use App\Models\MetalPurity;
 use App\Models\MetalTone;
 use App\Models\ProductVariant;
-use App\Models\ProductVariantDiamond;
 use App\Models\ProductVariantMetal;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +25,7 @@ class MigrateVariantMetalsAndDiamonds extends Command
      *
      * @var string
      */
-    protected $description = 'Migrate legacy metal_tone and stone_quality data from product_variants to new tables';
+    protected $description = 'Migrate legacy metal_tone data from product_variants to new tables';
 
     protected $metalCache = [];
     protected $purityCache = [];
@@ -43,17 +42,14 @@ class MigrateVariantMetalsAndDiamonds extends Command
             $this->warn('DRY RUN MODE - No changes will be made');
         }
 
-        $this->info('Starting migration of variant metals and diamonds...');
+        $this->info('Starting migration of variant metals...');
 
         // Initialize metals if they don't exist
         $this->initializeMetals();
 
         // Get all variants with legacy data
         $variants = ProductVariant::query()
-            ->where(function ($query) {
-                $query->whereNotNull('metal_tone')
-                    ->orWhereNotNull('stone_quality');
-            })
+            ->whereNotNull('metal_tone')
             ->whereDoesntHave('metals')
             ->whereDoesntHave('diamonds')
             ->get();
@@ -75,11 +71,6 @@ class MigrateVariantMetalsAndDiamonds extends Command
                 // Migrate metals
                 if ($variant->metal_tone) {
                     $this->migrateMetalTone($variant);
-                }
-
-                // Migrate diamonds
-                if ($variant->stone_quality) {
-                    $this->migrateStoneQuality($variant);
                 }
 
                 if (! $dryRun) {
@@ -207,45 +198,4 @@ class MigrateVariantMetalsAndDiamonds extends Command
         }
     }
 
-    protected function migrateStoneQuality(ProductVariant $variant): void
-    {
-        $stoneQuality = trim($variant->stone_quality ?? '');
-        if (empty($stoneQuality)) {
-            return;
-        }
-
-        // Map common stone quality strings to diamond clarity
-        // This is a best-effort mapping - may need adjustment based on actual data
-        $clarityMap = [
-            'vvs' => 'VVS',
-            'vs' => 'VS',
-            'si' => 'SI',
-            'i' => 'I',
-            'fl' => 'FL',
-            'if' => 'IF',
-        ];
-
-        $clarity = null;
-        foreach ($clarityMap as $key => $value) {
-            if (stripos($stoneQuality, $key) !== false) {
-                // Try to find matching clarity
-                $clarity = DB::table('diamond_clarities')
-                    ->where('name', 'like', "%{$value}%")
-                    ->orWhere('slug', 'like', "%{$key}%")
-                    ->first();
-                break;
-            }
-        }
-
-        // Create ProductVariantDiamond
-        ProductVariantDiamond::create([
-            'product_variant_id' => $variant->id,
-            'diamond_clarity_id' => $clarity?->id,
-            'position' => 0,
-            'metadata' => [
-                'migrated_from' => 'stone_quality',
-                'original_value' => $stoneQuality,
-            ],
-        ]);
-    }
 }

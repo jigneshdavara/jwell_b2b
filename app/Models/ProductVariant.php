@@ -16,17 +16,13 @@ class ProductVariant extends Model
         'sku',
         'label',
         // Legacy columns - kept for data migration, but should not be used in new code
-        'metal_tone',
-        'stone_quality',
         'size',
-        'price_adjustment',
         'inventory_quantity',
         'is_default',
         'metadata',
     ];
 
     protected $casts = [
-        'price_adjustment' => 'float',
         'inventory_quantity' => 'integer',
         'is_default' => 'boolean',
         'metadata' => 'array',
