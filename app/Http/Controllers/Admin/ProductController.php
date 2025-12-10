@@ -506,7 +506,6 @@ class ProductController extends Controller
                 ->get(['id', 'name'])
                 ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
                 ->all(),
-            'cuts' => [], // DiamondCut model doesn't exist yet
         ];
     }
 

@@ -85,7 +85,6 @@ type CatalogProps = {
             shapes: Array<{ id: number; name: string }>;
             colors: Array<{ id: number; name: string }>;
             clarities: Array<{ id: number; name: string }>;
-            cuts: Array<{ id: number; name: string }>;
         };
     };
 };
