@@ -65,7 +65,9 @@ type Product = {
     collection?: string;
     producttype?: string;
     gender?: string;
-    making_charge?: number | string;
+    making_charge_amount?: number | string;
+    making_charge_type?: 'fixed' | 'percentage' | 'both';
+    making_charge_percentage?: number | string;
     making_charge_discount_type?: 'percentage' | 'fixed' | null;
     making_charge_discount_value?: string | number | null;
     making_charge_discount_overrides?: Array<{
@@ -183,7 +185,10 @@ type FormData = {
     collection: string;
     producttype: string;
     gender: string;
-    making_charge: string;
+    making_charge_amount: string;
+    making_charge_type: 'fixed' | 'percentage' | 'both';
+    making_charge_types: ('fixed' | 'percentage')[];
+    making_charge_percentage: string;
     making_charge_discount_type: '' | 'percentage' | 'fixed' | null;
     making_charge_discount_value: string | number | null;
     making_charge_discount_overrides: DiscountOverrideForm[];
@@ -677,7 +682,18 @@ export default function AdminProductEdit() {
         collection: product?.collection ?? '',
         producttype: product?.producttype ?? '',
         gender: product?.gender ?? '',
-        making_charge: product?.making_charge ? String(product.making_charge) : '',
+        making_charge_amount: product?.making_charge_amount ? String(product.making_charge_amount) : '',
+        making_charge_type: (product?.making_charge_type as 'fixed' | 'percentage' | 'both') ?? 'fixed', // For display only, inferred from values
+        making_charge_types: (() => {
+            // Infer from values: if both have values, both are selected
+            const hasFixed = product?.making_charge_amount && Number(product.making_charge_amount) > 0;
+            const hasPercentage = product?.making_charge_percentage && Number(product.making_charge_percentage) > 0;
+            if (hasFixed && hasPercentage) return ['fixed', 'percentage'];
+            if (hasPercentage) return ['percentage'];
+            if (hasFixed) return ['fixed'];
+            return ['fixed']; // Default to fixed
+        })(),
+        making_charge_percentage: product?.making_charge_percentage ? String(product.making_charge_percentage) : '',
         making_charge_discount_type:
             (product?.making_charge_discount_type as 'percentage' | 'fixed' | null) ?? null,
         making_charge_discount_value:
@@ -2423,15 +2439,36 @@ export default function AdminProductEdit() {
             }
             
             
-            // Convert making_charge to number (required field)
-            const makingChargeValue = formState.making_charge;
-            if (makingChargeValue === '' || makingChargeValue === null || makingChargeValue === undefined) {
-                payload.making_charge = 0;
+            // Handle making charge values - type will be inferred from values on backend
+            const selectedTypes = formState.making_charge_types || [];
+            
+            // Convert making_charge_amount to number (if fixed checkbox is checked)
+            if (selectedTypes.includes('fixed')) {
+                const makingChargeValue = formState.making_charge_amount;
+                if (makingChargeValue === '' || makingChargeValue === null || makingChargeValue === undefined) {
+                    payload.making_charge_amount = 0;
+                } else {
+                    const numValue = Number(makingChargeValue);
+                    payload.making_charge_amount = isNaN(numValue) ? 0 : numValue;
+                }
             } else {
-                const numValue = Number(makingChargeValue);
-                payload.making_charge = isNaN(numValue) ? 0 : numValue;
+                // If fixed checkbox is not checked, set making_charge_amount to 0
+                payload.making_charge_amount = 0;
             }
             
+            // Convert making_charge_percentage to number (if percentage checkbox is checked)
+            if (selectedTypes.includes('percentage')) {
+                const makingChargePercentageValue = formState.making_charge_percentage;
+                if (makingChargePercentageValue === '' || makingChargePercentageValue === null || makingChargePercentageValue === undefined) {
+                    payload.making_charge_percentage = null;
+                } else {
+                    const numValue = Number(makingChargePercentageValue);
+                    payload.making_charge_percentage = isNaN(numValue) ? null : numValue;
+                }
+            } else {
+                // For fixed-only, set percentage to null
+                payload.making_charge_percentage = null;
+            }
 
             const toNullableNumber = (value: string | number | null | undefined) => {
                 if (value === null || value === undefined || value === '') {
@@ -2476,7 +2513,7 @@ export default function AdminProductEdit() {
             if (!payload.name) payload.name = '';
             if (payload.brand_id === undefined) payload.brand_id = null;
             if (payload.category_id === undefined) payload.category_id = null;
-            if (payload.making_charge === undefined) payload.making_charge = 0;
+            if (payload.making_charge_amount === undefined) payload.making_charge_amount = 0;
 
             // Ensure variants are included in payload - they must be sent to backend
             if (formState.variants && Array.isArray(formState.variants)) {
@@ -2719,18 +2756,85 @@ export default function AdminProductEdit() {
                                     </select>
                                     {errors.gender && <span className="text-xs text-rose-500">{errors.gender}</span>}
                                 </label>
-                                <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                    <span>Making charge (₹) *</span>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        value={data.making_charge}
-                                        onChange={(event) => setData('making_charge', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                    />
-                                    {errors.making_charge && <span className="text-xs text-rose-500">{errors.making_charge}</span>}
-                                </label>
+                                <div className="flex flex-col gap-2 text-sm text-slate-600">
+                                    <span className="mb-2 block">Making Charge *</span>
+                                    <div className="flex gap-6">
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.making_charge_types?.includes('fixed') ?? false}
+                                                onChange={(e) => {
+                                                    const currentTypes = data.making_charge_types || [];
+                                                    if (e.target.checked) {
+                                                        setData('making_charge_types', [...currentTypes, 'fixed']);
+                                                    } else {
+                                                        setData('making_charge_types', currentTypes.filter(t => t !== 'fixed'));
+                                                    }
+                                                }}
+                                                className="h-5 w-5 rounded border-slate-300 text-elvee-blue focus:ring-2 focus:ring-elvee-blue focus:ring-offset-0"
+                                            />
+                                            <span className="text-sm font-medium text-slate-700">Fixed Amount</span>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.making_charge_types?.includes('percentage') ?? false}
+                                                onChange={(e) => {
+                                                    const currentTypes = data.making_charge_types || [];
+                                                    if (e.target.checked) {
+                                                        setData('making_charge_types', [...currentTypes, 'percentage']);
+                                                    } else {
+                                                        setData('making_charge_types', currentTypes.filter(t => t !== 'percentage'));
+                                                    }
+                                                }}
+                                                className="h-5 w-5 rounded border-slate-300 text-elvee-blue focus:ring-2 focus:ring-elvee-blue focus:ring-offset-0"
+                                            />
+                                            <span className="text-sm font-medium text-slate-700">Percentage</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                {(errors.making_charge_type && (!data.making_charge_types || data.making_charge_types.length === 0)) && (
+                                    <div className="mt-2">
+                                        <span className="block text-xs text-rose-500">{errors.making_charge_type}</span>
+                                    </div>
+                                )}
+                                {(data.making_charge_types?.includes('fixed') ?? false) && (
+                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <span>Making Charge (₹) {(data.making_charge_types?.includes('percentage') ?? false) ? '' : '*'}</span>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={data.making_charge_amount}
+                                            onChange={(event) => setData('making_charge_amount', event.target.value)}
+                                            className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            placeholder="Enter fixed making charge"
+                                        />
+                                        {errors.making_charge_amount && <span className="text-xs text-rose-500">{errors.making_charge_amount}</span>}
+                                    </label>
+                                )}
+                                {(data.making_charge_types?.includes('percentage') ?? false) && (
+                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <span>Making Charge Percentage (%) {(data.making_charge_types?.includes('fixed') ?? false) ? '' : '*'}</span>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            max="100"
+                                            value={data.making_charge_percentage}
+                                            onChange={(event) => setData('making_charge_percentage', event.target.value)}
+                                            className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            placeholder="Enter percentage (e.g., 10 for 10%)"
+                                        />
+                                        <span className="text-xs text-slate-500">Percentage will be calculated on metal cost</span>
+                                        {errors.making_charge_percentage && <span className="text-xs text-rose-500">{errors.making_charge_percentage}</span>}
+                                    </label>
+                                )}
+                                {(errors.making_charge_type && data.making_charge_types && data.making_charge_types.length > 0) && (
+                                    <div className="mt-2">
+                                        <span className="block text-xs text-rose-500">{errors.making_charge_type}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -73,6 +73,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/catalog/{product}', [CatalogController::class, 'show'])
             ->middleware('ensure.kyc.approved')
             ->name('frontend.catalog.show');
+        Route::post('/catalog/{product}/calculate-price', [CatalogController::class, 'calculatePrice'])
+            ->middleware('ensure.kyc.approved')
+            ->name('frontend.catalog.calculate-price');
 
         Route::get('/cart', [CartController::class, 'index'])
             ->middleware('ensure.kyc.approved')

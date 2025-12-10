@@ -31,7 +31,7 @@ type Product = {
     other_material_weight?: number | null;
     total_weight?: number | null;
     price_total: number;
-    making_charge: number;
+    making_charge_amount: number;
     is_jobwork_allowed: boolean;
     uses_gold: boolean;
     uses_silver: boolean;

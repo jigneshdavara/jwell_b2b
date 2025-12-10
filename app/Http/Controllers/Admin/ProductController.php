@@ -174,7 +174,9 @@ class ProductController extends Controller
                 'silver_weight' => $product->silver_weight,
                 'other_material_weight' => $product->other_material_weight,
                 'total_weight' => $product->total_weight,
-                'making_charge' => $product->making_charge,
+                'making_charge_amount' => $product->making_charge_amount,
+                'making_charge_type' => $product->making_charge_type, // Accessor will infer from values
+                'making_charge_percentage' => $product->making_charge_percentage,
                 'making_charge_discount_type' => $product->making_charge_discount_type,
                 'making_charge_discount_value' => $product->making_charge_discount_value !== null ? (string) $product->making_charge_discount_value : '',
                 'making_charge_discount_overrides' => collect($product->making_charge_discount_overrides ?? [])
@@ -614,6 +616,13 @@ class ProductController extends Controller
             $data['metal_purity_ids'] = null;
             $data['metal_tone_ids'] = null;
             $data['metal_mix_mode'] = []; // Reset to empty array when variant product is disabled
+        }
+
+        // Handle making charge percentage
+        if (isset($data['making_charge_percentage']) && $data['making_charge_percentage'] !== null && $data['making_charge_percentage'] !== '') {
+            $data['making_charge_percentage'] = (float) $data['making_charge_percentage'];
+        } else {
+            $data['making_charge_percentage'] = null;
         }
 
         $data['making_charge_discount_type'] = $data['making_charge_discount_type'] ?? null;

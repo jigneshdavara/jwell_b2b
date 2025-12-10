@@ -19,7 +19,7 @@ class MakingChargeDiscountService
      */
     public function resolve(Product $product, ?Customer $user = null, array $context = []): array
     {
-        $makingCharge = (float) $product->making_charge;
+        $makingCharge = (float) $product->making_charge_amount;
 
         if ($makingCharge <= 0) {
             return $this->emptyDiscount();

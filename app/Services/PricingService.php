@@ -105,7 +105,22 @@ class PricingService
         }
         $colorstoneCost = round($colorstoneCost, 2);
 
-        $making = max(0.0, (float) $product->making_charge);
+        // Calculate making charge based on available values (infer type from values)
+        $making = 0.0;
+        $hasFixed = (float) $product->making_charge_amount > 0;
+        $hasPercentage = (float) ($product->making_charge_percentage ?? 0) > 0;
+
+        if ($hasFixed) {
+            $making += max(0.0, (float) $product->making_charge_amount);
+        }
+
+        if ($hasPercentage) {
+            $percentage = (float) $product->making_charge_percentage;
+            // Calculate percentage of metal cost
+            $making += ($metalCost * $percentage) / 100;
+        }
+
+        $making = round($making, 2);
 
         // Total price: Metal + Diamond + Colorstone + Making Charge (Base Price is NOT included)
         $unitSubtotal = $metalCost + $diamondCost + $colorstoneCost + $making;

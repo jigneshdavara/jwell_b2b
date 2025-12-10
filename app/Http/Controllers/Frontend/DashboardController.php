@@ -160,7 +160,7 @@ class DashboardController extends Controller
                     $colorstoneCost = round($colorstoneCost, 2);
 
                     // Calculate priceTotal: Metal + Diamond + Colorstone + Making Charge
-                    $makingCharge = (float) ($product->making_charge ?? 0);
+                    $makingCharge = (float) ($product->making_charge_amount ?? 0);
                     $priceTotal = $metalCost + $diamondCost + $colorstoneCost + $makingCharge;
                 } else {
                     // If no variant, fallback to making charge only
