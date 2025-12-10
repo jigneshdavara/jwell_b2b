@@ -748,6 +748,510 @@ class DiamondDataSeeder extends Seeder
         }
 
         $this->command->info("Imported {$count} diamond shape sizes. Skipped {$skipped} due to missing shapes.");
+
+        // Seed Fancy Color Diamond shape sizes from Excel file
+        $this->command->info('Seeding Fancy Color Diamond shape sizes...');
+
+        $fancyShapeSizes = [
+            // UnGraded
+            ['shape_name' => 'UnGraded', 'size' => 'UnGraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+
+            // ASH
+            ['shape_name' => 'ASH', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'ASH', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'ASH', 'size' => '3.50', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.180],
+            ['shape_name' => 'ASH', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.700],
+            ['shape_name' => 'ASH', 'size' => '7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 1.650],
+            ['shape_name' => 'ASH', 'size' => '6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.860],
+            ['shape_name' => 'ASH', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.330],
+            ['shape_name' => 'ASH', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 0.585],
+            ['shape_name' => 'ASH', 'size' => '5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 0.675],
+
+            // BUG
+            ['shape_name' => 'BUG', 'size' => 'MIX', 'secondary_size' => '', 'description' => 'Mix', 'display_order' => 0, 'ctw' => 0.000],
+            ['shape_name' => 'BUG', 'size' => '1.25x0.65(S)', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.004],
+            ['shape_name' => 'BUG', 'size' => '1.50x0.75(S)', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.006],
+            ['shape_name' => 'BUG', 'size' => '1.75x0.87(S)', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.008],
+            ['shape_name' => 'BUG', 'size' => '2.25x1.12(S)', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.012],
+            ['shape_name' => 'BUG', 'size' => '2.75x1.37(S)', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.022],
+            ['shape_name' => 'BUG', 'size' => '2.50x1.25(S)', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.015],
+            ['shape_name' => 'BUG', 'size' => '5.00x2.50(S)', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 0.015],
+            ['shape_name' => 'BUG', 'size' => '2.00x1.00(S)', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.010],
+            ['shape_name' => 'BUG', 'size' => '3.00x1.50(S)', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 0.030],
+            ['shape_name' => 'BUG', 'size' => '4.00x2.00(S)', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 0.013],
+            ['shape_name' => 'BUG', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'BUG', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+
+            // CUS
+            ['shape_name' => 'CUS', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'CUS', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+
+            // FBFD
+            ['shape_name' => 'FBFD', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'FBFD', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'FBFD', 'size' => '3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.220],
+            ['shape_name' => 'FBFD', 'size' => '3.50', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.280],
+            ['shape_name' => 'FBFD', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.480],
+            ['shape_name' => 'FBFD', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.500],
+            ['shape_name' => 'FBFD', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.950],
+            ['shape_name' => 'FBFD', 'size' => '5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 1.000],
+            ['shape_name' => 'FBFD', 'size' => '6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 1.500],
+            ['shape_name' => 'FBFD', 'size' => '6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 2.000],
+            ['shape_name' => 'FBFD', 'size' => '7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 2.500],
+            ['shape_name' => 'FBFD', 'size' => '7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 3.000],
+            ['shape_name' => 'FBFD', 'size' => '8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 11, 'ctw' => 3.550],
+            ['shape_name' => 'FBFD', 'size' => '8.50', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 4.000],
+            ['shape_name' => 'FBFD', 'size' => '9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 13, 'ctw' => 4.500],
+            ['shape_name' => 'FBFD', 'size' => '2.00', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.035],
+            ['shape_name' => 'FBFD', 'size' => '10.00', 'secondary_size' => '', 'description' => '', 'display_order' => 14, 'ctw' => 5.500],
+            ['shape_name' => 'FBFD', 'size' => '2.50', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.055],
+
+            // HBHD
+            ['shape_name' => 'HBHD', 'size' => '3.50', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.280],
+            ['shape_name' => 'HBHD', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.480],
+            ['shape_name' => 'HBHD', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.950],
+            ['shape_name' => 'HBHD', 'size' => '5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 1.000],
+            ['shape_name' => 'HBHD', 'size' => '6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 1.500],
+            ['shape_name' => 'HBHD', 'size' => '7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 11, 'ctw' => 2.500],
+            ['shape_name' => 'HBHD', 'size' => '3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.220],
+            ['shape_name' => 'HBHD', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.500],
+            ['shape_name' => 'HBHD', 'size' => '8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 13, 'ctw' => 3.550],
+            ['shape_name' => 'HBHD', 'size' => '6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 2.000],
+            ['shape_name' => 'HBHD', 'size' => '10.00', 'secondary_size' => '', 'description' => '', 'display_order' => 14, 'ctw' => 5.500],
+            ['shape_name' => 'HBHD', 'size' => '7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 3.000],
+            ['shape_name' => 'HBHD', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'HBHD', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+
+            // OCT
+            ['shape_name' => 'OCT', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'OCT', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'OCT', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'OCT', 'size' => '7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'OCT', 'size' => '7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.000],
+
+            // OVL
+            ['shape_name' => 'OVL', 'size' => '2.00x3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.000],
+            ['shape_name' => 'OVL', 'size' => '2.50x4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.090],
+            ['shape_name' => 'OVL', 'size' => '3.00x4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.100],
+            ['shape_name' => 'OVL', 'size' => '3.50x4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.210],
+            ['shape_name' => 'OVL', 'size' => '3.50x5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 0.250],
+            ['shape_name' => 'OVL', 'size' => '4.00x5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 0.250],
+            ['shape_name' => 'OVL', 'size' => '4.00x6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 0.360],
+            ['shape_name' => 'OVL', 'size' => '5.00x7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 11, 'ctw' => 0.660],
+            ['shape_name' => 'OVL', 'size' => '6.00x8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 1.090],
+            ['shape_name' => 'OVL', 'size' => '6.00x9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 14, 'ctw' => 1.700],
+            ['shape_name' => 'OVL', 'size' => '6.50x8.50', 'secondary_size' => '', 'description' => '', 'display_order' => 13, 'ctw' => 1.360],
+            ['shape_name' => 'OVL', 'size' => '7.00x9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 15, 'ctw' => 1.670],
+            ['shape_name' => 'OVL', 'size' => '8.00x10.00', 'secondary_size' => '', 'description' => '', 'display_order' => 16, 'ctw' => 2.420],
+            ['shape_name' => 'OVL', 'size' => '9.00x11.00', 'secondary_size' => '', 'description' => '', 'display_order' => 18, 'ctw' => 3.370],
+            ['shape_name' => 'OVL', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'OVL', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'OVL', 'size' => '3.00x5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.170],
+            ['shape_name' => 'OVL', 'size' => '2.00x4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.130],
+
+            // OVL-CB
+            ['shape_name' => 'OVL-CB', 'size' => '4.00x5.00', 'secondary_size' => '', 'description' => 'NA', 'display_order' => 9, 'ctw' => 0.260],
+            ['shape_name' => 'OVL-CB', 'size' => '3.00x4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.130],
+            ['shape_name' => 'OVL-CB', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'OVL-CB', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'OVL-CB', 'size' => '4.00x6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.360],
+            ['shape_name' => 'OVL-CB', 'size' => '5.00x7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.600],
+            ['shape_name' => 'OVL-CB', 'size' => '6.00x8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.700],
+            ['shape_name' => 'OVL-CB', 'size' => '7.00x9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 1.000],
+            ['shape_name' => 'OVL-CB', 'size' => '8.00x10.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 1.500],
+
+            // PRI
+            ['shape_name' => 'PRI', 'size' => '1.30', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.014],
+            ['shape_name' => 'PRI', 'size' => '1.40', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.019],
+            ['shape_name' => 'PRI', 'size' => '1.50', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.021],
+            ['shape_name' => 'PRI', 'size' => '1.70', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.031],
+            ['shape_name' => 'PRI', 'size' => '1.80', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.036],
+            ['shape_name' => 'PRI', 'size' => '1.90', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.043],
+            ['shape_name' => 'PRI', 'size' => '2.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.050],
+            ['shape_name' => 'PRI', 'size' => '2.10', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 0.060],
+            ['shape_name' => 'PRI', 'size' => '2.20', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 0.070],
+            ['shape_name' => 'PRI', 'size' => '2.30', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 0.080],
+            ['shape_name' => 'PRI', 'size' => '2.40', 'secondary_size' => '', 'description' => '', 'display_order' => 11, 'ctw' => 0.090],
+            ['shape_name' => 'PRI', 'size' => '2.50', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 0.100],
+            ['shape_name' => 'PRI', 'size' => '2.70', 'secondary_size' => '', 'description' => '', 'display_order' => 14, 'ctw' => 0.120],
+            ['shape_name' => 'PRI', 'size' => '3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 15, 'ctw' => 0.170],
+            ['shape_name' => 'PRI', 'size' => '3.50', 'secondary_size' => '', 'description' => '', 'display_order' => 16, 'ctw' => 0.270],
+            ['shape_name' => 'PRI', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 17, 'ctw' => 0.400],
+            ['shape_name' => 'PRI', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 18, 'ctw' => 0.600],
+            ['shape_name' => 'PRI', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 19, 'ctw' => 0.780],
+            ['shape_name' => 'PRI', 'size' => '5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 20, 'ctw' => 0.000],
+            ['shape_name' => 'PRI', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'PRI', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'PRI', 'size' => '6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 21, 'ctw' => 1.350],
+            ['shape_name' => 'PRI', 'size' => '7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 22, 'ctw' => 2.150],
+            ['shape_name' => 'PRI', 'size' => '7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 23, 'ctw' => 2.500],
+            ['shape_name' => 'PRI', 'size' => '8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 24, 'ctw' => 4.000],
+            ['shape_name' => 'PRI', 'size' => '9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 25, 'ctw' => 4.570],
+
+            // PRI-CB
+            ['shape_name' => 'PRI-CB', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'PRI-CB', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'PRI-CB', 'size' => '4.80', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.440],
+            ['shape_name' => 'PRI-CB', 'size' => '5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.690],
+            ['shape_name' => 'PRI-CB', 'size' => '8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 2.300],
+
+            // PRS
+            ['shape_name' => 'PRS', 'size' => '1.50x2.50', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.030],
+            ['shape_name' => 'PRS', 'size' => '2.00x3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.040],
+            ['shape_name' => 'PRS', 'size' => '2.50x3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.070],
+            ['shape_name' => 'PRS', 'size' => '2.50x3.50', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.080],
+            ['shape_name' => 'PRS', 'size' => '2.50x4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.090],
+            ['shape_name' => 'PRS', 'size' => '3.00x4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 0.130],
+            ['shape_name' => 'PRS', 'size' => '3.00x4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 0.150],
+            ['shape_name' => 'PRS', 'size' => '3.00x5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 0.170],
+            ['shape_name' => 'PRS', 'size' => '3.50x5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 13, 'ctw' => 0.200],
+            ['shape_name' => 'PRS', 'size' => '3.50x5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 14, 'ctw' => 0.250],
+            ['shape_name' => 'PRS', 'size' => '4.00x6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 17, 'ctw' => 0.350],
+            ['shape_name' => 'PRS', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'PRS', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'PRS', 'size' => '5.00x7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 22, 'ctw' => 0.650],
+            ['shape_name' => 'PRS', 'size' => '5.00x8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 23, 'ctw' => 0.750],
+            ['shape_name' => 'PRS', 'size' => '5.50x8.50', 'secondary_size' => '', 'description' => '', 'display_order' => 24, 'ctw' => 0.950],
+            ['shape_name' => 'PRS', 'size' => '6.00x10.00', 'secondary_size' => '', 'description' => '', 'display_order' => 26, 'ctw' => 1.500],
+            ['shape_name' => 'PRS', 'size' => '6.00x8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 28, 'ctw' => 1.060],
+            ['shape_name' => 'PRS', 'size' => '6.00x9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 28, 'ctw' => 1.200],
+            ['shape_name' => 'PRS', 'size' => '7.00x10.00', 'secondary_size' => '', 'description' => '', 'display_order' => 30, 'ctw' => 1.810],
+            ['shape_name' => 'PRS', 'size' => '7.00x9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 32, 'ctw' => 1.630],
+            ['shape_name' => 'PRS', 'size' => '8.00x12.00', 'secondary_size' => '', 'description' => '', 'display_order' => 35, 'ctw' => 2.750],
+            ['shape_name' => 'PRS', 'size' => '4.50x6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 20, 'ctw' => 0.480],
+            ['shape_name' => 'PRS', 'size' => '5.50x8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 25, 'ctw' => 0.000],
+            ['shape_name' => 'PRS', 'size' => '10.00x15.00', 'secondary_size' => '', 'description' => '', 'display_order' => 40, 'ctw' => 0.000],
+            ['shape_name' => 'PRS', 'size' => '3.50X4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 0.230],
+            ['shape_name' => 'PRS', 'size' => 'MIX', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.000],
+
+            // PRS-CB
+            ['shape_name' => 'PRS-CB', 'size' => '3.00x4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.150],
+            ['shape_name' => 'PRS-CB', 'size' => '3.00x5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.160],
+            ['shape_name' => 'PRS-CB', 'size' => '3.50x5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.180],
+            ['shape_name' => 'PRS-CB', 'size' => '4.00x6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.190],
+            ['shape_name' => 'PRS-CB', 'size' => '4.50x6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.195],
+            ['shape_name' => 'PRS-CB', 'size' => '5.00x7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.200],
+            ['shape_name' => 'PRS-CB', 'size' => '5.00x8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.250],
+            ['shape_name' => 'PRS-CB', 'size' => '6.00x9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 0.300],
+            ['shape_name' => 'PRS-CB', 'size' => '7.00x10.00', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 1.000],
+            ['shape_name' => 'PRS-CB', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'PRS-CB', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+
+            // RND
+            ['shape_name' => 'RND', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'RND', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'RND', 'size' => '0.80', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.003],
+            ['shape_name' => 'RND', 'size' => '0.90', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.004],
+            ['shape_name' => 'RND', 'size' => '1.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.004],
+            ['shape_name' => 'RND', 'size' => '1.10', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.005],
+            ['shape_name' => 'RND', 'size' => '1.15', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.006],
+            ['shape_name' => 'RND', 'size' => '1.20', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 0.007],
+            ['shape_name' => 'RND', 'size' => '1.25', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.007],
+            ['shape_name' => 'RND', 'size' => '1.30', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 0.008],
+            ['shape_name' => 'RND', 'size' => '1.35', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 0.009],
+            ['shape_name' => 'RND', 'size' => '1.40', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 0.010],
+            ['shape_name' => 'RND', 'size' => '1.45', 'secondary_size' => '', 'description' => '', 'display_order' => 11, 'ctw' => 0.011],
+            ['shape_name' => 'RND', 'size' => '1.50', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 0.013],
+            ['shape_name' => 'RND', 'size' => '1.55', 'secondary_size' => '', 'description' => '', 'display_order' => 13, 'ctw' => 0.014],
+            ['shape_name' => 'RND', 'size' => '1.60', 'secondary_size' => '', 'description' => '', 'display_order' => 14, 'ctw' => 0.015],
+            ['shape_name' => 'RND', 'size' => '1.70', 'secondary_size' => '', 'description' => '', 'display_order' => 15, 'ctw' => 0.018],
+            ['shape_name' => 'RND', 'size' => '1.80', 'secondary_size' => '', 'description' => '', 'display_order' => 16, 'ctw' => 0.022],
+            ['shape_name' => 'RND', 'size' => '1.90', 'secondary_size' => '', 'description' => '', 'display_order' => 17, 'ctw' => 0.026],
+            ['shape_name' => 'RND', 'size' => '2.00', 'secondary_size' => '', 'description' => '', 'display_order' => 18, 'ctw' => 0.030],
+            ['shape_name' => 'RND', 'size' => '2.10', 'secondary_size' => '', 'description' => '', 'display_order' => 19, 'ctw' => 0.035],
+            ['shape_name' => 'RND', 'size' => '2.20', 'secondary_size' => '', 'description' => '', 'display_order' => 20, 'ctw' => 0.040],
+            ['shape_name' => 'RND', 'size' => '2.30', 'secondary_size' => '', 'description' => '', 'display_order' => 21, 'ctw' => 0.046],
+            ['shape_name' => 'RND', 'size' => '2.40', 'secondary_size' => '', 'description' => '', 'display_order' => 24, 'ctw' => 0.050],
+            ['shape_name' => 'RND', 'size' => '2.50', 'secondary_size' => '', 'description' => '', 'display_order' => 25, 'ctw' => 0.060],
+            ['shape_name' => 'RND', 'size' => '2.60', 'secondary_size' => '', 'description' => '', 'display_order' => 26, 'ctw' => 0.065],
+            ['shape_name' => 'RND', 'size' => '2.70', 'secondary_size' => '', 'description' => '', 'display_order' => 26, 'ctw' => 0.070],
+            ['shape_name' => 'RND', 'size' => '2.80', 'secondary_size' => '', 'description' => '', 'display_order' => 26, 'ctw' => 0.080],
+            ['shape_name' => 'RND', 'size' => '2.90', 'secondary_size' => '', 'description' => '', 'display_order' => 27, 'ctw' => 0.090],
+            ['shape_name' => 'RND', 'size' => '3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 28, 'ctw' => 0.100],
+            ['shape_name' => 'RND', 'size' => '3.10', 'secondary_size' => '', 'description' => '', 'display_order' => 29, 'ctw' => 0.110],
+            ['shape_name' => 'RND', 'size' => '3.20', 'secondary_size' => '', 'description' => '', 'display_order' => 30, 'ctw' => 0.120],
+            ['shape_name' => 'RND', 'size' => '3.30', 'secondary_size' => '', 'description' => '', 'display_order' => 31, 'ctw' => 0.130],
+            ['shape_name' => 'RND', 'size' => '3.40', 'secondary_size' => '', 'description' => '', 'display_order' => 33, 'ctw' => 0.150],
+            ['shape_name' => 'RND', 'size' => '3.50', 'secondary_size' => '', 'description' => '', 'display_order' => 33, 'ctw' => 0.160],
+            ['shape_name' => 'RND', 'size' => '3.60', 'secondary_size' => '', 'description' => '', 'display_order' => 34, 'ctw' => 0.180],
+            ['shape_name' => 'RND', 'size' => '3.80', 'secondary_size' => '', 'description' => '', 'display_order' => 35, 'ctw' => 0.210],
+            ['shape_name' => 'RND', 'size' => '3.90', 'secondary_size' => '', 'description' => '', 'display_order' => 36, 'ctw' => 0.220],
+            ['shape_name' => 'RND', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 36, 'ctw' => 0.250],
+            ['shape_name' => 'RND', 'size' => '4.10', 'secondary_size' => '', 'description' => '', 'display_order' => 37, 'ctw' => 0.260],
+            ['shape_name' => 'RND', 'size' => '4.20', 'secondary_size' => '', 'description' => '', 'display_order' => 38, 'ctw' => 0.280],
+            ['shape_name' => 'RND', 'size' => '4.30', 'secondary_size' => '', 'description' => '', 'display_order' => 39, 'ctw' => 0.300],
+            ['shape_name' => 'RND', 'size' => '4.40', 'secondary_size' => '', 'description' => '', 'display_order' => 41, 'ctw' => 0.330],
+            ['shape_name' => 'RND', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 42, 'ctw' => 0.350],
+            ['shape_name' => 'RND', 'size' => '4.70', 'secondary_size' => '', 'description' => '', 'display_order' => 43, 'ctw' => 0.390],
+            ['shape_name' => 'RND', 'size' => '4.80', 'secondary_size' => '', 'description' => '', 'display_order' => 44, 'ctw' => 0.410],
+            ['shape_name' => 'RND', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 45, 'ctw' => 0.470],
+            ['shape_name' => 'RND', 'size' => '5.20', 'secondary_size' => '', 'description' => '', 'display_order' => 47, 'ctw' => 1.060],
+            ['shape_name' => 'RND', 'size' => '5.30', 'secondary_size' => '', 'description' => '', 'display_order' => 48, 'ctw' => 1.120],
+            ['shape_name' => 'RND', 'size' => '5.40', 'secondary_size' => '', 'description' => '', 'display_order' => 49, 'ctw' => 1.180],
+            ['shape_name' => 'RND', 'size' => '5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 50, 'ctw' => 1.200],
+            ['shape_name' => 'RND', 'size' => '5.70', 'secondary_size' => '', 'description' => '', 'display_order' => 51, 'ctw' => 1.380],
+            ['shape_name' => 'RND', 'size' => '5.80', 'secondary_size' => '', 'description' => '', 'display_order' => 52, 'ctw' => 1.460],
+            ['shape_name' => 'RND', 'size' => '6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 54, 'ctw' => 1.600],
+            ['shape_name' => 'RND', 'size' => '6.25', 'secondary_size' => '', 'description' => '', 'display_order' => 55, 'ctw' => 1.800],
+            ['shape_name' => 'RND', 'size' => '6.30', 'secondary_size' => '', 'description' => '', 'display_order' => 56, 'ctw' => 1.900],
+            ['shape_name' => 'RND', 'size' => '6.40', 'secondary_size' => '', 'description' => '', 'display_order' => 57, 'ctw' => 1.960],
+            ['shape_name' => 'RND', 'size' => '6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 58, 'ctw' => 2.000],
+            ['shape_name' => 'RND', 'size' => '6.60', 'secondary_size' => '', 'description' => '', 'display_order' => 59, 'ctw' => 2.200],
+            ['shape_name' => 'RND', 'size' => '6.80', 'secondary_size' => '', 'description' => '', 'display_order' => 60, 'ctw' => 2.400],
+            ['shape_name' => 'RND', 'size' => '7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 61, 'ctw' => 2.600],
+            ['shape_name' => 'RND', 'size' => '7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 63, 'ctw' => 3.200],
+            ['shape_name' => 'RND', 'size' => '7.80', 'secondary_size' => '', 'description' => '', 'display_order' => 64, 'ctw' => 3.600],
+            ['shape_name' => 'RND', 'size' => '8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 65, 'ctw' => 3.800],
+            ['shape_name' => 'RND', 'size' => '8.20', 'secondary_size' => '', 'description' => '', 'display_order' => 66, 'ctw' => 4.000],
+            ['shape_name' => 'RND', 'size' => '8.50', 'secondary_size' => '', 'description' => '', 'display_order' => 68, 'ctw' => 4.600],
+            ['shape_name' => 'RND', 'size' => '9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 70, 'ctw' => 5.400],
+            ['shape_name' => 'RND', 'size' => '10.00', 'secondary_size' => '', 'description' => '', 'display_order' => 74, 'ctw' => 5.750],
+            ['shape_name' => 'RND', 'size' => '12.00', 'secondary_size' => '', 'description' => '', 'display_order' => 78, 'ctw' => 6.450],
+            ['shape_name' => 'RND', 'size' => '13.00', 'secondary_size' => '', 'description' => '', 'display_order' => 82, 'ctw' => 8.200],
+            ['shape_name' => 'RND', 'size' => '17.50', 'secondary_size' => '', 'description' => '', 'display_order' => 89, 'ctw' => 20.000],
+            ['shape_name' => 'RND', 'size' => '5.25', 'secondary_size' => '', 'description' => 'NA', 'display_order' => 1, 'ctw' => 0.520],
+            ['shape_name' => 'RND', 'size' => 'MIX', 'secondary_size' => '', 'description' => 'Mix', 'display_order' => 1, 'ctw' => 0.000],
+
+            // RND-CB
+            ['shape_name' => 'RND-CB', 'size' => '2.50', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.070],
+            ['shape_name' => 'RND-CB', 'size' => '3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.100],
+            ['shape_name' => 'RND-CB', 'size' => '3.50', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.180],
+            ['shape_name' => 'RND-CB', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.220],
+            ['shape_name' => 'RND-CB', 'size' => '4.20', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.250],
+            ['shape_name' => 'RND-CB', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 0.300],
+            ['shape_name' => 'RND-CB', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 0.450],
+            ['shape_name' => 'RND-CB', 'size' => '5.10', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 0.480],
+            ['shape_name' => 'RND-CB', 'size' => '5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 11, 'ctw' => 0.550],
+            ['shape_name' => 'RND-CB', 'size' => '6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 0.700],
+            ['shape_name' => 'RND-CB', 'size' => '6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 13, 'ctw' => 0.800],
+            ['shape_name' => 'RND-CB', 'size' => '7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 14, 'ctw' => 1.000],
+            ['shape_name' => 'RND-CB', 'size' => '7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 15, 'ctw' => 2.000],
+            ['shape_name' => 'RND-CB', 'size' => '8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 16, 'ctw' => 2.500],
+            ['shape_name' => 'RND-CB', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'RND-CB', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+
+            // BAL
+            ['shape_name' => 'BAL', 'size' => '2.00', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.035],
+            ['shape_name' => 'BAL', 'size' => '2.50', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.055],
+            ['shape_name' => 'BAL', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'BAL', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'BAL', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 117, 'ctw' => 0.000],
+            ['shape_name' => 'BAL', 'size' => '8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 118, 'ctw' => 0.000],
+            ['shape_name' => 'BAL', 'size' => '6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 119, 'ctw' => 0.000],
+            ['shape_name' => 'BAL', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 122, 'ctw' => 0.000],
+            ['shape_name' => 'BAL', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 123, 'ctw' => 0.000],
+            ['shape_name' => 'BAL', 'size' => '5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 124, 'ctw' => 0.000],
+            ['shape_name' => 'BAL', 'size' => '6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 125, 'ctw' => 0.000],
+            ['shape_name' => 'BAL', 'size' => '7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 126, 'ctw' => 0.000],
+            ['shape_name' => 'BAL', 'size' => '3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 132, 'ctw' => 0.000],
+            ['shape_name' => 'BAL', 'size' => '7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 133, 'ctw' => 0.000],
+            ['shape_name' => 'BAL', 'size' => '8.50', 'secondary_size' => '', 'description' => '', 'display_order' => 134, 'ctw' => 0.000],
+            ['shape_name' => 'BAL', 'size' => '9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 135, 'ctw' => 0.000],
+
+            // CSN
+            ['shape_name' => 'CSN', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'CSN', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'CSN', 'size' => '3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.200],
+            ['shape_name' => 'CSN', 'size' => '3.50', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.220],
+            ['shape_name' => 'CSN', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.330],
+            ['shape_name' => 'CSN', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.470],
+            ['shape_name' => 'CSN', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.650],
+            ['shape_name' => 'CSN', 'size' => '5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 0.860],
+            ['shape_name' => 'CSN', 'size' => '6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 1.120],
+            ['shape_name' => 'CSN', 'size' => '6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 1.420],
+            ['shape_name' => 'CSN', 'size' => '7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 11, 'ctw' => 1.780],
+            ['shape_name' => 'CSN', 'size' => '7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 2.190],
+            ['shape_name' => 'CSN', 'size' => '8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 13, 'ctw' => 2.650],
+            ['shape_name' => 'CSN', 'size' => '8.50', 'secondary_size' => '', 'description' => '', 'display_order' => 14, 'ctw' => 3.190],
+            ['shape_name' => 'CSN', 'size' => '9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 16, 'ctw' => 4.000],
+            ['shape_name' => 'CSN', 'size' => '9.50', 'secondary_size' => '', 'description' => '', 'display_order' => 17, 'ctw' => 4.450],
+            ['shape_name' => 'CSN', 'size' => '10.00', 'secondary_size' => '', 'description' => '', 'display_order' => 18, 'ctw' => 5.500],
+            ['shape_name' => 'CSN', 'size' => '10.50', 'secondary_size' => '', 'description' => '', 'display_order' => 19, 'ctw' => 6.000],
+
+            // CSN-CB
+            ['shape_name' => 'CSN-CB', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.300],
+            ['shape_name' => 'CSN-CB', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.400],
+            ['shape_name' => 'CSN-CB', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.500],
+            ['shape_name' => 'CSN-CB', 'size' => '5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.650],
+            ['shape_name' => 'CSN-CB', 'size' => '6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.700],
+            ['shape_name' => 'CSN-CB', 'size' => '7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 1.000],
+            ['shape_name' => 'CSN-CB', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'CSN-CB', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+
+            // DRFD
+            ['shape_name' => 'DRFD', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'DRFD', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'DRFD', 'size' => '3.00x5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.170],
+            ['shape_name' => 'DRFD', 'size' => '3.50x5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.200],
+            ['shape_name' => 'DRFD', 'size' => '4.00x6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.850],
+            ['shape_name' => 'DRFD', 'size' => '4.50x7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.900],
+            ['shape_name' => 'DRFD', 'size' => '5.00x7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.650],
+            ['shape_name' => 'DRFD', 'size' => '5.00x8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 1.100],
+            ['shape_name' => 'DRFD', 'size' => '6.00x9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 1.300],
+            ['shape_name' => 'DRFD', 'size' => '7.00x12.00', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 2.170],
+            ['shape_name' => 'DRFD', 'size' => '7.00x9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 11, 'ctw' => 1.900],
+            ['shape_name' => 'DRFD', 'size' => '9.00X12.00', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 7.215],
+
+            // DRHD
+            ['shape_name' => 'DRHD', 'size' => '5.00x8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 0.950],
+            ['shape_name' => 'DRHD', 'size' => '5.00x7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.850],
+            ['shape_name' => 'DRHD', 'size' => '5.50x8.50', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 1.000],
+            ['shape_name' => 'DRHD', 'size' => '9.00x12.00', 'secondary_size' => '', 'description' => '', 'display_order' => 16, 'ctw' => 0.000],
+            ['shape_name' => 'DRHD', 'size' => '3.00x5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.170],
+            ['shape_name' => 'DRHD', 'size' => '3.50x5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.200],
+            ['shape_name' => 'DRHD', 'size' => '3.50x5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.250],
+            ['shape_name' => 'DRHD', 'size' => '4.00x6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.650],
+            ['shape_name' => 'DRHD', 'size' => '4.50x6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.780],
+            ['shape_name' => 'DRHD', 'size' => '6.00x8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 1.100],
+            ['shape_name' => 'DRHD', 'size' => '6.00x9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 13, 'ctw' => 1.300],
+            ['shape_name' => 'DRHD', 'size' => '7.00x10.00', 'secondary_size' => '', 'description' => '', 'display_order' => 14, 'ctw' => 0.000],
+            ['shape_name' => 'DRHD', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'DRHD', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+
+            // EMR
+            ['shape_name' => 'EMR', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'EMR', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'EMR', 'size' => '4.00x6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.560],
+            ['shape_name' => 'EMR', 'size' => '4.50x6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 0.760],
+            ['shape_name' => 'EMR', 'size' => '5.00x7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 1.020],
+            ['shape_name' => 'EMR', 'size' => '5.50x7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 1.310],
+            ['shape_name' => 'EMR', 'size' => '6.00x8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 11, 'ctw' => 1.670],
+            ['shape_name' => 'EMR', 'size' => '6.50x8.50', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 2.080],
+            ['shape_name' => 'EMR', 'size' => '7.00x9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 13, 'ctw' => 2.560],
+            ['shape_name' => 'EMR', 'size' => '2.00x3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.700],
+            ['shape_name' => 'EMR', 'size' => '2.50x3.50', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.130],
+            ['shape_name' => 'EMR', 'size' => '3.00x4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.300],
+            ['shape_name' => 'EMR', 'size' => '3.00x5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.400],
+            ['shape_name' => 'EMR', 'size' => '4.00x5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.470],
+            ['shape_name' => 'EMR', 'size' => '8.00x10.00', 'secondary_size' => '', 'description' => '', 'display_order' => 14, 'ctw' => 3.700],
+
+            // EMR-CB
+            ['shape_name' => 'EMR-CB', 'size' => '6.00x8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 1.000],
+            ['shape_name' => 'EMR-CB', 'size' => '3.00x5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.150],
+            ['shape_name' => 'EMR-CB', 'size' => '4.00x6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.300],
+            ['shape_name' => 'EMR-CB', 'size' => '5.00x7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.500],
+            ['shape_name' => 'EMR-CB', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'EMR-CB', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+
+            // FBHD
+            ['shape_name' => 'FBHD', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'FBHD', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'FBHD', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.480],
+            ['shape_name' => 'FBHD', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.500],
+            ['shape_name' => 'FBHD', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.950],
+            ['shape_name' => 'FBHD', 'size' => '5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 1.000],
+            ['shape_name' => 'FBHD', 'size' => '6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 1.500],
+            ['shape_name' => 'FBHD', 'size' => '6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 2.000],
+            ['shape_name' => 'FBHD', 'size' => '7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 2.500],
+            ['shape_name' => 'FBHD', 'size' => '7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 3.000],
+            ['shape_name' => 'FBHD', 'size' => '8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 11, 'ctw' => 3.550],
+            ['shape_name' => 'FBHD', 'size' => '8.50', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 4.000],
+            ['shape_name' => 'FBHD', 'size' => '9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 13, 'ctw' => 4.500],
+            ['shape_name' => 'FBHD', 'size' => '3.50', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.280],
+            ['shape_name' => 'FBHD', 'size' => '3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.220],
+            ['shape_name' => 'FBHD', 'size' => '2.50', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.090],
+
+            // HBFD
+            ['shape_name' => 'HBFD', 'size' => '3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.220],
+            ['shape_name' => 'HBFD', 'size' => '3.50', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.280],
+            ['shape_name' => 'HBFD', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.480],
+            ['shape_name' => 'HBFD', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.500],
+            ['shape_name' => 'HBFD', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.950],
+            ['shape_name' => 'HBFD', 'size' => '5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 1.000],
+            ['shape_name' => 'HBFD', 'size' => '6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 1.500],
+            ['shape_name' => 'HBFD', 'size' => '6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 2.000],
+            ['shape_name' => 'HBFD', 'size' => '7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 2.500],
+            ['shape_name' => 'HBFD', 'size' => '7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 10, 'ctw' => 3.000],
+            ['shape_name' => 'HBFD', 'size' => '8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 11, 'ctw' => 3.550],
+            ['shape_name' => 'HBFD', 'size' => '8.50', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 4.000],
+            ['shape_name' => 'HBFD', 'size' => '9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 13, 'ctw' => 4.500],
+            ['shape_name' => 'HBFD', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'HBFD', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+
+            // HRT
+            ['shape_name' => 'HRT', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'HRT', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'HRT', 'size' => '6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 0.850],
+            ['shape_name' => 'HRT', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.500],
+            ['shape_name' => 'HRT', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.270],
+            ['shape_name' => 'HRT', 'size' => '3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.120],
+            ['shape_name' => 'HRT', 'size' => '8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 1.850],
+            ['shape_name' => 'HRT', 'size' => '3.50', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.180],
+            ['shape_name' => 'HRT', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.350],
+            ['shape_name' => 'HRT', 'size' => '5.50', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.600],
+            ['shape_name' => 'HRT', 'size' => '6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 1.000],
+
+            // MRQ
+            ['shape_name' => 'MRQ', 'size' => '6.00x12.00', 'secondary_size' => '', 'description' => '', 'display_order' => 20, 'ctw' => 1.410],
+            ['shape_name' => 'MRQ', 'size' => '7.00x14.00', 'secondary_size' => '', 'description' => '', 'display_order' => 21, 'ctw' => 0.000],
+            ['shape_name' => 'MRQ', 'size' => '1.50x2.50', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.018],
+            ['shape_name' => 'MRQ', 'size' => '2.00x3.50', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 0.045],
+            ['shape_name' => 'MRQ', 'size' => '4.00x7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 16, 'ctw' => 0.350],
+            ['shape_name' => 'MRQ', 'size' => '1.50x3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.022],
+            ['shape_name' => 'MRQ', 'size' => '2.00x3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.039],
+            ['shape_name' => 'MRQ', 'size' => '2.00x4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 9, 'ctw' => 0.050],
+            ['shape_name' => 'MRQ', 'size' => '2.50x5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 11, 'ctw' => 0.100],
+            ['shape_name' => 'MRQ', 'size' => '3.00x6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 12, 'ctw' => 0.180],
+            ['shape_name' => 'MRQ', 'size' => '3.00x7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 13, 'ctw' => 0.200],
+            ['shape_name' => 'MRQ', 'size' => '3.50x7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 14, 'ctw' => 0.280],
+            ['shape_name' => 'MRQ', 'size' => '4.00x8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 17, 'ctw' => 0.420],
+            ['shape_name' => 'MRQ', 'size' => '4.50x9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 18, 'ctw' => 0.600],
+            ['shape_name' => 'MRQ', 'size' => '5.00x10.00', 'secondary_size' => '', 'description' => '', 'display_order' => 19, 'ctw' => 0.820],
+            ['shape_name' => 'MRQ', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'MRQ', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+
+            // TRI
+            ['shape_name' => 'TRI', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'TRI', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+            ['shape_name' => 'TRI', 'size' => '3.00', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.150],
+            ['shape_name' => 'TRI', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.230],
+            ['shape_name' => 'TRI', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.330],
+            ['shape_name' => 'TRI', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.420],
+            ['shape_name' => 'TRI', 'size' => '7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 1.100],
+            ['shape_name' => 'TRI', 'size' => '9.00', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 2.350],
+
+            // TRL
+            ['shape_name' => 'TRL', 'size' => '4.00', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.200],
+            ['shape_name' => 'TRL', 'size' => '4.50', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.220],
+            ['shape_name' => 'TRL', 'size' => '5.00', 'secondary_size' => '', 'description' => '', 'display_order' => 3, 'ctw' => 0.350],
+            ['shape_name' => 'TRL', 'size' => '6.00', 'secondary_size' => '', 'description' => '', 'display_order' => 4, 'ctw' => 0.600],
+            ['shape_name' => 'TRL', 'size' => '6.50', 'secondary_size' => '', 'description' => '', 'display_order' => 5, 'ctw' => 0.770],
+            ['shape_name' => 'TRL', 'size' => '7.00', 'secondary_size' => '', 'description' => '', 'display_order' => 6, 'ctw' => 0.950],
+            ['shape_name' => 'TRL', 'size' => '7.50', 'secondary_size' => '', 'description' => '', 'display_order' => 7, 'ctw' => 1.000],
+            ['shape_name' => 'TRL', 'size' => '8.00', 'secondary_size' => '', 'description' => '', 'display_order' => 8, 'ctw' => 1.430],
+            ['shape_name' => 'TRL', 'size' => 'Ungraded', 'secondary_size' => '', 'description' => '', 'display_order' => 1, 'ctw' => 0.000],
+            ['shape_name' => 'TRL', 'size' => 'Custom', 'secondary_size' => '', 'description' => '', 'display_order' => 2, 'ctw' => 0.000],
+        ];
+
+        $fancyCount = 0;
+        $fancySkipped = 0;
+
+        foreach ($fancyShapeSizes as $sizeData) {
+            $shape = $shapes->get($sizeData['shape_name']);
+
+            if (!$shape) {
+                $fancySkipped++;
+                $this->command->warn("Fancy shape not found for: {$sizeData['shape_name']}");
+                continue;
+            }
+
+            DiamondShapeSize::updateOrCreate(
+                [
+                    'diamond_shape_id' => $shape->id,
+                    'size' => $sizeData['size'] ?: null,
+                    'secondary_size' => $sizeData['secondary_size'] ?: null,
+                ],
+                [
+                    'diamond_type_id' => $fancyType->id,
+                    'description' => $sizeData['description'] ?: null,
+                    'display_order' => $sizeData['display_order'],
+                    'ctw' => $sizeData['ctw'],
+                ]
+            );
+            $fancyCount++;
+        }
+
+        $this->command->info("Imported {$fancyCount} Fancy Color Diamond shape sizes. Skipped {$fancySkipped} due to missing shapes.");
     }
 
     protected function seedDiamonds(): void
@@ -870,5 +1374,147 @@ class DiamondDataSeeder extends Seeder
         }
 
         $this->command->info("Imported {$count} diamonds. Skipped {$skipped} due to missing reference data.");
+
+        // Seed Fancy Color Diamond dummy data
+        $this->command->info('Seeding Fancy Color Diamond dummy data...');
+
+        $fancyType = DiamondType::where('code', 'FANCY')->first();
+
+        if (!$fancyType) {
+            $this->command->error('Fancy Color Diamond type not found. Please seed diamond types first.');
+            return;
+        }
+
+        // Get Fancy Color Diamond specific data
+        $fancyClarities = DiamondClarity::where('diamond_type_id', $fancyType->id)->where('is_active', true)->get()->keyBy('name');
+        $fancyColors = DiamondColor::where('diamond_type_id', $fancyType->id)->where('is_active', true)->get()->keyBy('name');
+        $fancyShapes = DiamondShape::where('diamond_type_id', $fancyType->id)->where('is_active', true)->get()->keyBy('name');
+        $fancyShapeSizes = DiamondShapeSize::where('diamond_type_id', $fancyType->id)->get()->groupBy('diamond_shape_id');
+
+        $fancyDiamondData = [
+            // Round Fancy Color Diamonds
+            ['shape' => 'RND', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '1.00', 'weight' => 1.000, 'price' => 6000.00, 'name' => 'Fancy Yellow Round CUS 1.00ct'],
+            ['shape' => 'RND', 'color' => 'YLW', 'clarity' => 'CER', 'size' => '1.50', 'weight' => 1.500, 'price' => 9000.00, 'name' => 'Fancy Yellow Round CER 1.50ct'],
+            ['shape' => 'RND', 'color' => 'PNK', 'clarity' => 'CUS', 'size' => '2.00', 'weight' => 2.000, 'price' => 15000.00, 'name' => 'Fancy Pink Round CUS 2.00ct'],
+            ['shape' => 'RND', 'color' => 'BLU', 'clarity' => 'N-EMR', 'size' => '2.50', 'weight' => 2.500, 'price' => 25000.00, 'name' => 'Fancy Blue Round N-EMR 2.50ct'],
+            ['shape' => 'RND', 'color' => 'GRN', 'clarity' => 'S-EMR', 'size' => '3.00', 'weight' => 3.000, 'price' => 30000.00, 'name' => 'Fancy Green Round S-EMR 3.00ct'],
+            ['shape' => 'RND', 'color' => 'RED', 'clarity' => 'N-RUB', 'size' => '1.00', 'weight' => 1.000, 'price' => 20000.00, 'name' => 'Fancy Red Round N-RUB 1.00ct'],
+            ['shape' => 'RND', 'color' => 'ORC', 'clarity' => 'S-CIT', 'size' => '1.50', 'weight' => 1.500, 'price' => 8000.00, 'name' => 'Fancy Orange Round S-CIT 1.50ct'],
+            ['shape' => 'RND', 'color' => 'PUR', 'clarity' => 'N-AME', 'size' => '2.00', 'weight' => 2.000, 'price' => 18000.00, 'name' => 'Fancy Purple Round N-AME 2.00ct'],
+
+            // Princess Fancy Color Diamonds
+            ['shape' => 'PRI', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '1.30', 'weight' => 0.014, 'price' => 5500.00, 'name' => 'Fancy Yellow Princess CUS 1.30'],
+            ['shape' => 'PRI', 'color' => 'PNK', 'clarity' => 'CER', 'size' => '2.00', 'weight' => 0.050, 'price' => 14000.00, 'name' => 'Fancy Pink Princess CER 2.00'],
+            ['shape' => 'PRI', 'color' => 'BLU', 'clarity' => 'N-EMR', 'size' => '2.50', 'weight' => 0.100, 'price' => 22000.00, 'name' => 'Fancy Blue Princess N-EMR 2.50'],
+            ['shape' => 'PRI', 'color' => 'GRN', 'clarity' => 'S-EMR', 'size' => '3.00', 'weight' => 0.170, 'price' => 28000.00, 'name' => 'Fancy Green Princess S-EMR 3.00'],
+            ['shape' => 'PRI', 'color' => 'YLW', 'clarity' => 'N-GRT', 'size' => '4.00', 'weight' => 0.400, 'price' => 35000.00, 'name' => 'Fancy Yellow Princess N-GRT 4.00'],
+
+            // Oval Fancy Color Diamonds
+            ['shape' => 'OVL', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '3.00x4.00', 'weight' => 0.300, 'price' => 18000.00, 'name' => 'Fancy Yellow Oval CUS 3.00x4.00'],
+            ['shape' => 'OVL', 'color' => 'PNK', 'clarity' => 'CER', 'size' => '4.00x6.00', 'weight' => 0.360, 'price' => 32000.00, 'name' => 'Fancy Pink Oval CER 4.00x6.00'],
+            ['shape' => 'OVL', 'color' => 'BLU', 'clarity' => 'N-EMR', 'size' => '5.00x7.00', 'weight' => 0.660, 'price' => 45000.00, 'name' => 'Fancy Blue Oval N-EMR 5.00x7.00'],
+            ['shape' => 'OVL', 'color' => 'GRN', 'clarity' => 'S-EMR', 'size' => '6.00x8.00', 'weight' => 1.090, 'price' => 55000.00, 'name' => 'Fancy Green Oval S-EMR 6.00x8.00'],
+
+            // Emerald Fancy Color Diamonds
+            ['shape' => 'EMR', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '3.00x4.00', 'weight' => 0.300, 'price' => 20000.00, 'name' => 'Fancy Yellow Emerald CUS 3.00x4.00'],
+            ['shape' => 'EMR', 'color' => 'PNK', 'clarity' => 'CER', 'size' => '4.00x6.00', 'weight' => 0.560, 'price' => 38000.00, 'name' => 'Fancy Pink Emerald CER 4.00x6.00'],
+            ['shape' => 'EMR', 'color' => 'BLU', 'clarity' => 'N-EMR', 'size' => '5.00x7.00', 'weight' => 1.020, 'price' => 52000.00, 'name' => 'Fancy Blue Emerald N-EMR 5.00x7.00'],
+            ['shape' => 'EMR', 'color' => 'GRN', 'clarity' => 'S-EMR', 'size' => '6.00x8.00', 'weight' => 1.670, 'price' => 65000.00, 'name' => 'Fancy Green Emerald S-EMR 6.00x8.00'],
+
+            // Cushion Fancy Color Diamonds
+            ['shape' => 'CSN', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '3.00', 'weight' => 0.200, 'price' => 12000.00, 'name' => 'Fancy Yellow Cushion CUS 3.00'],
+            ['shape' => 'CSN', 'color' => 'PNK', 'clarity' => 'CER', 'size' => '4.00', 'weight' => 0.330, 'price' => 28000.00, 'name' => 'Fancy Pink Cushion CER 4.00'],
+            ['shape' => 'CSN', 'color' => 'BLU', 'clarity' => 'N-EMR', 'size' => '5.00', 'weight' => 0.650, 'price' => 42000.00, 'name' => 'Fancy Blue Cushion N-EMR 5.00'],
+            ['shape' => 'CSN', 'color' => 'GRN', 'clarity' => 'S-EMR', 'size' => '6.00', 'weight' => 1.120, 'price' => 58000.00, 'name' => 'Fancy Green Cushion S-EMR 6.00'],
+
+            // Marquise Fancy Color Diamonds
+            ['shape' => 'MRQ', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '1.50x2.50', 'weight' => 0.018, 'price' => 8000.00, 'name' => 'Fancy Yellow Marquise CUS 1.50x2.50'],
+            ['shape' => 'MRQ', 'color' => 'PNK', 'clarity' => 'CER', 'size' => '2.00x3.00', 'weight' => 0.039, 'price' => 15000.00, 'name' => 'Fancy Pink Marquise CER 2.00x3.00'],
+            ['shape' => 'MRQ', 'color' => 'BLU', 'clarity' => 'N-EMR', 'size' => '3.00x6.00', 'weight' => 0.180, 'price' => 35000.00, 'name' => 'Fancy Blue Marquise N-EMR 3.00x6.00'],
+            ['shape' => 'MRQ', 'color' => 'GRN', 'clarity' => 'S-EMR', 'size' => '4.00x8.00', 'weight' => 0.420, 'price' => 48000.00, 'name' => 'Fancy Green Marquise S-EMR 4.00x8.00'],
+
+            // Pear Fancy Color Diamonds
+            ['shape' => 'PRS', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '1.50x2.50', 'weight' => 0.030, 'price' => 7000.00, 'name' => 'Fancy Yellow Pear CUS 1.50x2.50'],
+            ['shape' => 'PRS', 'color' => 'PNK', 'clarity' => 'CER', 'size' => '2.00x3.00', 'weight' => 0.040, 'price' => 13000.00, 'name' => 'Fancy Pink Pear CER 2.00x3.00'],
+            ['shape' => 'PRS', 'color' => 'BLU', 'clarity' => 'N-EMR', 'size' => '3.00x5.00', 'weight' => 0.170, 'price' => 32000.00, 'name' => 'Fancy Blue Pear N-EMR 3.00x5.00'],
+            ['shape' => 'PRS', 'color' => 'GRN', 'clarity' => 'S-EMR', 'size' => '4.00x6.00', 'weight' => 0.350, 'price' => 45000.00, 'name' => 'Fancy Green Pear S-EMR 4.00x6.00'],
+
+            // Heart Fancy Color Diamonds
+            ['shape' => 'HRT', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '3.00', 'weight' => 0.120, 'price' => 10000.00, 'name' => 'Fancy Yellow Heart CUS 3.00'],
+            ['shape' => 'HRT', 'color' => 'PNK', 'clarity' => 'CER', 'size' => '4.00', 'weight' => 0.270, 'price' => 25000.00, 'name' => 'Fancy Pink Heart CER 4.00'],
+            ['shape' => 'HRT', 'color' => 'BLU', 'clarity' => 'N-EMR', 'size' => '5.00', 'weight' => 0.500, 'price' => 40000.00, 'name' => 'Fancy Blue Heart N-EMR 5.00'],
+
+            // Asscher Fancy Color Diamonds
+            ['shape' => 'ASH', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '3.50', 'weight' => 0.180, 'price' => 11000.00, 'name' => 'Fancy Yellow Asscher CUS 3.50'],
+            ['shape' => 'ASH', 'color' => 'PNK', 'clarity' => 'CER', 'size' => '4.00', 'weight' => 0.330, 'price' => 26000.00, 'name' => 'Fancy Pink Asscher CER 4.00'],
+            ['shape' => 'ASH', 'color' => 'BLU', 'clarity' => 'N-EMR', 'size' => '5.00', 'weight' => 0.700, 'price' => 43000.00, 'name' => 'Fancy Blue Asscher N-EMR 5.00'],
+
+            // Baguette Fancy Color Diamonds
+            ['shape' => 'BUG', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '2.00x1.00(S)', 'weight' => 0.010, 'price' => 5000.00, 'name' => 'Fancy Yellow Baguette CUS 2.00x1.00'],
+            ['shape' => 'BUG', 'color' => 'PNK', 'clarity' => 'CER', 'size' => '3.00x1.50(S)', 'weight' => 0.030, 'price' => 12000.00, 'name' => 'Fancy Pink Baguette CER 3.00x1.50'],
+
+            // Round-CB Fancy Color Diamonds
+            ['shape' => 'RND-CB', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '3.00', 'weight' => 0.100, 'price' => 9000.00, 'name' => 'Fancy Yellow Round-CB CUS 3.00'],
+            ['shape' => 'RND-CB', 'color' => 'PNK', 'clarity' => 'CER', 'size' => '4.00', 'weight' => 0.220, 'price' => 20000.00, 'name' => 'Fancy Pink Round-CB CER 4.00'],
+            ['shape' => 'RND-CB', 'color' => 'BLU', 'clarity' => 'N-EMR', 'size' => '5.00', 'weight' => 0.450, 'price' => 38000.00, 'name' => 'Fancy Blue Round-CB N-EMR 5.00'],
+
+            // Princess-CB Fancy Color Diamonds
+            ['shape' => 'PRI-CB', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '4.80', 'weight' => 0.440, 'price' => 32000.00, 'name' => 'Fancy Yellow Princess-CB CUS 4.80'],
+            ['shape' => 'PRI-CB', 'color' => 'PNK', 'clarity' => 'CER', 'size' => '5.50', 'weight' => 0.690, 'price' => 45000.00, 'name' => 'Fancy Pink Princess-CB CER 5.50'],
+
+            // Cushion-CB Fancy Color Diamonds
+            ['shape' => 'CSN-CB', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '4.00', 'weight' => 0.300, 'price' => 22000.00, 'name' => 'Fancy Yellow Cushion-CB CUS 4.00'],
+            ['shape' => 'CSN-CB', 'color' => 'PNK', 'clarity' => 'CER', 'size' => '5.00', 'weight' => 0.500, 'price' => 35000.00, 'name' => 'Fancy Pink Cushion-CB CER 5.00'],
+
+            // Emerald-CB Fancy Color Diamonds
+            ['shape' => 'EMR-CB', 'color' => 'YLW', 'clarity' => 'CUS', 'size' => '3.00x5.00', 'weight' => 0.150, 'price' => 15000.00, 'name' => 'Fancy Yellow Emerald-CB CUS 3.00x5.00'],
+            ['shape' => 'EMR-CB', 'color' => 'PNK', 'clarity' => 'CER', 'size' => '4.00x6.00', 'weight' => 0.300, 'price' => 30000.00, 'name' => 'Fancy Pink Emerald-CB CER 4.00x6.00'],
+
+            // Special colors - Brown, Gray, etc.
+            ['shape' => 'RND', 'color' => 'BRW', 'clarity' => 'CUS', 'size' => '2.00', 'weight' => 2.000, 'price' => 8000.00, 'name' => 'Fancy Brown Round CUS 2.00ct'],
+            ['shape' => 'RND', 'color' => 'GRY', 'clarity' => 'CER', 'size' => '1.50', 'weight' => 1.500, 'price' => 7000.00, 'name' => 'Fancy Gray Round CER 1.50ct'],
+            ['shape' => 'PRI', 'color' => 'BRW', 'clarity' => 'N-EMR', 'size' => '2.00', 'weight' => 0.050, 'price' => 9000.00, 'name' => 'Fancy Brown Princess N-EMR 2.00'],
+        ];
+
+        $fancyCount = 0;
+        $fancySkipped = 0;
+
+        foreach ($fancyDiamondData as $diamond) {
+            $shape = $fancyShapes->get($diamond['shape']);
+            $color = $fancyColors->get($diamond['color']);
+            $clarity = $fancyClarities->get($diamond['clarity']);
+
+            if (!$shape || !$color || !$clarity) {
+                $fancySkipped++;
+                $this->command->warn("Missing Fancy reference data for: {$diamond['name']} (Shape: {$diamond['shape']}, Color: {$diamond['color']}, Clarity: {$diamond['clarity']})");
+                continue;
+            }
+
+            // Find matching shape size
+            $shapeSize = null;
+            if (isset($fancyShapeSizes[$shape->id])) {
+                $shapeSize = $fancyShapeSizes[$shape->id]->firstWhere('size', $diamond['size']);
+            }
+
+            Diamond::updateOrCreate(
+                [
+                    'name' => $diamond['name'],
+                    'diamond_shape_id' => $shape->id,
+                    'diamond_color_id' => $color->id,
+                    'diamond_clarity_id' => $clarity->id,
+                ],
+                [
+                    'diamond_type_id' => $fancyType->id,
+                    'diamond_shape_size_id' => $shapeSize ? $shapeSize->id : null,
+                    'weight' => $diamond['weight'],
+                    'price' => $diamond['price'],
+                    'description' => "Premium Fancy Color {$diamond['shape']} cut diamond with {$diamond['color']} color and {$diamond['clarity']} clarity.",
+                    'is_active' => true,
+                ]
+            );
+            $fancyCount++;
+        }
+
+        $this->command->info("Imported {$fancyCount} Fancy Color Diamonds. Skipped {$fancySkipped} due to missing reference data.");
     }
 }
