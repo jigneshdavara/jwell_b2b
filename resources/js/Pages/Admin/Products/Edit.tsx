@@ -736,15 +736,6 @@ export default function AdminProductEdit() {
         () => Object.fromEntries(metals.map((item) => [item.id, item.name])),
         [metals],
     );
-    const diamondNameMaps = useMemo(
-        () => ({
-            types: Object.fromEntries(diamondCatalog.types.map((item) => [item.id, item.name])),
-            shapes: Object.fromEntries(diamondCatalog.shapes.map((item) => [item.id, item.name])),
-            colors: Object.fromEntries(diamondCatalog.colors.map((item) => [item.id, item.name])),
-            clarities: Object.fromEntries(diamondCatalog.clarities.map((item) => [item.id, item.name])),
-        }),
-        [diamondCatalog],
-    );
 
     const buildVariantMeta = useCallback(
         (variant: VariantForm, state: FormData) => {
