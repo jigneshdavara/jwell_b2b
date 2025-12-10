@@ -413,7 +413,7 @@ class CatalogController extends Controller
                 'material' => optional($product->material)?->name,
                 'purity' => $product->metadata['purity'] ?? $product->material?->purity,
                 'base_price' => (float) $product->base_price,
-                'making_charge' => (float) $product->making_charge,
+                'making_charge_amount' => (float) $product->making_charge_amount,
                 'making_charge_percentage' => $product->making_charge_percentage ? (float) $product->making_charge_percentage : null,
                 'uses_gold' => (bool) $product->uses_gold,
                 'uses_silver' => (bool) $product->uses_silver,

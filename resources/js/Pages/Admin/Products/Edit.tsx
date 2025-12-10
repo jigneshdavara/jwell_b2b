@@ -2376,37 +2376,41 @@ export default function AdminProductEdit() {
                                         <span className="block text-xs text-rose-500">{errors.making_charge_types}</span>
                                     </div>
                                 )}
-                                {(data.making_charge_types?.includes('fixed') ?? false) && (
-                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                        <span>Making Charge (₹) {(data.making_charge_types?.includes('percentage') ?? false) ? '' : '*'}</span>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            value={data.making_charge_amount}
-                                            onChange={(event) => setData('making_charge_amount', event.target.value)}
-                                            className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            placeholder="Enter fixed making charge"
-                                        />
-                                        {errors.making_charge_amount && <span className="text-xs text-rose-500">{errors.making_charge_amount}</span>}
-                                    </label>
-                                )}
-                                {(data.making_charge_types?.includes('percentage') ?? false) && (
-                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                        <span>Making Charge Percentage (%) {(data.making_charge_types?.includes('fixed') ?? false) ? '' : '*'}</span>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            max="100"
-                                            value={data.making_charge_percentage}
-                                            onChange={(event) => setData('making_charge_percentage', event.target.value)}
-                                            className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            placeholder="Enter percentage (e.g., 10 for 10%)"
-                                        />
-                                        <span className="text-xs text-slate-500">Percentage will be calculated on metal cost</span>
-                                        {errors.making_charge_percentage && <span className="text-xs text-rose-500">{errors.making_charge_percentage}</span>}
-                                    </label>
+                                {((data.making_charge_types?.includes('fixed') ?? false) || (data.making_charge_types?.includes('percentage') ?? false)) && (
+                                    <div className={data.making_charge_types?.includes('fixed') && data.making_charge_types?.includes('percentage') ? "grid grid-cols-2 gap-4" : ""}>
+                                        {(data.making_charge_types?.includes('fixed') ?? false) && (
+                                            <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                                <span>Making Charge (₹) {(data.making_charge_types?.includes('percentage') ?? false) ? '' : '*'}</span>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    value={data.making_charge_amount}
+                                                    onChange={(event) => setData('making_charge_amount', event.target.value)}
+                                                    className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    placeholder="Enter fixed making charge"
+                                                />
+                                                {errors.making_charge_amount && <span className="text-xs text-rose-500">{errors.making_charge_amount}</span>}
+                                            </label>
+                                        )}
+                                        {(data.making_charge_types?.includes('percentage') ?? false) && (
+                                            <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                                <span>Making Charge Percentage (%) {(data.making_charge_types?.includes('fixed') ?? false) ? '' : '*'}</span>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    max="100"
+                                                    value={data.making_charge_percentage}
+                                                    onChange={(event) => setData('making_charge_percentage', event.target.value)}
+                                                    className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    placeholder="Enter percentage (e.g., 10 for 10%)"
+                                                />
+                                                <span className="text-xs text-slate-500">Percentage will be calculated on metal cost</span>
+                                                {errors.making_charge_percentage && <span className="text-xs text-rose-500">{errors.making_charge_percentage}</span>}
+                                            </label>
+                                        )}
+                                    </div>
                                 )}
                                 {(errors.making_charge_types && data.making_charge_types && data.making_charge_types.length > 0) && (
                                     <div className="mt-2">
