@@ -108,7 +108,6 @@ type DiamondCatalog = {
     shapes: OptionListItem[];
     colors: OptionListItem[];
     clarities: OptionListItem[];
-    cuts: OptionListItem[];
 };
 
 
@@ -806,7 +805,6 @@ export default function AdminProductEdit() {
             shapes: Object.fromEntries(diamondCatalog.shapes.map((item) => [item.id, item.name])),
             colors: Object.fromEntries(diamondCatalog.colors.map((item) => [item.id, item.name])),
             clarities: Object.fromEntries(diamondCatalog.clarities.map((item) => [item.id, item.name])),
-            cuts: Object.fromEntries(diamondCatalog.cuts.map((item) => [item.id, item.name])),
         }),
         [diamondCatalog],
     );
