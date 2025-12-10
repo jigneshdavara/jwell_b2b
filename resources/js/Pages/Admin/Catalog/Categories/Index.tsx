@@ -18,6 +18,8 @@ type CategoryRow = {
     parent_name?: string | null;
     depth: number;
     children_count: number;
+    styles?: Array<{ id: number; name: string }>;
+    sizes?: Array<{ id: number; name: string }>;
 };
 
 type Pagination<T> = {
@@ -39,10 +41,18 @@ type CategoriesPageProps = PageProps<{
         parent_id?: string | null;
     };
     parents: Array<{ id: number; name: string }>;
+    styles: Array<{ id: number; name: string }>;
+    sizes: Array<{ id: number; name: string }>;
 }>;
 
 export default function AdminCategoriesIndex() {
-    const { categories, filters, parents } = usePage<CategoriesPageProps>().props;
+    const { categories, filters, parents, styles, sizes } = usePage<CategoriesPageProps>().props;
+    
+    // Debug: Log styles and sizes to console
+    useEffect(() => {
+        console.log('Styles available:', styles);
+        console.log('Sizes available:', sizes);
+    }, [styles, sizes]);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
@@ -66,6 +76,8 @@ export default function AdminCategoriesIndex() {
         parent_id: 'none' as string,
         cover_image: null as File | null,
         remove_cover_image: false,
+        style_ids: [] as number[],
+        size_ids: [] as number[],
     });
 
     useEffect(() => {
@@ -103,6 +115,8 @@ export default function AdminCategoriesIndex() {
         categoryForm.setData('parent_id', 'none');
         categoryForm.setData('cover_image', null);
         categoryForm.setData('remove_cover_image', false);
+        categoryForm.setData('style_ids', []);
+        categoryForm.setData('size_ids', []);
         if (coverObjectUrl) {
             URL.revokeObjectURL(coverObjectUrl);
             setCoverObjectUrl(null);
@@ -125,6 +139,8 @@ export default function AdminCategoriesIndex() {
             parent_id: category.parent_id ? String(category.parent_id) : 'none',
             cover_image: null,
             remove_cover_image: false,
+            style_ids: category.styles?.map((s) => s.id) ?? [],
+            size_ids: category.sizes?.map((s) => s.id) ?? [],
         });
         if (coverObjectUrl) {
             URL.revokeObjectURL(coverObjectUrl);
@@ -162,6 +178,8 @@ export default function AdminCategoriesIndex() {
                 is_active: isActive,
                 cover_image: coverImage, // Preserve file
                 remove_cover_image: removeCoverImage,
+                style_ids: data.style_ids || [],
+                size_ids: data.size_ids || [],
             };
             if (editingCategory) {
                 transformed._method = 'PUT'; // method spoofing for update
@@ -642,6 +660,70 @@ export default function AdminCategoriesIndex() {
                                         </select>
                                         {categoryForm.errors.parent_id && (
                                             <span className="text-xs text-rose-500">{categoryForm.errors.parent_id}</span>
+                                        )}
+                                    </label>
+
+                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <span>Styles</span>
+                                        {styles && styles.length > 0 ? (
+                                            <>
+                                                <select
+                                                    multiple
+                                                    value={categoryForm.data.style_ids?.map(String) || []}
+                                                    onChange={(event) => {
+                                                        const selectedIds = Array.from(event.target.selectedOptions, (option) => Number(option.value));
+                                                        categoryForm.setData('style_ids', selectedIds);
+                                                    }}
+                                                    className="min-h-[120px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    size={Math.min(Math.max(styles.length, 3), 5)}
+                                                >
+                                                    {styles.map((style) => (
+                                                        <option key={style.id} value={String(style.id)}>
+                                                            {style.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <span className="text-xs text-slate-500">Hold Ctrl/Cmd to select multiple styles</span>
+                                            </>
+                                        ) : (
+                                            <div className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-400">
+                                                No styles available. Create styles first in the Styles section.
+                                            </div>
+                                        )}
+                                        {categoryForm.errors.style_ids && (
+                                            <span className="text-xs text-rose-500">{categoryForm.errors.style_ids}</span>
+                                        )}
+                                    </label>
+
+                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <span>Sizes</span>
+                                        {sizes && sizes.length > 0 ? (
+                                            <>
+                                                <select
+                                                    multiple
+                                                    value={categoryForm.data.size_ids?.map(String) || []}
+                                                    onChange={(event) => {
+                                                        const selectedIds = Array.from(event.target.selectedOptions, (option) => Number(option.value));
+                                                        categoryForm.setData('size_ids', selectedIds);
+                                                    }}
+                                                    className="min-h-[120px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    size={Math.min(Math.max(sizes.length, 3), 5)}
+                                                >
+                                                    {sizes.map((size) => (
+                                                        <option key={size.id} value={String(size.id)}>
+                                                            {size.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <span className="text-xs text-slate-500">Hold Ctrl/Cmd to select multiple sizes</span>
+                                            </>
+                                        ) : (
+                                            <div className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-400">
+                                                No sizes available. Create sizes first in the Sizes section.
+                                            </div>
+                                        )}
+                                        {categoryForm.errors.size_ids && (
+                                            <span className="text-xs text-rose-500">{categoryForm.errors.size_ids}</span>
                                         )}
                                     </label>
 

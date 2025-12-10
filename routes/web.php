@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\DiamondColorController;
 use App\Http\Controllers\Admin\DiamondController;
 use App\Http\Controllers\Admin\DiamondShapeController;
 use App\Http\Controllers\Admin\DiamondShapeSizeController;
+use App\Http\Controllers\Admin\DiamondTypeController;
 use App\Http\Controllers\Admin\ColorstoneColorController;
 use App\Http\Controllers\Admin\ColorstoneQualityController;
 use App\Http\Controllers\Admin\ColorstoneShapeController;
@@ -207,7 +208,13 @@ Route::prefix('admin')
             Route::delete('shape-sizes/bulk', [DiamondShapeSizeController::class, 'bulkDestroy'])->name('shape-sizes.bulk-destroy');
             Route::resource('shape-sizes', DiamondShapeSizeController::class)->only(['index', 'store', 'update', 'destroy'])->names('shape-sizes');
 
+            Route::delete('types/bulk', [DiamondTypeController::class, 'bulkDestroy'])->name('types.bulk-destroy');
+            Route::resource('types', DiamondTypeController::class)->only(['index', 'store', 'update', 'destroy'])->names('types');
+
             Route::get('diamonds/shape-sizes/{shapeId}', [DiamondController::class, 'getShapeSizes'])->name('diamonds.shape-sizes');
+            Route::get('diamonds/clarities-by-type/{typeId}', [DiamondController::class, 'getClaritiesByType'])->name('diamonds.clarities-by-type');
+            Route::get('diamonds/colors-by-type/{typeId}', [DiamondController::class, 'getColorsByType'])->name('diamonds.colors-by-type');
+            Route::get('diamonds/shapes-by-type/{typeId}', [DiamondController::class, 'getShapesByType'])->name('diamonds.shapes-by-type');
             Route::delete('diamonds/bulk', [DiamondController::class, 'bulkDestroy'])->name('diamonds.bulk-destroy');
             Route::resource('diamonds', DiamondController::class)->only(['index', 'store', 'update', 'destroy'])->names('diamonds');
         });

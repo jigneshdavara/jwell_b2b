@@ -6,6 +6,12 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 
+type DiamondType = {
+    id: number;
+    name: string;
+    code: string | null;
+};
+
 type DiamondClarity = {
     id: number;
     name: string;
@@ -35,11 +41,13 @@ type DiamondShapeSize = {
 type DiamondRow = {
     id: number;
     name: string;
+    type: DiamondType | null;
     clarity: DiamondClarity | null;
     color: DiamondColor | null;
     shape: DiamondShape | null;
     shape_size: DiamondShapeSize | null;
     price: number;
+    weight: number;
     description?: string | null;
     is_active: boolean;
 };
@@ -57,13 +65,14 @@ type Pagination<T> = {
 
 type DiamondsPageProps = PageProps<{
     diamonds: Pagination<DiamondRow>;
+    types: DiamondType[];
     clarities: DiamondClarity[];
     colors: DiamondColor[];
     shapes: DiamondShape[];
 }>;
 
 export default function AdminDiamondsIndex() {
-    const { diamonds, clarities, colors, shapes } = usePage<DiamondsPageProps>().props;
+    const { diamonds, types, clarities, colors, shapes } = usePage<DiamondsPageProps>().props;
     const [modalOpen, setModalOpen] = useState(false);
     const [editingDiamond, setEditingDiamond] = useState<DiamondRow | null>(null);
     const [selectedDiamonds, setSelectedDiamonds] = useState<number[]>([]);
@@ -72,14 +81,20 @@ export default function AdminDiamondsIndex() {
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [shapeSizes, setShapeSizes] = useState<DiamondShapeSize[]>([]);
     const [loadingShapeSizes, setLoadingShapeSizes] = useState(false);
+    const [filteredClarities, setFilteredClarities] = useState<DiamondClarity[]>([]);
+    const [filteredColors, setFilteredColors] = useState<DiamondColor[]>([]);
+    const [filteredShapes, setFilteredShapes] = useState<DiamondShape[]>([]);
+    const [loadingFilters, setLoadingFilters] = useState(false);
 
     const form = useForm({
         name: '',
+        diamond_type_id: null as number | null,
         diamond_clarity_id: null as number | null,
         diamond_color_id: null as number | null,
         diamond_shape_id: null as number | null,
         diamond_shape_size_id: null as number | null,
         price: 0,
+        weight: 0,
         description: '',
         is_active: true,
     });
@@ -114,8 +129,12 @@ export default function AdminDiamondsIndex() {
         setEditingDiamond(null);
         setModalOpen(false);
         setShapeSizes([]);
+        setFilteredClarities([]);
+        setFilteredColors([]);
+        setFilteredShapes([]);
         form.reset();
         form.setData('price', 0);
+        form.setData('weight', 0);
         form.setData('is_active', true);
     };
 
@@ -128,24 +147,60 @@ export default function AdminDiamondsIndex() {
         setEditingDiamond(diamond);
         form.setData({
             name: diamond.name,
+            diamond_type_id: diamond.type?.id ?? null,
             diamond_clarity_id: diamond.clarity?.id ?? null,
             diamond_color_id: diamond.color?.id ?? null,
             diamond_shape_id: diamond.shape?.id ?? null,
             diamond_shape_size_id: diamond.shape_size?.id ?? null,
             price: diamond.price,
+            weight: diamond.weight ?? 0,
             description: diamond.description ?? '',
             is_active: diamond.is_active,
         });
         
+        // Load filtered data based on type
+        if (diamond.type?.id) {
+            loadFilteredData(diamond.type.id);
+        }
+        
         // Load shape sizes if shape is selected
-        if (diamond.shape?.id) {
-            loadShapeSizes(diamond.shape.id);
+        if (diamond.shape?.id && diamond.type?.id) {
+            loadShapeSizes(diamond.shape.id, diamond.type.id);
         }
         
         setModalOpen(true);
     };
 
-    const loadShapeSizes = async (shapeId: number | null) => {
+    const loadFilteredData = async (typeId: number) => {
+        if (!typeId) {
+            setFilteredClarities([]);
+            setFilteredColors([]);
+            setFilteredShapes([]);
+            return;
+        }
+
+        setLoadingFilters(true);
+        try {
+            const [claritiesRes, colorsRes, shapesRes] = await Promise.all([
+                axios.get(route('admin.diamond.diamonds.clarities-by-type', typeId)),
+                axios.get(route('admin.diamond.diamonds.colors-by-type', typeId)),
+                axios.get(route('admin.diamond.diamonds.shapes-by-type', typeId)),
+            ]);
+
+            setFilteredClarities(claritiesRes.data);
+            setFilteredColors(colorsRes.data);
+            setFilteredShapes(shapesRes.data);
+        } catch (error) {
+            console.error('Failed to load filtered data:', error);
+            setFilteredClarities([]);
+            setFilteredColors([]);
+            setFilteredShapes([]);
+        } finally {
+            setLoadingFilters(false);
+        }
+    };
+
+    const loadShapeSizes = async (shapeId: number | null, typeId: number | null = null) => {
         if (!shapeId) {
             setShapeSizes([]);
             form.setData('diamond_shape_size_id', null);
@@ -154,7 +209,10 @@ export default function AdminDiamondsIndex() {
 
         setLoadingShapeSizes(true);
         try {
-            const response = await axios.get(route('admin.diamond.diamonds.shape-sizes', shapeId));
+            const url = typeId 
+                ? route('admin.diamond.diamonds.shape-sizes', shapeId) + `?type_id=${typeId}`
+                : route('admin.diamond.diamonds.shape-sizes', shapeId);
+            const response = await axios.get(url);
             setShapeSizes(response.data);
         } catch (error) {
             console.error('Failed to load shape sizes:', error);
@@ -164,10 +222,28 @@ export default function AdminDiamondsIndex() {
         }
     };
 
+    const handleTypeChange = (typeId: number | null) => {
+        form.setData('diamond_type_id', typeId);
+        // Reset dependent fields
+        form.setData('diamond_clarity_id', null);
+        form.setData('diamond_color_id', null);
+        form.setData('diamond_shape_id', null);
+        form.setData('diamond_shape_size_id', null);
+        setShapeSizes([]);
+        
+        if (typeId) {
+            loadFilteredData(typeId);
+        } else {
+            setFilteredClarities([]);
+            setFilteredColors([]);
+            setFilteredShapes([]);
+        }
+    };
+
     const handleShapeChange = (shapeId: number | null) => {
         form.setData('diamond_shape_id', shapeId);
         form.setData('diamond_shape_size_id', null);
-        loadShapeSizes(shapeId);
+        loadShapeSizes(shapeId, form.data.diamond_type_id);
     };
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -235,6 +311,7 @@ export default function AdminDiamondsIndex() {
 
     const getDiamondLabel = (diamond: DiamondRow): string => {
         const parts: string[] = [];
+        if (diamond.type) parts.push(diamond.type.name);
         if (diamond.clarity) parts.push(diamond.clarity.name);
         if (diamond.color) parts.push(diamond.color.name);
         if (diamond.shape) parts.push(diamond.shape.name);
@@ -310,6 +387,7 @@ export default function AdminDiamondsIndex() {
                                 </th>
                                 <th className="px-5 py-3 text-left">Name</th>
                                 <th className="px-5 py-3 text-left">Configuration</th>
+                                <th className="px-5 py-3 text-left">Weight</th>
                                 <th className="px-5 py-3 text-left">Price</th>
                                 <th className="px-5 py-3 text-left">Status</th>
                                 <th className="px-5 py-3 text-right">Actions</th>
@@ -337,6 +415,9 @@ export default function AdminDiamondsIndex() {
                                                 <span className="text-xs text-slate-500">{diamond.description}</span>
                                             )}
                                         </div>
+                                    </td>
+                                    <td className="px-5 py-3 text-slate-700">
+                                        {diamond.weight.toFixed(3)} ct
                                     </td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">
                                         ₹{typeof diamond.price === 'number' ? diamond.price.toFixed(2) : (parseFloat(String(diamond.price)) || 0).toFixed(2)}
@@ -379,7 +460,7 @@ export default function AdminDiamondsIndex() {
                             ))}
                             {diamonds.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="px-5 py-6 text-center text-sm text-slate-500">
+                                    <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
                                         No diamonds defined yet.
                                     </td>
                                 </tr>
@@ -480,14 +561,33 @@ export default function AdminDiamondsIndex() {
                                             {form.errors.name && <span className="text-xs text-rose-500">{form.errors.name}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Clarity</span>
+                                            <span>Type *</span>
+                                            <select
+                                                value={form.data.diamond_type_id || ''}
+                                                onChange={(event) => handleTypeChange(event.target.value ? Number(event.target.value) : null)}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                required
+                                            >
+                                                <option value="">Select type</option>
+                                                {types.map((type) => (
+                                                    <option key={type.id} value={type.id}>
+                                                        {type.name} {type.code ? `(${type.code})` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {form.errors.diamond_type_id && <span className="text-xs text-rose-500">{form.errors.diamond_type_id}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Clarity *</span>
                                             <select
                                                 value={form.data.diamond_clarity_id || ''}
                                                 onChange={(event) => form.setData('diamond_clarity_id', event.target.value ? Number(event.target.value) : null)}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                disabled={!form.data.diamond_type_id || loadingFilters}
+                                                required
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
                                             >
-                                                <option value="">Select clarity</option>
-                                                {clarities.map((clarity) => (
+                                                <option value="">{loadingFilters ? 'Loading...' : form.data.diamond_type_id ? 'Select clarity' : 'Select type first'}</option>
+                                                {filteredClarities.map((clarity) => (
                                                     <option key={clarity.id} value={clarity.id}>
                                                         {clarity.name} {clarity.code ? `(${clarity.code})` : ''}
                                                     </option>
@@ -496,14 +596,16 @@ export default function AdminDiamondsIndex() {
                                             {form.errors.diamond_clarity_id && <span className="text-xs text-rose-500">{form.errors.diamond_clarity_id}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Color</span>
+                                            <span>Color *</span>
                                             <select
                                                 value={form.data.diamond_color_id || ''}
                                                 onChange={(event) => form.setData('diamond_color_id', event.target.value ? Number(event.target.value) : null)}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                disabled={!form.data.diamond_type_id || loadingFilters}
+                                                required
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
                                             >
-                                                <option value="">Select color</option>
-                                                {colors.map((color) => (
+                                                <option value="">{loadingFilters ? 'Loading...' : form.data.diamond_type_id ? 'Select color' : 'Select type first'}</option>
+                                                {filteredColors.map((color) => (
                                                     <option key={color.id} value={color.id}>
                                                         {color.name} {color.code ? `(${color.code})` : ''}
                                                     </option>
@@ -512,14 +614,16 @@ export default function AdminDiamondsIndex() {
                                             {form.errors.diamond_color_id && <span className="text-xs text-rose-500">{form.errors.diamond_color_id}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Shape</span>
+                                            <span>Shape *</span>
                                             <select
                                                 value={form.data.diamond_shape_id || ''}
                                                 onChange={(event) => handleShapeChange(event.target.value ? Number(event.target.value) : null)}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                disabled={!form.data.diamond_type_id || loadingFilters}
+                                                required
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
                                             >
-                                                <option value="">Select shape</option>
-                                                {shapes.map((shape) => (
+                                                <option value="">{loadingFilters ? 'Loading...' : form.data.diamond_type_id ? 'Select shape' : 'Select type first'}</option>
+                                                {filteredShapes.map((shape) => (
                                                     <option key={shape.id} value={shape.id}>
                                                         {shape.name} {shape.code ? `(${shape.code})` : ''}
                                                     </option>
@@ -528,11 +632,12 @@ export default function AdminDiamondsIndex() {
                                             {form.errors.diamond_shape_id && <span className="text-xs text-rose-500">{form.errors.diamond_shape_id}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Shape Size</span>
+                                            <span>Shape Size *</span>
                                             <select
                                                 value={form.data.diamond_shape_size_id || ''}
                                                 onChange={(event) => form.setData('diamond_shape_size_id', event.target.value ? Number(event.target.value) : null)}
                                                 disabled={!form.data.diamond_shape_id || loadingShapeSizes}
+                                                required
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
                                             >
                                                 <option value="">{loadingShapeSizes ? 'Loading...' : form.data.diamond_shape_id ? 'Select size' : 'Select shape first'}</option>
@@ -556,6 +661,20 @@ export default function AdminDiamondsIndex() {
                                                 required
                                             />
                                             {form.errors.price && <span className="text-xs text-rose-500">{form.errors.price}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Weight (Carats) *</span>
+                                            <input
+                                                type="number"
+                                                step="0.001"
+                                                value={form.data.weight}
+                                                onChange={(event) => form.setData('weight', Number(event.target.value))}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                min={0}
+                                                required
+                                                placeholder="e.g., 1.500"
+                                            />
+                                            {form.errors.weight && <span className="text-xs text-rose-500">{form.errors.weight}</span>}
                                         </label>
                                     </div>
 

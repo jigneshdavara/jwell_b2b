@@ -5,8 +5,16 @@ import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
+type DiamondType = {
+    id: number;
+    name: string;
+    code: string | null;
+};
+
 type DiamondColorRow = {
     id: number;
+    diamond_type_id: number;
+    type: DiamondType | null;
     code: string | null;
     name: string;
     ecat_name: string | null;
@@ -28,10 +36,11 @@ type Pagination<T> = {
 
 type DiamondColorsPageProps = PageProps<{
     colors: Pagination<DiamondColorRow>;
+    types: DiamondType[];
 }>;
 
 export default function AdminDiamondColorsIndex() {
-    const { colors } = usePage<DiamondColorsPageProps>().props;
+    const { colors, types } = usePage<DiamondColorsPageProps>().props;
     const [modalOpen, setModalOpen] = useState(false);
     const [editingColor, setEditingColor] = useState<DiamondColorRow | null>(null);
     const [selectedColors, setSelectedColors] = useState<number[]>([]);
@@ -40,6 +49,7 @@ export default function AdminDiamondColorsIndex() {
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
+        diamond_type_id: 0 as number,
         code: '',
         name: '',
         ecat_name: '',
@@ -80,6 +90,11 @@ export default function AdminDiamondColorsIndex() {
         form.reset();
         form.setData('is_active', true);
         form.setData('display_order', 0);
+        // Set default to Natural Diamond type (first type or type with code 'NAT')
+        // const naturalType = types.find((t) => t.code === 'NAT') || types[0];
+        // if (naturalType) {
+        //     form.setData('diamond_type_id', naturalType.id);
+        // }
     };
 
     const openCreateModal = () => {
@@ -90,6 +105,7 @@ export default function AdminDiamondColorsIndex() {
     const openEditModal = (color: DiamondColorRow) => {
         setEditingColor(color);
         form.setData({
+            diamond_type_id: color.diamond_type_id!,
             code: color.code ?? '',
             name: color.name,
             ecat_name: color.ecat_name ?? '',
@@ -118,6 +134,7 @@ export default function AdminDiamondColorsIndex() {
 
     const toggleColor = (color: DiamondColorRow) => {
         router.put(route('admin.diamond.colors.update', color.id), {
+            diamond_type_id: color.diamond_type_id,
             code: color.code,
             name: color.name,
             ecat_name: color.ecat_name,
@@ -237,6 +254,7 @@ export default function AdminDiamondColorsIndex() {
                                         aria-label="Select all diamond colors"
                                     />
                                 </th>
+                                <th className="px-5 py-3 text-left">Type</th>
                                 <th className="px-5 py-3 text-left">Code</th>
                                 <th className="px-5 py-3 text-left">Name</th>
                                 <th className="px-5 py-3 text-left">Ecat Name</th>
@@ -257,6 +275,7 @@ export default function AdminDiamondColorsIndex() {
                                             aria-label={`Select diamond color ${color.name}`}
                                         />
                                     </td>
+                                    <td className="px-5 py-3 text-slate-700">{color.type ? color.type.name : '-'}</td>
                                     <td className="px-5 py-3 text-slate-700">{color.code || '-'}</td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">
                                         <div className="flex flex-col gap-1">
@@ -320,7 +339,7 @@ export default function AdminDiamondColorsIndex() {
                             ))}
                             {colors.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
+                                    <td colSpan={8} className="px-5 py-6 text-center text-sm text-slate-500">
                                         No diamond colors defined yet.
                                     </td>
                                 </tr>
@@ -408,6 +427,23 @@ export default function AdminDiamondColorsIndex() {
                             <div className="grid gap-6 lg:grid-cols-2">
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Type *</span>
+                                            <select
+                                                value={form.data.diamond_type_id || ''}
+                                                onChange={(event) => form.setData('diamond_type_id', Number(event.target.value))}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                required
+                                            >
+                                                <option value="">Select type</option>
+                                                {types.map((type) => (
+                                                    <option key={type.id} value={type.id}>
+                                                        {type.name} {type.code ? `(${type.code})` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {form.errors.diamond_type_id && <span className="text-xs text-rose-500">{form.errors.diamond_type_id}</span>}
+                                        </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
                                             <span>Code</span>
                                             <input

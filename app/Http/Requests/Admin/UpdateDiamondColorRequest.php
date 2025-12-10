@@ -20,6 +20,7 @@ class UpdateDiamondColorRequest extends FormRequest
         $color = $this->route('color');
 
         return [
+            'diamond_type_id' => ['required', 'integer', 'exists:diamond_types,id'],
             'code' => ['nullable', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255', Rule::unique('diamond_colors', 'name')->ignore($color ? $color->id : null)],
             'ecat_name' => ['nullable', 'string', 'max:255'],

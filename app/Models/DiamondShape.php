@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DiamondShape extends Model
@@ -11,6 +12,7 @@ class DiamondShape extends Model
     use HasFactory;
 
     protected $fillable = [
+        'diamond_type_id',
         'code',
         'name',
         'ecat_name',
@@ -23,6 +25,11 @@ class DiamondShape extends Model
         'is_active' => 'boolean',
         'display_order' => 'integer',
     ];
+
+    public function type(): BelongsTo
+    {
+        return $this->belongsTo(DiamondType::class, 'diamond_type_id');
+    }
 
     public function sizes(): HasMany
     {

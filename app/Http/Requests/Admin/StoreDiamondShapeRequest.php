@@ -18,6 +18,7 @@ class StoreDiamondShapeRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'diamond_type_id' => ['required', 'integer', 'exists:diamond_types,id'],
             'code' => ['nullable', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255', Rule::unique('diamond_shapes', 'name')],
             'ecat_name' => ['nullable', 'string', 'max:255'],

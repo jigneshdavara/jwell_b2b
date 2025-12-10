@@ -5,6 +5,12 @@ import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
+type DiamondType = {
+    id: number;
+    name: string;
+    code: string | null;
+};
+
 type DiamondShape = {
     id: number;
     name: string;
@@ -13,6 +19,8 @@ type DiamondShape = {
 
 type DiamondShapeSizeRow = {
     id: number;
+    diamond_type_id: number;
+    type: DiamondType | null;
     diamond_shape_id: number;
     shape: DiamondShape | null;
     size: string | null;
@@ -36,11 +44,12 @@ type Pagination<T> = {
 type DiamondShapeSizesPageProps = PageProps<{
     sizes: Pagination<DiamondShapeSizeRow>;
     shapes: DiamondShape[];
+    types: DiamondType[];
     selectedShapeId?: number;
 }>;
 
 export default function AdminDiamondShapeSizesIndex() {
-    const { sizes, shapes, selectedShapeId } = usePage<DiamondShapeSizesPageProps>().props;
+    const { sizes, shapes, types, selectedShapeId } = usePage<DiamondShapeSizesPageProps>().props;
     const [modalOpen, setModalOpen] = useState(false);
     const [editingSize, setEditingSize] = useState<DiamondShapeSizeRow | null>(null);
     const [selectedSizes, setSelectedSizes] = useState<number[]>([]);
@@ -49,6 +58,7 @@ export default function AdminDiamondShapeSizesIndex() {
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
+        diamond_type_id: 0 as number,
         diamond_shape_id: selectedShapeId || (shapes.length > 0 ? shapes[0].id : 0),
         size: '',
         secondary_size: '',
@@ -87,6 +97,11 @@ export default function AdminDiamondShapeSizesIndex() {
         setEditingSize(null);
         setModalOpen(false);
         form.reset();
+        // Set default to Natural Diamond type (first type or type with code 'NAT')
+        // const naturalType = types.find((t) => t.code === 'NAT') || types[0];
+        // if (naturalType) {
+        //     form.setData('diamond_type_id', naturalType.id);
+        // }
         form.setData('diamond_shape_id', selectedShapeId || (shapes.length > 0 ? shapes[0].id : 0));
         form.setData('display_order', 0);
         form.setData('ctw', 0);
@@ -100,6 +115,7 @@ export default function AdminDiamondShapeSizesIndex() {
     const openEditModal = (size: DiamondShapeSizeRow) => {
         setEditingSize(size);
         form.setData({
+            diamond_type_id: size.diamond_type_id!,
             diamond_shape_id: size.diamond_shape_id,
             size: size.size ?? '',
             secondary_size: size.secondary_size ?? '',
@@ -253,6 +269,7 @@ export default function AdminDiamondShapeSizesIndex() {
                                         aria-label="Select all diamond shape sizes"
                                     />
                                 </th>
+                                <th className="px-5 py-3 text-left">Type</th>
                                 <th className="px-5 py-3 text-left">Shape</th>
                                 <th className="px-5 py-3 text-left">Size</th>
                                 <th className="px-5 py-3 text-left">Secondary Size</th>
@@ -273,6 +290,7 @@ export default function AdminDiamondShapeSizesIndex() {
                                             aria-label={`Select diamond shape size ${size.size}`}
                                         />
                                     </td>
+                                    <td className="px-5 py-3 text-slate-700">{size.type ? size.type.name : '-'}</td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">
                                         {size.shape?.name || '-'}
                                     </td>
@@ -309,7 +327,7 @@ export default function AdminDiamondShapeSizesIndex() {
                             ))}
                             {sizes.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
+                                    <td colSpan={8} className="px-5 py-6 text-center text-sm text-slate-500">
                                         No diamond shape sizes defined yet.
                                     </td>
                                 </tr>
@@ -397,6 +415,23 @@ export default function AdminDiamondShapeSizesIndex() {
                             <div className="grid gap-6 lg:grid-cols-2">
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Type *</span>
+                                            <select
+                                                value={form.data.diamond_type_id || ''}
+                                                onChange={(event) => form.setData('diamond_type_id', Number(event.target.value))}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                required
+                                            >
+                                                <option value="">Select type</option>
+                                                {types.map((type) => (
+                                                    <option key={type.id} value={type.id}>
+                                                        {type.name} {type.code ? `(${type.code})` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {form.errors.diamond_type_id && <span className="text-xs text-rose-500">{form.errors.diamond_type_id}</span>}
+                                        </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
                                             <span>Diamond Shape *</span>
                                             <select

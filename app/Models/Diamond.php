@@ -12,17 +12,20 @@ class Diamond extends Model
 
     protected $fillable = [
         'name',
+        'diamond_type_id',
         'diamond_clarity_id',
         'diamond_color_id',
         'diamond_shape_id',
         'diamond_shape_size_id',
         'price',
+        'weight',
         'description',
         'is_active',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
+        'weight' => 'decimal:3',
         'is_active' => 'boolean',
     ];
 
@@ -44,5 +47,10 @@ class Diamond extends Model
     public function shapeSize(): BelongsTo
     {
         return $this->belongsTo(DiamondShapeSize::class, 'diamond_shape_size_id');
+    }
+
+    public function type(): BelongsTo
+    {
+        return $this->belongsTo(DiamondType::class, 'diamond_type_id');
     }
 }

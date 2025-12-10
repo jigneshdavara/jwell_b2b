@@ -9,7 +9,7 @@ alwaysApply: true
 ### Product Model Structure
 
 - **Product** (`app/Models/Product.php`): Base jewellery design
-  - Contains: `sku`, `name`, `description`, `base_price`, `making_charge`
+  - Contains: `sku`, `name`, `description`, `making_charge`
   - Configuration: `variant_options` (JSON), `metal_ids`, `metal_purity_ids`, `metal_tone_ids`
   - Flags: `is_variant_product`, `is_jobwork_allowed`, `is_active`
   - Relationships: `hasMany(ProductVariant)`, `belongsTo(Brand)`, `belongsTo(Category)`, `hasMany(ProductMedia)`

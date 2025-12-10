@@ -61,6 +61,7 @@ const adminNavigation: NavItem[] = [
         icon: 'diamond',
         children: [
             { label: 'Diamonds', route: 'admin.diamond.diamonds.index', match: 'admin.diamond.diamonds.*' },
+            { label: 'Types', route: 'admin.diamond.types.index', match: 'admin.diamond.types.*' },
             { label: 'Clarities', route: 'admin.diamond.clarities.index', match: 'admin.diamond.clarities.*' },
             { label: 'Colors', route: 'admin.diamond.colors.index', match: 'admin.diamond.colors.*' },
             { label: 'Shapes', route: 'admin.diamond.shapes.index', match: 'admin.diamond.shapes.*' },

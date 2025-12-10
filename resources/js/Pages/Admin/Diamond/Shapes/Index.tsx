@@ -5,8 +5,16 @@ import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
+type DiamondType = {
+    id: number;
+    name: string;
+    code: string | null;
+};
+
 type DiamondShapeRow = {
     id: number;
+    diamond_type_id: number;
+    type: DiamondType | null;
     code: string | null;
     name: string;
     ecat_name: string | null;
@@ -28,10 +36,11 @@ type Pagination<T> = {
 
 type DiamondShapesPageProps = PageProps<{
     shapes: Pagination<DiamondShapeRow>;
+    types: DiamondType[];
 }>;
 
 export default function AdminDiamondShapesIndex() {
-    const { shapes } = usePage<DiamondShapesPageProps>().props;
+    const { shapes, types } = usePage<DiamondShapesPageProps>().props;
     const [modalOpen, setModalOpen] = useState(false);
     const [editingShape, setEditingShape] = useState<DiamondShapeRow | null>(null);
     const [selectedShapes, setSelectedShapes] = useState<number[]>([]);
@@ -40,6 +49,7 @@ export default function AdminDiamondShapesIndex() {
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
+        diamond_type_id: 0 as number,
         code: '',
         name: '',
         ecat_name: '',
@@ -80,6 +90,11 @@ export default function AdminDiamondShapesIndex() {
         form.reset();
         form.setData('is_active', true);
         form.setData('display_order', 0);
+        // Set default to Natural Diamond type (first type or type with code 'NAT')
+        // const naturalType = types.find((t) => t.code === 'NAT') || types[0];
+        // if (naturalType) {
+        //     form.setData('diamond_type_id', naturalType.id);
+        // }
     };
 
     const openCreateModal = () => {
@@ -90,6 +105,7 @@ export default function AdminDiamondShapesIndex() {
     const openEditModal = (shape: DiamondShapeRow) => {
         setEditingShape(shape);
         form.setData({
+            diamond_type_id: shape.diamond_type_id!,
             code: shape.code ?? '',
             name: shape.name,
             ecat_name: shape.ecat_name ?? '',
@@ -118,6 +134,7 @@ export default function AdminDiamondShapesIndex() {
 
     const toggleShape = (shape: DiamondShapeRow) => {
         router.put(route('admin.diamond.shapes.update', shape.id), {
+            diamond_type_id: shape.diamond_type_id,
             code: shape.code,
             name: shape.name,
             ecat_name: shape.ecat_name,
@@ -237,6 +254,7 @@ export default function AdminDiamondShapesIndex() {
                                         aria-label="Select all diamond shapes"
                                     />
                                 </th>
+                                <th className="px-5 py-3 text-left">Type</th>
                                 <th className="px-5 py-3 text-left">Code</th>
                                 <th className="px-5 py-3 text-left">Name</th>
                                 <th className="px-5 py-3 text-left">Ecat Name</th>
@@ -257,6 +275,7 @@ export default function AdminDiamondShapesIndex() {
                                             aria-label={`Select diamond shape ${shape.name}`}
                                         />
                                     </td>
+                                    <td className="px-5 py-3 text-slate-700">{shape.type ? shape.type.name : '-'}</td>
                                     <td className="px-5 py-3 text-slate-700">{shape.code || '-'}</td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">
                                         <div className="flex flex-col gap-1">
@@ -320,7 +339,7 @@ export default function AdminDiamondShapesIndex() {
                             ))}
                             {shapes.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
+                                    <td colSpan={8} className="px-5 py-6 text-center text-sm text-slate-500">
                                         No diamond shapes defined yet.
                                     </td>
                                 </tr>
@@ -408,6 +427,23 @@ export default function AdminDiamondShapesIndex() {
                             <div className="grid gap-6 lg:grid-cols-2">
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Type *</span>
+                                            <select
+                                                value={form.data.diamond_type_id || ''}
+                                                onChange={(event) => form.setData('diamond_type_id', Number(event.target.value))}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                required
+                                            >
+                                                <option value="">Select type</option>
+                                                {types.map((type) => (
+                                                    <option key={type.id} value={type.id}>
+                                                        {type.name} {type.code ? `(${type.code})` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {form.errors.diamond_type_id && <span className="text-xs text-rose-500">{form.errors.diamond_type_id}</span>}
+                                        </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
                                             <span>Code</span>
                                             <input

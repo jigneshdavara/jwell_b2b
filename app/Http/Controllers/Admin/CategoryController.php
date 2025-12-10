@@ -7,6 +7,8 @@ use App\Http\Requests\Admin\BulkDestroyCategoriesRequest;
 use App\Http\Requests\Admin\StoreCategoryRequest;
 use App\Http\Requests\Admin\UpdateCategoryRequest;
 use App\Models\Category;
+use App\Models\Style;
+use App\Models\Size;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -23,7 +25,7 @@ class CategoryController extends Controller
         }
 
         $categories = Category::query()
-            ->with('parent:id,name')
+            ->with(['parent:id,name', 'styles:id,name', 'sizes:id,name'])
             ->orderBy('display_order')
             ->orderBy('name')
             ->paginate($perPage)
@@ -40,6 +42,8 @@ class CategoryController extends Controller
                     'display_order' => $category->display_order,
                     'cover_image' => $category->cover_image,
                     'cover_image_url' => $category->cover_image ? Storage::url($category->cover_image) : null,
+                    'styles' => $category->styles->map(fn($style) => ['id' => $style->id, 'name' => $style->name]),
+                    'sizes' => $category->sizes->map(fn($size) => ['id' => $size->id, 'name' => $size->name]),
                 ];
             });
 
@@ -54,6 +58,26 @@ class CategoryController extends Controller
                 ->map(fn(Category $category) => [
                     'id' => $category->id,
                     'name' => $category->name,
+                ])
+                ->all(),
+            'styles' => Style::query()
+                ->where('is_active', true)
+                ->orderBy('display_order')
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn(Style $style) => [
+                    'id' => $style->id,
+                    'name' => $style->name,
+                ])
+                ->all(),
+            'sizes' => Size::query()
+                ->where('is_active', true)
+                ->orderBy('display_order')
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn(Size $size) => [
+                    'id' => $size->id,
+                    'name' => $size->name,
                 ])
                 ->all(),
         ]);
@@ -81,7 +105,7 @@ class CategoryController extends Controller
             }
         }
 
-        Category::create([
+        $category = Category::create([
             'parent_id' => $data['parent_id'] ?? null,
             'code' => $data['code'] ?? null,
             'name' => $data['name'],
@@ -90,6 +114,15 @@ class CategoryController extends Controller
             'display_order' => $data['display_order'] ?? 0,
             'cover_image' => $coverImagePath,
         ]);
+
+        // Sync styles and sizes
+        if (isset($data['style_ids'])) {
+            $category->styles()->sync($data['style_ids']);
+        }
+
+        if (isset($data['size_ids'])) {
+            $category->sizes()->sync($data['size_ids']);
+        }
 
         return redirect()
             ->back()
@@ -144,6 +177,15 @@ class CategoryController extends Controller
         // This means the existing image path will be preserved
 
         $category->update($updateData);
+
+        // Sync styles and sizes
+        if (isset($data['style_ids'])) {
+            $category->styles()->sync($data['style_ids']);
+        }
+
+        if (isset($data['size_ids'])) {
+            $category->sizes()->sync($data['size_ids']);
+        }
 
         return redirect()
             ->back()

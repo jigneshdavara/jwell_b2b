@@ -471,6 +471,7 @@ class CatalogController extends Controller
 
         $product->load([
             'brand',
+            'category.sizes',
             'media' => fn($media) => $media->orderBy('position'),
             'variants' => function ($variants) {
                 $variants->orderByDesc('is_default')
@@ -515,6 +516,13 @@ class CatalogController extends Controller
                 'mixed_metal_purities_per_tone' => (bool) ($product->mixed_metal_purities_per_tone ?? false),
                 'metal_mix_mode' => $product->metal_mix_mode ?? [],
                 'diamond_mixing_mode' => $product->diamond_mixing_mode ?? 'shared',
+                'category_sizes' => $product->category && $product->category->sizes->isNotEmpty()
+                    ? $product->category->sizes->where('is_active', true)->map(fn($size) => [
+                        'id' => $size->id,
+                        'name' => $size->name,
+                        'code' => $size->code,
+                    ])->values()->all()
+                    : [],
                 'media' => $product->media->map(fn($media) => [
                     'url' => $media->url,
                     'alt' => $media->metadata['alt'] ?? $product->name,

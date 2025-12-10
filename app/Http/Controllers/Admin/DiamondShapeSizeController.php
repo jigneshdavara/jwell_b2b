@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\StoreDiamondShapeSizeRequest;
 use App\Http\Requests\Admin\UpdateDiamondShapeSizeRequest;
 use App\Models\DiamondShape;
 use App\Models\DiamondShapeSize;
+use App\Models\DiamondType;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,7 +27,7 @@ class DiamondShapeSizeController extends Controller
 
         $sizes = DiamondShapeSize::query()
             ->when($shapeId, fn($query) => $query->where('diamond_shape_id', $shapeId))
-            ->with('shape:id,name,code')
+            ->with(['type', 'shape:id,name,code'])
             ->orderBy('display_order')
             ->orderBy('size')
             ->paginate($perPage)
@@ -34,6 +35,12 @@ class DiamondShapeSizeController extends Controller
             ->through(function (DiamondShapeSize $size) {
                 return [
                     'id' => $size->id,
+                    'diamond_type_id' => $size->diamond_type_id,
+                    'type' => $size->type ? [
+                        'id' => $size->type->id,
+                        'name' => $size->type->name,
+                        'code' => $size->type->code,
+                    ] : null,
                     'diamond_shape_id' => $size->diamond_shape_id,
                     'shape' => $size->shape ? [
                         'id' => $size->shape->id,
@@ -50,13 +57,14 @@ class DiamondShapeSizeController extends Controller
 
         $shapes = DiamondShape::query()
             ->where('is_active', true)
-            ->orderBy('position')
+            ->orderBy('display_order')
             ->orderBy('name')
             ->get(['id', 'name', 'code']);
 
         return Inertia::render('Admin/Diamond/ShapeSizes/Index', [
             'sizes' => $sizes,
             'shapes' => $shapes,
+            'types' => DiamondType::where('is_active', true)->orderBy('display_order')->get(['id', 'name', 'code']),
             'selectedShapeId' => $shapeId,
         ]);
     }
@@ -66,6 +74,7 @@ class DiamondShapeSizeController extends Controller
         $data = $request->validated();
 
         DiamondShapeSize::create([
+            'diamond_type_id' => $data['diamond_type_id'],
             'diamond_shape_id' => $data['diamond_shape_id'],
             'size' => $data['size'] ?? null,
             'secondary_size' => $data['secondary_size'] ?? null,
@@ -84,6 +93,7 @@ class DiamondShapeSizeController extends Controller
         $data = $request->validated();
 
         $shapeSize->update([
+            'diamond_type_id' => $data['diamond_type_id'],
             'diamond_shape_id' => $data['diamond_shape_id'],
             'size' => $data['size'] ?? null,
             'secondary_size' => $data['secondary_size'] ?? null,

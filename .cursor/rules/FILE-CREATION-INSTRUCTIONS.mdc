@@ -1,0 +1,370 @@
+---
+alwaysApply: true
+---
+
+# File Creation Instructions
+
+This document provides instructions for the AI to create files dynamically based on requirements and descriptions, NOT fixed templates.
+
+## Core Principle
+
+**When the user requests file creation, analyze the requirements and create files that:**
+1. Follow existing project patterns and conventions
+2. Match the codebase structure and architecture
+3. Integrate with existing services, models, and components
+4. Use appropriate namespaces, imports, and dependencies
+5. Follow Laravel/React/TypeScript best practices as defined in other rules
+
+## File Creation Process
+
+### Step 1: Analyze Requirements
+
+Before creating any file, the AI must:
+- Understand the purpose and functionality needed
+- Identify which portal/namespace it belongs to (Frontend/Admin/Production)
+- Determine the file type (Controller, Service, Model, Component, Page, etc.)
+- Check existing similar files for patterns
+- Identify dependencies and relationships
+
+### Step 2: Determine File Location
+
+Based on file type and portal:
+
+**Backend Files:**
+- Controllers: `app/Http/Controllers/{Portal}/{Name}Controller.php`
+  - Frontend: `app/Http/Controllers/Frontend/`
+  - Admin: `app/Http/Controllers/Admin/`
+  - Production: `app/Http/Controllers/Production/`
+- Services: `app/Services/{Name}Service.php` or `app/Services/{Category}/{Name}Service.php`
+- Models: `app/Models/{Name}.php`
+- Form Requests: `app/Http/Requests/{Portal}/{Action}{Name}Request.php`
+- Enums: `app/Enums/{Name}.php`
+- Events: `app/Events/{Name}.php`
+- Listeners: `app/Listeners/{Name}.php`
+
+**Frontend Files:**
+- Pages: `resources/js/Pages/{Portal}/{Feature}/{Name}.tsx`
+  - Frontend: `resources/js/Pages/Frontend/`
+  - Admin: `resources/js/Pages/Admin/`
+  - Production: `resources/js/Pages/Production/`
+- Components: `resources/js/Components/{Name}.tsx`
+- Types: `resources/js/types/{name}.d.ts`
+- Utils: `resources/js/utils/{name}.ts`
+
+**Database Files:**
+- Migrations: `database/migrations/{timestamp}_create_{table}_table.php`
+- Seeders: `database/seeders/{Name}Seeder.php`
+- Factories: `database/factories/{Name}Factory.php`
+
+### Step 3: Check Existing Patterns
+
+Before creating, the AI must:
+1. Search for similar existing files
+2. Review their structure, naming, and patterns
+3. Identify shared dependencies and imports
+4. Note any conventions specific to the project
+
+### Step 4: Create File with Context
+
+Create files that:
+- Use proper namespaces matching existing structure
+- Import necessary dependencies (check existing files for patterns)
+- Follow project conventions (see other rule files)
+- Include necessary relationships, methods, and structure
+- Match the style and format of similar files in the codebase
+
+## File Type Guidelines
+
+### Controllers
+
+**Pattern to follow:**
+- Extend base `Controller` class
+- Use dependency injection for services
+- Keep controllers thin (delegate to services)
+- Use FormRequest classes for validation
+- Return Inertia responses for pages: `Inertia::render('Page/Name', ['data' => $data])`
+- Return JSON/redirects for API actions
+
+**Example structure:**
+```php
+<?php
+
+namespace App\Http\Controllers\{Portal};
+
+use App\Http\Controllers\Controller;
+use App\Services\{ServiceName};
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+
+class {Name}Controller extends Controller
+{
+    public function __construct(
+        protected {ServiceName} $service
+    ) {
+    }
+
+    // Methods following existing patterns
+}
+```
+
+### Services
+
+**Pattern to follow:**
+- Single responsibility per service
+- Use dependency injection for dependencies
+- Return structured data (Collections, arrays, DTOs)
+- Handle exceptions appropriately
+- Keep services stateless (or manage state internally)
+
+**Example structure:**
+```php
+<?php
+
+namespace App\Services;
+
+class {Name}Service
+{
+    public function __construct(
+        protected RelatedService $relatedService
+    ) {
+    }
+
+    public function doSomething(): mixed
+    {
+        // Implementation following existing service patterns
+    }
+}
+```
+
+### Models
+
+**Pattern to follow:**
+- Define relationships clearly
+- Use fillable/guarded appropriately
+- Cast attributes (JSON, boolean, date, etc.)
+- Add scopes for common queries
+- Follow Eloquent conventions
+
+**Example structure:**
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\{RelationType};
+
+class {Name} extends Model
+{
+    protected $fillable = [
+        // Fields
+    ];
+
+    protected $casts = [
+        // Casts
+    ];
+
+    // Relationships
+    public function relationName(): {RelationType}
+    {
+        return $this->{relationMethod}();
+    }
+}
+```
+
+### Frontend Pages (React/TypeScript)
+
+**Pattern to follow:**
+- Use Inertia's `usePage()` for shared props
+- Use `useForm()` hook for forms
+- Use TypeScript interfaces for props
+- Follow existing component structure
+- Use Tailwind classes for styling (brand colors from config)
+
+**Example structure:**
+```tsx
+import { usePage, useForm } from '@inertiajs/react';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { PageProps } from '@/types';
+
+interface {Name}PageProps extends PageProps {
+    // Props from backend
+}
+
+export default function {Name}({ ... }: {Name}PageProps) {
+    const { data, setData, post, processing, errors } = useForm({
+        // Form fields
+    });
+
+    // Component logic following existing patterns
+
+    return (
+        <AuthenticatedLayout>
+            {/* JSX following existing page patterns */}
+        </AuthenticatedLayout>
+    );
+}
+```
+
+### Frontend Components
+
+**Pattern to follow:**
+- Use TypeScript interfaces for props
+- Follow existing component structure
+- Use Tailwind classes (brand colors)
+- Make components reusable
+- Handle props appropriately
+
+**Example structure:**
+```tsx
+import { ReactNode } from 'react';
+
+interface {Name}Props {
+    // Props
+}
+
+export default function {Name}({ ... }: {Name}Props) {
+    // Component logic
+
+    return (
+        // JSX following existing component patterns
+    );
+}
+```
+
+### Form Requests
+
+**Pattern to follow:**
+- Separate request class per action
+- Use `authorize()` for permission checks
+- Use `rules()` for validation rules
+- Return validated data via `validated()` method
+
+**Example structure:**
+```php
+<?php
+
+namespace App\Http\Requests\{Portal};
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class {Action}{Name}Request extends FormRequest
+{
+    public function authorize(): bool
+    {
+        // Authorization logic
+    }
+
+    public function rules(): array
+    {
+        return [
+            // Validation rules
+        ];
+    }
+}
+```
+
+### Migrations
+
+**Pattern to follow:**
+- Use PostgreSQL syntax (not MySQL)
+- Add foreign key constraints
+- Add indexes on foreign keys and frequently queried columns
+- Use appropriate delete behavior (cascade/null)
+- Use `jsonb` for flexible JSON data
+- Use `decimal` or `numeric` for financial values
+
+**Example structure:**
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('{table_name}', function (Blueprint $table) {
+            $table->id();
+            // Columns following existing migration patterns
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('{table_name}');
+    }
+};
+```
+
+## Dynamic Creation Rules
+
+### DO:
+- ✅ Analyze requirements thoroughly before creating
+- ✅ Check existing similar files for patterns
+- ✅ Follow project conventions and structure
+- ✅ Use proper namespaces and imports
+- ✅ Match existing code style and formatting
+- ✅ Include necessary relationships and dependencies
+- ✅ Create files that integrate with existing codebase
+
+### DON'T:
+- ❌ Create files from fixed templates without context
+- ❌ Ignore existing patterns in the codebase
+- ❌ Use arbitrary naming conventions
+- ❌ Create files that don't integrate with existing code
+- ❌ Skip checking for similar existing files
+- ❌ Use patterns that conflict with project rules
+
+## Integration Requirements
+
+When creating files, ensure they:
+
+1. **Integrate with existing services/models:**
+   - Use existing services via dependency injection
+   - Reference existing models correctly
+   - Follow existing relationship patterns
+
+2. **Follow portal structure:**
+   - Place in correct portal namespace
+   - Use appropriate middleware
+   - Match existing routing patterns
+
+3. **Match project conventions:**
+   - Follow naming conventions (snake_case for DB, PascalCase for classes)
+   - Use existing enums for status values
+   - Follow existing validation patterns
+
+4. **Use existing components/utilities:**
+   - Import and use existing shared components
+   - Use existing utility functions
+   - Follow existing styling patterns
+
+## Example: Creating a New Feature
+
+When user requests: "Create a notification system for order updates"
+
+The AI should:
+1. Analyze: This needs a service, event, listener, and possibly frontend components
+2. Check existing: Look for NotificationService, existing events/listeners
+3. Create files:
+   - `app/Events/OrderStatusUpdated.php` (if doesn't exist)
+   - `app/Listeners/SendOrderNotification.php` (following existing listener patterns)
+   - Update `app/Services/NotificationService.php` (if exists) or create it
+   - Frontend components if needed (following existing component patterns)
+4. Integrate: Wire up events, update OrderWorkflowService to fire events
+5. Follow patterns: Match existing notification patterns in codebase
+
+## Verification
+
+After creating files, verify:
+- [ ] File location matches project structure
+- [ ] Namespaces and imports are correct
+- [ ] Follows existing patterns from similar files
+- [ ] Integrates with existing codebase
+- [ ] Uses proper types/interfaces
+- [ ] Matches project conventions
+- [ ] No conflicts with existing code

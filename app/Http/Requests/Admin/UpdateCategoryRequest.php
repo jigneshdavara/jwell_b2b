@@ -28,6 +28,10 @@ class UpdateCategoryRequest extends FormRequest
             'display_order' => ['nullable', 'integer', 'min:0'],
             'cover_image' => ['nullable', 'image', 'max:2048'],
             'remove_cover_image' => ['nullable', 'boolean'],
+            'style_ids' => ['nullable', 'array'],
+            'style_ids.*' => ['integer', 'exists:styles,id'],
+            'size_ids' => ['nullable', 'array'],
+            'size_ids.*' => ['integer', 'exists:sizes,id'],
         ];
     }
 }

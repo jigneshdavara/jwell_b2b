@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\BulkDestroyDiamondClaritiesRequest;
 use App\Http\Requests\Admin\StoreDiamondClarityRequest;
 use App\Http\Requests\Admin\UpdateDiamondClarityRequest;
 use App\Models\DiamondClarity;
+use App\Models\DiamondType;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,6 +23,7 @@ class DiamondClarityController extends Controller
         }
 
         $clarities = DiamondClarity::query()
+            ->with('type')
             ->orderBy('display_order')
             ->orderBy('name')
             ->paginate($perPage)
@@ -29,6 +31,12 @@ class DiamondClarityController extends Controller
             ->through(function (DiamondClarity $clarity) {
                 return [
                     'id' => $clarity->id,
+                    'diamond_type_id' => $clarity->diamond_type_id,
+                    'type' => $clarity->type ? [
+                        'id' => $clarity->type->id,
+                        'name' => $clarity->type->name,
+                        'code' => $clarity->type->code,
+                    ] : null,
                     'code' => $clarity->code,
                     'name' => $clarity->name,
                     'ecat_name' => $clarity->ecat_name,
@@ -40,6 +48,7 @@ class DiamondClarityController extends Controller
 
         return Inertia::render('Admin/Diamond/Clarities/Index', [
             'clarities' => $clarities,
+            'types' => DiamondType::where('is_active', true)->orderBy('display_order')->get(['id', 'name', 'code']),
         ]);
     }
 
@@ -48,6 +57,7 @@ class DiamondClarityController extends Controller
         $data = $request->validated();
 
         DiamondClarity::create([
+            'diamond_type_id' => $data['diamond_type_id'],
             'code' => $data['code'] ?? null,
             'name' => $data['name'],
             'ecat_name' => $data['ecat_name'] ?? null,
@@ -66,6 +76,7 @@ class DiamondClarityController extends Controller
         $data = $request->validated();
 
         $clarity->update([
+            'diamond_type_id' => $data['diamond_type_id'],
             'code' => $data['code'] ?? null,
             'name' => $data['name'],
             'ecat_name' => $data['ecat_name'] ?? null,

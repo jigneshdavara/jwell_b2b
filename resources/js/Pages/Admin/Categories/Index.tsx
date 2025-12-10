@@ -4,6 +4,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { Menu, Transition } from '@headlessui/react';
 
 type CategoryRow = {
     id: number;
@@ -16,6 +17,8 @@ type CategoryRow = {
     display_order: number;
     cover_image?: string | null;
     cover_image_url?: string | null;
+    styles?: Array<{ id: number; name: string }>;
+    sizes?: Array<{ id: number; name: string }>;
 };
 
 type Pagination<T> = {
@@ -37,10 +40,13 @@ type ParentCategory = {
 type CategoriesPageProps = PageProps<{
     categories: Pagination<CategoryRow>;
     parentCategories: ParentCategory[];
+    styles: Array<{ id: number; name: string }>;
+    sizes: Array<{ id: number; name: string }>;
 }>;
 
 export default function AdminCategoriesIndex() {
-    const { categories, parentCategories } = usePage<CategoriesPageProps>().props;
+    const { categories, parentCategories, styles, sizes } = usePage<CategoriesPageProps>().props;
+
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
@@ -50,6 +56,8 @@ export default function AdminCategoriesIndex() {
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
     const [coverObjectUrl, setCoverObjectUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [styleSearchQuery, setStyleSearchQuery] = useState('');
+    const [sizeSearchQuery, setSizeSearchQuery] = useState('');
 
     const form = useForm({
         parent_id: '',
@@ -60,6 +68,8 @@ export default function AdminCategoriesIndex() {
         display_order: 0,
         cover_image: null as File | null,
         remove_cover_image: false,
+        style_ids: [] as number[],
+        size_ids: [] as number[],
     });
 
     useEffect(() => {
@@ -97,6 +107,10 @@ export default function AdminCategoriesIndex() {
         form.setData('parent_id', '');
         form.setData('cover_image', null);
         form.setData('remove_cover_image', false);
+        form.setData('style_ids', []);
+        form.setData('size_ids', []);
+        setStyleSearchQuery('');
+        setSizeSearchQuery('');
         setCoverPreview(null);
         if (coverObjectUrl) {
             URL.revokeObjectURL(coverObjectUrl);
@@ -123,6 +137,8 @@ export default function AdminCategoriesIndex() {
             display_order: category.display_order,
             cover_image: null,
             remove_cover_image: false,
+            style_ids: category.styles?.map((s) => s.id) ?? [],
+            size_ids: category.sizes?.map((s) => s.id) ?? [],
         });
         setCoverPreview(category.cover_image_url ?? null);
         setModalOpen(true);
@@ -184,6 +200,8 @@ export default function AdminCategoriesIndex() {
                 ...data,
                 parent_id: parentId,
                 remove_cover_image: removeCoverImage,
+                style_ids: data.style_ids || [],
+                size_ids: data.size_ids || [],
                 ...(editingCategory ? { _method: 'PUT' } : {}), // method spoofing for update
             };
 
@@ -638,6 +656,246 @@ export default function AdminCategoriesIndex() {
                                 </div>
 
                                 <div className="space-y-6">
+                                    <div className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <div className="flex items-center justify-between">
+                                            <span>Styles</span>
+                                            {form.data.style_ids && form.data.style_ids.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => form.setData('style_ids', [])}
+                                                    className="text-xs font-medium text-rose-600 hover:text-rose-700"
+                                                >
+                                                    Remove all
+                                                </button>
+                                            )}
+                                        </div>
+                                        {styles && styles.length > 0 ? (
+                                            <Menu as="div" className="relative">
+                                                <Menu.Button className="w-full min-h-[44px] rounded-2xl border border-slate-300 bg-white px-4 py-2 text-left text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        {form.data.style_ids && form.data.style_ids.length > 0 ? (
+                                                            form.data.style_ids.map((styleId) => {
+                                                                const style = styles.find((s) => s.id === styleId);
+                                                                if (!style) return null;
+                                                                return (
+                                                                    <span
+                                                                        key={styleId}
+                                                                        className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700"
+                                                                    >
+                                                                        {style.name}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                form.setData('style_ids', form.data.style_ids?.filter((id) => id !== styleId) || []);
+                                                                            }}
+                                                                            className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                                                        >
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    </span>
+                                                                );
+                                                            })
+                                                        ) : (
+                                                            <span className="text-slate-400">Select styles</span>
+                                                        )}
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="ml-auto h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </div>
+                                                </Menu.Button>
+                                                <Transition
+                                                    enter="transition ease-out duration-100"
+                                                    enterFrom="transform opacity-0 scale-95"
+                                                    enterTo="transform opacity-100 scale-100"
+                                                    leave="transition ease-in duration-75"
+                                                    leaveFrom="transform opacity-100 scale-100"
+                                                    leaveTo="transform opacity-0 scale-95"
+                                                >
+                                                    <Menu.Items className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                        <div className="p-2 border-b border-slate-200">
+                                                            <input
+                                                                type="text"
+                                                                value={styleSearchQuery}
+                                                                onChange={(e) => setStyleSearchQuery(e.target.value)}
+                                                                placeholder="Search styles..."
+                                                                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            />
+                                                        </div>
+                                                        <div className="max-h-60 overflow-auto p-2">
+                                                            {styles
+                                                                .filter((style) =>
+                                                                    style.name.toLowerCase().includes(styleSearchQuery.toLowerCase())
+                                                                )
+                                                                .map((style) => (
+                                                                    <Menu.Item key={style.id}>
+                                                                        {({ active }) => (
+                                                                            <label
+                                                                                className={`flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer ${
+                                                                                    active ? 'bg-slate-50' : ''
+                                                                                }`}
+                                                                            >
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={form.data.style_ids?.includes(style.id) || false}
+                                                                                    onChange={(e) => {
+                                                                                        const currentIds = form.data.style_ids || [];
+                                                                                        if (e.target.checked) {
+                                                                                            form.setData('style_ids', [...currentIds, style.id]);
+                                                                                        } else {
+                                                                                            form.setData('style_ids', currentIds.filter((id) => id !== style.id));
+                                                                                        }
+                                                                                    }}
+                                                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                />
+                                                                                <span className="text-sm text-slate-700">{style.name}</span>
+                                                                            </label>
+                                                                        )}
+                                                                    </Menu.Item>
+                                                                ))}
+                                                            {styles.filter((style) =>
+                                                                style.name.toLowerCase().includes(styleSearchQuery.toLowerCase())
+                                                            ).length === 0 && (
+                                                                <div className="px-3 py-2 text-sm text-slate-400 text-center">No styles found</div>
+                                                            )}
+                                                        </div>
+                                                    </Menu.Items>
+                                                </Transition>
+                                            </Menu>
+                                        ) : (
+                                            <div className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-400">
+                                                No styles available. Create styles first in the Styles section.
+                                            </div>
+                                        )}
+                                        {form.errors.style_ids && (
+                                            <span className="text-xs text-rose-500">{form.errors.style_ids}</span>
+                                        )}
+                                    </div>
+
+                                    <div className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <div className="flex items-center justify-between">
+                                            <span>Sizes</span>
+                                            {form.data.size_ids && form.data.size_ids.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => form.setData('size_ids', [])}
+                                                    className="text-xs font-medium text-rose-600 hover:text-rose-700"
+                                                >
+                                                    Remove all
+                                                </button>
+                                            )}
+                                        </div>
+                                        {sizes && sizes.length > 0 ? (
+                                            <Menu as="div" className="relative">
+                                                <Menu.Button className="w-full min-h-[44px] rounded-2xl border border-slate-300 bg-white px-4 py-2 text-left text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        {form.data.size_ids && form.data.size_ids.length > 0 ? (
+                                                            form.data.size_ids.map((sizeId) => {
+                                                                const size = sizes.find((s) => s.id === sizeId);
+                                                                if (!size) return null;
+                                                                return (
+                                                                    <span
+                                                                        key={sizeId}
+                                                                        className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700"
+                                                                    >
+                                                                        {size.name}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                form.setData('size_ids', form.data.size_ids?.filter((id) => id !== sizeId) || []);
+                                                                            }}
+                                                                            className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                                                        >
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    </span>
+                                                                );
+                                                            })
+                                                        ) : (
+                                                            <span className="text-slate-400">Select sizes</span>
+                                                        )}
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="ml-auto h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </div>
+                                                </Menu.Button>
+                                                <Transition
+                                                    enter="transition ease-out duration-100"
+                                                    enterFrom="transform opacity-0 scale-95"
+                                                    enterTo="transform opacity-100 scale-100"
+                                                    leave="transition ease-in duration-75"
+                                                    leaveFrom="transform opacity-100 scale-100"
+                                                    leaveTo="transform opacity-0 scale-95"
+                                                >
+                                                    <Menu.Items className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                        <div className="p-2 border-b border-slate-200">
+                                                            <input
+                                                                type="text"
+                                                                value={sizeSearchQuery}
+                                                                onChange={(e) => setSizeSearchQuery(e.target.value)}
+                                                                placeholder="Search sizes..."
+                                                                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            />
+                                                        </div>
+                                                        <div className="max-h-60 overflow-auto p-2">
+                                                            {sizes
+                                                                .filter((size) =>
+                                                                    size.name.toLowerCase().includes(sizeSearchQuery.toLowerCase())
+                                                                )
+                                                                .map((size) => (
+                                                                    <Menu.Item key={size.id}>
+                                                                        {({ active }) => (
+                                                                            <label
+                                                                                className={`flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer ${
+                                                                                    active ? 'bg-slate-50' : ''
+                                                                                }`}
+                                                                            >
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={form.data.size_ids?.includes(size.id) || false}
+                                                                                    onChange={(e) => {
+                                                                                        const currentIds = form.data.size_ids || [];
+                                                                                        if (e.target.checked) {
+                                                                                            form.setData('size_ids', [...currentIds, size.id]);
+                                                                                        } else {
+                                                                                            form.setData('size_ids', currentIds.filter((id) => id !== size.id));
+                                                                                        }
+                                                                                    }}
+                                                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                />
+                                                                                <span className="text-sm text-slate-700">{size.name}</span>
+                                                                            </label>
+                                                                        )}
+                                                                    </Menu.Item>
+                                                                ))}
+                                                            {sizes.filter((size) =>
+                                                                size.name.toLowerCase().includes(sizeSearchQuery.toLowerCase())
+                                                            ).length === 0 && (
+                                                                <div className="px-3 py-2 text-sm text-slate-400 text-center">No sizes found</div>
+                                                            )}
+                                                        </div>
+                                                    </Menu.Items>
+                                                </Transition>
+                                            </Menu>
+                                        ) : (
+                                            <div className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-400">
+                                                No sizes available. Create sizes first in the Sizes section.
+                                            </div>
+                                        )}
+                                        {form.errors.size_ids && (
+                                            <span className="text-xs text-rose-500">{form.errors.size_ids}</span>
+                                        )}
+                                    </div>
+
                                     <label className="flex flex-col gap-2 text-sm text-slate-600">
                                         <span>Description</span>
                                         <textarea
