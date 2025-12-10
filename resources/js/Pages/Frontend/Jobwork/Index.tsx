@@ -12,7 +12,7 @@ type PrefillProduct = {
     gross_weight?: number | null;
     net_weight?: number | null;
     base_price?: number | null;
-    making_charge?: number | null;
+    making_charge_amount?: number | null;
     standard_pricing?: Record<string, number | string | null> | null;
     variants: Array<{
         id: number;
@@ -202,7 +202,7 @@ export default function JobworkIndex() {
             return null;
         }
         const base = prefillProduct.base_price ?? 0;
-        const making = prefillProduct.making_charge ?? 0;
+        const making = prefillProduct.making_charge_amount ?? 0;
         const adjustment = selectedVariant?.price_adjustment ?? 0;
 
         return base + making + adjustment;
@@ -295,7 +295,7 @@ export default function JobworkIndex() {
                                             </div>
                                             <div>
                                                 <p className="font-medium text-slate-500">Making charge</p>
-                                                <p className="text-slate-900">₹ {(prefillProduct.making_charge ?? 0).toLocaleString('en-IN')}</p>
+                                                <p className="text-slate-900">₹ {(prefillProduct.making_charge_amount ?? 0).toLocaleString('en-IN')}</p>
                                             </div>
                                             <div>
                                                 <p className="font-medium text-slate-500">Gross weight</p>

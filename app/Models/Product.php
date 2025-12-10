@@ -22,7 +22,8 @@ class Product extends Model
         'collection',
         'producttype',
         'gender',
-        'making_charge',
+        'making_charge_amount',
+        'making_charge_percentage',
         'making_charge_discount_type',
         'making_charge_discount_value',
         'making_charge_discount_overrides',
@@ -33,6 +34,7 @@ class Product extends Model
         'is_active' => 'boolean',
         'making_charge_discount_value' => 'float',
         'making_charge_discount_overrides' => 'array',
+        'making_charge_percentage' => 'float',
     ];
 
     public function brand(): BelongsTo
@@ -63,5 +65,22 @@ class Product extends Model
     public function catalogs(): BelongsToMany
     {
         return $this->belongsToMany(Catalog::class, 'catalog_products')->withTimestamps();
+    }
+
+    /**
+     * Infer making charge type from making_charge_amount and making_charge_percentage values.
+     */
+    public function getMakingChargeTypeAttribute(): string
+    {
+        $hasFixed = (float) ($this->attributes['making_charge_amount'] ?? 0) > 0;
+        $hasPercentage = (float) ($this->attributes['making_charge_percentage'] ?? 0) > 0;
+
+        if ($hasFixed && $hasPercentage) {
+            return 'both';
+        } elseif ($hasPercentage) {
+            return 'percentage';
+        } else {
+            return 'fixed';
+        }
     }
 }

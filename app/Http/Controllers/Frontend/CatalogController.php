@@ -6,9 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Catalog;
 use App\Models\Category;
-use App\Models\ColorstoneColor;
-use App\Models\ColorstoneQuality;
-use App\Models\ColorstoneShape;
 use App\Models\DiamondClarity;
 use App\Models\DiamondColor;
 use App\Models\DiamondShape;
@@ -17,6 +14,7 @@ use App\Models\MetalPurity;
 use App\Models\MetalTone;
 use App\Models\PriceRate;
 use App\Models\Product;
+use App\Services\PricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -24,6 +22,10 @@ use Inertia\Response;
 
 class CatalogController extends Controller
 {
+    public function __construct(
+        protected PricingService $pricingService
+    ) {}
+
     public function index(Request $request): Response
     {
         $mode = $request->string('mode')->lower()->value();
@@ -37,7 +39,6 @@ class CatalogController extends Controller
             'metal_purity',
             'metal_tone',
             'diamond',
-            'colorstone',
             'price_min',
             'price_max',
             'search',
@@ -144,37 +145,6 @@ class CatalogController extends Controller
             });
         }
 
-        $colorstoneFilters = array_filter((array) ($filters['colorstone'] ?? []), fn($value) => filled($value));
-        if (! empty($colorstoneFilters)) {
-            $query->whereHas('variants.colorstones.colorstone', function ($colorstoneQuery) use ($colorstoneFilters) {
-                $colorstoneQuery->where(function ($innerQuery) use ($colorstoneFilters) {
-                    foreach ($colorstoneFilters as $filter) {
-                        if (! is_string($filter) || strpos($filter, ':') === false) {
-                            continue;
-                        }
-
-                        [$group, $id] = explode(':', $filter, 2);
-                        $id = (int) $id;
-
-                        if ($id <= 0) {
-                            continue;
-                        }
-
-                        switch ($group) {
-                            case 'shape':
-                                $innerQuery->orWhere('colorstone_shape_id', $id);
-                                break;
-                            case 'color':
-                                $innerQuery->orWhere('colorstone_color_id', $id);
-                                break;
-                            case 'quality':
-                                $innerQuery->orWhere('colorstone_quality_id', $id);
-                                break;
-                        }
-                    }
-                });
-            });
-        }
 
         $categoryFilters = array_filter((array) ($filters['category'] ?? []), fn($value) => filled($value));
         if (! empty($categoryFilters)) {
@@ -218,7 +188,6 @@ class CatalogController extends Controller
         $filters['metal_purity'] = array_values(array_filter((array) ($filters['metal_purity'] ?? []), fn($value) => filled($value)));
         $filters['metal_tone'] = array_values(array_filter((array) ($filters['metal_tone'] ?? []), fn($value) => filled($value)));
         $filters['diamond'] = array_values($diamondFilters);
-        $filters['colorstone'] = array_values($colorstoneFilters);
         $filters['category'] = array_values($categoryFilters);
         $filters['catalog'] = array_values($catalogFilters);
         $filters['sort'] = $sort ?: null;
@@ -254,7 +223,6 @@ class CatalogController extends Controller
                 'variants.metals.metalPurity',
                 'variants.metals.metalTone',
                 'variants.diamonds.diamond',
-                'variants.colorstones.colorstone',
             ])
             ->when($sort === 'price_asc', fn($builder) => $builder->orderBy('base_price', 'asc'))
             ->when($sort === 'price_desc', fn($builder) => $builder->orderBy('base_price', 'desc'))
@@ -302,19 +270,9 @@ class CatalogController extends Controller
                     }
                     $diamondCost = round($diamondCost, 2);
 
-                    // Calculate colorstone cost from variant colorstones
-                    $colorstoneCost = 0;
-                    foreach ($variant->colorstones as $variantColorstone) {
-                        $colorstone = $variantColorstone->colorstone;
-                        if ($colorstone && $colorstone->price) {
-                            $colorstoneCost += (float) $colorstone->price;
-                        }
-                    }
-                    $colorstoneCost = round($colorstoneCost, 2);
-
-                    // Calculate priceTotal: Metal + Diamond + Colorstone + Making Charge
-                    $makingCharge = (float) ($product->making_charge ?? 0);
-                    $priceTotal = $metalCost + $diamondCost + $colorstoneCost + $makingCharge;
+                    // Calculate priceTotal: Metal + Diamond + Making Charge
+                    $makingCharge = (float) ($product->making_charge_amount ?? 0);
+                    $priceTotal = $metalCost + $diamondCost + $makingCharge;
                 } else {
                     // If no variant, fallback to making charge only
                     $priceTotal = (float) ($product->making_charge ?? 0);
@@ -332,7 +290,7 @@ class CatalogController extends Controller
                     'other_material_weight' => $product->other_material_weight !== null ? (float) $product->other_material_weight : null,
                     'total_weight' => $product->total_weight !== null ? (float) $product->total_weight : null,
                     'price_total' => $priceTotal,
-                    'making_charge' => (float) $product->making_charge,
+                    'making_charge_amount' => (float) $product->making_charge_amount,
                     'is_jobwork_allowed' => (bool) $product->is_jobwork_allowed,
                     'thumbnail' => optional($product->media->sortBy('position')->first())?->url,
                     'media' => $product->media->sortBy('position')->values()->map(fn($media) => [
@@ -410,35 +368,6 @@ class CatalogController extends Controller
                 ]),
                 'cuts' => [], // DiamondCut model doesn't exist yet
             ],
-            'colorstoneOptions' => [
-                'shapes' => ColorstoneShape::query()
-                    ->where('is_active', true)
-                    ->orderBy('display_order')
-                    ->orderBy('name')
-                    ->get(['id', 'name'])
-                    ->map(fn(ColorstoneShape $shape) => [
-                        'id' => $shape->id,
-                        'name' => $shape->name,
-                    ]),
-                'colors' => ColorstoneColor::query()
-                    ->where('is_active', true)
-                    ->orderBy('display_order')
-                    ->orderBy('name')
-                    ->get(['id', 'name'])
-                    ->map(fn(ColorstoneColor $color) => [
-                        'id' => $color->id,
-                        'name' => $color->name,
-                    ]),
-                'qualities' => ColorstoneQuality::query()
-                    ->where('is_active', true)
-                    ->orderBy('display_order')
-                    ->orderBy('name')
-                    ->get(['id', 'name'])
-                    ->map(fn(ColorstoneQuality $quality) => [
-                        'id' => $quality->id,
-                        'name' => $quality->name,
-                    ]),
-            ],
             'brands' => Brand::query()
                 ->where('is_active', true)
                 ->orderBy('name')
@@ -482,9 +411,6 @@ class CatalogController extends Controller
                         'diamonds.diamond.clarity',
                         'diamonds.diamond.color',
                         'diamonds.diamond.shape',
-                        'colorstones.colorstone.shape',
-                        'colorstones.colorstone.color',
-                        'colorstones.colorstone.quality',
                     ]);
             },
         ]);
@@ -508,6 +434,8 @@ class CatalogController extends Controller
                 'total_weight' => $product->total_weight !== null ? (float) $product->total_weight : null,
                 'base_price' => (float) $product->base_price,
                 'making_charge' => (float) $product->making_charge,
+                'making_charge_type' => $product->making_charge_type, // Accessor will infer from values
+                'making_charge_percentage' => $product->making_charge_percentage ? (float) $product->making_charge_percentage : null,
                 'is_jobwork_allowed' => (bool) $product->is_jobwork_allowed,
                 'uses_gold' => (bool) $product->uses_gold,
                 'uses_silver' => (bool) $product->uses_silver,
@@ -562,24 +490,6 @@ class CatalogController extends Controller
                             ] : null,
                         ];
                     })->values()->all(),
-                    'colorstones' => $variant->colorstones->map(function ($colorstone) {
-                        $colorstoneModel = $colorstone->colorstone;
-                        return [
-                            'id' => $colorstone->id,
-                            'colorstone_id' => $colorstone->colorstone_id,
-                            'stones_count' => $colorstone->stones_count,
-                            'colorstone' => $colorstoneModel ? [
-                                'id' => $colorstoneModel->id,
-                                'name' => $colorstoneModel->name,
-                                'colorstone_shape_id' => $colorstoneModel->colorstone_shape_id,
-                                'colorstone_color_id' => $colorstoneModel->colorstone_color_id,
-                                'colorstone_quality_id' => $colorstoneModel->colorstone_quality_id,
-                                'colorstone_shape' => $colorstoneModel->shape ? ['id' => $colorstoneModel->shape->id, 'name' => $colorstoneModel->shape->name] : null,
-                                'colorstone_color' => $colorstoneModel->color ? ['id' => $colorstoneModel->color->id, 'name' => $colorstoneModel->color->name] : null,
-                                'colorstone_quality' => $colorstoneModel->quality ? ['id' => $colorstoneModel->quality->id, 'name' => $colorstoneModel->quality->name] : null,
-                            ] : null,
-                        ];
-                    })->values()->all(),
                 ]),
             ],
             // Configuration options - one option per variant
@@ -607,9 +517,6 @@ class CatalogController extends Controller
             }
             if (!$variant->relationLoaded('diamonds')) {
                 $variant->load(['diamonds.diamond.shape', 'diamonds.diamond.color', 'diamonds.diamond.clarity']);
-            }
-            if (!$variant->relationLoaded('colorstones')) {
-                $variant->load(['colorstones.colorstone.shape', 'colorstones.colorstone.color', 'colorstones.colorstone.quality']);
             }
 
             // Build metals array for this variant
@@ -717,71 +624,13 @@ class CatalogController extends Controller
                 $diamondParts[] = $diamondLabel;
             }
 
-            // Build colorstones array for this variant
-            $colorstones = [];
-            $colorstoneParts = [];
-
-            foreach ($variant->colorstones as $variantColorstone) {
-                // Load colorstone relationship
-                if (!$variantColorstone->relationLoaded('colorstone')) {
-                    $variantColorstone->load('colorstone.shape', 'colorstone.color', 'colorstone.quality');
-                }
-
-                $colorstoneModel = $variantColorstone->colorstone;
-                if (!$colorstoneModel) {
-                    continue;
-                }
-
-                $parts = [];
-
-                // Shape
-                if ($colorstoneModel->shape) {
-                    $parts[] = $colorstoneModel->shape->name;
-                }
-
-                // Color
-                if ($colorstoneModel->color) {
-                    $parts[] = $colorstoneModel->color->name;
-                }
-
-                // Quality
-                if ($colorstoneModel->quality) {
-                    $parts[] = $colorstoneModel->quality->name;
-                }
-
-                // Count
-                $countStr = '';
-                if ($variantColorstone->stones_count && $variantColorstone->stones_count > 1) {
-                    $countStr = '(' . $variantColorstone->stones_count . ')';
-                }
-
-                // Build label: "Ruby Red Oval AAA (2)" - using colorstone name and count
-                $colorstoneLabel = trim(($colorstoneModel->name ?? implode(' ', $parts)) . ' ' . $countStr);
-
-                $colorstones[] = [
-                    'label' => $colorstoneLabel,
-                    'colorstoneShapeId' => $colorstoneModel->colorstone_shape_id ?? 0,
-                    'colorstoneColorId' => $colorstoneModel->colorstone_color_id ?? 0,
-                    'colorstoneQualityId' => $colorstoneModel->colorstone_quality_id ?? 0,
-                    'stoneCount' => $variantColorstone->stones_count ?? 0,
-                    'totalCarat' => '0', // No longer stored
-                    // Include attribute names for frontend display
-                    'shapeName' => $colorstoneModel->shape ? $colorstoneModel->shape->name : null,
-                    'colorName' => $colorstoneModel->color ? $colorstoneModel->color->name : null,
-                    'qualityName' => $colorstoneModel->quality ? $colorstoneModel->quality->name : null,
-                ];
-
-                $colorstoneParts[] = $colorstoneLabel;
-            }
-
             // Build combined labels
             $metalLabel = !empty($metalParts) ? implode(' + ', $metalParts) : '';
             $diamondLabel = !empty($diamondParts) ? implode(' + ', $diamondParts) : '';
-            $colorstoneLabel = !empty($colorstoneParts) ? implode(' + ', $colorstoneParts) : '';
 
             // Full configuration label
             $configLabel = '';
-            $labelParts = array_filter([$metalLabel, $diamondLabel, $colorstoneLabel]);
+            $labelParts = array_filter([$metalLabel, $diamondLabel]);
             if (!empty($labelParts)) {
                 $configLabel = implode(' | ', $labelParts);
             } else {
@@ -832,44 +681,26 @@ class CatalogController extends Controller
             }
             $diamondCost = round($diamondCost, 2);
 
-            // Calculate colorstone cost from variant colorstones
-            // Price in colorstones table is per stone, so multiply by count
-            $colorstoneCost = 0;
-            foreach ($variant->colorstones as $variantColorstone) {
-                $colorstone = $variantColorstone->colorstone;
-                $count = (int) ($variantColorstone->stones_count ?? 1);
-
-                if ($colorstone && $colorstone->price) {
-                    // Price is per stone, so multiply by count
-                    $colorstoneCost += (float) $colorstone->price * $count;
-                }
-            }
-            $colorstoneCost = round($colorstoneCost, 2);
-
             // Calculate pricing
             $basePrice = (float) ($product->base_price ?? 0);
-            $makingCharge = (float) ($product->making_charge ?? 0);
+            $makingCharge = (float) ($product->making_charge_amount ?? 0);
             $priceAdjustment = 0; //(float) ($variant->price_adjustment ?? 0);
-            // Total price: Metal + Diamond + Colorstone + Making Charge + Adjustment (Base Price is NOT included)
-            $priceTotal = $metalCost + $diamondCost + $colorstoneCost + $makingCharge;
-
-            // Always create a configuration option, even if metals/diamonds/colorstones are empty
+            // Total price: Metal + Diamond + Making Charge + Adjustment (Base Price is NOT included)
+            $priceTotal = $metalCost + $diamondCost + $makingCharge;
+            // Always create a configuration option, even if metals/diamonds are empty
             // This ensures the frontend always has at least one option to select
             $configOptions[] = [
                 'variant_id' => $variant->id,
                 'label' => $configLabel ?: ($variant->label ?? 'Configuration ' . $variant->id),
                 'metal_label' => $metalLabel,
                 'diamond_label' => $diamondLabel,
-                'colorstone_label' => $colorstoneLabel,
                 'metals' => $metals, // Can be empty array
                 'diamonds' => $diamonds, // Can be empty array
-                'colorstones' => $colorstones, // Can be empty array
                 'price_total' => $priceTotal,
                 'price_breakup' => [
                     'base' => $basePrice,
                     'metal' => $metalCost,
                     'diamond' => $diamondCost,
-                    'colorstone' => $colorstoneCost,
                     'making' => $makingCharge,
                     'adjustment' => $priceAdjustment,
                 ],
@@ -886,16 +717,13 @@ class CatalogController extends Controller
                 'label' => $firstVariant->label ?? 'Default Configuration',
                 'metal_label' => '',
                 'diamond_label' => '',
-                'colorstone_label' => '',
                 'metals' => [],
                 'diamonds' => [],
-                'colorstones' => [],
                 'price_total' => (float) ($product->making_charge ?? 0),
                 'price_breakup' => [
                     'base' => (float) ($product->base_price ?? 0),
                     'metal' => 0,
                     'diamond' => 0,
-                    'colorstone' => 0,
                     'making' => (float) ($product->making_charge ?? 0),
                     'adjustment' => 0,
                 ],
@@ -1258,4 +1086,5 @@ class CatalogController extends Controller
 
         return $variantMap;
     }
+
 }

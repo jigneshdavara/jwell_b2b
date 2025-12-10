@@ -17,7 +17,7 @@ type HomePageProps = {
         name: string;
         brand?: string | null;
         price: number;
-        making_charge: number;
+        making_charge_amount: number;
     }>;
     features: Array<{ title: string; description: string }>;
 };
@@ -168,7 +168,7 @@ export default function HomeIndex() {
                                         </div>
                                         <div className="text-right text-sm text-ink/80">
                                             <p>{currencyFormatter.format(product.price)}</p>
-                                            <p className="text-xs text-ink/60">Making {currencyFormatter.format(product.making_charge)}</p>
+                                            <p className="text-xs text-ink/60">Making {currencyFormatter.format(product.making_charge_amount)}</p>
                                         </div>
                                     </div>
                                 </div>
