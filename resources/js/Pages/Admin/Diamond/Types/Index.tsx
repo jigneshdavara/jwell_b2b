@@ -5,29 +5,13 @@ import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
-type DiamondType = {
+type DiamondTypeRow = {
     id: number;
-    name: string;
     code: string | null;
-};
-
-type DiamondShape = {
-    id: number;
     name: string;
-    code: string | null;
-};
-
-type DiamondShapeSizeRow = {
-    id: number;
-    diamond_type_id: number;
-    type: DiamondType | null;
-    diamond_shape_id: number;
-    shape: DiamondShape | null;
-    size: string | null;
-    secondary_size: string | null;
     description?: string | null;
     display_order: number;
-    ctw: number;
+    is_active: boolean;
 };
 
 type Pagination<T> = {
@@ -41,70 +25,59 @@ type Pagination<T> = {
     links: Array<{ url: string | null; label: string; active: boolean }>;
 };
 
-type DiamondShapeSizesPageProps = PageProps<{
-    sizes: Pagination<DiamondShapeSizeRow>;
-    shapes: DiamondShape[];
-    types: DiamondType[];
-    selectedShapeId?: number;
+type DiamondTypesPageProps = PageProps<{
+    types: Pagination<DiamondTypeRow>;
 }>;
 
-export default function AdminDiamondShapeSizesIndex() {
-    const { sizes, shapes, types, selectedShapeId } = usePage<DiamondShapeSizesPageProps>().props;
+export default function AdminDiamondTypesIndex() {
+    const { types } = usePage<DiamondTypesPageProps>().props;
     const [modalOpen, setModalOpen] = useState(false);
-    const [editingSize, setEditingSize] = useState<DiamondShapeSizeRow | null>(null);
-    const [selectedSizes, setSelectedSizes] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(sizes.per_page ?? 10);
-    const [deleteConfirm, setDeleteConfirm] = useState<DiamondShapeSizeRow | null>(null);
+    const [editingType, setEditingType] = useState<DiamondTypeRow | null>(null);
+    const [selectedTypes, setSelectedTypes] = useState<number[]>([]);
+    const [perPage, setPerPage] = useState(types.per_page ?? 10);
+    const [deleteConfirm, setDeleteConfirm] = useState<DiamondTypeRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
-        diamond_type_id: 0 as number,
-        diamond_shape_id: selectedShapeId || (shapes.length > 0 ? shapes[0].id : 0),
-        size: '',
-        secondary_size: '',
+        code: '',
+        name: '',
         description: '',
         display_order: 0,
-        ctw: 0,
+        is_active: true,
     });
 
     useEffect(() => {
-        const existingIds = new Set(sizes.data.map((size) => size.id));
-        setSelectedSizes((prev) => prev.filter((id) => existingIds.has(id)));
-    }, [sizes.data]);
+        const existingIds = new Set(types.data.map((type) => type.id));
+        setSelectedTypes((prev) => prev.filter((id) => existingIds.has(id)));
+    }, [types.data]);
 
     const allSelected = useMemo(() => {
-        if (sizes.data.length === 0) {
+        if (types.data.length === 0) {
             return false;
         }
-        return selectedSizes.length === sizes.data.length;
-    }, [sizes.data, selectedSizes]);
+        return selectedTypes.length === types.data.length;
+    }, [types.data, selectedTypes]);
 
     const toggleSelectAll = () => {
         if (allSelected) {
-            setSelectedSizes([]);
+            setSelectedTypes([]);
         } else {
-            setSelectedSizes(sizes.data.map((size) => size.id));
+            setSelectedTypes(types.data.map((type) => type.id));
         }
     };
 
     const toggleSelection = (id: number) => {
-        setSelectedSizes((prev) =>
-            prev.includes(id) ? prev.filter((sizeId) => sizeId !== id) : [...prev, id]
+        setSelectedTypes((prev) =>
+            prev.includes(id) ? prev.filter((typeId) => typeId !== id) : [...prev, id]
         );
     };
 
     const resetForm = () => {
-        setEditingSize(null);
+        setEditingType(null);
         setModalOpen(false);
         form.reset();
-        // Set default to Natural Diamond type (first type or type with code 'NAT')
-        // const naturalType = types.find((t) => t.code === 'NAT') || types[0];
-        // if (naturalType) {
-        //     form.setData('diamond_type_id', naturalType.id);
-        // }
-        form.setData('diamond_shape_id', selectedShapeId || (shapes.length > 0 ? shapes[0].id : 0));
+        form.setData('is_active', true);
         form.setData('display_order', 0);
-        form.setData('ctw', 0);
     };
 
     const openCreateModal = () => {
@@ -112,16 +85,14 @@ export default function AdminDiamondShapeSizesIndex() {
         setModalOpen(true);
     };
 
-    const openEditModal = (size: DiamondShapeSizeRow) => {
-        setEditingSize(size);
+    const openEditModal = (type: DiamondTypeRow) => {
+        setEditingType(type);
         form.setData({
-            diamond_type_id: size.diamond_type_id!,
-            diamond_shape_id: size.diamond_shape_id,
-            size: size.size ?? '',
-            secondary_size: size.secondary_size ?? '',
-            description: size.description ?? '',
-            display_order: size.display_order,
-            ctw: size.ctw,
+            code: type.code ?? '',
+            name: type.name,
+            description: type.description ?? '',
+            display_order: type.display_order,
+            is_active: type.is_active,
         });
         setModalOpen(true);
     };
@@ -129,26 +100,38 @@ export default function AdminDiamondShapeSizesIndex() {
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (editingSize) {
-            form.put(route('admin.diamond.shape-sizes.update', editingSize.id), {
+        if (editingType) {
+            form.put(route('admin.diamond.types.update', editingType.id), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
             });
         } else {
-            form.post(route('admin.diamond.shape-sizes.store'), {
+            form.post(route('admin.diamond.types.store'), {
                 preserveScroll: true,
                 onSuccess: () => resetForm(),
             });
         }
     };
 
-    const deleteSize = (size: DiamondShapeSizeRow) => {
-        setDeleteConfirm(size);
+    const toggleType = (type: DiamondTypeRow) => {
+        router.put(route('admin.diamond.types.update', type.id), {
+            code: type.code,
+            name: type.name,
+            description: type.description,
+            is_active: !type.is_active,
+            display_order: type.display_order,
+        }, {
+            preserveScroll: true,
+        });
+    };
+
+    const deleteType = (type: DiamondTypeRow) => {
+        setDeleteConfirm(type);
     };
 
     const handleDelete = () => {
         if (deleteConfirm) {
-            router.delete(route('admin.diamond.shape-sizes.destroy', deleteConfirm.id), {
+            router.delete(route('admin.diamond.types.destroy', deleteConfirm.id), {
                 preserveScroll: true,
                 onSuccess: () => {
                     setDeleteConfirm(null);
@@ -158,18 +141,18 @@ export default function AdminDiamondShapeSizesIndex() {
     };
 
     const bulkDelete = () => {
-        if (selectedSizes.length === 0) {
+        if (selectedTypes.length === 0) {
             return;
         }
         setBulkDeleteConfirm(true);
     };
 
     const handleBulkDelete = () => {
-        router.delete(route('admin.diamond.shape-sizes.bulk-destroy'), {
-            data: { ids: selectedSizes },
+        router.delete(route('admin.diamond.types.bulk-destroy'), {
+            data: { ids: selectedTypes },
             preserveScroll: true,
             onSuccess: () => {
-                setSelectedSizes([]);
+                setSelectedTypes([]);
                 setBulkDeleteConfirm(false);
             },
         });
@@ -186,23 +169,18 @@ export default function AdminDiamondShapeSizesIndex() {
     const handlePerPageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const newPerPage = Number(event.target.value);
         setPerPage(newPerPage);
-        router.get(route('admin.diamond.shape-sizes.index'), { per_page: newPerPage, shape_id: selectedShapeId }, { preserveState: true, preserveScroll: true });
-    };
-
-    const handleShapeFilter = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const shapeId = event.target.value ? Number(event.target.value) : null;
-        router.get(route('admin.diamond.shape-sizes.index'), { shape_id: shapeId }, { preserveState: true, preserveScroll: true });
+        router.get(route('admin.diamond.types.index'), { per_page: newPerPage }, { preserveState: true, preserveScroll: true });
     };
 
     return (
         <AdminLayout>
-            <Head title="Diamond shape sizes" />
+            <Head title="Diamond types" />
 
             <div className="space-y-8">
                 <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-900">Diamond shape sizes</h1>
-                        <p className="mt-2 text-sm text-slate-500">Manage diamond shape sizes and carat weights for catalogue specifications.</p>
+                        <h1 className="text-2xl font-semibold text-slate-900">Diamond types</h1>
+                        <p className="mt-2 text-sm text-slate-500">Manage diamond types for catalogue specifications.</p>
                     </div>
                     <button
                         type="button"
@@ -212,35 +190,21 @@ export default function AdminDiamondShapeSizesIndex() {
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
                         </svg>
-                        New size
+                        New type
                     </button>
                 </div>
 
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
-                        <div className="flex items-center gap-4">
-                            <div className="font-semibold text-slate-700">
-                                Sizes ({sizes.total})
-                            </div>
-                            <select
-                                value={selectedShapeId || ''}
-                                onChange={handleShapeFilter}
-                                className="rounded-full border border-slate-200 px-3 py-1 text-xs"
-                            >
-                                <option value="">All shapes</option>
-                                {shapes.map((shape) => (
-                                    <option key={shape.id} value={shape.id}>
-                                        {shape.name}
-                                    </option>
-                                ))}
-                            </select>
+                        <div className="font-semibold text-slate-700">
+                            Types ({types.total})
                         </div>
                         <div className="flex items-center gap-3 text-xs text-slate-500">
-                            <span>{selectedSizes.length} selected</span>
+                            <span>{selectedTypes.length} selected</span>
                             <button
                                 type="button"
                                 onClick={bulkDelete}
-                                disabled={selectedSizes.length === 0}
+                                disabled={selectedTypes.length === 0}
                                 className="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                                 Bulk delete
@@ -266,45 +230,52 @@ export default function AdminDiamondShapeSizesIndex() {
                                         checked={allSelected}
                                         onChange={toggleSelectAll}
                                         className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                        aria-label="Select all diamond shape sizes"
+                                        aria-label="Select all diamond types"
                                     />
                                 </th>
-                                <th className="px-5 py-3 text-left">Type</th>
-                                <th className="px-5 py-3 text-left">Shape</th>
-                                <th className="px-5 py-3 text-left">Size</th>
-                                <th className="px-5 py-3 text-left">Secondary Size</th>
-                                <th className="px-5 py-3 text-left">CTW</th>
+                                <th className="px-5 py-3 text-left">Code</th>
+                                <th className="px-5 py-3 text-left">Name</th>
                                 <th className="px-5 py-3 text-left">Order</th>
+                                <th className="px-5 py-3 text-left">Status</th>
                                 <th className="px-5 py-3 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
-                            {sizes.data.map((size) => (
-                                <tr key={size.id} className="hover:bg-slate-50">
+                            {types.data.map((type) => (
+                                <tr key={type.id} className="hover:bg-slate-50">
                                     <td className="px-5 py-3">
                                         <input
                                             type="checkbox"
-                                            checked={selectedSizes.includes(size.id)}
-                                            onChange={() => toggleSelection(size.id)}
+                                            checked={selectedTypes.includes(type.id)}
+                                            onChange={() => toggleSelection(type.id)}
                                             className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                            aria-label={`Select diamond shape size ${size.size}`}
+                                            aria-label={`Select diamond type ${type.name}`}
                                         />
                                     </td>
-                                    <td className="px-5 py-3 text-slate-700">{size.type ? size.type.name : '-'}</td>
+                                    <td className="px-5 py-3 text-slate-700">{type.code || '-'}</td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">
-                                        {size.shape?.name || '-'}
+                                        <div className="flex flex-col gap-1">
+                                            <span>{type.name}</span>
+                                            {type.description && <span className="text-xs text-slate-500">{type.description}</span>}
+                                        </div>
                                     </td>
-                                    <td className="px-5 py-3 text-slate-700">{size.size || '-'}</td>
-                                    <td className="px-5 py-3 text-slate-500">{size.secondary_size || '-'}</td>
-                                    <td className="px-5 py-3 text-slate-500">{typeof size.ctw === 'number' ? size.ctw.toFixed(3) : (parseFloat(size.ctw) || 0).toFixed(3)}</td>
-                                    <td className="px-5 py-3 text-slate-500">{size.display_order}</td>
+                                    <td className="px-5 py-3 text-slate-500">{type.display_order}</td>
+                                    <td className="px-5 py-3">
+                                        <span
+                                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                                type.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                                            }`}
+                                        >
+                                            {type.is_active ? 'Active' : 'Archived'}
+                                        </span>
+                                    </td>
                                     <td className="px-5 py-3 text-right">
                                         <div className="flex justify-end gap-2">
                                             <button
                                                 type="button"
-                                                onClick={() => openEditModal(size)}
+                                                onClick={() => openEditModal(type)}
                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-                                                title="Edit size"
+                                                title="Edit type"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
@@ -313,9 +284,25 @@ export default function AdminDiamondShapeSizesIndex() {
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => deleteSize(size)}
+                                                onClick={() => toggleType(type)}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600"
+                                                title={type.is_active ? 'Pause type' : 'Activate type'}
+                                            >
+                                                {type.is_active ? (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => deleteType(type)}
                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
-                                                title="Delete size"
+                                                title="Delete type"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
@@ -325,10 +312,10 @@ export default function AdminDiamondShapeSizesIndex() {
                                     </td>
                                 </tr>
                             ))}
-                            {sizes.data.length === 0 && (
+                            {types.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={8} className="px-5 py-6 text-center text-sm text-slate-500">
-                                        No diamond shape sizes defined yet.
+                                    <td colSpan={6} className="px-5 py-6 text-center text-sm text-slate-500">
+                                        No diamond types defined yet.
                                     </td>
                                 </tr>
                             )}
@@ -338,10 +325,10 @@ export default function AdminDiamondShapeSizesIndex() {
 
                 <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
                     <div>
-                        Showing {sizes.from ?? 0} to {sizes.to ?? 0} of {sizes.total} entries
+                        Showing {types.from ?? 0} to {types.to ?? 0} of {types.total} entries
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        {sizes.links.map((link, index) => {
+                        {types.links.map((link, index) => {
                             const cleanLabel = link.label
                                 .replace('&laquo;', '«')
                                 .replace('&raquo;', '»')
@@ -378,7 +365,7 @@ export default function AdminDiamondShapeSizesIndex() {
                     <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-semibold text-slate-900">
-                                {editingSize ? `Edit diamond shape size` : 'Create new diamond shape size'}
+                                {editingType ? `Edit diamond type: ${editingType.name}` : 'Create new diamond type'}
                             </h2>
                             <div className="flex items-center gap-3">
                                 <button
@@ -390,11 +377,11 @@ export default function AdminDiamondShapeSizesIndex() {
                                 </button>
                                 <button
                                     type="submit"
-                                    form="size-form"
+                                    form="type-form"
                                     disabled={form.processing}
                                     className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                    {editingSize ? 'Update diamond shape size' : 'Create diamond shape size'}
+                                    {editingType ? 'Update diamond type' : 'Create diamond type'}
                                 </button>
                                 <button
                                     type="button"
@@ -411,80 +398,34 @@ export default function AdminDiamondShapeSizesIndex() {
                     </div>
 
                     <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                        <form onSubmit={submit} className="space-y-6" id="size-form">
+                        <form onSubmit={submit} className="space-y-6" id="type-form">
                             <div className="grid gap-6 lg:grid-cols-2">
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Type *</span>
-                                            <select
-                                                value={form.data.diamond_type_id || ''}
-                                                onChange={(event) => form.setData('diamond_type_id', Number(event.target.value))}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                required
-                                            >
-                                                <option value="">Select type</option>
-                                                {types.map((type) => (
-                                                    <option key={type.id} value={type.id}>
-                                                        {type.name} {type.code ? `(${type.code})` : ''}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {form.errors.diamond_type_id && <span className="text-xs text-rose-500">{form.errors.diamond_type_id}</span>}
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Diamond Shape *</span>
-                                            <select
-                                                value={form.data.diamond_shape_id}
-                                                onChange={(event) => form.setData('diamond_shape_id', Number(event.target.value))}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                required
-                                            >
-                                                <option value="">Select a shape</option>
-                                                {shapes.map((shape) => (
-                                                    <option key={shape.id} value={shape.id}>
-                                                        {shape.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {form.errors.diamond_shape_id && <span className="text-xs text-rose-500">{form.errors.diamond_shape_id}</span>}
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Size</span>
+                                            <span>Code</span>
                                             <input
                                                 type="text"
-                                                value={form.data.size}
-                                                onChange={(event) => form.setData('size', event.target.value)}
+                                                value={form.data.code}
+                                                onChange={(event) => form.setData('code', event.target.value)}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                placeholder="e.g., 1.00, 2.00x3.00"
+                                                placeholder="e.g., NAT, LAB"
                                             />
-                                            {form.errors.size && <span className="text-xs text-rose-500">{form.errors.size}</span>}
+                                            {form.errors.code && <span className="text-xs text-rose-500">{form.errors.code}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Secondary Size</span>
+                                            <span>Name *</span>
                                             <input
                                                 type="text"
-                                                value={form.data.secondary_size}
-                                                onChange={(event) => form.setData('secondary_size', event.target.value)}
+                                                value={form.data.name}
+                                                onChange={(event) => form.setData('name', event.target.value)}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                placeholder="e.g., (S), (T)"
+                                                required
                                             />
-                                            {form.errors.secondary_size && <span className="text-xs text-rose-500">{form.errors.secondary_size}</span>}
+                                            {form.errors.name && <span className="text-xs text-rose-500">{form.errors.name}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>CTW (Carat Total Weight)</span>
-                                            <input
-                                                type="number"
-                                                step="0.001"
-                                                value={form.data.ctw}
-                                                onChange={(event) => form.setData('ctw', Number(event.target.value))}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                min={0}
-                                            />
-                                            {form.errors.ctw && <span className="text-xs text-rose-500">{form.errors.ctw}</span>}
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Display Order</span>
+                                            <span>Position</span>
                                             <input
                                                 type="number"
                                                 value={form.data.display_order}
@@ -495,6 +436,16 @@ export default function AdminDiamondShapeSizesIndex() {
                                             {form.errors.display_order && <span className="text-xs text-rose-500">{form.errors.display_order}</span>}
                                         </label>
                                     </div>
+
+                                    <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                                        <input
+                                            type="checkbox"
+                                            checked={form.data.is_active}
+                                            onChange={(event) => form.setData('is_active', event.target.checked)}
+                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        />
+                                        Active for selection
+                                    </label>
                                 </div>
 
                                 <div className="space-y-6">
@@ -519,8 +470,8 @@ export default function AdminDiamondShapeSizesIndex() {
                 show={deleteConfirm !== null}
                 onClose={() => setDeleteConfirm(null)}
                 onConfirm={handleDelete}
-                title="Remove Diamond Shape Size"
-                message={deleteConfirm ? `Are you sure you want to remove this diamond shape size?` : ''}
+                title="Remove Diamond Type"
+                message={deleteConfirm ? `Are you sure you want to remove diamond type ${deleteConfirm.name}?` : ''}
                 confirmText="Remove"
                 variant="danger"
             />
@@ -529,11 +480,12 @@ export default function AdminDiamondShapeSizesIndex() {
                 show={bulkDeleteConfirm}
                 onClose={() => setBulkDeleteConfirm(false)}
                 onConfirm={handleBulkDelete}
-                title="Delete Diamond Shape Sizes"
-                message={`Are you sure you want to delete ${selectedSizes.length} selected diamond shape size(s)?`}
+                title="Delete Diamond Types"
+                message={`Are you sure you want to delete ${selectedTypes.length} selected diamond type(s)?`}
                 confirmText="Delete"
                 variant="danger"
             />
         </AdminLayout>
     );
 }
+

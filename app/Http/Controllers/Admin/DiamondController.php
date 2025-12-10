@@ -11,6 +11,7 @@ use App\Models\DiamondClarity;
 use App\Models\DiamondColor;
 use App\Models\DiamondShape;
 use App\Models\DiamondShapeSize;
+use App\Models\DiamondType;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,7 +27,7 @@ class DiamondController extends Controller
         }
 
         $diamonds = Diamond::query()
-            ->with(['clarity', 'color', 'shape', 'shapeSize'])
+            ->with(['type', 'clarity', 'color', 'shape', 'shapeSize'])
             ->latest()
             ->paginate($perPage)
             ->withQueryString()
@@ -34,6 +35,11 @@ class DiamondController extends Controller
                 return [
                     'id' => $diamond->id,
                     'name' => $diamond->name,
+                    'type' => $diamond->type ? [
+                        'id' => $diamond->type->id,
+                        'name' => $diamond->type->name,
+                        'code' => $diamond->type->code,
+                    ] : null,
                     'clarity' => $diamond->clarity ? [
                         'id' => $diamond->clarity->id,
                         'name' => $diamond->clarity->name,
@@ -56,6 +62,7 @@ class DiamondController extends Controller
                         'ctw' => (float) $diamond->shapeSize->ctw,
                     ] : null,
                     'price' => (float) $diamond->price,
+                    'weight' => (float) $diamond->weight,
                     'description' => $diamond->description,
                     'is_active' => $diamond->is_active,
                 ];
@@ -63,6 +70,7 @@ class DiamondController extends Controller
 
         return Inertia::render('Admin/Diamond/Diamonds/Index', [
             'diamonds' => $diamonds,
+            'types' => DiamondType::where('is_active', true)->orderBy('display_order')->get(['id', 'name', 'code']),
             'clarities' => DiamondClarity::where('is_active', true)->orderBy('display_order')->get(['id', 'name', 'code']),
             'colors' => DiamondColor::where('is_active', true)->orderBy('display_order')->get(['id', 'name', 'code']),
             'shapes' => DiamondShape::where('is_active', true)->orderBy('display_order')->get(['id', 'name', 'code']),
@@ -75,11 +83,13 @@ class DiamondController extends Controller
 
         Diamond::create([
             'name' => $data['name'],
-            'diamond_clarity_id' => $data['diamond_clarity_id'] ?? null,
-            'diamond_color_id' => $data['diamond_color_id'] ?? null,
-            'diamond_shape_id' => $data['diamond_shape_id'] ?? null,
-            'diamond_shape_size_id' => $data['diamond_shape_size_id'] ?? null,
+            'diamond_type_id' => $data['diamond_type_id'],
+            'diamond_clarity_id' => $data['diamond_clarity_id'],
+            'diamond_color_id' => $data['diamond_color_id'],
+            'diamond_shape_id' => $data['diamond_shape_id'],
+            'diamond_shape_size_id' => $data['diamond_shape_size_id'],
             'price' => $data['price'],
+            'weight' => $data['weight'],
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
         ]);
@@ -95,11 +105,13 @@ class DiamondController extends Controller
 
         $diamond->update([
             'name' => $data['name'],
-            'diamond_clarity_id' => $data['diamond_clarity_id'] ?? null,
-            'diamond_color_id' => $data['diamond_color_id'] ?? null,
-            'diamond_shape_id' => $data['diamond_shape_id'] ?? null,
-            'diamond_shape_size_id' => $data['diamond_shape_size_id'] ?? null,
+            'diamond_type_id' => $data['diamond_type_id'],
+            'diamond_clarity_id' => $data['diamond_clarity_id'],
+            'diamond_color_id' => $data['diamond_color_id'],
+            'diamond_shape_id' => $data['diamond_shape_id'],
+            'diamond_shape_size_id' => $data['diamond_shape_size_id'],
             'price' => $data['price'],
+            'weight' => $data['weight'],
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
         ]);
@@ -129,8 +141,15 @@ class DiamondController extends Controller
 
     public function getShapeSizes(int $shapeId)
     {
-        $shapeSizes = DiamondShapeSize::where('diamond_shape_id', $shapeId)
-            ->orderBy('display_order')
+        $typeId = request('type_id');
+
+        $query = DiamondShapeSize::where('diamond_shape_id', $shapeId);
+
+        if ($typeId) {
+            $query->where('diamond_type_id', $typeId);
+        }
+
+        $shapeSizes = $query->orderBy('display_order')
             ->get(['id', 'size', 'secondary_size', 'ctw']);
 
         return response()->json($shapeSizes->map(function ($size) {
@@ -142,5 +161,35 @@ class DiamondController extends Controller
                 'label' => trim(($size->size ?? '') . ' ' . ($size->secondary_size ?? '')) . ' (CTW: ' . number_format((float) $size->ctw, 3) . ')',
             ];
         }));
+    }
+
+    public function getClaritiesByType(int $typeId)
+    {
+        $clarities = DiamondClarity::where('diamond_type_id', $typeId)
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->get(['id', 'name', 'code']);
+
+        return response()->json($clarities);
+    }
+
+    public function getColorsByType(int $typeId)
+    {
+        $colors = DiamondColor::where('diamond_type_id', $typeId)
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->get(['id', 'name', 'code']);
+
+        return response()->json($colors);
+    }
+
+    public function getShapesByType(int $typeId)
+    {
+        $shapes = DiamondShape::where('diamond_type_id', $typeId)
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->get(['id', 'name', 'code']);
+
+        return response()->json($shapes);
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\BulkDestroyDiamondColorsRequest;
 use App\Http\Requests\Admin\StoreDiamondColorRequest;
 use App\Http\Requests\Admin\UpdateDiamondColorRequest;
 use App\Models\DiamondColor;
+use App\Models\DiamondType;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,6 +23,7 @@ class DiamondColorController extends Controller
         }
 
         $colors = DiamondColor::query()
+            ->with('type')
             ->orderBy('display_order')
             ->orderBy('name')
             ->paginate($perPage)
@@ -29,6 +31,12 @@ class DiamondColorController extends Controller
             ->through(function (DiamondColor $color) {
                 return [
                     'id' => $color->id,
+                    'diamond_type_id' => $color->diamond_type_id,
+                    'type' => $color->type ? [
+                        'id' => $color->type->id,
+                        'name' => $color->type->name,
+                        'code' => $color->type->code,
+                    ] : null,
                     'code' => $color->code,
                     'name' => $color->name,
                     'ecat_name' => $color->ecat_name,
@@ -40,6 +48,7 @@ class DiamondColorController extends Controller
 
         return Inertia::render('Admin/Diamond/Colors/Index', [
             'colors' => $colors,
+            'types' => DiamondType::where('is_active', true)->orderBy('display_order')->get(['id', 'name', 'code']),
         ]);
     }
 
@@ -48,6 +57,7 @@ class DiamondColorController extends Controller
         $data = $request->validated();
 
         DiamondColor::create([
+            'diamond_type_id' => $data['diamond_type_id'],
             'code' => $data['code'] ?? null,
             'name' => $data['name'],
             'ecat_name' => $data['ecat_name'] ?? null,
@@ -66,6 +76,7 @@ class DiamondColorController extends Controller
         $data = $request->validated();
 
         $color->update([
+            'diamond_type_id' => $data['diamond_type_id'],
             'code' => $data['code'] ?? null,
             'name' => $data['name'],
             'ecat_name' => $data['ecat_name'] ?? null,

@@ -20,6 +20,7 @@ class UpdateDiamondShapeRequest extends FormRequest
         $shape = $this->route('shape');
 
         return [
+            'diamond_type_id' => ['required', 'integer', 'exists:diamond_types,id'],
             'code' => ['nullable', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255', Rule::unique('diamond_shapes', 'name')->ignore($shape ? $shape->id : null)],
             'ecat_name' => ['nullable', 'string', 'max:255'],

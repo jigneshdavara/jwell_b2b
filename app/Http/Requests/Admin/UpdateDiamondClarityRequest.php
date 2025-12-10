@@ -20,6 +20,7 @@ class UpdateDiamondClarityRequest extends FormRequest
         $clarity = $this->route('clarity');
 
         return [
+            'diamond_type_id' => ['required', 'integer', 'exists:diamond_types,id'],
             'code' => ['nullable', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255', Rule::unique('diamond_clarities', 'name')->ignore($clarity ? $clarity->id : null)],
             'ecat_name' => ['nullable', 'string', 'max:255'],

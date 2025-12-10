@@ -18,11 +18,13 @@ class StoreDiamondRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'diamond_clarity_id' => ['nullable', 'integer', 'exists:diamond_clarities,id'],
-            'diamond_color_id' => ['nullable', 'integer', 'exists:diamond_colors,id'],
-            'diamond_shape_id' => ['nullable', 'integer', 'exists:diamond_shapes,id'],
-            'diamond_shape_size_id' => ['nullable', 'integer', 'exists:diamond_shape_sizes,id'],
+            'diamond_type_id' => ['required', 'integer', 'exists:diamond_types,id'],
+            'diamond_clarity_id' => ['required', 'integer', 'exists:diamond_clarities,id'],
+            'diamond_color_id' => ['required', 'integer', 'exists:diamond_colors,id'],
+            'diamond_shape_id' => ['required', 'integer', 'exists:diamond_shapes,id'],
+            'diamond_shape_size_id' => ['required', 'integer', 'exists:diamond_shape_sizes,id'],
             'price' => ['required', 'numeric', 'min:0'],
+            'weight' => ['required', 'numeric', 'min:0'],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
         ];

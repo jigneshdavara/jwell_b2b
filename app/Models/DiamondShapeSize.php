@@ -11,6 +11,7 @@ class DiamondShapeSize extends Model
     use HasFactory;
 
     protected $fillable = [
+        'diamond_type_id',
         'diamond_shape_id',
         'size',
         'secondary_size',
@@ -23,6 +24,11 @@ class DiamondShapeSize extends Model
         'ctw' => 'decimal:3',
         'display_order' => 'integer',
     ];
+
+    public function type(): BelongsTo
+    {
+        return $this->belongsTo(DiamondType::class, 'diamond_type_id');
+    }
 
     public function shape(): BelongsTo
     {

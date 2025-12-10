@@ -7,6 +7,7 @@ use App\Models\DiamondClarity;
 use App\Models\DiamondColor;
 use App\Models\DiamondShape;
 use App\Models\DiamondShapeSize;
+use App\Models\DiamondType;
 use Illuminate\Database\Seeder;
 
 class DiamondDataSeeder extends Seeder
@@ -16,6 +17,7 @@ class DiamondDataSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->seedDiamondTypes();
         $this->seedDiamondClarities();
         $this->seedDiamondColors();
         $this->seedDiamondShapes();
@@ -23,11 +25,66 @@ class DiamondDataSeeder extends Seeder
         $this->seedDiamonds();
     }
 
+    protected function seedDiamondTypes(): void
+    {
+        $this->command->info('Seeding diamond types...');
+
+        $types = [
+            [
+                'code' => 'NAT',
+                'name' => 'Natural Diamond',
+                'description' => 'Natural diamonds formed deep within the Earth over millions of years.',
+                'display_order' => 1,
+            ],
+            [
+                'code' => 'LAB',
+                'name' => 'Lab Grown Diamond',
+                'description' => 'Laboratory-grown diamonds with identical physical and chemical properties to natural diamonds.',
+                'display_order' => 2,
+            ],
+            [
+                'code' => 'FANCY',
+                'name' => 'Fancy Color Diamond',
+                'description' => 'Fancy colored diamonds including yellow, pink, blue, and other hues.',
+                'display_order' => 6,
+            ],
+        ];
+
+        foreach ($types as $type) {
+            DiamondType::updateOrCreate(
+                ['name' => $type['name']],
+                [
+                    'code' => $type['code'],
+                    'description' => $type['description'],
+                    'is_active' => true,
+                    'display_order' => $type['display_order'],
+                ]
+            );
+        }
+
+        $this->command->info('Imported ' . count($types) . ' diamond types.');
+    }
+
     protected function seedDiamondClarities(): void
     {
         $this->command->info('Seeding diamond clarities...');
 
-        $clarities = [
+        // Get diamond types
+        $naturalType = DiamondType::where('code', 'NAT')->first();
+        $fancyType = DiamondType::where('code', 'FANCY')->first();
+
+        if (!$naturalType) {
+            $this->command->error('Natural Diamond type not found. Please seed diamond types first.');
+            return;
+        }
+
+        if (!$fancyType) {
+            $this->command->error('Fancy Color Diamond type not found. Please seed diamond types first.');
+            return;
+        }
+
+        // Natural Diamond clarities
+        $naturalClarities = [
             ['code' => 'A1', 'name' => 'A1', 'ecat_name' => 'A1', 'description' => '', 'display_order' => 1],
             ['code' => 'A2', 'name' => 'A2', 'ecat_name' => 'A2', 'description' => '', 'display_order' => 2],
             ['code' => 'A3', 'name' => 'A3', 'ecat_name' => 'A3', 'description' => '', 'display_order' => 3],
@@ -54,9 +111,12 @@ class DiamondDataSeeder extends Seeder
             ['code' => 'C-SI', 'name' => 'C-SI', 'ecat_name' => 'Lab Grown SI', 'description' => '', 'display_order' => 24],
         ];
 
-        foreach ($clarities as $clarity) {
+        foreach ($naturalClarities as $clarity) {
             DiamondClarity::updateOrCreate(
-                ['name' => $clarity['name']],
+                [
+                    'diamond_type_id' => $naturalType->id,
+                    'name' => $clarity['name'],
+                ],
                 [
                     'code' => $clarity['code'] ?: null,
                     'ecat_name' => $clarity['ecat_name'] ?: null,
@@ -67,14 +127,104 @@ class DiamondDataSeeder extends Seeder
             );
         }
 
-        $this->command->info('Imported ' . count($clarities) . ' diamond clarities.');
+        $this->command->info('Imported ' . count($naturalClarities) . ' natural diamond clarities.');
+
+        // Fancy Color Diamond clarities from Excel file
+        $fancyClarities = [
+            ['code' => 'CUS', 'name' => 'CUS', 'ecat_name' => 'CUS', 'description' => '', 'display_order' => 1],
+            ['code' => 'CER', 'name' => 'CER', 'ecat_name' => 'CER', 'description' => '', 'display_order' => 2],
+            ['code' => 'CZ', 'name' => 'CZ', 'ecat_name' => 'CZ', 'description' => '', 'display_order' => 2],
+            ['code' => 'S-MOL', 'name' => 'S-MOL', 'ecat_name' => 'S-MOL', 'description' => '', 'display_order' => 3],
+            ['code' => 'N-MOP', 'name' => 'N-MOP', 'ecat_name' => 'N-MOP', 'description' => '', 'display_order' => 4],
+            ['code' => 'N-AME', 'name' => 'N-AME', 'ecat_name' => 'N-AME', 'description' => '', 'display_order' => 5],
+            ['code' => 'S-AME', 'name' => 'S-AME', 'ecat_name' => 'S-AME', 'description' => '', 'display_order' => 6],
+            ['code' => 'N-AQM', 'name' => 'N-AQM', 'ecat_name' => 'N-AQM', 'description' => '', 'display_order' => 7],
+            ['code' => 'S-AQM', 'name' => 'S-AQM', 'ecat_name' => 'S-AQM', 'description' => '', 'display_order' => 8],
+            ['code' => 'S-CIT', 'name' => 'S-CIT', 'ecat_name' => 'S-CIT', 'description' => '', 'display_order' => 9],
+            ['code' => 'N-CIT', 'name' => 'N-CIT', 'ecat_name' => 'N-CIT', 'description' => '', 'display_order' => 10],
+            ['code' => 'N-CRL', 'name' => 'N-CRL', 'ecat_name' => 'N-CRL', 'description' => '', 'display_order' => 11],
+            ['code' => 'S-CRL', 'name' => 'S-CRL', 'ecat_name' => 'S-CRL', 'description' => '', 'display_order' => 12],
+            ['code' => 'S-EMR', 'name' => 'S-EMR', 'ecat_name' => 'S-EMR', 'description' => '', 'display_order' => 13],
+            ['code' => 'N-EMR', 'name' => 'N-EMR', 'ecat_name' => 'N-EMR', 'description' => '', 'display_order' => 14],
+            ['code' => 'S-GRT', 'name' => 'S-GRT', 'ecat_name' => 'S-GRT', 'description' => '', 'display_order' => 15],
+            ['code' => 'N-GRT', 'name' => 'N-GRT', 'ecat_name' => 'N-GRT', 'description' => '', 'display_order' => 16],
+            ['code' => 'N-JDE', 'name' => 'N-JDE', 'ecat_name' => 'N-JDE', 'description' => '', 'display_order' => 17],
+            ['code' => 'S-JDE', 'name' => 'S-JDE', 'ecat_name' => 'S-JDE', 'description' => '', 'display_order' => 18],
+            ['code' => 'S-LPZ', 'name' => 'S-LPZ', 'ecat_name' => 'S-LPZ', 'description' => '', 'display_order' => 19],
+            ['code' => 'N-LPZ', 'name' => 'N-LPZ', 'ecat_name' => 'N-LPZ', 'description' => '', 'display_order' => 20],
+            ['code' => 'N-MLA', 'name' => 'N-MLA', 'ecat_name' => 'N-MLA', 'description' => '', 'display_order' => 21],
+            ['code' => 'S-MLA', 'name' => 'S-MLA', 'ecat_name' => 'S-MLA', 'description' => '', 'display_order' => 22],
+            ['code' => 'EVE', 'name' => 'EVE', 'ecat_name' => 'EVE', 'description' => '', 'display_order' => 22],
+            ['code' => 'S-ONX', 'name' => 'S-ONX', 'ecat_name' => 'S-ONX', 'description' => '', 'display_order' => 23],
+            ['code' => 'N-ONX', 'name' => 'N-ONX', 'ecat_name' => 'N-ONX', 'description' => '', 'display_order' => 23],
+            ['code' => 'N-MST', 'name' => 'N-MST', 'ecat_name' => 'N-MST', 'description' => '', 'display_order' => 24],
+            ['code' => 'N-OPL', 'name' => 'N-OPL', 'ecat_name' => 'N-OPL', 'description' => '', 'display_order' => 25],
+            ['code' => 'S-OPL', 'name' => 'S-OPL', 'ecat_name' => 'S-OPL', 'description' => '', 'display_order' => 26],
+            ['code' => 'S-PDT', 'name' => 'S-PDT', 'ecat_name' => 'S-PDT', 'description' => '', 'display_order' => 27],
+            ['code' => 'N-PDT', 'name' => 'N-PDT', 'ecat_name' => 'N-PDT', 'description' => '', 'display_order' => 28],
+            ['code' => 'N-PRL', 'name' => 'N-PRL', 'ecat_name' => 'N-PRL', 'description' => '', 'display_order' => 29],
+            ['code' => 'S-PRL', 'name' => 'S-PRL', 'ecat_name' => 'S-PRL', 'description' => '', 'display_order' => 29],
+            ['code' => 'N-RUB', 'name' => 'N-RUB', 'ecat_name' => 'N-RUB', 'description' => '', 'display_order' => 29],
+            ['code' => 'S-RUB', 'name' => 'S-RUB', 'ecat_name' => 'S-RUB', 'description' => '', 'display_order' => 30],
+            ['code' => 'N-SPR', 'name' => 'N-SPR', 'ecat_name' => 'N-SPR', 'description' => '', 'display_order' => 31],
+            ['code' => 'S-SPR', 'name' => 'S-SPR', 'ecat_name' => 'S-SPR', 'description' => '', 'display_order' => 32],
+            ['code' => 'S-TGE', 'name' => 'S-TGE', 'ecat_name' => 'S-TGE', 'description' => '', 'display_order' => 33],
+            ['code' => 'N-TGE', 'name' => 'N-TGE', 'ecat_name' => 'N-TGE', 'description' => '', 'display_order' => 34],
+            ['code' => 'N-TNZ', 'name' => 'N-TNZ', 'ecat_name' => 'N-TNZ', 'description' => '', 'display_order' => 35],
+            ['code' => 'S-TNZ', 'name' => 'S-TNZ', 'ecat_name' => 'S-TNZ', 'description' => '', 'display_order' => 36],
+            ['code' => 'N-TPZ', 'name' => 'N-TPZ', 'ecat_name' => 'N-TPZ', 'description' => '', 'display_order' => 37],
+            ['code' => 'S-TPZ', 'name' => 'S-TPZ', 'ecat_name' => 'S-TPZ', 'description' => '', 'display_order' => 38],
+            ['code' => 'S-TQS', 'name' => 'S-TQS', 'ecat_name' => 'S-TQS', 'description' => '', 'display_order' => 39],
+            ['code' => 'N-TQS', 'name' => 'N-TQS', 'ecat_name' => 'N-TQS', 'description' => '', 'display_order' => 40],
+            ['code' => 'N-TRM', 'name' => 'N-TRM', 'ecat_name' => 'N-TRM', 'description' => '', 'display_order' => 41],
+            ['code' => 'S-TRM', 'name' => 'S-TRM', 'ecat_name' => 'S-TRM', 'description' => '', 'display_order' => 42],
+            ['code' => 'N-SQZ', 'name' => 'N-SQZ', 'ecat_name' => 'N-SQZ', 'description' => '', 'display_order' => 46],
+            ['code' => 'MOZ', 'name' => 'MOZ', 'ecat_name' => 'MOZ', 'description' => '', 'display_order' => 50],
+            ['code' => 'S-SQZ', 'name' => 'S-SQZ', 'ecat_name' => 'S-SQZ', 'description' => 'NA', 'display_order' => 51],
+            ['code' => 'L-TNZ', 'name' => 'L-TNZ', 'ecat_name' => 'L-TNZ', 'description' => '', 'display_order' => 52],
+            ['code' => 'L-RUB', 'name' => 'L-RUB', 'ecat_name' => 'L-RUB', 'description' => '', 'display_order' => 53],
+            ['code' => 'L-EMR', 'name' => 'L-EMR', 'ecat_name' => 'L-EMR', 'description' => '', 'display_order' => 54],
+        ];
+
+        foreach ($fancyClarities as $clarity) {
+            DiamondClarity::updateOrCreate(
+                [
+                    'diamond_type_id' => $fancyType->id,
+                    'name' => $clarity['name'],
+                ],
+                [
+                    'code' => $clarity['code'] ?: null,
+                    'ecat_name' => $clarity['ecat_name'] ?: null,
+                    'description' => $clarity['description'] ?: null,
+                    'display_order' => $clarity['display_order'],
+                    'is_active' => true,
+                ]
+            );
+        }
+
+        $this->command->info('Imported ' . count($fancyClarities) . ' fancy color diamond clarities.');
     }
 
     protected function seedDiamondColors(): void
     {
         $this->command->info('Seeding diamond colors...');
 
-        $colors = [
+        // Get diamond types
+        $naturalType = DiamondType::where('code', 'NAT')->first();
+        $fancyType = DiamondType::where('code', 'FANCY')->first();
+
+        if (!$naturalType) {
+            $this->command->error('Natural Diamond type not found. Please seed diamond types first.');
+            return;
+        }
+
+        if (!$fancyType) {
+            $this->command->error('Fancy Color Diamond type not found. Please seed diamond types first.');
+            return;
+        }
+
+        // Natural Diamond colors
+        $naturalColors = [
             ['code' => 'UnGraded', 'name' => 'UnGraded', 'description' => '', 'display_order' => 1],
             ['code' => 'DEF', 'name' => 'DEF', 'description' => '', 'display_order' => 1],
             ['code' => 'EF', 'name' => 'EF', 'description' => '', 'display_order' => 2],
@@ -87,9 +237,12 @@ class DiamondDataSeeder extends Seeder
             ['code' => 'WHT', 'name' => 'WHT', 'description' => '', 'display_order' => 10],
         ];
 
-        foreach ($colors as $color) {
+        foreach ($naturalColors as $color) {
             DiamondColor::updateOrCreate(
-                ['name' => $color['name']],
+                [
+                    'diamond_type_id' => $naturalType->id,
+                    'name' => $color['name'],
+                ],
                 [
                     'code' => $color['code'] ?: null,
                     'ecat_name' => null,
@@ -100,14 +253,92 @@ class DiamondDataSeeder extends Seeder
             );
         }
 
-        $this->command->info('Imported ' . count($colors) . ' diamond colors.');
+        $this->command->info('Imported ' . count($naturalColors) . ' natural diamond colors.');
+
+        // Fancy Color Diamond colors from Excel file
+        $fancyColors = [
+            ['code' => 'UnGraded', 'name' => 'UnGraded', 'description' => '', 'display_order' => 0],
+            ['code' => 'BLK', 'name' => 'BLK', 'description' => '', 'display_order' => 1],
+            ['code' => 'BLU', 'name' => 'BLU', 'description' => 'Blue', 'display_order' => 2],
+            ['code' => 'BRW', 'name' => 'BRW', 'description' => 'Brown', 'display_order' => 4],
+            ['code' => 'DPK', 'name' => 'DPK', 'description' => '', 'display_order' => 5],
+            ['code' => 'GRN', 'name' => 'GRN', 'description' => '', 'display_order' => 6],
+            ['code' => 'GRY', 'name' => 'GRY', 'description' => '', 'display_order' => 7],
+            ['code' => 'LBL', 'name' => 'LBL', 'description' => '', 'display_order' => 8],
+            ['code' => 'LGN', 'name' => 'LGN', 'description' => '', 'display_order' => 9],
+            ['code' => 'LPK', 'name' => 'LPK', 'description' => '', 'display_order' => 10],
+            ['code' => 'GLD', 'name' => 'GLD', 'description' => '', 'display_order' => 11],
+            ['code' => 'ORC', 'name' => 'ORC', 'description' => '', 'display_order' => 12],
+            ['code' => 'PNK', 'name' => 'PNK', 'description' => '', 'display_order' => 13],
+            ['code' => 'PUR', 'name' => 'PUR', 'description' => '', 'display_order' => 14],
+            ['code' => 'RED', 'name' => 'RED', 'description' => '', 'display_order' => 15],
+            ['code' => 'RNB', 'name' => 'RNB', 'description' => '', 'display_order' => 16],
+            ['code' => 'WHT', 'name' => 'WHT', 'description' => '', 'display_order' => 17],
+            ['code' => 'YLW', 'name' => 'YLW', 'description' => '', 'display_order' => 18],
+            ['code' => 'NYW', 'name' => 'NYW', 'description' => '', 'display_order' => 19],
+            ['code' => 'NOG', 'name' => 'NOG', 'description' => '', 'display_order' => 20],
+            ['code' => 'NPK', 'name' => 'NPK', 'description' => '', 'display_order' => 21],
+            ['code' => 'NGN', 'name' => 'NGN', 'description' => '', 'display_order' => 23],
+            ['code' => 'PPK', 'name' => 'PPK', 'description' => '', 'display_order' => 21],
+            ['code' => 'PSG', 'name' => 'PSG', 'description' => '', 'display_order' => 24],
+            ['code' => 'PSP', 'name' => 'PSP', 'description' => '', 'display_order' => 25],
+            ['code' => 'PSB', 'name' => 'PSB', 'description' => '', 'display_order' => 26],
+            ['code' => 'PPL', 'name' => 'PPL', 'description' => '', 'display_order' => 27],
+            ['code' => 'OCM', 'name' => 'OCM', 'description' => '', 'display_order' => 27],
+            ['code' => 'PEP', 'name' => 'PEP', 'description' => '', 'display_order' => 29],
+            ['code' => 'GPU', 'name' => 'GPU', 'description' => '', 'display_order' => 30],
+            ['code' => 'MIG', 'name' => 'MIG', 'description' => '', 'display_order' => 31],
+            ['code' => 'YBL', 'name' => 'YBL', 'description' => '', 'display_order' => 32],
+            ['code' => 'MPL', 'name' => 'MPL', 'description' => '', 'display_order' => 33],
+            ['code' => 'IVR', 'name' => 'IVR', 'description' => '', 'display_order' => 34],
+            ['code' => 'PVR', 'name' => 'PVR', 'description' => '', 'display_order' => 34],
+            ['code' => 'ORG', 'name' => 'ORG', 'description' => '', 'display_order' => 35],
+            ['code' => 'MRN', 'name' => 'MRN', 'description' => '', 'display_order' => 36],
+            ['code' => 'DBR', 'name' => 'DBR', 'description' => '', 'display_order' => 37],
+            ['code' => 'LBR', 'name' => 'LBR', 'description' => '', 'display_order' => 38],
+            ['code' => 'POG', 'name' => 'POG', 'description' => '', 'display_order' => 39],
+            ['code' => 'MIX', 'name' => 'MIX', 'description' => '', 'display_order' => 21],
+        ];
+
+        foreach ($fancyColors as $color) {
+            DiamondColor::updateOrCreate(
+                [
+                    'diamond_type_id' => $fancyType->id,
+                    'name' => $color['name'],
+                ],
+                [
+                    'code' => $color['code'] ?: null,
+                    'ecat_name' => null,
+                    'description' => $color['description'] ?: null,
+                    'display_order' => $color['display_order'],
+                    'is_active' => true,
+                ]
+            );
+        }
+
+        $this->command->info('Imported ' . count($fancyColors) . ' fancy color diamond colors.');
     }
 
     protected function seedDiamondShapes(): void
     {
         $this->command->info('Seeding diamond shapes...');
 
-        $shapes = [
+        // Get diamond types
+        $naturalType = DiamondType::where('code', 'NAT')->first();
+        $fancyType = DiamondType::where('code', 'FANCY')->first();
+
+        if (!$naturalType) {
+            $this->command->error('Natural Diamond type not found. Please seed diamond types first.');
+            return;
+        }
+
+        if (!$fancyType) {
+            $this->command->error('Fancy Color Diamond type not found. Please seed diamond types first.');
+            return;
+        }
+
+        // Natural Diamond shapes
+        $naturalShapes = [
             ['code' => 'UnGraded', 'name' => 'UnGraded', 'ecat_name' => '', 'display_order' => 0],
             ['code' => 'RND', 'name' => 'RND', 'ecat_name' => 'Round', 'display_order' => 1],
             ['code' => 'RND-S', 'name' => 'RND-S', 'ecat_name' => 'Round Single Cut', 'display_order' => 2],
@@ -124,9 +355,12 @@ class DiamondDataSeeder extends Seeder
             ['code' => 'RSC', 'name' => 'RSC', 'ecat_name' => 'Rose Cut', 'display_order' => 13],
         ];
 
-        foreach ($shapes as $shape) {
+        foreach ($naturalShapes as $shape) {
             DiamondShape::updateOrCreate(
-                ['name' => $shape['name']],
+                [
+                    'diamond_type_id' => $naturalType->id,
+                    'name' => $shape['name'],
+                ],
                 [
                     'code' => $shape['code'] ?: null,
                     'ecat_name' => $shape['ecat_name'] ?: null,
@@ -137,7 +371,57 @@ class DiamondDataSeeder extends Seeder
             );
         }
 
-        $this->command->info('Imported ' . count($shapes) . ' diamond shapes.');
+        $this->command->info('Imported ' . count($naturalShapes) . ' natural diamond shapes.');
+
+        // Fancy Color Diamond shapes from Excel file
+        $fancyShapes = [
+            ['code' => 'UnGraded', 'name' => 'UnGraded', 'ecat_name' => 'UnGraded', 'display_order' => 0],
+            ['code' => 'ASH', 'name' => 'ASH', 'ecat_name' => 'ASH', 'display_order' => 1],
+            ['code' => 'BUG', 'name' => 'BUG', 'ecat_name' => 'BUG', 'display_order' => 3],
+            ['code' => 'CUS', 'name' => 'CUS', 'ecat_name' => 'CUS', 'display_order' => 6],
+            ['code' => 'FBFD', 'name' => 'FBFD', 'ecat_name' => 'FBFD', 'display_order' => 11],
+            ['code' => 'HBHD', 'name' => 'HBHD', 'ecat_name' => 'HBHD', 'display_order' => 14],
+            ['code' => 'OCT', 'name' => 'OCT', 'ecat_name' => 'OCT', 'display_order' => 17],
+            ['code' => 'OVL', 'name' => 'OVL', 'ecat_name' => 'OVL', 'display_order' => 18],
+            ['code' => 'OVL-CB', 'name' => 'OVL-CB', 'ecat_name' => 'OVL-CB', 'display_order' => 19],
+            ['code' => 'PRI', 'name' => 'PRI', 'ecat_name' => 'PRI', 'display_order' => 20],
+            ['code' => 'PRI-CB', 'name' => 'PRI-CB', 'ecat_name' => 'PRI-CB', 'display_order' => 21],
+            ['code' => 'PRS', 'name' => 'PRS', 'ecat_name' => 'PRS', 'display_order' => 22],
+            ['code' => 'PRS-CB', 'name' => 'PRS-CB', 'ecat_name' => 'PRS-CB', 'display_order' => 23],
+            ['code' => 'RND', 'name' => 'RND', 'ecat_name' => 'RND', 'display_order' => 24],
+            ['code' => 'RND-CB', 'name' => 'RND-CB', 'ecat_name' => 'RND-CB', 'display_order' => 25],
+            ['code' => 'BAL', 'name' => 'BAL', 'ecat_name' => 'BAL', 'display_order' => 2],
+            ['code' => 'CSN', 'name' => 'CSN', 'ecat_name' => 'CSN', 'display_order' => 4],
+            ['code' => 'CSN-CB', 'name' => 'CSN-CB', 'ecat_name' => 'CSN-CB', 'display_order' => 5],
+            ['code' => 'DRFD', 'name' => 'DRFD', 'ecat_name' => 'DRFD', 'display_order' => 7],
+            ['code' => 'DRHD', 'name' => 'DRHD', 'ecat_name' => 'DRHD', 'display_order' => 8],
+            ['code' => 'EMR', 'name' => 'EMR', 'ecat_name' => 'EMR', 'display_order' => 9],
+            ['code' => 'EMR-CB', 'name' => 'EMR-CB', 'ecat_name' => 'EMR-CB', 'display_order' => 10],
+            ['code' => 'FBHD', 'name' => 'FBHD', 'ecat_name' => 'FBHD', 'display_order' => 12],
+            ['code' => 'HBFD', 'name' => 'HBFD', 'ecat_name' => 'HBFD', 'display_order' => 13],
+            ['code' => 'HRT', 'name' => 'HRT', 'ecat_name' => 'HRT', 'display_order' => 15],
+            ['code' => 'MRQ', 'name' => 'MRQ', 'ecat_name' => 'MRQ', 'display_order' => 16],
+            ['code' => 'TRI', 'name' => 'TRI', 'ecat_name' => 'TRI', 'display_order' => 27],
+            ['code' => 'TRL', 'name' => 'TRL', 'ecat_name' => 'TRL', 'display_order' => 28],
+        ];
+
+        foreach ($fancyShapes as $shape) {
+            DiamondShape::updateOrCreate(
+                [
+                    'diamond_type_id' => $fancyType->id,
+                    'name' => $shape['name'],
+                ],
+                [
+                    'code' => $shape['code'] ?: null,
+                    'ecat_name' => $shape['ecat_name'] ?: null,
+                    'description' => null,
+                    'display_order' => $shape['display_order'],
+                    'is_active' => true,
+                ]
+            );
+        }
+
+        $this->command->info('Imported ' . count($fancyShapes) . ' fancy color diamond shapes.');
     }
 
     protected function seedDiamondShapeSizes(): void
@@ -146,6 +430,20 @@ class DiamondDataSeeder extends Seeder
 
         // Get all shapes indexed by name for lookup
         $shapes = DiamondShape::all()->keyBy('name');
+
+        // Get diamond types
+        $naturalType = DiamondType::where('code', 'NAT')->first();
+        $fancyType = DiamondType::where('code', 'FANCY')->first();
+
+        if (!$naturalType) {
+            $this->command->error('Natural Diamond type not found. Please seed diamond types first.');
+            return;
+        }
+
+        if (!$fancyType) {
+            $this->command->error('Fancy Color Diamond type not found. Please seed diamond types first.');
+            return;
+        }
 
         $shapeSizes = [
             // UnGraded
@@ -440,6 +738,7 @@ class DiamondDataSeeder extends Seeder
                     'secondary_size' => $sizeData['secondary_size'] ?: null,
                 ],
                 [
+                    'diamond_type_id' => $naturalType->id,
                     'description' => $sizeData['description'] ?: null,
                     'display_order' => $sizeData['display_order'],
                     'ctw' => $sizeData['ctw'],
@@ -456,6 +755,13 @@ class DiamondDataSeeder extends Seeder
         $this->command->info('Seeding diamonds...');
 
         // Get reference data
+        $naturalType = DiamondType::where('code', 'NAT')->first();
+
+        if (!$naturalType) {
+            $this->command->error('Natural Diamond type not found. Please seed diamond types first.');
+            return;
+        }
+
         $clarities = DiamondClarity::where('is_active', true)->get()->keyBy('name');
         $colors = DiamondColor::where('is_active', true)->get()->keyBy('name');
         $shapes = DiamondShape::where('is_active', true)->get()->keyBy('name');
@@ -464,64 +770,64 @@ class DiamondDataSeeder extends Seeder
         // Common combinations for dummy data
         $diamondData = [
             // Round diamonds - various qualities
-            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '1.00', 'price' => 5000.00, 'name' => 'Round VVS DEF 1.00ct'],
-            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'VS', 'size' => '1.00', 'price' => 4500.00, 'name' => 'Round VS DEF 1.00ct'],
-            ['shape' => 'RND', 'color' => 'EF', 'clarity' => 'VVS', 'size' => '1.50', 'price' => 7500.00, 'name' => 'Round VVS EF 1.50ct'],
-            ['shape' => 'RND', 'color' => 'GH', 'clarity' => 'VS', 'size' => '2.00', 'price' => 12000.00, 'name' => 'Round VS GH 2.00ct'],
-            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'VVS1', 'size' => '3.00', 'price' => 25000.00, 'name' => 'Round VVS1 DEF 3.00ct'],
-            ['shape' => 'RND', 'color' => 'FG', 'clarity' => 'SI', 'size' => '0.90', 'price' => 3500.00, 'name' => 'Round SI FG 0.90ct'],
-            ['shape' => 'RND', 'color' => 'HI', 'clarity' => 'VS', 'size' => '1.25', 'price' => 5500.00, 'name' => 'Round VS HI 1.25ct'],
-            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'VVS-VS', 'size' => '1.80', 'price' => 8500.00, 'name' => 'Round VVS-VS DEF 1.80ct'],
+            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '1.00', 'weight' => 1.000, 'price' => 5000.00, 'name' => 'Round VVS DEF 1.00ct'],
+            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'VS', 'size' => '1.00', 'weight' => 1.000, 'price' => 4500.00, 'name' => 'Round VS DEF 1.00ct'],
+            ['shape' => 'RND', 'color' => 'EF', 'clarity' => 'VVS', 'size' => '1.50', 'weight' => 1.500, 'price' => 7500.00, 'name' => 'Round VVS EF 1.50ct'],
+            ['shape' => 'RND', 'color' => 'GH', 'clarity' => 'VS', 'size' => '2.00', 'weight' => 2.000, 'price' => 12000.00, 'name' => 'Round VS GH 2.00ct'],
+            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'VVS1', 'size' => '3.00', 'weight' => 3.000, 'price' => 25000.00, 'name' => 'Round VVS1 DEF 3.00ct'],
+            ['shape' => 'RND', 'color' => 'FG', 'clarity' => 'SI', 'size' => '0.90', 'weight' => 0.900, 'price' => 3500.00, 'name' => 'Round SI FG 0.90ct'],
+            ['shape' => 'RND', 'color' => 'HI', 'clarity' => 'VS', 'size' => '1.25', 'weight' => 1.250, 'price' => 5500.00, 'name' => 'Round VS HI 1.25ct'],
+            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'VVS-VS', 'size' => '1.80', 'weight' => 1.800, 'price' => 8500.00, 'name' => 'Round VVS-VS DEF 1.80ct'],
 
             // Princess cut diamonds
-            ['shape' => 'PRI', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '1.00', 'price' => 4800.00, 'name' => 'Princess VVS DEF 1.00ct'],
-            ['shape' => 'PRI', 'color' => 'EF', 'clarity' => 'VS', 'size' => '1.50', 'price' => 7000.00, 'name' => 'Princess VS EF 1.50ct'],
-            ['shape' => 'PRI', 'color' => 'GH', 'clarity' => 'SI', 'size' => '2.00', 'price' => 10000.00, 'name' => 'Princess SI GH 2.00ct'],
-            ['shape' => 'PRI', 'color' => 'FG', 'clarity' => 'VVS', 'size' => '2.50', 'price' => 15000.00, 'name' => 'Princess VVS FG 2.50ct'],
+            ['shape' => 'PRI', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '1.00', 'weight' => 1.000, 'price' => 4800.00, 'name' => 'Princess VVS DEF 1.00ct'],
+            ['shape' => 'PRI', 'color' => 'EF', 'clarity' => 'VS', 'size' => '1.50', 'weight' => 1.500, 'price' => 7000.00, 'name' => 'Princess VS EF 1.50ct'],
+            ['shape' => 'PRI', 'color' => 'GH', 'clarity' => 'SI', 'size' => '2.00', 'weight' => 2.000, 'price' => 10000.00, 'name' => 'Princess SI GH 2.00ct'],
+            ['shape' => 'PRI', 'color' => 'FG', 'clarity' => 'VVS', 'size' => '2.50', 'weight' => 2.500, 'price' => 15000.00, 'name' => 'Princess VVS FG 2.50ct'],
 
             // Emerald cut diamonds
-            ['shape' => 'EMR', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00x4.00', 'price' => 22000.00, 'name' => 'Emerald VVS DEF 3.00x4.00'],
-            ['shape' => 'EMR', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00x5.00', 'price' => 28000.00, 'name' => 'Emerald VS EF 4.00x5.00'],
-            ['shape' => 'EMR', 'color' => 'GH', 'clarity' => 'VVS', 'size' => '5.00x7.00', 'price' => 45000.00, 'name' => 'Emerald VVS GH 5.00x7.00'],
+            ['shape' => 'EMR', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00x4.00', 'weight' => 0.200, 'price' => 22000.00, 'name' => 'Emerald VVS DEF 3.00x4.00'],
+            ['shape' => 'EMR', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00x5.00', 'weight' => 0.450, 'price' => 28000.00, 'name' => 'Emerald VS EF 4.00x5.00'],
+            ['shape' => 'EMR', 'color' => 'GH', 'clarity' => 'VVS', 'size' => '5.00x7.00', 'weight' => 1.000, 'price' => 45000.00, 'name' => 'Emerald VVS GH 5.00x7.00'],
 
             // Cushion cut diamonds
-            ['shape' => 'CSN', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00', 'price' => 20000.00, 'name' => 'Cushion VVS DEF 3.00ct'],
-            ['shape' => 'CSN', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00', 'price' => 30000.00, 'name' => 'Cushion VS EF 4.00ct'],
-            ['shape' => 'CSN', 'color' => 'GH', 'clarity' => 'SI', 'size' => '5.00', 'price' => 40000.00, 'name' => 'Cushion SI GH 5.00ct'],
+            ['shape' => 'CSN', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00', 'weight' => 0.150, 'price' => 20000.00, 'name' => 'Cushion VVS DEF 3.00ct'],
+            ['shape' => 'CSN', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00', 'weight' => 0.300, 'price' => 30000.00, 'name' => 'Cushion VS EF 4.00ct'],
+            ['shape' => 'CSN', 'color' => 'GH', 'clarity' => 'SI', 'size' => '5.00', 'weight' => 0.500, 'price' => 40000.00, 'name' => 'Cushion SI GH 5.00ct'],
 
             // Marquise cut diamonds
-            ['shape' => 'MRQ', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '2.00x3.00', 'price' => 15000.00, 'name' => 'Marquise VVS DEF 2.00x3.00'],
-            ['shape' => 'MRQ', 'color' => 'EF', 'clarity' => 'VS', 'size' => '3.00x5.00', 'price' => 25000.00, 'name' => 'Marquise VS EF 3.00x5.00'],
+            ['shape' => 'MRQ', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '2.00x3.00', 'weight' => 0.150, 'price' => 15000.00, 'name' => 'Marquise VVS DEF 2.00x3.00'],
+            ['shape' => 'MRQ', 'color' => 'EF', 'clarity' => 'VS', 'size' => '3.00x5.00', 'weight' => 0.250, 'price' => 25000.00, 'name' => 'Marquise VS EF 3.00x5.00'],
 
             // Oval cut diamonds
-            ['shape' => 'OVL', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00x4.00', 'price' => 21000.00, 'name' => 'Oval VVS DEF 3.00x4.00'],
-            ['shape' => 'OVL', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00x6.00', 'price' => 35000.00, 'name' => 'Oval VS EF 4.00x6.00'],
+            ['shape' => 'OVL', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00x4.00', 'weight' => 0.200, 'price' => 21000.00, 'name' => 'Oval VVS DEF 3.00x4.00'],
+            ['shape' => 'OVL', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00x6.00', 'weight' => 0.500, 'price' => 35000.00, 'name' => 'Oval VS EF 4.00x6.00'],
 
             // Heart cut diamonds
-            ['shape' => 'HRT', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00', 'price' => 22000.00, 'name' => 'Heart VVS DEF 3.00ct'],
-            ['shape' => 'HRT', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00', 'price' => 32000.00, 'name' => 'Heart VS EF 4.00ct'],
+            ['shape' => 'HRT', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00', 'weight' => 0.150, 'price' => 22000.00, 'name' => 'Heart VVS DEF 3.00ct'],
+            ['shape' => 'HRT', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00', 'weight' => 0.300, 'price' => 32000.00, 'name' => 'Heart VS EF 4.00ct'],
 
             // Pear cut diamonds
-            ['shape' => 'PRS', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '2.00x3.00', 'price' => 16000.00, 'name' => 'Pear VVS DEF 2.00x3.00'],
-            ['shape' => 'PRS', 'color' => 'EF', 'clarity' => 'VS', 'size' => '3.00x5.00', 'price' => 28000.00, 'name' => 'Pear VS EF 3.00x5.00'],
+            ['shape' => 'PRS', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '2.00x3.00', 'weight' => 0.048, 'price' => 16000.00, 'name' => 'Pear VVS DEF 2.00x3.00'],
+            ['shape' => 'PRS', 'color' => 'EF', 'clarity' => 'VS', 'size' => '3.00x5.00', 'weight' => 0.250, 'price' => 28000.00, 'name' => 'Pear VS EF 3.00x5.00'],
 
             // Asscher cut diamonds
-            ['shape' => 'ASH', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00', 'price' => 21000.00, 'name' => 'Asscher VVS DEF 3.00ct'],
-            ['shape' => 'ASH', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00', 'price' => 31000.00, 'name' => 'Asscher VS EF 4.00ct'],
+            ['shape' => 'ASH', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '3.00', 'weight' => 0.150, 'price' => 21000.00, 'name' => 'Asscher VVS DEF 3.00ct'],
+            ['shape' => 'ASH', 'color' => 'EF', 'clarity' => 'VS', 'size' => '4.00', 'weight' => 0.390, 'price' => 31000.00, 'name' => 'Asscher VS EF 4.00ct'],
 
             // Baguette diamonds
-            ['shape' => 'BUG', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '2.00x1.00(S)', 'price' => 8000.00, 'name' => 'Baguette VVS DEF 2.00x1.00'],
-            ['shape' => 'BUG', 'color' => 'EF', 'clarity' => 'VS', 'size' => '3.00x1.50(S)', 'price' => 12000.00, 'name' => 'Baguette VS EF 3.00x1.50'],
+            ['shape' => 'BUG', 'color' => 'DEF', 'clarity' => 'VVS', 'size' => '2.00x1.00(S)', 'weight' => 0.050, 'price' => 8000.00, 'name' => 'Baguette VVS DEF 2.00x1.00'],
+            ['shape' => 'BUG', 'color' => 'EF', 'clarity' => 'VS', 'size' => '3.00x1.50(S)', 'weight' => 0.100, 'price' => 12000.00, 'name' => 'Baguette VS EF 3.00x1.50'],
 
             // Lab grown diamonds
-            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'C-VVS', 'size' => '1.00', 'price' => 3000.00, 'name' => 'Lab Grown Round C-VVS DEF 1.00ct'],
-            ['shape' => 'RND', 'color' => 'EF', 'clarity' => 'C-VS', 'size' => '1.50', 'price' => 4500.00, 'name' => 'Lab Grown Round C-VS EF 1.50ct'],
-            ['shape' => 'PRI', 'color' => 'GH', 'clarity' => 'C-VVS-VS', 'size' => '2.00', 'price' => 6000.00, 'name' => 'Lab Grown Princess C-VVS-VS GH 2.00ct'],
+            ['shape' => 'RND', 'color' => 'DEF', 'clarity' => 'C-VVS', 'size' => '1.00', 'weight' => 1.000, 'price' => 3000.00, 'name' => 'Lab Grown Round C-VVS DEF 1.00ct'],
+            ['shape' => 'RND', 'color' => 'EF', 'clarity' => 'C-VS', 'size' => '1.50', 'weight' => 1.500, 'price' => 4500.00, 'name' => 'Lab Grown Round C-VS EF 1.50ct'],
+            ['shape' => 'PRI', 'color' => 'GH', 'clarity' => 'C-VVS-VS', 'size' => '2.00', 'weight' => 2.000, 'price' => 6000.00, 'name' => 'Lab Grown Princess C-VVS-VS GH 2.00ct'],
 
             // Lower quality options
-            ['shape' => 'RND', 'color' => 'IJ', 'clarity' => 'SI', 'size' => '1.00', 'price' => 2500.00, 'name' => 'Round SI IJ 1.00ct'],
-            ['shape' => 'RND', 'color' => 'JK', 'clarity' => 'I1', 'size' => '1.00', 'price' => 1500.00, 'name' => 'Round I1 JK 1.00ct'],
-            ['shape' => 'PRI', 'color' => 'HI', 'clarity' => 'SI2', 'size' => '1.50', 'price' => 3500.00, 'name' => 'Princess SI2 HI 1.50ct'],
+            ['shape' => 'RND', 'color' => 'IJ', 'clarity' => 'SI', 'size' => '1.00', 'weight' => 1.000, 'price' => 2500.00, 'name' => 'Round SI IJ 1.00ct'],
+            ['shape' => 'RND', 'color' => 'JK', 'clarity' => 'I1', 'size' => '1.00', 'weight' => 1.000, 'price' => 1500.00, 'name' => 'Round I1 JK 1.00ct'],
+            ['shape' => 'PRI', 'color' => 'HI', 'clarity' => 'SI2', 'size' => '1.50', 'weight' => 1.500, 'price' => 3500.00, 'name' => 'Princess SI2 HI 1.50ct'],
         ];
 
         $count = 0;
@@ -552,7 +858,9 @@ class DiamondDataSeeder extends Seeder
                     'diamond_clarity_id' => $clarity->id,
                 ],
                 [
-                    'diamond_shape_size_id' => $shapeSize?->id,
+                    'diamond_type_id' => $naturalType->id,
+                    'diamond_shape_size_id' => $shapeSize ? $shapeSize->id : null,
+                    'weight' => $diamond['weight'],
                     'price' => $diamond['price'],
                     'description' => "Premium {$diamond['shape']} cut diamond with {$diamond['color']} color and {$diamond['clarity']} clarity.",
                     'is_active' => true,

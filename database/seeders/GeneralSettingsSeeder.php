@@ -34,3 +34,5 @@ Jewellery Park Pal, Road, Ichchhapor, Hazira', 'string', 'company');
         Setting::set('admin_email', 'info@titliya.com', 'string', 'email');
     }
 }
+
+

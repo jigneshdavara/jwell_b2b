@@ -17,6 +17,7 @@ class StoreDiamondShapeSizeRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'diamond_type_id' => ['required', 'integer', 'exists:diamond_types,id'],
             'diamond_shape_id' => ['required', 'integer', 'exists:diamond_shapes,id'],
             'size' => ['nullable', 'string', 'max:255'],
             'secondary_size' => ['nullable', 'string', 'max:255'],

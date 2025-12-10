@@ -5,7 +5,7 @@ namespace App\Http\Requests\Admin;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreDiamondClarityRequest extends FormRequest
+class StoreDiamondTypeRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -18,13 +18,13 @@ class StoreDiamondClarityRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'diamond_type_id' => ['required', 'integer', 'exists:diamond_types,id'],
             'code' => ['nullable', 'string', 'max:255'],
-            'name' => ['required', 'string', 'max:255', Rule::unique('diamond_clarities', 'name')],
-            'ecat_name' => ['nullable', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', Rule::unique('diamond_types', 'name')],
             'description' => ['nullable', 'string'],
             'display_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],
         ];
     }
 }
+
+
