@@ -65,7 +65,7 @@ export default function AdminCategoriesIndex() {
         name: '',
         description: '',
         is_active: true,
-        display_order: '' as string | number,
+        display_order: 0 as string | number,
         cover_image: null as File | null,
         remove_cover_image: false,
         style_ids: [] as number[],
@@ -110,7 +110,7 @@ export default function AdminCategoriesIndex() {
         form.setData('cover_image', null);
         form.setData('remove_cover_image', false);
         form.setData('is_active', true);
-        form.setData('display_order', '');
+        form.setData('display_order', 0);
         form.setData('style_ids', []);
         form.setData('size_ids', []);
         setStyleSearchQuery('');
@@ -580,7 +580,7 @@ export default function AdminCategoriesIndex() {
                                             <span>Display order</span>
                                             <input
                                                 type="number"
-                                                value={form.data.display_order === '' ? '' : form.data.display_order}
+                                                value={form.data.display_order === '' || form.data.display_order === undefined ? '' : form.data.display_order}
                                                 onChange={(event) => form.setData('display_order', event.target.value === '' ? '' : Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}

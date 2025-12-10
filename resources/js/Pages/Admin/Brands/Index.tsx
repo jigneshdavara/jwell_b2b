@@ -47,7 +47,7 @@ export default function AdminBrandsIndex() {
         name: '',
         description: '',
         is_active: true,
-        display_order: '' as string | number,
+        display_order: 0 as string | number,
         cover_image: null as File | null,
         remove_cover_image: false,
     });
@@ -87,7 +87,7 @@ export default function AdminBrandsIndex() {
         form.setData('name', '');
         form.setData('description', '');
         form.setData('is_active', true);
-        form.setData('display_order', '');
+        form.setData('display_order', 0);
         form.setData('cover_image', null);
         form.setData('remove_cover_image', false);
         setCoverPreview(null);
@@ -522,7 +522,7 @@ export default function AdminBrandsIndex() {
                                             <span>Display order <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="number"
-                                                value={form.data.display_order === '' ? '' : form.data.display_order}
+                                                value={form.data.display_order === '' || form.data.display_order === undefined ? '' : form.data.display_order}
                                                 onChange={(event) => form.setData('display_order', event.target.value === '' ? '' : Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
