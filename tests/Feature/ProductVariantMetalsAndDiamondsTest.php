@@ -93,11 +93,7 @@ class ProductVariantMetalsAndDiamondsTest extends TestCase
             'material_id' => $material->id,
             'base_price' => 50000,
             'making_charge' => 5000,
-            'is_variant_product' => true,
             'uses_diamond' => true,
-            'metal_ids' => [$gold->id, $silver->id],
-            'metal_purity_ids' => [$gold18K->id, $silver925->id],
-            'metal_tone_ids' => [$yellowGold->id],
             'diamond_options' => [
                 [
                     'key' => 'diamond-opt-1',
@@ -214,10 +210,7 @@ class ProductVariantMetalsAndDiamondsTest extends TestCase
             'brand_id' => $brand->id,
             'category_id' => $category->id,
             'material_id' => $material->id,
-            'is_variant_product' => true,
             'uses_diamond' => true,
-            'metal_ids' => [$gold->id],
-            'metal_purity_ids' => [$gold18K->id],
             'diamond_options' => [
                 [
                     'key' => 'diamond-opt-1',
@@ -265,10 +258,7 @@ class ProductVariantMetalsAndDiamondsTest extends TestCase
             'category_id' => $product->category_id,
             'base_price' => $product->base_price,
             'making_charge' => $product->making_charge,
-            'is_variant_product' => true,
             'uses_diamond' => true,
-            'metal_ids' => [$gold->id, $silver->id],
-            'metal_purity_ids' => [$gold22K->id, $silver925->id],
             'diamond_options' => $product->diamond_options,
             'variants' => [
                 [
@@ -349,10 +339,7 @@ class ProductVariantMetalsAndDiamondsTest extends TestCase
             'material_id' => $material->id,
             'base_price' => 50000,
             'making_charge' => 5000,
-            'is_variant_product' => true,
             'uses_diamond' => false,
-            'metal_ids' => [$gold->id, $silver->id],
-            'metal_purity_ids' => [$gold18K->id, $silver925->id],
             'variants' => [
                 [
                     'sku' => 'VAR-MULTI-001',
@@ -426,7 +413,6 @@ class ProductVariantMetalsAndDiamondsTest extends TestCase
             'material_id' => $material->id,
             'base_price' => 50000,
             'making_charge' => 5000,
-            'is_variant_product' => true,
             'uses_diamond' => true,
             'diamond_options' => [
                 [
@@ -516,7 +502,6 @@ class ProductVariantMetalsAndDiamondsTest extends TestCase
             'brand_id' => $brand->id,
             'category_id' => $category->id,
             'material_id' => $material->id,
-            'is_variant_product' => true,
             'uses_diamond' => true,
         ]);
 
@@ -564,7 +549,6 @@ class ProductVariantMetalsAndDiamondsTest extends TestCase
             'category_id' => $product->category_id,
             'base_price' => $product->base_price,
             'making_charge' => $product->making_charge,
-            'is_variant_product' => true,
             'uses_diamond' => true,
             'variants' => [
                 [

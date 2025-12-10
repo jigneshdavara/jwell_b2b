@@ -26,13 +26,8 @@ type Product = {
     category?: string | null;
     material?: string | null;
     purity?: string | null;
-    gold_weight?: number | null;
-    silver_weight?: number | null;
-    other_material_weight?: number | null;
-    total_weight?: number | null;
     price_total: number;
     making_charge_amount: number;
-    is_jobwork_allowed: boolean;
     uses_gold: boolean;
     uses_silver: boolean;
     uses_diamond: boolean;
@@ -1321,7 +1316,6 @@ function ProductCard({
     toggleWishlist,
 }: ProductCardProps) {
     const wishlistDisabled = wishlistBusyId === product.id;
-    const showJobworkBadge = mode === 'jobwork' && product.is_jobwork_allowed;
     const formatWeight = (value?: number | null) => {
         if (value === null || value === undefined) {
             return '—';
@@ -1329,20 +1323,7 @@ function ProductCard({
 
         return `${value.toFixed(2)} g`;
     };
-    const weightSummary = [
-        product.gold_weight !== null && product.gold_weight !== undefined
-            ? `${product.gold_weight.toFixed(2)} g gold`
-            : null,
-        product.silver_weight !== null && product.silver_weight !== undefined
-            ? `${product.silver_weight.toFixed(2)} g silver`
-            : null,
-        product.other_material_weight !== null && product.other_material_weight !== undefined
-            ? `${product.other_material_weight.toFixed(2)} g other`
-            : null,
-        product.total_weight !== null && product.total_weight !== undefined
-            ? `${product.total_weight.toFixed(2)} g total`
-            : null,
-    ].filter(Boolean);
+    const weightSummary: string[] = [];
 
     const WishlistButton = (
         <button
@@ -1402,18 +1383,10 @@ function ProductCard({
                                         </>
                                     )}
                                 </div>
-                                {product.is_jobwork_allowed && (
-                                    <p className="text-xs font-medium text-emerald-600">Available for jobwork</p>
-                                )}
                         </div>
                         {WishlistButton}
                     </div>
                     <div className="flex items-center justify-between">
-                        {showJobworkBadge && (
-                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
-                                Jobwork available
-                            </span>
-                        )}
                     </div>
                 </div>
             </article>
@@ -1455,32 +1428,8 @@ function ProductCard({
                             <span className="font-medium text-slate-600">Material</span>
                             <p>{product.material ?? 'Custom blend'}</p>
                         </div>
-                        <div>
-                            <span className="font-medium text-slate-600">Gold weight</span>
-                            <p>{formatWeight(product.gold_weight)}</p>
-                        </div>
-                        <div>
-                            <span className="font-medium text-slate-600">Silver weight</span>
-                            <p>{formatWeight(product.silver_weight)}</p>
-                        </div>
-                        <div>
-                            <span className="font-medium text-slate-600">Other weight</span>
-                            <p>{formatWeight(product.other_material_weight)}</p>
-                        </div>
-                        <div>
-                            <span className="font-medium text-slate-600">Total weight</span>
-                            <p>{formatWeight(product.total_weight)}</p>
-                        </div>
                     </div>
-                    {product.is_jobwork_allowed && (
-                        <p className="mt-3 text-xs font-medium text-emerald-600">Available for jobwork</p>
-                    )}
                 </div>
-                {showJobworkBadge && (
-                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1 text-xs font-semibold text-emerald-700">
-                        Jobwork available
-                    </span>
-                )}
             </div>
         </article>
     );

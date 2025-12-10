@@ -66,21 +66,4 @@ class Product extends Model
     {
         return $this->belongsToMany(Catalog::class, 'catalog_products')->withTimestamps();
     }
-
-    /**
-     * Infer making charge type from making_charge_amount and making_charge_percentage values.
-     */
-    public function getMakingChargeTypeAttribute(): string
-    {
-        $hasFixed = (float) ($this->attributes['making_charge_amount'] ?? 0) > 0;
-        $hasPercentage = (float) ($this->attributes['making_charge_percentage'] ?? 0) > 0;
-
-        if ($hasFixed && $hasPercentage) {
-            return 'both';
-        } elseif ($hasPercentage) {
-            return 'percentage';
-        } else {
-            return 'fixed';
-        }
-    }
 }
