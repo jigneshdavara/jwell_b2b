@@ -63,8 +63,8 @@ export default function AdminDiamondShapeSizesIndex() {
         size: '',
         secondary_size: '',
         description: '',
-        display_order: 0,
-        ctw: 0,
+        display_order: '' as string | number,
+        ctw: '' as string | number,
     });
 
     useEffect(() => {
@@ -103,8 +103,8 @@ export default function AdminDiamondShapeSizesIndex() {
         form.setData('size', '');
         form.setData('secondary_size', '');
         form.setData('description', '');
-        form.setData('display_order', 0);
-        form.setData('ctw', 0);
+        form.setData('display_order', '');
+        form.setData('ctw', '');
     };
 
     const openCreateModal = () => {
@@ -130,11 +130,13 @@ export default function AdminDiamondShapeSizesIndex() {
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        // Convert diamond_type_id and diamond_shape_id to numbers before submission
+        // Convert form data to proper types before submission
         form.transform((data) => ({
             ...data,
             diamond_type_id: Number(data.diamond_type_id),
             diamond_shape_id: Number(data.diamond_shape_id),
+            display_order: data.display_order === '' ? 0 : Number(data.display_order),
+            ctw: data.ctw === '' ? 0 : Number(data.ctw),
         }));
 
         if (editingSize) {
@@ -485,8 +487,8 @@ export default function AdminDiamondShapeSizesIndex() {
                                             <input
                                                 type="number"
                                                 step="0.001"
-                                                value={form.data.ctw}
-                                                onChange={(event) => form.setData('ctw', Number(event.target.value))}
+                                                value={form.data.ctw === '' ? '' : form.data.ctw}
+                                                onChange={(event) => form.setData('ctw', event.target.value === '' ? '' : Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                                 required
@@ -497,8 +499,8 @@ export default function AdminDiamondShapeSizesIndex() {
                                             <span>Display Order <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="number"
-                                                value={form.data.display_order}
-                                                onChange={(event) => form.setData('display_order', Number(event.target.value))}
+                                                value={form.data.display_order === '' ? '' : form.data.display_order}
+                                                onChange={(event) => form.setData('display_order', event.target.value === '' ? '' : Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                                 required

@@ -65,7 +65,7 @@ export default function AdminCategoriesIndex() {
         name: '',
         description: '',
         is_active: true,
-        display_order: 0,
+        display_order: '' as string | number,
         cover_image: null as File | null,
         remove_cover_image: false,
         style_ids: [] as number[],
@@ -110,7 +110,7 @@ export default function AdminCategoriesIndex() {
         form.setData('cover_image', null);
         form.setData('remove_cover_image', false);
         form.setData('is_active', true);
-        form.setData('display_order', 0);
+        form.setData('display_order', '');
         form.setData('style_ids', []);
         form.setData('size_ids', []);
         setStyleSearchQuery('');
@@ -207,6 +207,7 @@ export default function AdminCategoriesIndex() {
                 remove_cover_image: removeCoverImage,
                 style_ids: data.style_ids || [],
                 size_ids: data.size_ids || [],
+                display_order: data.display_order === '' ? 0 : Number(data.display_order),
                 ...(editingCategory ? { _method: 'PUT' } : {}), // method spoofing for update
             };
 
@@ -579,8 +580,8 @@ export default function AdminCategoriesIndex() {
                                             <span>Display order</span>
                                             <input
                                                 type="number"
-                                                value={form.data.display_order}
-                                                onChange={(event) => form.setData('display_order', Number(event.target.value))}
+                                                value={form.data.display_order === '' ? '' : form.data.display_order}
+                                                onChange={(event) => form.setData('display_order', event.target.value === '' ? '' : Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                             />

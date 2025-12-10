@@ -52,7 +52,7 @@ export default function AdminDiamondColorsIndex() {
         code: '',
         name: '',
         description: '',
-        display_order: 0,
+        display_order: '' as string | number,
         is_active: true,
     });
 
@@ -92,7 +92,7 @@ export default function AdminDiamondColorsIndex() {
         form.setData('name', '');
         form.setData('description', '');
         form.setData('is_active', true);
-        form.setData('display_order', 0);
+        form.setData('display_order', '');
     };
 
     const openCreateModal = () => {
@@ -117,10 +117,11 @@ export default function AdminDiamondColorsIndex() {
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        // Convert diamond_type_id to number before submission
+        // Convert diamond_type_id and display_order before submission
         form.transform((data) => ({
             ...data,
             diamond_type_id: Number(data.diamond_type_id),
+            display_order: data.display_order === '' ? 0 : Number(data.display_order),
         }));
 
         if (editingColor) {
@@ -472,8 +473,8 @@ export default function AdminDiamondColorsIndex() {
                                             <span>Display Order <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="number"
-                                                value={form.data.display_order}
-                                                onChange={(event) => form.setData('display_order', Number(event.target.value))}
+                                                value={form.data.display_order === '' ? '' : form.data.display_order}
+                                                onChange={(event) => form.setData('display_order', event.target.value === '' ? '' : Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                                 required
