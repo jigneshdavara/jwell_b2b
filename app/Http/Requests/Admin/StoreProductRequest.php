@@ -77,9 +77,6 @@ class StoreProductRequest extends FormRequest
             'variants.*.diamonds' => ['nullable', 'array'],
             'variants.*.diamonds.*.diamond_id' => ['required', 'integer', 'exists:diamonds,id'],
             'variants.*.diamonds.*.diamonds_count' => ['nullable', 'integer', 'min:0'],
-            'variants.*.colorstones' => ['nullable', 'array'],
-            'variants.*.colorstones.*.colorstone_id' => ['required', 'integer', 'exists:colorstones,id'],
-            'variants.*.colorstones.*.stones_count' => ['nullable', 'integer', 'min:0'],
         ];
     }
 
@@ -90,10 +87,10 @@ class StoreProductRequest extends FormRequest
             $makingChargeTypes = $this->input('making_charge_types', []);
             $makingChargeAmount = $this->input('making_charge_amount');
             $makingChargePercentage = $this->input('making_charge_percentage');
-            
+
             $hasFixed = in_array('fixed', $makingChargeTypes) && $makingChargeAmount !== null && $makingChargeAmount !== '' && (float) $makingChargeAmount > 0;
             $hasPercentage = in_array('percentage', $makingChargeTypes) && $makingChargePercentage !== null && $makingChargePercentage !== '' && (float) $makingChargePercentage > 0;
-            
+
             if (empty($makingChargeTypes) || (!$hasFixed && !$hasPercentage)) {
                 $validator->errors()->add('making_charge_type', 'Please select at least one making charge option (Fixed Amount or Percentage).');
                 if (!$hasFixed && in_array('fixed', $makingChargeTypes)) {

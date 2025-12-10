@@ -129,7 +129,7 @@ class CartService
             $item->price_breakdown = $pricing;
             $item->save();
 
-            $unitSubtotal = $pricing['subtotal'] ?? (($pricing['metal'] ?? 0) + ($pricing['diamond'] ?? 0) + ($pricing['colorstone'] ?? 0) + ($pricing['making'] ?? 0));
+            $unitSubtotal = $pricing['subtotal'] ?? (($pricing['metal'] ?? 0) + ($pricing['diamond'] ?? 0) + ($pricing['making'] ?? 0));
             $unitDiscount = $pricing['discount'] ?? 0;
             $unitTotal = $pricing['total'] ?? ($unitSubtotal - $unitDiscount);
 

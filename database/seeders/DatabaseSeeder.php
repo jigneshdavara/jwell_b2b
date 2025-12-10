@@ -11,7 +11,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             BrandSeeder::class,
             CategorySeeder::class,
-            ColorstoneDataSeeder::class,
             DiamondDataSeeder::class,
             GeneralSettingsSeeder::class,
             MetalDataSeeder::class,

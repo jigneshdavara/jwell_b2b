@@ -68,17 +68,6 @@ const adminNavigation: NavItem[] = [
             { label: 'Shape sizes', route: 'admin.diamond.shape-sizes.index', match: 'admin.diamond.shape-sizes.*' },
         ],
     },
-    {
-        label: 'Colorstones',
-        icon: 'sparkle',
-        children: [
-            { label: 'Colorstones', route: 'admin.colorstone.colorstones.index', match: 'admin.colorstone.colorstones.*' },
-            { label: 'Colors', route: 'admin.colorstone.colors.index', match: 'admin.colorstone.colors.*' },
-            { label: 'Qualities', route: 'admin.colorstone.qualities.index', match: 'admin.colorstone.qualities.*' },
-            { label: 'Shapes', route: 'admin.colorstone.shapes.index', match: 'admin.colorstone.shapes.*' },
-            { label: 'Shape sizes', route: 'admin.colorstone.shape-sizes.index', match: 'admin.colorstone.shape-sizes.*' },
-        ],
-    },
     { label: 'Sizes', route: 'admin.sizes.index', match: 'admin.sizes.*', icon: 'collection' },
     { label: 'Styles', route: 'admin.styles.index', match: 'admin.styles.*', icon: 'sparkle' },
     {

@@ -19,11 +19,6 @@ use App\Http\Controllers\Admin\DiamondController;
 use App\Http\Controllers\Admin\DiamondShapeController;
 use App\Http\Controllers\Admin\DiamondShapeSizeController;
 use App\Http\Controllers\Admin\DiamondTypeController;
-use App\Http\Controllers\Admin\ColorstoneColorController;
-use App\Http\Controllers\Admin\ColorstoneQualityController;
-use App\Http\Controllers\Admin\ColorstoneShapeController;
-use App\Http\Controllers\Admin\ColorstoneShapeSizeController;
-use App\Http\Controllers\Admin\ColorstoneController;
 use App\Http\Controllers\Admin\MetalController;
 use App\Http\Controllers\Admin\MetalToneController;
 use App\Http\Controllers\Admin\MetalPurityController;
@@ -222,23 +217,6 @@ Route::prefix('admin')
             Route::resource('diamonds', DiamondController::class)->only(['index', 'store', 'update', 'destroy'])->names('diamonds');
         });
 
-        Route::prefix('colorstone')->name('colorstone.')->group(function () {
-            Route::delete('colors/bulk', [ColorstoneColorController::class, 'bulkDestroy'])->name('colors.bulk-destroy');
-            Route::resource('colors', ColorstoneColorController::class)->only(['index', 'store', 'update', 'destroy'])->names('colors');
-
-            Route::delete('qualities/bulk', [ColorstoneQualityController::class, 'bulkDestroy'])->name('qualities.bulk-destroy');
-            Route::resource('qualities', ColorstoneQualityController::class)->only(['index', 'store', 'update', 'destroy'])->names('qualities');
-
-            Route::delete('shapes/bulk', [ColorstoneShapeController::class, 'bulkDestroy'])->name('shapes.bulk-destroy');
-            Route::resource('shapes', ColorstoneShapeController::class)->only(['index', 'store', 'update', 'destroy'])->names('shapes');
-
-            Route::delete('shape-sizes/bulk', [ColorstoneShapeSizeController::class, 'bulkDestroy'])->name('shape-sizes.bulk-destroy');
-            Route::resource('shape-sizes', ColorstoneShapeSizeController::class)->only(['index', 'store', 'update', 'destroy'])->names('shape-sizes');
-
-            Route::get('colorstones/shape-sizes/{shapeId}', [ColorstoneController::class, 'getShapeSizes'])->name('colorstones.shape-sizes');
-            Route::delete('colorstones/bulk', [ColorstoneController::class, 'bulkDestroy'])->name('colorstones.bulk-destroy');
-            Route::resource('colorstones', ColorstoneController::class)->only(['index', 'store', 'update', 'destroy'])->names('colorstones');
-        });
 
         Route::delete('metal-tones/bulk', [MetalToneController::class, 'bulkDestroy'])->name('metal-tones.bulk-destroy');
         Route::resource('metal-tones', MetalToneController::class)->only(['index', 'store', 'update', 'destroy'])->names('metal-tones');
