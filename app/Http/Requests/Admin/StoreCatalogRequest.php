@@ -18,11 +18,11 @@ class StoreCatalogRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code' => ['nullable', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:255', Rule::unique('catalogs', 'code')],
             'name' => ['required', 'string', 'max:255', Rule::unique('catalogs', 'name')],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
-            'display_order' => ['nullable', 'integer', 'min:0'],
+            'display_order' => ['required', 'integer', 'min:0'],
         ];
     }
 }

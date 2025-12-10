@@ -50,12 +50,14 @@ class CatalogController extends Controller
 
     public function store(StoreCatalogRequest $request): RedirectResponse
     {
+        $data = $request->validated();
+
         Catalog::create([
-            'code' => $request->input('code'),
-            'name' => $request->input('name'),
-            'description' => $request->input('description'),
+            'code' => $data['code'],
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'display_order' => $request->input('display_order', 0),
+            'display_order' => $data['display_order'],
         ]);
 
         return redirect()
@@ -65,12 +67,14 @@ class CatalogController extends Controller
 
     public function update(UpdateCatalogRequest $request, Catalog $catalog): RedirectResponse
     {
+        $data = $request->validated();
+
         $catalog->update([
-            'code' => $request->input('code'),
-            'name' => $request->input('name'),
-            'description' => $request->input('description'),
+            'code' => $data['code'],
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'display_order' => $request->input('display_order', 0),
+            'display_order' => $data['display_order'],
         ]);
 
         return redirect()
