@@ -10,8 +10,7 @@ alwaysApply: true
 
 - **Product** (`app/Models/Product.php`): Base jewellery design
   - Contains: `sku`, `name`, `description`, `making_charge`
-  - Configuration: `variant_options` (JSON), `metal_ids`, `metal_purity_ids`, `metal_tone_ids`
-  - Flags: `is_variant_product`, `is_jobwork_allowed`, `is_active`
+  - Flags: `is_active`
   - Relationships: `hasMany(ProductVariant)`, `belongsTo(Brand)`, `belongsTo(Category)`, `hasMany(ProductMedia)`
 
 - **ProductVariant** (`app/Models/ProductVariant.php`): Specific sellable configuration
@@ -42,10 +41,6 @@ alwaysApply: true
 ### Metals & Mixing
 
 - **Structured data**: `metals`, `metal_purities`, `metal_tones` tables
-- **Product configuration** drives mixing rules:
-  - `metal_mix_mode` (JSON)
-  - `mixed_metal_tones_per_purity` (boolean)
-  - `mixed_metal_purities_per_tone` (boolean)
 - Do NOT hard-code mixing rules in UI; read from product config
 
 ### Stones (Diamonds & Colorstones)

@@ -12,8 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->enum('making_charge_type', ['fixed', 'percentage', 'both'])->default('fixed')->after('making_charge');
-            $table->decimal('making_charge_percentage', 5, 2)->nullable()->after('making_charge_type');
+            $table->decimal('making_charge_percentage', 5, 2)->nullable()->after('making_charge');
         });
     }
 
@@ -23,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn(['making_charge_type', 'making_charge_percentage']);
+            $table->dropColumn('making_charge_percentage');
         });
     }
 };

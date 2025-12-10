@@ -45,7 +45,6 @@ class CatalogController extends Controller
             'category',
             'catalog',
             'sort',
-            'jobwork_available',
             'ready_made',
         ]);
 
@@ -59,14 +58,6 @@ class CatalogController extends Controller
                 },
             ]);
 
-        if ($mode === 'jobwork') {
-            $query->where('is_jobwork_allowed', true);
-        }
-
-        // Filter by jobwork availability
-        if (($filters['jobwork_available'] ?? null) === '1') {
-            $query->where('is_jobwork_allowed', true);
-        }
 
         // Filter by ready made (products that are not jobwork-only, meaning they have base_price)
         if (($filters['ready_made'] ?? null) === '1') {
@@ -191,7 +182,6 @@ class CatalogController extends Controller
         $filters['category'] = array_values($categoryFilters);
         $filters['catalog'] = array_values($catalogFilters);
         $filters['sort'] = $sort ?: null;
-        $filters['jobwork_available'] = ($filters['jobwork_available'] ?? null) === '1' ? '1' : null;
         $filters['ready_made'] = ($filters['ready_made'] ?? null) === '1' ? '1' : null;
 
         if ($filters['search'] ?? null) {
@@ -285,13 +275,8 @@ class CatalogController extends Controller
                     'category' => optional($product->category)?->name,
                     'material' => optional($product->material)?->name,
                     'purity' => $product->metadata['purity'] ?? $product->material?->purity,
-                    'gold_weight' => $product->gold_weight !== null ? (float) $product->gold_weight : null,
-                    'silver_weight' => $product->silver_weight !== null ? (float) $product->silver_weight : null,
-                    'other_material_weight' => $product->other_material_weight !== null ? (float) $product->other_material_weight : null,
-                    'total_weight' => $product->total_weight !== null ? (float) $product->total_weight : null,
                     'price_total' => $priceTotal,
                     'making_charge_amount' => (float) $product->making_charge_amount,
-                    'is_jobwork_allowed' => (bool) $product->is_jobwork_allowed,
                     'thumbnail' => optional($product->media->sortBy('position')->first())?->url,
                     'media' => $product->media->sortBy('position')->values()->map(fn($media) => [
                         'url' => $media->url,
@@ -427,21 +412,12 @@ class CatalogController extends Controller
                 'brand' => optional($product->brand)?->name,
                 'material' => optional($product->material)?->name,
                 'purity' => $product->metadata['purity'] ?? $product->material?->purity,
-                'gold_weight' => $product->gold_weight !== null ? (float) $product->gold_weight : null,
-                'silver_weight' => $product->silver_weight !== null ? (float) $product->silver_weight : null,
-                'other_material_weight' => $product->other_material_weight !== null ? (float) $product->other_material_weight : null,
-                'total_weight' => $product->total_weight !== null ? (float) $product->total_weight : null,
                 'base_price' => (float) $product->base_price,
                 'making_charge' => (float) $product->making_charge,
-                'making_charge_type' => $product->making_charge_type, // Accessor will infer from values
                 'making_charge_percentage' => $product->making_charge_percentage ? (float) $product->making_charge_percentage : null,
-                'is_jobwork_allowed' => (bool) $product->is_jobwork_allowed,
                 'uses_gold' => (bool) $product->uses_gold,
                 'uses_silver' => (bool) $product->uses_silver,
                 'uses_diamond' => (bool) $product->uses_diamond,
-                'mixed_metal_tones_per_purity' => (bool) ($product->mixed_metal_tones_per_purity ?? false),
-                'mixed_metal_purities_per_tone' => (bool) ($product->mixed_metal_purities_per_tone ?? false),
-                'metal_mix_mode' => $product->metal_mix_mode ?? [],
                 'diamond_mixing_mode' => $product->diamond_mixing_mode ?? 'shared',
                 'category_sizes' => $product->category && $product->category->sizes->isNotEmpty()
                     ? $product->category->sizes->where('is_active', true)->map(fn($size) => [
@@ -735,7 +711,6 @@ class CatalogController extends Controller
     }
 
     /**
-     * Build metal options based on metal_mix_mode.
      * @deprecated This method is no longer used - replaced by buildConfigurationOptions
      */
     protected function buildMetalOptions(Product $product, string $metalMixMode): array
@@ -789,9 +764,6 @@ class CatalogController extends Controller
                         $optionsMap[$key] = [
                             'id' => $optionIdCounter++,
                             'label' => $label,
-                            'metal_ids' => [$variantMetal['metal_id']],
-                            'metal_purity_ids' => [$variantMetal['metal_purity_id']],
-                            'metal_tone_ids' => [$variantMetal['metal_tone_id']],
                             'metal_variant_ids' => [$variantMetal['id']],
                         ];
                     }
@@ -853,9 +825,6 @@ class CatalogController extends Controller
                         $optionsMap[$key] = [
                             'id' => $optionIdCounter++,
                             'label' => $label,
-                            'metal_ids' => [$variantMetal['metal_id']],
-                            'metal_purity_ids' => [$variantMetal['metal_purity_id']],
-                            'metal_tone_ids' => array_values($toneIds),
                             'metal_variant_ids' => array_values(array_unique($metalVariantIds)),
                         ];
                     }
@@ -912,9 +881,6 @@ class CatalogController extends Controller
                         $optionsMap[$key] = [
                             'id' => $optionIdCounter++,
                             'label' => $label,
-                            'metal_ids' => [$variantMetal['metal_id']],
-                            'metal_purity_ids' => array_values($purityIds),
-                            'metal_tone_ids' => [$variantMetal['metal_tone_id']],
                             'metal_variant_ids' => array_values(array_unique($metalVariantIds)),
                         ];
                     }

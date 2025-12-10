@@ -9,11 +9,8 @@ type PrefillProduct = {
     sku: string;
     material?: string | null;
     purity?: string | null;
-    gross_weight?: number | null;
-    net_weight?: number | null;
     base_price?: number | null;
     making_charge_amount?: number | null;
-    standard_pricing?: Record<string, number | string | null> | null;
     variants: Array<{
         id: number;
         label: string;
@@ -298,28 +295,10 @@ export default function JobworkIndex() {
                                                 <p className="text-slate-900">₹ {(prefillProduct.making_charge_amount ?? 0).toLocaleString('en-IN')}</p>
                                             </div>
                                             <div>
-                                                <p className="font-medium text-slate-500">Gross weight</p>
-                                                <p className="text-slate-900">{prefillProduct.gross_weight?.toFixed(2)} g</p>
-                                            </div>
-                                            <div>
                                                 <p className="font-medium text-slate-500">Purity</p>
                                                 <p className="text-slate-900">{prefillProduct.purity}</p>
                                             </div>
                                         </div>
-
-                                        {prefillProduct.standard_pricing && (
-                                            <div className="rounded-xl bg-slate-50 p-4 text-xs text-slate-600">
-                                                <p className="font-semibold text-slate-700">Standard pricing snapshot</p>
-                                                <ul className="mt-2 space-y-1">
-                                                    {Object.entries(prefillProduct.standard_pricing).map(([key, value]) => (
-                                                        <li key={key} className="flex justify-between">
-                                                            <span className="text-slate-500">{key.replace('_', ' ')}</span>
-                                                            <span className="text-slate-800">{typeof value === 'number' ? value.toLocaleString('en-IN') : value}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
 
                                         {prefillProduct.variants.length > 0 && (
                                             <div className="space-y-2">

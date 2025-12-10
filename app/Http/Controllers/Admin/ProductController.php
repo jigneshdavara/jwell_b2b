@@ -103,19 +103,18 @@ class ProductController extends Controller
     {
         $data = $request->validated();
         $variants = Arr::pull($data, 'variants', []);
-        $variantOptions = Arr::pull($data, 'variant_options', []);
         $mediaUploads = Arr::pull($data, 'media_uploads', []);
         $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
         $catalogIds = Arr::pull($data, 'catalog_ids', []);
 
         $data = $this->prepareProductPayload($data);
 
-        return DB::transaction(function () use ($data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds) {
+        return DB::transaction(function () use ($data, $variants, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds) {
             $product = Product::create($data);
 
-            $variantSync->sync($product, $variants, $variantOptions, null);
+            $variantSync->sync($product, $variants, null);
             $this->syncMedia($product, $mediaUploads, $removedMediaIds);
-            
+
             // Sync catalogs if any are selected
             if (!empty($catalogIds)) {
                 $product->catalogs()->sync($catalogIds);
@@ -159,14 +158,7 @@ class ProductController extends Controller
                 'collection' => $product->collection ?? '',
                 'producttype' => $product->producttype ?? '',
                 'gender' => $product->gender ?? '',
-                'gross_weight' => $product->gross_weight,
-                'net_weight' => $product->net_weight,
-                'gold_weight' => $product->gold_weight,
-                'silver_weight' => $product->silver_weight,
-                'other_material_weight' => $product->other_material_weight,
-                'total_weight' => $product->total_weight,
                 'making_charge_amount' => $product->making_charge_amount,
-                'making_charge_type' => $product->making_charge_type, // Accessor will infer from values
                 'making_charge_percentage' => $product->making_charge_percentage,
                 'making_charge_discount_type' => $product->making_charge_discount_type,
                 'making_charge_discount_value' => $product->making_charge_discount_value !== null ? (string) $product->making_charge_discount_value : '',
@@ -181,19 +173,6 @@ class ProductController extends Controller
                     ->values()
                     ->all(),
                 'is_active' => $product->is_active ?? true,
-                'is_jobwork_allowed' => $product->is_jobwork_allowed ?? false,
-                'visibility' => $product->visibility ?? 'public',
-                'standard_pricing' => $product->standard_pricing ?? false,
-                'variant_options' => $product->variant_options,
-                'is_variant_product' => $product->is_variant_product ?? false,
-                'mixed_metal_tones_per_purity' => $product->mixed_metal_tones_per_purity ?? false,
-                'mixed_metal_purities_per_tone' => $product->mixed_metal_purities_per_tone ?? false,
-                'metal_mix_mode' => is_array($product->metal_mix_mode) && count($product->metal_mix_mode) > 0
-                    ? $product->metal_mix_mode
-                    : (object)[],
-                'metal_ids' => $product->metal_ids ?? [],
-                'metal_purity_ids' => $product->metal_purity_ids ?? [],
-                'metal_tone_ids' => $product->metal_tone_ids ?? [],
                 'catalog_ids' => $product->catalogs->pluck('id')->toArray(),
                 'metadata' => $product->metadata,
                 'variants' => $product->variants->map(fn(ProductVariant $variant) => [
@@ -201,7 +180,6 @@ class ProductController extends Controller
                     'sku' => $variant->sku,
                     'label' => $variant->label,
                     'inventory_quantity' => $variant->inventory_quantity ?? 0,
-                    'total_weight' => $variant->total_weight ?? null,
                     // Legacy fields - kept for backwards compatibility
                     'metal_tone' => $variant->metal_tone,
                     'stone_quality' => $variant->stone_quality,
@@ -254,18 +232,17 @@ class ProductController extends Controller
     {
         $data = $request->validated();
         $variants = Arr::pull($data, 'variants', []);
-        $variantOptions = Arr::pull($data, 'variant_options', []);
         $mediaUploads = Arr::pull($data, 'media_uploads', []);
         $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
         $catalogIds = Arr::pull($data, 'catalog_ids', []);
 
         $data = $this->prepareProductPayload($data);
 
-        DB::transaction(function () use ($product, $data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds): void {
+        DB::transaction(function () use ($product, $data, $variants, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds): void {
             $product->update($data);
-            $variantSync->sync($product, $variants, $variantOptions, null);
+            $variantSync->sync($product, $variants, null);
             $this->syncMedia($product, $mediaUploads, $removedMediaIds);
-            
+
             // Sync catalogs (empty array will detach all catalogs)
             $product->catalogs()->sync($catalogIds ?? []);
         });
@@ -522,47 +499,6 @@ class ProductController extends Controller
 
     protected function prepareProductPayload(array $data): array
     {
-        $data['is_variant_product'] = (bool) ($data['is_variant_product'] ?? true);
-        $data['mixed_metal_tones_per_purity'] = (bool) ($data['mixed_metal_tones_per_purity'] ?? false);
-        $data['mixed_metal_purities_per_tone'] = (bool) ($data['mixed_metal_purities_per_tone'] ?? false);
-
-        // Ensure mutual exclusion: if both are true, prefer mixed_metal_tones_per_purity
-        if ($data['mixed_metal_tones_per_purity'] && $data['mixed_metal_purities_per_tone']) {
-            $data['mixed_metal_purities_per_tone'] = false;
-        }
-
-        // Sanitize metal_mix_mode: ensure it's an array with valid values
-        $metalMixMode = $data['metal_mix_mode'] ?? [];
-        if (! is_array($metalMixMode)) {
-            $metalMixMode = [];
-        }
-
-        // Validate and sanitize each metal's mode
-        $sanitizedMetalMixMode = [];
-        foreach ($metalMixMode as $metalId => $mode) {
-            $metalIdInt = is_numeric($metalId) ? (int) $metalId : null;
-            if ($metalIdInt && in_array($mode, ['normal', 'mix_tones', 'mix_purities'], true)) {
-                $sanitizedMetalMixMode[$metalIdInt] = $mode;
-            }
-        }
-        // Always set to array (empty array if no modes), never null (column has NOT NULL constraint)
-        $data['metal_mix_mode'] = $sanitizedMetalMixMode;
-
-        $metalIds = $this->sanitizeIds($data['metal_ids'] ?? []);
-        $metalPurityIds = $this->sanitizeIds($data['metal_purity_ids'] ?? []);
-        $metalToneIds = $this->sanitizeIds($data['metal_tone_ids'] ?? []);
-
-        $data['metal_ids'] = ! empty($metalIds) ? $metalIds : null;
-        $data['metal_purity_ids'] = ! empty($metalPurityIds) ? $metalPurityIds : null;
-        $data['metal_tone_ids'] = ! empty($metalToneIds) ? $metalToneIds : null;
-
-        if (! $data['is_variant_product']) {
-            $data['metal_ids'] = null;
-            $data['metal_purity_ids'] = null;
-            $data['metal_tone_ids'] = null;
-            $data['metal_mix_mode'] = []; // Reset to empty array when variant product is disabled
-        }
-
         // Handle making charge percentage
         if (isset($data['making_charge_percentage']) && $data['making_charge_percentage'] !== null && $data['making_charge_percentage'] !== '') {
             $data['making_charge_percentage'] = (float) $data['making_charge_percentage'];
@@ -582,17 +518,6 @@ class ProductController extends Controller
 
         $discountOverrides = $this->sanitizeDiscountOverrides($data['making_charge_discount_overrides'] ?? []);
         $data['making_charge_discount_overrides'] = ! empty($discountOverrides) ? $discountOverrides : null;
-
-        foreach (['gold_weight', 'silver_weight', 'other_material_weight', 'total_weight'] as $weightField) {
-            if (! array_key_exists($weightField, $data)) {
-                continue;
-            }
-
-            $value = $data[$weightField];
-            $data[$weightField] = ($value === null || $value === '' || ! is_numeric($value))
-                ? null
-                : (float) $value;
-        }
 
         if (array_key_exists('metadata', $data)) {
             $metadata = is_array($data['metadata']) ? $data['metadata'] : [];
