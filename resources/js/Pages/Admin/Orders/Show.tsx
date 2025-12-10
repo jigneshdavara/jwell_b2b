@@ -18,7 +18,7 @@ type OrderItem = {
         name: string;
         sku: string;
         base_price?: number | null;
-        making_charge?: number | null;
+        making_charge_amount?: number | null;
         gold_weight?: number | null;
         silver_weight?: number | null;
         other_material_weight?: number | null;
@@ -522,10 +522,10 @@ export default function AdminOrdersShow() {
                                                 <span className="font-semibold text-slate-900">{currencyFormatter.format(Number(productDetailsModalOpen.product.base_price))}</span>
                                             </div>
                                         )}
-                                        {productDetailsModalOpen.product?.making_charge && (
+                                        {productDetailsModalOpen.product?.making_charge_amount && (
                                             <div className="flex justify-between">
                                                 <span className="text-slate-600">Making Charge:</span>
-                                                <span className="font-semibold text-slate-900">{currencyFormatter.format(Number(productDetailsModalOpen.product.making_charge))}</span>
+                                                <span className="font-semibold text-slate-900">{currencyFormatter.format(Number(productDetailsModalOpen.product.making_charge_amount))}</span>
                                             </div>
                                         )}
                                         <div className="border-t border-slate-300 pt-2">

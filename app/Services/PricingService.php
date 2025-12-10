@@ -34,7 +34,6 @@ class PricingService
                 'metals.metalPurity',
                 'metals.metalTone',
                 'diamonds.diamond',
-                'colorstones.colorstone',
             ])->find($variant['id']);
         } elseif ($variant instanceof ProductVariant) {
             $variantModel = $variant->load([
@@ -42,7 +41,6 @@ class PricingService
                 'metals.metalPurity',
                 'metals.metalTone',
                 'diamonds.diamond',
-                'colorstones.colorstone',
             ]);
         }
 
@@ -88,27 +86,10 @@ class PricingService
         }
         $diamondCost = round($diamondCost, 2);
 
-        // Calculate colorstone cost from variant colorstones
-        // Note: Price in colorstones table is per stone, so multiply by count
-        // If price seems too high, it might be per carat - adjust calculation accordingly
-        $colorstoneCost = 0.0;
-        if ($variantModel && $variantModel->colorstones) {
-            foreach ($variantModel->colorstones as $variantColorstone) {
-                $colorstone = $variantColorstone->colorstone;
-                $count = $variantColorstone->stones_count ?? 1;
+        $making = max(0.0, (float) $product->making_charge_amount ?? 0);
 
-                if ($colorstone && $colorstone->price) {
-                    // Price is per stone, so multiply by count
-                    $colorstoneCost += (float) $colorstone->price * (int) $count;
-                }
-            }
-        }
-        $colorstoneCost = round($colorstoneCost, 2);
-
-        $making = max(0.0, (float) $product->making_charge);
-
-        // Total price: Metal + Diamond + Colorstone + Making Charge (Base Price is NOT included)
-        $unitSubtotal = $metalCost + $diamondCost + $colorstoneCost + $making;
+        // Total price: Metal + Diamond + Making Charge (Base Price is NOT included)
+        $unitSubtotal = $metalCost + $diamondCost + $making;
         $quantity = max(1, (int) ($options['quantity'] ?? 1));
 
         $discountContext = array_merge($options, [
@@ -127,7 +108,6 @@ class PricingService
         return collect([
             'metal' => round($metalCost, 2),
             'diamond' => round($diamondCost, 2),
-            'colorstone' => round($colorstoneCost, 2),
             'stones' => round($diamondCost, 2), // Keep for backward compatibility
             'making' => round($making, 2),
             'subtotal' => round($unitSubtotal, 2),

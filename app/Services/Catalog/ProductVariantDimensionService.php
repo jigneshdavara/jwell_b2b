@@ -111,7 +111,7 @@ class ProductVariantDimensionService
 
             // Calculate price breakdown
             $basePrice = (float) ($product->base_price ?? 0);
-            $makingCharge = (float) ($product->making_charge ?? 0);
+            $makingCharge = (float) ($product->making_charge_amount ?? 0);
             $priceAdjustment = (float) ($variant->price_adjustment ?? 0);
 
             // For now, we'll estimate metal and diamond costs

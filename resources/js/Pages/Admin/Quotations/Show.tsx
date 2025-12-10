@@ -17,7 +17,7 @@ type RelatedQuotation = {
         name: string;
         sku: string;
         base_price?: number | null;
-        making_charge?: number | null;
+        making_charge_amount?: number | null;
         gold_weight?: number | null;
         silver_weight?: number | null;
         other_material_weight?: number | null;
@@ -64,7 +64,7 @@ type QuotationDetails = {
         name: string;
         sku: string;
         base_price?: number | null;
-        making_charge?: number | null;
+        making_charge_amount?: number | null;
         gold_weight?: number | null;
         silver_weight?: number | null;
         other_material_weight?: number | null;

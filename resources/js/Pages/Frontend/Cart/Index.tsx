@@ -9,7 +9,6 @@ import React from 'react';
 type PriceBreakdown = {
     metal?: number;
     diamond?: number;
-    colorstone?: number;
     making?: number;
     adjustment?: number;
     subtotal?: number;
@@ -637,12 +636,6 @@ export default function CartIndex() {
                                                                                                     <span>·</span>
                                                                                                 </>
                                                                                             )}
-                                                                                            {variant.price_breakdown.colorstone && variant.price_breakdown.colorstone > 0 && (
-                                                                                                <>
-                                                                                                    <span>Colorstone {formatter.format(variant.price_breakdown.colorstone)}</span>
-                                                                                                    <span>·</span>
-                                                                                                </>
-                                                                                            )}
                                                                                             <span>Making {formatter.format(variant.price_breakdown.making ?? 0)}</span>
                                                                                         </div>
                                                                                         {(variant.line_discount ?? 0) > 0 && (
@@ -1011,7 +1004,6 @@ export default function CartIndex() {
                                             const priceBreakdown = productDetailsModalOpen.price_breakdown || {};
                                             const metalCost = Number(priceBreakdown.metal) || 0;
                                             const diamondCost = Number(priceBreakdown.diamond) || 0;
-                                            const colorstoneCost = Number(priceBreakdown.colorstone) || 0;
                                             const makingCharge = Number(priceBreakdown.making) || 0;
                                             const adjustment = Number(priceBreakdown.adjustment) || 0;
                                             const unitTotal = productDetailsModalOpen.unit_total;
@@ -1030,12 +1022,6 @@ export default function CartIndex() {
                                                             <div className="flex justify-between">
                                                                 <span className="text-slate-600">Diamond:</span>
                                                                 <span className="font-semibold text-slate-900">{formatter.format(diamondCost)}</span>
-                                                            </div>
-                                                        )}
-                                                        {colorstoneCost > 0 && (
-                                                            <div className="flex justify-between">
-                                                                <span className="text-slate-600">Colorstone:</span>
-                                                                <span className="font-semibold text-slate-900">{formatter.format(colorstoneCost)}</span>
                                                             </div>
                                                         )}
                                                         {makingCharge > 0 && (

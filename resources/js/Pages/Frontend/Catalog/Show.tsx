@@ -54,7 +54,9 @@ type Product = {
     other_material_weight?: number | null;
     total_weight?: number | null;
     base_price?: number;
-    making_charge?: number;
+    making_charge_amount?: number;
+    making_charge_type?: 'fixed' | 'percentage' | 'both';
+    making_charge_percentage?: number | null;
     is_jobwork_allowed: boolean;
     uses_gold: boolean;
     uses_silver: boolean;
@@ -86,33 +88,19 @@ interface ConfigDiamond {
     totalCarat: string;
 }
 
-interface ConfigColorstone {
-    label: string;        // e.g. "Ruby Red Oval AAA 1.00ct (2)"
-    colorstoneShapeId: number;
-    colorstoneColorId: number;
-    colorstoneQualityId: number;
-    stoneCount: number;
-    totalCarat: string;
-    shapeName?: string | null;
-    colorName?: string | null;
-    qualityName?: string | null;
-}
 
 interface ConfigurationOption {
     variant_id: number;
     label: string;
     metal_label: string;
     diamond_label: string;
-    colorstone_label: string;
     metals: ConfigMetal[];
     diamonds: ConfigDiamond[];
-    colorstones: ConfigColorstone[];
     price_total: number;
     price_breakup: {
         base: number;
         metal: number;
         diamond: number;
-        colorstone: number;
         making: number;
         adjustment: number;
     };
@@ -257,6 +245,7 @@ export default function CatalogShow() {
 
 
 
+
     // Calculate estimated total based on selectedVariant (via selectedConfig)
     // Price updates automatically when selectedVariantId changes because selectedConfig is a useMemo
     // that depends on selectedVariantId
@@ -264,7 +253,7 @@ export default function CatalogShow() {
         if (!selectedConfig) {
             return 0;
         }
-        
+
         if (isJobworkMode) {
             // For jobwork, only charge the making charge
             return selectedConfig.price_breakup.making + selectedConfig.price_breakup.adjustment;
@@ -600,31 +589,31 @@ export default function CatalogShow() {
                                         <p className="text-xs text-slate-500">
                                             {isJobworkMode
                                                 ? 'Includes making charge only. Final quotation may vary with labour costs.'
-                                                : 'Includes metal, diamond, colorstone, making charge & adjustment. Final quotation may vary with bullion/diamond parity and labour.'}
+                                                : 'Includes metal, diamond, making charge & adjustment. Final quotation may vary with bullion/diamond parity and labour.'}
                                         </p>
                                         {!isJobworkMode && (
                                             <div className="mt-2 space-y-1 text-xs">
                                                 {selectedConfig.price_breakup.metal > 0 && (
                                                     <p className="flex justify-between">
                                                         <span>Metal:</span>
-                                                        <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.metal)}</span>
+                                                        <span className="font-medium">
+                                                            {currencyFormatter.format(selectedConfig.price_breakup.metal)}
+                                                        </span>
                                                     </p>
                                                 )}
                                                 {selectedConfig.price_breakup.diamond > 0 && (
                                                     <p className="flex justify-between">
                                                         <span>Diamond:</span>
-                                                        <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.diamond)}</span>
-                                                    </p>
-                                                )}
-                                                {selectedConfig.price_breakup.colorstone > 0 && (
-                                                    <p className="flex justify-between">
-                                                        <span>Colorstone:</span>
-                                                        <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.colorstone)}</span>
+                                                        <span className="font-medium">
+                                                            {currencyFormatter.format(selectedConfig.price_breakup.diamond)}
+                                                        </span>
                                                     </p>
                                                 )}
                                                 <p className="flex justify-between">
                                                     <span>Making:</span>
-                                                    <span className="font-medium">{currencyFormatter.format(selectedConfig.price_breakup.making)}</span>
+                                                    <span className="font-medium">
+                                                        {currencyFormatter.format(selectedConfig.price_breakup.making)}
+                                                    </span>
                                                 </p>
                                                 {selectedConfig.price_breakup.adjustment !== 0 && (
                                                     <p className="flex justify-between">

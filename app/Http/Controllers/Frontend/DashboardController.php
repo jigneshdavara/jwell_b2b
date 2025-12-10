@@ -100,7 +100,6 @@ class DashboardController extends Controller
                 'variants.metals.metalPurity',
                 'variants.metals.metalTone',
                 'variants.diamonds.diamond',
-                'variants.colorstones.colorstone',
             ])
             ->where('is_active', true)
             ->latest()
@@ -147,21 +146,9 @@ class DashboardController extends Controller
                     }
                     $diamondCost = round($diamondCost, 2);
 
-                    // Calculate colorstone cost from variant colorstones
-                    // Price in colorstones table is per stone, so multiply by count
-                    $colorstoneCost = 0;
-                    foreach ($variant->colorstones as $variantColorstone) {
-                        $colorstone = $variantColorstone->colorstone;
-                        $count = (int) ($variantColorstone->stones_count ?? 1);
-                        if ($colorstone && $colorstone->price) {
-                            $colorstoneCost += (float) $colorstone->price * $count;
-                        }
-                    }
-                    $colorstoneCost = round($colorstoneCost, 2);
-
-                    // Calculate priceTotal: Metal + Diamond + Colorstone + Making Charge
-                    $makingCharge = (float) ($product->making_charge ?? 0);
-                    $priceTotal = $metalCost + $diamondCost + $colorstoneCost + $makingCharge;
+                    // Calculate priceTotal: Metal + Diamond + Making Charge
+                    $makingCharge = (float) ($product->making_charge_amount ?? 0);
+                    $priceTotal = $metalCost + $diamondCost + $makingCharge;
                 } else {
                     // If no variant, fallback to making charge only
                     $priceTotal = (float) ($product->making_charge ?? 0);

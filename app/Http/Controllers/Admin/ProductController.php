@@ -11,10 +11,6 @@ use App\Models\Brand;
 use App\Models\Catalog;
 use App\Models\Category;
 use App\Models\CustomerGroup;
-use App\Models\Colorstone;
-use App\Models\ColorstoneColor;
-use App\Models\ColorstoneQuality;
-use App\Models\ColorstoneShape;
 use App\Models\Diamond;
 use App\Models\DiamondClarity;
 use App\Models\DiamondColor;
@@ -96,9 +92,7 @@ class ProductController extends Controller
             'categories' => $this->categoryList(),
             'catalogs' => $this->catalogList(),
             'diamondCatalog' => $this->diamondCatalogOptions(),
-            'colorstoneCatalog' => $this->colorstoneCatalogOptions(),
             'diamonds' => $this->diamondOptions(),
-            'colorstones' => $this->colorstoneOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
             'metalTones' => $this->metalToneOptions(),
@@ -149,9 +143,6 @@ class ProductController extends Controller
                         'diamonds.diamond.shape',
                         'diamonds.diamond.color',
                         'diamonds.diamond.clarity',
-                        'colorstones.colorstone.shape',
-                        'colorstones.colorstone.color',
-                        'colorstones.colorstone.quality',
                     ]);
             },
         ]);
@@ -174,7 +165,9 @@ class ProductController extends Controller
                 'silver_weight' => $product->silver_weight,
                 'other_material_weight' => $product->other_material_weight,
                 'total_weight' => $product->total_weight,
-                'making_charge' => $product->making_charge,
+                'making_charge_amount' => $product->making_charge_amount,
+                'making_charge_type' => $product->making_charge_type, // Accessor will infer from values
+                'making_charge_percentage' => $product->making_charge_percentage,
                 'making_charge_discount_type' => $product->making_charge_discount_type,
                 'making_charge_discount_value' => $product->making_charge_discount_value !== null ? (string) $product->making_charge_discount_value : '',
                 'making_charge_discount_overrides' => collect($product->making_charge_discount_overrides ?? [])
@@ -236,13 +229,6 @@ class ProductController extends Controller
                         'diamonds_count' => $diamond->diamonds_count,
                         'metadata' => $diamond->metadata,
                     ])->values()->all(),
-                    // Colorstones for this variant - simplified structure with only colorstone_id and count
-                    'colorstones' => $variant->colorstones->map(fn($colorstone) => [
-                        'id' => $colorstone->id,
-                        'colorstone_id' => $colorstone->colorstone_id,
-                        'stones_count' => $colorstone->stones_count,
-                        'metadata' => $colorstone->metadata,
-                    ])->values()->all(),
                 ]),
                 'media' => $product->media->map(fn(ProductMedia $media) => [
                     'id' => $media->id,
@@ -257,9 +243,7 @@ class ProductController extends Controller
             'categories' => $this->categoryList(),
             'catalogs' => $this->catalogList(),
             'diamondCatalog' => $this->diamondCatalogOptions(),
-            'colorstoneCatalog' => $this->colorstoneCatalogOptions(),
             'diamonds' => $this->diamondOptions(),
-            'colorstones' => $this->colorstoneOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
             'metalTones' => $this->metalToneOptions(),
@@ -526,33 +510,6 @@ class ProductController extends Controller
         ];
     }
 
-    protected function colorstoneCatalogOptions(): array
-    {
-        return [
-            'shapes' => ColorstoneShape::query()
-                ->where('is_active', true)
-                ->orderBy('display_order')
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-                ->all(),
-            'colors' => ColorstoneColor::query()
-                ->where('is_active', true)
-                ->orderBy('display_order')
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-                ->all(),
-            'qualities' => ColorstoneQuality::query()
-                ->where('is_active', true)
-                ->orderBy('display_order')
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-                ->all(),
-        ];
-    }
-
     protected function diamondOptions(): array
     {
         return Diamond::query()
@@ -563,15 +520,6 @@ class ProductController extends Controller
             ->all();
     }
 
-    protected function colorstoneOptions(): array
-    {
-        return Colorstone::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-            ->all();
-    }
 
     protected function prepareProductPayload(array $data): array
     {
@@ -614,6 +562,13 @@ class ProductController extends Controller
             $data['metal_purity_ids'] = null;
             $data['metal_tone_ids'] = null;
             $data['metal_mix_mode'] = []; // Reset to empty array when variant product is disabled
+        }
+
+        // Handle making charge percentage
+        if (isset($data['making_charge_percentage']) && $data['making_charge_percentage'] !== null && $data['making_charge_percentage'] !== '') {
+            $data['making_charge_percentage'] = (float) $data['making_charge_percentage'];
+        } else {
+            $data['making_charge_percentage'] = null;
         }
 
         $data['making_charge_discount_type'] = $data['making_charge_discount_type'] ?? null;
