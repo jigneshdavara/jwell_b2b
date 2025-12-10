@@ -432,8 +432,7 @@ class CatalogController extends Controller
                 'other_material_weight' => $product->other_material_weight !== null ? (float) $product->other_material_weight : null,
                 'total_weight' => $product->total_weight !== null ? (float) $product->total_weight : null,
                 'base_price' => (float) $product->base_price,
-                'making_charge' => (float) $product->making_charge,
-                'making_charge_type' => $product->making_charge_type, // Accessor will infer from values
+                'making_charge_amount' => (float) $product->making_charge_amount,
                 'making_charge_percentage' => $product->making_charge_percentage ? (float) $product->making_charge_percentage : null,
                 'is_jobwork_allowed' => (bool) $product->is_jobwork_allowed,
                 'uses_gold' => (bool) $product->uses_gold,

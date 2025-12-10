@@ -166,7 +166,6 @@ class ProductController extends Controller
                 'other_material_weight' => $product->other_material_weight,
                 'total_weight' => $product->total_weight,
                 'making_charge_amount' => $product->making_charge_amount,
-                'making_charge_type' => $product->making_charge_type, // Accessor will infer from values
                 'making_charge_percentage' => $product->making_charge_percentage,
                 'making_charge_discount_type' => $product->making_charge_discount_type,
                 'making_charge_discount_value' => $product->making_charge_discount_value !== null ? (string) $product->making_charge_discount_value : '',
