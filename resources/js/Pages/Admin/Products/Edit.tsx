@@ -19,11 +19,6 @@ type VariantDiamondForm = {
     diamonds_count?: string;
 };
 
-type VariantColorstoneForm = {
-    id?: number;
-    colorstone_id?: number | '';
-    stones_count?: string;
-};
 
 type VariantForm = {
     id?: number;
@@ -41,7 +36,6 @@ type VariantForm = {
     // Optional: for multiple metals per variant
     metals?: VariantMetalForm[];
     diamonds?: VariantDiamondForm[];
-    colorstones?: VariantColorstoneForm[];
 };
 
 type ProductDiamondOption = {
@@ -101,11 +95,6 @@ type Product = {
             diamond_id?: number | '';
             diamonds_count?: number | string;
         }>;
-        colorstones?: Array<{
-            id?: number;
-            colorstone_id?: number | '';
-            stones_count?: number | string;
-        }>;
     }>;
 };
 
@@ -122,11 +111,6 @@ type DiamondCatalog = {
     cuts: OptionListItem[];
 };
 
-type ColorstoneCatalog = {
-    shapes: OptionListItem[];
-    colors: OptionListItem[];
-    qualities: OptionListItem[];
-};
 
 type OptionList = Record<string, string>;
 
@@ -165,9 +149,7 @@ type AdminProductEditPageProps = AppPageProps<{
     categories: OptionList;
     catalogs: CatalogOption[];
     diamondCatalog: DiamondCatalog;
-    colorstoneCatalog: ColorstoneCatalog;
     diamonds: OptionListItem[];
-    colorstones: OptionListItem[];
     customerGroups: OptionListItem[];
     metals: MetalOption[];
     metalPurities: MetalPurityOption[];
@@ -203,7 +185,6 @@ type FormData = {
     diamond_options?: DiamondOptionForm[];
     diamond_mixing_mode?: 'shared' | 'as_variant';
     uses_diamond?: boolean;
-    colorstone_selections?: Array<{ colorstone_id: number | ''; count: string }>;
     catalog_ids?: number[];
     media_uploads?: File[];
     removed_media_ids?: number[];
@@ -249,7 +230,6 @@ const emptyVariant = (isDefault = false): VariantForm => ({
     metadata: {},
     metals: [],
     diamonds: [],
-    colorstones: [],
 });
 
 const generateLocalKey = () => {
@@ -282,11 +262,6 @@ const createEmptyDiamond = (): VariantDiamondForm => ({
     diamonds_count: '',
 });
 
-const createEmptyColorstone = (): VariantColorstoneForm => ({
-    id: undefined,
-    colorstone_id: '',
-    stones_count: '',
-});
 
 const createDiscountOverride = (): DiscountOverrideForm => ({
     localKey: generateLocalKey(),
@@ -537,9 +512,7 @@ export default function AdminProductEdit() {
         categories,
         catalogs,
         diamondCatalog,
-        colorstoneCatalog,
         diamonds,
-        colorstones,
         customerGroups,
         metals,
         metalPurities,
@@ -575,11 +548,6 @@ export default function AdminProductEdit() {
                   diamond_id: diamond.diamond_id ?? '',
                   diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
               })) ?? [],
-              colorstones: variant.colorstones?.map((colorstone: any) => ({
-                  id: colorstone.id,
-                  colorstone_id: colorstone.colorstone_id ?? '',
-                  stones_count: colorstone.stones_count ? String(colorstone.stones_count) : '',
-              })) ?? [],
           }))
         : [emptyVariant(true)];
 
@@ -595,7 +563,7 @@ export default function AdminProductEdit() {
           }))
         : [];
 
-    // Extract metal_ids, purities, tones, diamonds, and colorstones from existing variants
+    // Extract metal_ids, purities, tones, and diamonds from existing variants
     const extractSelectionsFromVariants = useMemo(() => {
         if (!product?.variants?.length) {
             return {
@@ -603,7 +571,6 @@ export default function AdminProductEdit() {
                 metalPurityIds: [] as number[],
                 metalToneIds: [] as number[],
                 diamondOptions: [] as DiamondOptionForm[],
-                colorstoneSelections: [] as Array<{ colorstone_id: number | ''; count: string }>,
             };
         }
 
@@ -611,7 +578,6 @@ export default function AdminProductEdit() {
         const metalPurityIdsSet = new Set<number>();
         const metalToneIdsSet = new Set<number>();
         const diamondSelectionsMap = new Map<number, { diamond_id: number; count: string }>();
-        const colorstoneSelectionsMap = new Map<number, { colorstone_id: number; count: string }>();
 
         product.variants.forEach((variant: any) => {
             // Extract metals
@@ -645,21 +611,6 @@ export default function AdminProductEdit() {
                 });
             }
 
-            // Extract colorstones - use colorstone_id (simplified structure)
-            if (variant.colorstones?.length) {
-                variant.colorstones.forEach((colorstone: any) => {
-                    if (colorstone.colorstone_id && colorstone.colorstone_id !== '' && colorstone.colorstone_id !== null) {
-                        const colorstoneId = typeof colorstone.colorstone_id === 'number' ? colorstone.colorstone_id : Number(colorstone.colorstone_id);
-                        // Only add if not already in the map (avoid duplicates)
-                        if (!colorstoneSelectionsMap.has(colorstoneId)) {
-                            colorstoneSelectionsMap.set(colorstoneId, {
-                                colorstone_id: colorstoneId,
-                                count: colorstone.stones_count && colorstone.stones_count !== '' && colorstone.stones_count !== null ? String(colorstone.stones_count) : '',
-                            });
-                        }
-                    }
-                });
-            }
         });
 
         return {
@@ -667,7 +618,6 @@ export default function AdminProductEdit() {
             metalPurityIds: Array.from(metalPurityIdsSet),
             metalToneIds: Array.from(metalToneIdsSet),
             diamondSelections: Array.from(diamondSelectionsMap.values()),
-            colorstoneSelections: Array.from(colorstoneSelectionsMap.values()),
         };
     }, [product]);
 
@@ -728,11 +678,6 @@ export default function AdminProductEdit() {
                       diamond_id: diamond.diamond_id ?? '',
                       diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
                   })) ?? [],
-                  colorstones: variant.colorstones?.map((colorstone: any) => ({
-                      id: colorstone.id,
-                      colorstone_id: colorstone.colorstone_id ?? '',
-                      stones_count: colorstone.stones_count ? String(colorstone.stones_count) : '',
-                  })) ?? [],
               }))
             : [emptyVariant(true)],
         metal_ids: extractSelectionsFromVariants.metalIds,
@@ -741,7 +686,6 @@ export default function AdminProductEdit() {
         diamond_options: [],
         uses_diamond: (extractSelectionsFromVariants.diamondSelections?.length ?? 0) > 0,
         diamond_selections: extractSelectionsFromVariants.diamondSelections ?? [],
-        colorstone_selections: extractSelectionsFromVariants.colorstoneSelections ?? [],
         media_uploads: [],
         removed_media_ids: [],
     }) as Record<string, any>);
@@ -787,7 +731,6 @@ export default function AdminProductEdit() {
     // Allow multiple variants to be expanded simultaneously
     const [expandedDiamondVariantIndices, setExpandedDiamondVariantIndices] = useState<Set<number>>(new Set());
     const [expandedMetalVariantIndices, setExpandedMetalVariantIndices] = useState<Set<number>>(new Set());
-    const [expandedColorstoneVariantIndices, setExpandedColorstoneVariantIndices] = useState<Set<number>>(new Set());
     
     // Helper functions to toggle expansion
     const toggleMetalExpansion = useCallback((index: number) => {
@@ -814,17 +757,6 @@ export default function AdminProductEdit() {
         });
     }, []);
 
-    const toggleColorstoneExpansion = useCallback((index: number) => {
-        setExpandedColorstoneVariantIndices(prev => {
-            const next = new Set(prev);
-            if (next.has(index)) {
-                next.delete(index);
-            } else {
-                next.add(index);
-            }
-            return next;
-        });
-    }, []);
 
     const formatDecimal = (value: number): string => {
         if (!Number.isFinite(value)) {
@@ -1380,42 +1312,6 @@ export default function AdminProductEdit() {
         });
     };
 
-    const addColorstoneSelection = () => {
-        setData((prev: FormData) => {
-            const currentSelections = prev.colorstone_selections || [];
-            return {
-                ...prev,
-                colorstone_selections: [...currentSelections, { colorstone_id: '', count: '' }],
-            };
-        });
-    };
-
-    const removeColorstoneSelection = (index: number) => {
-        setData((prev: FormData) => {
-            const currentSelections = prev.colorstone_selections || [];
-            return {
-                ...prev,
-                colorstone_selections: currentSelections.filter((_, i) => i !== index),
-            };
-        });
-    };
-
-    const updateColorstoneSelection = (index: number, field: 'colorstone_id' | 'count', value: number | string) => {
-        setData((prev: FormData) => {
-            const currentSelections = prev.colorstone_selections || [];
-            const updatedSelections = currentSelections.map((selection, i) => {
-                if (i !== index) return selection;
-                return {
-                    ...selection,
-                    [field]: value,
-                };
-            });
-            return {
-                ...prev,
-                colorstone_selections: updatedSelections,
-            };
-        });
-    };
 
     const addDiamondOptionRow = () => {
         setData((prev: FormData) => {
@@ -1749,77 +1645,6 @@ export default function AdminProductEdit() {
         });
     };
 
-    // Colorstone management functions (per-variant)
-    const addColorstoneToVariant = (variantIndex: number) => {
-        setData((prev: FormData) => {
-            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
-                if (idx !== variantIndex) {
-                    return variant;
-                }
-                const currentColorstones = variant.colorstones || [];
-                return {
-                    ...variant,
-                    colorstones: [...currentColorstones, createEmptyColorstone()],
-                };
-            });
-            return {
-                ...prev,
-                variants,
-            };
-        });
-    };
-
-    const removeColorstoneFromVariant = (variantIndex: number, colorstoneIndex: number) => {
-        setData((prev: FormData) => {
-            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
-                if (idx !== variantIndex) {
-                    return variant;
-                }
-                const currentColorstones = variant.colorstones || [];
-                return {
-                    ...variant,
-                    colorstones: currentColorstones.filter((_, cIdx: number) => cIdx !== colorstoneIndex),
-                };
-            });
-            return {
-                ...prev,
-                variants,
-            };
-        });
-    };
-
-    const updateColorstoneInVariant = (
-        variantIndex: number,
-        colorstoneIndex: number,
-        field: keyof VariantColorstoneForm,
-        value: string | number | '',
-    ) => {
-        setData((prev: FormData) => {
-            const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
-                if (idx !== variantIndex) {
-                    return variant;
-                }
-                const currentColorstones = variant.colorstones || [];
-                const updatedColorstones = currentColorstones.map((colorstone: VariantColorstoneForm, cIdx: number) => {
-                    if (cIdx !== colorstoneIndex) {
-                        return colorstone;
-                    }
-                    return {
-                        ...colorstone,
-                        [field]: value,
-                    };
-                });
-                return {
-                    ...variant,
-                    colorstones: updatedColorstones,
-                };
-            });
-            return {
-                ...prev,
-                variants,
-            };
-        });
-    };
 
     // Extract variant matrix generation logic into a reusable function
     const generateVariantMatrixForData = (prev: FormData): FormData => {
@@ -2325,29 +2150,6 @@ export default function AdminProductEdit() {
                     // In 'shared' mode, all variants share the same diamond list (stored in variant.diamonds)
                 }
 
-                // Set colorstones for all variants (colorstones are always shared across variants)
-                if (prev.colorstone_selections && prev.colorstone_selections.length > 0) {
-                    variant.colorstones = prev.colorstone_selections
-                        .filter((selection) => selection.colorstone_id !== '' && selection.colorstone_id !== null)
-                        .map((selection) => {
-                            // Try to find matching existing colorstone entry from the variant's existing colorstones
-                            const existingVariant = (prev.variants || []).find((v: VariantForm) => {
-                                // Find any variant that has colorstones to preserve their IDs
-                                return v.colorstones && v.colorstones.length > 0;
-                            });
-                            const existingColorstone = existingVariant?.colorstones?.find(
-                                (ec: any) => ec.colorstone_id === (typeof selection.colorstone_id === 'number' ? selection.colorstone_id : Number(selection.colorstone_id))
-                            );
-                            
-                            return {
-                                id: existingColorstone?.id,
-                                colorstone_id: typeof selection.colorstone_id === 'number' ? selection.colorstone_id : Number(selection.colorstone_id),
-                                stones_count: existingColorstone?.stones_count || selection.count || '',
-                            };
-                        });
-                } else {
-                    variant.colorstones = [];
-                }
 
                 variant.metadata = metadata;
 
@@ -2537,9 +2339,6 @@ export default function AdminProductEdit() {
             }
             if (formState.diamond_selections !== undefined) {
                 payload.diamond_selections = formState.diamond_selections;
-            }
-            if (formState.colorstone_selections !== undefined) {
-                payload.colorstone_selections = formState.colorstone_selections;
             }
 
             // Add method spoofing for PUT requests when files are present (Laravel requirement)
@@ -3007,7 +2806,7 @@ export default function AdminProductEdit() {
                             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                 <h3 className="text-sm font-semibold text-slate-900 mb-2">Variant Configuration Options</h3>
                                 <p className="text-xs text-slate-600 mb-4">
-                                    Use the configuration buttons in the variant table below to add metals (with purity and tone), diamonds, and colorstones to each variant.
+                                    Use the configuration buttons in the variant table below to add metals (with purity and tone) and diamonds to each variant.
                                 </p>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                                     <div className="flex items-center gap-2">
@@ -3021,12 +2820,6 @@ export default function AdminProductEdit() {
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                         </svg>
                                         <span className="text-slate-700">Configure Diamonds</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                        </svg>
-                                        <span className="text-slate-700">Configure Colorstones</span>
                                     </div>
                                 </div>
                             </div>
@@ -3365,72 +3158,6 @@ export default function AdminProductEdit() {
                                 )}
                             </div>
 
-                            {/* Colorstones selection */}
-                            <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Colorstones</h3>
-                                        <p className="text-xs text-slate-500">Select colorstones and specify counts for your product variants.</p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={addColorstoneSelection}
-                                        className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-sky-400 hover:bg-sky-50"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
-                                        </svg>
-                                        Add Colorstone
-                                    </button>
-                                </div>
-                                {(data.colorstone_selections || []).length > 0 ? (
-                                    <div className="space-y-3">
-                                        {(data.colorstone_selections || []).map((selection, index) => (
-                                            <div key={index} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3">
-                                                <div className="flex-1">
-                                                    <label className="mb-1 block text-xs font-semibold text-slate-600">Colorstone</label>
-                                                    <select
-                                                        value={selection.colorstone_id === '' ? '' : selection.colorstone_id}
-                                                        onChange={(e) => updateColorstoneSelection(index, 'colorstone_id', e.target.value === '' ? '' : Number(e.target.value))}
-                                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                    >
-                                                        <option value="">Select colorstone</option>
-                                                        {colorstones.map((colorstone) => (
-                                                            <option key={colorstone.id} value={colorstone.id}>
-                                                                {colorstone.name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                                <div className="w-32">
-                                                    <label className="mb-1 block text-xs font-semibold text-slate-600">Count</label>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="1"
-                                                        value={selection.count}
-                                                        onChange={(e) => updateColorstoneSelection(index, 'count', e.target.value)}
-                                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeColorstoneSelection(index)}
-                                                    className="mt-6 rounded-full border border-rose-200 p-2 text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
-                                                    aria-label="Remove colorstone"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-xs text-slate-400">No colorstones added. Click "Add Colorstone" to add one.</p>
-                                )}
-                            </div>
 
                         </div>
                     )}
@@ -3441,7 +3168,7 @@ export default function AdminProductEdit() {
                         <div>
                             <h2 className="text-2xl font-semibold text-slate-900">Variant Matrix</h2>
                             <p className="mt-2 text-sm text-slate-500">
-                                Configure product variants with metals, diamonds, and colorstones. The default variant powers the customer catalogue card pricing.
+                                Configure product variants with metals and diamonds. The default variant powers the customer catalogue card pricing.
                             </p>
                         </div>
                             <button
@@ -3472,7 +3199,6 @@ export default function AdminProductEdit() {
                                             <th className="px-5 py-3 text-left min-w-[300px]">Variant Label</th>
                                             <th className="px-5 py-3 text-left min-w-[250px]">Metal</th>
                                             <th className="px-5 py-3 text-left min-w-[250px]">Diamonds</th>
-                                            <th className="px-5 py-3 text-left min-w-[250px]">Colorstones</th>
                                             <th className="px-5 py-3 text-left">Inventory Quantity</th>
                                             <th className="px-5 py-3 text-left">Status</th>
                                             <th className="px-5 py-3 text-left">Default</th>
@@ -3618,35 +3344,6 @@ export default function AdminProductEdit() {
                                             }));
                                     }
                                     
-                                    // Build colorstone display from variant.colorstones array (variant-specific)
-                                    // Show only colorstone name and count, not all details
-                                    let variantColorstones: Array<{ colorstone_id: number | null; stones_count: string }> = [];
-                                    
-                                    // Check if variant has colorstones with colorstone_id (from colorstone_selections flow)
-                                    const colorstonesWithId = (variant.colorstones || [])
-                                        .filter((c) => c.colorstone_id !== '' && c.colorstone_id !== null && c.colorstone_id !== undefined)
-                                        .map((c) => ({
-                                            colorstone_id: typeof c.colorstone_id === 'number' ? c.colorstone_id : Number(c.colorstone_id),
-                                            stones_count: c.stones_count || '',
-                                        }));
-                                    
-                                    if (colorstonesWithId.length > 0) {
-                                        variantColorstones = colorstonesWithId;
-                                    } else if ((variant.colorstones || []).length > 0) {
-                                        // Variant has colorstones with shape/color/quality IDs - show simplified display
-                                        variantColorstones = (variant.colorstones || []).map((c) => ({
-                                            colorstone_id: null, // No direct colorstone_id, will show as "Colorstone"
-                                            stones_count: c.stones_count || '',
-                                        }));
-                                    } else if ((data.colorstone_selections || []).length > 0) {
-                                        // Fallback to product-level colorstone_selections
-                                        variantColorstones = (data.colorstone_selections || [])
-                                            .filter((selection) => selection.colorstone_id !== '' && selection.colorstone_id !== null && selection.colorstone_id !== undefined)
-                                            .map((selection) => ({
-                                                colorstone_id: typeof selection.colorstone_id === 'number' ? selection.colorstone_id : Number(selection.colorstone_id),
-                                                stones_count: selection.count || '',
-                                            }));
-                                    }
                                     
                                     const variantMetadata = (variant.metadata ?? {}) as Record<string, FormDataConvertible>;
                                     const metaSizeValue =
@@ -3789,49 +3486,6 @@ export default function AdminProductEdit() {
                                                                             onChange={(e) => {
                                                                                 const value = e.target.value;
                                                                                 updateDiamondInVariant(index, diamondIndex, 'diamonds_count', value);
-                                                                            }}
-                                                                            className={`w-full rounded-lg border px-2.5 py-1.5 text-sm font-mono transition-colors ${
-                                                                                (!count || count === '') 
-                                                                                    ? 'border-rose-300 bg-rose-50 text-rose-500 focus:border-rose-400 focus:bg-white' 
-                                                                                    : 'border-slate-200 bg-white text-slate-700 focus:border-sky-400'
-                                                                            } focus:outline-none focus:ring-1 focus:ring-sky-200`}
-                                                                            placeholder="0"
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })
-                                                    ) : (
-                                                        <span className="text-sm text-slate-400">—</span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-5 py-3 align-middle text-slate-700">
-                                                <div className="space-y-3 min-w-[250px]">
-                                                    {variantColorstones.length > 0 ? (
-                                                        variantColorstones.map((colorstone, colorstoneIndex) => {
-                                                            const colorstoneName = colorstone.colorstone_id 
-                                                                ? (colorstones?.find(c => c.id === colorstone.colorstone_id)?.name || 'Colorstone')
-                                                                : 'Colorstone';
-                                                            const count = colorstone.stones_count || '';
-                                                            
-                                                            return (
-                                                                <div key={colorstoneIndex} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
-                                                                    <div className="flex-1">
-                                                                        <div className="text-xs font-medium text-slate-500 mb-1">Colorstone</div>
-                                                                        <div className="text-sm font-semibold text-slate-800">{colorstoneName}</div>
-                                                                    </div>
-                                                                    <div className="w-24">
-                                                                        <div className="text-xs font-medium text-slate-500 mb-1">Count</div>
-                                                                        <input
-                                                                            type="number"
-                                                                            min="1"
-                                                                            step="1"
-                                                                            required
-                                                                            value={count}
-                                                                            onChange={(e) => {
-                                                                                const value = e.target.value;
-                                                                                updateColorstoneInVariant(index, colorstoneIndex, 'stones_count', value);
                                                                             }}
                                                                             className={`w-full rounded-lg border px-2.5 py-1.5 text-sm font-mono transition-colors ${
                                                                                 (!count || count === '') 

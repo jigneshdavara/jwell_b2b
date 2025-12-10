@@ -11,10 +11,6 @@ use App\Models\Brand;
 use App\Models\Catalog;
 use App\Models\Category;
 use App\Models\CustomerGroup;
-use App\Models\Colorstone;
-use App\Models\ColorstoneColor;
-use App\Models\ColorstoneQuality;
-use App\Models\ColorstoneShape;
 use App\Models\Diamond;
 use App\Models\DiamondClarity;
 use App\Models\DiamondColor;
@@ -96,9 +92,7 @@ class ProductController extends Controller
             'categories' => $this->categoryList(),
             'catalogs' => $this->catalogList(),
             'diamondCatalog' => $this->diamondCatalogOptions(),
-            'colorstoneCatalog' => $this->colorstoneCatalogOptions(),
             'diamonds' => $this->diamondOptions(),
-            'colorstones' => $this->colorstoneOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
             'metalTones' => $this->metalToneOptions(),
@@ -149,9 +143,6 @@ class ProductController extends Controller
                         'diamonds.diamond.shape',
                         'diamonds.diamond.color',
                         'diamonds.diamond.clarity',
-                        'colorstones.colorstone.shape',
-                        'colorstones.colorstone.color',
-                        'colorstones.colorstone.quality',
                     ]);
             },
         ]);
@@ -238,13 +229,6 @@ class ProductController extends Controller
                         'diamonds_count' => $diamond->diamonds_count,
                         'metadata' => $diamond->metadata,
                     ])->values()->all(),
-                    // Colorstones for this variant - simplified structure with only colorstone_id and count
-                    'colorstones' => $variant->colorstones->map(fn($colorstone) => [
-                        'id' => $colorstone->id,
-                        'colorstone_id' => $colorstone->colorstone_id,
-                        'stones_count' => $colorstone->stones_count,
-                        'metadata' => $colorstone->metadata,
-                    ])->values()->all(),
                 ]),
                 'media' => $product->media->map(fn(ProductMedia $media) => [
                     'id' => $media->id,
@@ -259,9 +243,7 @@ class ProductController extends Controller
             'categories' => $this->categoryList(),
             'catalogs' => $this->catalogList(),
             'diamondCatalog' => $this->diamondCatalogOptions(),
-            'colorstoneCatalog' => $this->colorstoneCatalogOptions(),
             'diamonds' => $this->diamondOptions(),
-            'colorstones' => $this->colorstoneOptions(),
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
             'metalTones' => $this->metalToneOptions(),
@@ -528,33 +510,6 @@ class ProductController extends Controller
         ];
     }
 
-    protected function colorstoneCatalogOptions(): array
-    {
-        return [
-            'shapes' => ColorstoneShape::query()
-                ->where('is_active', true)
-                ->orderBy('display_order')
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-                ->all(),
-            'colors' => ColorstoneColor::query()
-                ->where('is_active', true)
-                ->orderBy('display_order')
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-                ->all(),
-            'qualities' => ColorstoneQuality::query()
-                ->where('is_active', true)
-                ->orderBy('display_order')
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-                ->all(),
-        ];
-    }
-
     protected function diamondOptions(): array
     {
         return Diamond::query()
@@ -565,15 +520,6 @@ class ProductController extends Controller
             ->all();
     }
 
-    protected function colorstoneOptions(): array
-    {
-        return Colorstone::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-            ->all();
-    }
 
     protected function prepareProductPayload(array $data): array
     {
