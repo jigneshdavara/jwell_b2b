@@ -92,7 +92,7 @@ class StoreProductRequest extends FormRequest
             $hasPercentage = in_array('percentage', $makingChargeTypes) && $makingChargePercentage !== null && $makingChargePercentage !== '' && (float) $makingChargePercentage > 0;
 
             if (empty($makingChargeTypes) || (!$hasFixed && !$hasPercentage)) {
-                $validator->errors()->add('making_charge_type', 'Please select at least one making charge option (Fixed Amount or Percentage).');
+                $validator->errors()->add('making_charge_types', 'Please select at least one making charge option (Fixed Amount or Percentage).');
                 if (!$hasFixed && in_array('fixed', $makingChargeTypes)) {
                     $validator->errors()->add('making_charge_amount', 'Fixed making charge value is required when Fixed Amount is selected.');
                 }

@@ -201,10 +201,6 @@ class QuotationController extends Controller
                             'sku' => $q->product->sku,
                             'base_price' => $q->product->base_price,
                             'making_charge_amount' => $q->product->making_charge_amount,
-                            'gold_weight' => $q->product->gold_weight,
-                            'silver_weight' => $q->product->silver_weight,
-                            'other_material_weight' => $q->product->other_material_weight,
-                            'total_weight' => $q->product->total_weight,
                             'media' => $q->product->media->sortBy('position')->values()->map(fn($media) => [
                                 'url' => $media->url,
                                 'alt' => $media->metadata['alt'] ?? $q->product->name,
@@ -231,10 +227,6 @@ class QuotationController extends Controller
                     'sku' => $quotation->product->sku,
                     'base_price' => $quotation->product->base_price,
                     'making_charge' => $quotation->product->making_charge,
-                    'gold_weight' => $quotation->product->gold_weight,
-                    'silver_weight' => $quotation->product->silver_weight,
-                    'other_material_weight' => $quotation->product->other_material_weight,
-                    'total_weight' => $quotation->product->total_weight,
                     'media' => $quotation->product->media->sortBy('position')->values()->map(fn($media) => [
                         'url' => $media->url,
                         'alt' => $media->metadata['alt'] ?? $quotation->product->name,
@@ -624,9 +616,6 @@ class QuotationController extends Controller
             }
         }
 
-        if ($data['mode'] === 'jobwork' && ! $product->is_jobwork_allowed) {
-            return redirect()->back()->withErrors(['mode' => 'Jobwork quotations are not allowed for this product.']);
-        }
 
         // Create a new quotation with the same quotation_group_id
         $newQuotation = Quotation::create([

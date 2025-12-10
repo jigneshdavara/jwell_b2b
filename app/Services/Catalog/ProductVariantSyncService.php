@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 
 class ProductVariantSyncService
 {
-    public function sync(Product $product, array $variants, ?array $variantOptions = null, ?array $diamondOptions = null): void
+    public function sync(Product $product, array $variants, ?array $diamondOptions = null): void
     {
         // Ensure variants is always an array
         if (!is_array($variants)) {
@@ -123,7 +123,6 @@ class ProductVariantSyncService
             // metal_id, metal_purity_id are only used to create metals entries if metals array is empty
             // metals and diamonds arrays are used to sync related records
             // diamond_option_key and size_cm are stored in metadata, not as direct columns
-            // total_weight is on products table, not product_variants
             // metal_tone and stone_quality are legacy fields that don't exist in the database
             $attributes = Arr::except($variant, [
                 'id',
@@ -133,7 +132,6 @@ class ProductVariantSyncService
                 'diamonds',
                 'diamond_option_key',
                 'size_cm',
-                'total_weight',
                 'metal_tone', // Legacy field - not in database
                 'stone_quality', // Legacy field - not in database
             ]);
@@ -241,28 +239,6 @@ class ProductVariantSyncService
         } else {
             $product->variants()->delete();
         }
-
-        $options = $this->prepareVariantOptions($variantsCollection, $variantOptions ?? []);
-
-        if (Schema::hasColumn('products', 'variant_options')) {
-            $product->update([
-                'variant_options' => $options,
-            ]);
-        }
-    }
-
-    protected function prepareVariantOptions(Collection $variants, array $provided): array
-    {
-        $keys = ['size'];
-
-        $baseline = collect($keys)->mapWithKeys(function ($key) use ($variants, $provided) {
-            $submitted = $variants->pluck($key)->filter()->unique()->values()->all();
-            $library = collect(Arr::get($provided, $key, []))->filter()->unique()->values()->all();
-
-            return [$key => array_values(array_unique(array_merge($library, $submitted)))];
-        })->toArray();
-
-        return $baseline;
     }
 
     protected function syncVariantMetals(ProductVariant $variant, array $metals): void

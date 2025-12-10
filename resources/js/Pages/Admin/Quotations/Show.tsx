@@ -18,10 +18,6 @@ type RelatedQuotation = {
         sku: string;
         base_price?: number | null;
         making_charge_amount?: number | null;
-        gold_weight?: number | null;
-        silver_weight?: number | null;
-        other_material_weight?: number | null;
-        total_weight?: number | null;
         media: Array<{ url: string; alt: string }>;
         variants: Array<{
             id: number;
@@ -65,10 +61,6 @@ type QuotationDetails = {
         sku: string;
         base_price?: number | null;
         making_charge_amount?: number | null;
-        gold_weight?: number | null;
-        silver_weight?: number | null;
-        other_material_weight?: number | null;
-        total_weight?: number | null;
         media: Array<{ url: string; alt: string }>;
         variants: Array<{
             id: number;
@@ -1043,40 +1035,6 @@ export default function AdminQuotationShow() {
                                     </div>
                                 </div>
 
-                                {/* Weights */}
-                                {(productDetailsModalOpen.product.gold_weight || productDetailsModalOpen.product.silver_weight || productDetailsModalOpen.product.other_material_weight || productDetailsModalOpen.product.total_weight) && (
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Weights</h5>
-                                        <div className="space-y-2 text-sm">
-                                            {productDetailsModalOpen.product.gold_weight && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-slate-600">Gold Weight:</span>
-                                                    <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.gold_weight).toFixed(3)} g</span>
-                                                </div>
-                                            )}
-                                            {productDetailsModalOpen.product.silver_weight && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-slate-600">Silver Weight:</span>
-                                                    <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.silver_weight).toFixed(3)} g</span>
-                                                </div>
-                                            )}
-                                            {productDetailsModalOpen.product.other_material_weight && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-slate-600">Other Material Weight:</span>
-                                                    <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.other_material_weight).toFixed(3)} g</span>
-                                                </div>
-                                            )}
-                                            {productDetailsModalOpen.product.total_weight && (
-                                                <div className="border-t border-slate-300 pt-2">
-                                                    <div className="flex justify-between">
-                                                        <span className="font-semibold text-slate-900">Total Weight:</span>
-                                                        <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.total_weight).toFixed(3)} g</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
 
                                 {/* Selected Variant */}
                                 {productDetailsModalOpen.variant && (

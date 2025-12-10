@@ -55,21 +55,13 @@ type Product = {
     brand?: string;
     material?: string;
     purity?: string;
-    gold_weight?: number | null;
-    silver_weight?: number | null;
-    other_material_weight?: number | null;
-    total_weight?: number | null;
     base_price?: number;
     making_charge_amount?: number;
     making_charge_percentage?: number | null;
-    is_jobwork_allowed: boolean;
     uses_gold: boolean;
     uses_silver: boolean;
     uses_diamond: boolean;
-    diamond_mixing_mode?: "shared" | "as_variant";
-    mixed_metal_tones_per_purity?: boolean;
-    mixed_metal_purities_per_tone?: boolean;
-    metal_mix_mode?: Record<number, "normal" | "mix_tones" | "mix_purities">;
+    diamond_mixing_mode?: 'shared' | 'as_variant';
     media: Array<{ url: string; alt: string }>;
     variants: ProductVariant[];
 };
@@ -214,8 +206,7 @@ export default function CatalogShow() {
         setQuantityInput(String(data.quantity));
     }, [selectedVariantId, data.quantity]);
 
-    const isJobworkMode = mode === "jobwork";
-    const jobworkNotAllowed = isJobworkMode && !product.is_jobwork_allowed;
+    const isJobworkMode = mode === 'jobwork';
 
     // Update form data when variant changes
     // This ensures the Request quotation API receives the correct variant_id
@@ -268,7 +259,7 @@ export default function CatalogShow() {
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (processing || invalidCombination || jobworkNotAllowed) {
+        if (processing || invalidCombination) {
             return;
         }
 
@@ -742,12 +733,7 @@ export default function CatalogShow() {
                             )}
                             <button
                                 type="submit"
-                                disabled={
-                                    processing ||
-                                    invalidCombination ||
-                                    jobworkNotAllowed ||
-                                    inventoryUnavailable
-                                }
+                                disabled={processing || invalidCombination || inventoryUnavailable}
                                 className="w-full rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {processing

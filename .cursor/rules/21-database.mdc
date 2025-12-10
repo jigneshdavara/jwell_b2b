@@ -23,7 +23,7 @@ alwaysApply: true
 ### Products & Variants
 
 - **`products`**: Base product configuration
-  - Key fields: `sku`, `name`, `base_price`, `making_charge`, `variant_options` (JSON), `metal_ids` (array), `is_variant_product`
+  - Key fields: `sku`, `name`, `base_price`, `making_charge`,
   - Relationships: `brand_id`, `category_id`, `material_id`
   
 - **`product_variants`**: Specific sellable configurations
@@ -111,8 +111,7 @@ alwaysApply: true
 - **Booleans**: `boolean()` (cast to boolean in model)
 - **Integers**: `integer()`, `bigInteger()` for IDs
 - **Decimals**: `decimal(10, 2)` for prices, weights, rates
-- **JSON**: `json()` or `jsonb()` for flexible data (variant_options, metadata)
-- **Arrays**: Use JSON columns for arrays (metal_ids, metal_purity_ids)
+- **JSON**: `json()` or `jsonb()` for flexible data (metadata)
 - **Timestamps**: `timestamp()` or `timestamps()` helper
 - **Dates**: `date()` for date-only fields
 
