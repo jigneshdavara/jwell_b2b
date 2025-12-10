@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('diamond_shapes', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->nullable()->comment('diamondshapecode');
+            $table->foreignId('diamond_type_id')->constrained('diamond_types')->restrictOnDelete();
+            $table->string('code')->comment('diamondshapecode');
             $table->string('name')->comment('diamondshapename');
-            $table->string('ecat_name')->nullable();
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->integer('display_order')->default(0);

@@ -39,7 +39,6 @@ class DiamondShapeController extends Controller
                     ] : null,
                     'code' => $shape->code,
                     'name' => $shape->name,
-                    'ecat_name' => $shape->ecat_name,
                     'description' => $shape->description,
                     'is_active' => $shape->is_active,
                     'display_order' => $shape->display_order,
@@ -58,11 +57,10 @@ class DiamondShapeController extends Controller
 
         DiamondShape::create([
             'diamond_type_id' => $data['diamond_type_id'],
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
-            'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -77,11 +75,10 @@ class DiamondShapeController extends Controller
 
         $shape->update([
             'diamond_type_id' => $data['diamond_type_id'],
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
-            'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
             'is_active' => $request->boolean('is_active', true),
         ]);
 
