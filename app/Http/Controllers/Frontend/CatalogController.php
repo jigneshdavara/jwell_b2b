@@ -188,20 +188,11 @@ class CatalogController extends Controller
 
         $priceMin = $filters['price_min'] ?? null;
         $priceMax = $filters['price_max'] ?? null;
-        if ($priceMin !== null || $priceMax !== null) {
-            $query->where(function ($priceQuery) use ($priceMin, $priceMax) {
-                if ($priceMin !== null) {
-                    $priceQuery->where('base_price', '>=', (float) $priceMin);
-                }
-
-                if ($priceMax !== null) {
-                    $priceQuery->where('base_price', '<=', (float) $priceMax);
-                }
-            });
-        }
 
         $sort = in_array($sort, ['newest', 'price_asc', 'price_desc', 'name_asc'], true) ? $sort : null;
 
+        // Calculate price_total for filtering - we need to do this after fetching products
+        // because price_total depends on variant metals/diamonds and current rates
         $products = $query
             ->with([
                 'variants.metals.metal',
@@ -209,14 +200,11 @@ class CatalogController extends Controller
                 'variants.metals.metalTone',
                 'variants.diamonds.diamond',
             ])
-            ->when($sort === 'price_asc', fn($builder) => $builder->orderBy('base_price', 'asc'))
-            ->when($sort === 'price_desc', fn($builder) => $builder->orderBy('base_price', 'desc'))
             ->when($sort === 'name_asc', fn($builder) => $builder->orderBy('name'))
             ->when(! $sort || $sort === 'newest', fn($builder) => $builder->latest())
-            ->paginate(12)
-            ->through(function (Product $product) {
+            ->get()
+            ->map(function (Product $product) {
                 // Calculate priceTotal for the default variant (or first variant if no default)
-                // Variants are already ordered by is_default DESC, so first() should get default
                 $variant = $product->variants->firstWhere('is_default', true)
                     ?? $product->variants->first();
                 $priceTotal = 0;
@@ -288,6 +276,46 @@ class CatalogController extends Controller
                     ]),
                 ];
             });
+
+        // Apply price filter after calculating price_total
+        if ($priceMin !== null || $priceMax !== null) {
+            $products = $products->filter(function ($product) use ($priceMin, $priceMax) {
+                $priceTotal = $product['price_total'] ?? 0;
+
+                if ($priceMin !== null && $priceTotal < (float) $priceMin) {
+                    return false;
+                }
+
+                if ($priceMax !== null && $priceTotal > (float) $priceMax) {
+                    return false;
+                }
+
+                return true;
+            });
+        }
+
+        // Apply sorting by price if needed
+        if ($sort === 'price_asc') {
+            $products = $products->sortBy('price_total');
+        } elseif ($sort === 'price_desc') {
+            $products = $products->sortByDesc('price_total');
+        }
+
+        // Reset collection keys for proper pagination
+        $products = $products->values();
+
+        // Manual pagination
+        $page = (int) $request->input('page', 1);
+        $perPage = 12;
+        $total = $products->count();
+        $items = $products->forPage($page, $perPage)->values()->all();
+        $products = new \Illuminate\Pagination\LengthAwarePaginator(
+            $items,
+            $total,
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         $facets = [
             'categories' => Category::query()
