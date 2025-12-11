@@ -69,7 +69,7 @@ const statusColours: Record<string, string> = {
 };
 
 export default function AdminUsersIndex() {
-    const { users, kycStatuses, filters, stats, customerGroups, perPageOptions } = usePage<AdminUsersPageProps>().props;
+    const { users, kycStatuses, filters, customerGroups, perPageOptions } = usePage<AdminUsersPageProps>().props;
     const [search, setSearch] = useState(filters.search ?? '');
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [perPage, setPerPage] = useState(users.meta?.per_page ?? 20);
@@ -177,16 +177,6 @@ export default function AdminUsersIndex() {
         router.post(route('admin.customers.toggle-status', user.id), {}, { preserveScroll: true });
     };
 
-    const iconButton = (icon: JSX.Element, label: string, onClick: () => void) => (
-        <button
-            type="button"
-            onClick={onClick}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-            title={label}
-        >
-            {icon}
-        </button>
-    );
 
     return (
         <AdminLayout>

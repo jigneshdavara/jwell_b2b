@@ -20,13 +20,11 @@ class UpdateDiamondTypeRequest extends FormRequest
         $typeId = $this->route('type')->id ?? null;
 
         return [
-            'code' => ['nullable', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:255', Rule::unique('diamond_types', 'code')->ignore($typeId)],
             'name' => ['required', 'string', 'max:255', Rule::unique('diamond_types', 'name')->ignore($typeId)],
             'description' => ['nullable', 'string'],
-            'display_order' => ['nullable', 'integer', 'min:0'],
+            'display_order' => ['required', 'integer', 'min:0'],
             'is_active' => ['boolean'],
         ];
     }
 }
-
-

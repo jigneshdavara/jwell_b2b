@@ -20,11 +20,11 @@ class UpdateBrandRequest extends FormRequest
         $brand = $this->route('brand');
 
         return [
-            'code' => ['nullable', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:255', Rule::unique('brands', 'code')->ignore($brand?->id)],
             'name' => ['required', 'string', 'max:255', Rule::unique('brands', 'name')->ignore($brand?->id)],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
-            'display_order' => ['nullable', 'integer', 'min:0'],
+            'display_order' => ['required', 'integer', 'min:0'],
             'cover_image' => ['nullable', 'image', 'max:2048'],
             'remove_cover_image' => ['nullable', 'boolean'],
         ];

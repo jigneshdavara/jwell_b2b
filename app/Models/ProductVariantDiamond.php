@@ -15,13 +15,13 @@ class ProductVariantDiamond extends Model
         'diamond_id',
         'diamonds_count',
         'metadata',
-        'position',
+        'display_order',
     ];
 
     protected $casts = [
         'diamonds_count' => 'integer',
         'metadata' => 'array',
-        'position' => 'integer',
+        'display_order' => 'integer',
     ];
 
     public function productVariant(): BelongsTo

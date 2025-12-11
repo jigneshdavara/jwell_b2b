@@ -17,12 +17,13 @@ class ProductVariantMetal extends Model
         'metal_tone_id',
         'metal_weight',
         'metadata',
-        'position',
+        'display_order',
     ];
 
     protected $casts = [
         'metal_weight' => 'float',
         'metadata' => 'array',
+        'display_order' => 'integer',
     ];
 
     public function productVariant(): BelongsTo

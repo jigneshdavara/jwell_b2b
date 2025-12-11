@@ -36,13 +36,11 @@ use App\Http\Controllers\Frontend\CatalogController;
 use App\Http\Controllers\Frontend\CheckoutController;
 use App\Http\Controllers\Frontend\DashboardController as FrontendDashboardController;
 use App\Http\Controllers\Frontend\HomeController;
-use App\Http\Controllers\Frontend\JobworkController;
 use App\Http\Controllers\Frontend\QuotationController;
 use App\Http\Controllers\Frontend\OrderController as FrontendOrderController;
 use App\Http\Controllers\Frontend\KycOnboardingController;
 use App\Http\Controllers\Frontend\WishlistController;
 use App\Http\Controllers\Production\DashboardController as ProductionDashboardController;
-use App\Http\Controllers\Production\WorkOrderController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -107,13 +105,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('ensure.kyc.approved')
             ->name('frontend.checkout.confirm');
 
-        Route::get('/jobwork', [JobworkController::class, 'index'])
-            ->middleware('ensure.kyc.approved')
-            ->name('frontend.jobwork.index');
-
-        Route::post('/jobwork', [JobworkController::class, 'store'])
-            ->middleware('ensure.kyc.approved')
-            ->name('frontend.jobwork.store');
 
         Route::get('/orders', [FrontendOrderController::class, 'index'])
             ->middleware('ensure.kyc.approved')
@@ -306,9 +297,6 @@ Route::prefix('production')
     ->middleware(['auth:admin', 'can:update production status'])
     ->group(function () {
         Route::get('/dashboard', ProductionDashboardController::class)->name('dashboard');
-        Route::get('/work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');
-        Route::post('/work-orders/{workOrder}/status', [WorkOrderController::class, 'updateStatus'])
-            ->name('work-orders.update-status');
     });
 
 

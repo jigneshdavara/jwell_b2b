@@ -34,7 +34,7 @@ class WishlistController extends Controller
                 'variant_id' => $item->product_variant_id,
                 'sku' => $product?->sku,
                 'name' => $product?->name,
-                'thumbnail' => optional($product?->media->sortBy('position')->first())?->url,
+                'thumbnail' => optional($product?->media->sortBy('display_order')->first())?->url,
                 'variant_label' => $item->variant?->label,
                 'configuration' => $item->configuration,
             ];

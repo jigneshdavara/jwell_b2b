@@ -76,11 +76,11 @@ class DiamondShapeSizeController extends Controller
         DiamondShapeSize::create([
             'diamond_type_id' => $data['diamond_type_id'],
             'diamond_shape_id' => $data['diamond_shape_id'],
-            'size' => $data['size'] ?? null,
+            'size' => $data['size'],
             'secondary_size' => $data['secondary_size'] ?? null,
             'description' => $data['description'] ?? null,
-            'display_order' => $data['display_order'] ?? 0,
-            'ctw' => $data['ctw'] ?? 0,
+            'display_order' => $data['display_order'],
+            'ctw' => $data['ctw'],
         ]);
 
         return redirect()
@@ -95,11 +95,11 @@ class DiamondShapeSizeController extends Controller
         $shapeSize->update([
             'diamond_type_id' => $data['diamond_type_id'],
             'diamond_shape_id' => $data['diamond_shape_id'],
-            'size' => $data['size'] ?? null,
+            'size' => $data['size'],
             'secondary_size' => $data['secondary_size'] ?? null,
             'description' => $data['description'] ?? null,
-            'display_order' => $data['display_order'] ?? 0,
-            'ctw' => $data['ctw'] ?? 0,
+            'display_order' => $data['display_order'],
+            'ctw' => $data['ctw'],
         ]);
 
         return redirect()

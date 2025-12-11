@@ -70,7 +70,7 @@ type KycReviewPageProps = AppPageProps<{
 }>;
 
 export default function KycReview() {
-    const { user, statuses, documentStatuses, messages } = usePage<KycReviewPageProps>().props;
+    const { user, statuses, messages } = usePage<KycReviewPageProps>().props;
     const [documentModalOpen, setDocumentModalOpen] = useState<number | null>(null);
     const [documentAction, setDocumentAction] = useState<'approve' | 'reject' | null>(null);
 

@@ -19,7 +19,6 @@ type VariantDiamondForm = {
     diamonds_count?: string;
 };
 
-
 type VariantForm = {
     id?: number;
     sku: string;
@@ -27,23 +26,11 @@ type VariantForm = {
     metal_id: number | '';
     metal_purity_id: number | '';
     diamond_option_key: string | null;
-    size_cm: string;
-    price_adjustment: string;
     is_default: boolean;
     inventory_quantity?: number | string;
     metadata?: Record<string, FormDataConvertible>;
-    // Optional: for multiple metals per variant
     metals?: VariantMetalForm[];
     diamonds?: VariantDiamondForm[];
-};
-
-type ProductDiamondOption = {
-    key?: string | null;
-    shape_id: number | null;
-    color_id: number | null;
-    clarity_id: number | null;
-    weight: number | null;
-    diamonds_count: number | null;
 };
 
 type Product = {
@@ -54,20 +41,12 @@ type Product = {
     description?: string;
     brand_id?: number;
     category_id?: number;
-    category_ids?: number[];
     catalog_ids?: number[];
     collection?: string;
     producttype?: string;
     gender?: string;
     making_charge_amount?: number | string;
     making_charge_percentage?: number | string;
-    making_charge_discount_type?: 'percentage' | 'fixed' | null;
-    making_charge_discount_value?: string | number | null;
-    making_charge_discount_overrides?: Array<{
-        customer_group_id: number | null;
-        type: 'percentage' | 'fixed';
-        value: string | number | null;
-    }>;
     is_active?: boolean;
     media?: ProductMedia[];
     variants?: Array<{
@@ -77,8 +56,6 @@ type Product = {
         metal_id?: number | '';
         metal_purity_id?: number | '';
         diamond_option_key?: string | null;
-        size_cm?: number | string;
-        price_adjustment?: number | string;
         is_default?: boolean;
         inventory_quantity?: number;
         metadata?: Record<string, any>;
@@ -101,14 +78,6 @@ type OptionListItem = {
     id: number;
     name: string;
 };
-
-type DiamondCatalog = {
-    types: OptionListItem[];
-    shapes: OptionListItem[];
-    colors: OptionListItem[];
-    clarities: OptionListItem[];
-};
-
 
 type OptionList = Record<string, string>;
 
@@ -141,18 +110,11 @@ type CatalogOption = {
     is_active: boolean;
 };
 
-type CategoryOption = {
-    id: number;
-    name: string;
-    parent_id: number | null;
-};
-
 type AdminProductEditPageProps = AppPageProps<{
     product: Product | null;
     brands: OptionList;
-    categories: CategoryOption[];
+    categories: OptionListItem[];
     catalogs: CatalogOption[];
-    diamondCatalog: DiamondCatalog;
     diamonds: OptionListItem[];
     customerGroups: OptionListItem[];
     metals: MetalOption[];
@@ -167,23 +129,24 @@ type FormData = {
     titleline: string;
     description: string;
     brand_id: string;
-    parent_category_id: string;
     category_id: string;
-    subcategory_ids?: number[];
     collection: string;
     producttype: string;
     gender: string;
     making_charge_amount: string;
     making_charge_types: ('fixed' | 'percentage')[];
     making_charge_percentage: string;
-    making_charge_discount_type: '' | 'percentage' | 'fixed' | null;
-    making_charge_discount_value: string | number | null;
-    making_charge_discount_overrides: DiscountOverrideForm[];
     is_active: boolean;
     variants?: VariantForm[];
     diamond_selections?: Array<{ diamond_id: number | ''; count: string }>;
+    metal_selections?: Array<{ metal_id: number | ''; metal_purity_id: number | ''; metal_tone_id: number | ''; weight: string }>;
+    // Checkbox-based metal configuration
+    selected_metals?: number[]; // Array of selected metal IDs
+    metal_configurations?: Record<number, { // metal_id -> configuration
+        purities: number[]; // Selected purity IDs for this metal
+        tones: number[]; // Selected tone IDs for this metal
+    }>;
     diamond_options?: DiamondOptionForm[];
-    diamond_mixing_mode?: 'shared' | 'as_variant';
     uses_diamond?: boolean;
     catalog_ids?: number[];
     media_uploads?: File[];
@@ -202,18 +165,11 @@ type DiamondOptionForm = {
     diamonds_count: string;
 };
 
-type DiscountOverrideForm = {
-    localKey: string;
-    customer_group_id: number | '';
-    type: 'percentage' | 'fixed';
-    value: string | number | null;
-};
-
 type ProductMedia = {
     id: number;
     type: string;
     url: string;
-    position: number;
+    display_order: number;
     metadata?: Record<string, unknown> | null;
 };
 
@@ -223,8 +179,6 @@ const emptyVariant = (isDefault = false): VariantForm => ({
     metal_id: '',
     metal_purity_id: '',
     diamond_option_key: null,
-    size_cm: '',
-    price_adjustment: '0',
     is_default: isDefault,
     metadata: {},
     metals: [],
@@ -239,37 +193,12 @@ const generateLocalKey = () => {
     return `local-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 };
 
-const createDiamondOption = (): DiamondOptionForm => ({
-    key: generateLocalKey(),
-    shape_id: '',
-    color_id: '',
-    clarity_id: '',
-    weight: '',
-    diamonds_count: '',
-});
-
-const createEmptyMetal = (): VariantMetalForm => ({
-    metal_id: '',
-    metal_purity_id: '',
-    metal_tone_id: '',
-    metal_weight: '',
-});
-
 const createEmptyDiamond = (): VariantDiamondForm => ({
     id: undefined,
     diamond_id: '',
     diamonds_count: '',
 });
 
-
-const createDiscountOverride = (): DiscountOverrideForm => ({
-    localKey: generateLocalKey(),
-    customer_group_id: '',
-    type: 'percentage',
-    value: '',
-});
-
-// Catalog Multi-Select Component
 type CatalogMultiSelectProps = {
     catalogs: CatalogOption[];
     selectedIds: number[];
@@ -282,7 +211,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
     const [searchTerm, setSearchTerm] = useState('');
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Filter catalogs based on search
     const filteredCatalogs = useMemo(() => {
         if (!searchTerm.trim()) {
             return catalogs;
@@ -303,7 +231,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
         }
     };
 
-    // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -321,7 +248,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
         };
     }, [isOpen]);
 
-    // Get selected catalog data for display
     const selectedCatalogs = useMemo(() => {
         return selectedIds
             .map(id => {
@@ -331,7 +257,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
             .filter(Boolean) as Array<{ id: number; name: string }>;
     }, [selectedIds, catalogs]);
 
-    // Remove catalog from selection
     const removeCatalog = (catalogId: number) => {
         onChange(selectedIds.filter(id => id !== catalogId));
     };
@@ -503,235 +428,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
     );
 }
 
-type SubcategoryMultiSelectProps = {
-    subcategories: CategoryOption[];
-    selectedIds: number[];
-    onChange: (selectedIds: number[]) => void;
-    error?: string;
-    disabled?: boolean;
-};
-
-function SubcategoryMultiSelect({ subcategories, selectedIds, onChange, error, disabled }: SubcategoryMultiSelectProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    // Filter subcategories based on search
-    const filteredSubcategories = useMemo(() => {
-        if (!searchTerm.trim()) {
-            return subcategories;
-        }
-        const search = searchTerm.toLowerCase();
-        return subcategories.filter((category) =>
-            category.name.toLowerCase().includes(search)
-        );
-    }, [subcategories, searchTerm]);
-
-    // Toggle subcategory selection
-    const toggleSubcategory = (categoryId: number) => {
-        if (selectedIds.includes(categoryId)) {
-            onChange(selectedIds.filter(id => id !== categoryId));
-        } else {
-            onChange([...selectedIds, categoryId]);
-        }
-    };
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-                setSearchTerm('');
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isOpen]);
-
-    // Get selected subcategory data for display
-    const selectedSubcategories = useMemo(() => {
-        return selectedIds
-            .map(id => {
-                const category = subcategories.find(c => c.id === id);
-                return category ? { id, name: category.name } : null;
-            })
-            .filter(Boolean) as Array<{ id: number; name: string }>;
-    }, [selectedIds, subcategories]);
-
-    // Remove subcategory from selection
-    const removeSubcategory = (categoryId: number) => {
-        onChange(selectedIds.filter(id => id !== categoryId));
-    };
-
-    return (
-        <label className="flex flex-col gap-2 text-sm text-slate-600">
-            <div className="flex items-center justify-between">
-                <span>Sub Categories (Optional)</span>
-                {selectedIds.length > 0 && (
-                    <span className="text-xs font-medium text-sky-600">
-                        {selectedIds.length} selected
-                    </span>
-                )}
-            </div>
-            <div className="relative" ref={dropdownRef}>
-                {/* Dropdown Button */}
-                <button
-                    type="button"
-                    onClick={() => !disabled && setIsOpen(!isOpen)}
-                    disabled={disabled}
-                    className={`w-full rounded-2xl border ${
-                        error ? 'border-rose-300' : 'border-slate-200'
-                    } bg-white px-4 py-2.5 text-left focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 transition-all ${
-                        isOpen ? 'border-sky-400 ring-2 ring-sky-200' : ''
-                    } ${disabled ? 'bg-slate-100 cursor-not-allowed opacity-60' : ''}`}
-                >
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="flex-1 min-h-[20px] flex flex-wrap gap-1.5">
-                            {selectedIds.length === 0 ? (
-                                <span className="text-slate-400">
-                                    {disabled ? 'Select parent category first' : 'Select subcategories...'}
-                                </span>
-                            ) : (
-                                selectedSubcategories.map((category) => (
-                                    <span
-                                        key={category.id}
-                                        className="inline-flex items-center gap-1.5 rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 border border-sky-200"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <span>{category.name}</span>
-                                        {!disabled && (
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    removeSubcategory(category.id);
-                                                }}
-                                                className="hover:bg-sky-100 rounded-full p-0.5 transition-colors"
-                                            >
-                                                <svg
-                                                    className="h-3 w-3 text-sky-600"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        )}
-                                    </span>
-                                ))
-                            )}
-                        </div>
-                        <svg
-                            className={`ml-2 h-5 w-5 text-slate-400 transition-transform flex-shrink-0 ${
-                                isOpen ? 'rotate-180' : ''
-                            }`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                </button>
-
-                {/* Dropdown Menu */}
-                {isOpen && !disabled && (
-                    <div className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
-                        {/* Search Input */}
-                        {subcategories.length > 5 && (
-                            <div className="border-b border-slate-100 p-3">
-                                <div className="relative">
-                                    <svg
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                    <input
-                                        type="text"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        placeholder="Search subcategories..."
-                                        className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Subcategory List */}
-                        <div className="max-h-64 overflow-y-auto p-2">
-                            {filteredSubcategories.length === 0 ? (
-                                <div className="px-3 py-6 text-center text-sm text-slate-400">
-                                    {searchTerm ? 'No subcategories found' : 'No subcategories available'}
-                                </div>
-                            ) : (
-                                <div className="space-y-1">
-                                    {filteredSubcategories.map((category) => {
-                                        const isSelected = selectedIds.includes(category.id);
-                                        return (
-                                            <button
-                                                key={category.id}
-                                                type="button"
-                                                onClick={() => toggleSubcategory(category.id)}
-                                                className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                                                    isSelected
-                                                        ? 'bg-sky-50 text-sky-700'
-                                                        : 'text-slate-700 hover:bg-slate-50'
-                                                }`}
-                                            >
-                                                {/* Checkbox */}
-                                                <div
-                                                    className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
-                                                        isSelected
-                                                            ? 'border-sky-500 bg-sky-500'
-                                                            : 'border-slate-300'
-                                                    }`}
-                                                >
-                                                    {isSelected && (
-                                                        <svg
-                                                            className="h-3.5 w-3.5 text-white"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                            strokeWidth={3}
-                                                        >
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    )}
-                                                </div>
-
-                                                {/* Category Info */}
-                                                <div className="flex-1 min-w-0">
-                                                    <span className={`text-sm font-medium truncate ${
-                                                        isSelected ? 'text-sky-900' : 'text-slate-900'
-                                                    }`}>
-                                                        {category.name}
-                                                    </span>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
-            {error && <span className="text-xs text-rose-500">{error}</span>}
-        </label>
-    );
-}
-
 export default function AdminProductEdit() {
     const { props } = usePage<AdminProductEditPageProps>();
     const {
@@ -739,91 +435,60 @@ export default function AdminProductEdit() {
         brands,
         categories,
         catalogs,
-        diamondCatalog,
         diamonds,
-        customerGroups,
         metals,
         metalPurities,
         metalTones,
         errors,
     } = props;
 
-    // Note: Variants are no longer managed at the product level
-    // Variants should be managed separately through product_variants table
-    const initialVariants: VariantForm[] = product?.variants?.length
-        ? product.variants.map((variant: any, index) => ({
-              id: variant.id,
-              sku: variant.sku ?? '',
-              label: variant.label ?? '',
-              metal_id: variant.metal_id ?? '',
-              metal_purity_id: variant.metal_purity_id ?? '',
-              diamond_option_key: (variant.diamond_option_key as string | null) ?? null,
-              size_cm: variant.size_cm ? String(variant.size_cm) : '',
-              price_adjustment: String(variant.price_adjustment ?? 0),
-              is_default: variant.is_default ?? index === 0,
-              inventory_quantity: variant.inventory_quantity !== undefined && variant.inventory_quantity !== null ? Number(variant.inventory_quantity) : 0,
-              metadata: variant.metadata ?? {},
-              // Optional: for multiple metals per variant
-              metals: variant.metals?.map((metal: any) => ({
-                  id: metal.id,
-                  metal_id: metal.metal_id ?? '',
-                  metal_purity_id: metal.metal_purity_id ?? '',
-                  metal_tone_id: metal.metal_tone_id ?? '',
-                  metal_weight: metal.metal_weight ? String(metal.metal_weight) : '',
-              })) ?? [],
-              diamonds: variant.diamonds?.map((diamond: any) => ({
-                  id: diamond.id,
-                  diamond_id: diamond.diamond_id ?? '',
-                  diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
-              })) ?? [],
-          }))
-        : [emptyVariant(true)];
-
-    const initialDiscountOverrides: DiscountOverrideForm[] = product?.making_charge_discount_overrides?.length
-        ? product.making_charge_discount_overrides.map((override, index) => ({
-              localKey: `${generateLocalKey()}-${index}`,
-              customer_group_id:
-                  override.customer_group_id !== null && override.customer_group_id !== undefined
-                      ? Number(override.customer_group_id)
-                      : '',
-              type: (override.type as 'percentage' | 'fixed') ?? 'percentage',
-              value: override.value !== null && override.value !== undefined ? String(override.value) : '',
-          }))
-        : [];
-
-    // Extract purities, tones, and diamonds from existing variants
     const extractSelectionsFromVariants = useMemo(() => {
         if (!product?.variants?.length) {
             return {
                 metalPurityIds: [] as number[],
                 metalToneIds: [] as number[],
                 diamondOptions: [] as DiamondOptionForm[],
+                metalSelections: [] as Array<{ metal_id: number; metal_purity_id: number; metal_tone_id: number; weight: string }>,
             };
         }
 
         const metalPurityIdsSet = new Set<number>();
         const metalToneIdsSet = new Set<number>();
         const diamondSelectionsMap = new Map<number, { diamond_id: number; count: string }>();
+        const metalSelectionsMap = new Map<string, { metal_id: number; metal_purity_id: number; metal_tone_id: number; weight: string }>();
 
         product.variants.forEach((variant: any) => {
-            // Extract metals
             if (variant.metals?.length) {
                 variant.metals.forEach((metal: any) => {
-                    if (metal.metal_purity_id && metal.metal_purity_id !== '') {
-                        metalPurityIdsSet.add(typeof metal.metal_purity_id === 'number' ? metal.metal_purity_id : Number(metal.metal_purity_id));
-                    }
-                    if (metal.metal_tone_id && metal.metal_tone_id !== '') {
-                        metalToneIdsSet.add(typeof metal.metal_tone_id === 'number' ? metal.metal_tone_id : Number(metal.metal_tone_id));
+                    if (metal.metal_id && metal.metal_id !== '' && metal.metal_id !== null) {
+                        const metalId = typeof metal.metal_id === 'number' ? metal.metal_id : Number(metal.metal_id);
+                        const purityId = metal.metal_purity_id && metal.metal_purity_id !== '' ? (typeof metal.metal_purity_id === 'number' ? metal.metal_purity_id : Number(metal.metal_purity_id)) : 0;
+                        const toneId = metal.metal_tone_id && metal.metal_tone_id !== '' ? (typeof metal.metal_tone_id === 'number' ? metal.metal_tone_id : Number(metal.metal_tone_id)) : 0;
+                        const weight = metal.metal_weight ? String(metal.metal_weight) : '';
+                        const key = `${metalId}-${purityId}-${toneId}`;
+                        if (!metalSelectionsMap.has(key)) {
+                            metalSelectionsMap.set(key, {
+                                metal_id: metalId,
+                                metal_purity_id: purityId || 0,
+                                metal_tone_id: toneId || 0,
+                                weight: weight,
+                            });
+                        }
+                        
+                        if (purityId) {
+                            metalPurityIdsSet.add(purityId);
+                        }
+                        if (toneId) {
+                            metalToneIdsSet.add(toneId);
+                        }
                     }
                 });
             }
 
-            // Extract diamonds - use diamond_id (simplified structure)
             if (variant.diamonds?.length) {
                 variant.diamonds.forEach((diamond: any) => {
                     if (diamond.diamond_id && diamond.diamond_id !== '' && diamond.diamond_id !== null) {
                         const diamondId = typeof diamond.diamond_id === 'number' ? diamond.diamond_id : Number(diamond.diamond_id);
-                        // Only add if not already in the map (avoid duplicates)
                         if (!diamondSelectionsMap.has(diamondId)) {
                             diamondSelectionsMap.set(diamondId, {
                                 diamond_id: diamondId,
@@ -840,106 +505,77 @@ export default function AdminProductEdit() {
             metalPurityIds: Array.from(metalPurityIdsSet),
             metalToneIds: Array.from(metalToneIdsSet),
             diamondSelections: Array.from(diamondSelectionsMap.values()),
+            metalSelections: Array.from(metalSelectionsMap.values()).map(m => ({
+                metal_id: m.metal_id,
+                metal_purity_id: m.metal_purity_id || '',
+                metal_tone_id: m.metal_tone_id || '',
+                weight: m.weight,
+            })),
         };
     }, [product]);
 
-    // Compute initial form data including parent category
-    const initialFormData = useMemo(() => {
-        // category_id in product = parent category ID
-        const parentCategoryId = product?.category_id ? String(product.category_id) : '';
-        const existingSubcategoryIds = product?.category_ids ?? [];
-
-        // Set parent category ID from product.category_id
-        const subcategoryIds: number[] = existingSubcategoryIds.filter((id): id is number => typeof id === 'number');
-
-        return {
-            sku: product?.sku ?? '',
-            name: product?.name ?? '',
-            titleline: product?.titleline ?? '',
-            description: product?.description ?? '',
-            catalog_ids: product?.catalog_ids ?? [],
-            brand_id: String(product?.brand_id ?? ''),
-            parent_category_id: parentCategoryId,
-            category_id: '',
-            subcategory_ids: subcategoryIds,
-            collection: product?.collection ?? '',
-            producttype: product?.producttype ?? '',
-            gender: product?.gender ?? '',
-            making_charge_amount: product?.making_charge_amount ? String(product.making_charge_amount) : '',
-            making_charge_types: (() => {
-                // Infer from values: if both have values, both are selected
-                const hasFixed = product?.making_charge_amount && Number(product.making_charge_amount) > 0;
-                const hasPercentage = product?.making_charge_percentage && Number(product.making_charge_percentage) > 0;
-                if (hasFixed && hasPercentage) return ['fixed', 'percentage'];
-                if (hasPercentage) return ['percentage'];
-                if (hasFixed) return ['fixed'];
-                return ['fixed']; // Default to fixed
-            })(),
-            making_charge_percentage: product?.making_charge_percentage ? String(product.making_charge_percentage) : '',
-            making_charge_discount_type:
-                    (product?.making_charge_discount_type as 'percentage' | 'fixed' | null) ?? null,
-            making_charge_discount_value:
-                    product?.making_charge_discount_value !== null && product?.making_charge_discount_value !== undefined
-                        ? String(product.making_charge_discount_value)
-                        : null,
-            making_charge_discount_overrides: initialDiscountOverrides,
-                is_active: product?.is_active ?? true,
-                variants: product?.variants?.length
-                    ? product.variants.map((variant: any, index) => ({
-                        id: variant.id,
-                        sku: variant.sku ?? '',
-                        label: variant.label ?? '',
-                        metal_id: variant.metal_id ?? '',
-                        metal_purity_id: variant.metal_purity_id ?? '',
-                        diamond_option_key: (variant.diamond_option_key as string | null) ?? null,
-                        size_cm: variant.size_cm ? String(variant.size_cm) : '',
-                        price_adjustment: String(variant.price_adjustment ?? 0),
-                        is_default: variant.is_default ?? index === 0,
-                        inventory_quantity: variant.inventory_quantity !== undefined && variant.inventory_quantity !== null ? Number(variant.inventory_quantity) : 0,
-                        metadata: variant.metadata ?? {},
-                        metals: variant.metals?.map((metal: any) => ({
-                            id: metal.id,
-                            metal_id: metal.metal_id ?? '',
-                            metal_purity_id: metal.metal_purity_id ?? '',
-                            metal_tone_id: metal.metal_tone_id ?? '',
-                            metal_weight: metal.metal_weight ? String(metal.metal_weight) : '',
-                        })) ?? [],
-                        diamonds: variant.diamonds?.map((diamond: any) => ({
-                            id: diamond.id,
-                            diamond_id: diamond.diamond_id ?? '',
-                            diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
-                        })) ?? [],
-                    }))
-                    : [emptyVariant(true)],
-            diamond_options: [],
-            uses_diamond: (extractSelectionsFromVariants.diamondSelections?.length ?? 0) > 0,
-            diamond_selections: extractSelectionsFromVariants.diamondSelections ?? [],
-            media_uploads: [],
-            removed_media_ids: [],
-        } as Record<string, any>;
-    }, [product, categories, initialDiscountOverrides, extractSelectionsFromVariants]);
-
-    const form = useForm<Record<string, any>>(initialFormData);
+    const form = useForm<Record<string, any>>(() => ({
+        sku: product?.sku ?? '',
+        name: product?.name ?? '',
+        titleline: product?.titleline ?? '',
+        description: product?.description ?? '',
+        catalog_ids: product?.catalog_ids ?? [],
+        brand_id: String(product?.brand_id ?? ''),
+        category_id: String(product?.category_id ?? ''),
+        collection: product?.collection ?? '',
+        producttype: product?.producttype ?? '',
+        gender: product?.gender ?? '',
+        making_charge_amount: product?.making_charge_amount ? String(product.making_charge_amount) : '',
+        making_charge_types: (() => {
+            const hasFixed = product?.making_charge_amount && Number(product.making_charge_amount) > 0;
+            const hasPercentage = product?.making_charge_percentage && Number(product.making_charge_percentage) > 0;
+            if (hasFixed && hasPercentage) return ['fixed', 'percentage'];
+            if (hasPercentage) return ['percentage'];
+            if (hasFixed) return ['fixed'];
+            return ['fixed'];
+        })(),
+        making_charge_percentage: product?.making_charge_percentage ? String(product.making_charge_percentage) : '',
+        is_active: product?.is_active ?? true,
+        variants: product?.variants?.length
+            ? product.variants.map((variant: any, index) => ({
+                  id: variant.id,
+                  sku: variant.sku ?? '',
+                  label: variant.label ?? '',
+                  metal_id: variant.metal_id ?? '',
+                  metal_purity_id: variant.metal_purity_id ?? '',
+                  diamond_option_key: (variant.diamond_option_key as string | null) ?? null,
+                  is_default: variant.is_default ?? index === 0,
+                  inventory_quantity: variant.inventory_quantity !== undefined && variant.inventory_quantity !== null ? Number(variant.inventory_quantity) : 0,
+                  metadata: variant.metadata ?? {},
+                  metals: variant.metals?.map((metal: any) => ({
+                      id: metal.id,
+                      metal_id: metal.metal_id ?? '',
+                      metal_purity_id: metal.metal_purity_id ?? '',
+                      metal_tone_id: metal.metal_tone_id ?? '',
+                      metal_weight: metal.metal_weight ? String(metal.metal_weight) : '',
+                  })) ?? [],
+                  diamonds: variant.diamonds?.map((diamond: any) => ({
+                      id: diamond.id,
+                      diamond_id: diamond.diamond_id ?? '',
+                      diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
+                  })) ?? [],
+              }))
+            : [emptyVariant(true)],
+        diamond_options: [],
+        uses_diamond: (extractSelectionsFromVariants.diamondSelections?.length ?? 0) > 0,
+        diamond_selections: extractSelectionsFromVariants.diamondSelections ?? [],
+        metal_selections: extractSelectionsFromVariants.metalSelections ?? [],
+        selected_metals: [],
+        metal_configurations: {},
+        media_uploads: [],
+        removed_media_ids: [],
+    }) as Record<string, any>);
     const { setData, post, put, processing } = form;
     const data = form.data as FormData;
 
-    // Compute parent categories (categories with no parent_id)
-    const parentCategories = useMemo(() => {
-        return categories.filter(cat => cat.parent_id === null);
-    }, [categories]);
-
-    // Compute subcategories based on selected parent category
-    const subCategories = useMemo(() => {
-        const parentId = data.parent_category_id ? Number(data.parent_category_id) : null;
-        if (!parentId) return [];
-        return categories.filter(cat => cat.parent_id === parentId);
-    }, [categories, data.parent_category_id]);
-
-    // Local state for description to prevent re-renders on every keystroke
     const [localDescription, setLocalDescription] = useState(data.description);
     const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Sync local description with form data when form data changes externally
     useEffect(() => {
         if (data.description !== localDescription) {
             setLocalDescription(data.description);
@@ -949,19 +585,14 @@ export default function AdminProductEdit() {
     // Debounced handler for description changes
     const handleDescriptionChange = useCallback((value: string) => {
         setLocalDescription(value);
-        
-        // Clear existing timeout
         if (descriptionTimeoutRef.current) {
             clearTimeout(descriptionTimeoutRef.current);
         }
-        
-        // Set new timeout to update form data after 300ms of no typing
         descriptionTimeoutRef.current = setTimeout(() => {
             setData('description', value);
         }, 300);
     }, [setData]);
 
-    // Cleanup timeout on unmount
     useEffect(() => {
         return () => {
             if (descriptionTimeoutRef.current) {
@@ -969,37 +600,10 @@ export default function AdminProductEdit() {
             }
         };
     }, []);
-    
+
     const [sizeValueInput, setSizeValueInput] = useState('');
-    // Allow multiple variants to be expanded simultaneously
     const [expandedDiamondVariantIndices, setExpandedDiamondVariantIndices] = useState<Set<number>>(new Set());
     const [expandedMetalVariantIndices, setExpandedMetalVariantIndices] = useState<Set<number>>(new Set());
-    
-    // Helper functions to toggle expansion
-    const toggleMetalExpansion = useCallback((index: number) => {
-        setExpandedMetalVariantIndices(prev => {
-            const next = new Set(prev);
-            if (next.has(index)) {
-                next.delete(index);
-            } else {
-                next.add(index);
-            }
-            return next;
-        });
-    }, []);
-    
-    const toggleDiamondExpansion = useCallback((index: number) => {
-        setExpandedDiamondVariantIndices(prev => {
-            const next = new Set(prev);
-            if (next.has(index)) {
-                next.delete(index);
-            } else {
-                next.add(index);
-            }
-            return next;
-        });
-    }, []);
-
 
     const formatDecimal = (value: number): string => {
         if (!Number.isFinite(value)) {
@@ -1029,8 +633,6 @@ export default function AdminProductEdit() {
         return formatDecimal(converted);
     };
 
-
-    // Create maps for metal purities and tones
     const metalPurityMap = useMemo(
         () => Object.fromEntries(metalPurities.map((item) => [item.id, item.name])),
         [metalPurities],
@@ -1043,48 +645,11 @@ export default function AdminProductEdit() {
         () => Object.fromEntries(metals.map((item) => [item.id, item.name])),
         [metals],
     );
-    const diamondNameMaps = useMemo(
-        () => ({
-            types: Object.fromEntries(diamondCatalog.types.map((item) => [item.id, item.name])),
-            shapes: Object.fromEntries(diamondCatalog.shapes.map((item) => [item.id, item.name])),
-            colors: Object.fromEntries(diamondCatalog.colors.map((item) => [item.id, item.name])),
-            clarities: Object.fromEntries(diamondCatalog.clarities.map((item) => [item.id, item.name])),
-        }),
-        [diamondCatalog],
-    );
-
-    const buildDiamondOptionLabel = useCallback(
-        (option?: DiamondOptionForm | null) => {
-            if (!option) {
-                return '';
-            }
-
-            const parts: string[] = [];
-            if (option.weight) {
-                parts.push(`${option.weight} Ct`);
-            }
-            if (option.shape_id) {
-                parts.push(diamondNameMaps.shapes[Number(option.shape_id)] ?? '');
-            }
-            if (option.clarity_id) {
-                parts.push(diamondNameMaps.clarities[Number(option.clarity_id)] ?? '');
-            }
-            if (option.color_id) {
-                parts.push(diamondNameMaps.colors[Number(option.color_id)] ?? '');
-            }
-
-            return parts.filter(Boolean).join(' - ');
-        },
-        [diamondNameMaps],
-    );
 
     const buildVariantMeta = useCallback(
         (variant: VariantForm, state: FormData) => {
-            // Build metal + purity + tone label
-            // Support both old format (metal_id/metal_purity_id on variant) and new format (variant.metals array)
             let metalLabel = '';
             
-            // Check if variant has metals array (new format with support for multiple metals, tones, or purities)
             if (variant.metals && variant.metals.length > 0) {
                 const metalsData = variant.metals
                     .filter((metal) => metal.metal_id !== '' && typeof metal.metal_id === 'number')
@@ -1097,7 +662,6 @@ export default function AdminProductEdit() {
                 if (metalsData.length === 0) {
                     metalLabel = '';
                 } else {
-                    // Group metals by metal_id to handle multi-metal variants
                     const metalsByMetalId = new Map<number, typeof metalsData>();
                     metalsData.forEach((metal) => {
                         if (!metalsByMetalId.has(metal.metal_id)) {
@@ -1106,21 +670,18 @@ export default function AdminProductEdit() {
                         metalsByMetalId.get(metal.metal_id)!.push(metal);
                     });
                     
-                    // Build label for each metal group
                     const metalLabelParts: string[] = [];
                     
                     metalsByMetalId.forEach((metalsInGroup, metalId) => {
                         const metalName = metalMap[metalId] ?? '';
                         if (!metalName) return;
                         
-                        // Check if we have multiple purities with same tone (mixed purities per tone)
                         const uniquePurities = new Set(metalsInGroup.map((m) => m.metal_purity_id).filter(Boolean));
                         const uniqueTones = new Set(metalsInGroup.map((m) => m.metal_tone_id).filter(Boolean));
                         
                         let groupLabel = '';
                         
                         if (uniquePurities.size > 1 && uniqueTones.size === 1) {
-                            // Mixed purities per tone: "18K + 22K Yellow Gold"
                             const toneId = Array.from(uniqueTones)[0];
                             const toneName = toneId ? (metalToneMap[toneId] ?? '') : '';
                             const purityNames = Array.from(uniquePurities)
@@ -1138,7 +699,6 @@ export default function AdminProductEdit() {
                                 groupLabel = metalName;
                             }
                         } else if (uniqueTones.size > 1 && uniquePurities.size === 1) {
-                            // Mixed tones per purity: "18K Yellow + White Gold"
                             const purityId = Array.from(uniquePurities)[0];
                             const purityName = purityId ? (metalPurityMap[purityId] ?? '') : '';
                             const toneNames = Array.from(uniqueTones)
@@ -1156,7 +716,6 @@ export default function AdminProductEdit() {
                                 groupLabel = purityName ? `${purityName} ${metalName}` : metalName;
                             }
                         } else {
-                            // Single purity and tone, or fallback
                             const firstMetal = metalsInGroup[0];
                             const purityId = firstMetal.metal_purity_id;
                             const toneId = firstMetal.metal_tone_id;
@@ -1179,11 +738,9 @@ export default function AdminProductEdit() {
                         }
                     });
                     
-                    // Join all metal labels with " / " for multi-metal variants
                     metalLabel = metalLabelParts.join(' / ');
                 }
             } else if (variant.metal_id !== '' && typeof variant.metal_id === 'number') {
-                // Fallback to old format (backward compatibility)
                 const metalName = metalMap[variant.metal_id] ?? '';
                 if (variant.metal_purity_id !== '' && typeof variant.metal_purity_id === 'number') {
                     const purityLabel = metalPurityMap[variant.metal_purity_id] ?? '';
@@ -1193,12 +750,10 @@ export default function AdminProductEdit() {
                 }
             }
             
-            // Build diamond label from variant.diamonds array
             let diamondLabel = '';
             if (variant.diamonds && variant.diamonds.length > 0) {
                 const diamondParts: string[] = [];
                 variant.diamonds.forEach((diamond) => {
-                    // Use diamond_id to get diamond name (will be resolved in the component where diamonds list is available)
                     if (diamond.diamond_id && typeof diamond.diamond_id === 'number') {
                         const count = diamond.diamonds_count ? ` (${diamond.diamonds_count})` : '';
                         diamondParts.push(`Diamond${count}`);
@@ -1222,9 +777,6 @@ export default function AdminProductEdit() {
 
             if (storedSizeValue) {
                 sizeValue = formatDecimal(Number(storedSizeValue));
-            } else if (variant.size_cm) {
-                sizeValue = formatDecimal(parseFloat(variant.size_cm));
-                sizeUnit = 'cm';
             }
 
             const sizeLabel = sizeValue ? `${sizeValue}${sizeUnit}` : '';
@@ -1232,12 +784,9 @@ export default function AdminProductEdit() {
             const autoLabelParts = [diamondLabel, metalLabel, sizeLabel].filter(Boolean);
             const autoLabel = autoLabelParts.length ? autoLabelParts.join(' / ') : 'Variant';
             const metalTone = metalLabel;
-            const stoneQuality = diamondLabel;
 
-            // Build diamond metadata from variant.diamonds array
             let diamondMetadata = null;
             if (variant.diamonds && variant.diamonds.length > 0) {
-                // Use diamonds array (new approach with diamond_id)
                 diamondMetadata = variant.diamonds.map((diamond) => ({
                     diamond_id: diamond.diamond_id !== '' && diamond.diamond_id !== null ? Number(diamond.diamond_id) : null,
                     diamonds_count: diamond.diamonds_count ? Number(diamond.diamonds_count) : null,
@@ -1250,7 +799,6 @@ export default function AdminProductEdit() {
                     variant.metal_purity_id !== '' && variant.metal_purity_id !== null ? Number(variant.metal_purity_id) : null,
                 diamond_option_key: variant.diamond_option_key ?? null,
                 diamond: diamondMetadata,
-                size_cm: variant.size_cm ? Number(variant.size_cm) : null,
                 auto_label: autoLabel,
             };
 
@@ -1276,7 +824,6 @@ export default function AdminProductEdit() {
             return {
                 autoLabel,
                 metalTone,
-                stoneQuality,
                 sizeText: sizeLabel,
                 metadata,
             };
@@ -1311,36 +858,7 @@ export default function AdminProductEdit() {
         [buildVariantMeta],
     );
 
-
-    // Get all available purities and tones
-    const availablePurities = useMemo(() => {
-        return metalPurities || [];
-    }, [metalPurities]);
-
-    const availableTones = useMemo(() => {
-        return metalTones || [];
-    }, [metalTones]);
-
-    // Get selected purities and tones
-    // Note: metal_purity_ids and metal_tone_ids removed from products table
-    const selectedPurities = useMemo(() => [], []);
-    const selectedTones = useMemo(() => [], []);
-
-    // Note: diamond_options removed from products table
-    const diamondOptionLabels = useMemo(() => [], []);
-
-    // Note: diamond_options removed from products table
-    const diamondLabelMap = useMemo(() => ({}), []);
-
-
-    // Note: Diamond options removed from products table
-    const toggleUsesDiamond = (checked: boolean) => {
-        // No-op: diamond options removed from products table
-    };
-
-    // Note: Size dimension removed from products table
     const toggleSizeDimension = (checked: boolean) => {
-        // No-op: size dimension removed from products table
     };
 
     const changeSizeUnit = (unit: 'mm' | 'cm') => {
@@ -1359,21 +877,11 @@ export default function AdminProductEdit() {
                 size_unit: unit,
                 size_values: convertedValues,
                 variants: (prev.variants || []).map((variant: VariantForm) => {
-                    if (!variant.size_cm) {
-                        return {
-                            ...variant,
-                            metadata: {
-                                ...(variant.metadata ?? {}),
-                                size_unit: unit,
-                            },
-                        };
-                    }
-
                     const metadata = { ...(variant.metadata ?? {}) };
-                    const displayValue = convertFromCentimeters(variant.size_cm, unit);
-
-                    if (displayValue) {
-                        metadata.size_value = displayValue;
+                    const storedSizeValue = metadata.size_value as string | undefined;
+                    
+                    if (storedSizeValue) {
+                        metadata.size_value = storedSizeValue;
                         metadata.size_unit = unit;
                     } else {
                         delete metadata.size_value;
@@ -1477,84 +985,6 @@ export default function AdminProductEdit() {
         });
     };
 
-
-    const addDiamondOptionRow = () => {
-        setData((prev: FormData) => {
-            const draft: FormData = {
-                ...prev,
-                diamond_options: [...(prev.diamond_options || []), createDiamondOption()],
-            };
-            draft.variants = recalculateVariants(draft);
-            return draft;
-        });
-    };
-
-    const updateDiamondOption = (
-        key: string,
-        field: Exclude<keyof DiamondOptionForm, 'key'>,
-        value: string | number | null,
-    ) => {
-        setData((prev: FormData) => {
-            const diamond_options = (prev.diamond_options || []).map((option: DiamondOptionForm) => {
-                if (option.key !== key) {
-                    return option;
-                }
-
-                if (field === 'weight' || field === 'diamonds_count') {
-                    return {
-                        ...option,
-                        [field]: value === null ? '' : String(value),
-                    };
-                }
-
-                const nextValue =
-                    value === null || value === ''
-                        ? ''
-                        : typeof value === 'number'
-                        ? value
-                        : value === ''
-                        ? ''
-                        : Number(value);
-
-                return {
-                    ...option,
-                    [field]: nextValue as DiamondOptionForm[typeof field],
-                };
-            });
-
-            const draft: FormData = {
-                ...prev,
-                diamond_options,
-            };
-
-            draft.variants = recalculateVariants(draft);
-
-            return draft;
-        });
-    };
-
-    const removeDiamondOptionRow = (key: string) => {
-        setData((prev: FormData) => {
-            const diamond_options = (prev.diamond_options || []).filter((option: DiamondOptionForm) => option.key !== key);
-            const draft: FormData = {
-                ...prev,
-                diamond_options,
-                variants: (prev.variants || []).map((variant: VariantForm) =>
-                    variant.diamond_option_key === key
-                        ? {
-                              ...variant,
-                              diamond_option_key: null,
-                          }
-                        : variant,
-                ),
-            };
-
-            draft.variants = recalculateVariants(draft);
-
-            return draft;
-        });
-    };
-
     const removeVariant = (index: number) => {
         setData((prev: FormData) => {
             if ((prev.variants || []).length === 1) {
@@ -1595,7 +1025,6 @@ export default function AdminProductEdit() {
                     case 'metal_id':
                         if (value === '' || typeof value === 'number') {
                             nextVariant.metal_id = value as VariantForm['metal_id'];
-                            // Reset purity when metal changes
                             if (value === '' || typeof value !== 'number') {
                                 nextVariant.metal_purity_id = '';
                             }
@@ -1608,16 +1037,6 @@ export default function AdminProductEdit() {
                         break;
                     case 'diamond_option_key':
                         nextVariant.diamond_option_key = value ? String(value) : null;
-                        break;
-                    case 'size_cm':
-                        if (typeof value === 'string') {
-                            nextVariant.size_cm = value;
-                        }
-                        break;
-                    case 'price_adjustment':
-                        if (typeof value === 'string') {
-                            nextVariant.price_adjustment = value;
-                        }
                         break;
                     case 'sku':
                     case 'label':
@@ -1697,7 +1116,6 @@ export default function AdminProductEdit() {
         }));
     };
 
-    // Diamond management functions (per-variant, manual)
     const addDiamondToVariant = (variantIndex: number) => {
         setData((prev: FormData) => {
             const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
@@ -1769,7 +1187,6 @@ export default function AdminProductEdit() {
         });
     };
 
-    // Metal management functions (per-variant)
     const updateMetalInVariant = (
         variantIndex: number,
         metalIndex: number,
@@ -1803,26 +1220,16 @@ export default function AdminProductEdit() {
         });
     };
 
-
-    // Extract variant matrix generation logic into a reusable function
     const generateVariantMatrixForData = (prev: FormData): FormData => {
-            // No metal purities or tones to process - variants must be created manually
             const puritiesByMetal = new Map<number, number[]>();
             const tonesByMetal = new Map<number, number[]>();
 
-            // For each metal, generate its metal entry combinations based on mode
-            // Each combination represents possible metal entries for that metal
-            // Then we'll take the Cartesian product across all metals
             type MetalEntryCombination = {
                 metal_id: number;
                 metal_purity_id: number | null;
                 metal_tone_id: number | null;
             };
             
-            /**
-             * Generate metal combinations for a single metal based on mixing mode
-             * This follows the same pattern as diamond mixing logic
-             */
             const generateMetalCombinationsForMetal = (
                 metalId: number,
                 purities: number[],
@@ -1831,7 +1238,6 @@ export default function AdminProductEdit() {
             ): MetalEntryCombination[][] => {
                 const combinations: MetalEntryCombination[][] = [];
                 
-                // If no purities and no tones, return single metal entry
                 if (purities.length === 0 && tones.length === 0) {
                     return [[{
                         metal_id: metalId,
@@ -1840,7 +1246,6 @@ export default function AdminProductEdit() {
                     }]];
                 }
                 
-                // If no tones, create one entry per purity
                 if (tones.length === 0 && purities.length > 0) {
                     return purities.map(purityId => [{
                         metal_id: metalId,
@@ -1858,10 +1263,7 @@ export default function AdminProductEdit() {
                     }]);
                 }
                 
-                // Both purities and tones exist - apply mixing mode
                 if (mode === 'normal') {
-                    // MODE 1: Separate variants - Cartesian product of purities × tones
-                    // Example: [18K, 14K] × [Yellow, White] = 4 variants
                     purities.forEach(purityId => {
                         tones.forEach(toneId => {
                             combinations.push([{
@@ -1872,11 +1274,6 @@ export default function AdminProductEdit() {
                         });
                     });
                 } else if (mode === 'mix_tones') {
-                    // MODE 2: Combine tones per purity
-                    // For each purity, combine all tones into ONE variant
-                    // Example: [18K, 14K] with [Yellow, White] = 2 variants:
-                    //   - 18K (Yellow + White)
-                    //   - 14K (Yellow + White)
                     purities.forEach(purityId => {
                         combinations.push(
                             tones.map(toneId => ({
@@ -1887,11 +1284,6 @@ export default function AdminProductEdit() {
                         );
                     });
                 } else if (mode === 'mix_purities') {
-                    // MODE 3: Combine purities per tone
-                    // For each tone, combine all purities into ONE variant
-                    // Example: [18K, 14K] with [Yellow, White] = 2 variants:
-                    //   - Yellow (18K + 14K)
-                    //   - White (18K + 14K)
                     tones.forEach(toneId => {
                         combinations.push(
                             purities.map(purityId => ({
@@ -1906,13 +1298,29 @@ export default function AdminProductEdit() {
                 return combinations;
             };
             
-            // No metal purities or tones to process - variants must be created manually
-            // Variants will only be generated from sizes and diamonds
             const allMetalCombinations: MetalEntryCombination[][] = [];
+            
+            const selectedMetals = prev.selected_metals || [];
+            const metalConfigurations = prev.metal_configurations || {};
+            
+            if (selectedMetals.length > 0) {
+                selectedMetals.forEach((metalId) => {
+                    const config = metalConfigurations[metalId] || { purities: [], tones: [] };
+                    const purities = config.purities.length > 0 ? config.purities : [null];
+                    const tones = config.tones.length > 0 ? config.tones : [null];
+                    
+                    purities.forEach((purityId) => {
+                        tones.forEach((toneId) => {
+                            allMetalCombinations.push([{
+                                metal_id: metalId,
+                                metal_purity_id: purityId !== null ? purityId : null,
+                                metal_tone_id: toneId !== null ? toneId : null,
+                            }]);
+                        });
+                    });
+                });
+            }
 
-            // Build diamond combinations from diamond_options
-            // In 'shared' mode: diamonds don't multiply variants, they're attached to all variants
-            // In 'as_variant' mode: diamonds multiply variants (Cartesian product)
             const diamondCombinations: Array<{
                 key: string;
                 clarity_id: number | null;
@@ -1921,7 +1329,6 @@ export default function AdminProductEdit() {
             }> = [];
             
             if (prev.uses_diamond && (prev.diamond_options || []).length > 0) {
-                // Build diamond combinations from diamond_options
                 (prev.diamond_options || []).forEach((option) => {
                     diamondCombinations.push({
                         key: option.key,
@@ -1931,7 +1338,6 @@ export default function AdminProductEdit() {
                     });
                 });
             } else {
-                // No diamonds, use null placeholder
                 diamondCombinations.push({
                     key: '',
                     clarity_id: null,
@@ -1943,16 +1349,10 @@ export default function AdminProductEdit() {
             const sizeOptions =
                 prev.size_dimension_enabled && (prev.size_values || []).length > 0 ? (prev.size_values || []) : [null];
 
-            // Check if we have at least one option to generate variants
             const hasSizes = prev.size_dimension_enabled && (sizeOptions || []).length > 0 && (sizeOptions || [])[0] !== null;
             const hasDiamonds = prev.uses_diamond && diamondCombinations.length > 0 && diamondCombinations[0].key !== '';
-            const mixingMode = prev.diamond_mixing_mode || 'shared';
             
-            // In 'shared' mode, diamonds don't count as a dimension for variant generation
-            // In 'as_variant' mode, diamonds multiply variants
-            const hasDiamondsAsDimension = hasDiamonds && mixingMode === 'as_variant';
-            
-            if (allMetalCombinations.length === 0 && !hasSizes && !hasDiamondsAsDimension) {
+            if (allMetalCombinations.length === 0 && !hasSizes && !hasDiamonds) {
                 return prev;
             }
 
@@ -1967,12 +1367,6 @@ export default function AdminProductEdit() {
                 size: string | null;
             }> = [];
 
-            // Generate base combinations: metals × sizes
-            // Then, depending on mode:
-            // - 'shared': attach all diamonds to each base variant (no multiplication)
-            // - 'as_variant': multiply base variants by diamonds (Cartesian product)
-            
-            // First, generate base combinations (metals × sizes)
             const baseCombinations: Array<{
                 metals: MetalEntryCombination[];
                 size: string | null;
@@ -1993,77 +1387,42 @@ export default function AdminProductEdit() {
                         metals: [],
                         size: sizeOption ?? null,
                     });
-                });
-            } else {
-                // No metals, no sizes - create one base variant
+                    });
+                } else {
                 baseCombinations.push({
                     metals: [],
                     size: null,
                 });
             }
             
-            // Now, apply diamond logic based on mode
-            if (mixingMode === 'shared') {
-                // 'shared' mode: All base variants get the same diamond list (no multiplication)
-                // Use the first diamond combination (or null if no diamonds)
-                const sharedDiamond = hasDiamonds ? diamondCombinations[0] : {
-                    key: '',
-                    clarity_id: null,
-                    color_id: null,
-                    shape_id: null,
-                };
-                
-                baseCombinations.forEach((baseCombo) => {
-                        combinations.push({
-                        metals: baseCombo.metals,
-                        diamond: sharedDiamond,
-                        size: baseCombo.size,
-                        });
-                    });
-            } else {
-                // 'as_variant' mode: Multiply base variants by diamonds (Cartesian product)
-                baseCombinations.forEach((baseCombo) => {
-                    if (hasDiamonds) {
-                        diamondCombinations.forEach((diamondCombo) => {
-                            combinations.push({
-                                metals: baseCombo.metals,
-                                diamond: diamondCombo,
-                                size: baseCombo.size,
-                            });
-                        });
-                    } else {
-                        // No diamonds, just use base combination
-                        combinations.push({
-                            metals: baseCombo.metals,
-                            diamond: {
-                                key: '',
-                                clarity_id: null,
-                                color_id: null,
-                                shape_id: null,
-                            },
-                            size: baseCombo.size,
-                        });
-                    }
+            const sharedDiamond = hasDiamonds ? diamondCombinations[0] : {
+                key: '',
+                clarity_id: null,
+                color_id: null,
+                shape_id: null,
+            };
+            
+            baseCombinations.forEach((baseCombo) => {
+                combinations.push({
+                    metals: baseCombo.metals,
+                    diamond: sharedDiamond,
+                    size: baseCombo.size,
                 });
-            }
+            });
 
             if (combinations.length === 0) {
                 return prev;
             }
 
-            // Create a map to preserve existing metal weights and diamond counts
-            // Key: variant identifier based on metals + size + diamond
             const existingVariantData = new Map<string, {
                 metals: Array<{ metal_id: number; metal_purity_id: number | null; metal_tone_id: number | null; metal_weight: string }>;
                 diamonds: Array<{ diamond_id: number | null; diamonds_count: string }>;
             }>();
 
-            // Build lookup map from existing variants
             (prev.variants || []).forEach((existingVariant) => {
                 if (!existingVariant.metals || existingVariant.metals.length === 0) return;
                 
-                // Create a key based on metal combination + size + diamond
-                const sizeKey = existingVariant.size_cm || 'no-size';
+                const sizeKey = (existingVariant.metadata?.size_value as string) || 'no-size';
                 const diamondKey = existingVariant.diamond_option_key || 'no-diamond';
                 const metalsKey = existingVariant.metals
                     .filter(m => m.metal_id !== '' && typeof m.metal_id === 'number')
@@ -2087,10 +1446,9 @@ export default function AdminProductEdit() {
                 });
             });
 
-            const newVariants = combinations.map((combo, index) => {
+                const newVariants = combinations.map((combo, index) => {
                 const variant = emptyVariant(index === 0);
 
-                // Create lookup key for this combination
                 const sizeKey = combo.size || 'no-size';
                 const diamondKey = combo.diamond.key || 'no-diamond';
                 const metalsKey = combo.metals
@@ -2099,28 +1457,42 @@ export default function AdminProductEdit() {
                     .join('|');
                 const variantKey = `${metalsKey}::${sizeKey}::${diamondKey}`;
                 
-                // Try to find existing data for this variant
                 const existingData = existingVariantData.get(variantKey);
 
-                // Build metals array from the combination, preserving weights if they exist
                 variant.metals = combo.metals.map((metalEntry) => {
-                    // Try to find matching existing metal entry
                     const existingMetal = existingData?.metals.find(
                         em => em.metal_id === metalEntry.metal_id &&
                         em.metal_purity_id === (metalEntry.metal_purity_id ?? null) &&
                         em.metal_tone_id === (metalEntry.metal_tone_id ?? null)
                     );
                     
+                    let weightFromSelection = '';
+                    if ((prev.metal_selections || []).length > 0) {
+                        const matchingSelection = (prev.metal_selections || []).find(
+                            s => {
+                                const sMetalId = typeof s.metal_id === 'number' ? s.metal_id : Number(s.metal_id);
+                                const sPurityId = s.metal_purity_id === '' ? null : (typeof s.metal_purity_id === 'number' ? s.metal_purity_id : Number(s.metal_purity_id));
+                                const sToneId = s.metal_tone_id === '' ? null : (typeof s.metal_tone_id === 'number' ? s.metal_tone_id : Number(s.metal_tone_id));
+                                
+                                return sMetalId === metalEntry.metal_id &&
+                                    sPurityId === (metalEntry.metal_purity_id ?? null) &&
+                                    sToneId === (metalEntry.metal_tone_id ?? null);
+                            }
+                        );
+                        if (matchingSelection) {
+                            weightFromSelection = matchingSelection.weight || '';
+                        }
+                    }
+                    
                     return {
                         id: undefined,
                         metal_id: metalEntry.metal_id,
                         metal_purity_id: metalEntry.metal_purity_id ?? '',
                         metal_tone_id: metalEntry.metal_tone_id ?? '',
-                        metal_weight: existingMetal?.metal_weight || '',
+                        metal_weight: existingMetal?.metal_weight || weightFromSelection || '',
                     };
                 });
                 
-                // Set metal_id and metal_purity_id on variant for backward compatibility (use first metal)
                 if (combo.metals.length > 0) {
                     const firstMetal = combo.metals[0];
                     variant.metal_id = firstMetal.metal_id;
@@ -2129,53 +1501,22 @@ export default function AdminProductEdit() {
                     }
                 }
 
-                // Set diamond_option_key and diamonds based on mode
-                const diamondMixingMode = prev.diamond_mixing_mode || 'shared';
+                variant.diamond_option_key = null;
                 
-                if (diamondMixingMode === 'shared') {
-                    // In 'shared' mode, all variants reference the same diamond list
-                    // Check for diamond_selections first (new approach with diamond_id), then fallback to diamond_options
-                    if (prev.diamond_selections && prev.diamond_selections.length > 0) {
-                        // Use diamond_selections (new approach with diamond_id)
-                        variant.diamonds = prev.diamond_selections
-                            .filter((selection) => selection.diamond_id !== '' && selection.diamond_id !== null)
-                            .map((selection) => {
-                                // Try to find matching existing diamond entry
-                                const existingDiamond = existingData?.diamonds.find(
-                                    ed => (ed as any).diamond_id === (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id))
-                                );
-                                
-                                return {
-                                    id: (existingDiamond as any)?.id,
-                                    diamond_id: typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id),
-                                    diamonds_count: (existingDiamond as any)?.diamonds_count || selection.count || '',
-                                };
-                            });
-                        variant.diamond_option_key = null;
-                    } else {
-                        variant.diamond_option_key = null;
-                        variant.diamonds = [];
-                    }
+                if ((prev.diamond_selections || []).length > 0) {
+                    variant.diamonds = (prev.diamond_selections || []).map((selection) => {
+                        const existingDiamond = existingData?.diamonds.find(
+                            ed => ed.diamond_id === (selection.diamond_id !== '' && selection.diamond_id !== null ? (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id)) : null)
+                        );
+                        
+                        return {
+                            id: (existingDiamond as any)?.id,
+                            diamond_id: selection.diamond_id !== '' && selection.diamond_id !== null ? (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id)) : '',
+                            diamonds_count: existingDiamond?.diamonds_count || selection.count || '',
+                        };
+                    });
                 } else {
-                    // 'as_variant' mode: Use diamond_selections from the form
-                    variant.diamond_option_key = null;
-                    
-                    if ((prev.diamond_selections || []).length > 0) {
-                        // Use diamond_selections for all variants (they're shared)
-                        variant.diamonds = (prev.diamond_selections || []).map((selection) => {
-                            const existingDiamond = existingData?.diamonds.find(
-                                ed => ed.diamond_id === (selection.diamond_id !== '' && selection.diamond_id !== null ? (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id)) : null)
-                            );
-                            
-                            return {
-                                id: undefined,
-                                diamond_id: selection.diamond_id !== '' && selection.diamond_id !== null ? (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id)) : '',
-                                diamonds_count: existingDiamond?.diamonds_count || selection.count || '',
-                            };
-                        });
-                    } else {
-                        variant.diamonds = [];
-                    }
+                    variant.diamonds = [];
                 }
 
                 const metadata: Record<string, FormDataConvertible> = {
@@ -2184,8 +1525,6 @@ export default function AdminProductEdit() {
                 };
 
                 if (combo.size) {
-                    const centimeters = convertToCentimeters(combo.size, prev.size_unit || 'cm');
-                    variant.size_cm = centimeters;
                     metadata.size_value = combo.size;
                     metadata.size_unit = prev.size_unit;
                 } else {
@@ -2193,21 +1532,9 @@ export default function AdminProductEdit() {
                     delete metadata.size_unit;
                 }
                 
-                // Store diamond option in metadata
-                const variantDiamondMixingMode = prev.diamond_mixing_mode || 'shared';
                 if (variant.diamond_option_key) {
                     metadata.diamond_option_key = variant.diamond_option_key;
-                    if (variantDiamondMixingMode === 'as_variant') {
-                        // In 'as_variant' mode, store the specific diamond for this variant
-                        metadata.diamond = {
-                            clarity_id: combo.diamond.clarity_id,
-                            color_id: combo.diamond.color_id,
-                            shape_id: combo.diamond.shape_id,
-                        };
-                    }
-                    // In 'shared' mode, all variants share the same diamond list (stored in variant.diamonds)
                 }
-
 
                 variant.metadata = metadata;
 
@@ -2228,48 +1555,19 @@ export default function AdminProductEdit() {
         setData((prev: FormData) => generateVariantMatrixForData(prev));
     };
 
-    const addDiscountOverrideRow = () => {
-        setData((prev: FormData) => ({
-            ...prev,
-            making_charge_discount_overrides: [...prev.making_charge_discount_overrides, createDiscountOverride()],
-        }));
-    };
-
-    const updateDiscountOverrideRow = (index: number, changes: Partial<DiscountOverrideForm>) => {
-        setData((prev: FormData) => ({
-            ...prev,
-            making_charge_discount_overrides: prev.making_charge_discount_overrides.map((override: DiscountOverrideForm, idx: number) =>
-                idx === index ? { ...override, ...changes } : override,
-            ),
-        }));
-    };
-
-    const removeDiscountOverrideRow = (index: number) => {
-        setData((prev: FormData) => ({
-            ...prev,
-            making_charge_discount_overrides: prev.making_charge_discount_overrides.filter((_, idx: number) => idx !== index),
-        }));
-    };
-
-    // Diamonds are NOT part of automatic variant generation
-    // No useEffect needed for diamond attributes
-
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        // Check for media uploads before transform (since transform may delete the field)
         const hasMediaUploads = (form.data.media_uploads?.length ?? 0) > 0;
 
         form.transform((current) => {
             const formState = current as FormData;
             const payload: any = { ...formState };
             
-            // Preserve File objects in media_uploads (they might be lost in spread)
             if (formState.media_uploads && Array.isArray(formState.media_uploads) && formState.media_uploads.length > 0) {
                 payload.media_uploads = formState.media_uploads;
             }
             
-            // Ensure required string fields are preserved
             payload.sku = formState.sku || '';
             payload.name = formState.name || '';
             payload.titleline = formState.titleline || null;
@@ -2278,8 +1576,6 @@ export default function AdminProductEdit() {
             payload.gender = formState.gender || null;
             payload.description = formState.description || '';
             
-            // Convert string IDs to numbers for backend validation
-            // Ensure brand_id and category_id are always numbers (required fields)
             const brandIdValue = formState.brand_id;
             if (brandIdValue !== '' && brandIdValue !== null && brandIdValue !== undefined) {
                 const brandIdNum = Number(brandIdValue);
@@ -2287,28 +1583,17 @@ export default function AdminProductEdit() {
             } else {
                 payload.brand_id = null;
             }
-            // category_id = parent category ID (required)
-            const parentCategoryId = formState.parent_category_id;
-            const subcategoryIds = formState.subcategory_ids ?? [];
-
-            // Set category_id to parent category ID
-            if (parentCategoryId !== '' && parentCategoryId !== null && parentCategoryId !== undefined) {
-                const categoryIdNum = Number(parentCategoryId);
+            
+            const categoryIdValue = formState.category_id;
+            if (categoryIdValue !== '' && categoryIdValue !== null && categoryIdValue !== undefined) {
+                const categoryIdNum = Number(categoryIdValue);
                 payload.category_id = isNaN(categoryIdNum) ? null : categoryIdNum;
             } else {
                 payload.category_id = null;
             }
-
-            // Set subcategory_ids as array (will be stored in JSON column)
-            payload.category_ids = subcategoryIds.length > 0 ? subcategoryIds : [];
-
-            // Remove frontend-only fields from payload
-            delete payload.parent_category_id;
-            delete payload.subcategory_ids;
-            // Handle making charge values - type will be inferred from values on backend
+            
             const selectedTypes = formState.making_charge_types || [];
             
-            // Convert making_charge_amount to number (if fixed checkbox is checked)
             if (selectedTypes.includes('fixed')) {
                 const makingChargeValue = formState.making_charge_amount;
                 if (makingChargeValue === '' || makingChargeValue === null || makingChargeValue === undefined) {
@@ -2318,11 +1603,9 @@ export default function AdminProductEdit() {
                     payload.making_charge_amount = isNaN(numValue) ? 0 : numValue;
                 }
             } else {
-                // If fixed checkbox is not checked, set making_charge_amount to 0
                 payload.making_charge_amount = 0;
             }
             
-            // Convert making_charge_percentage to number (if percentage checkbox is checked)
             if (selectedTypes.includes('percentage')) {
                 const makingChargePercentageValue = formState.making_charge_percentage;
                 if (makingChargePercentageValue === '' || makingChargePercentageValue === null || makingChargePercentageValue === undefined) {
@@ -2332,7 +1615,6 @@ export default function AdminProductEdit() {
                     payload.making_charge_percentage = isNaN(numValue) ? null : numValue;
                 }
             } else {
-                // For fixed-only, set percentage to null
                 payload.making_charge_percentage = null;
             }
 
@@ -2344,44 +1626,23 @@ export default function AdminProductEdit() {
                 return typeof value === 'number' ? value : Number(value);
             };
 
-            payload.making_charge_discount_type = formState.making_charge_discount_type || null;
-            payload.making_charge_discount_value = formState.making_charge_discount_type
-                ? toNullableNumber(formState.making_charge_discount_value)
-                : null;
-            payload.making_charge_discount_overrides = formState.making_charge_discount_overrides
-                .map((override: DiscountOverrideForm) => ({
-                    customer_group_id:
-                        override.customer_group_id !== '' ? Number(override.customer_group_id) : null,
-                    type: override.type,
-                    value: toNullableNumber(override.value),
-                }))
-                .filter((override) => override.customer_group_id !== null && override.value !== null);
-
-            // Add is_active field
             payload.is_active = formState.is_active ?? true;
 
-            // Remove metadata field (no longer used)
             delete payload.metadata;
 
-            // Only delete media_uploads if it's truly empty (not if it has files)
-            // Files are File objects and need to be preserved for upload
             if (!payload.media_uploads || (Array.isArray(payload.media_uploads) && payload.media_uploads.length === 0)) {
                 delete payload.media_uploads;
             }
-            // Only delete removed_media_ids if it's empty
             if (!payload.removed_media_ids || (Array.isArray(payload.removed_media_ids) && payload.removed_media_ids.length === 0)) {
                 delete payload.removed_media_ids;
             }
 
-
-            // Ensure all required fields are explicitly set (don't rely on spread operator alone)
             if (!payload.sku) payload.sku = '';
             if (!payload.name) payload.name = '';
             if (payload.brand_id === undefined) payload.brand_id = null;
             if (payload.category_id === undefined) payload.category_id = null;
             if (payload.making_charge_amount === undefined) payload.making_charge_amount = 0;
 
-            // Ensure variants are included in payload - they must be sent to backend
             if (formState.variants && Array.isArray(formState.variants)) {
                 payload.variants = formState.variants;
             } else {
@@ -2392,7 +1653,6 @@ export default function AdminProductEdit() {
                 payload.diamond_selections = formState.diamond_selections;
             }
 
-            // Add method spoofing for PUT requests when files are present (Laravel requirement)
             if (product?.id && hasMediaUploads) {
                 payload._method = 'PUT';
             }
@@ -2404,14 +1664,11 @@ export default function AdminProductEdit() {
             preserveScroll: true,
             forceFormData: hasMediaUploads,
             onFinish: () => {
-                // Reset transform so it doesn't affect other requests
                 form.transform((data) => data);
             },
         };
 
         if (product?.id) {
-            // Use POST with _method=PUT for file uploads (Laravel requirement)
-            // Otherwise use PUT for regular updates
             if (hasMediaUploads) {
                 post(route('admin.products.update', product.id), submitOptions);
             } else {
@@ -2431,13 +1688,12 @@ export default function AdminProductEdit() {
                 .map(([, message]) => message),
         [errors],
     );
-
     const currentMedia = useMemo(() => {
         if (!product?.media) {
             return [];
         }
 
-        return [...product.media].sort((a, b) => a.position - b.position);
+        return [...product.media].sort((a, b) => a.display_order - b.display_order);
     }, [product?.media]);
 
     const toggleRemoveMedia = (id: number) => {
@@ -2467,7 +1723,6 @@ export default function AdminProductEdit() {
     const isMarkedForRemoval = (id: number) => {
         return (data.removed_media_ids ?? []).includes(id);
     };
-
 
     return (
         <AdminLayout>
@@ -2518,17 +1773,6 @@ export default function AdminProductEdit() {
                                     {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
                                 </label>
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                    <span>Product Type *</span>
-                                    <input
-                                        type="text"
-                                        value={data.producttype}
-                                        onChange={(event) => setData('producttype', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        placeholder="Enter product type"
-                                    />
-                                    {errors.producttype && <span className="text-xs text-rose-500">{errors.producttype}</span>}
-                                </label>
-                                <label className="flex flex-col gap-2 text-sm text-slate-600">
                                     <span>Title Line *</span>
                                     <input
                                         type="text"
@@ -2539,44 +1783,7 @@ export default function AdminProductEdit() {
                                     />
                                     {errors.titleline && <span className="text-xs text-rose-500">{errors.titleline}</span>}
                                 </label>
-
-                                <CatalogMultiSelect
-                                    catalogs={catalogs}
-                                    selectedIds={Array.isArray(data.catalog_ids) ? data.catalog_ids : []}
-                                    onChange={(selectedIds) => setData('catalog_ids', selectedIds)}
-                                    error={errors.catalog_ids}
-                                />
-                            </div>
-
-                            <div className="space-y-4">
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                    <span>Category *</span>
-                                    <select
-                                        value={data.parent_category_id}
-                                        onChange={(event) => {
-                                            setData('parent_category_id', event.target.value);
-                                            // Clear subcategories when parent changes
-                                            setData('subcategory_ids', []);
-                                            setData('category_id', '');
-                                        }}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                    >
-                                        <option value="">Select parent category</option>
-                                        {parentCategories.map((category) => (
-                                            <option key={category.id} value={category.id}>
-                                                {category.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-                                <SubcategoryMultiSelect
-                                    subcategories={subCategories}
-                                    selectedIds={Array.isArray(data.subcategory_ids) ? data.subcategory_ids : []}
-                                    onChange={(selectedIds) => setData('subcategory_ids', selectedIds)}
-                                    error={errors.subcategory_ids}
-                                    disabled={!data.parent_category_id}
-                                />
-                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
                                     <span>Brand *</span>
                                     <select
                                         value={data.brand_id}
@@ -2592,6 +1799,31 @@ export default function AdminProductEdit() {
                                     </select>
                                     {errors.brand_id && <span className="text-xs text-rose-500">{errors.brand_id}</span>}
                                 </label>
+                                <CatalogMultiSelect
+                                    catalogs={catalogs}
+                                    selectedIds={Array.isArray(data.catalog_ids) ? data.catalog_ids : []}
+                                    onChange={(selectedIds) => setData('catalog_ids', selectedIds)}
+                                    error={errors.catalog_ids}
+                                />
+                            </div>
+
+                            <div className="space-y-4">
+                                <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                    <span>Category *</span>
+                                    <select
+                                        value={data.category_id}
+                                        onChange={(event) => setData('category_id', event.target.value)}
+                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    >
+                                        <option value="">Select category</option>
+                                        {(categories || []).map((category) => (
+                                            <option key={category.id} value={category.id}>
+                                                {category.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.category_id && <span className="text-xs text-rose-500">{errors.category_id}</span>}
+                                </label>
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
                                     <span>Collection *</span>
                                     <input
@@ -2602,6 +1834,17 @@ export default function AdminProductEdit() {
                                         placeholder="Enter collection name"
                                     />
                                     {errors.collection && <span className="text-xs text-rose-500">{errors.collection}</span>}
+                                </label>
+                                <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                    <span>Product Type *</span>
+                                    <input
+                                        type="text"
+                                        value={data.producttype}
+                                        onChange={(event) => setData('producttype', event.target.value)}
+                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        placeholder="Enter product type"
+                                    />
+                                    {errors.producttype && <span className="text-xs text-rose-500">{errors.producttype}</span>}
                                 </label>
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
                                     <span>Gender *</span>
@@ -2660,41 +1903,37 @@ export default function AdminProductEdit() {
                                         <span className="block text-xs text-rose-500">{errors.making_charge_types}</span>
                                     </div>
                                 )}
-                                {((data.making_charge_types?.includes('fixed') ?? false) || (data.making_charge_types?.includes('percentage') ?? false)) && (
-                                    <div className={data.making_charge_types?.includes('fixed') && data.making_charge_types?.includes('percentage') ? "grid grid-cols-2 gap-4" : ""}>
-                                        {(data.making_charge_types?.includes('fixed') ?? false) && (
-                                            <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                                <span>Making Charge (₹) {(data.making_charge_types?.includes('percentage') ?? false) ? '' : '*'}</span>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    min="0"
-                                                    value={data.making_charge_amount}
-                                                    onChange={(event) => setData('making_charge_amount', event.target.value)}
-                                                    className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                    placeholder="Enter fixed making charge"
-                                                />
-                                                {errors.making_charge_amount && <span className="text-xs text-rose-500">{errors.making_charge_amount}</span>}
-                                            </label>
-                                        )}
-                                        {(data.making_charge_types?.includes('percentage') ?? false) && (
-                                            <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                                <span>Making Charge Percentage (%) {(data.making_charge_types?.includes('fixed') ?? false) ? '' : '*'}</span>
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    min="0"
-                                                    max="100"
-                                                    value={data.making_charge_percentage}
-                                                    onChange={(event) => setData('making_charge_percentage', event.target.value)}
-                                                    className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                    placeholder="Enter percentage (e.g., 10 for 10%)"
-                                                />
-                                                <span className="text-xs text-slate-500">Percentage will be calculated on metal cost</span>
-                                                {errors.making_charge_percentage && <span className="text-xs text-rose-500">{errors.making_charge_percentage}</span>}
-                                            </label>
-                                        )}
-                                    </div>
+                                {(data.making_charge_types?.includes('fixed') ?? false) && (
+                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <span>Making Charge (₹) {(data.making_charge_types?.includes('percentage') ?? false) ? '' : '*'}</span>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={data.making_charge_amount}
+                                            onChange={(event) => setData('making_charge_amount', event.target.value)}
+                                            className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            placeholder="Enter fixed making charge"
+                                        />
+                                        {errors.making_charge_amount && <span className="text-xs text-rose-500">{errors.making_charge_amount}</span>}
+                                    </label>
+                                )}
+                                {(data.making_charge_types?.includes('percentage') ?? false) && (
+                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <span>Making Charge Percentage (%) {(data.making_charge_types?.includes('fixed') ?? false) ? '' : '*'}</span>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            max="100"
+                                            value={data.making_charge_percentage}
+                                            onChange={(event) => setData('making_charge_percentage', event.target.value)}
+                                            className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            placeholder="Enter percentage (e.g., 10 for 10%)"
+                                        />
+                                        <span className="text-xs text-slate-500">Percentage will be calculated on metal cost</span>
+                                        {errors.making_charge_percentage && <span className="text-xs text-rose-500">{errors.making_charge_percentage}</span>}
+                                    </label>
                                 )}
                                 {(errors.making_charge_types && data.making_charge_types && data.making_charge_types.length > 0) && (
                                     <div className="mt-2">
@@ -2971,6 +2210,253 @@ export default function AdminProductEdit() {
                                 )}
                             </div>
 
+                            {/* Metals selection - Checkbox-based with pill design */}
+                            <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+                                <div>
+                                    <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Metals</h3>
+                                    <p className="text-xs text-slate-500">Select metals that can be used in your product variants.</p>
+                                </div>
+                                
+                                {/* Metal selection pills */}
+                                <div className="flex flex-wrap gap-3">
+                                    {metals.map((metal) => {
+                                        const isSelected = (data.selected_metals || []).includes(metal.id);
+                                        return (
+                                            <label
+                                                key={metal.id}
+                                                className={`
+                                                    inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                    ${isSelected
+                                                        ? 'bg-sky-600 text-white shadow-sm'
+                                                        : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                                    }
+                                                `}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={(e) => {
+                                                        setData((prev: FormData) => {
+                                                            const currentSelected = prev.selected_metals || [];
+                                                            const newSelected = e.target.checked
+                                                                ? [...currentSelected, metal.id]
+                                                                : currentSelected.filter(id => id !== metal.id);
+                                                            
+                                                            const newConfig = { ...(prev.metal_configurations || {}) };
+                                                            if (!e.target.checked) {
+                                                                delete newConfig[metal.id];
+                                                            } else if (!newConfig[metal.id]) {
+                                                                newConfig[metal.id] = { purities: [], tones: [] };
+                                                            }
+                                                            
+                                                            return {
+                                                                ...prev,
+                                                                selected_metals: newSelected,
+                                                                metal_configurations: newConfig,
+                                                            };
+                                                        });
+                                                    }}
+                                                    className={`mr-2 h-4 w-4 rounded border-2 ${
+                                                        isSelected
+                                                            ? 'border-white bg-white text-sky-600'
+                                                            : 'border-slate-300 bg-white text-slate-700'
+                                                    } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                />
+                                                {metal.name}
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                                
+                                {/* Expanded metal configurations */}
+                                <div className="space-y-4">
+                                    {metals.map((metal) => {
+                                        const isSelected = (data.selected_metals || []).includes(metal.id);
+                                        if (!isSelected) return null;
+                                        
+                                        const metalConfig = (data.metal_configurations || {})[metal.id] || { purities: [], tones: [] };
+                                        const availablePurities = metalPurities.filter(p => p.metal_id === metal.id);
+                                        const availableTones = metalTones.filter(t => t.metal_id === metal.id);
+                                        
+                                        // Calculate variant count for this metal
+                                        const puritiesCount = metalConfig.purities.length > 0 ? metalConfig.purities.length : (availablePurities.length > 0 ? availablePurities.length : 1);
+                                        const tonesCount = metalConfig.tones.length > 0 ? metalConfig.tones.length : (availableTones.length > 0 ? availableTones.length : 1);
+                                        const variantCount = puritiesCount * tonesCount;
+                                        
+                                        return (
+                                            <div key={metal.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                                                <div className="mb-4 flex items-center justify-between">
+                                                    <h4 className="text-sm font-semibold text-slate-900">Metal: {metal.name}</h4>
+                                                    {variantCount > 0 && (
+                                                        <span className="text-xs font-medium text-sky-600">
+                                                            {variantCount} variant{variantCount !== 1 ? 's' : ''} for this metal
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                
+                                                {/* Purities */}
+                                                <div className="mb-4">
+                                                    <p className="mb-3 text-xs text-slate-600">
+                                                        Choose all purities in which this design is available for {metal.name}.
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-3">
+                                                        {availablePurities.map((purity) => {
+                                                            const isPuritySelected = metalConfig.purities.includes(purity.id);
+                                                            return (
+                                                                <label
+                                                                    key={purity.id}
+                                                                    className={`
+                                                                        inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                                        ${isPuritySelected
+                                                                            ? 'bg-sky-600 text-white shadow-sm'
+                                                                            : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                                                        }
+                                                                    `}
+                                                                >
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={isPuritySelected}
+                                                                        onChange={(e) => {
+                                                                            setData((prev: FormData) => {
+                                                                                const config = { ...(prev.metal_configurations || {}) };
+                                                                                if (!config[metal.id]) {
+                                                                                    config[metal.id] = { purities: [], tones: [] };
+                                                                                }
+                                                                                const currentPurities = config[metal.id].purities || [];
+                                                                                config[metal.id].purities = e.target.checked
+                                                                                    ? [...currentPurities, purity.id]
+                                                                                    : currentPurities.filter(id => id !== purity.id);
+                                                                                
+                                                                                return {
+                                                                                    ...prev,
+                                                                                    metal_configurations: config,
+                                                                                };
+                                                                            });
+                                                                        }}
+                                                                        className={`mr-2 h-4 w-4 rounded border-2 ${
+                                                                            isPuritySelected
+                                                                                ? 'border-white bg-white text-sky-600'
+                                                                                : 'border-slate-300 bg-white text-slate-700'
+                                                                        } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                                    />
+                                                                    {purity.name}
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Tones */}
+                                                <div>
+                                                    <p className="mb-3 text-xs text-slate-600">
+                                                        Choose all tones in which this design is available for {metal.name}.
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-3">
+                                                        {availableTones.map((tone) => {
+                                                            const isToneSelected = metalConfig.tones.includes(tone.id);
+                                                            return (
+                                                                <label
+                                                                    key={tone.id}
+                                                                    className={`
+                                                                        inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                                        ${isToneSelected
+                                                                            ? 'bg-sky-600 text-white shadow-sm'
+                                                                            : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                                                        }
+                                                                    `}
+                                                                >
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={isToneSelected}
+                                                                        onChange={(e) => {
+                                                                            setData((prev: FormData) => {
+                                                                                const config = { ...(prev.metal_configurations || {}) };
+                                                                                if (!config[metal.id]) {
+                                                                                    config[metal.id] = { purities: [], tones: [] };
+                                                                                }
+                                                                                const currentTones = config[metal.id].tones || [];
+                                                                                config[metal.id].tones = e.target.checked
+                                                                                    ? [...currentTones, tone.id]
+                                                                                    : currentTones.filter(id => id !== tone.id);
+                                                                                
+                                                                                return {
+                                                                                    ...prev,
+                                                                                    metal_configurations: config,
+                                                                                };
+                                                                            });
+                                                                        }}
+                                                                        className={`mr-2 h-4 w-4 rounded border-2 ${
+                                                                            isToneSelected
+                                                                                ? 'border-white bg-white text-sky-600'
+                                                                                : 'border-slate-300 bg-white text-slate-700'
+                                                                        } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                                    />
+                                                                    {tone.name}
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Preview generated variants */}
+                            {(() => {
+                                // Calculate total variant count
+                                const selectedMetals = data.selected_metals || [];
+                                const metalConfigurations = data.metal_configurations || {};
+                                let totalVariants = 0;
+                                
+                                selectedMetals.forEach((metalId) => {
+                                    const config = metalConfigurations[metalId] || { purities: [], tones: [] };
+                                    const availablePurities = metalPurities.filter(p => p.metal_id === metalId);
+                                    const availableTones = metalTones.filter(t => t.metal_id === metalId);
+                                    
+                                    const puritiesCount = config.purities.length > 0 ? config.purities.length : (availablePurities.length > 0 ? availablePurities.length : 1);
+                                    const tonesCount = config.tones.length > 0 ? config.tones.length : (availableTones.length > 0 ? availableTones.length : 1);
+                                    totalVariants += puritiesCount * tonesCount;
+                                });
+                                
+                                // Factor in sizes if enabled
+                                const sizeCount = data.size_dimension_enabled && (data.size_values || []).length > 0 
+                                    ? (data.size_values || []).length 
+                                    : 1;
+                                
+                                // Factor in diamonds if enabled
+                                const diamondCount = (data.diamond_selections || []).length > 0 
+                                    ? (data.diamond_selections || []).length 
+                                    : 1;
+                                
+                                const finalVariantCount = totalVariants > 0 
+                                    ? totalVariants * sizeCount * diamondCount 
+                                    : sizeCount * diamondCount;
+                                
+                                if (selectedMetals.length > 0 || data.size_dimension_enabled || (data.diamond_selections || []).length > 0) {
+                                    return (
+                                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <h3 className="text-sm font-semibold text-slate-900">Preview generated variants</h3>
+                                                    <p className="mt-1 text-xs text-slate-600">
+                                                        This setup will generate approximately {finalVariantCount} variant{finalVariantCount !== 1 ? 's' : ''} based on your current configuration.
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={generateVariantMatrix}
+                                                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                                                >
+                                                    Regenerate matrix
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
 
                             {/* Diamonds selection */}
                             <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
@@ -3086,22 +2572,18 @@ export default function AdminProductEdit() {
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 bg-white">
                                 {(data.variants || []).map((variant, index) => {
-                                    // Use buildVariantMeta to get the correct metal label (handles mixed tones)
                                     const meta = buildVariantMeta(variant, data);
                                     const metalLabel = meta.metalTone || '—';
                                     
-                                    // Extract metal details from variant.metals array for display
                                     const variantMetals = (variant.metals || []).filter(
                                         (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                                     );
                                     
-                                    // Calculate total metal weight
                                     const totalMetalWeight = variantMetals.reduce((sum, metal) => {
                                         const weight = parseFloat(metal.metal_weight || '0');
                                         return sum + (isNaN(weight) ? 0 : weight);
                                     }, 0);
                                     
-                                    // Group metals by metal_id for display
                                     const metalsByMetalId = new Map<number, Array<{
                                         metal_id: number;
                                         metal_purity_id: number | string | null;
@@ -3120,7 +2602,6 @@ export default function AdminProductEdit() {
                                         });
                                     });
                                     
-                                    // Build display strings for each column
                                     const metalNames: string[] = [];
                                     const purityNames: string[] = [];
                                     const toneNames: string[] = [];
@@ -3131,7 +2612,6 @@ export default function AdminProductEdit() {
                                             metalNames.push(metalName);
                                         }
                                         
-                                        // Collect unique purities for this metal
                                         const purities = new Set<number>();
                                         const tones = new Set<number>();
                                         
@@ -3150,7 +2630,6 @@ export default function AdminProductEdit() {
                                             }
                                         });
                                         
-                                        // Build purity display
                                         if (purities.size > 0) {
                                             const purityLabels = Array.from(purities)
                                                 .map((purityId) => {
@@ -3169,7 +2648,6 @@ export default function AdminProductEdit() {
                                             }
                                         }
                                         
-                                        // Build tone display
                                         if (tones.size > 0) {
                                             const toneLabels = Array.from(tones)
                                                 .map((toneId) => {
@@ -3193,11 +2671,8 @@ export default function AdminProductEdit() {
                                     const purityDisplay = purityNames.length > 0 ? purityNames.join(' / ') : '—';
                                     const toneDisplay = toneNames.length > 0 ? toneNames.join(' / ') : '—';
                                     
-                                    // Build diamond display from variant.diamonds array (variant-specific)
-                                    // Show only diamond name and count, not all details
                                     let variantDiamonds: Array<{ diamond_id: number | null; diamonds_count: string }> = [];
                                     
-                                    // Check if variant has diamonds with diamond_id (from diamond_selections flow)
                                     const diamondsWithId = (variant.diamonds || [])
                                         .filter((d) => d.diamond_id !== '' && d.diamond_id !== null && d.diamond_id !== undefined)
                                         .map((d) => ({
@@ -3208,13 +2683,11 @@ export default function AdminProductEdit() {
                                     if (diamondsWithId.length > 0) {
                                         variantDiamonds = diamondsWithId;
                                     } else if ((variant.diamonds || []).length > 0) {
-                                        // Variant has diamonds with shape/color/clarity IDs - show simplified display
                                         variantDiamonds = (variant.diamonds || []).map((d) => ({
-                                            diamond_id: null, // No direct diamond_id, will show as "Diamond"
+                                            diamond_id: null,
                                             diamonds_count: d.diamonds_count || '',
                                         }));
                                     } else if ((data.diamond_selections || []).length > 0) {
-                                        // Fallback to product-level diamond_selections
                                         variantDiamonds = (data.diamond_selections || [])
                                             .filter((selection) => selection.diamond_id !== '' && selection.diamond_id !== null && selection.diamond_id !== undefined)
                                             .map((selection) => ({
@@ -3235,8 +2708,6 @@ export default function AdminProductEdit() {
                                             : 'cm';
                                     const sizeDisplay = metaSizeValue
                                         ? `${metaSizeValue}${metaSizeUnit}`
-                                        : variant.size_cm
-                                        ? `${formatDecimal(parseFloat(variant.size_cm))}cm`
                                         : '—';
                                     const variantStatus =
                                         typeof variantMetadata.status === 'string' && variantMetadata.status.trim().length > 0
@@ -3347,7 +2818,7 @@ export default function AdminProductEdit() {
                                                                 ? (diamonds?.find(d => d.id === diamond.diamond_id)?.name || 'Diamond')
                                                                 : 'Diamond';
                                                             const count = diamond.diamonds_count || '';
-
+                                                            
                                                             return (
                                                                 <div key={diamondIndex} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
                                                                     <div className="flex-1">
@@ -3488,7 +2959,7 @@ export default function AdminProductEdit() {
                                                                     const toneName = metal.metal_tone_id && typeof metal.metal_tone_id === 'number'
                                                                         ? metalTones.find(t => t.id === metal.metal_tone_id)?.name || ''
                                                                         : '';
-
+                                                                    
                                                                     return (
                                                                         <div key={metalIndex} className="rounded-xl border border-slate-200 bg-white p-4">
                                                                             <div className="mb-3 flex items-center justify-between">
@@ -3543,41 +3014,15 @@ export default function AdminProductEdit() {
                                                         <div className="mb-4 flex items-center justify-between">
                                                             <div>
                                                                 <h4 className="text-sm font-semibold text-slate-900">Diamonds for this Variant</h4>
-                                                                {data.diamond_mixing_mode === 'shared' && (
-                                                                    <p className="mt-1 text-xs text-slate-500">
-                                                                        This variant uses the shared diamond list defined above. All variants share the same diamonds.
-                                                                    </p>
-                                                                )}
-                                                                {data.diamond_mixing_mode === 'as_variant' && (
-                                                                    <p className="mt-1 text-xs text-slate-500">
-                                                                        This variant has its specific diamond from the diamond mixes list. Each variant-diamond combination is a separate sellable variant.
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                            {data.diamond_mixing_mode === 'shared' && (
-                                                                <p className="mb-4 text-xs text-slate-500">
-                                                                    In "shared" mode, diamonds are managed in the "Diamond mixes" section above. All variants use the same diamond list.
+                                                                <p className="mt-1 text-xs text-slate-500">
+                                                                    This variant uses the shared diamond list defined above. All variants share the same diamonds.
                                                                 </p>
-                                                            )}
-                                                            {data.diamond_mixing_mode === 'as_variant' && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => addDiamondToVariant(index)}
-                                                                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-sky-400 hover:bg-sky-50"
-                                                                >
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
-                                                                    </svg>
-                                                                    Add Diamond
-                                                                </button>
-                                                            )}
+                                                            </div>
                                                         </div>
                                                         
                                                         {variantDiamonds.length === 0 ? (
                                                             <p className="text-xs text-slate-400">
-                                                                {data.diamond_mixing_mode === 'shared' 
-                                                                    ? 'No diamonds assigned to this variant from the shared matrix.'
-                                                                    : 'No diamonds added to this variant. Click "Add Diamond" to add one.'}
+                                                                No diamonds assigned to this variant from the shared matrix.
                                                             </p>
                                                         ) : (
                                                             <div className="space-y-3">
@@ -3585,15 +3030,13 @@ export default function AdminProductEdit() {
                                                                     <div key={diamondIndex} className="rounded-xl border border-slate-200 bg-white p-4">
                                                                         <div className="mb-3 flex items-center justify-between">
                                                                             <span className="text-xs font-semibold text-slate-600">Diamond #{diamondIndex + 1}</span>
-                                                                            {data.diamond_mixing_mode === 'as_variant' && (
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() => removeDiamondFromVariant(index, diamondIndex)}
-                                                                                    className="text-xs text-rose-500 transition hover:text-rose-700"
-                                                                                >
-                                                                                    Remove
-                                                                                </button>
-                                                                            )}
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => removeDiamondFromVariant(index, diamondIndex)}
+                                                                                className="text-xs text-rose-500 transition hover:text-rose-700"
+                                                                            >
+                                                                                Remove
+                                                                            </button>
                                                                         </div>
                                                                         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                                                                             <label className="flex flex-col gap-1.5 text-xs font-medium text-slate-600">

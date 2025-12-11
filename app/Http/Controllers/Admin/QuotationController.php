@@ -201,7 +201,7 @@ class QuotationController extends Controller
                             'sku' => $q->product->sku,
                             'base_price' => $q->product->base_price,
                             'making_charge_amount' => $q->product->making_charge_amount,
-                            'media' => $q->product->media->sortBy('position')->values()->map(fn($media) => [
+                            'media' => $q->product->media->sortBy('display_order')->values()->map(fn($media) => [
                                 'url' => $media->url,
                                 'alt' => $media->metadata['alt'] ?? $q->product->name,
                             ]),
@@ -209,13 +209,11 @@ class QuotationController extends Controller
                                 'id' => $variant->id,
                                 'label' => $variant->label,
                                 'metadata' => $variant->metadata ?? [],
-                                'price_adjustment' => $variant->price_adjustment,
                             ]),
                         ],
                         'variant' => $q->variant ? [
                             'id' => $q->variant->id,
                             'label' => $q->variant->label,
-                            'price_adjustment' => $q->variant->price_adjustment,
                             'metadata' => $q->variant->metadata ?? [],
                         ] : null,
                         'price_breakdown' => $pricing,
@@ -227,7 +225,7 @@ class QuotationController extends Controller
                     'sku' => $quotation->product->sku,
                     'base_price' => $quotation->product->base_price,
                     'making_charge' => $quotation->product->making_charge,
-                    'media' => $quotation->product->media->sortBy('position')->values()->map(fn($media) => [
+                    'media' => $quotation->product->media->sortBy('display_order')->values()->map(fn($media) => [
                         'url' => $media->url,
                         'alt' => $media->metadata['alt'] ?? $quotation->product->name,
                     ]),
@@ -235,13 +233,11 @@ class QuotationController extends Controller
                         'id' => $variant->id,
                         'label' => $variant->label,
                         'metadata' => $variant->metadata ?? [],
-                        'price_adjustment' => $variant->price_adjustment,
                     ]),
                 ],
                 'variant' => $quotation->variant ? [
                     'id' => $quotation->variant->id,
                     'label' => $quotation->variant->label,
-                    'price_adjustment' => $quotation->variant->price_adjustment,
                     'metadata' => $quotation->variant->metadata ?? [],
                 ] : null,
                 'price_breakdown' => $this->pricingService->calculateProductPrice(

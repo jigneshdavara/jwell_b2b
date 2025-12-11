@@ -19,11 +19,11 @@ class StoreDiamondShapeSizeRequest extends FormRequest
         return [
             'diamond_type_id' => ['required', 'integer', 'exists:diamond_types,id'],
             'diamond_shape_id' => ['required', 'integer', 'exists:diamond_shapes,id'],
-            'size' => ['nullable', 'string', 'max:255'],
+            'size' => ['required', 'string', 'max:255'],
             'secondary_size' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'display_order' => ['nullable', 'integer', 'min:0'],
-            'ctw' => ['nullable', 'numeric', 'min:0'],
+            'display_order' => ['required', 'integer', 'min:0'],
+            'ctw' => ['required', 'numeric', 'min:0'],
         ];
     }
 }

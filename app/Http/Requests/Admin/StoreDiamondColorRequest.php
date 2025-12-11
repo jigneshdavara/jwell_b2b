@@ -19,11 +19,20 @@ class StoreDiamondColorRequest extends FormRequest
     {
         return [
             'diamond_type_id' => ['required', 'integer', 'exists:diamond_types,id'],
-            'code' => ['nullable', 'string', 'max:255'],
-            'name' => ['required', 'string', 'max:255', Rule::unique('diamond_colors', 'name')],
-            'ecat_name' => ['nullable', 'string', 'max:255'],
+            'code' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('diamond_colors', 'code')->where('diamond_type_id', $this->input('diamond_type_id')),
+            ],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('diamond_colors', 'name')->where('diamond_type_id', $this->input('diamond_type_id')),
+            ],
             'description' => ['nullable', 'string'],
-            'display_order' => ['nullable', 'integer', 'min:0'],
+            'display_order' => ['required', 'integer', 'min:0'],
             'is_active' => ['boolean'],
         ];
     }

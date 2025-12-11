@@ -27,7 +27,7 @@ alwaysApply: true
   - Relationships: `brand_id`, `category_id`, `material_id`
   
 - **`product_variants`**: Specific sellable configurations
-  - Key fields: `product_id`, `sku`, `label`, `price_adjustment`, `metadata` (JSON), `is_default`
+  - Key fields: `product_id`, `sku`, `label`, `metadata` (JSON), `is_default`
   - Relationships: `product_id` (FK)
   
 - **`product_variant_metals`**: Variant-metal associations (many-to-many)
@@ -36,9 +36,6 @@ alwaysApply: true
 - **`product_variant_diamonds`**: Variant-diamond associations
   - Key fields: `product_variant_id`, `diamond_type_id`, `diamond_shape_id`, `diamond_color_id`, `diamond_clarity_id`, `diamond_cut_id`, `stone_count`, `total_carat`, `position`
   
-- **`product_variant_colorstones`**: Variant-colorstone associations
-  - Key fields: `product_variant_id`, `colorstone_id`, `colorstone_color_id`, `colorstone_shape_id`, `colorstone_quality_id`, `stone_count`, `total_carat`, `position`
-
 ### Catalog Structure
 
 - **`brands`**: Product brands
@@ -47,8 +44,7 @@ alwaysApply: true
 - **`catalog_products`**: Pivot table for catalog-product associations
 - **`materials`**: Material types (Gold, Silver, etc.)
 - **`metal_purities`**: Metal purity levels (24K, 22K, 18K, 14K, 999, 958, 925)
-- **`metal_tones`**: Metal tones (Yellow, White, Rose, etc.)
-- **`sizes`**: Size definitions
+image.png- **`sizes`**: Size definitions
 - **`styles`**: Product styles
 
 ### Commerce Tables
@@ -69,11 +65,6 @@ alwaysApply: true
 - **`price_rates`**: Metal rate records (Gold XAU, Silver XAG)
 - **`offers`**: Discount offers
 - **`making_charge_discounts`**: Making charge discount rules
-
-### Jobwork & Production
-
-- **`jobwork_requests`**: Jobwork requests
-- **`work_orders`**: Production work orders
 
 ### Users & KYC
 
@@ -137,5 +128,5 @@ alwaysApply: true
 - **Keep configuration on `products`**, choices on `product_variants`
 - **Avoid duplicating large JSON config** on every variant
 - **Store variant-specific data** in `metadata` JSON field
-- **Use join tables** for many-to-many relationships (metals, diamonds, colorstones)
+- **Use join tables** for many-to-many relationships (metals, diamonds)
 - **Include `position` field** in join tables for ordering

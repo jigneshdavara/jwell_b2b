@@ -22,13 +22,11 @@ type RelatedQuotation = {
             id: number;
             label: string;
             metadata?: Record<string, unknown> | null;
-            price_adjustment: number;
         }>;
     };
     variant?: {
         id: number;
         label: string;
-        price_adjustment: number;
         metadata?: Record<string, unknown> | null;
     } | null;
     price_breakdown?: {
@@ -65,13 +63,11 @@ type QuotationDetails = {
             id: number;
             label: string;
             metadata?: Record<string, unknown> | null;
-            price_adjustment: number;
         }>;
     };
     variant?: {
         id: number;
         label: string;
-        price_adjustment: number;
         metadata?: Record<string, unknown> | null;
     } | null;
     user?: {
@@ -125,15 +121,6 @@ const statusBadge: Record<string, string> = {
     customer_declined: 'bg-rose-100 text-rose-700',
 };
 
-const jobworkBadges: Record<string, string> = {
-    material_sending: 'bg-slate-100 text-slate-600',
-    material_received: 'bg-elvee-blue/10 text-elvee-blue',
-    under_preparation: 'bg-indigo-100 text-indigo-700',
-    completed: 'bg-emerald-100 text-emerald-700',
-    awaiting_billing: 'bg-amber-100 text-amber-700',
-    billing_confirmed: 'bg-emerald-100 text-emerald-700',
-    ready_to_ship: 'bg-slate-900 text-white',
-};
 
 const formatDate = (input?: string | null) =>
     input

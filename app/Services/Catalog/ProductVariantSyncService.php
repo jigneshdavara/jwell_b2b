@@ -32,11 +32,6 @@ class ProductVariantSyncService
             ->map(function (array $payload) use ($diamondOptionsMap) {
                 $metadata = $payload['metadata'] ?? [];
 
-                // Ensure size_cm is included in metadata if provided
-                if (isset($payload['size_cm']) && $payload['size_cm'] !== '' && $payload['size_cm'] !== null) {
-                    $metadata['size_cm'] = $payload['size_cm'];
-                }
-
                 // Convert diamond_option_key to diamond entry if needed
                 $diamondOptionKey = $metadata['diamond_option_key'] ?? null;
                 if ($diamondOptionKey && isset($diamondOptionsMap[$diamondOptionKey])) {
@@ -64,13 +59,11 @@ class ProductVariantSyncService
                     'metal_id' => $payload['metal_id'] ?? null,
                     'metal_purity_id' => $payload['metal_purity_id'] ?? null,
                     'size' => $payload['size'] ?? null,
-                    'price_adjustment' => (float) ($payload['price_adjustment'] ?? 0),
                     'inventory_quantity' => isset($payload['inventory_quantity']) && $payload['inventory_quantity'] !== '' && $payload['inventory_quantity'] !== null
                         ? (int) $payload['inventory_quantity']
                         : 0,
                     'is_default' => (bool) ($payload['is_default'] ?? false),
                     'metadata' => $metadata,
-                    'size_cm' => $payload['size_cm'] ?? null, // Keep for extraction before saving
                     'metals' => $payload['metals'] ?? [],
                     'diamonds' => $payload['diamonds'] ?? [],
                 ];
@@ -122,8 +115,8 @@ class ProductVariantSyncService
             // Remove fields that are not columns on product_variants table
             // metal_id, metal_purity_id are only used to create metals entries if metals array is empty
             // metals and diamonds arrays are used to sync related records
-            // diamond_option_key and size_cm are stored in metadata, not as direct columns
-            // metal_tone and stone_quality are legacy fields that don't exist in the database
+            // diamond_option_key is stored in metadata, not as direct column
+            // metal_tone is a legacy field that doesn't exist in the database
             $attributes = Arr::except($variant, [
                 'id',
                 'metal_id',
@@ -131,9 +124,7 @@ class ProductVariantSyncService
                 'metals',
                 'diamonds',
                 'diamond_option_key',
-                'size_cm',
                 'metal_tone', // Legacy field - not in database
-                'stone_quality', // Legacy field - not in database
             ]);
 
             /** @var \App\Models\ProductVariant|null $model */
@@ -273,7 +264,7 @@ class ProductVariantSyncService
                     ? (float) $metal['metal_weight']
                     : null,
                 'metadata' => $metal['metadata'] ?? [],
-                'position' => $index,
+                'display_order' => $index,
             ];
 
             // Update existing metal entry if ID is provided and exists
@@ -328,7 +319,7 @@ class ProductVariantSyncService
                 'diamond_id' => $diamond['diamond_id'],
                 'diamonds_count' => $diamond['diamonds_count'],
                 'metadata' => $diamond['metadata'],
-                'position' => $index,
+                'display_order' => $index,
             ];
 
             // Update existing diamond entry if ID is provided and exists

@@ -47,11 +47,11 @@ class MetalController extends Controller
         $data = $request->validated();
 
         Metal::create([
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
         ]);
 
         return redirect()
@@ -64,11 +64,11 @@ class MetalController extends Controller
         $data = $request->validated();
 
         $metal->update([
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
         ]);
 
         return redirect()

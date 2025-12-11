@@ -25,16 +25,11 @@ class Product extends Model
         'gender',
         'making_charge_amount',
         'making_charge_percentage',
-        'making_charge_discount_type',
-        'making_charge_discount_value',
-        'making_charge_discount_overrides',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'making_charge_discount_value' => 'float',
-        'making_charge_discount_overrides' => 'array',
         'making_charge_percentage' => 'float',
         'subcategory_ids' => 'array',
     ];

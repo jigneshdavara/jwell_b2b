@@ -6,7 +6,6 @@ use App\Enums\KycStatus;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
-use App\Models\JobworkRequest;
 use App\Models\Offer;
 use App\Models\Order;
 use Carbon\Carbon;
@@ -31,10 +30,6 @@ class DashboardController extends Controller
             ->take(6)
             ->get(['id', 'name', 'email', 'type', 'kyc_status', 'created_at']);
 
-        $jobworkQueue = JobworkRequest::latest()
-            ->take(6)
-            ->get(['id', 'type', 'status', 'delivery_deadline', 'created_at']);
-
         return Inertia::render('Admin/Dashboard/Overview', [
             'metrics' => $metrics,
             'recentPartners' => $recentPartners->map(fn ($user) => [
@@ -44,13 +39,6 @@ class DashboardController extends Controller
                 'type' => $user->type,
                 'kyc_status' => $user->kyc_status,
                 'joined_at' => Carbon::parse($user->created_at)->toDateTimeString(),
-            ]),
-            'jobworkQueue' => $jobworkQueue->map(fn ($request) => [
-                'id' => $request->id,
-                'type' => $request->type,
-                'status' => $request->status,
-                'deadline' => optional($request->delivery_deadline)?->toDateString(),
-                'created_at' => optional($request->created_at)?->toDateTimeString(),
             ]),
         ]);
     }

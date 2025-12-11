@@ -19,16 +19,11 @@ class StoreMetalPurityRequest extends FormRequest
     {
         return [
             'metal_id' => ['required', 'integer', 'exists:metals,id'],
-            'code' => ['nullable', 'string', 'max:255'],
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('metal_purities', 'name')->where('metal_id', $this->input('metal_id')),
-            ],
+            'code' => ['required', 'string', 'max:255', Rule::unique('metal_purities', 'code')->where('metal_id', $this->input('metal_id'))],
+            'name' => ['required', 'string', 'max:255', Rule::unique('metal_purities', 'name')->where('metal_id', $this->input('metal_id'))],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
-            'display_order' => ['nullable', 'integer', 'min:0'],
+            'display_order' => ['required', 'integer', 'min:0'],
         ];
     }
 }

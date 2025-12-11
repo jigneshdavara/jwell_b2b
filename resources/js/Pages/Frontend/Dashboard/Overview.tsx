@@ -10,7 +10,6 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
 
 const titleMap: Record<string, string> = {
     open_orders: 'Open orders',
-    jobwork_requests: 'Jobwork requests',
     active_offers: 'Active offers',
 };
 
@@ -47,24 +46,6 @@ type DashboardProps = {
     }>;
 };
 
-const statusColors: Record<string, string> = {
-    pending: 'bg-amber-100 text-amber-700',
-    approved: 'bg-emerald-100 text-emerald-700',
-    in_production: 'bg-elvee-blue/10 text-elvee-blue',
-    quality_check: 'bg-indigo-100 text-indigo-700',
-    ready_to_dispatch: 'bg-purple-100 text-purple-700',
-    dispatched: 'bg-blue-100 text-blue-700',
-    delivered: 'bg-emerald-100 text-emerald-700',
-    completed: 'bg-emerald-100 text-emerald-700',
-    cancelled: 'bg-rose-100 text-rose-700',
-    submitted: 'bg-slate-100 text-slate-700',
-    material_sending: 'bg-slate-100 text-slate-700',
-    material_received: 'bg-elvee-blue/10 text-elvee-blue',
-    under_preparation: 'bg-indigo-100 text-indigo-700',
-    awaiting_billing: 'bg-amber-100 text-amber-700',
-    billing_confirmed: 'bg-emerald-100 text-emerald-700',
-    ready_to_ship: 'bg-slate-900 text-white',
-};
 
 export default function FrontendDashboardOverview() {
     const {
