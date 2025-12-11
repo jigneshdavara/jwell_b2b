@@ -1261,6 +1261,46 @@ export default function AdminProductEdit() {
 
     const updateVariant = (index: number, field: keyof VariantForm, value: string | boolean | number | null) => {
         setData((prev: FormData) => {
+            const targetVariant = (prev.variants || [])[index];
+            if (!targetVariant) return prev;
+            
+            // When "All sizes available" is selected, update all variants with the same metal combination
+            if (prev.all_sizes_available === true && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default')) {
+                // Get metal combination key from target variant
+                const targetMetals = (targetVariant.metals || []).filter(
+                    (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                );
+                const targetMetalsKey = targetMetals
+                    .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                    .sort()
+                    .join('|');
+                
+                // Update all variants with the same metal combination
+                const variants = (prev.variants || []).map((variant: VariantForm) => {
+                    const variantMetals = (variant.metals || []).filter(
+                        (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                    );
+                    const variantMetalsKey = variantMetals
+                        .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                        .sort()
+                        .join('|');
+                    
+                    if (variantMetalsKey === targetMetalsKey) {
+                        return {
+                            ...variant,
+                            [field]: value,
+                        };
+                    }
+                    return variant;
+                });
+                
+                return {
+                    ...prev,
+                    variants,
+                };
+            }
+            
+            // Normal update for single variant
             const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== index) {
                     return variant;
@@ -1446,6 +1486,56 @@ export default function AdminProductEdit() {
         value: string | number | '',
     ) => {
         setData((prev: FormData) => {
+            const targetVariant = (prev.variants || [])[variantIndex];
+            if (!targetVariant) return prev;
+            
+            // When "All sizes available" is selected, update all variants with the same metal combination
+            if (prev.all_sizes_available === true) {
+                // Get metal combination key from target variant
+                const targetMetals = (targetVariant.metals || []).filter(
+                    (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                );
+                const targetMetalsKey = targetMetals
+                    .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                    .sort()
+                    .join('|');
+                
+                // Update all variants with the same metal combination
+                const variants = (prev.variants || []).map((variant: VariantForm) => {
+                    const variantMetals = (variant.metals || []).filter(
+                        (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                    );
+                    const variantMetalsKey = variantMetals
+                        .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                        .sort()
+                        .join('|');
+                    
+                    if (variantMetalsKey === targetMetalsKey) {
+                        const currentMetals = variant.metals || [];
+                        const updatedMetals = currentMetals.map((metal: VariantMetalForm, mIdx: number) => {
+                            if (mIdx !== metalIndex) {
+                                return metal;
+                            }
+                            return {
+                                ...metal,
+                                [field]: value,
+                            };
+                        });
+                        return {
+                            ...variant,
+                            metals: updatedMetals,
+                        };
+                    }
+                    return variant;
+                });
+                
+                return {
+                    ...prev,
+                    variants,
+                };
+            }
+            
+            // Normal update for single variant
             const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== variantIndex) {
                     return variant;
@@ -1509,8 +1599,8 @@ export default function AdminProductEdit() {
             // Generate metal × size combinations if sizes are selected
             let selectedSizes = prev.selected_sizes || [];
             
-            // If all_sizes_available is true but selected_sizes is empty, populate it with all category sizes
-            if (prev.all_sizes_available === true && selectedSizes.length === 0) {
+            // If all_sizes_available is true, always populate selected_sizes with all category sizes
+            if (prev.all_sizes_available === true) {
                 // Get category sizes from props or product
                 const categoryId = prev.category_id ? Number(prev.category_id) : null;
                 const selectedCategory = categoryId ? parentCategories.find(cat => cat.id === categoryId) : null;
@@ -2710,6 +2800,7 @@ export default function AdminProductEdit() {
                                             <th className="px-5 py-3 text-left min-w-[120px]">Purity</th>
                                             <th className="px-5 py-3 text-left min-w-[120px]">Tone</th>
                                             <th className="px-5 py-3 text-left min-w-[120px]">Weight (g)</th>
+                                            <th className="px-5 py-3 text-left min-w-[120px]">Size</th>
                                             <th className="px-5 py-3 text-left">Inventory Quantity</th>
                                             <th className="px-5 py-3 text-left">Status</th>
                                             <th className="px-5 py-3 text-left">Default</th>
@@ -2717,7 +2808,45 @@ export default function AdminProductEdit() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 bg-white">
-                                {(data.variants || []).map((variant, index) => {
+                                {(() => {
+                                    // When "All sizes available" is selected, group variants by metal combination
+                                    // Otherwise, show all variants individually
+                                    const allVariants = data.variants || [];
+                                    
+                                    if (data.all_sizes_available === true) {
+                                        // Group variants by metal combination (ignoring size)
+                                        const groupedVariants = new Map<string, typeof allVariants>();
+                                        
+                                        allVariants.forEach((variant) => {
+                                            const variantMetals = (variant.metals || []).filter(
+                                                (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                                            );
+                                            
+                                            // Create a key based on metal combination (metal_id, purity_id, tone_id)
+                                            const metalsKey = variantMetals
+                                                .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                                                .sort()
+                                                .join('|');
+                                            
+                                            if (!groupedVariants.has(metalsKey)) {
+                                                groupedVariants.set(metalsKey, []);
+                                            }
+                                            groupedVariants.get(metalsKey)!.push(variant);
+                                        });
+                                        
+                                        // Return grouped variants (one row per metal combination)
+                                        return Array.from(groupedVariants.values()).map((variantGroup, groupIndex) => {
+                                            // Use the first variant from the group for display
+                                            const displayVariant = variantGroup[0];
+                                            // Find the original index of this variant in allVariants
+                                            const originalIndex = allVariants.findIndex(v => v === displayVariant);
+                                            return { variant: displayVariant, index: originalIndex, group: variantGroup };
+                                        });
+                                    } else {
+                                        // Show all variants individually
+                                        return allVariants.map((variant, index) => ({ variant, index, group: [variant] }));
+                                    }
+                                })().map(({ variant, index, group }) => {
                                     const meta = buildVariantMeta(variant, data);
                                     const metalLabel = meta.metalTone || '—';
 
@@ -2844,8 +2973,29 @@ export default function AdminProductEdit() {
 
 
                                     const variantMetadata = (variant.metadata ?? {}) as Record<string, FormDataConvertible>;
-                                    // Size display - use metadata size_value if available
-                                    const sizeDisplay = variantMetadata.size_value ? String(variantMetadata.size_value) : '—';
+                                    
+                                    // Get size display name from size_id
+                                    const variantSizeId = (variant as any).size_id;
+                                    let sizeDisplay = '—';
+                                    if (variantSizeId !== null && variantSizeId !== undefined) {
+                                        // Get category sizes to look up size name
+                                        const categoryId = data.category_id ? Number(data.category_id) : null;
+                                        const selectedCategory = categoryId ? parentCategories.find(cat => cat.id === categoryId) : null;
+                                        const categorySizes = (selectedCategory && 'sizes' in selectedCategory && selectedCategory.sizes) || 
+                                                              (product?.category?.sizes || []);
+                                        const sizeObj = categorySizes.find((s: any) => {
+                                            const sId = typeof s.id === 'number' ? s.id : Number(s.id);
+                                            const vId = typeof variantSizeId === 'number' ? variantSizeId : Number(variantSizeId);
+                                            return sId === vId;
+                                        });
+                                        if (sizeObj) {
+                                            sizeDisplay = sizeObj.name || sizeObj.value || String(variantSizeId);
+                                        } else {
+                                            // Fallback to size_id if not found
+                                            sizeDisplay = String(variantSizeId);
+                                        }
+                                    }
+                                    
                                     const variantStatus =
                                         typeof variantMetadata.status === 'string' && variantMetadata.status.trim().length > 0
                                             ? String(variantMetadata.status)
@@ -2929,6 +3079,15 @@ export default function AdminProductEdit() {
                                                         })
                                                     ) : (
                                                         <span className="text-sm text-slate-400">—</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-3 align-middle text-slate-700">
+                                                <div className="min-w-[120px]">
+                                                    {data.all_sizes_available === true ? (
+                                                        <span className="text-sm text-slate-500 italic">All sizes</span>
+                                                    ) : (
+                                                        <span className="text-sm text-slate-700">{sizeDisplay}</span>
                                                     )}
                                                 </div>
                                             </td>
