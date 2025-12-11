@@ -47,19 +47,43 @@ class CategoryController extends Controller
                 ];
             });
 
+        // Get all active categories for parent selection in tree structure
+        $allCategories = Category::query()
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'parent_id']);
+
+        // Build tree structure - first create all nodes, then organize
+        $nodes = [];
+        foreach ($allCategories as $category) {
+            $nodes[$category->id] = [
+                'id' => $category->id,
+                'name' => $category->name,
+                'parent_id' => $category->parent_id,
+                'children' => [],
+            ];
+        }
+
+        // Build tree by linking children to parents
+        $tree = [];
+        foreach ($nodes as $node) {
+            if ($node['parent_id'] === null) {
+                $tree[] = &$nodes[$node['id']];
+            } else {
+                if (isset($nodes[$node['parent_id']])) {
+                    $nodes[$node['parent_id']]['children'][] = &$nodes[$node['id']];
+                }
+            }
+        }
+
+        // Flatten tree for select options with indentation
+        $parentCategories = $this->flattenCategoryTree($tree);
+
         return Inertia::render('Admin/Categories/Index', [
             'categories' => $categories,
-            'parentCategories' => Category::query()
-                ->whereNull('parent_id')
-                ->where('is_active', true)
-                ->orderBy('display_order')
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn(Category $category) => [
-                    'id' => $category->id,
-                    'name' => $category->name,
-                ])
-                ->all(),
+            'parentCategories' => $parentCategories,
+            'categoryTree' => $tree,
             'styles' => Style::query()
                 ->where('is_active', true)
                 ->orderBy('display_order')
@@ -213,5 +237,25 @@ class CategoryController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Selected categories deleted successfully.');
+    }
+
+    private function flattenCategoryTree(array $tree, int $level = 0): array
+    {
+        $result = [];
+        $prefix = $level > 0 ? str_repeat('  ', $level) . '└─ ' : '';
+
+        foreach ($tree as $node) {
+            $result[] = [
+                'id' => $node['id'],
+                'name' => $prefix . $node['name'],
+                'level' => $level,
+            ];
+
+            if (!empty($node['children'])) {
+                $result = array_merge($result, $this->flattenCategoryTree($node['children'], $level + 1));
+            }
+        }
+
+        return $result;
     }
 }

@@ -3,7 +3,7 @@ import ConfirmationModal from '@/Components/ConfirmationModal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import React, { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 
 type CategoryRow = {
@@ -37,15 +37,23 @@ type ParentCategory = {
     name: string;
 };
 
+type CategoryTreeNode = {
+    id: number;
+    name: string;
+    parent_id: number | null;
+    children: CategoryTreeNode[];
+};
+
 type CategoriesPageProps = PageProps<{
     categories: Pagination<CategoryRow>;
     parentCategories: ParentCategory[];
+    categoryTree: CategoryTreeNode[];
     styles: Array<{ id: number; name: string }>;
     sizes: Array<{ id: number; name: string }>;
 }>;
 
 export default function AdminCategoriesIndex() {
-    const { categories, parentCategories, styles, sizes } = usePage<CategoriesPageProps>().props;
+    const { categories, categoryTree, styles, sizes } = usePage<CategoriesPageProps>().props;
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null);
@@ -58,6 +66,7 @@ export default function AdminCategoriesIndex() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [styleSearchQuery, setStyleSearchQuery] = useState('');
     const [sizeSearchQuery, setSizeSearchQuery] = useState('');
+    const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
 
     const form = useForm({
         parent_id: '',
@@ -84,6 +93,151 @@ export default function AdminCategoriesIndex() {
         return selectedCategories.length === categories.data.length;
     }, [categories.data, selectedCategories]);
 
+    const getDescendantIds = (node: CategoryTreeNode): number[] => {
+        const ids = [node.id];
+        node.children.forEach((child) => {
+            ids.push(...getDescendantIds(child));
+        });
+        return ids;
+    };
+
+    const filterTree = (tree: CategoryTreeNode[], excludeIds: number[]): CategoryTreeNode[] => {
+        return tree
+            .filter((node) => !excludeIds.includes(node.id))
+            .map((node) => ({
+                ...node,
+                children: filterTree(node.children, excludeIds),
+            }));
+    };
+
+    const availableCategoryTree = useMemo(() => {
+        if (!editingCategory || !categoryTree) {
+            return categoryTree || [];
+        }
+        const excludeIds = [editingCategory.id];
+        // Get all descendant IDs if we had them in the tree
+        const findNode = (tree: CategoryTreeNode[], id: number): CategoryTreeNode | null => {
+            for (const node of tree) {
+                if (node.id === id) return node;
+                const found = findNode(node.children, id);
+                if (found) return found;
+            }
+            return null;
+        };
+        const editingNode = findNode(categoryTree, editingCategory.id);
+        if (editingNode) {
+            excludeIds.push(...getDescendantIds(editingNode));
+        }
+        return filterTree(categoryTree, excludeIds);
+    }, [categoryTree, editingCategory]);
+
+    // Get selected category name
+    const getSelectedCategoryName = (): string => {
+        if (form.data.parent_id === '') {
+            return 'None (Top Level)';
+        }
+        const findCategoryName = (tree: CategoryTreeNode[], id: string): string | null => {
+            for (const node of tree) {
+                if (String(node.id) === id) {
+                    return node.name;
+                }
+                const found = findCategoryName(node.children, id);
+                if (found) return found;
+            }
+            return null;
+        };
+        return findCategoryName(availableCategoryTree, form.data.parent_id) || 'Select parent category';
+    };
+
+    // Toggle node expansion
+    const toggleNode = (nodeId: number) => {
+        setExpandedNodes((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(nodeId)) {
+                newSet.delete(nodeId);
+            } else {
+                newSet.add(nodeId);
+            }
+            return newSet;
+        });
+    };
+
+    // Render tree node recursively for dropdown with expand/collapse
+    const renderTreeNode = (node: CategoryTreeNode, level: number = 0, closeMenu?: () => void): React.ReactNode => {
+        const isSelected = String(form.data.parent_id) === String(node.id);
+        const hasChildren = node.children.length > 0;
+        const isExpanded = expandedNodes.has(node.id);
+
+        return (
+            <div key={node.id} className="relative">
+                <Menu.Item>
+                    {({ active, close }) => (
+                        <div
+                            className={`flex items-center gap-1 rounded-lg transition-colors pl-3 ${
+                                isSelected
+                                    ? 'bg-sky-50 text-sky-700'
+                                    : active
+                                    ? 'bg-slate-50 text-slate-700'
+                                    : 'text-slate-700'
+                            }`}
+                        >
+                            <div className="flex items-center" style={{ width: `${level * 20}px` }}>
+                                {level > 0 && (
+                                    <div className="w-px h-6 bg-slate-200 mr-2"></div>
+                                )}
+                            </div>
+
+                            {/* Expand/Collapse Icon */}
+                            {hasChildren ? (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleNode(node.id);
+                                    }}
+                                    className="flex items-center justify-center w-5 h-5 rounded hover:bg-slate-200 transition-colors flex-shrink-0"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className={`h-3 w-3 text-slate-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth={2}
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            ) : (
+                                <div className="w-5 h-5 flex-shrink-0"></div>
+                            )}
+                            <div
+                                className={`flex-1 py-2 cursor-pointer rounded ${
+                                    isSelected ? 'font-medium' : ''
+                                }`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    form.setData('parent_id', String(node.id));
+                                    close();
+                                    closeMenu?.();
+                                }}
+                            >
+                                <span className="text-sm">{node.name}</span>
+                            </div>
+                        </div>
+                    )}
+                </Menu.Item>
+
+                {/* Render Children if Expanded */}
+                {hasChildren && isExpanded && (
+                    <div className="relative">
+                        {node.children.map((child) => renderTreeNode(child, level + 1, closeMenu))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const toggleSelectAll = () => {
         if (allSelected) {
             setSelectedCategories([]);
@@ -101,6 +255,7 @@ export default function AdminCategoriesIndex() {
     const resetForm = () => {
         setEditingCategory(null);
         setModalOpen(false);
+        setExpandedNodes(new Set()); // Reset expanded nodes
         form.reset();
         form.clearErrors();
         form.setData('parent_id', '');
@@ -130,6 +285,40 @@ export default function AdminCategoriesIndex() {
         setModalOpen(true);
     };
 
+    const expandPathToCategory = (categoryId: number | null, tree: CategoryTreeNode[]): void => {
+        if (!categoryId) return;
+
+        const nodesToExpand = new Set<number>();
+
+        const findAndExpand = (nodes: CategoryTreeNode[], targetId: number, path: number[] = []): boolean => {
+            for (const node of nodes) {
+                const currentPath = [...path, node.id];
+                if (node.id === targetId) {
+                    currentPath.forEach((id) => nodesToExpand.add(id));
+                    return true;
+                }
+                if (node.children.length > 0) {
+                    if (findAndExpand(node.children, targetId, currentPath)) {
+                        nodesToExpand.add(node.id);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+
+        findAndExpand(tree, categoryId);
+
+        // Update state once with all nodes to expand
+        if (nodesToExpand.size > 0) {
+            setExpandedNodes((prev) => {
+                const newSet = new Set(prev);
+                nodesToExpand.forEach((id) => newSet.add(id));
+                return newSet;
+            });
+        }
+    };
+
     const openEditModal = (category: CategoryRow) => {
         setEditingCategory(category);
         form.clearErrors();
@@ -147,6 +336,11 @@ export default function AdminCategoriesIndex() {
         });
         setCoverPreview(category.cover_image_url ?? null);
         setModalOpen(true);
+
+        // Expand path to parent category if it exists
+        if (category.parent_id && categoryTree) {
+            expandPathToCategory(category.parent_id, categoryTree);
+        }
     };
 
     useEffect(() => {
@@ -540,18 +734,57 @@ export default function AdminCategoriesIndex() {
                                     <div className="grid gap-4">
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
                                             <span>Parent Category</span>
-                                            <select
-                                                value={form.data.parent_id}
-                                                onChange={(event) => form.setData('parent_id', event.target.value)}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            >
-                                                <option value="">None (Top Level)</option>
-                                                {parentCategories.map((parent) => (
-                                                    <option key={parent.id} value={parent.id}>
-                                                        {parent.name}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            <Menu as="div" className="relative">
+                                                <Menu.Button className="w-full min-h-[44px] rounded-2xl border border-slate-300 bg-white px-4 py-2 text-left text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className={form.data.parent_id === '' ? 'text-slate-500' : 'text-slate-900'}>
+                                                            {getSelectedCategoryName()}
+                                                        </span>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </div>
+                                                </Menu.Button>
+                                                <Transition
+                                                    enter="transition ease-out duration-100"
+                                                    enterFrom="transform opacity-0 scale-95"
+                                                    enterTo="transform opacity-100 scale-100"
+                                                    leave="transition ease-in duration-75"
+                                                    leaveFrom="transform opacity-100 scale-100"
+                                                    leaveTo="transform opacity-0 scale-95"
+                                                >
+                                                    <Menu.Items className="absolute z-50 mt-2 w-full max-h-80 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                        <div className="p-2">
+                                                            <Menu.Item>
+                                                                {({ active, close }) => (
+                                                                    <div
+                                                                        className={`flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-colors ${
+                                                                            form.data.parent_id === ''
+                                                                                ? 'bg-sky-50 text-sky-700 font-medium'
+                                                                                : active
+                                                                                ? 'bg-slate-50 text-slate-700'
+                                                                                : 'text-slate-700'
+                                                                        }`}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (form.data.parent_id !== '') {
+                                                                                form.setData('parent_id', '');
+                                                                                close();
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <div className="w-5 h-5"></div>
+                                                                        <span className="text-sm">None (Top Level)</span>
+                                                                    </div>
+                                                                )}
+                                                            </Menu.Item>
+                                                            <div className="mt-1 space-y-0.5">
+                                                                {availableCategoryTree.map((node) => renderTreeNode(node, 0))}
+                                                            </div>
+                                                        </div>
+                                                    </Menu.Items>
+                                                </Transition>
+                                            </Menu>
                                             {form.errors.parent_id && <span className="text-xs text-rose-500">{form.errors.parent_id}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">

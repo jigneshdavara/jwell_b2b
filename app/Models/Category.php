@@ -50,4 +50,32 @@ class Category extends Model
     {
         return $this->belongsToMany(Size::class, 'category_sizes')->withTimestamps();
     }
+
+    public function getDescendantIds(): array
+    {
+        $ids = [];
+        // Load children with their relationships
+        $children = $this->children()->with('children')->get();
+
+        foreach ($children as $child) {
+            $ids[] = $child->id;
+            $ids = array_merge($ids, $child->getDescendantIds());
+        }
+
+        return $ids;
+    }
+
+//  Get full category path (e.g., "Parent > Child > Grandchild")
+    public function getFullPath(): string
+    {
+        $path = [$this->name];
+        $parent = $this->parent;
+
+        while ($parent) {
+            array_unshift($path, $parent->name);
+            $parent = $parent->parent;
+        }
+
+        return implode(' > ', $path);
+    }
 }
