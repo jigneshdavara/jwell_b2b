@@ -489,6 +489,8 @@ class ProductController extends Controller
             'customerGroups' => $this->customerGroupOptions(),
             'brands' => $this->brandList(),
             'categories' => $this->categoryList(),
+            'parentCategories' => $this->parentCategoryList(),
+            'subcategories' => $this->subcategoryList(),
             'catalogs' => $this->catalogList(),
             'diamonds' => $this->diamondOptions(),
             'metals' => $this->metalOptions(),
@@ -525,6 +527,37 @@ class ProductController extends Controller
     {
         return Category::query()
             ->where('is_active', true)
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'parent_id'])
+            ->map(fn(Category $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'parent_id' => $category->parent_id,
+            ])
+            ->all();
+    }
+
+    protected function parentCategoryList(): array
+    {
+        return Category::query()
+            ->where('is_active', true)
+            ->whereNull('parent_id')
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn(Category $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+            ])
+            ->all();
+    }
+
+    protected function subcategoryList(): array
+    {
+        return Category::query()
+            ->where('is_active', true)
+            ->whereNotNull('parent_id')
             ->orderBy('display_order')
             ->orderBy('name')
             ->get(['id', 'name', 'parent_id'])
