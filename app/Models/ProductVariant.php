@@ -17,6 +17,7 @@ class ProductVariant extends Model
         'label',
         // Legacy columns - kept for data migration, but should not be used in new code
         'size',
+        'size_id',
         'inventory_quantity',
         'is_default',
         'metadata',
@@ -41,5 +42,10 @@ class ProductVariant extends Model
     public function diamonds(): HasMany
     {
         return $this->hasMany(ProductVariantDiamond::class)->orderBy('display_order');
+    }
+
+    public function size(): BelongsTo
+    {
+        return $this->belongsTo(Size::class);
     }
 }

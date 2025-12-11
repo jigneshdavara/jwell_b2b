@@ -248,7 +248,7 @@ class CatalogController extends Controller
 
                     // Calculate making charge based on configured types (fixed, percentage, or both)
                     $makingCharge = $product->calculateMakingCharge($metalCost);
-                    
+
                     // Calculate priceTotal: Metal + Diamond + Making Charge
                     $priceTotal = $metalCost + $diamondCost + $makingCharge;
                 } else {
@@ -257,6 +257,9 @@ class CatalogController extends Controller
                     $priceTotal = $product->calculateMakingCharge(0);
                 }
                 
+                // Ensure price_total is always a valid number
+                $priceTotal = max(0, (float) $priceTotal);
+
                 // Ensure price_total is always a valid number
                 $priceTotal = max(0, (float) $priceTotal);
 
@@ -420,6 +423,7 @@ class CatalogController extends Controller
                         'diamonds.diamond.clarity',
                         'diamonds.diamond.color',
                         'diamonds.diamond.shape',
+                        'size',
                     ]);
             },
         ]);
@@ -514,6 +518,9 @@ class CatalogController extends Controller
             }
             if (!$variant->relationLoaded('diamonds')) {
                 $variant->load(['diamonds.diamond.shape', 'diamonds.diamond.color', 'diamonds.diamond.clarity']);
+            }
+            if (!$variant->relationLoaded('size')) {
+                $variant->load('size');
             }
 
             // Build metals array for this variant
@@ -693,6 +700,12 @@ class CatalogController extends Controller
                 'diamond_label' => $diamondLabel,
                 'metals' => $metals, // Can be empty array
                 'diamonds' => $diamonds, // Can be empty array
+                'size_id' => $variant->size_id,
+                'size' => $variant->size ? [
+                    'id' => $variant->size->id,
+                    'name' => $variant->size->name,
+                    'value' => $variant->size->value ?? $variant->size->name,
+                ] : null,
                 'price_total' => $priceTotal,
                 'price_breakup' => [
                     'base' => $basePrice,
@@ -708,6 +721,10 @@ class CatalogController extends Controller
         // If no configuration options were created but variants exist, create at least one
         if (empty($configOptions) && $product->variants->isNotEmpty()) {
             $firstVariant = $product->variants->first();
+            // Ensure size relationship is loaded
+            if (!$firstVariant->relationLoaded('size')) {
+                $firstVariant->load('size');
+            }
             $configOptions[] = [
                 'variant_id' => $firstVariant->id,
                 'label' => $firstVariant->label ?? 'Default Configuration',
@@ -715,6 +732,12 @@ class CatalogController extends Controller
                 'diamond_label' => '',
                 'metals' => [],
                 'diamonds' => [],
+                'size_id' => $firstVariant->size_id,
+                'size' => $firstVariant->size ? [
+                    'id' => $firstVariant->size->id,
+                    'name' => $firstVariant->size->name,
+                    'value' => $firstVariant->size->value ?? $firstVariant->size->name,
+                ] : null,
                 'price_total' => $product->calculateMakingCharge(0),
                 'price_breakup' => [
                     'base' => (float) ($product->base_price ?? 0),
