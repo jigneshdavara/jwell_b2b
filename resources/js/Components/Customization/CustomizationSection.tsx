@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import OptionPill from './OptionPill';
+import { useMemo, useState, useEffect } from 'react';
 
 interface ConfigMetal {
     label: string;
@@ -36,19 +35,14 @@ interface ConfigurationOption {
         making: number;
     };
     sku: string;
+    size?: {
+        id: number;
+        name: string;
+        value?: string;
+    } | null;
+    metadata?: Record<string, unknown> | null;
 }
 
-interface MetalCombinationOption {
-    id: string; // unique key for this metal combination
-    label: string; // e.g., "18K Yellow Gold + 925 Silver"
-    variantIds: number[]; // all variant IDs that have this exact metal combination
-}
-
-interface DiamondCombinationOption {
-    id: string;
-    label: string;
-    variantIds: number[];
-}
 
 interface CustomizationSectionProps {
     configurationOptions: ConfigurationOption[];
@@ -67,170 +61,11 @@ export default function CustomizationSection({
     selectedVariantId,
     onVariantChange,
 }: CustomizationSectionProps) {
-    /**
-     * Build a clean metal label from a single metal (purity + tone + metal name only)
-     * Example: "18K Yellow Gold" or "18K Yellow & White Gold" (removes weight)
-     * Uses backend-provided names if available, otherwise parses from label
-     */
-    const buildSingleMetalLabel = (metal: ConfigMetal): string => {
-        // If we have the individual components from backend, use them directly
-        if (metal.purityName && metal.toneName && metal.metalName) {
-            return `${metal.purityName} ${metal.toneName}`;
-        }
-        
-        // Fallback: parse from label
-        // Remove weight pattern (e.g., "3.50g", "1.25g", "1g") at the end
-        let cleanLabel = metal.label
-            .replace(/\s+\d+\.?\d*\s*g\s*$/i, '')
-            .replace(/\s+\d+\.?\d*\s*grams?\s*$/i, '')
-            .trim();
-        
-        // Split by space
-        const parts = cleanLabel.split(/\s+/).filter(p => p.length > 0);
-        
-        if (parts.length === 0) {
-            return cleanLabel;
-        }
-        
-        // First part is always purity (e.g., "18K", "22K", "925")
-        const purity = parts[0];
-        
-        // Last part is always metal name (e.g., "Gold", "Silver", "Platinum")
-        const metalName = parts[parts.length - 1];
-        
-        // Everything in between is the tone (could be multiple words like "Yellow & White")
-        const toneParts = parts.slice(1, parts.length - 1);
-        const tone = toneParts.join(' ');
-        
-        // Reconstruct: purity + tone + metal name
-        return `${purity} ${tone}`.trim();
-    };
-
-    /**
-     * Generate metal combination options from variants
-     * Each option shows ALL metals in that variant combined with "+"
-     * Example: "18K Yellow Gold + 925 Silver"
-     */
-    const metalCombinationOptions = useMemo<MetalCombinationOption[]>(() => {
-        const combinationMap = new Map<string, MetalCombinationOption>();
-
-        configurationOptions.forEach((config) => {
-            if (config.metals.length === 0) {
-                return;
-            }
-
-            // Build combined label: all metals joined with " + "
-            const metalLabels = config.metals.map(buildSingleMetalLabel);
-            const combinedLabel = metalLabels.join(' + ');
-
-            // Create a unique key based on the metal combination
-            const sortedMetals = config.metals
-                .map(m => `${m.metalId}_${m.metalPurityId ?? 'null'}_${m.metalToneId ?? 'null'}`)
-                .sort()
-                .join('|');
-            
-            const key = `metals_${sortedMetals}`;
-
-            if (!combinationMap.has(key)) {
-                combinationMap.set(key, {
-                    id: key,
-                    label: combinedLabel,
-                    variantIds: [config.variant_id],
-                });
-            } else {
-                const existing = combinationMap.get(key)!;
-                if (!existing.variantIds.includes(config.variant_id)) {
-                    existing.variantIds.push(config.variant_id);
-                }
-            }
-        });
-
-        return Array.from(combinationMap.values()).sort((a, b) => a.label.localeCompare(b.label));
-    }, [configurationOptions]);
-
-    /**
-     * Extract a clean diamond label (clarity + color)
-     * Example: "SI IJ" from "LG Oval F VVS1 EX 1.00ct (2)"
-     */
-    const buildSingleDiamondLabel = (diamond: ConfigDiamond): string => {
-        const parts = diamond.label.split(' ').filter((p) => p.length > 0 && !p.match(/^\d+\.\d+ct$/i) && !p.match(/^\(\d+\)$/));
-        
-        let clarity = '';
-        let color = '';
-        
-        // Find clarity (usually contains SI, VS, VVS, IF, FL, etc.)
-        for (let i = 0; i < parts.length; i++) {
-            const part = parts[i];
-            if (/^(SI|VS|VVS|IF|FL|I[1-3]|VVS[12]|VS[12])/i.test(part)) {
-                clarity = part.toUpperCase();
-                // Color is typically the part before clarity
-                if (i > 0) {
-                    const colorPart = parts[i - 1];
-                    if (/^[A-Z]{1,2}$/i.test(colorPart) && colorPart.length <= 2) {
-                        color = colorPart.toUpperCase();
-                    }
-                }
-                break;
-            }
-        }
-        
-        // Fallback: if we didn't find clarity, try to extract from known positions
-        if (!clarity && parts.length >= 4) {
-            clarity = parts[3]?.toUpperCase() || '';
-            color = parts[2]?.toUpperCase() || '';
-        }
-        
-        // Build the label: Clarity + Color (e.g., "SI IJ", "VS GH")
-        if (clarity && color) {
-            return `${clarity} ${color}`;
-        } else if (clarity) {
-            return clarity;
-        } else {
-            return diamond.label.split(' ').slice(0, 4).join(' ');
-        }
-    };
-
-    /**
-     * Generate diamond combination options from variants
-     * Each option shows ALL diamonds in that variant combined with "+"
-     * Example: "SI IJ + VS GH"
-     */
-    const diamondCombinationOptions = useMemo<DiamondCombinationOption[]>(() => {
-        const combinationMap = new Map<string, DiamondCombinationOption>();
-
-        configurationOptions.forEach((config) => {
-            if (config.diamonds.length === 0) {
-                return;
-            }
-
-            // Build combined label: all diamonds joined with " + "
-            const diamondLabels = config.diamonds.map(buildSingleDiamondLabel);
-            const combinedLabel = diamondLabels.join(' + ');
-
-            // Create a unique key based on the diamond combination
-            const sortedDiamonds = config.diamonds
-                .map(d => `${d.diamondShapeId}_${d.diamondColorId}_${d.diamondClarityId}`)
-                .sort()
-                .join('|');
-            
-            const key = `diamonds_${sortedDiamonds}`;
-
-            if (!combinationMap.has(key)) {
-                combinationMap.set(key, {
-                    id: key,
-                    label: combinedLabel,
-                    variantIds: [config.variant_id],
-                });
-            } else {
-                const existing = combinationMap.get(key)!;
-                if (!existing.variantIds.includes(config.variant_id)) {
-                    existing.variantIds.push(config.variant_id);
-                }
-            }
-        });
-
-        return Array.from(combinationMap.values()).sort((a, b) => a.label.localeCompare(b.label));
-    }, [configurationOptions]);
+    // Dropdown state
+    const [selectedMetalId, setSelectedMetalId] = useState<number | ''>('');
+    const [selectedPurityId, setSelectedPurityId] = useState<number | ''>('');
+    const [selectedToneId, setSelectedToneId] = useState<number | ''>('');
+    const [selectedSize, setSelectedSize] = useState<string>('');
 
     // Get currently selected variant
     const selectedConfig = useMemo(
@@ -238,157 +73,232 @@ export default function CustomizationSection({
         [selectedVariantId, configurationOptions]
     );
 
-    // Determine selected metal combination from current variant
-    const selectedMetalCombo = useMemo<string | null>(() => {
-        if (!selectedConfig || selectedConfig.metals.length === 0) {
-            return null;
+    // Sync dropdowns with selected variant
+    useEffect(() => {
+        if (selectedConfig && selectedConfig.metals.length > 0) {
+            const primaryMetal = selectedConfig.metals[0];
+            setSelectedMetalId(primaryMetal.metalId);
+            setSelectedPurityId(primaryMetal.metalPurityId ?? '');
+            setSelectedToneId(primaryMetal.metalToneId ?? '');
+            
+            // Extract size
+            const size = selectedConfig.size?.value || selectedConfig.size?.name;
+            if (size) {
+                setSelectedSize(size);
+            } else if (selectedConfig.metadata) {
+                const metadata = selectedConfig.metadata as Record<string, unknown>;
+                if (metadata.size_cm) {
+                    const sizeCm = parseFloat(String(metadata.size_cm));
+                    if (!isNaN(sizeCm)) {
+                        setSelectedSize(sizeCm % 1 === 0 ? `${sizeCm}cm` : `${sizeCm.toFixed(1)}cm`);
+                    }
+                } else if (metadata.size_value) {
+                    const sizeValue = String(metadata.size_value);
+                    const sizeUnit = metadata.size_unit || 'cm';
+                    setSelectedSize(`${sizeValue}${sizeUnit}`);
+                }
+            }
+        } else {
+            // Reset if no variant selected
+            setSelectedMetalId('');
+            setSelectedPurityId('');
+            setSelectedToneId('');
+            setSelectedSize('');
         }
-        const sortedMetals = selectedConfig.metals
-            .map(m => `${m.metalId}_${m.metalPurityId ?? 'null'}_${m.metalToneId ?? 'null'}`)
-            .sort()
-            .join('|');
-        return `metals_${sortedMetals}`;
     }, [selectedConfig]);
 
-    // Determine selected diamond combination from current variant
-    const selectedDiamondQuality = useMemo<string | null>(() => {
-        if (!selectedConfig || selectedConfig.diamonds.length === 0) {
-            return null;
-        }
-        const sortedDiamonds = selectedConfig.diamonds
-            .map(d => `${d.diamondShapeId}_${d.diamondColorId}_${d.diamondClarityId}`)
-            .sort()
-            .join('|');
-        return `diamonds_${sortedDiamonds}`;
-    }, [selectedConfig]);
+    // Extract unique metals
+    const availableMetals = useMemo(() => {
+        const metalMap = new Map<number, { id: number; name: string }>();
+        configurationOptions.forEach(config => {
+            config.metals.forEach(metal => {
+                if (metal.metalId && !metalMap.has(metal.metalId)) {
+                    metalMap.set(metal.metalId, {
+                        id: metal.metalId,
+                        name: metal.metalName || 'Unknown Metal'
+                    });
+                }
+            });
+        });
+        return Array.from(metalMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    }, [configurationOptions]);
 
-    /**
-     * Find valid diamond combinations for a given metal combination
-     */
-    const getValidDiamondCombinations = useMemo(() => {
-        return (metalCombinationId: string | null): Set<string> => {
-            if (!metalCombinationId) {
-                return new Set(diamondCombinationOptions.map((d) => d.id));
-            }
-
-            const validDiamondCombinations = new Set<string>();
-            const metalOption = metalCombinationOptions.find(m => m.id === metalCombinationId);
-
-            if (metalOption) {
-                metalOption.variantIds.forEach(variantId => {
-                    const config = configurationOptions.find(c => c.variant_id === variantId);
-                    if (config && config.diamonds.length > 0) {
-                        const sortedDiamonds = config.diamonds
-                            .map(d => `${d.diamondShapeId}_${d.diamondColorId}_${d.diamondClarityId}`)
-                            .sort()
-                            .join('|');
-                        const diamondKey = `diamonds_${sortedDiamonds}`;
-                        validDiamondCombinations.add(diamondKey);
-                    }
-                });
-            }
-
-            return validDiamondCombinations;
-        };
-    }, [configurationOptions, diamondCombinationOptions, metalCombinationOptions]);
-
-    /**
-     * Find valid metal combinations for a given diamond combination
-     */
-    const getValidMetalCombinations = useMemo(() => {
-        return (diamondCombinationId: string | null): Set<string> => {
-            if (!diamondCombinationId) {
-                return new Set(metalCombinationOptions.map((m) => m.id));
-            }
-
-            const validMetalCombinations = new Set<string>();
-            const diamondOption = diamondCombinationOptions.find(d => d.id === diamondCombinationId);
-
-            if (diamondOption) {
-                diamondOption.variantIds.forEach(variantId => {
-                    const config = configurationOptions.find(c => c.variant_id === variantId);
-                    if (config && config.metals.length > 0) {
-                        const sortedMetals = config.metals
-                            .map(m => `${m.metalId}_${m.metalPurityId ?? 'null'}_${m.metalToneId ?? 'null'}`)
-                            .sort()
-                            .join('|');
-                        const metalKey = `metals_${sortedMetals}`;
-                        validMetalCombinations.add(metalKey);
-                    }
-                });
-            }
-
-            return validMetalCombinations;
-        };
-    }, [configurationOptions, metalCombinationOptions, diamondCombinationOptions]);
-
-    // Get valid options based on current selections
-    const validDiamondCombinations = useMemo(
-        () => getValidDiamondCombinations(selectedMetalCombo),
-        [selectedMetalCombo, getValidDiamondCombinations]
-    );
-
-    const validMetalCombinations = useMemo(
-        () => getValidMetalCombinations(selectedDiamondQuality),
-        [selectedDiamondQuality, getValidMetalCombinations]
-    );
-
-    /**
-     * Find matching variant when metal combination + diamond combination are selected
-     */
-    const findMatchingVariant = (metalCombinationId: string, diamondCombinationId: string): number | null => {
-        const metalOption = metalCombinationOptions.find(m => m.id === metalCombinationId);
-        const diamondOption = diamondCombinationOptions.find(d => d.id === diamondCombinationId);
+    // Extract purities for selected metal
+    const availablePurities = useMemo(() => {
+        if (!selectedMetalId) return [];
         
-        if (!metalOption || !diamondOption) {
-            return null;
-        }
+        const purityMap = new Map<number | null, { id: number | null; name: string }>();
+        configurationOptions.forEach(config => {
+            config.metals.forEach(metal => {
+                if (metal.metalId === selectedMetalId && metal.metalPurityId !== null) {
+                    if (!purityMap.has(metal.metalPurityId)) {
+                        purityMap.set(metal.metalPurityId, {
+                            id: metal.metalPurityId,
+                            name: metal.purityName || 'Unknown Purity'
+                        });
+                    }
+                }
+            });
+        });
+        return Array.from(purityMap.values()).sort((a, b) => {
+            const nameA = a.name || '';
+            const nameB = b.name || '';
+            return nameA.localeCompare(nameB);
+        });
+    }, [selectedMetalId, configurationOptions]);
 
-        const matchingVariantId = metalOption.variantIds.find(variantId => 
-            diamondOption.variantIds.includes(variantId)
-        );
+    // Extract tones for selected metal + purity
+    const availableTones = useMemo(() => {
+        if (!selectedMetalId || !selectedPurityId) return [];
+        
+        const toneMap = new Map<number | null, { id: number | null; name: string }>();
+        configurationOptions.forEach(config => {
+            config.metals.forEach(metal => {
+                if (
+                    metal.metalId === selectedMetalId &&
+                    metal.metalPurityId === selectedPurityId &&
+                    metal.metalToneId !== null
+                ) {
+                    if (!toneMap.has(metal.metalToneId)) {
+                        toneMap.set(metal.metalToneId, {
+                            id: metal.metalToneId,
+                            name: metal.toneName || 'Unknown Tone'
+                        });
+                    }
+                }
+            });
+        });
+        return Array.from(toneMap.values()).sort((a, b) => {
+            const nameA = a.name || '';
+            const nameB = b.name || '';
+            return nameA.localeCompare(nameB);
+        });
+    }, [selectedMetalId, selectedPurityId, configurationOptions]);
 
-        return matchingVariantId ?? null;
+    // Extract sizes for selected metal + purity + tone
+    const availableSizes = useMemo(() => {
+        if (!selectedMetalId || !selectedPurityId || !selectedToneId) return [];
+        
+        const sizeSet = new Set<string>();
+        configurationOptions.forEach(config => {
+            const hasMatchingMetal = config.metals.some(metal =>
+                metal.metalId === selectedMetalId &&
+                metal.metalPurityId === selectedPurityId &&
+                metal.metalToneId === selectedToneId
+            );
+            
+            if (hasMatchingMetal) {
+                // Check size object first
+                if (config.size) {
+                    const sizeValue = config.size.value || config.size.name;
+                    if (sizeValue) {
+                        sizeSet.add(sizeValue);
+                    }
+                }
+                
+                // Check metadata as fallback
+                if (config.metadata) {
+                    const metadata = config.metadata as Record<string, unknown>;
+                    if (metadata.size_cm) {
+                        const sizeCm = parseFloat(String(metadata.size_cm));
+                        if (!isNaN(sizeCm)) {
+                            sizeSet.add(sizeCm % 1 === 0 ? `${sizeCm}cm` : `${sizeCm.toFixed(1)}cm`);
+                        }
+                    } else if (metadata.size_value) {
+                        const sizeValue = String(metadata.size_value);
+                        const sizeUnit = metadata.size_unit || 'cm';
+                        sizeSet.add(`${sizeValue}${sizeUnit}`);
+                    }
+                }
+            }
+        });
+        
+        // Sort sizes numerically if possible
+        return Array.from(sizeSet).sort((a, b) => {
+            const numA = parseFloat(a.replace(/[^\d.]/g, '')) || 0;
+            const numB = parseFloat(b.replace(/[^\d.]/g, '')) || 0;
+            if (numA > 0 && numB > 0) return numA - numB;
+            return a.localeCompare(b);
+        });
+    }, [selectedMetalId, selectedPurityId, selectedToneId, configurationOptions]);
+
+    // Find matching variant when all selections are made
+    const findMatchingVariant = (
+        metalId: number | '',
+        purityId: number | '',
+        toneId: number | '',
+        size: string
+    ): number | null => {
+        if (!metalId || !purityId || !toneId || !size) return null;
+
+        return configurationOptions.find(config => {
+            const hasMatchingMetal = config.metals.some(metal =>
+                metal.metalId === metalId &&
+                metal.metalPurityId === purityId &&
+                metal.metalToneId === toneId
+            );
+
+            if (!hasMatchingMetal) return false;
+
+            // Check size match
+            const configSize = config.size?.value || config.size?.name;
+            if (configSize === size) return true;
+
+            // Check metadata size
+            if (config.metadata) {
+                const metadata = config.metadata as Record<string, unknown>;
+                if (metadata.size_cm) {
+                    const sizeCm = parseFloat(String(metadata.size_cm));
+                    const sizeValue = parseFloat(size.replace(/[^\d.]/g, ''));
+                    if (!isNaN(sizeCm) && !isNaN(sizeValue) && sizeCm === sizeValue) {
+                        return true;
+                    }
+                } else if (metadata.size_value) {
+                    const metadataSize = `${metadata.size_value}${metadata.size_unit || 'cm'}`;
+                    if (metadataSize === size) return true;
+                }
+            }
+
+            return false;
+        })?.variant_id ?? null;
     };
 
-    const handleMetalCombinationSelect = (metalCombinationId: string) => {
-        if (selectedMetalCombo === metalCombinationId) {
-            // Deselect if clicking the same metal combination
-            onVariantChange(null);
-            return;
-        }
+    // Handle metal change
+    const handleMetalChange = (metalId: string) => {
+        const id = metalId === '' ? '' : Number(metalId);
+        setSelectedMetalId(id);
+        setSelectedPurityId('');
+        setSelectedToneId('');
+        setSelectedSize('');
+        onVariantChange(null);
+    };
 
-        // If a diamond combination is already selected, try to find matching variant
-        if (selectedDiamondQuality) {
-            const variantId = findMatchingVariant(metalCombinationId, selectedDiamondQuality);
+    // Handle purity change
+    const handlePurityChange = (purityId: string) => {
+        const id = purityId === '' ? '' : Number(purityId);
+        setSelectedPurityId(id);
+        setSelectedToneId('');
+        setSelectedSize('');
+        onVariantChange(null);
+    };
+
+    // Handle tone change
+    const handleToneChange = (toneId: string) => {
+        const id = toneId === '' ? '' : Number(toneId);
+        setSelectedToneId(id);
+        setSelectedSize('');
+        onVariantChange(null);
+    };
+
+    // Handle size change
+    const handleSizeChange = (size: string) => {
+        setSelectedSize(size);
+        if (selectedMetalId && selectedPurityId && selectedToneId && size) {
+            const variantId = findMatchingVariant(selectedMetalId, selectedPurityId, selectedToneId, size);
             onVariantChange(variantId);
-        } else {
-            // Just select the metal combination, wait for diamond selection
-            const metalOption = metalCombinationOptions.find(m => m.id === metalCombinationId);
-            onVariantChange(metalOption?.variantIds[0] ?? null);
         }
     };
 
-    const handleDiamondCombinationSelect = (diamondCombinationId: string) => {
-        if (selectedDiamondQuality === diamondCombinationId) {
-            // Deselect if clicking the same diamond combination
-            onVariantChange(null);
-            return;
-        }
-
-        // If a metal combination is already selected, try to find matching variant
-        if (selectedMetalCombo) {
-            const variantId = findMatchingVariant(selectedMetalCombo, diamondCombinationId);
-            onVariantChange(variantId);
-        } else {
-            // Just select the diamond combination, wait for metal selection
-            const diamondOption = diamondCombinationOptions.find(d => d.id === diamondCombinationId);
-            onVariantChange(diamondOption?.variantIds[0] ?? null);
-        }
-    };
-
-    // Check if current combination is invalid
-    const isInvalidCombination = selectedMetalCombo && selectedDiamondQuality && !selectedConfig;
 
     return (
         <div className="space-y-6">
@@ -396,60 +306,86 @@ export default function CustomizationSection({
             <div>
                 <h2 className="text-lg font-semibold text-[#0E244D] mb-2">Customization</h2>
                 <p className="text-sm text-slate-500">
-                    Select your preferred metal and diamond quality to see pricing.
+                    Select your preferred metal, purity, tone, and size to see pricing.
                 </p>
             </div>
 
-            {/* Metal Combination Options */}
-            {metalCombinationOptions.length > 0 && (
-                <div className="space-y-3">
-                    <label className="block text-sm font-semibold text-[#0E244D]">Metal</label>
-                    <div className="flex flex-wrap gap-3">
-                        {metalCombinationOptions.map((metalOption) => {
-                            const isValid = !selectedDiamondQuality || validMetalCombinations.has(metalOption.id);
-                            return (
-                                <OptionPill
-                                    key={metalOption.id}
-                                    isSelected={selectedMetalCombo === metalOption.id}
-                                    isDisabled={!isValid}
-                                    onClick={() => handleMetalCombinationSelect(metalOption.id)}
-                                >
-                                    {metalOption.label}
-                                </OptionPill>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
+            {/* Cascading Dropdowns: Metal → Purity → Tone → Size */}
+            <div className="space-y-4">
+                {/* Metal Dropdown */}
+                <label className="flex flex-col gap-2 text-sm text-slate-600">
+                    <span className="font-semibold text-[#0E244D]">Metal</span>
+                    <select
+                        value={selectedMetalId}
+                        onChange={(e) => handleMetalChange(e.target.value)}
+                        className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 transition-all"
+                    >
+                        <option value="">Select metal</option>
+                        {availableMetals.map((metal) => (
+                            <option key={metal.id} value={metal.id}>
+                                {metal.name}
+                            </option>
+                        ))}
+                    </select>
+                </label>
 
-            {/* Diamond Combination Options */}
-            {/* {diamondCombinationOptions.length > 0 && (
-                <div className="space-y-3">
-                    <label className="block text-sm font-semibold text-[#0E244D]">Diamond Quality</label>
-                    <div className="flex flex-wrap gap-3">
-                        {diamondCombinationOptions.map((diamondOption) => {
-                            const isValid = !selectedMetalCombo || validDiamondCombinations.has(diamondOption.id);
-                            return (
-                                <OptionPill
-                                    key={diamondOption.id}
-                                    isSelected={selectedDiamondQuality === diamondOption.id}
-                                    isDisabled={!isValid}
-                                    onClick={() => handleDiamondCombinationSelect(diamondOption.id)}
-                                >
-                                    {diamondOption.label}
-                                </OptionPill>
-                            );
-                        })}
-                    </div>
-                </div>
-            )} */}
+                {/* Purity Dropdown */}
+                {selectedMetalId && availablePurities.length > 0 && (
+                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                        <span className="font-semibold text-[#0E244D]">Purity</span>
+                        <select
+                            value={selectedPurityId}
+                            onChange={(e) => handlePurityChange(e.target.value)}
+                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 transition-all"
+                        >
+                            <option value="">Select purity</option>
+                            {availablePurities.map((purity) => (
+                                <option key={purity.id ?? 'null'} value={purity.id ?? ''}>
+                                    {purity.name}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                )}
 
-            {/* Invalid combination message */}
-            {isInvalidCombination && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
-                    This combination is not available.
-                </div>
-            )}
+                {/* Tone Dropdown */}
+                {selectedMetalId && selectedPurityId && availableTones.length > 0 && (
+                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                        <span className="font-semibold text-[#0E244D]">Tone</span>
+                        <select
+                            value={selectedToneId}
+                            onChange={(e) => handleToneChange(e.target.value)}
+                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 transition-all"
+                        >
+                            <option value="">Select tone</option>
+                            {availableTones.map((tone) => (
+                                <option key={tone.id ?? 'null'} value={tone.id ?? ''}>
+                                    {tone.name}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                )}
+
+                {/* Size Dropdown */}
+                {selectedMetalId && selectedPurityId && selectedToneId && availableSizes.length > 0 && (
+                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                        <span className="font-semibold text-[#0E244D]">Size</span>
+                        <select
+                            value={selectedSize}
+                            onChange={(e) => handleSizeChange(e.target.value)}
+                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 transition-all"
+                        >
+                            <option value="">Select size</option>
+                            {availableSizes.map((size) => (
+                                <option key={size} value={size}>
+                                    {size}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                )}
+            </div>
         </div>
     );
 }
