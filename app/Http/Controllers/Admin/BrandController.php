@@ -35,8 +35,7 @@ class BrandController extends Controller
                     'description' => $brand->description,
                     'is_active' => $brand->is_active,
                     'display_order' => $brand->display_order,
-                    'cover_image' => $brand->cover_image,
-                    'cover_image_url' => $brand->cover_image ? Storage::url($brand->cover_image) : null,
+                    'cover_image' => $brand->cover_image ? Storage::url($brand->cover_image) : null,
                 ];
             });
 
@@ -68,11 +67,11 @@ class BrandController extends Controller
         }
 
         Brand::create([
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
             'cover_image' => $coverImagePath,
         ]);
 
@@ -86,11 +85,11 @@ class BrandController extends Controller
         $data = $request->validated();
 
         $updateData = [
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
         ];
 
         // Handle file upload

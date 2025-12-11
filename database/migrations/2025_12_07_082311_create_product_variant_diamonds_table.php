@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('diamond_id')->nullable()->constrained('diamonds')->nullOnDelete();
             $table->integer('diamonds_count')->nullable();
             $table->jsonb('metadata')->nullable();
-            $table->integer('position')->default(0);
+            $table->integer('display_order')->default(0);
             $table->timestampsTz();
 
             $table->index('product_variant_id');

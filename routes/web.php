@@ -36,13 +36,11 @@ use App\Http\Controllers\Frontend\CatalogController;
 use App\Http\Controllers\Frontend\CheckoutController;
 use App\Http\Controllers\Frontend\DashboardController as FrontendDashboardController;
 use App\Http\Controllers\Frontend\HomeController;
-use App\Http\Controllers\Frontend\JobworkController;
 use App\Http\Controllers\Frontend\QuotationController;
 use App\Http\Controllers\Frontend\OrderController as FrontendOrderController;
 use App\Http\Controllers\Frontend\KycOnboardingController;
 use App\Http\Controllers\Frontend\WishlistController;
 use App\Http\Controllers\Production\DashboardController as ProductionDashboardController;
-use App\Http\Controllers\Production\WorkOrderController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -107,13 +105,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('ensure.kyc.approved')
             ->name('frontend.checkout.confirm');
 
-        Route::get('/jobwork', [JobworkController::class, 'index'])
-            ->middleware('ensure.kyc.approved')
-            ->name('frontend.jobwork.index');
-
-        Route::post('/jobwork', [JobworkController::class, 'store'])
-            ->middleware('ensure.kyc.approved')
-            ->name('frontend.jobwork.store');
 
         Route::get('/orders', [FrontendOrderController::class, 'index'])
             ->middleware('ensure.kyc.approved')
@@ -262,12 +253,9 @@ Route::prefix('admin')
         Route::post('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
 
         Route::get('/quotations', [AdminQuotationController::class, 'index'])->name('quotations.index');
-        Route::get('/quotations/jewellery', [AdminQuotationController::class, 'index'])->name('quotations.jewellery')->defaults('mode', 'purchase');
-        Route::get('/quotations/jobwork', [AdminQuotationController::class, 'index'])->name('quotations.jobwork')->defaults('mode', 'jobwork');
         Route::get('/quotations/{quotation}', [AdminQuotationController::class, 'show'])->name('quotations.show');
         Route::post('/quotations/{quotation}/approve', [AdminQuotationController::class, 'approve'])->name('quotations.approve');
         Route::post('/quotations/{quotation}/reject', [AdminQuotationController::class, 'reject'])->name('quotations.reject');
-        Route::post('/quotations/{quotation}/jobwork-status', [AdminQuotationController::class, 'updateJobworkStatus'])->name('quotations.jobwork-status');
         Route::post('/quotations/{quotation}/messages', [AdminQuotationController::class, 'message'])->name('quotations.messages.store');
         Route::post('/quotations/{quotation}/request-confirmation', [AdminQuotationController::class, 'requestCustomerConfirmation'])->name('quotations.request-confirmation');
         Route::post('/quotations/{quotation}/update-product', [AdminQuotationController::class, 'updateProduct'])->name('quotations.update-product');
@@ -306,9 +294,6 @@ Route::prefix('production')
     ->middleware(['auth:admin', 'can:update production status'])
     ->group(function () {
         Route::get('/dashboard', ProductionDashboardController::class)->name('dashboard');
-        Route::get('/work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');
-        Route::post('/work-orders/{workOrder}/status', [WorkOrderController::class, 'updateStatus'])
-            ->name('work-orders.update-status');
     });
 
 

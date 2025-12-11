@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ApproveQuotationRequest;
-use App\Http\Requests\Admin\UpdateJobworkStatusRequest;
 use App\Http\Requests\StoreQuotationMessageRequest;
 use App\Mail\QuotationApprovedMail;
 use App\Mail\QuotationConfirmationRequestMail;
@@ -80,16 +79,12 @@ class QuotationController extends Controller
             })
             ->map(function ($group) {
                 $first = $group->first();
-                $modes = $group->pluck('mode')->unique()->values();
                 $totalQuantity = $group->sum('quantity');
 
                 return [
                     'id' => $first->id,
                     'ids' => $group->pluck('id')->values()->all(),
-                    'mode' => $modes->count() > 1 ? 'both' : $modes->first(),
-                    'modes' => $modes->all(),
                     'status' => $first->status,
-                    'jobwork_status' => $first->jobwork_status,
                     'quantity' => $totalQuantity,
                     'approved_at' => optional($first->approved_at)?->toDateTimeString(),
                     'created_at' => optional($first->created_at)?->toDateTimeString(),
@@ -167,14 +162,13 @@ class QuotationController extends Controller
         return Inertia::render('Admin/Quotations/Show', [
             'quotation' => [
                 'id' => $quotation->id,
-                'mode' => $quotation->mode,
                 'status' => $quotation->status,
-                'jobwork_status' => $quotation->jobwork_status,
                 'quantity' => $quotation->quantity,
                 'notes' => $quotation->notes,
                 'admin_notes' => $quotation->admin_notes,
+                'created_at' => optional($quotation->created_at)?->toDateTimeString(),
+                'updated_at' => optional($quotation->updated_at)?->toDateTimeString(),
                 'approved_at' => optional($quotation->approved_at)?->toDateTimeString(),
-                'selections' => $quotation->selections,
                 'related_quotations' => $relatedQuotations->map(function ($q) use ($quotation) {
                     $pricing = $this->pricingService->calculateProductPrice(
                         $q->product,
@@ -184,28 +178,21 @@ class QuotationController extends Controller
                             'quantity' => $q->quantity,
                             'customer_group_id' => $quotation->user?->customer_group_id ?? null,
                             'customer_type' => $quotation->user?->type ?? null,
-                            'mode' => $q->mode,
                         ]
                     )->toArray();
 
                     return [
                         'id' => $q->id,
-                        'mode' => $q->mode,
                         'status' => $q->status,
                         'quantity' => $q->quantity,
                         'notes' => $q->notes,
-                        'selections' => $q->selections,
                         'product' => [
                             'id' => $q->product->id,
                             'name' => $q->product->name,
                             'sku' => $q->product->sku,
                             'base_price' => $q->product->base_price,
                             'making_charge_amount' => $q->product->making_charge_amount,
-                            'gold_weight' => $q->product->gold_weight,
-                            'silver_weight' => $q->product->silver_weight,
-                            'other_material_weight' => $q->product->other_material_weight,
-                            'total_weight' => $q->product->total_weight,
-                            'media' => $q->product->media->sortBy('position')->values()->map(fn($media) => [
+                            'media' => $q->product->media->sortBy('display_order')->values()->map(fn($media) => [
                                 'url' => $media->url,
                                 'alt' => $media->metadata['alt'] ?? $q->product->name,
                             ]),
@@ -213,13 +200,11 @@ class QuotationController extends Controller
                                 'id' => $variant->id,
                                 'label' => $variant->label,
                                 'metadata' => $variant->metadata ?? [],
-                                'price_adjustment' => $variant->price_adjustment,
                             ]),
                         ],
                         'variant' => $q->variant ? [
                             'id' => $q->variant->id,
                             'label' => $q->variant->label,
-                            'price_adjustment' => $q->variant->price_adjustment,
                             'metadata' => $q->variant->metadata ?? [],
                         ] : null,
                         'price_breakdown' => $pricing,
@@ -231,11 +216,7 @@ class QuotationController extends Controller
                     'sku' => $quotation->product->sku,
                     'base_price' => $quotation->product->base_price,
                     'making_charge' => $quotation->product->making_charge,
-                    'gold_weight' => $quotation->product->gold_weight,
-                    'silver_weight' => $quotation->product->silver_weight,
-                    'other_material_weight' => $quotation->product->other_material_weight,
-                    'total_weight' => $quotation->product->total_weight,
-                    'media' => $quotation->product->media->sortBy('position')->values()->map(fn($media) => [
+                    'media' => $quotation->product->media->sortBy('display_order')->values()->map(fn($media) => [
                         'url' => $media->url,
                         'alt' => $media->metadata['alt'] ?? $quotation->product->name,
                     ]),
@@ -243,13 +224,11 @@ class QuotationController extends Controller
                         'id' => $variant->id,
                         'label' => $variant->label,
                         'metadata' => $variant->metadata ?? [],
-                        'price_adjustment' => $variant->price_adjustment,
                     ]),
                 ],
                 'variant' => $quotation->variant ? [
                     'id' => $quotation->variant->id,
                     'label' => $quotation->variant->label,
-                    'price_adjustment' => $quotation->variant->price_adjustment,
                     'metadata' => $quotation->variant->metadata ?? [],
                 ] : null,
                 'price_breakdown' => $this->pricingService->calculateProductPrice(
@@ -260,7 +239,6 @@ class QuotationController extends Controller
                         'quantity' => $quotation->quantity,
                         'customer_group_id' => $quotation->user?->customer_group_id ?? null,
                         'customer_type' => $quotation->user?->type ?? null,
-                        'mode' => $quotation->mode,
                     ]
                 )->toArray(),
                 'user' => [
@@ -288,15 +266,6 @@ class QuotationController extends Controller
                     'created_at' => optional($message->created_at)?->toDateTimeString(),
                     'author' => $message->sender === 'admin' ? optional($message->user)->name : optional($message->user)->name,
                 ]),
-            ],
-            'jobworkStages' => [
-                'material_sending' => 'Material sending',
-                'material_received' => 'Material received',
-                'under_preparation' => 'Under preparation',
-                'completed' => 'Completed',
-                'awaiting_billing' => 'Awaiting billing',
-                'billing_confirmed' => 'Billing confirmed',
-                'ready_to_ship' => 'Ready to ship',
             ],
         ]);
     }
@@ -328,10 +297,6 @@ class QuotationController extends Controller
             $quotation = $relatedQuotations->first();
             $quotation->loadMissing('user');
 
-            // Separate purchase and jobwork quotations
-            $purchaseQuotations = $relatedQuotations->filter(fn($q) => $q->mode === 'purchase');
-            $jobworkQuotations = $relatedQuotations->filter(fn($q) => $q->mode === 'jobwork');
-
             // Process all quotations
             foreach ($relatedQuotations as $q) {
                 // Check if already approved
@@ -357,23 +322,16 @@ class QuotationController extends Controller
                     }
                 }
 
-                // Handle jobwork status
-                if ($q->mode === 'jobwork') {
-                    $q->jobwork_status = 'material_sending';
-                } else {
-                    $q->jobwork_status = null;
-                }
-
                 $q->save();
                 $approvedQuotations->push($q);
             }
 
-            // Create a single order for all purchase quotations
-            if ($purchaseQuotations->isNotEmpty() && !$order) {
-                $order = $this->createOrderFromQuotations($purchaseQuotations);
+            // Create a single order for all approved quotations
+            if ($approvedQuotations->isNotEmpty() && !$order) {
+                $order = $this->createOrderFromQuotations($approvedQuotations);
 
-                // Associate order with all purchase quotations
-                foreach ($purchaseQuotations as $q) {
+                // Associate order with all approved quotations
+                foreach ($approvedQuotations as $q) {
                     $q->order()->associate($order);
                     $q->save();
                 }
@@ -452,57 +410,6 @@ class QuotationController extends Controller
             ->with('success', $message);
     }
 
-    public function updateJobworkStatus(UpdateJobworkStatusRequest $request, Quotation $quotation): RedirectResponse
-    {
-        // Find all related jobwork quotations in the same group
-        $relatedQuotations = $this->getRelatedQuotations($quotation)
-            ->where('mode', 'jobwork')
-            ->get();
-
-        if ($relatedQuotations->isEmpty()) {
-            return redirect()->back()->with('error', 'No jobwork quotations found in this group.');
-        }
-
-        $previousStatus = $quotation->jobwork_status;
-        $notes = $request->validated('admin_notes');
-        $newStatus = $request->validated('jobwork_status');
-        $updatedCount = 0;
-
-        DB::transaction(function () use ($relatedQuotations, $newStatus, $notes, &$updatedCount): void {
-            foreach ($relatedQuotations as $q) {
-                $q->update([
-                    'jobwork_status' => $newStatus,
-                    'admin_notes' => $notes,
-                ]);
-                $updatedCount++;
-
-                // Create order when billing is confirmed for all jobwork quotations
-                if ($newStatus === 'billing_confirmed' && ! $q->order) {
-                    $order = $this->createOrderFromQuotation($q, OrderStatus::PendingPayment);
-                    $q->order()->associate($order);
-                    $q->save();
-                }
-            }
-        });
-
-        $quotation->load(['user', 'product']);
-
-        // Send status update email to customer (only once for the group)
-        Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(
-            $quotation,
-            $previousStatus ?? 'pending',
-            $notes
-        ));
-
-        $message = $updatedCount > 1
-            ? "Jobwork status updated for all {$updatedCount} quotations."
-            : 'Jobwork status updated.';
-
-        return redirect()
-            ->route('admin.quotations.show', $quotation->id)
-            ->with('success', $message);
-    }
-
     public function message(Quotation $quotation, StoreQuotationMessageRequest $request): RedirectResponse
     {
         $customerId = auth('web')->id();
@@ -546,9 +453,6 @@ class QuotationController extends Controller
                     $variant = $q->product->variants()->find($data['product_variant_id']);
                     if ($variant) {
                         $q->product_variant_id = $variant->id;
-                        $q->selections = array_merge($q->selections ?? [], [
-                            'auto_label' => $variant->metadata['auto_label'] ?? $variant->label,
-                        ]);
                     }
                 }
 
@@ -596,7 +500,6 @@ class QuotationController extends Controller
             'product_id' => ['required', 'exists:products,id'],
             'product_variant_id' => ['nullable', 'exists:product_variants,id'],
             'quantity' => ['required', 'integer', 'min:1'],
-            'mode' => ['required', 'in:purchase,jobwork'],
             'admin_notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -624,9 +527,6 @@ class QuotationController extends Controller
             }
         }
 
-        if ($data['mode'] === 'jobwork' && ! $product->is_jobwork_allowed) {
-            return redirect()->back()->withErrors(['mode' => 'Jobwork quotations are not allowed for this product.']);
-        }
 
         // Create a new quotation with the same quotation_group_id
         $newQuotation = Quotation::create([
@@ -634,10 +534,8 @@ class QuotationController extends Controller
             'quotation_group_id' => $quotation->quotation_group_id ?? \Illuminate\Support\Str::uuid()->toString(), // Use same group ID or create new one
             'product_id' => $product->id,
             'product_variant_id' => $data['product_variant_id'] ?? null,
-            'mode' => $data['mode'],
             'status' => 'pending_customer_confirmation',
             'quantity' => $data['quantity'],
-            'selections' => null,
             'notes' => null,
         ]);
 
@@ -800,7 +698,6 @@ class QuotationController extends Controller
                     'quantity' => $quotation->quantity,
                     'customer_group_id' => $quotation->user?->customer_group_id ?? null,
                     'customer_type' => $quotation->user?->type ?? null,
-                    'mode' => $quotation->mode,
                 ]
             )->toArray();
 
@@ -871,9 +768,8 @@ class QuotationController extends Controller
                 'quantity' => $item['quotation']->quantity,
                 'unit_price' => round($item['unit_total'], 2),
                 'total_price' => round($item['line_total'], 2),
-                'configuration' => $item['quotation']->selections,
+                'configuration' => null,
                 'metadata' => [
-                    'mode' => $item['quotation']->mode,
                     'quotation_id' => $item['quotation']->id,
                     'variant' => $item['variant'] ? [
                         'id' => $item['variant']->id,
@@ -935,7 +831,6 @@ class QuotationController extends Controller
                 'quantity' => $quotation->quantity,
                 'customer_group_id' => $quotation->user?->customer_group_id ?? null,
                 'customer_type' => $quotation->user?->type ?? null,
-                'mode' => $quotation->mode,
             ]
         )->toArray();
 
@@ -955,9 +850,7 @@ class QuotationController extends Controller
         $taxAmount = $this->taxService->calculateTax($taxableAmount);
         $totalAmountWithTax = $lineSubtotal + $taxAmount - $lineDiscount;
 
-        $initialStatus = $quotation->mode === 'jobwork'
-            ? OrderStatus::AwaitingMaterials
-            : OrderStatus::InProduction;
+        $initialStatus = OrderStatus::InProduction;
 
         $order = Order::create([
             'user_id' => $quotation->user_id,
@@ -985,9 +878,8 @@ class QuotationController extends Controller
             'quantity' => $quotation->quantity,
             'unit_price' => round($unitTotal, 2),
             'total_price' => round($lineTotal, 2),
-            'configuration' => $quotation->selections,
+            'configuration' => null,
             'metadata' => [
-                'mode' => $quotation->mode,
                 'quotation_id' => $quotation->id,
                 'variant' => $variant ? [
                     'id' => $variant->id,
@@ -1024,7 +916,6 @@ class QuotationController extends Controller
                     'quantity' => $q->quantity,
                     'customer_group_id' => $q->user?->customer_group_id ?? null,
                     'customer_type' => $q->user?->type ?? null,
-                    'mode' => $q->mode,
                 ]
             )->toArray();
 

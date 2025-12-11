@@ -28,7 +28,7 @@ class StoreProductRequest extends FormRequest
      */
     protected function baseRules(?int $productId = null): array
     {
-        $removedMediaRule = Rule::exists('product_media', 'id');
+        $removedMediaRule = Rule::exists('product_medias', 'id');
 
         if ($productId) {
             $removedMediaRule = $removedMediaRule->where('product_id', $productId);
@@ -46,6 +46,8 @@ class StoreProductRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'brand_id' => ['required', 'exists:brands,id'],
             'category_id' => ['required', 'exists:categories,id'],
+            'category_ids' => ['nullable', 'array'],
+            'category_ids.*' => ['integer', 'exists:categories,id'],
             'catalog_ids' => ['nullable', 'array'],
             'catalog_ids.*' => ['integer', 'exists:catalogs,id'],
             'collection' => ['required', 'string', 'max:255'],
@@ -53,12 +55,6 @@ class StoreProductRequest extends FormRequest
             'gender' => ['required', 'string', 'max:50', Rule::in(['Men', 'Women', 'Unisex', 'Kids'])],
             'making_charge_amount' => ['nullable', 'numeric', 'min:0'],
             'making_charge_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'making_charge_discount_type' => ['nullable', 'in:percentage,fixed'],
-            'making_charge_discount_value' => ['nullable', 'numeric', 'min:0', 'required_with:making_charge_discount_type'],
-            'making_charge_discount_overrides' => ['nullable', 'array'],
-            'making_charge_discount_overrides.*.customer_group_id' => ['required', 'integer', 'exists:customer_groups,id'],
-            'making_charge_discount_overrides.*.type' => ['required', 'in:percentage,fixed'],
-            'making_charge_discount_overrides.*.value' => ['required', 'numeric', 'min:0'],
             'is_active' => ['boolean'],
             'media_uploads' => ['nullable', 'array'],
             'media_uploads.*' => [
@@ -69,7 +65,7 @@ class StoreProductRequest extends FormRequest
             'variants' => ['nullable', 'array'],
             'variants.*.label' => ['required', 'string', 'max:255'],
             'variants.*.sku' => ['nullable', 'string', 'max:100'],
-            'variants.*.price_adjustment' => ['nullable', 'numeric'],
+            'variants.*.size_id' => ['nullable', 'integer', 'exists:sizes,id'],
             'variants.*.inventory_quantity' => ['nullable', 'integer', 'min:0'],
             'variants.*.is_default' => ['nullable', 'boolean'],
             'variants.*.metadata' => ['nullable', 'array'],
@@ -92,23 +88,13 @@ class StoreProductRequest extends FormRequest
             $hasPercentage = in_array('percentage', $makingChargeTypes) && $makingChargePercentage !== null && $makingChargePercentage !== '' && (float) $makingChargePercentage > 0;
 
             if (empty($makingChargeTypes) || (!$hasFixed && !$hasPercentage)) {
-                $validator->errors()->add('making_charge_type', 'Please select at least one making charge option (Fixed Amount or Percentage).');
+                $validator->errors()->add('making_charge_types', 'Please select at least one making charge option (Fixed Amount or Percentage).');
                 if (!$hasFixed && in_array('fixed', $makingChargeTypes)) {
                     $validator->errors()->add('making_charge_amount', 'Fixed making charge value is required when Fixed Amount is selected.');
                 }
                 if (!$hasPercentage && in_array('percentage', $makingChargeTypes)) {
                     $validator->errors()->add('making_charge_percentage', 'Percentage value is required when Percentage is selected.');
                 }
-            }
-
-            $overrides = collect($this->input('making_charge_discount_overrides', []));
-            $duplicateGroups = $overrides
-                ->pluck('customer_group_id')
-                ->filter()
-                ->duplicates();
-
-            if ($duplicateGroups->isNotEmpty()) {
-                $validator->errors()->add('making_charge_discount_overrides', 'Duplicate customer group entries detected.');
             }
         });
     }

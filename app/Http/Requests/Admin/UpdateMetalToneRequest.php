@@ -15,7 +15,14 @@ class UpdateMetalToneRequest extends StoreMetalToneRequest
 
         return [
             'metal_id' => ['required', 'integer', 'exists:metals,id'],
-            'code' => ['nullable', 'string', 'max:255'],
+            'code' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('metal_tones', 'code')
+                    ->where('metal_id', $this->input('metal_id'))
+                    ->ignore($metalTone?->id),
+            ],
             'name' => [
                 'required',
                 'string',
@@ -26,7 +33,7 @@ class UpdateMetalToneRequest extends StoreMetalToneRequest
             ],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
-            'display_order' => ['nullable', 'integer', 'min:0'],
+            'display_order' => ['required', 'integer', 'min:0'],
         ];
     }
 }

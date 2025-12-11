@@ -23,7 +23,7 @@ type DiamondShapeSizeRow = {
     type: DiamondType | null;
     diamond_shape_id: number;
     shape: DiamondShape | null;
-    size: string | null;
+    size: string;
     secondary_size: string | null;
     description?: string | null;
     display_order: number;
@@ -58,13 +58,13 @@ export default function AdminDiamondShapeSizesIndex() {
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const form = useForm({
-        diamond_type_id: 0 as number,
-        diamond_shape_id: selectedShapeId || (shapes.length > 0 ? shapes[0].id : 0),
+        diamond_type_id: '',
+        diamond_shape_id: selectedShapeId ? String(selectedShapeId) : (shapes.length > 0 ? String(shapes[0].id) : ''),
         size: '',
         secondary_size: '',
         description: '',
-        display_order: 0,
-        ctw: 0,
+        display_order: 0 as string | number,
+        ctw: '' as string | number,
     });
 
     useEffect(() => {
@@ -97,14 +97,14 @@ export default function AdminDiamondShapeSizesIndex() {
         setEditingSize(null);
         setModalOpen(false);
         form.reset();
-        // Set default to Natural Diamond type (first type or type with code 'NAT')
-        // const naturalType = types.find((t) => t.code === 'NAT') || types[0];
-        // if (naturalType) {
-        //     form.setData('diamond_type_id', naturalType.id);
-        // }
-        form.setData('diamond_shape_id', selectedShapeId || (shapes.length > 0 ? shapes[0].id : 0));
+        form.clearErrors();
+        form.setData('diamond_type_id', '');
+        form.setData('diamond_shape_id', selectedShapeId ? String(selectedShapeId) : (shapes.length > 0 ? String(shapes[0].id) : ''));
+        form.setData('size', '');
+        form.setData('secondary_size', '');
+        form.setData('description', '');
         form.setData('display_order', 0);
-        form.setData('ctw', 0);
+        form.setData('ctw', '');
     };
 
     const openCreateModal = () => {
@@ -114,10 +114,11 @@ export default function AdminDiamondShapeSizesIndex() {
 
     const openEditModal = (size: DiamondShapeSizeRow) => {
         setEditingSize(size);
+        form.clearErrors();
         form.setData({
-            diamond_type_id: size.diamond_type_id!,
-            diamond_shape_id: size.diamond_shape_id,
-            size: size.size ?? '',
+            diamond_type_id: String(size.diamond_type_id),
+            diamond_shape_id: String(size.diamond_shape_id),
+            size: size.size,
             secondary_size: size.secondary_size ?? '',
             description: size.description ?? '',
             display_order: size.display_order,
@@ -128,6 +129,15 @@ export default function AdminDiamondShapeSizesIndex() {
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        // Convert form data to proper types before submission
+        form.transform((data) => ({
+            ...data,
+            diamond_type_id: Number(data.diamond_type_id),
+            diamond_shape_id: Number(data.diamond_shape_id),
+            display_order: data.display_order === '' ? 0 : Number(data.display_order),
+            ctw: data.ctw === '' ? 0 : Number(data.ctw),
+        }));
 
         if (editingSize) {
             form.put(route('admin.diamond.shape-sizes.update', editingSize.id), {
@@ -294,7 +304,7 @@ export default function AdminDiamondShapeSizesIndex() {
                                     <td className="px-5 py-3 font-semibold text-slate-900">
                                         {size.shape?.name || '-'}
                                     </td>
-                                    <td className="px-5 py-3 text-slate-700">{size.size || '-'}</td>
+                                    <td className="px-5 py-3 text-slate-700">{size.size}</td>
                                     <td className="px-5 py-3 text-slate-500">{size.secondary_size || '-'}</td>
                                     <td className="px-5 py-3 text-slate-500">{typeof size.ctw === 'number' ? size.ctw.toFixed(3) : (parseFloat(size.ctw) || 0).toFixed(3)}</td>
                                     <td className="px-5 py-3 text-slate-500">{size.display_order}</td>
@@ -416,10 +426,10 @@ export default function AdminDiamondShapeSizesIndex() {
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Type *</span>
+                                            <span>Type <span className="text-rose-500">*</span></span>
                                             <select
-                                                value={form.data.diamond_type_id || ''}
-                                                onChange={(event) => form.setData('diamond_type_id', Number(event.target.value))}
+                                                value={form.data.diamond_type_id}
+                                                onChange={(event) => form.setData('diamond_type_id', event.target.value)}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 required
                                             >
@@ -433,10 +443,10 @@ export default function AdminDiamondShapeSizesIndex() {
                                             {form.errors.diamond_type_id && <span className="text-xs text-rose-500">{form.errors.diamond_type_id}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Diamond Shape *</span>
+                                            <span>Diamond Shape <span className="text-rose-500">*</span></span>
                                             <select
                                                 value={form.data.diamond_shape_id}
-                                                onChange={(event) => form.setData('diamond_shape_id', Number(event.target.value))}
+                                                onChange={(event) => form.setData('diamond_shape_id', event.target.value)}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 required
                                             >
@@ -450,13 +460,14 @@ export default function AdminDiamondShapeSizesIndex() {
                                             {form.errors.diamond_shape_id && <span className="text-xs text-rose-500">{form.errors.diamond_shape_id}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Size</span>
+                                            <span>Size <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="text"
                                                 value={form.data.size}
                                                 onChange={(event) => form.setData('size', event.target.value)}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 placeholder="e.g., 1.00, 2.00x3.00"
+                                                required
                                             />
                                             {form.errors.size && <span className="text-xs text-rose-500">{form.errors.size}</span>}
                                         </label>
@@ -472,25 +483,27 @@ export default function AdminDiamondShapeSizesIndex() {
                                             {form.errors.secondary_size && <span className="text-xs text-rose-500">{form.errors.secondary_size}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>CTW (Carat Total Weight)</span>
+                                            <span>CTW (Carat Total Weight) <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="number"
                                                 step="0.001"
-                                                value={form.data.ctw}
-                                                onChange={(event) => form.setData('ctw', Number(event.target.value))}
+                                                value={form.data.ctw === '' ? '' : form.data.ctw}
+                                                onChange={(event) => form.setData('ctw', event.target.value === '' ? '' : Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
+                                                required
                                             />
                                             {form.errors.ctw && <span className="text-xs text-rose-500">{form.errors.ctw}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Display Order</span>
+                                            <span>Display Order <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="number"
-                                                value={form.data.display_order}
-                                                onChange={(event) => form.setData('display_order', Number(event.target.value))}
+                                                value={form.data.display_order === '' || form.data.display_order === undefined ? '' : form.data.display_order}
+                                                onChange={(event) => form.setData('display_order', event.target.value === '' ? '' : Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
+                                                required
                                             />
                                             {form.errors.display_order && <span className="text-xs text-rose-500">{form.errors.display_order}</span>}
                                         </label>

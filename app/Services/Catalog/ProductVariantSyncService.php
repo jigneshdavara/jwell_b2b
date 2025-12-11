@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 
 class ProductVariantSyncService
 {
-    public function sync(Product $product, array $variants, ?array $variantOptions = null, ?array $diamondOptions = null): void
+    public function sync(Product $product, array $variants, ?array $diamondOptions = null): void
     {
         // Ensure variants is always an array
         if (!is_array($variants)) {
@@ -31,11 +31,6 @@ class ProductVariantSyncService
         $variantsCollection = collect($variants)
             ->map(function (array $payload) use ($diamondOptionsMap) {
                 $metadata = $payload['metadata'] ?? [];
-
-                // Ensure size_cm is included in metadata if provided
-                if (isset($payload['size_cm']) && $payload['size_cm'] !== '' && $payload['size_cm'] !== null) {
-                    $metadata['size_cm'] = $payload['size_cm'];
-                }
 
                 // Convert diamond_option_key to diamond entry if needed
                 $diamondOptionKey = $metadata['diamond_option_key'] ?? null;
@@ -57,20 +52,26 @@ class ProductVariantSyncService
                     $label = 'Variant ' . ($payload['sku'] ?? 'Unknown');
                 }
 
+                // Handle size_id - convert empty string, 0, or invalid values to null
+                $sizeId = $payload['size_id'] ?? null;
+                if ($sizeId === '' || $sizeId === 0 || $sizeId === '0') {
+                    $sizeId = null;
+                } elseif ($sizeId !== null) {
+                    $sizeId = (int) $sizeId;
+                }
+
                 return [
                     'id' => $payload['id'] ?? null,
                     'sku' => $payload['sku'] ?? null,
                     'label' => $label,
                     'metal_id' => $payload['metal_id'] ?? null,
                     'metal_purity_id' => $payload['metal_purity_id'] ?? null,
-                    'size' => $payload['size'] ?? null,
-                    'price_adjustment' => (float) ($payload['price_adjustment'] ?? 0),
+                    'size_id' => $sizeId,
                     'inventory_quantity' => isset($payload['inventory_quantity']) && $payload['inventory_quantity'] !== '' && $payload['inventory_quantity'] !== null
                         ? (int) $payload['inventory_quantity']
                         : 0,
                     'is_default' => (bool) ($payload['is_default'] ?? false),
                     'metadata' => $metadata,
-                    'size_cm' => $payload['size_cm'] ?? null, // Keep for extraction before saving
                     'metals' => $payload['metals'] ?? [],
                     'diamonds' => $payload['diamonds'] ?? [],
                 ];
@@ -122,9 +123,9 @@ class ProductVariantSyncService
             // Remove fields that are not columns on product_variants table
             // metal_id, metal_purity_id are only used to create metals entries if metals array is empty
             // metals and diamonds arrays are used to sync related records
-            // diamond_option_key and size_cm are stored in metadata, not as direct columns
-            // total_weight is on products table, not product_variants
-            // metal_tone and stone_quality are legacy fields that don't exist in the database
+            // diamond_option_key is stored in metadata, not as direct column
+            // metal_tone is a legacy field that doesn't exist in the database
+            // size is a legacy field - use size_id instead
             $attributes = Arr::except($variant, [
                 'id',
                 'metal_id',
@@ -132,10 +133,8 @@ class ProductVariantSyncService
                 'metals',
                 'diamonds',
                 'diamond_option_key',
-                'size_cm',
-                'total_weight',
                 'metal_tone', // Legacy field - not in database
-                'stone_quality', // Legacy field - not in database
+                'size', // Legacy field - use size_id instead
             ]);
 
             /** @var \App\Models\ProductVariant|null $model */
@@ -153,6 +152,10 @@ class ProductVariantSyncService
 
             if ($model) {
                 // Update existing variant
+                // Ensure size_id is explicitly included (can be null)
+                if (!isset($attributes['size_id'])) {
+                    $attributes['size_id'] = $variant['size_id'] ?? null;
+                }
                 $model->update($attributes);
                 $this->syncVariantMetals($model, $metals);
                 $this->syncVariantDiamonds($model, $diamonds);
@@ -167,6 +170,10 @@ class ProductVariantSyncService
                 $existingBySku = $product->variants()->where('sku', $attributes['sku'])->first();
                 if ($existingBySku) {
                     // Update the existing variant instead of creating a duplicate
+                    // Ensure size_id is explicitly included (can be null)
+                    if (!isset($attributes['size_id'])) {
+                        $attributes['size_id'] = $variant['size_id'] ?? null;
+                    }
                     $existingBySku->update($attributes);
                     $this->syncVariantMetals($existingBySku, $metals);
                     $this->syncVariantDiamonds($existingBySku, $diamonds);
@@ -186,6 +193,11 @@ class ProductVariantSyncService
             // Ensure label is present before creating (required field)
             if (empty($attributes['label']) || trim($attributes['label']) === '') {
                 $attributes['label'] = 'Variant ' . ($attributes['sku'] ?? 'Unknown');
+            }
+
+            // Ensure size_id is properly set (can be null, but should be explicitly set)
+            if (!isset($attributes['size_id'])) {
+                $attributes['size_id'] = null;
             }
 
             // Create new variant only if it doesn't exist
@@ -241,28 +253,6 @@ class ProductVariantSyncService
         } else {
             $product->variants()->delete();
         }
-
-        $options = $this->prepareVariantOptions($variantsCollection, $variantOptions ?? []);
-
-        if (Schema::hasColumn('products', 'variant_options')) {
-            $product->update([
-                'variant_options' => $options,
-            ]);
-        }
-    }
-
-    protected function prepareVariantOptions(Collection $variants, array $provided): array
-    {
-        $keys = ['size'];
-
-        $baseline = collect($keys)->mapWithKeys(function ($key) use ($variants, $provided) {
-            $submitted = $variants->pluck($key)->filter()->unique()->values()->all();
-            $library = collect(Arr::get($provided, $key, []))->filter()->unique()->values()->all();
-
-            return [$key => array_values(array_unique(array_merge($library, $submitted)))];
-        })->toArray();
-
-        return $baseline;
     }
 
     protected function syncVariantMetals(ProductVariant $variant, array $metals): void
@@ -297,7 +287,7 @@ class ProductVariantSyncService
                     ? (float) $metal['metal_weight']
                     : null,
                 'metadata' => $metal['metadata'] ?? [],
-                'position' => $index,
+                'display_order' => $index,
             ];
 
             // Update existing metal entry if ID is provided and exists
@@ -352,7 +342,7 @@ class ProductVariantSyncService
                 'diamond_id' => $diamond['diamond_id'],
                 'diamonds_count' => $diamond['diamonds_count'],
                 'metadata' => $diamond['metadata'],
-                'position' => $index,
+                'display_order' => $index,
             ];
 
             // Update existing diamond entry if ID is provided and exists

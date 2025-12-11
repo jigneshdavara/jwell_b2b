@@ -70,9 +70,6 @@ For each combination, a variant object is created with:
   size_cm: string | null,
   metadata: {
     diamond_option_key: string | null,
-    size_cm: number | null,
-    size_value: string | null,
-    size_unit: 'mm' | 'cm' | null,
     auto_label: string,
     status: 'enabled'
   }
@@ -135,21 +132,6 @@ Database: product_variants, product_variant_metals, product_variant_diamonds
 
 ## Key Features
 
-### 1. Metal + Purity Grouping
-
-The system intelligently groups purities by metal to ensure only valid combinations are created:
-
-```typescript
-// Purities are filtered by their metal_id
-const puritiesByMetal = new Map<number, number[]>();
-prev.metal_purity_ids.forEach((purityId) => {
-    const purity = metalPurities.find((p) => p.id === purityId);
-    if (purity && prev.metal_ids.includes(purity.metal_id)) {
-        // Add to map
-    }
-});
-```
-
 ### 2. Flexible Attribute Handling
 
 - **Metals without purities**: Creates variants with `metal_purity_id = 0`
@@ -176,7 +158,6 @@ Each variant stores comprehensive metadata:
     "weight": 0.5
   },
   "size_cm": 6.0,
-  "size_value": "6",
   "size_unit": "cm",
   "auto_label": "VVS / 22K Gold / 6cm",
   "status": "enabled"
@@ -285,7 +266,6 @@ The system handles size conversion between millimeters (mm) and centimeters (cm)
 - `product_id` (foreign key)
 - `sku` (string)
 - `label` (string)
-- `price_adjustment` (decimal)
 - `is_default` (boolean)
 - `metadata` (JSON)
 

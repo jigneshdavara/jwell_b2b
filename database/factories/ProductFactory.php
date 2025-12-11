@@ -26,12 +26,8 @@ class ProductFactory extends Factory
             'brand_id' => Brand::factory(),
             'category_id' => Category::factory(),
             'material_id' => Material::factory(),
-            'gross_weight' => fake()->randomFloat(3, 2, 50),
-            'net_weight' => fake()->randomFloat(3, 1, 45),
             'base_price' => fake()->randomFloat(2, 10000, 250000),
             'making_charge' => fake()->randomFloat(2, 500, 10000),
-            'is_jobwork_allowed' => fake()->boolean(60),
-            'visibility' => fake()->randomElement(['public', 'restricted', null]),
             'metadata' => [
                 'stone_type' => fake()->randomElement(['VVS', 'VS', 'SI', null]),
                 'size_options' => fake()->randomElements(['6', '7', '8', '9'], fake()->numberBetween(1, 4)),

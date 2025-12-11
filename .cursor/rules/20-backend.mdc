@@ -99,7 +99,7 @@ Route::prefix('production')->middleware(['auth', 'role:production|super-admin'])
 
 **Key Models**:
 - `Product`, `ProductVariant`, `ProductVariantMetal`, `ProductVariantDiamond`, `ProductVariantColorstone`
-- `Order`, `OrderItem`, `Quotation`, `JobworkRequest`, `WorkOrder`
+- `Order`, `OrderItem`, `Quotation`
 - `User`, `Customer`, `UserKycProfile`, `UserKycDocument`
 - `Cart`, `CartItem`, `Wishlist`
 - `Brand`, `Category`, `Material`, `Metal`, `MetalPurity`, `MetalTone`

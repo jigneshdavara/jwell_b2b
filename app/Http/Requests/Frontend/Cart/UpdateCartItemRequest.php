@@ -16,9 +16,7 @@ class UpdateCartItemRequest extends FormRequest
         return [
             'quantity' => ['nullable', 'integer', 'min:1'],
             'configuration' => ['nullable', 'array'],
-            'configuration.mode' => ['nullable', 'in:purchase,jobwork'],
             'configuration.notes' => ['nullable', 'string', 'max:2000'],
-            'configuration.selections' => ['nullable', 'array'],
         ];
     }
 }

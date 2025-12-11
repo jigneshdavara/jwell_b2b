@@ -20,11 +20,11 @@ class UpdateCatalogRequest extends FormRequest
         $catalog = $this->route('catalog');
 
         return [
-            'code' => ['nullable', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:255', Rule::unique('catalogs', 'code')->ignore($catalog?->id)],
             'name' => ['required', 'string', 'max:255', Rule::unique('catalogs', 'name')->ignore($catalog?->id)],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
-            'display_order' => ['nullable', 'integer', 'min:0'],
+            'display_order' => ['required', 'integer', 'min:0'],
             'product_ids' => ['nullable', 'array'],
             'product_ids.*' => ['integer', 'exists:products,id'],
         ];

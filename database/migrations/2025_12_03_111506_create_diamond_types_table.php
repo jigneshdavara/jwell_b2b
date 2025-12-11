@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('diamond_types', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->nullable();
+            $table->string('code');
             $table->string('name');
             $table->text('description')->nullable();
             $table->integer('display_order')->default(0);

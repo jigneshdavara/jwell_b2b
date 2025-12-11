@@ -16,17 +16,14 @@ class ProductVariant extends Model
         'sku',
         'label',
         // Legacy columns - kept for data migration, but should not be used in new code
-        'metal_tone',
-        'stone_quality',
         'size',
-        'price_adjustment',
+        'size_id',
         'inventory_quantity',
         'is_default',
         'metadata',
     ];
 
     protected $casts = [
-        'price_adjustment' => 'float',
         'inventory_quantity' => 'integer',
         'is_default' => 'boolean',
         'metadata' => 'array',
@@ -39,11 +36,16 @@ class ProductVariant extends Model
 
     public function metals(): HasMany
     {
-        return $this->hasMany(ProductVariantMetal::class)->orderBy('position');
+        return $this->hasMany(ProductVariantMetal::class)->orderBy('display_order');
     }
 
     public function diamonds(): HasMany
     {
-        return $this->hasMany(ProductVariantDiamond::class)->orderBy('position');
+        return $this->hasMany(ProductVariantDiamond::class)->orderBy('display_order');
+    }
+
+    public function size(): BelongsTo
+    {
+        return $this->belongsTo(Size::class);
     }
 }

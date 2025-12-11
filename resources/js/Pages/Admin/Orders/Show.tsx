@@ -13,16 +13,23 @@ type OrderItem = {
     total_price: number;
     configuration?: Record<string, unknown> | null;
     metadata?: Record<string, unknown> | null;
+    price_breakdown?: {
+        metal?: number;
+        diamond?: number;
+        making?: number;
+        subtotal?: number;
+        discount?: number;
+        total?: number;
+    } | null;
+    calculated_making_charge?: number | null;
     product?: {
         id: number;
         name: string;
         sku: string;
         base_price?: number | null;
         making_charge_amount?: number | null;
-        gold_weight?: number | null;
-        silver_weight?: number | null;
-        other_material_weight?: number | null;
-        total_weight?: number | null;
+        making_charge_percentage?: number | null;
+        making_charge_types?: string[];
         media: Array<{ url: string; alt: string }>;
     } | null;
 };
@@ -58,7 +65,6 @@ type Order = {
     }>;
     quotations?: Array<{
         id: number;
-        mode: string;
         status: string;
         quantity: number;
         product?: {
@@ -450,7 +456,6 @@ export default function AdminOrdersShow() {
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-xs text-slate-500">Qty: {quotation.quantity}</p>
-                                                    <p className="text-xs text-slate-400">{quotation.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}</p>
                                                 </div>
                                             </Link>
                                         ))}
@@ -516,18 +521,44 @@ export default function AdminOrdersShow() {
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                     <h5 className="mb-3 text-sm font-semibold text-slate-700">Pricing</h5>
                                     <div className="space-y-2 text-sm">
-                                        {productDetailsModalOpen.product?.base_price && (
-                                            <div className="flex justify-between">
-                                                <span className="text-slate-600">Base Price:</span>
-                                                <span className="font-semibold text-slate-900">{currencyFormatter.format(Number(productDetailsModalOpen.product.base_price))}</span>
-                                            </div>
-                                        )}
-                                        {productDetailsModalOpen.product?.making_charge_amount && (
-                                            <div className="flex justify-between">
-                                                <span className="text-slate-600">Making Charge:</span>
-                                                <span className="font-semibold text-slate-900">{currencyFormatter.format(Number(productDetailsModalOpen.product.making_charge_amount))}</span>
-                                            </div>
-                                        )}
+                                        {(() => {
+                                            // Use stored price breakdown from order if available
+                                            const priceBreakdown = productDetailsModalOpen.price_breakdown;
+                                            const metalCost = priceBreakdown?.metal ?? 0;
+                                            const diamondCost = priceBreakdown?.diamond ?? 0;
+                                            const makingCharge = priceBreakdown?.making ?? productDetailsModalOpen.calculated_making_charge ?? 0;
+                                            const discount = priceBreakdown?.discount ?? 0;
+                                            const subtotal = priceBreakdown?.subtotal ?? (metalCost + diamondCost + makingCharge);
+
+                                            return (
+                                                <>
+                                                    {metalCost > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Metal:</span>
+                                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(metalCost)}</span>
+                                                        </div>
+                                                    )}
+                                                    {diamondCost > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Diamond:</span>
+                                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(diamondCost)}</span>
+                                                        </div>
+                                                    )}
+                                                    {makingCharge > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Making Charge:</span>
+                                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(makingCharge)}</span>
+                                                        </div>
+                                                    )}
+                                                    {discount > 0 && (
+                                                        <div className="flex justify-between text-rose-600">
+                                                            <span>Discount:</span>
+                                                            <span className="font-semibold">-{currencyFormatter.format(discount)}</span>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
                                         <div className="border-t border-slate-300 pt-2">
                                             <div className="flex justify-between">
                                                 <span className="font-semibold text-slate-900">Unit Price:</span>
@@ -541,40 +572,6 @@ export default function AdminOrdersShow() {
                                     </div>
                                 </div>
 
-                                {/* Weights */}
-                                {(productDetailsModalOpen.product?.gold_weight || productDetailsModalOpen.product?.silver_weight || productDetailsModalOpen.product?.other_material_weight || productDetailsModalOpen.product?.total_weight) && (
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Weights</h5>
-                                        <div className="space-y-2 text-sm">
-                                            {productDetailsModalOpen.product.gold_weight && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-slate-600">Gold Weight:</span>
-                                                    <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.gold_weight).toFixed(3)} g</span>
-                                                </div>
-                                            )}
-                                            {productDetailsModalOpen.product.silver_weight && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-slate-600">Silver Weight:</span>
-                                                    <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.silver_weight).toFixed(3)} g</span>
-                                                </div>
-                                            )}
-                                            {productDetailsModalOpen.product.other_material_weight && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-slate-600">Other Material Weight:</span>
-                                                    <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.other_material_weight).toFixed(3)} g</span>
-                                                </div>
-                                            )}
-                                            {productDetailsModalOpen.product.total_weight && (
-                                                <div className="border-t border-slate-300 pt-2">
-                                                    <div className="flex justify-between">
-                                                        <span className="font-semibold text-slate-900">Total Weight:</span>
-                                                        <span className="font-semibold text-slate-900">{Number(productDetailsModalOpen.product.total_weight).toFixed(3)} g</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
 
                                 {/* Configuration */}
                                 {productDetailsModalOpen.configuration && Object.keys(productDetailsModalOpen.configuration).length > 0 && (
