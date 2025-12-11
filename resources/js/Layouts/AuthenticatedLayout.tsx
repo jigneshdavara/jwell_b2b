@@ -30,11 +30,6 @@ export default function Authenticated({
         brands: [],
     };
     const currentUrl = page.url;
-    const catalogMode = useMemo(() => {
-        const query = currentUrl.split('?')[1] ?? '';
-        const params = new URLSearchParams(query);
-        return params.get('mode') ?? 'purchase';
-    }, [currentUrl]);
 
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [accountMenuOpen, setAccountMenuOpen] = useState(false);

@@ -87,7 +87,7 @@ class WishlistController extends Controller
             $product,
             $item->variant,
             1,
-            array_merge($item->configuration ?? [], ['mode' => $item->configuration['mode'] ?? 'purchase'])
+            $item->configuration ?? []
         );
 
         $this->wishlistService->removeItem($item);

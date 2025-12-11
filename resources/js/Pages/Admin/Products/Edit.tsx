@@ -1484,83 +1484,12 @@ export default function AdminProductEdit() {
     };
 
     const generateVariantMatrixForData = (prev: FormData): FormData => {
-            const puritiesByMetal = new Map<number, number[]>();
-            const tonesByMetal = new Map<number, number[]>();
-
             type MetalEntryCombination = {
                 metal_id: number;
                 metal_purity_id: number | null;
                 metal_tone_id: number | null;
             };
-
-            const generateMetalCombinationsForMetal = (
-                metalId: number,
-                purities: number[],
-                tones: number[],
-                mode: 'normal' | 'mix_tones' | 'mix_purities'
-            ): MetalEntryCombination[][] => {
-                const combinations: MetalEntryCombination[][] = [];
-
-                if (purities.length === 0 && tones.length === 0) {
-                    return [[{
-                        metal_id: metalId,
-                        metal_purity_id: null,
-                        metal_tone_id: null,
-                    }]];
-                }
-
-                if (tones.length === 0 && purities.length > 0) {
-                    return purities.map(purityId => [{
-                        metal_id: metalId,
-                        metal_purity_id: purityId,
-                        metal_tone_id: null,
-                    }]);
-                }
-
-                // If no purities, create one entry per tone
-                if (purities.length === 0 && tones.length > 0) {
-                    return tones.map(toneId => [{
-                        metal_id: metalId,
-                        metal_purity_id: null,
-                        metal_tone_id: toneId,
-                    }]);
-                }
-
-                if (mode === 'normal') {
-                    purities.forEach(purityId => {
-                        tones.forEach(toneId => {
-                            combinations.push([{
-                                metal_id: metalId,
-                                metal_purity_id: purityId,
-                                metal_tone_id: toneId,
-                            }]);
-                        });
-                    });
-                } else if (mode === 'mix_tones') {
-                    purities.forEach(purityId => {
-                        combinations.push(
-                            tones.map(toneId => ({
-                                metal_id: metalId,
-                                metal_purity_id: purityId,
-                                metal_tone_id: toneId,
-                            }))
-                        );
-                    });
-                } else if (mode === 'mix_purities') {
-                    tones.forEach(toneId => {
-                        combinations.push(
-                            purities.map(purityId => ({
-                                metal_id: metalId,
-                                metal_purity_id: purityId,
-                                metal_tone_id: toneId,
-                            }))
-                        );
-                    });
-                }
-
-                return combinations;
-            };
-
+            
             const allMetalCombinations: MetalEntryCombination[][] = [];
 
             const selectedMetals = prev.selected_metals || [];

@@ -147,24 +147,10 @@ class DashboardController extends Controller
                 'products_count' => $catalog->products_count,
             ]);
 
-        $featuredCategories = Category::query()
-            ->withCount('products')
-            ->where('is_active', true)
-            ->orderByDesc('products_count')
-            ->take(8)
-            ->get()
-            ->map(fn(Category $category) => [
-                'id' => $category->id,
-                'name' => $category->name,
-                'products_count' => $category->products_count,
-                'cover_image_url' => $coverImageUrl($category->cover_image),
-            ]);
-
         return Inertia::render('Frontend/Dashboard/Overview', [
             'stats' => $stats,
             'recentProducts' => $recentProducts,
-            'featuredCatalogs' => $featuredCatalogs,
-            'featuredCategories' => $featuredCategories,
+            'featuredCatalogs' => $featuredCatalogs
         ]);
     }
 }

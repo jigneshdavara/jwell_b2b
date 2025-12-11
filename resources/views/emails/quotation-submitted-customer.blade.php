@@ -23,12 +23,6 @@
                 <td style="padding:8px 0;font-size:13px;color:#0f172a;">{{ $quotation->product->sku }}</td>
             </tr>
             <tr>
-                <td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Mode</td>
-                <td style="padding:8px 0;font-size:13px;color:#0f172a;">
-                    {{ $quotation->mode === 'jobwork' ? 'Jobwork' : 'Jewellery Purchase' }}
-                </td>
-            </tr>
-            <tr>
                 <td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Quantity</td>
                 <td style="padding:8px 0;font-size:13px;color:#0f172a;">{{ $quotation->quantity }}</td>
             </tr>

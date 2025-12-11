@@ -106,7 +106,6 @@ class OrderController extends Controller
                 ]),
                 'quotations' => $order->quotations->map(fn($quotation) => [
                     'id' => $quotation->id,
-                    'mode' => $quotation->mode,
                     'status' => $quotation->status,
                     'quantity' => $quotation->quantity,
                     'product' => $quotation->product ? [

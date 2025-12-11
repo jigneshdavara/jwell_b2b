@@ -253,12 +253,9 @@ Route::prefix('admin')
         Route::post('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
 
         Route::get('/quotations', [AdminQuotationController::class, 'index'])->name('quotations.index');
-        Route::get('/quotations/jewellery', [AdminQuotationController::class, 'index'])->name('quotations.jewellery')->defaults('mode', 'purchase');
-        Route::get('/quotations/jobwork', [AdminQuotationController::class, 'index'])->name('quotations.jobwork')->defaults('mode', 'jobwork');
         Route::get('/quotations/{quotation}', [AdminQuotationController::class, 'show'])->name('quotations.show');
         Route::post('/quotations/{quotation}/approve', [AdminQuotationController::class, 'approve'])->name('quotations.approve');
         Route::post('/quotations/{quotation}/reject', [AdminQuotationController::class, 'reject'])->name('quotations.reject');
-        Route::post('/quotations/{quotation}/jobwork-status', [AdminQuotationController::class, 'updateJobworkStatus'])->name('quotations.jobwork-status');
         Route::post('/quotations/{quotation}/messages', [AdminQuotationController::class, 'message'])->name('quotations.messages.store');
         Route::post('/quotations/{quotation}/request-confirmation', [AdminQuotationController::class, 'requestCustomerConfirmation'])->name('quotations.request-confirmation');
         Route::post('/quotations/{quotation}/update-product', [AdminQuotationController::class, 'updateProduct'])->name('quotations.update-product');
