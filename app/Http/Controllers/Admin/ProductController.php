@@ -18,6 +18,7 @@ use App\Models\MetalTone;
 use App\Models\Product;
 use App\Models\ProductMedia;
 use App\Models\ProductVariant;
+use App\Models\Size;
 use App\Services\Catalog\ProductVariantSyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -93,7 +94,7 @@ class ProductController extends Controller
     {
         $product->load([
             'brand',
-            'category',
+            'category.sizes' => fn($query) => $query->where('is_active', true)->orderBy('name'),
             'catalogs',
             'media' => fn($query) => $query->orderBy('display_order'),
             'variants' => function ($query) {
@@ -106,6 +107,7 @@ class ProductController extends Controller
                         'diamonds.diamond.shape',
                         'diamonds.diamond.color',
                         'diamonds.diamond.clarity',
+                        'size',
                     ]);
             },
         ]);
@@ -245,7 +247,7 @@ class ProductController extends Controller
         if (array_key_exists('metadata', $data) && is_array($data['metadata'])) {
             $metadata = $data['metadata'];
             $sizeDimension = $this->sanitizeSizeDimension($metadata['size_dimension'] ?? null);
-            
+
             if ($sizeDimension) {
                 $metadata['size_dimension'] = $sizeDimension;
             }
@@ -304,6 +306,15 @@ class ProductController extends Controller
             'brand_id' => $product->brand_id,
             'category_id' => $product->category_id,
             'category_ids' => $product->subcategory_ids ?? [],
+            'category' => $product->category ? [
+                'id' => $product->category->id,
+                'name' => $product->category->name,
+                'sizes' => $product->category->sizes->map(fn($size) => [
+                    'id' => $size->id,
+                    'name' => $size->name,
+                    'value' => $size->value ?? $size->name,
+                ])->all(),
+            ] : null,
             'collection' => $product->collection ?? '',
             'producttype' => $product->producttype ?? '',
             'gender' => $product->gender ?? '',
@@ -334,7 +345,12 @@ class ProductController extends Controller
             'sku' => $variant->sku,
             'label' => $variant->label,
             'inventory_quantity' => $variant->inventory_quantity ?? 0,
-            'size' => $variant->size,
+            'size_id' => $variant->size_id,
+            'size' => $variant->size ? [
+                'id' => $variant->size->id,
+                'name' => $variant->size->name,
+                'value' => $variant->size->value,
+            ] : null,
             'is_default' => $variant->is_default,
             'metadata' => $variant->metadata,
             'metals' => $variant->metals->map(fn($metal) => [
@@ -508,6 +524,7 @@ class ProductController extends Controller
             'metals' => $this->metalOptions(),
             'metalPurities' => $this->metalPurityOptions(),
             'metalTones' => $this->metalToneOptions(),
+            'sizes' => $this->sizeOptions(),
         ];
     }
 
@@ -555,12 +572,17 @@ class ProductController extends Controller
         return Category::query()
             ->where('is_active', true)
             ->whereNull('parent_id')
+            ->with(['sizes' => fn($query) => $query->where('is_active', true)->orderBy('name')])
             ->orderBy('display_order')
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn(Category $category) => [
                 'id' => $category->id,
                 'name' => $category->name,
+                'sizes' => $category->sizes->map(fn($size) => [
+                    'id' => $size->id,
+                    'name' => $size->name,
+                ])->all(),
             ])
             ->all();
     }
@@ -661,6 +683,20 @@ class ProductController extends Controller
                     'id' => $tone->metal->id,
                     'name' => $tone->metal->name,
                 ] : null,
+            ])
+            ->all();
+    }
+
+    protected function sizeOptions(): array
+    {
+        return Size::query()
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn(Size $size) => [
+                'id' => $size->id,
+                'name' => $size->name,
             ])
             ->all();
     }

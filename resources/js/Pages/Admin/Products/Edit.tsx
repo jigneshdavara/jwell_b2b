@@ -26,6 +26,7 @@ type VariantForm = {
     metal_id: number | '';
     metal_purity_id: number | '';
     diamond_option_key: string | null;
+    size_id?: number | null;
     is_default: boolean;
     inventory_quantity?: number | string;
     metadata?: Record<string, FormDataConvertible>;
@@ -42,6 +43,11 @@ type Product = {
     brand_id?: number;
     category_id?: number;
     category_ids?: number[];
+    category?: {
+        id: number;
+        name: string;
+        sizes?: Array<{ id: number; name: string; value?: string }>;
+    } | null;
     catalog_ids?: number[];
     collection?: string;
     producttype?: string;
@@ -75,6 +81,7 @@ type Product = {
 type OptionListItem = {
     id: number;
     name: string;
+    sizes?: Array<{ id: number; name: string; value?: string }>;
 };
 
 type OptionList = Record<string, string>;
@@ -126,6 +133,7 @@ type AdminProductEditPageProps = AppPageProps<{
     metals: MetalOption[];
     metalPurities: MetalPurityOption[];
     metalTones: MetalToneOption[];
+    sizes: OptionListItem[];
     errors: Record<string, string>;
 }>;
 
@@ -158,9 +166,8 @@ type FormData = {
     subcategory_ids?: number[];
     media_uploads?: File[];
     removed_media_ids?: number[];
-    size_unit?: 'mm' | 'cm';
-    size_values?: string[];
-    size_dimension_enabled?: boolean;
+    selected_sizes?: number[]; // Selected size IDs from category
+    all_sizes_available?: boolean; // If true, all category sizes are used
 };
 
 type DiamondOptionForm = {
@@ -186,6 +193,7 @@ const emptyVariant = (isDefault = false): VariantForm => ({
     metal_id: '',
     metal_purity_id: '',
     diamond_option_key: null,
+    size_id: null,
     is_default: isDefault,
     metadata: {},
     metals: [],
@@ -698,6 +706,7 @@ export default function AdminProductEdit() {
         metals,
         metalPurities,
         metalTones,
+        sizes,
         errors,
     } = props;
 
@@ -856,6 +865,7 @@ export default function AdminProductEdit() {
                       metal_id: metalId !== '' && metalId !== null && metalId !== undefined ? (typeof metalId === 'number' ? metalId : Number(metalId)) : '',
                       metal_purity_id: metalPurityId !== '' && metalPurityId !== null && metalPurityId !== undefined ? (typeof metalPurityId === 'number' ? metalPurityId : Number(metalPurityId)) : '',
                       diamond_option_key: diamondOptionKey,
+                      size_id: variant.size_id ?? null,
                       is_default: variant.is_default ?? index === 0,
                       inventory_quantity: variant.inventory_quantity !== undefined && variant.inventory_quantity !== null ? Number(variant.inventory_quantity) : 0,
                       metadata: variant.metadata ?? {},
@@ -880,6 +890,34 @@ export default function AdminProductEdit() {
         metal_selections: extractSelectionsFromVariants.metalSelections ?? [],
         selected_metals: extractSelectionsFromVariants.selectedMetals ?? [],
         metal_configurations: extractSelectionsFromVariants.metalConfigurations ?? {},
+        all_sizes_available: (() => {
+            // Detect if all category sizes are used
+            if (product?.category?.sizes && product.category.sizes.length > 0 && product?.variants && product.variants.length > 0) {
+                const categorySizeIds = product.category.sizes.map((s: any) => s.id).sort();
+                const variantSizeIds = product.variants
+                    .map((v: any) => v.size_id)
+                    .filter((id: any) => id !== null && id !== undefined)
+                    .sort()
+                    .filter((v: any, i: number, arr: any[]) => arr.indexOf(v) === i); // unique
+                
+                // If all category sizes are present in variants, assume all sizes were used
+                if (categorySizeIds.length === variantSizeIds.length && 
+                    categorySizeIds.every((id: any) => variantSizeIds.includes(id))) {
+                    return true;
+                }
+            }
+            return undefined;
+        })(),
+        selected_sizes: (() => {
+            // Extract selected sizes from existing variants
+            if (product?.variants && product.variants.length > 0) {
+                const sizeIds = product.variants
+                    .map((v: any) => v.size_id)
+                    .filter((id: any) => id !== null && id !== undefined);
+                return [...new Set(sizeIds)]; // Unique size IDs
+            }
+            return [];
+        })(),
         media_uploads: [],
         removed_media_ids: [],
     }) as Record<string, any>);
@@ -914,9 +952,9 @@ export default function AdminProductEdit() {
         };
     }, []);
 
-    const [sizeValueInput, setSizeValueInput] = useState('');
     const [expandedDiamondVariantIndices, setExpandedDiamondVariantIndices] = useState<Set<number>>(new Set());
     const [expandedMetalVariantIndices, setExpandedMetalVariantIndices] = useState<Set<number>>(new Set());
+
 
     const formatDecimal = (value: number): string => {
         if (!Number.isFinite(value)) {
@@ -926,25 +964,6 @@ export default function AdminProductEdit() {
         return value.toFixed(3).replace(/\.?0+$/, '');
     };
 
-    const convertToCentimeters = (value: string, unit: 'mm' | 'cm'): string => {
-        const numeric = parseFloat(value);
-        if (!Number.isFinite(numeric)) {
-            return '';
-        }
-
-        const centimeters = unit === 'mm' ? numeric / 10 : numeric;
-        return formatDecimal(centimeters);
-    };
-
-    const convertFromCentimeters = (value: string | number, unit: 'mm' | 'cm'): string => {
-        const numeric = typeof value === 'number' ? value : parseFloat(value);
-        if (!Number.isFinite(numeric)) {
-            return '';
-        }
-
-        const converted = unit === 'mm' ? numeric * 10 : numeric;
-        return formatDecimal(converted);
-    };
 
     const metalPurityMap = useMemo(
         () => Object.fromEntries(metalPurities.map((item) => [item.id, item.name])),
@@ -1076,23 +1095,8 @@ export default function AdminProductEdit() {
             }
 
             const rawMetadata = (variant.metadata ?? {}) as Record<string, FormDataConvertible>;
-            const storedSizeValue =
-                typeof rawMetadata.size_value === 'string' || typeof rawMetadata.size_value === 'number'
-                    ? String(rawMetadata.size_value)
-                    : '';
-            const storedSizeUnit =
-                rawMetadata.size_unit === 'mm' || rawMetadata.size_unit === 'cm'
-                    ? (rawMetadata.size_unit as 'mm' | 'cm')
-                    : 'cm';
-
-            let sizeUnit: 'mm' | 'cm' = storedSizeUnit || 'cm';
-            let sizeValue = '';
-
-            if (storedSizeValue) {
-                sizeValue = formatDecimal(Number(storedSizeValue));
-            }
-
-            const sizeLabel = sizeValue ? `${sizeValue}${sizeUnit}` : '';
+            // Size handling removed - use size_id and size relationship instead
+            const sizeLabel = '';
 
             const autoLabelParts = [diamondLabel, metalLabel, sizeLabel].filter(Boolean);
             const autoLabel = autoLabelParts.length ? autoLabelParts.join(' / ') : 'Variant';
@@ -1115,14 +1119,6 @@ export default function AdminProductEdit() {
                 auto_label: autoLabel,
             };
 
-            if (sizeValue) {
-                metadata.size_value = sizeValue;
-                metadata.size_unit = sizeUnit;
-            } else {
-                delete metadata.size_value;
-                delete metadata.size_unit;
-            }
-
             const storedStatus =
                 typeof rawMetadata.status === 'string' && rawMetadata.status.trim().length > 0
                     ? String(rawMetadata.status)
@@ -1141,7 +1137,7 @@ export default function AdminProductEdit() {
                 metadata,
             };
         },
-        [convertFromCentimeters, formatDecimal, metalMap, metalPurityMap, metalToneMap],
+        [formatDecimal, metalMap, metalPurityMap, metalToneMap],
     );
 
     const recalculateVariants = useCallback(
@@ -1171,92 +1167,6 @@ export default function AdminProductEdit() {
         [buildVariantMeta],
     );
 
-    const toggleSizeDimension = (checked: boolean) => {
-    };
-
-    const changeSizeUnit = (unit: 'mm' | 'cm') => {
-        setData((prev: FormData) => {
-            if (prev.size_unit === unit) {
-                return prev;
-            }
-
-            const convertedValues = (prev.size_values || []).map((value) => {
-                const centimeters = convertToCentimeters(value, prev.size_unit || 'cm');
-                return centimeters ? convertFromCentimeters(centimeters, unit) : value;
-            });
-
-            const draft: FormData = {
-                ...prev,
-                size_unit: unit,
-                size_values: convertedValues,
-                variants: (prev.variants || []).map((variant: VariantForm) => {
-                    const metadata = { ...(variant.metadata ?? {}) };
-                    const storedSizeValue = metadata.size_value as string | undefined;
-
-                    if (storedSizeValue) {
-                        metadata.size_value = storedSizeValue;
-                        metadata.size_unit = unit;
-                    } else {
-                        delete metadata.size_value;
-                        metadata.size_unit = unit;
-                    }
-
-                    return {
-                        ...variant,
-                        metadata,
-                    };
-                }),
-            };
-
-            draft.variants = recalculateVariants(draft);
-
-            return draft;
-        });
-    };
-
-    const addSizeValue = () => {
-        const rawValue = sizeValueInput.trim();
-        if (!rawValue) {
-            return;
-        }
-
-        const numeric = parseFloat(rawValue);
-        if (!Number.isFinite(numeric) || numeric <= 0) {
-            return;
-        }
-
-        const normalized = formatDecimal(numeric);
-
-        setData((prev: FormData) => {
-            if ((prev.size_values || []).includes(normalized)) {
-                return prev;
-            }
-
-            const draft: FormData = {
-                ...prev,
-                size_values: [...(prev.size_values || []), normalized],
-            };
-
-            draft.variants = recalculateVariants(draft);
-
-            return draft;
-        });
-
-        setSizeValueInput('');
-    };
-
-    const removeSizeValue = (value: string) => {
-        setData((prev: FormData) => {
-            const draft: FormData = {
-                ...prev,
-                size_values: (prev.size_values || []).filter((entry) => entry !== value),
-            };
-
-            draft.variants = recalculateVariants(draft);
-
-            return draft;
-        });
-    };
 
 
 
@@ -1563,94 +1473,49 @@ export default function AdminProductEdit() {
                 });
             }
 
-            const diamondCombinations: Array<{
-                key: string;
-                clarity_id: number | null;
-                color_id: number | null;
-                shape_id: number | null;
-            }> = [];
-
-            if (prev.uses_diamond && (prev.diamond_options || []).length > 0) {
-                (prev.diamond_options || []).forEach((option) => {
-                    diamondCombinations.push({
-                        key: option.key,
-                        clarity_id: option.clarity_id !== '' ? Number(option.clarity_id) : null,
-                        color_id: option.color_id !== '' ? Number(option.color_id) : null,
-                        shape_id: option.shape_id !== '' ? Number(option.shape_id) : null,
-                    });
-                });
-            } else {
-                diamondCombinations.push({
-                    key: '',
-                    clarity_id: null,
-                    color_id: null,
-                    shape_id: null,
-                });
-            }
-
-            const sizeOptions =
-                prev.size_dimension_enabled && (prev.size_values || []).length > 0 ? (prev.size_values || []) : [null];
-
-            const hasSizes = prev.size_dimension_enabled && (sizeOptions || []).length > 0 && (sizeOptions || [])[0] !== null;
-            const hasDiamonds = prev.uses_diamond && diamondCombinations.length > 0 && diamondCombinations[0].key !== '';
-
-            if (allMetalCombinations.length === 0 && !hasSizes && !hasDiamonds) {
+            if (allMetalCombinations.length === 0) {
                 return prev;
             }
 
+            // Generate metal × size combinations if sizes are selected
+            let selectedSizes = prev.selected_sizes || [];
+            
+            // If all_sizes_available is true but selected_sizes is empty, populate it with all category sizes
+            if (prev.all_sizes_available === true && selectedSizes.length === 0) {
+                // Get category sizes from props or product
+                const categoryId = prev.category_id ? Number(prev.category_id) : null;
+                const selectedCategory = categoryId ? parentCategories.find(cat => cat.id === categoryId) : null;
+                const categorySizes = (selectedCategory && 'sizes' in selectedCategory && selectedCategory.sizes) || 
+                                      (product?.category?.sizes || []);
+                if (categorySizes.length > 0) {
+                    selectedSizes = categorySizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id));
+                }
+            }
+            
             const combinations: Array<{
                 metals: MetalEntryCombination[];
-                diamond: {
-                    key: string;
-                    clarity_id: number | null;
-                    color_id: number | null;
-                    shape_id: number | null;
-                };
-                size: string | null;
+                size_id: number | null;
             }> = [];
 
-            const baseCombinations: Array<{
-                metals: MetalEntryCombination[];
-                size: string | null;
-            }> = [];
-
-            if (allMetalCombinations.length > 0) {
+            if (selectedSizes.length > 0) {
+                // Generate metal × size combinations
                 allMetalCombinations.forEach((metalEntries) => {
-                    (sizeOptions || []).forEach((sizeOption) => {
-                        baseCombinations.push({
+                    selectedSizes.forEach((sizeId) => {
+                        combinations.push({
                             metals: metalEntries,
-                            size: sizeOption ?? null,
+                            size_id: sizeId,
                         });
                     });
                 });
-            } else if (hasSizes) {
-                sizeOptions.forEach((sizeOption) => {
-                    baseCombinations.push({
-                        metals: [],
-                        size: sizeOption ?? null,
+            } else {
+                // Generate only metal combinations (no sizes selected)
+                allMetalCombinations.forEach((metalEntries) => {
+                    combinations.push({
+                        metals: metalEntries,
+                        size_id: null,
                     });
-                    });
-                } else {
-                baseCombinations.push({
-                    metals: [],
-                    size: null,
                 });
             }
-
-            const sharedDiamond = hasDiamonds ? diamondCombinations[0] : {
-                key: '',
-                clarity_id: null,
-                color_id: null,
-                shape_id: null,
-            };
-
-            baseCombinations.forEach((baseCombo) => {
-                combinations.push({
-                    metals: baseCombo.metals,
-                    diamond: sharedDiamond,
-                    size: baseCombo.size,
-                });
-            });
 
             if (combinations.length === 0) {
                 return prev;
@@ -1664,15 +1529,16 @@ export default function AdminProductEdit() {
             (prev.variants || []).forEach((existingVariant) => {
                 if (!existingVariant.metals || existingVariant.metals.length === 0) return;
 
-                const sizeKey = (existingVariant.metadata?.size_value as string) || 'no-size';
-                const diamondKey = existingVariant.diamond_option_key || 'no-diamond';
+                // Match by metals and size_id
+                const existingSizeId = (existingVariant as any).size_id || null;
+                const sizeKey = existingSizeId ? `size-${existingSizeId}` : 'no-size';
                 const metalsKey = existingVariant.metals
                     .filter(m => m.metal_id !== '' && typeof m.metal_id === 'number')
                     .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
                     .sort()
                     .join('|');
 
-                const variantKey = `${metalsKey}::${sizeKey}::${diamondKey}`;
+                const variantKey = `${metalsKey}::${sizeKey}`;
 
                 existingVariantData.set(variantKey, {
                     metals: existingVariant.metals.map(m => ({
@@ -1691,13 +1557,12 @@ export default function AdminProductEdit() {
                 const newVariants = combinations.map((combo, index) => {
                 const variant = emptyVariant(index === 0);
 
-                const sizeKey = combo.size || 'no-size';
-                const diamondKey = combo.diamond.key || 'no-diamond';
+                const sizeKey = combo.size_id ? `size-${combo.size_id}` : 'no-size';
                 const metalsKey = combo.metals
                     .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
                     .sort()
                     .join('|');
-                const variantKey = `${metalsKey}::${sizeKey}::${diamondKey}`;
+                const variantKey = `${metalsKey}::${sizeKey}`;
 
                 const existingData = existingVariantData.get(variantKey);
 
@@ -1744,39 +1609,14 @@ export default function AdminProductEdit() {
                 }
 
                 variant.diamond_option_key = null;
-
-                if ((prev.diamond_selections || []).length > 0) {
-                    variant.diamonds = (prev.diamond_selections || []).map((selection) => {
-                        const existingDiamond = existingData?.diamonds.find(
-                            ed => ed.diamond_id === (selection.diamond_id !== '' && selection.diamond_id !== null ? (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id)) : null)
-                        );
-
-                        return {
-                            id: (existingDiamond as any)?.id,
-                            diamond_id: selection.diamond_id !== '' && selection.diamond_id !== null ? (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id)) : '',
-                            diamonds_count: existingDiamond?.diamonds_count || selection.count || '',
-                        };
-                    });
-                } else {
-                    variant.diamonds = [];
-                }
+                variant.diamonds = [];
+                variant.size_id = combo.size_id || null;
 
                 const metadata: Record<string, FormDataConvertible> = {
                     ...(variant.metadata ?? {}),
                     status: 'enabled',
                 };
 
-                if (combo.size) {
-                    metadata.size_value = combo.size;
-                    metadata.size_unit = prev.size_unit;
-                } else {
-                    delete metadata.size_value;
-                    delete metadata.size_unit;
-                }
-
-                if (variant.diamond_option_key) {
-                    metadata.diamond_option_key = variant.diamond_option_key;
-                }
 
                 variant.metadata = metadata;
 
@@ -2374,100 +2214,171 @@ export default function AdminProductEdit() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
-                                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                                    <div>
-                                        <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Size dimension</h3>
-                                        <p className="text-xs text-slate-500">
-                                            Maintain consistent size data across variants. Add numeric values and choose the preferred unit.
-                                        </p>
-                                    </div>
-                                    <label className="inline-flex items-center gap-2 text-sm text-slate-600">
-                                        <input
-                                            type="checkbox"
-                                            checked={data.size_dimension_enabled}
-                                            onChange={(event) => toggleSizeDimension(event.target.checked)}
-                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                        />
-                                        Use size dimension
-                                    </label>
-                                </div>
-                                {data.size_dimension_enabled && (
-                                    <div className="space-y-4">
-                                        <div className="flex flex-wrap items-center gap-4 text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
-                                            <span>Unit</span>
-                                            <label className="inline-flex items-center gap-2 text-sm text-slate-600">
-                                                <input
-                                                    type="radio"
-                                                    name="size-unit"
-                                                    value="mm"
-                                                    checked={data.size_unit === 'mm'}
-                                                    onChange={() => changeSizeUnit('mm')}
-                                                    className="h-4 w-4 border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                />
-                                                Millimetres (mm)
-                                            </label>
-                                            <label className="inline-flex items-center gap-2 text-sm text-slate-600">
-                                                <input
-                                                    type="radio"
-                                                    name="size-unit"
-                                                    value="cm"
-                                                    checked={data.size_unit === 'cm'}
-                                                    onChange={() => changeSizeUnit('cm')}
-                                                    className="h-4 w-4 border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                />
-                                                Centimetres (cm)
-                                            </label>
+
+                            {/* Sizes selection - Matching Metals section structure */}
+                            {(() => {
+                                const categoryId = data.category_id ? Number(data.category_id) : null;
+                                const selectedCategory = categoryId ? parentCategories.find(cat => cat.id === categoryId) : null;
+                                const categoryHasSizes = (selectedCategory && 'sizes' in selectedCategory && selectedCategory.sizes && selectedCategory.sizes.length > 0) || 
+                                                         (product?.category?.id === categoryId && product.category.sizes && product.category.sizes.length > 0);
+                                const categorySizes = (selectedCategory && 'sizes' in selectedCategory && selectedCategory.sizes) || 
+                                                      (product?.category?.sizes || []);
+                                
+                                // Only show Sizes section if category has sizes
+                                if (!categoryHasSizes) {
+                                    return null;
+                                }
+                                
+                                const sizeOptions = [
+                                    { key: 'all', label: 'All sizes available', value: true },
+                                    { key: 'specific', label: 'Select specific sizes', value: false },
+                                ];
+                                
+                                return (
+                                    <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+                                        <div>
+                                            <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Sizes</h3>
+                                            <p className="text-xs text-slate-500">
+                                                This category "{selectedCategory?.name || product?.category?.name}" has {categorySizes.length} sizes available. 
+                                                Are all sizes available for this product?
+                                            </p>
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-3">
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="number"
-                                                    step="0.001"
-                                                    min="0"
-                                                    value={sizeValueInput}
-                                                    onChange={(event) => setSizeValueInput(event.target.value)}
-                                                    className="w-24 rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                    placeholder={`e.g. 25${data.size_unit}`}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={addSizeValue}
-                                                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
-                                                >
-                                                    Add size
-                                                </button>
-                                            </div>
-                                            {(data.size_values || []).length === 0 && (
-                                                <span className="text-xs text-slate-400">
-                                                    Add at least one size value to use in the variant matrix.
-                                                </span>
-                                            )}
-                                        </div>
-                                        {(data.size_values || []).length > 0 && (
-                                            <div className="flex flex-wrap gap-2">
-                                                {(data.size_values || []).map((value) => (
-                                                    <span
-                                                        key={`${value}-${data.size_unit}`}
-                                                        className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600"
+
+                                        {/* Size option selection pills */}
+                                        <div className="flex flex-wrap gap-3">
+                                            {sizeOptions.map((option) => {
+                                                const isSelected = data.all_sizes_available === option.value;
+                                                return (
+                                                    <label
+                                                        key={option.key}
+                                                        className={`
+                                                            inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                            ${isSelected
+                                                                ? 'bg-sky-600 text-white shadow-sm'
+                                                                : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                                            }
+                                                        `}
                                                     >
-                                                        {value}
-                                                        {data.size_unit}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeSizeValue(value)}
-                                                            className="text-rose-500 transition hover:text-rose-600"
-                                                            aria-label={`Remove size ${value}${data.size_unit}`}
-                                                        >
-                                                            ×
-                                                        </button>
-                                                    </span>
-                                                ))}
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={(e) => {
+                                                                setData((prev: FormData) => {
+                                                                    const allCategorySizeIds = categorySizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id));
+                                                                    const newAllSizesAvailable = e.target.checked ? option.value : undefined;
+                                                                    return {
+                                                                        ...prev,
+                                                                        all_sizes_available: newAllSizesAvailable,
+                                                                        selected_sizes: newAllSizesAvailable === true 
+                                                                            ? allCategorySizeIds 
+                                                                            : (option.value === false ? [] : prev.selected_sizes || []),
+                                                                    };
+                                                                });
+                                                            }}
+                                                            className={`mr-2 h-4 w-4 rounded border-2 ${
+                                                                isSelected
+                                                                    ? 'border-white bg-white text-sky-600'
+                                                                    : 'border-slate-300 bg-white text-slate-700'
+                                                            } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                        />
+                                                        {option.label}
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Expanded size configurations */}
+                                        {data.all_sizes_available !== undefined && (
+                                            <div className="space-y-4">
+                                                {data.all_sizes_available === true ? (
+                                                    // All sizes configuration
+                                                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                                        <div className="mb-4 flex items-center justify-between">
+                                                            <h4 className="text-sm font-semibold text-slate-900">All Category Sizes</h4>
+                                                            <span className="text-xs font-medium text-sky-600">
+                                                                {categorySizes.length} sizes will be used
+                                                            </span>
+                                                        </div>
+                                                        <p className="mb-3 text-xs text-slate-600">
+                                                            Variants will be created for all sizes from category "{selectedCategory?.name || product?.category?.name}". 
+                                                            Only metal combinations are shown in the variant table below.
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {categorySizes.map((size: any) => (
+                                                                <span
+                                                                    key={size.id || size.name}
+                                                                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600"
+                                                                >
+                                                                    {size.name || size.value}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    // Specific sizes configuration
+                                                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                                        <div className="mb-4 flex items-center justify-between">
+                                                            <h4 className="text-sm font-semibold text-slate-900">Select Specific Sizes</h4>
+                                                            {(data.selected_sizes || []).length > 0 && (
+                                                                <span className="text-xs font-medium text-sky-600">
+                                                                    {(data.selected_sizes || []).length} size{(data.selected_sizes || []).length !== 1 ? 's' : ''} selected
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        
+                                                        <div>
+                                                            <p className="mb-3 text-xs text-slate-600">
+                                                                Choose sizes from the category to include in your product variants.
+                                                            </p>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {categorySizes.map((size: any) => {
+                                                                    const sizeId = typeof size.id === 'number' ? size.id : Number(size.id);
+                                                                    const isSizeSelected = (data.selected_sizes || []).includes(sizeId);
+                                                                    return (
+                                                                        <label
+                                                                            key={sizeId || size.name}
+                                                                            className={`
+                                                                                inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                                                ${isSizeSelected
+                                                                                    ? 'bg-sky-600 text-white shadow-sm'
+                                                                                    : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                                                                }
+                                                                            `}
+                                                                        >
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={isSizeSelected}
+                                                                                onChange={(e) => {
+                                                                                    setData((prev: FormData) => {
+                                                                                        const currentSizes = prev.selected_sizes || [];
+                                                                                        const newSizes = e.target.checked
+                                                                                            ? [...currentSizes, sizeId]
+                                                                                            : currentSizes.filter(id => id !== sizeId);
+                                                                                        return {
+                                                                                            ...prev,
+                                                                                            selected_sizes: newSizes,
+                                                                                        };
+                                                                                    });
+                                                                                }}
+                                                                                className={`mr-2 h-4 w-4 rounded border-2 ${
+                                                                                    isSizeSelected
+                                                                                        ? 'border-white bg-white text-sky-600'
+                                                                                        : 'border-slate-300 bg-white text-slate-700'
+                                                                                } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                                            />
+                                                                            {size.name || size.value}
+                                                                        </label>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
-                                )}
-                            </div>
+                                );
+                            })()}
 
                             {/* Metals selection - Checkbox-based with pill design */}
                             <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
@@ -2662,61 +2573,6 @@ export default function AdminProductEdit() {
                                 </div>
                             </div>
 
-                            {/* Preview generated variants */}
-                            {(() => {
-                                // Calculate total variant count
-                                const selectedMetals = data.selected_metals || [];
-                                const metalConfigurations = data.metal_configurations || {};
-                                let totalVariants = 0;
-
-                                selectedMetals.forEach((metalId) => {
-                                    const config = metalConfigurations[metalId] || { purities: [], tones: [] };
-                                    const availablePurities = metalPurities.filter(p => p.metal_id === metalId);
-                                    const availableTones = metalTones.filter(t => t.metal_id === metalId);
-
-                                    const puritiesCount = config.purities.length > 0 ? config.purities.length : (availablePurities.length > 0 ? availablePurities.length : 1);
-                                    const tonesCount = config.tones.length > 0 ? config.tones.length : (availableTones.length > 0 ? availableTones.length : 1);
-                                    totalVariants += puritiesCount * tonesCount;
-                                });
-
-                                // Factor in sizes if enabled
-                                const sizeCount = data.size_dimension_enabled && (data.size_values || []).length > 0
-                                    ? (data.size_values || []).length
-                                    : 1;
-
-                                // Factor in diamonds if enabled
-                                const diamondCount = (data.diamond_selections || []).length > 0
-                                    ? (data.diamond_selections || []).length
-                                    : 1;
-
-                                const finalVariantCount = totalVariants > 0
-                                    ? totalVariants * sizeCount * diamondCount
-                                    : sizeCount * diamondCount;
-
-                                if (selectedMetals.length > 0 || data.size_dimension_enabled || (data.diamond_selections || []).length > 0) {
-                                    return (
-                                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <h3 className="text-sm font-semibold text-slate-900">Preview generated variants</h3>
-                                                    <p className="mt-1 text-xs text-slate-600">
-                                                        This setup will generate approximately {finalVariantCount} variant{finalVariantCount !== 1 ? 's' : ''} based on your current configuration.
-                                                    </p>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={generateVariantMatrix}
-                                                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
-                                                >
-                                                    Regenerate matrix
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                }
-                                return null;
-                            })()}
-
                             {/* Diamonds selection */}
                             <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
                                 <div className="flex items-center justify-between">
@@ -2821,8 +2677,10 @@ export default function AdminProductEdit() {
                                         <tr>
                                             <th className="px-5 py-3 text-left min-w-[150px]">SKU</th>
                                             <th className="px-5 py-3 text-left min-w-[300px]">Variant Label</th>
-                                            <th className="px-5 py-3 text-left min-w-[250px]">Metal</th>
-                                            <th className="px-5 py-3 text-left min-w-[250px]">Diamonds</th>
+                                            <th className="px-5 py-3 text-left min-w-[150px]">Metal</th>
+                                            <th className="px-5 py-3 text-left min-w-[120px]">Purity</th>
+                                            <th className="px-5 py-3 text-left min-w-[120px]">Tone</th>
+                                            <th className="px-5 py-3 text-left min-w-[120px]">Weight (g)</th>
                                             <th className="px-5 py-3 text-left">Inventory Quantity</th>
                                             <th className="px-5 py-3 text-left">Status</th>
                                             <th className="px-5 py-3 text-left">Default</th>
@@ -2957,17 +2815,8 @@ export default function AdminProductEdit() {
 
 
                                     const variantMetadata = (variant.metadata ?? {}) as Record<string, FormDataConvertible>;
-                                    const metaSizeValue =
-                                        typeof variantMetadata.size_value === 'string' || typeof variantMetadata.size_value === 'number'
-                                            ? String(variantMetadata.size_value)
-                                            : '';
-                                    const metaSizeUnit =
-                                        variantMetadata.size_unit === 'mm' || variantMetadata.size_unit === 'cm'
-                                            ? (variantMetadata.size_unit as 'mm' | 'cm')
-                                            : 'cm';
-                                    const sizeDisplay = metaSizeValue
-                                        ? `${metaSizeValue}${metaSizeUnit}`
-                                        : '—';
+                                    // Size display - use metadata size_value if available
+                                    const sizeDisplay = variantMetadata.size_value ? String(variantMetadata.size_value) : '—';
                                     const variantStatus =
                                         typeof variantMetadata.status === 'string' && variantMetadata.status.trim().length > 0
                                             ? String(variantMetadata.status)
@@ -3005,105 +2854,47 @@ export default function AdminProductEdit() {
                                                 )}
                                             </td>
                                             <td className="px-5 py-3 align-middle text-slate-700">
-                                                <div className="space-y-3 min-w-[250px]">
-                                                    {variantMetals.length > 0 ? (
-                                                        variantMetals.map((metal, metalIndex) => {
-                                                            const metalName = metalMap[metal.metal_id] || 'Unknown Metal';
-                                                            const purityName = metal.metal_purity_id && typeof metal.metal_purity_id === 'number'
-                                                                ? metalPurities.find(p => p.id === metal.metal_purity_id)?.name || ''
-                                                                : '';
-                                                            const toneName = metal.metal_tone_id && typeof metal.metal_tone_id === 'number'
-                                                                ? metalTones.find(t => t.id === metal.metal_tone_id)?.name || ''
-                                                                : '';
-                                                            const weight = metal.metal_weight || '';
-
-                                                            return (
-                                                                <div key={metalIndex} className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
-                                                                    {/* Metal Type */}
-                                                                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                                                                        <div className="text-xs font-medium text-slate-500 mb-1">Metal</div>
-                                                                        <div className="text-sm font-semibold text-slate-800">{metalName}</div>
-                                                                    </div>
-
-                                                                    {/* Purity */}
-                                                                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                                                                        <div className="text-xs font-medium text-slate-500 mb-1">Purity</div>
-                                                                        <div className="text-sm text-slate-700">{purityName || '—'}</div>
-                                                                    </div>
-
-                                                                    {/* Tone */}
-                                                                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                                                                        <div className="text-xs font-medium text-slate-500 mb-1">Tone</div>
-                                                                        <div className="text-sm text-slate-700">{toneName || '—'}</div>
-                                                                    </div>
-
-                                                                    {/* Weight */}
-                                                                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                                                                        <div className="text-xs font-medium text-slate-500 mb-1.5">Weight (g)</div>
-                                                                        <input
-                                                                            type="number"
-                                                                            step="0.001"
-                                                                            min="0.001"
-                                                                            required
-                                                                            value={weight}
-                                                                            onChange={(e) => {
-                                                                                const value = e.target.value;
-                                                                                updateMetalInVariant(index, metalIndex, 'metal_weight', value);
-                                                                            }}
-                                                                            className={`w-full rounded-lg border px-2.5 py-1.5 text-sm font-mono transition-colors ${
-                                                                                (!weight || weight === '')
-                                                                                    ? 'border-rose-300 bg-rose-50 text-rose-500 focus:border-rose-400 focus:bg-white'
-                                                                                    : 'border-slate-200 bg-white text-slate-700 focus:border-sky-400'
-                                                                            } focus:outline-none focus:ring-1 focus:ring-sky-200`}
-                                                                            placeholder="0.000"
-                                                                        />
-                                                                        {(!weight || weight === '') && (
-                                                                            <span className="mt-1 text-[10px] text-rose-500">Required</span>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })
-                                                    ) : (
-                                                        <span className="text-sm text-slate-400">—</span>
-                                                    )}
+                                                <div className="min-w-[150px]">
+                                                    <span className="text-sm font-semibold text-slate-800">{metalDisplay}</span>
                                                 </div>
                                             </td>
                                             <td className="px-5 py-3 align-middle text-slate-700">
-                                                <div className="space-y-3 min-w-[250px]">
-                                                    {variantDiamonds.length > 0 ? (
-                                                        variantDiamonds.map((diamond, diamondIndex) => {
-                                                            const diamondName = diamond.diamond_id
-                                                                ? (diamonds?.find(d => d.id === diamond.diamond_id)?.name || 'Diamond')
-                                                                : 'Diamond';
-                                                            const count = diamond.diamonds_count || '';
-
+                                                <div className="min-w-[120px]">
+                                                    <span className="text-sm text-slate-700">{purityDisplay}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-3 align-middle text-slate-700">
+                                                <div className="min-w-[120px]">
+                                                    <span className="text-sm text-slate-700">{toneDisplay}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-3 align-middle text-slate-700">
+                                                <div className="min-w-[120px]">
+                                                    {variantMetals.length > 0 ? (
+                                                        variantMetals.map((metal, metalIndex) => {
+                                                            const weight = metal.metal_weight || '';
                                                             return (
-                                                                <div key={diamondIndex} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/50 p-3">
-                                                                    <div className="flex-1">
-                                                                        <div className="text-xs font-medium text-slate-500 mb-1">Diamond</div>
-                                                                        <div className="text-sm font-semibold text-slate-800">{diamondName}</div>
-                                                                    </div>
-                                                                    <div className="w-24">
-                                                                        <div className="text-xs font-medium text-slate-500 mb-1">Count</div>
-                                                                        <input
-                                                                            type="number"
-                                                                            min="1"
-                                                                            step="1"
-                                                                            required
-                                                                            value={count}
-                                                                            onChange={(e) => {
-                                                                                const value = e.target.value;
-                                                                                updateDiamondInVariant(index, diamondIndex, 'diamonds_count', value);
-                                                                            }}
-                                                                            className={`w-full rounded-lg border px-2.5 py-1.5 text-sm font-mono transition-colors ${
-                                                                                (!count || count === '')
-                                                                                    ? 'border-rose-300 bg-rose-50 text-rose-500 focus:border-rose-400 focus:bg-white'
-                                                                                    : 'border-slate-200 bg-white text-slate-700 focus:border-sky-400'
-                                                                            } focus:outline-none focus:ring-1 focus:ring-sky-200`}
-                                                                            placeholder="0"
-                                                                        />
-                                                                    </div>
+                                                                <div key={metalIndex} className="mb-2 last:mb-0">
+                                                                    <input
+                                                                        type="number"
+                                                                        step="0.001"
+                                                                        min="0.001"
+                                                                        required
+                                                                        value={weight}
+                                                                        onChange={(e) => {
+                                                                            const value = e.target.value;
+                                                                            updateMetalInVariant(index, metalIndex, 'metal_weight', value);
+                                                                        }}
+                                                                        className={`w-full rounded-lg border px-2.5 py-1.5 text-sm font-mono transition-colors ${
+                                                                            (!weight || weight === '')
+                                                                                ? 'border-rose-300 bg-rose-50 text-rose-500 focus:border-rose-400 focus:bg-white'
+                                                                                : 'border-slate-200 bg-white text-slate-700 focus:border-sky-400'
+                                                                        } focus:outline-none focus:ring-1 focus:ring-sky-200`}
+                                                                        placeholder="0.000"
+                                                                    />
+                                                                    {(!weight || weight === '') && (
+                                                                        <span className="mt-1 text-[10px] text-rose-500 block">Required</span>
+                                                                    )}
                                                                 </div>
                                                             );
                                                         })

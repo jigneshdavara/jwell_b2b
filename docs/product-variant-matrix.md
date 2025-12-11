@@ -70,9 +70,6 @@ For each combination, a variant object is created with:
   size_cm: string | null,
   metadata: {
     diamond_option_key: string | null,
-    size_cm: number | null,
-    size_value: string | null,
-    size_unit: 'mm' | 'cm' | null,
     auto_label: string,
     status: 'enabled'
   }
@@ -161,7 +158,6 @@ Each variant stores comprehensive metadata:
     "weight": 0.5
   },
   "size_cm": 6.0,
-  "size_value": "6",
   "size_unit": "cm",
   "auto_label": "VVS / 22K Gold / 6cm",
   "status": "enabled"
