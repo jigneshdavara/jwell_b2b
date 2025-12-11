@@ -891,30 +891,59 @@ export default function AdminProductEdit() {
         selected_metals: extractSelectionsFromVariants.selectedMetals ?? [],
         metal_configurations: extractSelectionsFromVariants.metalConfigurations ?? {},
         all_sizes_available: (() => {
-            // Detect if all category sizes are used
+            // Detect if all category sizes are used in variants
             if (product?.category?.sizes && product.category.sizes.length > 0 && product?.variants && product.variants.length > 0) {
-                const categorySizeIds = product.category.sizes.map((s: any) => s.id).sort();
+                // Normalize category size IDs to numbers for comparison
+                const categorySizeIds = product.category.sizes
+                    .map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id))
+                    .filter((id: any) => !isNaN(id))
+                    .sort();
+                
+                // Normalize variant size IDs to numbers
                 const variantSizeIds = product.variants
-                    .map((v: any) => v.size_id)
-                    .filter((id: any) => id !== null && id !== undefined)
+                    .map((v: any) => {
+                        const sizeId = v.size_id;
+                        return sizeId !== null && sizeId !== undefined ? (typeof sizeId === 'number' ? sizeId : Number(sizeId)) : null;
+                    })
+                    .filter((id: any) => id !== null && !isNaN(id))
                     .sort()
                     .filter((v: any, i: number, arr: any[]) => arr.indexOf(v) === i); // unique
                 
-                // If all category sizes are present in variants, assume all sizes were used
-                if (categorySizeIds.length === variantSizeIds.length && 
-                    categorySizeIds.every((id: any) => variantSizeIds.includes(id))) {
+                // If no sizes are used in variants, return undefined (neither option selected)
+                if (variantSizeIds.length === 0) {
+                    return undefined;
+                }
+                
+                // Check if all category sizes are present in variants
+                // Both arrays must have the same length AND all category sizes must be in variants
+                const allSizesMatch = categorySizeIds.length === variantSizeIds.length && 
+                    categorySizeIds.every((categoryId) => variantSizeIds.includes(categoryId));
+                
+                if (allSizesMatch) {
+                    // All category sizes are used → select "All sizes available"
                     return true;
+                } else {
+                    // Some sizes are used but not all → select "Select specific sizes"
+                    return false;
                 }
             }
+            // No category sizes or no variants → return undefined (neither option selected)
             return undefined;
         })(),
         selected_sizes: (() => {
             // Extract selected sizes from existing variants
-            if (product?.variants && product.variants.length > 0) {
+            // Only include sizes that are in the current category
+            if (product?.variants && product.variants.length > 0 && product?.category?.sizes) {
+                const categorySizeIds = new Set(
+                    product.category.sizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id))
+                );
                 const sizeIds = product.variants
-                    .map((v: any) => v.size_id)
-                    .filter((id: any) => id !== null && id !== undefined);
-                return [...new Set(sizeIds)]; // Unique size IDs
+                    .map((v: any) => {
+                        const sizeId = v.size_id;
+                        return sizeId !== null && sizeId !== undefined ? (typeof sizeId === 'number' ? sizeId : Number(sizeId)) : null;
+                    })
+                    .filter((id: any) => id !== null && !isNaN(id) && categorySizeIds.has(id));
+                return [...new Set(sizeIds)]; // Unique size IDs that are in the category
             }
             return [];
         })(),
