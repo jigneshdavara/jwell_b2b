@@ -193,7 +193,7 @@ class MigrateVariantMetalsAndDiamonds extends Command
                 'metal_id' => $metal->id,
                 'metal_purity_id' => $purity?->id,
                 'metal_tone_id' => $tone?->id,
-                'position' => 0,
+                'display_order' => 0,
             ]);
         }
     }

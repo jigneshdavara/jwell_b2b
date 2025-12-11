@@ -73,14 +73,14 @@ class QuotationController extends Controller
                         'id' => $first->product->id,
                         'name' => $first->product->name,
                         'sku' => $first->product->sku,
-                        'thumbnail' => optional($first->product->media->sortBy('position')->first())->url,
+                        'thumbnail' => optional($first->product->media->sortBy('display_order')->first())->url,
                     ],
                     'products' => $group->map(function ($q) {
                         return [
                             'id' => $q->product->id,
                             'name' => $q->product->name,
                             'sku' => $q->product->sku,
-                            'thumbnail' => optional($q->product->media->sortBy('position')->first())->url,
+                            'thumbnail' => optional($q->product->media->sortBy('display_order')->first())->url,
                         ];
                     })->values()->all(),
                     'order_reference' => $first->order?->reference,
@@ -161,7 +161,7 @@ class QuotationController extends Controller
                             'sku' => $q->product->sku,
                             'base_price' => $q->product->base_price,
                             'making_charge_amount' => $q->product->making_charge_amount,
-                            'media' => $q->product->media->sortBy('position')->values()->map(fn($media) => [
+                            'media' => $q->product->media->sortBy('display_order')->values()->map(fn($media) => [
                                 'url' => $media->url,
                                 'alt' => $media->metadata['alt'] ?? $q->product->name,
                             ]),
@@ -185,7 +185,7 @@ class QuotationController extends Controller
                     'sku' => $quotation->product->sku,
                     'base_price' => $quotation->product->base_price,
                     'making_charge' => $quotation->product->making_charge,
-                    'media' => $quotation->product->media->sortBy('position')->values()->map(fn($media) => [
+                    'media' => $quotation->product->media->sortBy('display_order')->values()->map(fn($media) => [
                         'url' => $media->url,
                         'alt' => $media->metadata['alt'] ?? $quotation->product->name,
                     ]),

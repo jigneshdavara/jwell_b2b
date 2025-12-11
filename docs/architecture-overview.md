@@ -22,7 +22,6 @@ All portals consume shared application services and models.
 - **Models (`app/Models`)**
   - `User`, `UserKycDocument`, `Brand`, `Category`, `Material`, `Product`, `ProductMedia`
   - `PriceRate`, `Offer`, `Cart`, `CartItem`, `Order`, `OrderItem`
-  - `JobworkRequest`, `WorkOrder`, `NotificationLog`
 - **Services (`app/Services`)**
   - `PricingService`: computes metal + diamond + making + offers.
   - `OfferService`: resolves applicable discounts and price locks.

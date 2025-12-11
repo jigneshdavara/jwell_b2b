@@ -10,16 +10,18 @@ class ProductMedia extends Model
 {
     use HasFactory;
 
+    protected $table = 'product_medias';
+
     protected $fillable = [
         'product_id',
         'type',
         'url',
-        'position',
+        'display_order',
         'metadata',
     ];
 
     protected $casts = [
-        'position' => 'integer',
+        'display_order' => 'integer',
         'metadata' => 'array',
     ];
 

@@ -13,14 +13,15 @@ return new class extends Migration
     {
         Schema::create('diamond_shape_sizes', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('diamond_type_id')->constrained('diamond_types')->restrictOnDelete();
             $table->foreignId('diamond_shape_id')->constrained('diamond_shapes')->cascadeOnDelete();
-            $table->string('size')->nullable()->comment('diamondshapesize');
+            $table->string('size')->comment('diamondshapesize');
             $table->string('secondary_size')->nullable()->comment('diamondsecondarysize');
             $table->text('description')->nullable();
             $table->integer('display_order')->default(0);
             $table->decimal('ctw', 10, 3)->default(0)->comment('Carat Total Weight');
             $table->timestampsTz();
-            
+
             $table->index(['diamond_shape_id', 'display_order']);
         });
     }

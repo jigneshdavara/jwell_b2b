@@ -14,7 +14,6 @@ class DiamondColor extends Model
         'diamond_type_id',
         'code',
         'name',
-        'ecat_name',
         'description',
         'display_order',
         'is_active',

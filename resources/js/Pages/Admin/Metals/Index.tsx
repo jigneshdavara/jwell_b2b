@@ -43,7 +43,7 @@ export default function AdminMetalsIndex() {
         name: '',
         description: '',
         is_active: true,
-        display_order: 0,
+        display_order: 0 as string | number,
     });
 
     useEffect(() => {
@@ -76,6 +76,10 @@ export default function AdminMetalsIndex() {
         setEditingMetal(null);
         setModalOpen(false);
         form.reset();
+        form.clearErrors();
+        form.setData('code', '');
+        form.setData('name', '');
+        form.setData('description', '');
         form.setData('is_active', true);
         form.setData('display_order', 0);
     };
@@ -87,6 +91,7 @@ export default function AdminMetalsIndex() {
 
     const openEditModal = (metal: MetalRow) => {
         setEditingMetal(metal);
+        form.clearErrors();
         form.setData({
             code: metal.code ?? '',
             name: metal.name,
@@ -99,6 +104,12 @@ export default function AdminMetalsIndex() {
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        // Convert display_order from empty string to 0 before submission
+        form.transform((data) => ({
+            ...data,
+            display_order: data.display_order === '' ? 0 : Number(data.display_order),
+        }));
 
         if (editingMetal) {
             form.put(route('admin.metals.update', editingMetal.id), {
@@ -403,18 +414,19 @@ export default function AdminMetalsIndex() {
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Code</span>
+                                            <span>Code <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="text"
                                                 value={form.data.code}
                                                 onChange={(event) => form.setData('code', event.target.value)}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 placeholder="e.g., AU, AG"
+                                                required
                                             />
                                             {form.errors.code && <span className="text-xs text-rose-500">{form.errors.code}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Name</span>
+                                            <span>Name <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="text"
                                                 value={form.data.name}
@@ -425,13 +437,14 @@ export default function AdminMetalsIndex() {
                                             {form.errors.name && <span className="text-xs text-rose-500">{form.errors.name}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Display order</span>
+                                            <span>Display order <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="number"
-                                                value={form.data.display_order}
-                                                onChange={(event) => form.setData('display_order', Number(event.target.value))}
+                                                value={form.data.display_order === '' || form.data.display_order === undefined ? '' : form.data.display_order}
+                                                onChange={(event) => form.setData('display_order', event.target.value === '' ? '' : Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
+                                                required
                                             />
                                             {form.errors.display_order && <span className="text-xs text-rose-500">{form.errors.display_order}</span>}
                                         </label>

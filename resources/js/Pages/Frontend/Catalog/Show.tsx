@@ -188,7 +188,6 @@ export default function CatalogShow() {
                 metal_purity_id: null,
                 metal_tone_id: null,
                 diamond_option_keys: [],
-                size_cm: null,
             },
         });
 
@@ -241,10 +240,7 @@ export default function CatalogShow() {
 
         if (isJobworkMode) {
             // For jobwork, only charge the making charge
-            return (
-                selectedConfig.price_breakup.making +
-                selectedConfig.price_breakup.adjustment
-            );
+            return selectedConfig.price_breakup.making;
         } else {
             // For purchase, use price_total from configuration
             return selectedConfig.price_total;

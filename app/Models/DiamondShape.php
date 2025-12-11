@@ -15,7 +15,6 @@ class DiamondShape extends Model
         'diamond_type_id',
         'code',
         'name',
-        'ecat_name',
         'description',
         'is_active',
         'display_order',

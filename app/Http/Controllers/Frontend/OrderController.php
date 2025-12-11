@@ -75,7 +75,7 @@ class OrderController extends Controller
                         'sku' => $item->product->sku,
                         'base_price' => $item->product->base_price,
                         'making_charge_amount' => $item->product->making_charge_amount,
-                        'media' => $item->product->media->sortBy('position')->values()->map(fn ($media) => [
+                        'media' => $item->product->media->sortBy('display_order')->values()->map(fn ($media) => [
                             'url' => $media->url,
                             'alt' => $media->metadata['alt'] ?? $item->product->name,
                         ]),
@@ -102,7 +102,7 @@ class OrderController extends Controller
                         'id' => $quotation->product->id,
                         'name' => $quotation->product->name,
                         'sku' => $quotation->product->sku,
-                        'media' => $quotation->product->media->sortBy('position')->values()->map(fn ($media) => [
+                        'media' => $quotation->product->media->sortBy('display_order')->values()->map(fn ($media) => [
                             'url' => $media->url,
                             'alt' => $media->metadata['alt'] ?? $quotation->product->name,
                         ]),

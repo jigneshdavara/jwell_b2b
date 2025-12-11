@@ -128,65 +128,6 @@ class MakingChargeDiscountService
 
     protected function productLevelDiscount(Product $product, ?string $customerType, ?int $customerGroupId, float $makingCharge): ?array
     {
-        $overrides = collect($product->making_charge_discount_overrides ?? []);
-
-        if ($customerType) {
-            $override = $overrides->first(function ($override) use ($customerType) {
-                return isset($override['customer_type']) && is_string($override['customer_type']) && strtolower($override['customer_type']) === $customerType;
-            });
-
-            if ($override) {
-                return $this->buildDiscountPayload(
-                    $override['type'] ?? 'percentage',
-                    (float) ($override['value'] ?? 0),
-                    $makingCharge,
-                    [
-                        'source' => 'product_override',
-                        'name' => 'Customer type making charge discount',
-                        'priority' => 420,
-                        'customer_types' => [$customerType],
-                        'meta' => [
-                            'customer_type' => $customerType,
-                        ],
-                    ],
-                );
-            }
-        }
-
-        if ($customerGroupId) {
-            $override = $overrides
-                ->firstWhere('customer_group_id', $customerGroupId);
-
-            if ($override) {
-                return $this->buildDiscountPayload(
-                    $override['type'] ?? 'percentage',
-                    (float) ($override['value'] ?? 0),
-                    $makingCharge,
-                    [
-                        'source' => 'product_override',
-                        'name' => 'Customer group making charge discount',
-                        'priority' => 400,
-                        'meta' => [
-                            'customer_group_id' => $customerGroupId,
-                        ],
-                    ],
-                );
-            }
-        }
-
-        if ($product->making_charge_discount_type && $product->making_charge_discount_value) {
-            return $this->buildDiscountPayload(
-                $product->making_charge_discount_type,
-                (float) $product->making_charge_discount_value,
-                $makingCharge,
-                [
-                    'source' => 'product',
-                    'name' => 'Product making charge discount',
-                    'priority' => 300,
-                ],
-            );
-        }
-
         return null;
     }
 

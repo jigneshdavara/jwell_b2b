@@ -152,7 +152,7 @@ class CartService
                 'line_subtotal' => round($lineSubtotal, 2),
                 'line_discount' => round($lineDiscount, 2),
                 'price_breakdown' => $pricing,
-                'thumbnail' => optional($item->product->media->sortBy('position')->first())?->url,
+                'thumbnail' => optional($item->product->media->sortBy('display_order')->first())?->url,
                 'configuration' => $item->configuration,
             ];
         });

@@ -14,10 +14,12 @@ return new class extends Migration
         Schema::create('diamonds', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->foreignId('diamond_clarity_id')->nullable()->constrained('diamond_clarities')->nullOnDelete();
-            $table->foreignId('diamond_color_id')->nullable()->constrained('diamond_colors')->nullOnDelete();
-            $table->foreignId('diamond_shape_id')->nullable()->constrained('diamond_shapes')->nullOnDelete();
-            $table->foreignId('diamond_shape_size_id')->nullable()->constrained('diamond_shape_sizes')->nullOnDelete();
+            $table->foreignId('diamond_type_id')->constrained('diamond_types')->restrictOnDelete();
+            $table->foreignId('diamond_clarity_id')->constrained('diamond_clarities')->restrictOnDelete();
+            $table->foreignId('diamond_color_id')->constrained('diamond_colors')->restrictOnDelete();
+            $table->foreignId('diamond_shape_id')->constrained('diamond_shapes')->restrictOnDelete();
+            $table->foreignId('diamond_shape_size_id')->constrained('diamond_shape_sizes')->restrictOnDelete();
+            $table->decimal('weight', 10, 3)->default(0);
             $table->decimal('price', 12, 2)->default(0);
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);

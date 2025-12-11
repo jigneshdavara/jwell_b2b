@@ -39,7 +39,6 @@ class DiamondClarityController extends Controller
                     ] : null,
                     'code' => $clarity->code,
                     'name' => $clarity->name,
-                    'ecat_name' => $clarity->ecat_name,
                     'description' => $clarity->description,
                     'display_order' => $clarity->display_order,
                     'is_active' => $clarity->is_active,
@@ -58,11 +57,10 @@ class DiamondClarityController extends Controller
 
         DiamondClarity::create([
             'diamond_type_id' => $data['diamond_type_id'],
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
-            'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -77,11 +75,10 @@ class DiamondClarityController extends Controller
 
         $clarity->update([
             'diamond_type_id' => $data['diamond_type_id'],
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
-            'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
             'is_active' => $request->boolean('is_active', true),
         ]);
 

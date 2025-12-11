@@ -39,7 +39,6 @@ class DiamondColorController extends Controller
                     ] : null,
                     'code' => $color->code,
                     'name' => $color->name,
-                    'ecat_name' => $color->ecat_name,
                     'description' => $color->description,
                     'display_order' => $color->display_order,
                     'is_active' => $color->is_active,
@@ -58,11 +57,10 @@ class DiamondColorController extends Controller
 
         DiamondColor::create([
             'diamond_type_id' => $data['diamond_type_id'],
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
-            'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -77,11 +75,10 @@ class DiamondColorController extends Controller
 
         $color->update([
             'diamond_type_id' => $data['diamond_type_id'],
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
-            'ecat_name' => $data['ecat_name'] ?? null,
             'description' => $data['description'] ?? null,
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
             'is_active' => $request->boolean('is_active', true),
         ]);
 

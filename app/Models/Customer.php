@@ -87,10 +87,6 @@ class Customer extends Authenticatable
         return $this->belongsTo(CustomerGroup::class, 'customer_group_id');
     }
 
-    public function jobworkRequests()
-    {
-        return $this->hasMany(JobworkRequest::class, 'user_id');
-    }
 
     public function carts()
     {

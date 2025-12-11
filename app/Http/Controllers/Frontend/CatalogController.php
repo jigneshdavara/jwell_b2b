@@ -51,7 +51,7 @@ class CatalogController extends Controller
         $query = Product::query()
             ->with([
                 'category',
-                'media' => fn($media) => $media->orderBy('position'),
+                'media' => fn($media) => $media->orderBy('display_order'),
                 'variants' => function ($variants) {
                     $variants->orderByAsc('id')
                         ->with(['metals.metal', 'metals.metalPurity', 'metals.metalTone']);
@@ -277,8 +277,8 @@ class CatalogController extends Controller
                     'purity' => $product->metadata['purity'] ?? $product->material?->purity,
                     'price_total' => $priceTotal,
                     'making_charge_amount' => (float) $product->making_charge_amount,
-                    'thumbnail' => optional($product->media->sortBy('position')->first())?->url,
-                    'media' => $product->media->sortBy('position')->values()->map(fn($media) => [
+                    'thumbnail' => optional($product->media->sortBy('display_order')->first())?->url,
+                    'media' => $product->media->sortBy('display_order')->values()->map(fn($media) => [
                         'url' => $media->url,
                         'alt' => $media->metadata['alt'] ?? $product->name,
                     ]),
@@ -384,7 +384,7 @@ class CatalogController extends Controller
         $product->load([
             'brand',
             'category.sizes',
-            'media' => fn($media) => $media->orderBy('position'),
+            'media' => fn($media) => $media->orderBy('display_order'),
             'variants' => function ($variants) {
                 $variants->orderByDesc('is_default')
                     ->with([

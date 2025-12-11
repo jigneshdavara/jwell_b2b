@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('metal_purities', function (Blueprint $table) {
             $table->id();
             $table->foreignId('metal_id')->constrained()->cascadeOnDelete();
-            $table->string('code')->nullable();
+            $table->string('code');
             $table->string('name');
             $table->text('description')->nullable();
             $table->integer('display_order')->default(0);
