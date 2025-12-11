@@ -1853,7 +1853,94 @@ export default function AdminProductEdit() {
             delete payload.subcategory_ids;
 
             if (formState.variants && Array.isArray(formState.variants)) {
-                payload.variants = formState.variants;
+                // Get diamond_selections to apply to variants that don't have diamonds
+                const diamondSelections = formState.diamond_selections || [];
+                
+                // Format variants and ensure diamonds are properly structured
+                payload.variants = formState.variants.map((variant: any) => {
+                    const formattedVariant = { ...variant };
+                    
+                    // Format diamonds array - ensure proper types and filter out empty entries
+                    let variantDiamonds: any[] = [];
+                    
+                    if (formattedVariant.diamonds && Array.isArray(formattedVariant.diamonds) && formattedVariant.diamonds.length > 0) {
+                        // Use variant-specific diamonds if they exist
+                        variantDiamonds = formattedVariant.diamonds
+                            .map((diamond: any) => {
+                                // Convert diamond_id to number or null
+                                const diamondId = diamond.diamond_id !== '' && 
+                                                 diamond.diamond_id !== null && 
+                                                 diamond.diamond_id !== undefined
+                                    ? (typeof diamond.diamond_id === 'number' 
+                                        ? diamond.diamond_id 
+                                        : Number(diamond.diamond_id))
+                                    : null;
+                                
+                                // Only include if diamond_id is valid
+                                if (diamondId === null || diamondId === 0 || isNaN(diamondId)) {
+                                    return null;
+                                }
+                                
+                                // Convert diamonds_count to number or null
+                                const diamondsCount = diamond.diamonds_count !== '' && 
+                                                     diamond.diamonds_count !== null && 
+                                                     diamond.diamonds_count !== undefined
+                                    ? (typeof diamond.diamonds_count === 'number' 
+                                        ? diamond.diamonds_count 
+                                        : Number(diamond.diamonds_count))
+                                    : null;
+                                
+                                return {
+                                    id: diamond.id ?? null,
+                                    diamond_id: diamondId,
+                                    diamonds_count: diamondsCount,
+                                    metadata: diamond.metadata ?? {},
+                                };
+                            })
+                            .filter((d: any) => d !== null); // Remove null entries
+                    }
+                    
+                    // If variant has no diamonds but diamond_selections exist, apply them
+                    if (variantDiamonds.length === 0 && diamondSelections.length > 0) {
+                        variantDiamonds = diamondSelections
+                            .map((selection: any) => {
+                                // Convert diamond_id to number or null
+                                const diamondId = selection.diamond_id !== '' && 
+                                                 selection.diamond_id !== null && 
+                                                 selection.diamond_id !== undefined
+                                    ? (typeof selection.diamond_id === 'number' 
+                                        ? selection.diamond_id 
+                                        : Number(selection.diamond_id))
+                                    : null;
+                                
+                                // Only include if diamond_id is valid
+                                if (diamondId === null || diamondId === 0 || isNaN(diamondId)) {
+                                    return null;
+                                }
+                                
+                                // Convert count to number or null
+                                const diamondsCount = selection.count !== '' && 
+                                                     selection.count !== null && 
+                                                     selection.count !== undefined
+                                    ? (typeof selection.count === 'number' 
+                                        ? selection.count 
+                                        : Number(selection.count))
+                                    : null;
+                                
+                                return {
+                                    id: null, // New diamond entry, no ID
+                                    diamond_id: diamondId,
+                                    diamonds_count: diamondsCount,
+                                    metadata: {},
+                                };
+                            })
+                            .filter((d: any) => d !== null); // Remove null entries
+                    }
+                    
+                    formattedVariant.diamonds = variantDiamonds;
+                    
+                    return formattedVariant;
+                });
             } else {
                 payload.variants = [];
             }
