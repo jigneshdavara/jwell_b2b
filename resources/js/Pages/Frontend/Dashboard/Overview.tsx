@@ -31,19 +31,6 @@ type DashboardProps = {
         description?: string | null;
         products_count: number;
     }>;
-    featuredCategories: Array<{
-        id: number;
-        name: string;
-        slug?: string | null;
-        products_count: number;
-        cover_image_url?: string | null;
-    }>;
-    brandSpotlight: Array<{
-        id: number;
-        name: string;
-        products_count: number;
-        cover_image_url?: string | null;
-    }>;
 };
 
 
@@ -51,9 +38,7 @@ export default function FrontendDashboardOverview() {
     const {
         stats,
         recentProducts,
-        featuredCatalogs,
-        featuredCategories: _featuredCategories,
-        brandSpotlight: _brandSpotlight,
+        featuredCatalogs
     } = usePage<PageProps<DashboardProps>>().props;
 
     const statEntries = Object.entries(stats);
