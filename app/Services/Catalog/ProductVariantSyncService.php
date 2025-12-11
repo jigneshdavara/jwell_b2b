@@ -52,13 +52,21 @@ class ProductVariantSyncService
                     $label = 'Variant ' . ($payload['sku'] ?? 'Unknown');
                 }
 
+                // Handle size_id - convert empty string, 0, or invalid values to null
+                $sizeId = $payload['size_id'] ?? null;
+                if ($sizeId === '' || $sizeId === 0 || $sizeId === '0') {
+                    $sizeId = null;
+                } elseif ($sizeId !== null) {
+                    $sizeId = (int) $sizeId;
+                }
+
                 return [
                     'id' => $payload['id'] ?? null,
                     'sku' => $payload['sku'] ?? null,
                     'label' => $label,
                     'metal_id' => $payload['metal_id'] ?? null,
                     'metal_purity_id' => $payload['metal_purity_id'] ?? null,
-                    'size' => $payload['size'] ?? null,
+                    'size_id' => $sizeId,
                     'inventory_quantity' => isset($payload['inventory_quantity']) && $payload['inventory_quantity'] !== '' && $payload['inventory_quantity'] !== null
                         ? (int) $payload['inventory_quantity']
                         : 0,
@@ -117,6 +125,7 @@ class ProductVariantSyncService
             // metals and diamonds arrays are used to sync related records
             // diamond_option_key is stored in metadata, not as direct column
             // metal_tone is a legacy field that doesn't exist in the database
+            // size is a legacy field - use size_id instead
             $attributes = Arr::except($variant, [
                 'id',
                 'metal_id',
@@ -125,6 +134,7 @@ class ProductVariantSyncService
                 'diamonds',
                 'diamond_option_key',
                 'metal_tone', // Legacy field - not in database
+                'size', // Legacy field - use size_id instead
             ]);
 
             /** @var \App\Models\ProductVariant|null $model */
@@ -142,6 +152,10 @@ class ProductVariantSyncService
 
             if ($model) {
                 // Update existing variant
+                // Ensure size_id is explicitly included (can be null)
+                if (!isset($attributes['size_id'])) {
+                    $attributes['size_id'] = $variant['size_id'] ?? null;
+                }
                 $model->update($attributes);
                 $this->syncVariantMetals($model, $metals);
                 $this->syncVariantDiamonds($model, $diamonds);
@@ -156,6 +170,10 @@ class ProductVariantSyncService
                 $existingBySku = $product->variants()->where('sku', $attributes['sku'])->first();
                 if ($existingBySku) {
                     // Update the existing variant instead of creating a duplicate
+                    // Ensure size_id is explicitly included (can be null)
+                    if (!isset($attributes['size_id'])) {
+                        $attributes['size_id'] = $variant['size_id'] ?? null;
+                    }
                     $existingBySku->update($attributes);
                     $this->syncVariantMetals($existingBySku, $metals);
                     $this->syncVariantDiamonds($existingBySku, $diamonds);
@@ -175,6 +193,11 @@ class ProductVariantSyncService
             // Ensure label is present before creating (required field)
             if (empty($attributes['label']) || trim($attributes['label']) === '') {
                 $attributes['label'] = 'Variant ' . ($attributes['sku'] ?? 'Unknown');
+            }
+
+            // Ensure size_id is properly set (can be null, but should be explicitly set)
+            if (!isset($attributes['size_id'])) {
+                $attributes['size_id'] = null;
             }
 
             // Create new variant only if it doesn't exist

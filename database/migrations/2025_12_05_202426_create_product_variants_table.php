@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->string('sku')->nullable()->unique();
             $table->string('label');
-            $table->string('size')->nullable();
+            $table->foreignId('size_id')->nullable()->constrained('sizes')->nullOnDelete();
             $table->integer('inventory_quantity')->default(0);
             $table->boolean('is_default')->default(false);
             $table->jsonb('metadata')->nullable();
