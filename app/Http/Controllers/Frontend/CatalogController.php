@@ -28,11 +28,6 @@ class CatalogController extends Controller
 
     public function index(Request $request): Response
     {
-        $mode = $request->string('mode')->lower()->value();
-        if (! in_array($mode, ['jobwork', 'purchase'], true)) {
-            $mode = 'purchase';
-        }
-
         $filters = $request->only([
             'brand',
             'metal',
@@ -367,7 +362,6 @@ class CatalogController extends Controller
         ];
 
         return Inertia::render('Frontend/Catalog/Index', [
-            'mode' => $mode,
             'filters' => $filters,
             'products' => $products,
             'facets' => $facets,
@@ -376,11 +370,6 @@ class CatalogController extends Controller
 
     public function show(Product $product): Response
     {
-        $mode = request()->string('mode')->lower()->value();
-        if (! in_array($mode, ['jobwork', 'purchase'], true)) {
-            $mode = 'purchase';
-        }
-
         $product->load([
             'brand',
             'category.sizes',
@@ -402,7 +391,6 @@ class CatalogController extends Controller
         $configurationOptions = $this->buildConfigurationOptions($product);
 
         return Inertia::render('Frontend/Catalog/Show', [
-            'mode' => $mode,
             'product' => [
                 'id' => $product->id,
                 'name' => $product->name,

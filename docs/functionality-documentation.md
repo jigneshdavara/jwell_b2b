@@ -303,7 +303,6 @@ The application supports multiple user types with distinct portals:
 1. **Add to Cart**
    - Add products with variants
    - Quantity selection
-   - Configuration options (mode: purchase/jobwork)
    - Selections (custom options)
    - Notes per item
 
@@ -329,7 +328,6 @@ The application supports multiple user types with distinct portals:
   - **Jobwork Mode**: Custom manufacturing request
 
 - **Configuration Support**
-  - Custom selections per item
   - Notes and special instructions
   - Product-specific options
 
@@ -491,9 +489,7 @@ The application supports multiple user types with distinct portals:
 
 1. **From Product** (`/quotations` POST)
    - Select product and variant
-   - Choose mode (purchase/jobwork)
    - Specify quantity
-   - Add selections/customizations
    - Add notes
 
 2. **From Cart** (`/quotations/from-cart` POST)
@@ -590,7 +586,6 @@ The application supports multiple user types with distinct portals:
    - Full specification input
 
 #### Jobwork Request Information
-- **Product Reference** (catalogue mode)
   - Product selection
   - Variant selection
 

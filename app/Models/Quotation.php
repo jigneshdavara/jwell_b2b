@@ -17,20 +17,16 @@ class Quotation extends Model
         'quotation_group_id',
         'product_id',
         'product_variant_id',
-        'mode',
         'status',
         'quantity',
-        'selections',
         'notes',
         'metadata',
         'order_id',
         'approved_at',
-        'jobwork_status',
         'admin_notes',
     ];
 
     protected $casts = [
-        'selections' => 'array',
         'metadata' => 'array',
         'approved_at' => 'datetime',
     ];

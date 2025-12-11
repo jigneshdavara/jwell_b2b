@@ -26,12 +26,6 @@
                 <td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Quantity</td>
                 <td style="padding:8px 0;font-size:13px;color:#0f172a;">{{ $quotation->quantity }}</td>
             </tr>
-            <tr>
-                <td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Mode</td>
-                <td style="padding:8px 0;font-size:13px;color:#0f172a;">
-                    {{ $quotation->mode === 'jobwork' ? 'Jobwork' : 'Jewellery Purchase' }}
-                </td>
-            </tr>
             @if($quotation->order)
             <tr>
                 <td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Order Reference</td>
@@ -47,7 +41,7 @@
         </table>
     </div>
 
-    @if($quotation->mode === 'jobwork')
+    @if(false)
     <div style="background-color:#dbeafe;border-left:4px solid #3b82f6;padding:20px;margin:24px 0;border-radius:8px;">
         <p style="margin:0;font-size:14px;color:#1e40af;font-weight:600;">Jobwork Process Started</p>
         <p style="margin:8px 0 0;font-size:13px;color:#1e3a8a;line-height:1.6;">

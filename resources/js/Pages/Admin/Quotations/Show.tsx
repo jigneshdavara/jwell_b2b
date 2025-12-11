@@ -7,11 +7,9 @@ import { FormEvent, useState, useEffect, useRef } from 'react';
 
 type RelatedQuotation = {
     id: number;
-    mode: 'purchase' | 'jobwork';
     status: string;
     quantity: number;
     notes?: string | null;
-    selections?: Record<string, unknown> | null;
     product: {
         id: number;
         name: string;
@@ -42,16 +40,13 @@ type RelatedQuotation = {
 
 type QuotationDetails = {
     id: number;
-    mode: 'purchase' | 'jobwork';
     status: string;
-    jobwork_status?: string | null;
     quantity: number;
     notes?: string | null;
     admin_notes?: string | null;
     approved_at?: string | null;
     created_at?: string | null;
     updated_at?: string | null;
-    selections?: Record<string, unknown> | null;
     related_quotations?: RelatedQuotation[];
     product: {
         id: number;
@@ -111,7 +106,6 @@ type QuotationDetails = {
 
 type AdminQuotationShowProps = PageProps<{
     quotation: QuotationDetails;
-    jobworkStages: Record<string, string>;
 }>;
 
 const statusBadge: Record<string, string> = {
@@ -145,7 +139,7 @@ const formatDate = (input?: string | null) =>
         : 'N/A';
 
 export default function AdminQuotationShow() {
-    const { quotation, jobworkStages } = usePage<AdminQuotationShowProps>().props;
+    const { quotation } = usePage<AdminQuotationShowProps>().props;
     const [changeProductModalOpen, setChangeProductModalOpen] = useState<number | null>(null);
     const [addItemModalOpen, setAddItemModalOpen] = useState(false);
     const [productSearch, setProductSearch] = useState('');
@@ -157,7 +151,7 @@ export default function AdminQuotationShow() {
     const [isManualAddItemSearch, setIsManualAddItemSearch] = useState(false);
     // Track if changes have been made that require customer confirmation
     const [hasChanges, setHasChanges] = useState(quotation.status === 'pending_customer_confirmation');
-    const [actionType, setActionType] = useState<'approve' | 'reject' | 'request_confirmation' | 'jobwork_update' | ''>('');
+    const [actionType, setActionType] = useState<'approve' | 'reject' | 'request_confirmation' | ''>('');
     const [productDetailsModalOpen, setProductDetailsModalOpen] = useState<RelatedQuotation | QuotationDetails | null>(null);
     const [removeItemConfirm, setRemoveItemConfirm] = useState<{ show: boolean; itemId: number | null }>({ show: false, itemId: null });
 
@@ -165,10 +159,6 @@ export default function AdminQuotationShow() {
         admin_notes: quotation.admin_notes ?? '',
     });
     const rejectForm = useForm({
-        admin_notes: quotation.admin_notes ?? '',
-    });
-    const jobworkForm = useForm({
-        jobwork_status: quotation.jobwork_status ?? 'material_sending',
         admin_notes: quotation.admin_notes ?? '',
     });
     const messageForm = useForm({
@@ -184,7 +174,6 @@ export default function AdminQuotationShow() {
         product_id: '',
         product_variant_id: '',
         quantity: 1,
-        mode: quotation.mode,
         admin_notes: '',
     });
 
@@ -339,7 +328,6 @@ export default function AdminQuotationShow() {
             product_id: '',
             product_variant_id: '',
             quantity: 1,
-            mode: quotation.mode,
             admin_notes: '',
         });
         setAddItemProductSearch('');
@@ -447,15 +435,6 @@ export default function AdminQuotationShow() {
                                 <div className="mt-3 flex justify-end gap-2">
                                     <span
                                         className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${
-                                            quotation.mode === 'jobwork'
-                                                ? 'bg-sky-100 text-sky-700'
-                                                : 'bg-slate-200 text-slate-700'
-                                        }`}
-                                    >
-                                        {quotation.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}
-                                    </span>
-                                    <span
-                                        className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${
                                             statusBadge[quotation.status] ?? 'bg-slate-200 text-slate-700'
                                         }`}
                                     >
@@ -486,7 +465,6 @@ export default function AdminQuotationShow() {
                                 <thead className="border-b-2 border-slate-200 bg-slate-50">
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Item</th>
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Mode</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Unit Price</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Qty</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Total</th>
@@ -525,17 +503,6 @@ export default function AdminQuotationShow() {
                                                             )}
                                                         </div>
                                                     </div>
-                                                </td>
-                                                <td className="px-4 py-4 text-center">
-                                                    <span
-                                                        className={`inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold ${
-                                                            item.mode === 'jobwork'
-                                                                ? 'bg-sky-100 text-sky-700'
-                                                                : 'bg-slate-200 text-slate-700'
-                                                        }`}
-                                                    >
-                                                        {item.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}
-                                                    </span>
                                                 </td>
                                                 <td className="px-4 py-4 text-right">
                                                     <div className="text-sm font-semibold text-slate-900">₹ {unitPrice.toLocaleString('en-IN')}</div>
@@ -604,14 +571,10 @@ export default function AdminQuotationShow() {
                                             const quantity = Number(item.quantity) || 0;
                                             const lineTotal = unitTotal * quantity;
                                             
-                                            if (item.mode === 'jobwork') {
-                                                acc.totalJobwork += lineTotal;
-                                            } else {
-                                                acc.totalBase += lineTotal;
-                                            }
+                                            acc.totalBase += lineTotal;
                                             
                                             return acc;
-                                        }, { totalJobwork: 0, totalBase: 0 });
+                                        }, { totalBase: 0 });
                                         
                                         // Use backend-calculated tax summary if available, otherwise calculate from totals
                                         const taxSummary = quotation.tax_summary;
@@ -852,13 +815,6 @@ export default function AdminQuotationShow() {
                                                     setActionType('');
                                                 },
                                             });
-                                        } else if (actionType === 'jobwork_update') {
-                                            const jobworkStatus = formData.get('jobwork_status') as string;
-                                            jobworkForm.setData('jobwork_status', jobworkStatus);
-                                            jobworkForm.setData('admin_notes', notes);
-                                            jobworkForm.post(route('admin.quotations.jobwork-status', quotation.id), {
-                                                preserveScroll: true,
-                                            });
                                         }
                                     }}
                                     className="space-y-4"
@@ -879,28 +835,8 @@ export default function AdminQuotationShow() {
                                                 <option value="reject">Reject Quotation</option>
                                             )}
                                             <option value="request_confirmation">Request Customer Confirmation</option>
-                                            {quotation.mode === 'jobwork' && quotation.status === 'approved' && (
-                                                <option value="jobwork_update">Update Jobwork Stage</option>
-                                            )}
                                         </select>
                                     </div>
-
-                                    {actionType === 'jobwork_update' && (
-                                        <div>
-                                            <label className="mb-2 block text-sm font-semibold text-slate-700">Jobwork Stage</label>
-                                            <select
-                                                name="jobwork_status"
-                                                defaultValue={quotation.jobwork_status ?? 'material_sending'}
-                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            >
-                                                {Object.entries(jobworkStages).map(([value, label]) => (
-                                                    <option key={value} value={value}>
-                                                        {label}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    )}
 
                                     <div>
                                         <label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -925,14 +861,12 @@ export default function AdminQuotationShow() {
                                         className={`w-full rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg transition disabled:cursor-not-allowed disabled:opacity-70 ${
                                             actionType === 'approve' ? 'bg-emerald-600 shadow-emerald-600/30 hover:bg-emerald-500' :
                                             actionType === 'reject' ? 'bg-rose-600 shadow-rose-600/30 hover:bg-rose-500' :
-                                            actionType === 'jobwork_update' ? 'bg-sky-600 shadow-sky-600/30 hover:bg-sky-500' :
                                             hasChanges ? 'bg-amber-600 shadow-amber-600/30 hover:bg-amber-500' :
                                             'bg-sky-600 shadow-sky-600/30 hover:bg-sky-500'
                                         }`}
                                     >
                                         {actionType === 'approve' ? 'Approve Quotation' :
                                          actionType === 'reject' ? 'Reject Quotation' :
-                                         actionType === 'jobwork_update' ? 'Update Jobwork Stage' :
                                          hasChanges ? 'Request Confirmation (Changes Pending)' :
                                          'Request Confirmation'}
                                     </button>
@@ -976,9 +910,6 @@ export default function AdminQuotationShow() {
                                         <h4 className="text-xl font-semibold text-slate-900">{productDetailsModalOpen.product.name}</h4>
                                         <p className="mt-1 text-sm text-slate-500">SKU: {productDetailsModalOpen.product.sku}</p>
                                         <div className="mt-3 flex gap-2">
-                                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${productDetailsModalOpen.mode === 'jobwork' ? 'bg-elvee-blue/10 text-elvee-blue' : 'bg-slate-200 text-slate-700'}`}>
-                                                {productDetailsModalOpen.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}
-                                            </span>
                                             <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
                                                 Qty: {productDetailsModalOpen.quantity}
                                             </span>
@@ -1056,22 +987,6 @@ export default function AdminQuotationShow() {
                                     </div>
                                 )}
 
-                                {/* Selections */}
-                                {productDetailsModalOpen.selections && Object.keys(productDetailsModalOpen.selections).length > 0 && (
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Selected Options</h5>
-                                        <div className="space-y-2 text-sm">
-                                            {Object.entries(productDetailsModalOpen.selections).map(([key, value]) => (
-                                                <div key={key} className="flex justify-between">
-                                                    <span className="text-slate-600">{key.replace(/_/g, ' ')}:</span>
-                                                    <span className="font-semibold text-slate-900">
-                                                        {value === null || value === undefined || value === '' ? '—' : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
 
                                 {/* Notes */}
                                 {productDetailsModalOpen.notes && (
@@ -1258,18 +1173,6 @@ export default function AdminQuotationShow() {
                                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Selected Product</p>
                                         <p className="mt-1 text-sm font-semibold text-slate-900">{addItemSelectedProduct.name}</p>
                                         <p className="text-xs text-slate-400">SKU {addItemSelectedProduct.sku}</p>
-                                    </div>
-
-                                    <div>
-                                        <label className="mb-2 block text-sm font-semibold text-slate-700">Mode</label>
-                                        <select
-                                            value={addItemForm.data.mode}
-                                            onChange={(e) => addItemForm.setData('mode', e.target.value as 'purchase' | 'jobwork')}
-                                            className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        >
-                                            <option value="purchase">Jewellery</option>
-                                            <option value="jobwork">Jobwork</option>
-                                        </select>
                                     </div>
 
                                     {addItemSelectedProduct.variants.length > 0 && (

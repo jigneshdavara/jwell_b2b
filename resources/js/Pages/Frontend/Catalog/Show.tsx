@@ -100,7 +100,6 @@ interface ConfigurationOption {
 }
 
 type CatalogShowPageProps = AppPageProps<{
-    mode: "purchase" | "jobwork";
     product: Product;
     configurationOptions: ConfigurationOption[];
 }>;
@@ -115,7 +114,7 @@ export default function CatalogShow() {
     const page = usePage<
         CatalogShowPageProps & { wishlist?: { product_ids?: number[] } }
     >();
-    const { mode, product, configurationOptions } = page.props;
+    const { product, configurationOptions } = page.props;
     const wishlistProductIds = page.props.wishlist?.product_ids ?? [];
     const wishlistLookup = useMemo(
         () => new Set(wishlistProductIds),
@@ -147,7 +146,6 @@ export default function CatalogShow() {
         [selectedVariantId, configurationOptions]
     );
 
-    const [selectedMode] = useState<"purchase" | "jobwork">("purchase");
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [quantityInput, setQuantityInput] = useState<string>("1");
@@ -165,42 +163,24 @@ export default function CatalogShow() {
     type QuotationFormData = {
         product_id: number;
         product_variant_id: number | null;
-        mode: "purchase" | "jobwork";
         quantity: number;
         notes: string;
-        selections: {
-            metal_id: number | null | "";
-            metal_purity_id: number | null | "";
-            metal_tone_id: number | null | "";
-            diamond_option_keys: string[];
-        };
     };
 
     const { data, setData, post, processing, errors } =
         useForm<QuotationFormData>({
             product_id: product.id,
             product_variant_id: selectedVariantId ?? null,
-            mode: selectedMode,
             quantity: 1,
             notes: "",
-            selections: {
-                metal_id: null,
-                metal_purity_id: null,
-                metal_tone_id: null,
-                diamond_option_keys: [],
-            },
         });
 
-    useEffect(() => {
-        setData("mode", selectedMode);
-    }, [selectedMode, setData]);
 
     // Sync quantityInput with form data when variant changes
     useEffect(() => {
         setQuantityInput(String(data.quantity));
     }, [selectedVariantId, data.quantity]);
 
-    const isJobworkMode = mode === 'jobwork';
 
     // Update form data when variant changes
     // This ensures the Request quotation API receives the correct variant_id
@@ -238,14 +218,9 @@ export default function CatalogShow() {
             return 0;
         }
 
-        if (isJobworkMode) {
-            // For jobwork, only charge the making charge
-            return selectedConfig.price_breakup.making;
-        } else {
-            // For purchase, use price_total from configuration
-            return selectedConfig.price_total;
-        }
-    }, [selectedConfig, isJobworkMode]);
+        // Use price_total from configuration
+        return selectedConfig.price_total;
+    }, [selectedConfig]);
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -260,9 +235,7 @@ export default function CatalogShow() {
             product_variant_id: data.product_variant_id,
             quantity: data.quantity,
             configuration: {
-                mode: selectedMode,
                 notes: data.notes,
-                selections: data.selections,
             },
         };
 
@@ -288,9 +261,7 @@ export default function CatalogShow() {
             product_variant_id: data.product_variant_id,
             quantity: data.quantity,
             configuration: {
-                mode,
                 notes: data.notes,
-                selections: data.selections,
             },
         };
 
@@ -605,7 +576,7 @@ export default function CatalogShow() {
                                                 ? 'Includes making charge only. Final quotation may vary with labour costs.'
                                                 : 'Includes metal, diamond, and making charge. Final quotation may vary with bullion/diamond parity and labour.'}
                                         </p>
-                                        {!isJobworkMode && (
+                                        {(
                                             <div className="mt-2 space-y-1 text-xs">
                                                 {selectedConfig.price_breakup
                                                     .metal > 0 && (
@@ -645,7 +616,7 @@ export default function CatalogShow() {
                                                 </p>
                                             </div>
                                         )}
-                                        {isJobworkMode && (
+                                        {false && (
                                             <div className="mt-2 space-y-1 text-xs">
                                                 <p className="flex justify-between">
                                                     <span>Making charge:</span>
@@ -726,7 +697,6 @@ export default function CatalogShow() {
                                 <span className="font-semibold text-slate-700">
                                     Mode:
                                 </span>{" "}
-                                {mode === "jobwork" ? "Jobwork" : "Jewellery"}
                             </p>
                             <p>
                                 <span className="font-semibold text-slate-700">

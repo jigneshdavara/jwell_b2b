@@ -50,7 +50,6 @@ type OrderDetails = {
     }>;
     quotations?: Array<{
         id: number;
-        mode: string;
         status: string;
         quantity: number;
         product?: {
@@ -370,7 +369,6 @@ export default function FrontendOrdersShow() {
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-xs text-slate-500">Qty: {quotation.quantity}</p>
-                                                    <p className="text-xs text-slate-400">{quotation.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}</p>
                                                 </div>
                                             </Link>
                                         ))}
