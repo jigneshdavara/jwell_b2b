@@ -232,14 +232,25 @@ class ProductController extends Controller
             $data['making_charge_percentage'] = null;
         }
 
-        // Handle metadata
-        if (array_key_exists('metadata', $data)) {
-            $metadata = is_array($data['metadata']) ? $data['metadata'] : [];
-            $sizeDimension = $this->sanitizeSizeDimension($metadata['size_dimension'] ?? null);
+        // Handle making charge types - store in metadata
+        $makingChargeTypes = $data['making_charge_types'] ?? [];
+        if (!empty($makingChargeTypes) && is_array($makingChargeTypes)) {
+            // Store in metadata for easy access
+            $metadata = is_array($data['metadata'] ?? null) ? $data['metadata'] : [];
+            $metadata['making_charge_types'] = array_values(array_filter($makingChargeTypes, fn($type) => in_array($type, ['fixed', 'percentage'], true)));
+            $data['metadata'] = !empty($metadata) ? $metadata : null;
+        }
 
-            $data['metadata'] = !empty($sizeDimension)
-                ? ['size_dimension' => $sizeDimension]
-                : null;
+        // Handle other metadata fields
+        if (array_key_exists('metadata', $data) && is_array($data['metadata'])) {
+            $metadata = $data['metadata'];
+            $sizeDimension = $this->sanitizeSizeDimension($metadata['size_dimension'] ?? null);
+            
+            if ($sizeDimension) {
+                $metadata['size_dimension'] = $sizeDimension;
+            }
+
+            $data['metadata'] = !empty($metadata) ? $metadata : null;
         }
 
         return $data;
@@ -298,6 +309,7 @@ class ProductController extends Controller
             'gender' => $product->gender ?? '',
             'making_charge_amount' => $product->making_charge_amount,
             'making_charge_percentage' => $product->making_charge_percentage,
+            'making_charge_types' => $product->getMakingChargeTypes(),
             'is_active' => $product->is_active ?? true,
             'catalog_ids' => $product->catalogs->pluck('id')->toArray(),
             'metadata' => $product->metadata,

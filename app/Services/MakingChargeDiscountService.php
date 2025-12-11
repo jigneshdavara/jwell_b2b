@@ -19,7 +19,11 @@ class MakingChargeDiscountService
      */
     public function resolve(Product $product, ?Customer $user = null, array $context = []): array
     {
-        $makingCharge = (float) $product->making_charge_amount;
+        // Get metal cost from context if available, otherwise 0
+        $metalCost = (float) ($context['metal'] ?? $context['metal_cost'] ?? 0);
+        
+        // Calculate making charge based on configured types (fixed, percentage, or both)
+        $makingCharge = $product->calculateMakingCharge($metalCost);
 
         if ($makingCharge <= 0) {
             return $this->emptyDiscount();

@@ -117,12 +117,13 @@ class DashboardController extends Controller
                     }
                     $diamondCost = round($diamondCost, 2);
 
+                    // Calculate making charge based on configured types (fixed, percentage, or both)
+                    $makingCharge = $product->calculateMakingCharge($metalCost);
                     // Calculate priceTotal: Metal + Diamond + Making Charge
-                    $makingCharge = (float) ($product->making_charge_amount ?? 0);
                     $priceTotal = $metalCost + $diamondCost + $makingCharge;
                 } else {
-                    // If no variant, fallback to making charge only
-                    $priceTotal = (float) ($product->making_charge ?? 0);
+                    // If no variant, fallback to making charge only (with no metal cost)
+                    $priceTotal = $product->calculateMakingCharge(0);
                 }
 
                 return [
