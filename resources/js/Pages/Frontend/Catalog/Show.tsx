@@ -572,11 +572,9 @@ export default function CatalogShow() {
                                             )}
                                         </p>
                                         <p className="text-xs text-slate-500">
-                                            {isJobworkMode
-                                                ? 'Includes making charge only. Final quotation may vary with labour costs.'
-                                                : 'Includes metal, diamond, and making charge. Final quotation may vary with bullion/diamond parity and labour.'}
+                                            Includes metal, diamond, and making charge. Final quotation may vary with bullion/diamond parity and labour.
                                         </p>
-                                        {(
+                                        {selectedConfig && (
                                             <div className="mt-2 space-y-1 text-xs">
                                                 {selectedConfig.price_breakup
                                                     .metal > 0 && (
@@ -606,20 +604,6 @@ export default function CatalogShow() {
                                                 )}
                                                 <p className="flex justify-between">
                                                     <span>Making:</span>
-                                                    <span className="font-medium">
-                                                        {currencyFormatter.format(
-                                                            selectedConfig
-                                                                .price_breakup
-                                                                .making
-                                                        )}
-                                                    </span>
-                                                </p>
-                                            </div>
-                                        )}
-                                        {false && (
-                                            <div className="mt-2 space-y-1 text-xs">
-                                                <p className="flex justify-between">
-                                                    <span>Making charge:</span>
                                                     <span className="font-medium">
                                                         {currencyFormatter.format(
                                                             selectedConfig

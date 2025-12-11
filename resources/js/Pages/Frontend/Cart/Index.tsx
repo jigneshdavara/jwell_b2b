@@ -843,11 +843,6 @@ export default function CartIndex() {
                         <p className="mt-1">
                             <span className="font-semibold text-slate-800">Total units:</span> {totalQuantity}
                         </p>
-                        {jobworkCount > 0 && (
-                            <p className="mt-1">
-                                <span className="font-semibold text-slate-800">Jobwork requests:</span> {jobworkCount}
-                            </p>
-                        )}
                         <p className="mt-1">
                             <span className="font-semibold text-slate-800">Estimated total:</span> {formatter.format(cart.total)}
                         </p>
@@ -957,8 +952,6 @@ export default function CartIndex() {
                                             <p className="mt-1 text-xs font-medium text-slate-600">{productDetailsModalOpen.variant_label}</p>
                                         )}
                                         <div className="mt-2 flex flex-wrap gap-1.5">
-                                            <span
-                                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
                                             <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
                                                 Qty: {productDetailsModalOpen.quantity}
                                             </span>

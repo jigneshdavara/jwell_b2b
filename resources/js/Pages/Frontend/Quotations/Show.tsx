@@ -224,7 +224,6 @@ export default function FrontendQuotationShow() {
                                 </p>
                                 <div className="mt-3 flex justify-end gap-2">
                                     <span
-                                    <span
                                         className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
                                             statusBadge[quotation.status] ?? 'bg-slate-200 text-slate-700'
                                         }`}
@@ -333,35 +332,13 @@ export default function FrontendQuotationShow() {
                                         
                                         // Use backend-calculated tax summary if available, otherwise calculate from totals
                                         const taxSummary = quotation.tax_summary;
-                                        const subtotal = taxSummary ? taxSummary.subtotal : (totals.totalJobwork + totals.totalBase);
+                                        const subtotal = taxSummary ? taxSummary.subtotal : totals.totalBase;
                                         const tax = taxSummary ? taxSummary.tax : 0;
                                         const grandTotal = taxSummary ? taxSummary.total : (subtotal + tax);
                                         const taxRate = quotation.tax_rate ?? 18;
                                         
                                         return (
                                             <>
-                                                {totals.totalJobwork > 0 && (
-                                                    <tr>
-                                                        <td colSpan={3} className="px-4 py-2 text-right text-sm text-slate-600">
-                                                            Total Jobwork
-                                                        </td>
-                                                        <td className="px-4 py-2"></td>
-                                                        <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
-                                                            {currencyFormatter.format(totals.totalJobwork)}
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                                {totals.totalBase > 0 && (
-                                                    <tr>
-                                                        <td colSpan={3} className="px-4 py-2 text-right text-sm text-slate-600">
-                                                            Total Purchase
-                                                        </td>
-                                                        <td className="px-4 py-2"></td>
-                                                        <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
-                                                            {currencyFormatter.format(totals.totalBase)}
-                                                        </td>
-                                                    </tr>
-                                                )}
                                                 <tr>
                                                     <td colSpan={3} className="px-4 py-2 text-right text-sm text-slate-600">
                                                         Subtotal

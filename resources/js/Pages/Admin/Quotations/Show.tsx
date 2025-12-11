@@ -578,35 +578,13 @@ export default function AdminQuotationShow() {
                                         
                                         // Use backend-calculated tax summary if available, otherwise calculate from totals
                                         const taxSummary = quotation.tax_summary;
-                                        const subtotal = taxSummary ? taxSummary.subtotal : (totals.totalJobwork + totals.totalBase);
+                                        const subtotal = taxSummary ? taxSummary.subtotal : totals.totalBase;
                                         const tax = taxSummary ? taxSummary.tax : 0;
                                         const grandTotal = taxSummary ? taxSummary.total : (subtotal + tax);
                                         const taxRate = quotation.tax_rate ?? 18;
                                         
                                         return (
                                             <>
-                                                {totals.totalJobwork > 0 && (
-                                                    <tr>
-                                                        <td colSpan={4} className="px-4 py-2 text-right text-sm text-slate-600">
-                                                            Total Jobwork
-                                                        </td>
-                                                        <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
-                                                            ₹ {totals.totalJobwork.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                        </td>
-                                                        <td></td>
-                                                    </tr>
-                                                )}
-                                                {totals.totalBase > 0 && (
-                                                    <tr>
-                                                        <td colSpan={4} className="px-4 py-2 text-right text-sm text-slate-600">
-                                                            Total Purchase
-                                                        </td>
-                                                        <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
-                                                            ₹ {totals.totalBase.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                        </td>
-                                                        <td></td>
-                                                    </tr>
-                                                )}
                                                 <tr>
                                                     <td colSpan={4} className="px-4 py-2 text-right text-sm text-slate-600">
                                                         Subtotal
