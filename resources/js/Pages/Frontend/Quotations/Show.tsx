@@ -6,11 +6,9 @@ import { FormEvent, useState } from 'react';
 
 type RelatedQuotation = {
     id: number;
-    mode: 'purchase' | 'jobwork';
     status: string;
     quantity: number;
     notes?: string | null;
-    selections?: Record<string, unknown> | null;
     product: {
         id: number;
         name: string;
@@ -41,16 +39,13 @@ type RelatedQuotation = {
 
 type QuotationDetails = {
     id: number;
-    mode: 'purchase' | 'jobwork';
     status: string;
-    jobwork_status?: string | null;
     quantity: number;
     notes?: string | null;
     admin_notes?: string | null;
     approved_at?: string | null;
     created_at?: string | null;
     updated_at?: string | null;
-    selections?: Record<string, unknown> | null;
     related_quotations?: RelatedQuotation[];
     product: {
         id: number;
@@ -230,15 +225,6 @@ export default function FrontendQuotationShow() {
                                 <div className="mt-3 flex justify-end gap-2">
                                     <span
                                         className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                            quotation.mode === 'jobwork'
-                                                ? 'bg-elvee-blue/10 text-elvee-blue'
-                                                : 'bg-slate-200 text-slate-700'
-                                        }`}
-                                    >
-                                        {quotation.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}
-                                    </span>
-                                    <span
-                                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
                                             statusBadge[quotation.status] ?? 'bg-slate-200 text-slate-700'
                                         }`}
                                     >
@@ -257,7 +243,6 @@ export default function FrontendQuotationShow() {
                                 <thead className="border-b-2 border-slate-200 bg-slate-50">
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Item</th>
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Mode</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Unit Price</th>
                                         <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Qty</th>
                                         <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Total</th>
@@ -294,17 +279,6 @@ export default function FrontendQuotationShow() {
                                                             )}
                                                         </div>
                                                     </div>
-                                                </td>
-                                                <td className="px-4 py-4 text-center">
-                                                    <span
-                                                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${
-                                                            item.mode === 'jobwork'
-                                                                ? 'bg-elvee-blue/10 text-elvee-blue'
-                                                                : 'bg-slate-200 text-slate-700'
-                                                        }`}
-                                                    >
-                                                        {item.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}
-                                                    </span>
                                                 </td>
                                                 <td className="px-4 py-4 text-right">
                                                     <div className="text-sm font-semibold text-slate-900">{currencyFormatter.format(unitPrice)}</div>
@@ -351,46 +325,20 @@ export default function FrontendQuotationShow() {
                                             const quantity = Number(item.quantity) || 0;
                                             const lineTotal = unitTotal * quantity;
                                             
-                                            if (item.mode === 'jobwork') {
-                                                acc.totalJobwork += lineTotal;
-                                            } else {
-                                                acc.totalBase += lineTotal;
-                                            }
+                                            acc.totalBase += lineTotal;
                                             
                                             return acc;
-                                        }, { totalJobwork: 0, totalBase: 0 });
+                                        }, { totalBase: 0 });
                                         
                                         // Use backend-calculated tax summary if available, otherwise calculate from totals
                                         const taxSummary = quotation.tax_summary;
-                                        const subtotal = taxSummary ? taxSummary.subtotal : (totals.totalJobwork + totals.totalBase);
+                                        const subtotal = taxSummary ? taxSummary.subtotal : totals.totalBase;
                                         const tax = taxSummary ? taxSummary.tax : 0;
                                         const grandTotal = taxSummary ? taxSummary.total : (subtotal + tax);
                                         const taxRate = quotation.tax_rate ?? 18;
                                         
                                         return (
                                             <>
-                                                {totals.totalJobwork > 0 && (
-                                                    <tr>
-                                                        <td colSpan={3} className="px-4 py-2 text-right text-sm text-slate-600">
-                                                            Total Jobwork
-                                                        </td>
-                                                        <td className="px-4 py-2"></td>
-                                                        <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
-                                                            {currencyFormatter.format(totals.totalJobwork)}
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                                {totals.totalBase > 0 && (
-                                                    <tr>
-                                                        <td colSpan={3} className="px-4 py-2 text-right text-sm text-slate-600">
-                                                            Total Purchase
-                                                        </td>
-                                                        <td className="px-4 py-2"></td>
-                                                        <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
-                                                            {currencyFormatter.format(totals.totalBase)}
-                                                        </td>
-                                                    </tr>
-                                                )}
                                                 <tr>
                                                     <td colSpan={3} className="px-4 py-2 text-right text-sm text-slate-600">
                                                         Subtotal
@@ -660,9 +608,6 @@ export default function FrontendQuotationShow() {
                                         <h4 className="text-xl font-semibold text-slate-900">{productDetailsModalOpen.product.name}</h4>
                                         <p className="mt-1 text-sm text-slate-500">SKU: {productDetailsModalOpen.product.sku}</p>
                                         <div className="mt-3 flex gap-2">
-                                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${productDetailsModalOpen.mode === 'jobwork' ? 'bg-elvee-blue/10 text-elvee-blue' : 'bg-slate-200 text-slate-700'}`}>
-                                                {productDetailsModalOpen.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}
-                                            </span>
                                             <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
                                                 Qty: {productDetailsModalOpen.quantity}
                                             </span>
@@ -740,22 +685,6 @@ export default function FrontendQuotationShow() {
                                     </div>
                                 )}
 
-                                {/* Selections */}
-                                {productDetailsModalOpen.selections && Object.keys(productDetailsModalOpen.selections).length > 0 && (
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Selected Options</h5>
-                                        <div className="space-y-2 text-sm">
-                                            {Object.entries(productDetailsModalOpen.selections).map(([key, value]) => (
-                                                <div key={key} className="flex justify-between">
-                                                    <span className="text-slate-600">{key.replace(/_/g, ' ')}:</span>
-                                                    <span className="font-semibold text-slate-900">
-                                                        {value === null || value === undefined || value === '' ? '—' : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
 
                                 {/* Notes */}
                                 {productDetailsModalOpen.notes && (

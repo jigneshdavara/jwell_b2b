@@ -27,14 +27,6 @@
                 <td style="padding:8px 0;font-size:13px;color:#0f172a;">{{ $quotation->product->sku }}</td>
             </tr>
             <tr>
-                <td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Mode</td>
-                <td style="padding:8px 0;font-size:13px;color:#0f172a;">
-                    <span style="display:inline-block;padding:4px 12px;background-color:{{ $quotation->mode === 'jobwork' ? '#dbeafe' : '#f3e8ff' }};color:{{ $quotation->mode === 'jobwork' ? '#1e40af' : '#6b21a8' }};border-radius:4px;font-weight:600;font-size:12px;">
-                        {{ $quotation->mode === 'jobwork' ? 'Jobwork' : 'Jewellery Purchase' }}
-                    </span>
-                </td>
-            </tr>
-            <tr>
                 <td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Quantity</td>
                 <td style="padding:8px 0;font-size:13px;color:#0f172a;">{{ $quotation->quantity }}</td>
             </tr>

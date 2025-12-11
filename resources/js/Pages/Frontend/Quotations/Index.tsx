@@ -7,15 +7,11 @@ import { useMemo, useState } from 'react';
 type QuotationRow = {
     id: number;
     ids?: number[];
-    mode: 'purchase' | 'jobwork' | 'both';
-    modes?: string[];
     status: string;
-    jobwork_status?: string | null;
     approved_at?: string | null;
     admin_notes?: string | null;
     quantity: number;
     notes?: string | null;
-    selections?: Record<string, string | number | boolean | null | undefined> | null;
     product: {
         id: number;
         name: string;
@@ -53,28 +49,10 @@ const statusLabels: Record<string, { label: string; style: string }> = {
     customer_declined: { label: 'You declined', style: 'bg-rose-100 text-rose-700' },
 };
 
-const jobworkStageLabels: Record<string, { label: string; style: string }> = {
-    material_sending: { label: 'Material sending', style: 'bg-slate-100 text-slate-600' },
-    material_received: { label: 'Material received', style: 'bg-elvee-blue/10 text-elvee-blue' },
-    under_preparation: { label: 'Under preparation', style: 'bg-indigo-100 text-indigo-700' },
-    completed: { label: 'Completed', style: 'bg-emerald-100 text-emerald-700' },
-    awaiting_billing: { label: 'Awaiting billing', style: 'bg-amber-100 text-amber-700' },
-    billing_confirmed: { label: 'Billing confirmed', style: 'bg-emerald-100 text-emerald-700' },
-    ready_to_ship: { label: 'Ready to ship', style: 'bg-slate-900 text-white' },
-};
 
 export default function QuotationsIndex() {
     const { quotations } = usePage<QuotationsPageProps>().props;
-    const [modeFilter, setModeFilter] = useState<'all' | 'purchase' | 'jobwork'>('all');
     const [cancelConfirm, setCancelConfirm] = useState<{ show: boolean; quotationId: number | null }>({ show: false, quotationId: null });
-
-    const filteredQuotations = useMemo(() => {
-        if (modeFilter === 'all') {
-            return quotations;
-        }
-
-        return quotations.filter((quotation) => quotation.mode === modeFilter);
-    }, [quotations, modeFilter]);
 
     const formatDate = (input?: string | null) =>
         input
@@ -112,43 +90,7 @@ export default function QuotationsIndex() {
                 </header>
 
                 <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                    <div className="mb-6 flex flex-wrap gap-3">
-                        <button
-                            type="button"
-                            onClick={() => setModeFilter('all')}
-                            className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
-                                modeFilter === 'all'
-                                    ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
-                                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                            }`}
-                        >
-                            All quotations
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setModeFilter('purchase')}
-                            className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
-                                modeFilter === 'purchase'
-                                    ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
-                                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                            }`}
-                        >
-                            Jewellery
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setModeFilter('jobwork')}
-                            className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
-                                modeFilter === 'jobwork'
-                                    ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
-                                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                            }`}
-                        >
-                            Jobwork
-                        </button>
-                    </div>
-
-                    {filteredQuotations.length === 0 ? (
+                    {quotations.length === 0 ? (
                         <div className="flex flex-col items-center justify-center space-y-4 py-16 text-sm text-slate-500">
                             <p>No quotation requests yet.</p>
                             <Link
@@ -166,7 +108,6 @@ export default function QuotationsIndex() {
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Quotation #</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Product</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">SKU</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Mode</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Status</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Quantity</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Date</th>
@@ -174,7 +115,7 @@ export default function QuotationsIndex() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {filteredQuotations.map((quotation) => {
+                                    {quotations.map((quotation) => {
                                         const statusMeta = statusLabels[quotation.status] ?? {
                                             label: quotation.status,
                                             style: 'bg-slate-200 text-slate-700',
@@ -214,24 +155,10 @@ export default function QuotationsIndex() {
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-4">
-                                                    <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                                                        {quotation.mode === 'both' ? 'Both' : quotation.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-4">
                                                     <div className="flex flex-col gap-1">
                                                         <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${statusMeta.style}`}>
                                                             {statusMeta.label}
                                                         </span>
-                                                        {quotation.jobwork_status && (
-                                                            <span
-                                                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                                                    jobworkStageLabels[quotation.jobwork_status]?.style ?? 'bg-slate-200 text-slate-600'
-                                                                }`}
-                                                            >
-                                                                {jobworkStageLabels[quotation.jobwork_status]?.label ?? quotation.jobwork_status.replace(/_/g, ' ')}
-                                                            </span>
-                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4">

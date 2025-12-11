@@ -59,7 +59,6 @@ type CatalogFiltersInput = {
 };
 
 type CatalogProps = {
-    mode: 'purchase' | 'jobwork';
     filters: CatalogFiltersInput;
     products: {
         data: Product[];
@@ -125,7 +124,7 @@ export default function CatalogIndex() {
             wishlist?: { product_ids?: number[] };
         }
     >();
-    const { mode, filters: rawFilters, products, facets } = page.props;
+    const { filters: rawFilters, products, facets } = page.props;
     const wishlistProductIds = page.props.wishlist?.product_ids ?? [];
     const wishlistLookup = useMemo(() => new Set(wishlistProductIds), [wishlistProductIds]);
     const [wishlistBusyId, setWishlistBusyId] = useState<number | null>(null);
@@ -255,7 +254,6 @@ export default function CatalogIndex() {
                 ...rawFilters,
                 price_min: min > DEFAULT_PRICE_MIN ? String(min) : undefined,
                 price_max: max < DEFAULT_PRICE_MAX ? String(max) : undefined,
-                mode,
                 page: undefined,
             },
             {
@@ -273,7 +271,6 @@ export default function CatalogIndex() {
                 ...rawFilters,
                 price_min: undefined,
                 price_max: undefined,
-                mode,
                 page: undefined,
             },
             {
@@ -315,7 +312,6 @@ export default function CatalogIndex() {
             {
                 ...rawFilters,
                 [key]: value ?? undefined,
-                mode,
                 page: undefined,
             },
             {
@@ -326,7 +322,7 @@ export default function CatalogIndex() {
     };
 
     const resetFilters = () => {
-        router.get(route('frontend.catalog.index'), { mode });
+        router.get(route('frontend.catalog.index'));
     };
 
     const onSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -492,7 +488,7 @@ export default function CatalogIndex() {
             <div className="space-y-4" id="catalog">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <h1 className="text-2xl font-semibold text-slate-900">
-                        {mode === 'jobwork' ? 'Jobwork-ready Designs' : 'Showcase Collection'}
+                        Showcase Collection
                     </h1>
                     <form onSubmit={onSearchSubmit} className="flex gap-2">
                         <div className="relative flex-1 min-w-[200px]">
@@ -1075,7 +1071,7 @@ export default function CatalogIndex() {
                                 }
                             >
                                 {catalogItems.map((product) => {
-                                    const productLink = route('frontend.catalog.show', { product: product.id, mode });
+                                    const productLink = route('frontend.catalog.show', { product: product.id });
                                     const imageUrl = product.thumbnail ?? product.media?.[0]?.url ?? null;
                                     const defaultVariant =
                                         product.variants.find((variant) => variant.is_default) ?? product.variants[0] ?? null;
@@ -1091,7 +1087,6 @@ export default function CatalogIndex() {
                                             isWishlisted={isWishlisted}
                                             wishlistBusyId={wishlistBusyId}
                                             viewMode={viewMode}
-                                            mode={mode}
                                             toggleWishlist={toggleWishlist}
                                         />
                                     );
@@ -1285,7 +1280,6 @@ type ProductCardProps = {
     isWishlisted: boolean;
     wishlistBusyId: number | null;
     viewMode: 'grid' | 'list';
-    mode: 'purchase' | 'jobwork';
     toggleWishlist: (productId: number, variantId?: number | null) => void;
 };
 
@@ -1297,7 +1291,6 @@ function ProductCard({
     isWishlisted,
     wishlistBusyId,
     viewMode,
-    mode,
     toggleWishlist,
 }: ProductCardProps) {
     const wishlistDisabled = wishlistBusyId === product.id;

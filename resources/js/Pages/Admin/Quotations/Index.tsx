@@ -6,10 +6,7 @@ import { useState } from 'react';
 type QuotationRow = {
     id: number;
     ids?: number[];
-    mode: 'purchase' | 'jobwork' | 'both';
-    modes?: string[];
     status: string;
-    jobwork_status?: string | null;
     quantity: number;
     approved_at?: string | null;
     created_at?: string | null;
@@ -54,15 +51,6 @@ const statusBadge: Record<string, string> = {
     customer_declined: 'bg-rose-100 text-rose-700',
 };
 
-const jobworkBadges: Record<string, string> = {
-    material_sending: 'bg-slate-100 text-slate-600',
-    material_received: 'bg-sky-100 text-sky-700',
-    under_preparation: 'bg-indigo-100 text-indigo-700',
-    completed: 'bg-emerald-100 text-emerald-700',
-    awaiting_billing: 'bg-amber-100 text-amber-700',
-    billing_confirmed: 'bg-emerald-100 text-emerald-700',
-    ready_to_ship: 'bg-slate-900 text-white',
-};
 
 export default function AdminQuotationsIndex() {
     const { quotations, filters } = usePage<AdminQuotationIndexProps>().props;
@@ -176,9 +164,7 @@ export default function AdminQuotationsIndex() {
                             <tr>
                                 <th className="px-4 py-3 text-left">Reference</th>
                                 <th className="px-4 py-3 text-left">Customer</th>
-                                <th className="px-4 py-3 text-left">Mode</th>
                                 <th className="px-4 py-3 text-left">Status</th>
-                                <th className="px-4 py-3 text-left">Jobwork stage</th>
                                 <th className="px-4 py-3 text-left">Total Qty</th>
                                 <th className="px-4 py-3 text-left">Date</th>
                                 <th className="px-4 py-3 text-left">Order ref</th>
@@ -206,28 +192,6 @@ export default function AdminQuotationsIndex() {
                                         <div className="text-xs text-slate-400">{quotation.user?.email}</div>
                                     </td>
                                     <td className="px-4 py-3">
-                                        {quotation.mode === 'both' ? (
-                                            <div className="flex flex-col gap-1">
-                                                <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-700">
-                                                    Jewellery
-                                                </span>
-                                                <span className="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-[11px] font-semibold text-sky-700">
-                                                    Jobwork
-                                                </span>
-                                            </div>
-                                        ) : (
-                                            <span
-                                                className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${
-                                                    quotation.mode === 'jobwork'
-                                                        ? 'bg-sky-100 text-sky-700'
-                                                        : 'bg-slate-200 text-slate-700'
-                                                }`}
-                                            >
-                                                {quotation.mode === 'jobwork' ? 'Jobwork' : 'Jewellery'}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3">
                                         <span
                                             className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${
                                                 statusBadge[quotation.status] ?? 'bg-slate-200 text-slate-700'
@@ -239,20 +203,6 @@ export default function AdminQuotationsIndex() {
                                             <div className="mt-1 text-xs text-slate-400">
                                                 Approved {new Date(quotation.approved_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                                             </div>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {quotation.jobwork_status ? (
-                                            <span
-                                                className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${
-                                                    jobworkBadges[quotation.jobwork_status] ??
-                                                    'bg-slate-200 text-slate-600'
-                                                }`}
-                                            >
-                                                {quotation.jobwork_status.replace(/_/g, ' ')}
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs text-slate-400">—</span>
                                         )}
                                     </td>
                                     <td className="px-4 py-3">
@@ -283,7 +233,7 @@ export default function AdminQuotationsIndex() {
                             ))}
                             {quotations.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={9} className="px-4 py-12 text-center text-sm text-slate-500">
+                                    <td colSpan={7} className="px-4 py-12 text-center text-sm text-slate-500">
                                         No quotation submissions yet.
                                     </td>
                                 </tr>

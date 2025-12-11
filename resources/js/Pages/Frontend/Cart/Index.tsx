@@ -38,9 +38,7 @@ type CartItem = {
     thumbnail?: string | null;
     variant_label?: string | null;
     configuration?: {
-        mode?: 'purchase' | 'jobwork';
         notes?: string | null;
-        selections?: Record<string, unknown> | null;
     };
 };
 
@@ -80,10 +78,6 @@ export default function CartIndex() {
     const [currentPage, setCurrentPage] = useState(1);
     
     const totalQuantity = useMemo(() => cart.items.reduce((sum, item) => sum + item.quantity, 0), [cart.items]);
-    const jobworkCount = useMemo(
-        () => cart.items.filter((item) => (item.configuration?.mode ?? 'purchase') === 'jobwork').length,
-        [cart.items],
-    );
     
     // Group items by product, then merge identical variants
     const groupedProducts = useMemo(() => {
@@ -139,15 +133,11 @@ export default function CartIndex() {
         return groupedProducts.map((group) => {
             const totalQuantity = group.variants.reduce((sum, v) => sum + v.quantity, 0);
             const totalPrice = group.variants.reduce((sum, v) => sum + v.line_total, 0);
-            const hasJobwork = group.variants.some(v => (v.configuration?.mode ?? 'purchase') === 'jobwork');
-            const hasPurchase = group.variants.some(v => (v.configuration?.mode ?? 'purchase') === 'purchase');
             
             return {
                 ...group,
                 totalQuantity,
                 totalPrice,
-                hasJobwork,
-                hasPurchase,
             };
         });
     }, [groupedProducts]);
@@ -506,7 +496,6 @@ export default function CartIndex() {
                                             <thead className="bg-slate-50">
                                             <tr>
                                                     <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">Product</th>
-                                                    <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-slate-700">Mode</th>
                                                     <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-slate-700">Quantity</th>
                                                     <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-700">Unit Price</th>
                                                     <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-700">Total</th>
@@ -566,7 +555,7 @@ export default function CartIndex() {
                                                                 </td>
                                                                 <td className="whitespace-nowrap px-6 py-4 text-center">
                                                                     <div className="flex flex-wrap items-center justify-center gap-1">
-                                                                        {group.hasPurchase && (
+                                                                        {false && (
                                                                             <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                                                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
                                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
@@ -574,7 +563,7 @@ export default function CartIndex() {
                                                                                 Purchase
                                                                             </span>
                                                                         )}
-                                                                        {group.hasJobwork && (
+                                                                        {false && (
                                                                             <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
                                                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
                                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655-5.653a2.548 2.548 0 00-3.586 3.586l4.655 5.653m8.048-8.048l-2.496 3.03a2.548 2.548 0 01-3.586-3.586l2.496-3.03" />
@@ -644,17 +633,6 @@ export default function CartIndex() {
                                                                                         )}
                                                                                     </div>
                                                                                 </div>
-                                                                            </td>
-                                                                            <td className="whitespace-nowrap px-6 py-3 text-center">
-                                                                                <span
-                                                                                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                                                                                        (variant.configuration?.mode ?? 'purchase') === 'jobwork'
-                                                                                            ? 'bg-blue-100 text-blue-700'
-                                                                                            : 'bg-slate-100 text-slate-700'
-                                                                                    }`}
-                                                                                >
-                                                                                    {(variant.configuration?.mode ?? 'purchase') === 'jobwork' ? 'Jobwork' : 'Purchase'}
-                                                                                </span>
                                                                             </td>
                                                                             <td className="whitespace-nowrap px-6 py-3">
                                                                                 <div className="flex flex-col items-center justify-center gap-1">
@@ -865,11 +843,6 @@ export default function CartIndex() {
                         <p className="mt-1">
                             <span className="font-semibold text-slate-800">Total units:</span> {totalQuantity}
                         </p>
-                        {jobworkCount > 0 && (
-                            <p className="mt-1">
-                                <span className="font-semibold text-slate-800">Jobwork requests:</span> {jobworkCount}
-                            </p>
-                        )}
                         <p className="mt-1">
                             <span className="font-semibold text-slate-800">Estimated total:</span> {formatter.format(cart.total)}
                         </p>
@@ -979,15 +952,6 @@ export default function CartIndex() {
                                             <p className="mt-1 text-xs font-medium text-slate-600">{productDetailsModalOpen.variant_label}</p>
                                         )}
                                         <div className="mt-2 flex flex-wrap gap-1.5">
-                                            <span
-                                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                                    (productDetailsModalOpen.configuration?.mode ?? 'purchase') === 'jobwork'
-                                                        ? 'bg-elvee-blue/10 text-elvee-blue'
-                                                        : 'bg-slate-200 text-slate-700'
-                                                }`}
-                                            >
-                                                {(productDetailsModalOpen.configuration?.mode ?? 'purchase') === 'jobwork' ? 'Jobwork' : 'Purchase'}
-                                            </span>
                                             <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
                                                 Qty: {productDetailsModalOpen.quantity}
                                             </span>
@@ -1068,30 +1032,6 @@ export default function CartIndex() {
                                     )}
                                 </div>
 
-                                {/* Selected Options - Compact */}
-                                {productDetailsModalOpen.configuration?.selections &&
-                                    typeof productDetailsModalOpen.configuration.selections === 'object' &&
-                                    productDetailsModalOpen.configuration.selections !== null &&
-                                    Object.keys(productDetailsModalOpen.configuration.selections).length > 0 && (
-                                        <div className="rounded-lg border border-slate-200 bg-white p-2.5">
-                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Options</p>
-                                            <div className="space-y-1 text-xs">
-                                                {Object.entries(productDetailsModalOpen.configuration.selections).slice(0, 3).map(([key, value]) => (
-                                                    <div key={key} className="flex justify-between">
-                                                        <span className="text-slate-600 capitalize">{key.replace(/_/g, ' ')}:</span>
-                                                        <span className="font-medium text-slate-900">
-                                                            {value === null || value === undefined || value === '' ? '—' : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                                {Object.keys(productDetailsModalOpen.configuration.selections).length > 3 && (
-                                                    <p className="text-xs text-slate-400 pt-1">
-                                                        +{Object.keys(productDetailsModalOpen.configuration.selections).length - 3} more
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
 
                                 {/* Notes - Compact */}
                                 {productDetailsModalOpen.configuration?.notes && (

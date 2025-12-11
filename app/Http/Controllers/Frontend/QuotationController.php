@@ -55,16 +55,12 @@ class QuotationController extends Controller
             })
             ->map(function ($group) {
                 $first = $group->first();
-                $modes = $group->pluck('mode')->unique()->values();
                 $totalQuantity = $group->sum('quantity');
 
                 return [
                     'id' => $first->id,
                     'ids' => $group->pluck('id')->values()->all(),
-                    'mode' => $modes->count() > 1 ? 'both' : $modes->first(),
-                    'modes' => $modes->all(),
                     'status' => $first->status,
-                    'jobwork_status' => $first->jobwork_status,
                     'quantity' => $totalQuantity,
                     'approved_at' => optional($first->approved_at)?->toDateTimeString(),
                     'created_at' => optional($first->created_at)?->toDateTimeString(),
@@ -125,14 +121,11 @@ class QuotationController extends Controller
         return Inertia::render('Frontend/Quotations/Show', [
             'quotation' => [
                 'id' => $quotation->id,
-                'mode' => $quotation->mode,
                 'status' => $quotation->status,
-                'jobwork_status' => $quotation->jobwork_status,
                 'quantity' => $quotation->quantity,
                 'notes' => $quotation->notes,
                 'admin_notes' => $quotation->admin_notes,
                 'approved_at' => optional($quotation->approved_at)?->toDateTimeString(),
-                'selections' => $quotation->selections,
                 'created_at' => optional($quotation->created_at)?->toDateTimeString(),
                 'updated_at' => optional($quotation->updated_at)?->toDateTimeString(),
                 'related_quotations' => $relatedQuotations->map(function ($q) use ($quotation) {
@@ -144,17 +137,14 @@ class QuotationController extends Controller
                             'quantity' => $q->quantity,
                             'customer_group_id' => $quotation->user?->customer_group_id ?? null,
                             'customer_type' => $quotation->user?->type ?? null,
-                            'mode' => $q->mode,
                         ]
                     )->toArray();
 
                     return [
                         'id' => $q->id,
-                        'mode' => $q->mode,
                         'status' => $q->status,
                         'quantity' => $q->quantity,
                         'notes' => $q->notes,
-                        'selections' => $q->selections,
                         'product' => [
                             'id' => $q->product->id,
                             'name' => $q->product->name,
@@ -208,7 +198,6 @@ class QuotationController extends Controller
                         'quantity' => $quotation->quantity,
                         'customer_group_id' => $quotation->user?->customer_group_id ?? null,
                         'customer_type' => $quotation->user?->type ?? null,
-                        'mode' => $quotation->mode,
                     ]
                 )->toArray(),
                 'user' => [
@@ -245,9 +234,7 @@ class QuotationController extends Controller
         $data = $request->validate([
             'product_id' => ['required', 'exists:products,id'],
             'product_variant_id' => ['nullable', 'exists:product_variants,id'],
-            'mode' => ['required', Rule::in(['purchase', 'jobwork'])],
             'quantity' => ['required', 'integer', 'min:1'],
-            'selections' => ['nullable', 'array'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -290,10 +277,8 @@ class QuotationController extends Controller
             'quotation_group_id' => $quotationGroupId,
             'product_id' => $product->id,
             'product_variant_id' => $variantId,
-            'mode' => $data['mode'],
             'status' => 'pending',
             'quantity' => $data['quantity'],
-            'selections' => $data['selections'] ?? null,
             'notes' => $data['notes'] ?? null,
         ]);
 
@@ -416,25 +401,14 @@ class QuotationController extends Controller
                     }
 
                     $configuration = $item->configuration ?? [];
-                    $mode = in_array($configuration['mode'] ?? null, ['purchase', 'jobwork'], true)
-                        ? $configuration['mode']
-                        : 'purchase';
-
-
-                    $selections = $configuration['selections'] ?? null;
-                    if ($selections !== null && ! is_array($selections)) {
-                        $selections = null;
-                    }
 
                     $quotation = Quotation::create([
                         'user_id' => $user->id,
                         'quotation_group_id' => $quotationGroupId, // Same group ID for all items
                         'product_id' => $product->id,
                         'product_variant_id' => $item->product_variant_id,
-                        'mode' => $mode,
                         'status' => 'pending',
                         'quantity' => $item->quantity,
-                        'selections' => $selections,
                         'notes' => $configuration['notes'] ?? null,
                     ]);
 
@@ -530,7 +504,6 @@ class QuotationController extends Controller
                     'quantity' => $q->quantity,
                     'customer_group_id' => $q->user?->customer_group_id ?? null,
                     'customer_type' => $q->user?->type ?? null,
-                    'mode' => $q->mode,
                 ]
             )->toArray();
 
