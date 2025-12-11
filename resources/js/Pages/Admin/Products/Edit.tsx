@@ -54,9 +54,6 @@ type Product = {
         id?: number;
         sku?: string;
         label?: string;
-        metal_id?: number | '';
-        metal_purity_id?: number | '';
-        diamond_option_key?: string | null;
         is_default?: boolean;
         inventory_quantity?: number;
         metadata?: Record<string, any>;
@@ -709,8 +706,10 @@ export default function AdminProductEdit() {
             return {
                 metalPurityIds: [] as number[],
                 metalToneIds: [] as number[],
-                diamondOptions: [] as DiamondOptionForm[],
+                diamondSelections: [] as Array<{ diamond_id: number; count: string }>,
                 metalSelections: [] as Array<{ metal_id: number; metal_purity_id: number; metal_tone_id: number; weight: string }>,
+                selectedMetals: [] as number[],
+                metalConfigurations: {} as Record<number, { purities: number[]; tones: number[] }>,
             };
         }
 
@@ -719,13 +718,34 @@ export default function AdminProductEdit() {
         const diamondSelectionsMap = new Map<number, { diamond_id: number; count: string }>();
         const metalSelectionsMap = new Map<string, { metal_id: number; metal_purity_id: number; metal_tone_id: number; weight: string }>();
 
+        // Extract selected metals and their configurations
+        const selectedMetalsSet = new Set<number>();
+        const metalConfigurationsMap = new Map<number, { purities: Set<number>; tones: Set<number> }>();
+
         product.variants.forEach((variant: any) => {
             if (variant.metals?.length) {
                 variant.metals.forEach((metal: any) => {
                     if (metal.metal_id && metal.metal_id !== '' && metal.metal_id !== null) {
                         const metalId = typeof metal.metal_id === 'number' ? metal.metal_id : Number(metal.metal_id);
-                        const purityId = metal.metal_purity_id && metal.metal_purity_id !== '' ? (typeof metal.metal_purity_id === 'number' ? metal.metal_purity_id : Number(metal.metal_purity_id)) : 0;
-                        const toneId = metal.metal_tone_id && metal.metal_tone_id !== '' ? (typeof metal.metal_tone_id === 'number' ? metal.metal_tone_id : Number(metal.metal_tone_id)) : 0;
+
+                        // Handle metal_purity_id - check for valid number
+                        let purityIdValue = metal.metal_purity_id;
+                        if ((purityIdValue === null || purityIdValue === undefined || purityIdValue === '' || purityIdValue === 0) && metal.metal_purity) {
+                            purityIdValue = metal.metal_purity.id;
+                        }
+
+                        // Handle metal_tone_id - check for valid number
+                        let toneIdValue = metal.metal_tone_id;
+                        if ((toneIdValue === null || toneIdValue === undefined || toneIdValue === '' || toneIdValue === 0) && metal.metal_tone) {
+                            toneIdValue = metal.metal_tone.id;
+                        }
+
+                        const purityId = purityIdValue && purityIdValue !== '' && purityIdValue !== 0
+                            ? (typeof purityIdValue === 'number' ? purityIdValue : Number(purityIdValue))
+                            : 0;
+                        const toneId = toneIdValue && toneIdValue !== '' && toneIdValue !== 0
+                            ? (typeof toneIdValue === 'number' ? toneIdValue : Number(toneIdValue))
+                            : 0;
                         const weight = metal.metal_weight ? String(metal.metal_weight) : '';
                         const key = `${metalId}-${purityId}-${toneId}`;
                         if (!metalSelectionsMap.has(key)) {
@@ -737,11 +757,24 @@ export default function AdminProductEdit() {
                             });
                         }
 
-                        if (purityId) {
-                            metalPurityIdsSet.add(purityId);
-                        }
-                        if (toneId) {
-                            metalToneIdsSet.add(toneId);
+                        // Add metal to selected metals
+                        if (!isNaN(metalId) && metalId > 0) {
+                            selectedMetalsSet.add(metalId);
+
+                            // Initialize metal configuration if not exists
+                            if (!metalConfigurationsMap.has(metalId)) {
+                                metalConfigurationsMap.set(metalId, { purities: new Set<number>(), tones: new Set<number>() });
+                            }
+
+                            const config = metalConfigurationsMap.get(metalId)!;
+                            if (!isNaN(purityId) && purityId > 0) {
+                                config.purities.add(purityId);
+                                metalPurityIdsSet.add(purityId);
+                            }
+                            if (!isNaN(toneId) && toneId > 0) {
+                                config.tones.add(toneId);
+                                metalToneIdsSet.add(toneId);
+                            }
                         }
                     }
                 });
@@ -760,7 +793,15 @@ export default function AdminProductEdit() {
                     }
                 });
             }
+        });
 
+        // Convert metal configurations map to object format
+        const metalConfigurations: Record<number, { purities: number[]; tones: number[] }> = {};
+        metalConfigurationsMap.forEach((config, metalId) => {
+            metalConfigurations[metalId] = {
+                purities: Array.from(config.purities),
+                tones: Array.from(config.tones),
+            };
         });
 
         return {
@@ -773,6 +814,8 @@ export default function AdminProductEdit() {
                 metal_tone_id: m.metal_tone_id || '',
                 weight: m.weight,
             })),
+            selectedMetals: Array.from(selectedMetalsSet),
+            metalConfigurations: metalConfigurations,
         };
     }, [product]);
 
@@ -800,36 +843,43 @@ export default function AdminProductEdit() {
         making_charge_percentage: product?.making_charge_percentage ? String(product.making_charge_percentage) : '',
         is_active: product?.is_active ?? true,
         variants: product?.variants?.length
-            ? product.variants.map((variant: any, index) => ({
-                  id: variant.id,
-                  sku: variant.sku ?? '',
-                  label: variant.label ?? '',
-                  metal_id: variant.metal_id ?? '',
-                  metal_purity_id: variant.metal_purity_id ?? '',
-                  diamond_option_key: (variant.diamond_option_key as string | null) ?? null,
-                  is_default: variant.is_default ?? index === 0,
-                  inventory_quantity: variant.inventory_quantity !== undefined && variant.inventory_quantity !== null ? Number(variant.inventory_quantity) : 0,
-                  metadata: variant.metadata ?? {},
-                  metals: variant.metals?.map((metal: any) => ({
-                      id: metal.id,
-                      metal_id: metal.metal_id ?? '',
-                      metal_purity_id: metal.metal_purity_id ?? '',
-                      metal_tone_id: metal.metal_tone_id ?? '',
-                      metal_weight: metal.metal_weight ? String(metal.metal_weight) : '',
-                  })) ?? [],
-                  diamonds: variant.diamonds?.map((diamond: any) => ({
-                      id: diamond.id,
-                      diamond_id: diamond.diamond_id ?? '',
-                      diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
-                  })) ?? [],
-              }))
+            ? product.variants.map((variant: any, index) => {
+                  const firstMetal = variant.metals && variant.metals.length > 0 ? variant.metals[0] : null;
+                  const metalId = firstMetal?.metal_id ?? (variant.metadata?.metal_id ?? '');
+                  const metalPurityId = firstMetal?.metal_purity_id ?? (variant.metadata?.metal_purity_id ?? '');
+                  const diamondOptionKey = variant.metadata?.diamond_option_key ?? null;
+
+                  return {
+                      id: variant.id,
+                      sku: variant.sku ?? '',
+                      label: variant.label ?? '',
+                      metal_id: metalId !== '' && metalId !== null && metalId !== undefined ? (typeof metalId === 'number' ? metalId : Number(metalId)) : '',
+                      metal_purity_id: metalPurityId !== '' && metalPurityId !== null && metalPurityId !== undefined ? (typeof metalPurityId === 'number' ? metalPurityId : Number(metalPurityId)) : '',
+                      diamond_option_key: diamondOptionKey,
+                      is_default: variant.is_default ?? index === 0,
+                      inventory_quantity: variant.inventory_quantity !== undefined && variant.inventory_quantity !== null ? Number(variant.inventory_quantity) : 0,
+                      metadata: variant.metadata ?? {},
+                      metals: variant.metals?.map((metal: any) => ({
+                          id: metal.id,
+                          metal_id: metal.metal_id ?? '',
+                          metal_purity_id: metal.metal_purity_id ?? '',
+                          metal_tone_id: metal.metal_tone_id ?? '',
+                          metal_weight: metal.metal_weight ? String(metal.metal_weight) : '',
+                      })) ?? [],
+                      diamonds: variant.diamonds?.map((diamond: any) => ({
+                          id: diamond.id,
+                          diamond_id: diamond.diamond_id ?? '',
+                          diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
+                      })) ?? [],
+                  };
+              })
             : [emptyVariant(true)],
         diamond_options: [],
         uses_diamond: (extractSelectionsFromVariants.diamondSelections?.length ?? 0) > 0,
         diamond_selections: extractSelectionsFromVariants.diamondSelections ?? [],
         metal_selections: extractSelectionsFromVariants.metalSelections ?? [],
-        selected_metals: [],
-        metal_configurations: {},
+        selected_metals: extractSelectionsFromVariants.selectedMetals ?? [],
+        metal_configurations: extractSelectionsFromVariants.metalConfigurations ?? {},
         media_uploads: [],
         removed_media_ids: [],
     }) as Record<string, any>);
@@ -1489,7 +1539,7 @@ export default function AdminProductEdit() {
                 metal_purity_id: number | null;
                 metal_tone_id: number | null;
             };
-            
+
             const allMetalCombinations: MetalEntryCombination[][] = [];
 
             const selectedMetals = prev.selected_metals || [];
