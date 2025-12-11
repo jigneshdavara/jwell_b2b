@@ -35,6 +35,8 @@ class HomeController extends Controller
                 'name' => $product->name,
                 'price' => (float) $product->base_price,
                 'making_charge_amount' => (float) $product->making_charge_amount,
+                'making_charge_percentage' => $product->making_charge_percentage ? (float) $product->making_charge_percentage : null,
+                'making_charge_types' => $product->getMakingChargeTypes(),
             ]);
 
         $features = [

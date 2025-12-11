@@ -166,6 +166,8 @@ class QuotationController extends Controller
                 'quantity' => $quotation->quantity,
                 'notes' => $quotation->notes,
                 'admin_notes' => $quotation->admin_notes,
+                'created_at' => optional($quotation->created_at)?->toDateTimeString(),
+                'updated_at' => optional($quotation->updated_at)?->toDateTimeString(),
                 'approved_at' => optional($quotation->approved_at)?->toDateTimeString(),
                 'related_quotations' => $relatedQuotations->map(function ($q) use ($quotation) {
                     $pricing = $this->pricingService->calculateProductPrice(

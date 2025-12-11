@@ -234,22 +234,31 @@ class CatalogController extends Controller
                     $metalCost = round($metalCost, 2);
 
                     // Calculate diamond cost from variant diamonds
+                    // Price in diamonds table is per stone, so multiply by count
                     $diamondCost = 0;
                     foreach ($variant->diamonds as $variantDiamond) {
                         $diamond = $variantDiamond->diamond;
+                        $count = (int) ($variantDiamond->diamonds_count ?? 1);
                         if ($diamond && $diamond->price) {
-                            $diamondCost += (float) $diamond->price;
+                            // Price is per stone, so multiply by count
+                            $diamondCost += (float) $diamond->price * $count;
                         }
                     }
                     $diamondCost = round($diamondCost, 2);
 
+                    // Calculate making charge based on configured types (fixed, percentage, or both)
+                    $makingCharge = $product->calculateMakingCharge($metalCost);
+                    
                     // Calculate priceTotal: Metal + Diamond + Making Charge
-                    $makingCharge = (float) ($product->making_charge_amount ?? 0);
                     $priceTotal = $metalCost + $diamondCost + $makingCharge;
                 } else {
-                    // If no variant, fallback to making charge only
-                    $priceTotal = (float) ($product->making_charge ?? 0);
+                    // If no variant, fallback to making charge only (with no metal cost)
+                    // Note: For percentage-only making charge, this will be 0 if no metal cost
+                    $priceTotal = $product->calculateMakingCharge(0);
                 }
+                
+                // Ensure price_total is always a valid number
+                $priceTotal = max(0, (float) $priceTotal);
 
                 return [
                     'id' => $product->id,
@@ -671,7 +680,8 @@ class CatalogController extends Controller
 
             // Calculate pricing
             $basePrice = (float) ($product->base_price ?? 0);
-            $makingCharge = (float) ($product->making_charge_amount ?? 0);
+            // Calculate making charge based on configured types (fixed, percentage, or both)
+            $makingCharge = $product->calculateMakingCharge($metalCost);
             // Total price: Metal + Diamond + Making Charge (Base Price is NOT included)
             $priceTotal = $metalCost + $diamondCost + $makingCharge;
             // Always create a configuration option, even if metals/diamonds are empty
@@ -705,12 +715,12 @@ class CatalogController extends Controller
                 'diamond_label' => '',
                 'metals' => [],
                 'diamonds' => [],
-                'price_total' => (float) ($product->making_charge ?? 0),
+                'price_total' => $product->calculateMakingCharge(0),
                 'price_breakup' => [
                     'base' => (float) ($product->base_price ?? 0),
                     'metal' => 0,
                     'diamond' => 0,
-                    'making' => (float) ($product->making_charge ?? 0),
+                    'making' => $product->calculateMakingCharge(0),
                 ],
                 'sku' => $firstVariant->sku ?? $product->sku,
                 'inventory_quantity' => $firstVariant->inventory_quantity ?? 0,

@@ -86,7 +86,8 @@ class PricingService
         }
         $diamondCost = round($diamondCost, 2);
 
-        $making = max(0.0, (float) $product->making_charge_amount ?? 0);
+        // Calculate making charge based on configured types (fixed, percentage, or both)
+        $making = $product->calculateMakingCharge($metalCost);
 
         // Total price: Metal + Diamond + Making Charge (Base Price is NOT included)
         $unitSubtotal = $metalCost + $diamondCost + $making;
@@ -96,6 +97,8 @@ class PricingService
             'quantity' => $quantity,
             'unit_subtotal' => $unitSubtotal,
             'line_subtotal' => $unitSubtotal * $quantity,
+            'metal' => $metalCost,
+            'metal_cost' => $metalCost,
         ]);
 
         $discount = $this->discountService->resolve($product, $user, $discountContext);
