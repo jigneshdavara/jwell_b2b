@@ -51,11 +51,6 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-    public function workOrders(): HasMany
-    {
-        return $this->hasMany(WorkOrder::class);
-    }
-
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);

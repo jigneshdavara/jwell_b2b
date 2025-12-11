@@ -28,11 +28,6 @@ class CatalogController extends Controller
 
     public function index(Request $request): Response
     {
-        $mode = $request->string('mode')->lower()->value();
-        if (! in_array($mode, ['jobwork', 'purchase'], true)) {
-            $mode = 'purchase';
-        }
-
         $filters = $request->only([
             'brand',
             'metal',
@@ -45,28 +40,19 @@ class CatalogController extends Controller
             'category',
             'catalog',
             'sort',
-            'jobwork_available',
             'ready_made',
         ]);
 
         $query = Product::query()
             ->with([
                 'category',
-                'media' => fn($media) => $media->orderBy('position'),
+                'media' => fn($media) => $media->orderBy('display_order'),
                 'variants' => function ($variants) {
                     $variants->orderByAsc('id')
                         ->with(['metals.metal', 'metals.metalPurity', 'metals.metalTone']);
                 },
             ]);
 
-        if ($mode === 'jobwork') {
-            $query->where('is_jobwork_allowed', true);
-        }
-
-        // Filter by jobwork availability
-        if (($filters['jobwork_available'] ?? null) === '1') {
-            $query->where('is_jobwork_allowed', true);
-        }
 
         // Filter by ready made (products that are not jobwork-only, meaning they have base_price)
         if (($filters['ready_made'] ?? null) === '1') {
@@ -191,7 +177,6 @@ class CatalogController extends Controller
         $filters['category'] = array_values($categoryFilters);
         $filters['catalog'] = array_values($catalogFilters);
         $filters['sort'] = $sort ?: null;
-        $filters['jobwork_available'] = ($filters['jobwork_available'] ?? null) === '1' ? '1' : null;
         $filters['ready_made'] = ($filters['ready_made'] ?? null) === '1' ? '1' : null;
 
         if ($filters['search'] ?? null) {
@@ -203,20 +188,11 @@ class CatalogController extends Controller
 
         $priceMin = $filters['price_min'] ?? null;
         $priceMax = $filters['price_max'] ?? null;
-        if ($priceMin !== null || $priceMax !== null) {
-            $query->where(function ($priceQuery) use ($priceMin, $priceMax) {
-                if ($priceMin !== null) {
-                    $priceQuery->where('base_price', '>=', (float) $priceMin);
-                }
-
-                if ($priceMax !== null) {
-                    $priceQuery->where('base_price', '<=', (float) $priceMax);
-                }
-            });
-        }
 
         $sort = in_array($sort, ['newest', 'price_asc', 'price_desc', 'name_asc'], true) ? $sort : null;
 
+        // Calculate price_total for filtering - we need to do this after fetching products
+        // because price_total depends on variant metals/diamonds and current rates
         $products = $query
             ->with([
                 'variants.metals.metal',
@@ -224,14 +200,11 @@ class CatalogController extends Controller
                 'variants.metals.metalTone',
                 'variants.diamonds.diamond',
             ])
-            ->when($sort === 'price_asc', fn($builder) => $builder->orderBy('base_price', 'asc'))
-            ->when($sort === 'price_desc', fn($builder) => $builder->orderBy('base_price', 'desc'))
             ->when($sort === 'name_asc', fn($builder) => $builder->orderBy('name'))
             ->when(! $sort || $sort === 'newest', fn($builder) => $builder->latest())
-            ->paginate(12)
-            ->through(function (Product $product) {
+            ->get()
+            ->map(function (Product $product) {
                 // Calculate priceTotal for the default variant (or first variant if no default)
-                // Variants are already ordered by is_default DESC, so first() should get default
                 $variant = $product->variants->firstWhere('is_default', true)
                     ?? $product->variants->first();
                 $priceTotal = 0;
@@ -261,22 +234,34 @@ class CatalogController extends Controller
                     $metalCost = round($metalCost, 2);
 
                     // Calculate diamond cost from variant diamonds
+                    // Price in diamonds table is per stone, so multiply by count
                     $diamondCost = 0;
                     foreach ($variant->diamonds as $variantDiamond) {
                         $diamond = $variantDiamond->diamond;
+                        $count = (int) ($variantDiamond->diamonds_count ?? 1);
                         if ($diamond && $diamond->price) {
-                            $diamondCost += (float) $diamond->price;
+                            // Price is per stone, so multiply by count
+                            $diamondCost += (float) $diamond->price * $count;
                         }
                     }
                     $diamondCost = round($diamondCost, 2);
 
+                    // Calculate making charge based on configured types (fixed, percentage, or both)
+                    $makingCharge = $product->calculateMakingCharge($metalCost);
+
                     // Calculate priceTotal: Metal + Diamond + Making Charge
-                    $makingCharge = (float) ($product->making_charge_amount ?? 0);
                     $priceTotal = $metalCost + $diamondCost + $makingCharge;
                 } else {
-                    // If no variant, fallback to making charge only
-                    $priceTotal = (float) ($product->making_charge ?? 0);
+                    // If no variant, fallback to making charge only (with no metal cost)
+                    // Note: For percentage-only making charge, this will be 0 if no metal cost
+                    $priceTotal = $product->calculateMakingCharge(0);
                 }
+                
+                // Ensure price_total is always a valid number
+                $priceTotal = max(0, (float) $priceTotal);
+
+                // Ensure price_total is always a valid number
+                $priceTotal = max(0, (float) $priceTotal);
 
                 return [
                     'id' => $product->id,
@@ -285,15 +270,10 @@ class CatalogController extends Controller
                     'category' => optional($product->category)?->name,
                     'material' => optional($product->material)?->name,
                     'purity' => $product->metadata['purity'] ?? $product->material?->purity,
-                    'gold_weight' => $product->gold_weight !== null ? (float) $product->gold_weight : null,
-                    'silver_weight' => $product->silver_weight !== null ? (float) $product->silver_weight : null,
-                    'other_material_weight' => $product->other_material_weight !== null ? (float) $product->other_material_weight : null,
-                    'total_weight' => $product->total_weight !== null ? (float) $product->total_weight : null,
                     'price_total' => $priceTotal,
                     'making_charge_amount' => (float) $product->making_charge_amount,
-                    'is_jobwork_allowed' => (bool) $product->is_jobwork_allowed,
-                    'thumbnail' => optional($product->media->sortBy('position')->first())?->url,
-                    'media' => $product->media->sortBy('position')->values()->map(fn($media) => [
+                    'thumbnail' => optional($product->media->sortBy('display_order')->first())?->url,
+                    'media' => $product->media->sortBy('display_order')->values()->map(fn($media) => [
                         'url' => $media->url,
                         'alt' => $media->metadata['alt'] ?? $product->name,
                     ]),
@@ -303,12 +283,51 @@ class CatalogController extends Controller
                     'variants' => $product->variants->map(fn($variant) => [
                         'id' => $variant->id,
                         'label' => $variant->label,
-                        'price_adjustment' => $variant->price_adjustment,
                         'is_default' => $variant->is_default,
                         'metadata' => $variant->metadata ?? [],
                     ]),
                 ];
             });
+
+        // Apply price filter after calculating price_total
+        if ($priceMin !== null || $priceMax !== null) {
+            $products = $products->filter(function ($product) use ($priceMin, $priceMax) {
+                $priceTotal = $product['price_total'] ?? 0;
+
+                if ($priceMin !== null && $priceTotal < (float) $priceMin) {
+                    return false;
+                }
+
+                if ($priceMax !== null && $priceTotal > (float) $priceMax) {
+                    return false;
+                }
+
+                return true;
+            });
+        }
+
+        // Apply sorting by price if needed
+        if ($sort === 'price_asc') {
+            $products = $products->sortBy('price_total');
+        } elseif ($sort === 'price_desc') {
+            $products = $products->sortByDesc('price_total');
+        }
+
+        // Reset collection keys for proper pagination
+        $products = $products->values();
+
+        // Manual pagination
+        $page = (int) $request->input('page', 1);
+        $perPage = 12;
+        $total = $products->count();
+        $items = $products->forPage($page, $perPage)->values()->all();
+        $products = new \Illuminate\Pagination\LengthAwarePaginator(
+            $items,
+            $total,
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         $facets = [
             'categories' => Category::query()
@@ -383,7 +402,6 @@ class CatalogController extends Controller
         ];
 
         return Inertia::render('Frontend/Catalog/Index', [
-            'mode' => $mode,
             'filters' => $filters,
             'products' => $products,
             'facets' => $facets,
@@ -392,15 +410,10 @@ class CatalogController extends Controller
 
     public function show(Product $product): Response
     {
-        $mode = request()->string('mode')->lower()->value();
-        if (! in_array($mode, ['jobwork', 'purchase'], true)) {
-            $mode = 'purchase';
-        }
-
         $product->load([
             'brand',
             'category.sizes',
-            'media' => fn($media) => $media->orderBy('position'),
+            'media' => fn($media) => $media->orderBy('display_order'),
             'variants' => function ($variants) {
                 $variants->orderByDesc('is_default')
                     ->with([
@@ -410,6 +423,7 @@ class CatalogController extends Controller
                         'diamonds.diamond.clarity',
                         'diamonds.diamond.color',
                         'diamonds.diamond.shape',
+                        'size',
                     ]);
             },
         ]);
@@ -418,7 +432,6 @@ class CatalogController extends Controller
         $configurationOptions = $this->buildConfigurationOptions($product);
 
         return Inertia::render('Frontend/Catalog/Show', [
-            'mode' => $mode,
             'product' => [
                 'id' => $product->id,
                 'name' => $product->name,
@@ -427,22 +440,12 @@ class CatalogController extends Controller
                 'brand' => optional($product->brand)?->name,
                 'material' => optional($product->material)?->name,
                 'purity' => $product->metadata['purity'] ?? $product->material?->purity,
-                'gold_weight' => $product->gold_weight !== null ? (float) $product->gold_weight : null,
-                'silver_weight' => $product->silver_weight !== null ? (float) $product->silver_weight : null,
-                'other_material_weight' => $product->other_material_weight !== null ? (float) $product->other_material_weight : null,
-                'total_weight' => $product->total_weight !== null ? (float) $product->total_weight : null,
                 'base_price' => (float) $product->base_price,
-                'making_charge' => (float) $product->making_charge,
-                'making_charge_type' => $product->making_charge_type, // Accessor will infer from values
+                'making_charge_amount' => (float) $product->making_charge_amount,
                 'making_charge_percentage' => $product->making_charge_percentage ? (float) $product->making_charge_percentage : null,
-                'is_jobwork_allowed' => (bool) $product->is_jobwork_allowed,
                 'uses_gold' => (bool) $product->uses_gold,
                 'uses_silver' => (bool) $product->uses_silver,
                 'uses_diamond' => (bool) $product->uses_diamond,
-                'mixed_metal_tones_per_purity' => (bool) ($product->mixed_metal_tones_per_purity ?? false),
-                'mixed_metal_purities_per_tone' => (bool) ($product->mixed_metal_purities_per_tone ?? false),
-                'metal_mix_mode' => $product->metal_mix_mode ?? [],
-                'diamond_mixing_mode' => $product->diamond_mixing_mode ?? 'shared',
                 'category_sizes' => $product->category && $product->category->sizes->isNotEmpty()
                     ? $product->category->sizes->where('is_active', true)->map(fn($size) => [
                         'id' => $size->id,
@@ -458,7 +461,6 @@ class CatalogController extends Controller
                 'variants' => $product->variants->map(fn($variant) => [
                     'id' => $variant->id,
                     'label' => $variant->label,
-                    'price_adjustment' => $variant->price_adjustment,
                     'is_default' => $variant->is_default,
                     'metadata' => $variant->metadata ?? [],
                     'metals' => $variant->metals->map(fn($metal) => [
@@ -516,6 +518,9 @@ class CatalogController extends Controller
             }
             if (!$variant->relationLoaded('diamonds')) {
                 $variant->load(['diamonds.diamond.shape', 'diamonds.diamond.color', 'diamonds.diamond.clarity']);
+            }
+            if (!$variant->relationLoaded('size')) {
+                $variant->load('size');
             }
 
             // Build metals array for this variant
@@ -682,9 +687,9 @@ class CatalogController extends Controller
 
             // Calculate pricing
             $basePrice = (float) ($product->base_price ?? 0);
-            $makingCharge = (float) ($product->making_charge_amount ?? 0);
-            $priceAdjustment = 0; //(float) ($variant->price_adjustment ?? 0);
-            // Total price: Metal + Diamond + Making Charge + Adjustment (Base Price is NOT included)
+            // Calculate making charge based on configured types (fixed, percentage, or both)
+            $makingCharge = $product->calculateMakingCharge($metalCost);
+            // Total price: Metal + Diamond + Making Charge (Base Price is NOT included)
             $priceTotal = $metalCost + $diamondCost + $makingCharge;
             // Always create a configuration option, even if metals/diamonds are empty
             // This ensures the frontend always has at least one option to select
@@ -695,13 +700,18 @@ class CatalogController extends Controller
                 'diamond_label' => $diamondLabel,
                 'metals' => $metals, // Can be empty array
                 'diamonds' => $diamonds, // Can be empty array
+                'size_id' => $variant->size_id,
+                'size' => $variant->size ? [
+                    'id' => $variant->size->id,
+                    'name' => $variant->size->name,
+                    'value' => $variant->size->value ?? $variant->size->name,
+                ] : null,
                 'price_total' => $priceTotal,
                 'price_breakup' => [
                     'base' => $basePrice,
                     'metal' => $metalCost,
                     'diamond' => $diamondCost,
                     'making' => $makingCharge,
-                    'adjustment' => $priceAdjustment,
                 ],
                 'sku' => $variant->sku ?? $product->sku,
                 'inventory_quantity' => $variant->inventory_quantity ?? 0,
@@ -711,6 +721,10 @@ class CatalogController extends Controller
         // If no configuration options were created but variants exist, create at least one
         if (empty($configOptions) && $product->variants->isNotEmpty()) {
             $firstVariant = $product->variants->first();
+            // Ensure size relationship is loaded
+            if (!$firstVariant->relationLoaded('size')) {
+                $firstVariant->load('size');
+            }
             $configOptions[] = [
                 'variant_id' => $firstVariant->id,
                 'label' => $firstVariant->label ?? 'Default Configuration',
@@ -718,13 +732,18 @@ class CatalogController extends Controller
                 'diamond_label' => '',
                 'metals' => [],
                 'diamonds' => [],
-                'price_total' => (float) ($product->making_charge ?? 0),
+                'size_id' => $firstVariant->size_id,
+                'size' => $firstVariant->size ? [
+                    'id' => $firstVariant->size->id,
+                    'name' => $firstVariant->size->name,
+                    'value' => $firstVariant->size->value ?? $firstVariant->size->name,
+                ] : null,
+                'price_total' => $product->calculateMakingCharge(0),
                 'price_breakup' => [
                     'base' => (float) ($product->base_price ?? 0),
                     'metal' => 0,
                     'diamond' => 0,
-                    'making' => (float) ($product->making_charge ?? 0),
-                    'adjustment' => 0,
+                    'making' => $product->calculateMakingCharge(0),
                 ],
                 'sku' => $firstVariant->sku ?? $product->sku,
                 'inventory_quantity' => $firstVariant->inventory_quantity ?? 0,
@@ -734,201 +753,11 @@ class CatalogController extends Controller
         return $configOptions;
     }
 
-    /**
-     * Build metal options based on metal_mix_mode.
-     * @deprecated This method is no longer used - replaced by buildConfigurationOptions
-     */
-    protected function buildMetalOptions(Product $product, string $metalMixMode): array
-    {
-        $allVariantMetals = collect();
-
-        // Collect all variant metals
-        foreach ($product->variants as $variant) {
-            foreach ($variant->metals as $variantMetal) {
-                if (!$variantMetal->metal_id || !$variantMetal->metal_purity_id || !$variantMetal->metal_tone_id) {
-                    continue;
-                }
-
-                $allVariantMetals->push([
-                    'id' => $variantMetal->id,
-                    'metal_id' => $variantMetal->metal_id,
-                    'metal_purity_id' => $variantMetal->metal_purity_id,
-                    'metal_tone_id' => $variantMetal->metal_tone_id,
-                    'metal' => $variantMetal->metal,
-                    'metalPurity' => $variantMetal->metalPurity,
-                    'metalTone' => $variantMetal->metalTone,
-                ]);
-            }
-        }
-
-        if ($allVariantMetals->isEmpty()) {
-            return [];
-        }
-
-        $optionsMap = [];
-        $optionIdCounter = 1;
-
-        if ($metalMixMode === 'separate_variants') {
-            // Group by (metal_id, metal_purity_id, metal_tone_id)
-            foreach ($allVariantMetals as $variantMetal) {
-                $key = sprintf(
-                    '%d_%d_%d',
-                    $variantMetal['metal_id'],
-                    $variantMetal['metal_purity_id'],
-                    $variantMetal['metal_tone_id']
-                );
-
-                if (!isset($optionsMap[$key])) {
-                    $metal = $variantMetal['metal'];
-                    $purity = $variantMetal['metalPurity'];
-                    $tone = $variantMetal['metalTone'];
-
-                    if ($metal && $purity && $tone) {
-                        $label = sprintf('%s %s %s', $purity->name, $tone->name, $metal->name);
-
-                        $optionsMap[$key] = [
-                            'id' => $optionIdCounter++,
-                            'label' => $label,
-                            'metal_ids' => [$variantMetal['metal_id']],
-                            'metal_purity_ids' => [$variantMetal['metal_purity_id']],
-                            'metal_tone_ids' => [$variantMetal['metal_tone_id']],
-                            'metal_variant_ids' => [$variantMetal['id']],
-                        ];
-                    }
-                } else {
-                    // Add this variant metal ID to the existing option
-                    if (!in_array($variantMetal['id'], $optionsMap[$key]['metal_variant_ids'])) {
-                        $optionsMap[$key]['metal_variant_ids'][] = $variantMetal['id'];
-                    }
-                }
-            }
-        } elseif ($metalMixMode === 'combine_tones_per_purity') {
-            // Group by (metal_id, metal_purity_id), combine tones
-            foreach ($allVariantMetals as $variantMetal) {
-                $key = sprintf('%d_%d', $variantMetal['metal_id'], $variantMetal['metal_purity_id']);
-
-                if (!isset($optionsMap[$key])) {
-                    $metal = $variantMetal['metal'];
-                    $purity = $variantMetal['metalPurity'];
-
-                    if ($metal && $purity) {
-                        // Collect all tones for this metal+purity combination
-                        $toneIds = [];
-                        $toneNames = [];
-
-                        foreach ($allVariantMetals as $vm) {
-                            if (
-                                $vm['metal_id'] === $variantMetal['metal_id'] &&
-                                $vm['metal_purity_id'] === $variantMetal['metal_purity_id']
-                            ) {
-                                if ($vm['metalTone']) {
-                                    $toneIds[] = $vm['metal_tone_id'];
-                                    $toneNames[] = $vm['metalTone']->name;
-                                }
-                            }
-                        }
-
-                        $toneIds = array_unique($toneIds);
-                        $toneNames = array_unique($toneNames);
-                        sort($toneNames);
-
-                        $toneLabel = count($toneNames) > 1
-                            ? '(' . implode(' / ', $toneNames) . ')'
-                            : (count($toneNames) === 1 ? $toneNames[0] : '');
-
-                        $label = sprintf('%s %s %s', $purity->name, $toneLabel, $metal->name);
-                        $label = trim(str_replace('  ', ' ', $label));
-
-                        // Collect all metal_variant_ids for this group
-                        $metalVariantIds = [];
-                        foreach ($allVariantMetals as $vm) {
-                            if (
-                                $vm['metal_id'] === $variantMetal['metal_id'] &&
-                                $vm['metal_purity_id'] === $variantMetal['metal_purity_id']
-                            ) {
-                                $metalVariantIds[] = $vm['id'];
-                            }
-                        }
-
-                        $optionsMap[$key] = [
-                            'id' => $optionIdCounter++,
-                            'label' => $label,
-                            'metal_ids' => [$variantMetal['metal_id']],
-                            'metal_purity_ids' => [$variantMetal['metal_purity_id']],
-                            'metal_tone_ids' => array_values($toneIds),
-                            'metal_variant_ids' => array_values(array_unique($metalVariantIds)),
-                        ];
-                    }
-                }
-            }
-        } elseif ($metalMixMode === 'combine_purities_per_tone') {
-            // Group by (metal_id, metal_tone_id), combine purities
-            foreach ($allVariantMetals as $variantMetal) {
-                $key = sprintf('%d_%d', $variantMetal['metal_id'], $variantMetal['metal_tone_id']);
-
-                if (!isset($optionsMap[$key])) {
-                    $metal = $variantMetal['metal'];
-                    $tone = $variantMetal['metalTone'];
-
-                    if ($metal && $tone) {
-                        // Collect all purities for this metal+tone combination
-                        $purityIds = [];
-                        $purityNames = [];
-
-                        foreach ($allVariantMetals as $vm) {
-                            if (
-                                $vm['metal_id'] === $variantMetal['metal_id'] &&
-                                $vm['metal_tone_id'] === $variantMetal['metal_tone_id']
-                            ) {
-                                if ($vm['metalPurity']) {
-                                    $purityIds[] = $vm['metal_purity_id'];
-                                    $purityNames[] = $vm['metalPurity']->name;
-                                }
-                            }
-                        }
-
-                        $purityIds = array_unique($purityIds);
-                        $purityNames = array_unique($purityNames);
-                        sort($purityNames);
-
-                        $purityLabel = count($purityNames) > 1
-                            ? '(' . implode(' / ', $purityNames) . ')'
-                            : (count($purityNames) === 1 ? $purityNames[0] : '');
-
-                        $label = sprintf('%s %s %s', $purityLabel, $tone->name, $metal->name);
-                        $label = trim(str_replace('  ', ' ', $label));
-
-                        // Collect all metal_variant_ids for this group
-                        $metalVariantIds = [];
-                        foreach ($allVariantMetals as $vm) {
-                            if (
-                                $vm['metal_id'] === $variantMetal['metal_id'] &&
-                                $vm['metal_tone_id'] === $variantMetal['metal_tone_id']
-                            ) {
-                                $metalVariantIds[] = $vm['id'];
-                            }
-                        }
-
-                        $optionsMap[$key] = [
-                            'id' => $optionIdCounter++,
-                            'label' => $label,
-                            'metal_ids' => [$variantMetal['metal_id']],
-                            'metal_purity_ids' => array_values($purityIds),
-                            'metal_tone_ids' => [$variantMetal['metal_tone_id']],
-                            'metal_variant_ids' => array_values(array_unique($metalVariantIds)),
-                        ];
-                    }
-                }
-            }
-        }
-
-        return array_values($optionsMap);
-    }
 
     /**
-     * Build diamond options based on diamond_mixing_mode.
+     * Build diamond options from variant diamonds.
      */
-    protected function buildDiamondOptions(Product $product, string $diamondMixingMode): array
+    protected function buildDiamondOptions(Product $product): array
     {
         if (!$product->uses_diamond) {
             return [];
@@ -1055,8 +884,7 @@ class CatalogController extends Controller
             // Calculate price breakdown
             $basePrice = (float) ($product->base_price ?? 0);
             $makingCharge = (float) ($product->making_charge ?? 0);
-            $priceAdjustment = (float) ($variant->price_adjustment ?? 0);
-            $priceTotal = $basePrice + $makingCharge + $priceAdjustment;
+            $priceTotal = $basePrice + $makingCharge;
 
             // For now, estimate metal and diamond costs (would be calculated from rates in production)
             $metalCost = 0;
@@ -1075,7 +903,6 @@ class CatalogController extends Controller
                         'metal' => $metalCost,
                         'diamond' => $diamondCost,
                         'making' => $makingCharge,
-                        'adjustment' => $priceAdjustment,
                     ],
                     'sku' => $variant->sku ?? $product->sku,
                     'label' => $variant->label,

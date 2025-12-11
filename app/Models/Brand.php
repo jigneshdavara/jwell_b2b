@@ -22,7 +22,3 @@ class Brand extends Model
         'is_active' => 'boolean',
     ];
 }
-
-
-
-

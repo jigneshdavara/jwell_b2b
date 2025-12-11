@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('metal_tone_id')->nullable()->constrained()->nullOnDelete();
             $table->decimal('metal_weight', 10, 3)->nullable();
             $table->jsonb('metadata')->nullable();
-            $table->integer('position')->default(0);
+            $table->integer('display_order')->default(0);
             $table->timestampsTz();
 
             $table->index(['product_variant_id', 'metal_id']);

@@ -72,7 +72,7 @@ type DiamondsPageProps = PageProps<{
 }>;
 
 export default function AdminDiamondsIndex() {
-    const { diamonds, types, clarities, colors, shapes } = usePage<DiamondsPageProps>().props;
+    const { diamonds, types } = usePage<DiamondsPageProps>().props;
     const [modalOpen, setModalOpen] = useState(false);
     const [editingDiamond, setEditingDiamond] = useState<DiamondRow | null>(null);
     const [selectedDiamonds, setSelectedDiamonds] = useState<number[]>([]);
@@ -93,8 +93,8 @@ export default function AdminDiamondsIndex() {
         diamond_color_id: null as number | null,
         diamond_shape_id: null as number | null,
         diamond_shape_size_id: null as number | null,
-        price: 0,
-        weight: 0,
+        price: '' as string | number,
+        weight: '' as string | number,
         description: '',
         is_active: true,
     });
@@ -133,8 +133,16 @@ export default function AdminDiamondsIndex() {
         setFilteredColors([]);
         setFilteredShapes([]);
         form.reset();
-        form.setData('price', 0);
-        form.setData('weight', 0);
+        form.clearErrors();
+        form.setData('name', '');
+        form.setData('diamond_type_id', null);
+        form.setData('diamond_clarity_id', null);
+        form.setData('diamond_color_id', null);
+        form.setData('diamond_shape_id', null);
+        form.setData('diamond_shape_size_id', null);
+        form.setData('price', '');
+        form.setData('weight', '');
+        form.setData('description', '');
         form.setData('is_active', true);
     };
 
@@ -145,6 +153,7 @@ export default function AdminDiamondsIndex() {
 
     const openEditModal = (diamond: DiamondRow) => {
         setEditingDiamond(diamond);
+        form.clearErrors();
         form.setData({
             name: diamond.name,
             diamond_type_id: diamond.type?.id ?? null,
@@ -153,7 +162,7 @@ export default function AdminDiamondsIndex() {
             diamond_shape_id: diamond.shape?.id ?? null,
             diamond_shape_size_id: diamond.shape_size?.id ?? null,
             price: diamond.price,
-            weight: diamond.weight ?? 0,
+            weight: diamond.weight ?? '',
             description: diamond.description ?? '',
             is_active: diamond.is_active,
         });
@@ -248,6 +257,13 @@ export default function AdminDiamondsIndex() {
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        // Convert price and weight from empty string to 0 before submission
+        form.transform((data) => ({
+            ...data,
+            price: data.price === '' ? 0 : Number(data.price),
+            weight: data.weight === '' ? 0 : Number(data.weight),
+        }));
 
         if (editingDiamond) {
             form.put(route('admin.diamond.diamonds.update', editingDiamond.id), {
@@ -549,7 +565,7 @@ export default function AdminDiamondsIndex() {
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Name *</span>
+                                            <span>Name <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="text"
                                                 value={form.data.name}
@@ -561,7 +577,7 @@ export default function AdminDiamondsIndex() {
                                             {form.errors.name && <span className="text-xs text-rose-500">{form.errors.name}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Type *</span>
+                                            <span>Type <span className="text-rose-500">*</span></span>
                                             <select
                                                 value={form.data.diamond_type_id || ''}
                                                 onChange={(event) => handleTypeChange(event.target.value ? Number(event.target.value) : null)}
@@ -578,7 +594,7 @@ export default function AdminDiamondsIndex() {
                                             {form.errors.diamond_type_id && <span className="text-xs text-rose-500">{form.errors.diamond_type_id}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Clarity *</span>
+                                            <span>Clarity <span className="text-rose-500">*</span></span>
                                             <select
                                                 value={form.data.diamond_clarity_id || ''}
                                                 onChange={(event) => form.setData('diamond_clarity_id', event.target.value ? Number(event.target.value) : null)}
@@ -596,7 +612,7 @@ export default function AdminDiamondsIndex() {
                                             {form.errors.diamond_clarity_id && <span className="text-xs text-rose-500">{form.errors.diamond_clarity_id}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Color *</span>
+                                            <span>Color <span className="text-rose-500">*</span></span>
                                             <select
                                                 value={form.data.diamond_color_id || ''}
                                                 onChange={(event) => form.setData('diamond_color_id', event.target.value ? Number(event.target.value) : null)}
@@ -614,7 +630,7 @@ export default function AdminDiamondsIndex() {
                                             {form.errors.diamond_color_id && <span className="text-xs text-rose-500">{form.errors.diamond_color_id}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Shape *</span>
+                                            <span>Shape <span className="text-rose-500">*</span></span>
                                             <select
                                                 value={form.data.diamond_shape_id || ''}
                                                 onChange={(event) => handleShapeChange(event.target.value ? Number(event.target.value) : null)}
@@ -632,7 +648,7 @@ export default function AdminDiamondsIndex() {
                                             {form.errors.diamond_shape_id && <span className="text-xs text-rose-500">{form.errors.diamond_shape_id}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Shape Size *</span>
+                                            <span>Shape Size <span className="text-rose-500">*</span></span>
                                             <select
                                                 value={form.data.diamond_shape_size_id || ''}
                                                 onChange={(event) => form.setData('diamond_shape_size_id', event.target.value ? Number(event.target.value) : null)}
@@ -650,12 +666,12 @@ export default function AdminDiamondsIndex() {
                                             {form.errors.diamond_shape_size_id && <span className="text-xs text-rose-500">{form.errors.diamond_shape_size_id}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Price *</span>
+                                            <span>Price <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="number"
                                                 step="0.01"
-                                                value={form.data.price}
-                                                onChange={(event) => form.setData('price', Number(event.target.value))}
+                                                value={form.data.price === '' ? '' : form.data.price}
+                                                onChange={(event) => form.setData('price', event.target.value === '' ? '' : Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                                 required
@@ -663,12 +679,12 @@ export default function AdminDiamondsIndex() {
                                             {form.errors.price && <span className="text-xs text-rose-500">{form.errors.price}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Weight (Carats) *</span>
+                                            <span>Weight (Carats) <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="number"
                                                 step="0.001"
-                                                value={form.data.weight}
-                                                onChange={(event) => form.setData('weight', Number(event.target.value))}
+                                                value={form.data.weight === '' ? '' : form.data.weight}
+                                                onChange={(event) => form.setData('weight', event.target.value === '' ? '' : Number(event.target.value))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                                 required

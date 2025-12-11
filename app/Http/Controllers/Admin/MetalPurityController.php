@@ -62,11 +62,11 @@ class MetalPurityController extends Controller
 
         MetalPurity::create([
             'metal_id' => $data['metal_id'],
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
         ]);
 
         return redirect()
@@ -80,11 +80,11 @@ class MetalPurityController extends Controller
 
         $metalPurity->update([
             'metal_id' => $data['metal_id'],
-            'code' => $data['code'] ?? null,
+            'code' => $data['code'],
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-            'display_order' => $data['display_order'] ?? 0,
+            'display_order' => $data['display_order'],
         ]);
 
         return redirect()

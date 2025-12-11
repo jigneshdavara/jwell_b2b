@@ -9,15 +9,14 @@ type PrefillProduct = {
     sku: string;
     material?: string | null;
     purity?: string | null;
-    gross_weight?: number | null;
-    net_weight?: number | null;
     base_price?: number | null;
     making_charge_amount?: number | null;
-    standard_pricing?: Record<string, number | string | null> | null;
+    making_charge_percentage?: number | null;
+    making_charge_types?: string[];
+    calculated_making_charge?: number | null;
     variants: Array<{
         id: number;
         label: string;
-        price_adjustment: number;
         is_default: boolean;
     }>;
     media: Array<{ url: string; alt: string }>;
@@ -202,11 +201,11 @@ export default function JobworkIndex() {
             return null;
         }
         const base = prefillProduct.base_price ?? 0;
-        const making = prefillProduct.making_charge_amount ?? 0;
-        const adjustment = selectedVariant?.price_adjustment ?? 0;
+        // Use calculated making charge if available, otherwise fallback to fixed amount only
+        const making = prefillProduct.calculated_making_charge ?? prefillProduct.making_charge_amount ?? 0;
 
-        return base + making + adjustment;
-    }, [prefillProduct, selectedVariant]);
+        return base + making;
+    }, [prefillProduct]);
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -295,11 +294,30 @@ export default function JobworkIndex() {
                                             </div>
                                             <div>
                                                 <p className="font-medium text-slate-500">Making charge</p>
-                                                <p className="text-slate-900">₹ {(prefillProduct.making_charge_amount ?? 0).toLocaleString('en-IN')}</p>
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-slate-500">Gross weight</p>
-                                                <p className="text-slate-900">{prefillProduct.gross_weight?.toFixed(2)} g</p>
+                                                {(() => {
+                                                    // Show calculated making charge if available, otherwise show type info
+                                                    if (prefillProduct.calculated_making_charge !== null && prefillProduct.calculated_making_charge !== undefined) {
+                                                        return <p className="text-slate-900">₹ {prefillProduct.calculated_making_charge.toLocaleString('en-IN')}</p>;
+                                                    }
+                                                    
+                                                    const types = prefillProduct.making_charge_types || [];
+                                                    const hasFixed = types.includes('fixed') && prefillProduct.making_charge_amount && prefillProduct.making_charge_amount > 0;
+                                                    const hasPercentage = types.includes('percentage') && prefillProduct.making_charge_percentage && prefillProduct.making_charge_percentage > 0;
+                                                    
+                                                    if (hasFixed && hasPercentage) {
+                                                        return (
+                                                            <p className="text-slate-900">
+                                                                ₹ {prefillProduct.making_charge_amount?.toLocaleString('en-IN')} + {prefillProduct.making_charge_percentage}% of metal cost
+                                                            </p>
+                                                        );
+                                                    } else if (hasFixed) {
+                                                        return <p className="text-slate-900">₹ {(prefillProduct.making_charge_amount ?? 0).toLocaleString('en-IN')} (Fixed)</p>;
+                                                    } else if (hasPercentage) {
+                                                        return <p className="text-slate-900">{prefillProduct.making_charge_percentage}% of metal cost</p>;
+                                                    }
+                                                    
+                                                    return <p className="text-slate-900">₹ {(prefillProduct.making_charge_amount ?? 0).toLocaleString('en-IN')}</p>;
+                                                })()}
                                             </div>
                                             <div>
                                                 <p className="font-medium text-slate-500">Purity</p>
@@ -307,31 +325,12 @@ export default function JobworkIndex() {
                                             </div>
                                         </div>
 
-                                        {prefillProduct.standard_pricing && (
-                                            <div className="rounded-xl bg-slate-50 p-4 text-xs text-slate-600">
-                                                <p className="font-semibold text-slate-700">Standard pricing snapshot</p>
-                                                <ul className="mt-2 space-y-1">
-                                                    {Object.entries(prefillProduct.standard_pricing).map(([key, value]) => (
-                                                        <li key={key} className="flex justify-between">
-                                                            <span className="text-slate-500">{key.replace('_', ' ')}</span>
-                                                            <span className="text-slate-800">{typeof value === 'number' ? value.toLocaleString('en-IN') : value}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-
                                         {prefillProduct.variants.length > 0 && (
                                             <div className="space-y-2">
                                                 <p className="text-sm font-medium text-slate-600">Select variant</p>
                                                 <div className="grid gap-2">
                                                     {prefillProduct.variants.map((variant) => {
                                                         const isSelected = data.product_variant_id === variant.id;
-                                                        const adjustment = variant.price_adjustment;
-                                                        const adjustmentLabel =
-                                                            adjustment === 0
-                                                                ? 'Standard'
-                                                                : `${adjustment > 0 ? '+' : ''}₹ ${Math.abs(adjustment).toLocaleString('en-IN')}`;
 
                                                         return (
                                                             <label
@@ -344,7 +343,6 @@ export default function JobworkIndex() {
                                                             >
                                                                 <span>{variant.label}</span>
                                                                 <span className="flex items-center gap-2">
-                                                                    <span className="text-xs font-semibold text-slate-500">{adjustmentLabel}</span>
                                                                     <input
                                                                         type="radio"
                                                                         name="product_variant_id"

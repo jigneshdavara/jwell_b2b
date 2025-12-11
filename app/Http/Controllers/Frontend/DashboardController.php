@@ -36,10 +36,6 @@ class DashboardController extends Controller
             'open_orders' => Order::where('user_id', $user->id)
                 ->whereIn('status', $openOrderStatuses)
                 ->count(),
-            'jobwork_requests' => Quotation::where('user_id', $user->id)
-                ->where('mode', 'jobwork')
-                ->where('status', 'approved')
-                ->count(),
             'active_offers' => Offer::where('is_active', true)->count(),
         ];
 
@@ -56,31 +52,6 @@ class DashboardController extends Controller
                 'placed_on' => Carbon::parse($order->created_at)->toDateTimeString(),
             ]);
 
-        $jobworkTimeline = Quotation::where('user_id', $user->id)
-            ->where('mode', 'jobwork')
-            ->where('status', 'approved')
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(fn(Quotation $quotation) => [
-                'id' => $quotation->id,
-                'status' => $quotation->jobwork_status,
-                'product' => optional($quotation->product)?->name,
-                'quantity' => $quotation->quantity,
-                'submitted_on' => optional($quotation->created_at)?->toDateTimeString(),
-            ]);
-
-        $dueOrders = Order::where('user_id', $user->id)
-            ->where('status', OrderStatus::PendingPayment->value)
-            ->latest()
-            ->take(5)
-            ->get()
-            ->map(fn(Order $order) => [
-                'reference' => $order->reference,
-                'total' => (float) $order->total_amount,
-                'placed_on' => optional($order->created_at)?->toDateTimeString(),
-            ]);
-
         $coverImageUrl = static function (?string $path): ?string {
             if (! $path) {
                 return null;
@@ -95,7 +66,7 @@ class DashboardController extends Controller
 
         $recentProducts = Product::query()
             ->with([
-                'media' => fn($media) => $media->orderBy('position'),
+                'media' => fn($media) => $media->orderBy('display_order'),
                 'variants.metals.metal',
                 'variants.metals.metalPurity',
                 'variants.metals.metalTone',
@@ -146,12 +117,13 @@ class DashboardController extends Controller
                     }
                     $diamondCost = round($diamondCost, 2);
 
+                    // Calculate making charge based on configured types (fixed, percentage, or both)
+                    $makingCharge = $product->calculateMakingCharge($metalCost);
                     // Calculate priceTotal: Metal + Diamond + Making Charge
-                    $makingCharge = (float) ($product->making_charge_amount ?? 0);
                     $priceTotal = $metalCost + $diamondCost + $makingCharge;
                 } else {
-                    // If no variant, fallback to making charge only
-                    $priceTotal = (float) ($product->making_charge ?? 0);
+                    // If no variant, fallback to making charge only (with no metal cost)
+                    $priceTotal = $product->calculateMakingCharge(0);
                 }
 
                 return [
@@ -159,7 +131,7 @@ class DashboardController extends Controller
                     'name' => $product->name,
                     'sku' => $product->sku,
                     'price_total' => $priceTotal,
-                    'thumbnail' => optional($product->media->sortBy('position')->first())?->url,
+                    'thumbnail' => optional($product->media->sortBy('display_order')->first())?->url,
                 ];
             });
 
@@ -176,24 +148,10 @@ class DashboardController extends Controller
                 'products_count' => $catalog->products_count,
             ]);
 
-        $featuredCategories = Category::query()
-            ->withCount('products')
-            ->where('is_active', true)
-            ->orderByDesc('products_count')
-            ->take(8)
-            ->get()
-            ->map(fn(Category $category) => [
-                'id' => $category->id,
-                'name' => $category->name,
-                'products_count' => $category->products_count,
-                'cover_image_url' => $coverImageUrl($category->cover_image),
-            ]);
-
         return Inertia::render('Frontend/Dashboard/Overview', [
             'stats' => $stats,
             'recentProducts' => $recentProducts,
-            'featuredCatalogs' => $featuredCatalogs,
-            'featuredCategories' => $featuredCategories,
+            'featuredCatalogs' => $featuredCatalogs
         ]);
     }
 }

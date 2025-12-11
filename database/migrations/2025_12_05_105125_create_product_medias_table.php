@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('product_media', function (Blueprint $table) {
+        Schema::create('product_medias', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->string('type')->default('image');
             $table->string('url');
-            $table->integer('position')->default(0);
+            $table->integer('display_order')->default(0);
             $table->jsonb('metadata')->nullable();
             $table->timestampsTz();
         });
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('product_media');
+        Schema::dropIfExists('product_medias');
     }
 };

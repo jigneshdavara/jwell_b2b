@@ -13,21 +13,6 @@ const statusColors: Record<string, string> = {
 
 type ProductionDashboardProps = {
     metrics: Record<string, number>;
-    activeWorkOrders: Array<{
-        id: number;
-        code: string;
-        status: string;
-        stage_notes?: string | null;
-        deadline: string | null;
-        order_reference?: string | null;
-    }>;
-    jobworkHandovers: Array<{
-        id: number;
-        status: string;
-        quantity: number;
-        metal: string;
-        deadline: string | null;
-    }>;
 };
 
 const labels: Record<string, string> = {
@@ -37,7 +22,7 @@ const labels: Record<string, string> = {
 };
 
 export default function ProductionDashboardOverview() {
-    const { metrics, activeWorkOrders, jobworkHandovers } =
+    const { metrics } =
         usePage<PageProps<ProductionDashboardProps>>().props;
 
     return (
@@ -76,76 +61,6 @@ export default function ProductionDashboardOverview() {
                     ))}
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-2">
-                    <section className="rounded-3xl border border-slate-800/60 bg-slate-900/70 p-6 shadow-xl shadow-slate-950/40">
-                        <h2 className="text-lg font-semibold text-white">Active Work Orders</h2>
-                        <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Prioritised by due date</p>
-                        <div className="mt-6 space-y-4">
-                            {activeWorkOrders.map((order) => (
-                                <div key={order.id} className="rounded-2xl border border-slate-800/60 p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-semibold text-white">{order.code ?? `WO-${order.id}`}</p>
-                                            <p className="text-xs text-slate-400">Linked to order {order.order_reference ?? 'N/A'}</p>
-                                        </div>
-                                        <span
-                                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                                statusColors[order.status] ?? 'bg-slate-800 text-slate-200'
-                                            }`}
-                                        >
-                                            {order.status.replace(/_/g, ' ')}
-                                        </span>
-                                    </div>
-                                    {order.stage_notes && (
-                                        <p className="mt-3 text-xs text-slate-400">{order.stage_notes}</p>
-                                    )}
-                                    <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                                        <span>
-                                            Deadline {order.deadline ? new Date(order.deadline).toLocaleDateString('en-IN') : 'TBD'}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                            {activeWorkOrders.length === 0 && (
-                                <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center text-sm text-slate-500">
-                                    No work orders in production.
-                                </div>
-                            )}
-                        </div>
-                    </section>
-
-                    <section className="rounded-3xl border border-slate-800/60 bg-slate-900/70 p-6 shadow-xl shadow-slate-950/40">
-                        <h2 className="text-lg font-semibold text-white">Jobwork Awaiting Conversion</h2>
-                        <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Ready to schedule</p>
-                        <div className="mt-6 space-y-4">
-                            {jobworkHandovers.map((job) => (
-                                <div key={job.id} className="rounded-2xl border border-slate-800/60 p-4">
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-sm font-semibold text-white">Request #{job.id}</p>
-                                        <span
-                                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                                statusColors[job.status] ?? 'bg-slate-800 text-slate-200'
-                                            }`}
-                                        >
-                                            {job.status.replace(/_/g, ' ')}
-                                        </span>
-                                    </div>
-                                    <p className="mt-2 text-sm text-slate-300">
-                                        {job.quantity} pcs · {job.metal}
-                                    </p>
-                                    <p className="mt-2 text-xs text-slate-500">
-                                        Deadline {job.deadline ? new Date(job.deadline).toLocaleDateString('en-IN') : 'TBD'}
-                                    </p>
-                                </div>
-                            ))}
-                            {jobworkHandovers.length === 0 && (
-                                <div className="rounded-2xl border border-dashed border-slate-700 p-6 text-center text-sm text-slate-500">
-                                    All jobwork requests have been converted.
-                                </div>
-                            )}
-                        </div>
-                    </section>
-                </div>
             </div>
         </ProductionLayout>
     );

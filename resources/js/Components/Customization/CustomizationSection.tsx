@@ -34,7 +34,6 @@ interface ConfigurationOption {
         metal: number;
         diamond: number;
         making: number;
-        adjustment: number;
     };
     sku: string;
 }

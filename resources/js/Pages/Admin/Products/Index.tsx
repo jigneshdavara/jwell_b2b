@@ -6,7 +6,14 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
 type BrandList = Record<string, string>;
-type CategoryList = Record<string, string>;
+
+type CategoryOption = {
+    id: number;
+    name: string;
+    parent_id: number | null;
+};
+
+type CategoryList = CategoryOption[];
 
 type Product = {
     id: number;
@@ -45,7 +52,7 @@ type AdminProductsPageProps = AppPageProps<{
 
 export default function AdminProductsIndex() {
     const { props } = usePage<AdminProductsPageProps>();
-    const { products, brands, categories, filters, perPageOptions, perPage: initialPerPage } = props;
+    const { products, brands, categories, filters, perPage: initialPerPage } = props;
 
     const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
     const [filterState, setFilterState] = useState({
@@ -114,25 +121,6 @@ export default function AdminProductsIndex() {
                 category: merged.category !== 'all' ? merged.category : undefined,
                 status: merged.status !== 'all' ? merged.status : undefined,
                 per_page: perPage,
-            },
-            {
-                preserveState: true,
-                replace: true,
-                preserveScroll: true,
-            },
-        );
-    };
-
-    const handlePerPageChange = (value: number) => {
-        setPerPage(value);
-        router.get(
-            route('admin.products.index'),
-            {
-                search: filterState.search || undefined,
-                brand: filterState.brand !== 'all' ? filterState.brand : undefined,
-                category: filterState.category !== 'all' ? filterState.category : undefined,
-                status: filterState.status !== 'all' ? filterState.status : undefined,
-                per_page: value,
             },
             {
                 preserveState: true,
@@ -339,9 +327,9 @@ export default function AdminProductsIndex() {
                                 className="rounded-2xl border border-slate-200 px-4 py-2"
                             >
                                 <option value="all">All categories</option>
-                                {Object.entries(categories).map(([id, name]) => (
-                                    <option key={id} value={id}>
-                                        {name}
+                                {categories.map((category) => (
+                                    <option key={category.id} value={category.id}>
+                                        {category.name}
                                     </option>
                                 ))}
                             </select>
@@ -407,9 +395,9 @@ export default function AdminProductsIndex() {
                                 className="rounded-2xl border border-slate-200 px-3 py-1"
                             >
                                 <option value="">Assign category…</option>
-                                {Object.entries(categories).map(([id, name]) => (
-                                    <option key={id} value={id}>
-                                        {name}
+                                {categories.map((category) => (
+                                    <option key={category.id} value={category.id}>
+                                        {category.name}
                                     </option>
                                 ))}
                             </select>

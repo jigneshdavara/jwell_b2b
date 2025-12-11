@@ -139,7 +139,6 @@ interface ProductVariant {
   id: number;
   sku: string;
   label: string;
-  price_adjustment: number;
   metadata: {
     diamond_option_key?: string;
     size_cm?: number;

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
-use App\Models\JobworkRequest;
 use App\Models\Offer;
 use App\Models\Order;
 use App\Models\Product;
@@ -24,7 +23,6 @@ class HomeController extends Controller
         $stats = [
             'products' => Product::count(),
             'orders' => Order::count(),
-            'jobworks' => JobworkRequest::count(),
             'active_offers' => Offer::where('is_active', true)->count(),
         ];
 
@@ -37,6 +35,8 @@ class HomeController extends Controller
                 'name' => $product->name,
                 'price' => (float) $product->base_price,
                 'making_charge_amount' => (float) $product->making_charge_amount,
+                'making_charge_percentage' => $product->making_charge_percentage ? (float) $product->making_charge_percentage : null,
+                'making_charge_types' => $product->getMakingChargeTypes(),
             ]);
 
         $features = [

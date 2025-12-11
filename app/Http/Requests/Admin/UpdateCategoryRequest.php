@@ -20,7 +20,25 @@ class UpdateCategoryRequest extends FormRequest
         $category = $this->route('category');
 
         return [
-            'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'parent_id' => [
+                'nullable',
+                'integer',
+                'exists:categories,id',
+                function ($attribute, $value, $fail) use ($category) {
+                    if ($value && $category) {
+                        if ((int) $value === $category->id) {
+                            $fail('A category cannot be its own parent.');
+                            return;
+                        }
+
+                        $descendantIds = $category->getDescendantIds();
+                        if (in_array((int) $value, $descendantIds, true)) {
+                            $fail('A category cannot have one of its descendants as a parent.');
+                            return;
+                        }
+                    }
+                },
+            ],
             'code' => ['nullable', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255', Rule::unique('categories', 'name')->ignore($category?->id)],
             'description' => ['nullable', 'string'],

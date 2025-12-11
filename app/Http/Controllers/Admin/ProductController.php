@@ -12,15 +12,13 @@ use App\Models\Catalog;
 use App\Models\Category;
 use App\Models\CustomerGroup;
 use App\Models\Diamond;
-use App\Models\DiamondClarity;
-use App\Models\DiamondColor;
-use App\Models\DiamondShape;
 use App\Models\Metal;
 use App\Models\MetalPurity;
 use App\Models\MetalTone;
 use App\Models\Product;
 use App\Models\ProductMedia;
 use App\Models\ProductVariant;
+use App\Models\Size;
 use App\Services\Catalog\ProductVariantSyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -36,21 +34,19 @@ class ProductController extends Controller
     public function index(): Response
     {
         $filters = request()->only(['search', 'status']);
-        $perPage = (int) request('per_page', 20);
-
-        if (! in_array($perPage, [10, 25, 50, 100], true)) {
-            $perPage = 20;
-        }
+        $perPage = $this->validatePerPage(request('per_page', 10));
 
         $products = Product::query()
             ->with(['brand:id,name', 'category:id,name'])
             ->withCount('variants')
-            ->when($filters['search'] ?? null, function ($query, $search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('sku', 'like', "%{$search}%")
+            ->when(
+                $filters['search'] ?? null,
+                fn($query, $search) =>
+                $query->where(function ($q) use ($search) {
+                    $q->where('sku', 'like', "%{$search}%")
                         ->orWhere('name', 'like', "%{$search}%");
-                });
-            })
+                })
+            )
             ->when($filters['status'] ?? null, function ($query, $status) {
                 if ($status === 'active') {
                     $query->where('is_active', true);
@@ -61,17 +57,7 @@ class ProductController extends Controller
             ->latest('updated_at')
             ->paginate($perPage)
             ->withQueryString()
-            ->through(function (Product $product) {
-                return [
-                    'id' => $product->id,
-                    'sku' => $product->sku,
-                    'name' => $product->name,
-                    'is_active' => $product->is_active,
-                    'brand' => $product->brand ? ['name' => $product->brand->name] : null,
-                    'category' => $product->category ? ['name' => $product->category->name] : null,
-                    'variants_count' => $product->variants_count,
-                ];
-            });
+            ->through(fn(Product $product) => $this->formatProductForList($product));
 
         return Inertia::render('Admin/Products/Index', [
             'products' => $products,
@@ -87,39 +73,16 @@ class ProductController extends Controller
     {
         return Inertia::render('Admin/Products/Edit', [
             'product' => null,
-            'customerGroups' => $this->customerGroupOptions(),
-            'brands' => $this->brandList(),
-            'categories' => $this->categoryList(),
-            'catalogs' => $this->catalogList(),
-            'diamondCatalog' => $this->diamondCatalogOptions(),
-            'diamonds' => $this->diamondOptions(),
-            'metals' => $this->metalOptions(),
-            'metalPurities' => $this->metalPurityOptions(),
-            'metalTones' => $this->metalToneOptions(),
+            ...$this->getFormOptions(),
         ]);
     }
 
     public function store(StoreProductRequest $request, ProductVariantSyncService $variantSync): RedirectResponse
     {
-        $data = $request->validated();
-        $variants = Arr::pull($data, 'variants', []);
-        $variantOptions = Arr::pull($data, 'variant_options', []);
-        $mediaUploads = Arr::pull($data, 'media_uploads', []);
-        $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
-        $catalogIds = Arr::pull($data, 'catalog_ids', []);
+        $validated = $request->validated();
 
-        $data = $this->prepareProductPayload($data);
-
-        return DB::transaction(function () use ($data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds) {
-            $product = Product::create($data);
-
-            $variantSync->sync($product, $variants, $variantOptions, null);
-            $this->syncMedia($product, $mediaUploads, $removedMediaIds);
-            
-            // Sync catalogs if any are selected
-            if (!empty($catalogIds)) {
-                $product->catalogs()->sync($catalogIds);
-            }
+        return DB::transaction(function () use ($validated, $variantSync) {
+            $product = $this->createProduct($validated, $variantSync);
 
             return redirect()
                 ->route('admin.products.edit', $product)
@@ -131,11 +94,12 @@ class ProductController extends Controller
     {
         $product->load([
             'brand',
-            'category',
+            'category.sizes' => fn($query) => $query->where('is_active', true)->orderBy('name'),
             'catalogs',
-            'media' => fn($query) => $query->orderBy('position'),
+            'media' => fn($query) => $query->orderBy('display_order'),
             'variants' => function ($query) {
-                $query->orderByDesc('is_default')->orderBy('label')
+                $query->orderByDesc('is_default')
+                    ->orderBy('label')
                     ->with([
                         'metals.metal',
                         'metals.metalPurity',
@@ -143,131 +107,26 @@ class ProductController extends Controller
                         'diamonds.diamond.shape',
                         'diamonds.diamond.color',
                         'diamonds.diamond.clarity',
+                        'size',
                     ]);
             },
         ]);
 
         return Inertia::render('Admin/Products/Edit', [
-            'product' => [
-                'id' => $product->id,
-                'sku' => $product->sku,
-                'name' => $product->name,
-                'titleline' => $product->titleline ?? '',
-                'description' => $product->description,
-                'brand_id' => $product->brand_id,
-                'category_id' => $product->category_id,
-                'collection' => $product->collection ?? '',
-                'producttype' => $product->producttype ?? '',
-                'gender' => $product->gender ?? '',
-                'gross_weight' => $product->gross_weight,
-                'net_weight' => $product->net_weight,
-                'gold_weight' => $product->gold_weight,
-                'silver_weight' => $product->silver_weight,
-                'other_material_weight' => $product->other_material_weight,
-                'total_weight' => $product->total_weight,
-                'making_charge_amount' => $product->making_charge_amount,
-                'making_charge_type' => $product->making_charge_type, // Accessor will infer from values
-                'making_charge_percentage' => $product->making_charge_percentage,
-                'making_charge_discount_type' => $product->making_charge_discount_type,
-                'making_charge_discount_value' => $product->making_charge_discount_value !== null ? (string) $product->making_charge_discount_value : '',
-                'making_charge_discount_overrides' => collect($product->making_charge_discount_overrides ?? [])
-                    ->map(function (array $override) {
-                        return [
-                            'customer_group_id' => $override['customer_group_id'] ?? null,
-                            'type' => $override['type'] ?? 'percentage',
-                            'value' => isset($override['value']) ? (string) $override['value'] : '',
-                        ];
-                    })
-                    ->values()
-                    ->all(),
-                'is_active' => $product->is_active ?? true,
-                'is_jobwork_allowed' => $product->is_jobwork_allowed ?? false,
-                'visibility' => $product->visibility ?? 'public',
-                'standard_pricing' => $product->standard_pricing ?? false,
-                'variant_options' => $product->variant_options,
-                'is_variant_product' => $product->is_variant_product ?? false,
-                'mixed_metal_tones_per_purity' => $product->mixed_metal_tones_per_purity ?? false,
-                'mixed_metal_purities_per_tone' => $product->mixed_metal_purities_per_tone ?? false,
-                'metal_mix_mode' => is_array($product->metal_mix_mode) && count($product->metal_mix_mode) > 0
-                    ? $product->metal_mix_mode
-                    : (object)[],
-                'metal_ids' => $product->metal_ids ?? [],
-                'metal_purity_ids' => $product->metal_purity_ids ?? [],
-                'metal_tone_ids' => $product->metal_tone_ids ?? [],
-                'catalog_ids' => $product->catalogs->pluck('id')->toArray(),
-                'metadata' => $product->metadata,
-                'variants' => $product->variants->map(fn(ProductVariant $variant) => [
-                    'id' => $variant->id,
-                    'sku' => $variant->sku,
-                    'label' => $variant->label,
-                    'inventory_quantity' => $variant->inventory_quantity ?? 0,
-                    'total_weight' => $variant->total_weight ?? null,
-                    // Legacy fields - kept for backwards compatibility
-                    'metal_tone' => $variant->metal_tone,
-                    'stone_quality' => $variant->stone_quality,
-                    'size' => $variant->size,
-                    'price_adjustment' => $variant->price_adjustment,
-                    'is_default' => $variant->is_default,
-                    'metadata' => $variant->metadata,
-                    'size_cm' => $variant->metadata['size_cm'] ?? null,
-                    // Optional: for multiple metals per variant
-                    'metals' => $variant->metals->map(fn($metal) => [
-                        'id' => $metal->id,
-                        'metal_id' => $metal->metal_id,
-                        'metal_purity_id' => $metal->metal_purity_id,
-                        'metal_tone_id' => $metal->metal_tone_id,
-                        'metal_weight' => $metal->metal_weight,
-                        'metadata' => $metal->metadata,
-                        'metal' => $metal->metal ? ['id' => $metal->metal->id, 'name' => $metal->metal->name] : null,
-                        'metal_purity' => $metal->metalPurity ? ['id' => $metal->metalPurity->id, 'name' => $metal->metalPurity->name] : null,
-                        'metal_tone' => $metal->metalTone ? ['id' => $metal->metalTone->id, 'name' => $metal->metalTone->name] : null,
-                    ])->values()->all(),
-                    // Diamonds for this variant - simplified structure with only diamond_id and count
-                    'diamonds' => $variant->diamonds->map(fn($diamond) => [
-                        'id' => $diamond->id,
-                        'diamond_id' => $diamond->diamond_id,
-                        'diamonds_count' => $diamond->diamonds_count,
-                        'metadata' => $diamond->metadata,
-                    ])->values()->all(),
-                ]),
-                'media' => $product->media->map(fn(ProductMedia $media) => [
-                    'id' => $media->id,
-                    'type' => $media->type,
-                    'url' => $media->url,
-                    'position' => $media->position,
-                    'metadata' => $media->metadata,
-                ]),
-            ],
-            'customerGroups' => $this->customerGroupOptions(),
-            'brands' => $this->brandList(),
-            'categories' => $this->categoryList(),
-            'catalogs' => $this->catalogList(),
-            'diamondCatalog' => $this->diamondCatalogOptions(),
-            'diamonds' => $this->diamondOptions(),
-            'metals' => $this->metalOptions(),
-            'metalPurities' => $this->metalPurityOptions(),
-            'metalTones' => $this->metalToneOptions(),
+            'product' => $this->formatProductForEdit($product),
+            ...$this->getFormOptions(),
         ]);
     }
 
-    public function update(UpdateProductRequest $request, Product $product, ProductVariantSyncService $variantSync): RedirectResponse
-    {
-        $data = $request->validated();
-        $variants = Arr::pull($data, 'variants', []);
-        $variantOptions = Arr::pull($data, 'variant_options', []);
-        $mediaUploads = Arr::pull($data, 'media_uploads', []);
-        $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
-        $catalogIds = Arr::pull($data, 'catalog_ids', []);
+    public function update(
+        UpdateProductRequest $request,
+        Product $product,
+        ProductVariantSyncService $variantSync
+    ): RedirectResponse {
+        $validated = $request->validated();
 
-        $data = $this->prepareProductPayload($data);
-
-        DB::transaction(function () use ($product, $data, $variants, $variantOptions, $variantSync, $mediaUploads, $removedMediaIds, $catalogIds): void {
-            $product->update($data);
-            $variantSync->sync($product, $variants, $variantOptions, null);
-            $this->syncMedia($product, $mediaUploads, $removedMediaIds);
-            
-            // Sync catalogs (empty array will detach all catalogs)
-            $product->catalogs()->sync($catalogIds ?? []);
+        DB::transaction(function () use ($product, $validated, $variantSync): void {
+            $this->updateProduct($product, $validated, $variantSync);
         });
 
         return redirect()
@@ -295,10 +154,10 @@ class ProductController extends Controller
 
     public function bulkStatus(BulkUpdateProductStatusRequest $request): RedirectResponse
     {
-        $activate = $request->validated('action') === 'activate';
+        $isActive = $request->validated('action') === 'activate';
 
         Product::whereIn('id', $request->validated('ids'))->update([
-            'is_active' => $activate,
+            'is_active' => $isActive,
         ]);
 
         return redirect()
@@ -306,33 +165,12 @@ class ProductController extends Controller
             ->with('success', 'Product visibility updated.');
     }
 
-
-
     public function copy(Product $product): RedirectResponse
     {
         $product->load(['variants', 'media']);
 
         $newProduct = DB::transaction(function () use ($product) {
-            $replica = $product->replicate();
-            $replica->sku = $this->generateProductSku($product->sku);
-            $replica->name = $product->name . ' (Copy)';
-            $replica->is_active = false;
-            $replica->push();
-
-            foreach ($product->variants as $variant) {
-                $newVariant = $variant->replicate();
-                $newVariant->product_id = $replica->id;
-                $newVariant->sku = $this->generateVariantSku($variant->sku);
-                $newVariant->save();
-            }
-
-            foreach ($product->media as $media) {
-                $newMedia = $media->replicate();
-                $newMedia->product_id = $replica->id;
-                $newMedia->save();
-            }
-
-            return $replica;
+            return $this->duplicateProduct($product);
         });
 
         return redirect()
@@ -340,15 +178,359 @@ class ProductController extends Controller
             ->with('status', 'product_copied');
     }
 
-    protected function variantLibrary(): array
+    protected function createProduct(array $data, ProductVariantSyncService $variantSync): Product
     {
+        $variants = Arr::pull($data, 'variants', []);
+        $mediaUploads = Arr::pull($data, 'media_uploads', []);
+        $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
+        $catalogIds = Arr::pull($data, 'catalog_ids', []);
+        $categoryIds = Arr::pull($data, 'category_ids', []);
+
+        $data['subcategory_ids'] = !empty($categoryIds) ? $categoryIds : null;
+        $data = $this->prepareProductPayload($data);
+
+        $product = Product::create($data);
+
+        $variantSync->sync($product, $variants, null);
+        $this->syncMedia($product, $mediaUploads, $removedMediaIds);
+
+        if (!empty($catalogIds)) {
+            $product->catalogs()->sync($catalogIds);
+        }
+
+        return $product;
+    }
+
+    protected function updateProduct(
+        Product $product,
+        array $data,
+        ProductVariantSyncService $variantSync
+    ): void {
+        $variants = Arr::pull($data, 'variants', []);
+        $mediaUploads = Arr::pull($data, 'media_uploads', []);
+        $removedMediaIds = Arr::pull($data, 'removed_media_ids', []);
+        $catalogIds = Arr::pull($data, 'catalog_ids', []);
+        $categoryIds = Arr::pull($data, 'category_ids', []);
+
+        $data['subcategory_ids'] = !empty($categoryIds) ? $categoryIds : null;
+        $data = $this->prepareProductPayload($data);
+
+        $product->update($data);
+        $variantSync->sync($product, $variants, null);
+        $this->syncMedia($product, $mediaUploads, $removedMediaIds);
+        $product->catalogs()->sync($catalogIds ?? []);
+    }
+
+    protected function prepareProductPayload(array $data): array
+    {
+        // Handle making charge percentage
+        if (
+            isset($data['making_charge_percentage'])
+            && $data['making_charge_percentage'] !== null
+            && $data['making_charge_percentage'] !== ''
+        ) {
+            $data['making_charge_percentage'] = (float) $data['making_charge_percentage'];
+        } else {
+            $data['making_charge_percentage'] = null;
+        }
+
+        // Handle making charge types - store in metadata
+        $makingChargeTypes = $data['making_charge_types'] ?? [];
+        if (!empty($makingChargeTypes) && is_array($makingChargeTypes)) {
+            // Store in metadata for easy access
+            $metadata = is_array($data['metadata'] ?? null) ? $data['metadata'] : [];
+            $metadata['making_charge_types'] = array_values(array_filter($makingChargeTypes, fn($type) => in_array($type, ['fixed', 'percentage'], true)));
+            $data['metadata'] = !empty($metadata) ? $metadata : null;
+        }
+
+        // Handle other metadata fields
+        if (array_key_exists('metadata', $data) && is_array($data['metadata'])) {
+            $metadata = $data['metadata'];
+            $sizeDimension = $this->sanitizeSizeDimension($metadata['size_dimension'] ?? null);
+            
+            if ($sizeDimension) {
+                $metadata['size_dimension'] = $sizeDimension;
+            }
+
+            if ($sizeDimension) {
+                $metadata['size_dimension'] = $sizeDimension;
+            }
+
+            $data['metadata'] = !empty($metadata) ? $metadata : null;
+        }
+
+        return $data;
+    }
+
+    protected function sanitizeSizeDimension($sizeDimension): ?array
+    {
+        if (!is_array($sizeDimension)) {
+            return null;
+        }
+
+        $unit = $sizeDimension['unit'] ?? null;
+        if (!in_array($unit, ['mm', 'cm'], true)) {
+            return null;
+        }
+
+        $values = collect($sizeDimension['values'] ?? [])
+            ->filter(fn($value) => is_numeric($value))
+            ->map(fn($value) => round((float) $value, 3))
+            ->filter(fn($value) => $value > 0)
+            ->values()
+            ->all();
+
         return [
-            'metal_tone' => ProductVariant::query()->whereNotNull('metal_tone')->distinct()->orderBy('metal_tone')->pluck('metal_tone')->values()->all(),
-            'stone_quality' => ProductVariant::query()->whereNotNull('stone_quality')->distinct()->orderBy('stone_quality')->pluck('stone_quality')->values()->all(),
-            'size' => ProductVariant::query()->whereNotNull('size')->distinct()->orderBy('size')->pluck('size')->values()->all(),
+            'unit' => $unit,
+            'values' => $values,
         ];
     }
 
+    protected function formatProductForList(Product $product): array
+    {
+        return [
+            'id' => $product->id,
+            'sku' => $product->sku,
+            'name' => $product->name,
+            'is_active' => $product->is_active,
+            'brand' => $product->brand ? ['name' => $product->brand->name] : null,
+            'category' => $product->category ? ['name' => $product->category->name] : null,
+            'variants_count' => $product->variants_count,
+        ];
+    }
+
+    protected function formatProductForEdit(Product $product): array
+    {
+        return [
+            'id' => $product->id,
+            'sku' => $product->sku,
+            'name' => $product->name,
+            'titleline' => $product->titleline ?? '',
+            'description' => $product->description,
+            'brand_id' => $product->brand_id,
+            'category_id' => $product->category_id,
+            'category_ids' => $product->subcategory_ids ?? [],
+            'category' => $product->category ? [
+                'id' => $product->category->id,
+                'name' => $product->category->name,
+                'sizes' => $product->category->sizes->map(fn($size) => [
+                    'id' => $size->id,
+                    'name' => $size->name,
+                    'value' => $size->value ?? $size->name,
+                ])->all(),
+            ] : null,
+            'collection' => $product->collection ?? '',
+            'producttype' => $product->producttype ?? '',
+            'gender' => $product->gender ?? '',
+            'making_charge_amount' => $product->making_charge_amount,
+            'making_charge_percentage' => $product->making_charge_percentage,
+            'making_charge_types' => $product->getMakingChargeTypes(),
+            'is_active' => $product->is_active ?? true,
+            'catalog_ids' => $product->catalogs->pluck('id')->toArray(),
+            'metadata' => $product->metadata,
+            'variants' => $product->variants->map(
+                fn(ProductVariant $variant) =>
+                $this->formatVariantForEdit($variant)
+            ),
+            'media' => $product->media->map(fn(ProductMedia $media) => [
+                'id' => $media->id,
+                'type' => $media->type,
+                'url' => $media->url,
+                'display_order' => $media->display_order,
+                'metadata' => $media->metadata,
+            ]),
+        ];
+    }
+
+    protected function formatVariantForEdit(ProductVariant $variant): array
+    {
+        return [
+            'id' => $variant->id,
+            'sku' => $variant->sku,
+            'label' => $variant->label,
+            'inventory_quantity' => $variant->inventory_quantity ?? 0,
+            'size_id' => $variant->size_id,
+            'size' => $variant->size ? [
+                'id' => $variant->size->id,
+                'name' => $variant->size->name,
+                'value' => $variant->size->value,
+            ] : null,
+            'is_default' => $variant->is_default,
+            'metadata' => $variant->metadata,
+            'metals' => $variant->metals->map(fn($metal) => [
+                'id' => $metal->id,
+                'metal_id' => $metal->metal_id,
+                'metal_purity_id' => $metal->metal_purity_id,
+                'metal_tone_id' => $metal->metal_tone_id,
+                'metal_weight' => $metal->metal_weight,
+                'metadata' => $metal->metadata,
+                'metal' => $metal->metal ? [
+                    'id' => $metal->metal->id,
+                    'name' => $metal->metal->name,
+                ] : null,
+                'metal_purity' => $metal->metalPurity ? [
+                    'id' => $metal->metalPurity->id,
+                    'name' => $metal->metalPurity->name,
+                ] : null,
+                'metal_tone' => $metal->metalTone ? [
+                    'id' => $metal->metalTone->id,
+                    'name' => $metal->metalTone->name,
+                ] : null,
+            ])->values()->all(),
+            'diamonds' => $variant->diamonds->map(fn($diamond) => [
+                'id' => $diamond->id,
+                'diamond_id' => $diamond->diamond_id,
+                'diamonds_count' => $diamond->diamonds_count,
+                'metadata' => $diamond->metadata,
+            ])->values()->all(),
+        ];
+    }
+
+    protected function syncMedia(Product $product, array $uploads = [], array $removedIds = []): void
+    {
+        // Remove deleted media
+        if (!empty($removedIds)) {
+            $product->media()
+                ->whereIn('id', $removedIds)
+                ->get()
+                ->each(function (ProductMedia $media) {
+                    $this->deleteMediaFile($media);
+                    $media->delete();
+                });
+        }
+
+        // Upload new media
+        if (empty($uploads)) {
+            return;
+        }
+
+        $nextDisplayOrder = ((int) ($product->media()->max('display_order') ?? -1)) + 1;
+
+        foreach ($uploads as $upload) {
+            if (!$upload instanceof UploadedFile) {
+                continue;
+            }
+
+            $this->createMediaFromUpload($product, $upload, $nextDisplayOrder++);
+        }
+    }
+
+    protected function createMediaFromUpload(Product $product, UploadedFile $upload, int $displayOrder): void
+    {
+        $path = $upload->store('products', 'public');
+        $mimeType = $upload->getMimeType() ?? '';
+        $type = str_starts_with($mimeType, 'video/') ? 'video' : 'image';
+
+        $url = '/storage/' . $path;
+        $url = preg_replace('#(?<!:)/{2,}#', '/', $url);
+
+        $product->media()->create([
+            'type' => $type,
+            'url' => $url,
+            'display_order' => $displayOrder,
+            'metadata' => [
+                'original_name' => $upload->getClientOriginalName(),
+                'size' => $upload->getSize(),
+                'mime_type' => $mimeType,
+                'storage_path' => $path,
+            ],
+        ]);
+    }
+
+    protected function deleteMediaFile(ProductMedia $media): void
+    {
+        $storagePath = $media->metadata['storage_path'] ?? null;
+        if ($storagePath) {
+            Storage::disk('public')->delete($storagePath);
+            return;
+        }
+
+        $url = $media->url;
+        if (!$url) {
+            return;
+        }
+
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $publicDisk */
+        $publicDisk = Storage::disk('public');
+        $publicBase = rtrim($publicDisk->url(''), '/');
+
+        if ($publicBase && str_starts_with($url, $publicBase)) {
+            $relative = ltrim(Str::after($url, $publicBase), '/');
+            if ($relative !== '') {
+                $publicDisk->delete($relative);
+            }
+            return;
+        }
+
+        if (str_starts_with($url, '/storage/')) {
+            $publicDisk->delete(ltrim(Str::after($url, '/storage/'), '/'));
+        }
+    }
+
+    protected function duplicateProduct(Product $product): Product
+    {
+        $replica = $product->replicate();
+        $replica->sku = $this->generateProductSku($product->sku);
+        $replica->name = $product->name . ' (Copy)';
+        $replica->is_active = false;
+        $replica->push();
+
+        // Duplicate variants
+        foreach ($product->variants as $variant) {
+            $newVariant = $variant->replicate();
+            $newVariant->product_id = $replica->id;
+            $newVariant->sku = $this->generateVariantSku($variant->sku);
+            $newVariant->save();
+        }
+
+        // Duplicate media
+        foreach ($product->media as $media) {
+            $newMedia = $media->replicate();
+            $newMedia->product_id = $replica->id;
+            $newMedia->save();
+        }
+
+        return $replica;
+    }
+
+    protected function generateProductSku(string $baseSku): string
+    {
+        do {
+            $candidate = sprintf('%s-%s', $baseSku, Str::upper(Str::random(4)));
+        } while (Product::where('sku', $candidate)->exists());
+
+        return $candidate;
+    }
+
+    protected function generateVariantSku(?string $baseSku): ?string
+    {
+        if (!$baseSku) {
+            return null;
+        }
+
+        do {
+            $candidate = sprintf('%s-%s', $baseSku, Str::upper(Str::random(3)));
+        } while (ProductVariant::where('sku', $candidate)->exists());
+
+        return $candidate;
+    }
+
+    protected function getFormOptions(): array
+    {
+        return [
+            'customerGroups' => $this->customerGroupOptions(),
+            'brands' => $this->brandList(),
+            'categories' => $this->categoryList(),
+            'parentCategories' => $this->parentCategoryList(),
+            'subcategories' => $this->subcategoryList(),
+            'catalogs' => $this->catalogList(),
+            'diamonds' => $this->diamondOptions(),
+            'metals' => $this->metalOptions(),
+            'metalPurities' => $this->metalPurityOptions(),
+            'metalTones' => $this->metalToneOptions(),
+            'sizes' => $this->sizeOptions(),
+        ];
+    }
 
     protected function customerGroupOptions(): array
     {
@@ -364,6 +546,95 @@ class ProductController extends Controller
             ->all();
     }
 
+    protected function brandList(): array
+    {
+        return Brand::query()
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    protected function categoryList(): array
+    {
+        return Category::query()
+            ->where('is_active', true)
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'parent_id'])
+            ->map(fn(Category $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'parent_id' => $category->parent_id,
+            ])
+            ->all();
+    }
+
+    protected function parentCategoryList(): array
+    {
+        return Category::query()
+            ->where('is_active', true)
+            ->whereNull('parent_id')
+            ->with(['sizes' => fn($query) => $query->where('is_active', true)->orderBy('name')])
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn(Category $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'sizes' => $category->sizes->map(fn($size) => [
+                    'id' => $size->id,
+                    'name' => $size->name,
+                ])->all(),
+            ])
+            ->all();
+    }
+
+    protected function subcategoryList(): array
+    {
+        return Category::query()
+            ->where('is_active', true)
+            ->whereNotNull('parent_id')
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'parent_id'])
+            ->map(fn(Category $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'parent_id' => $category->parent_id,
+            ])
+            ->all();
+    }
+
+    protected function catalogList(): array
+    {
+        return Catalog::query()
+            ->where('is_active', true)
+            ->withCount('products')
+            ->orderBy('display_order')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name', 'display_order', 'is_active'])
+            ->map(fn(Catalog $catalog) => [
+                'id' => $catalog->id,
+                'code' => $catalog->code,
+                'name' => $catalog->name,
+                'products_count' => $catalog->products_count,
+                'display_order' => $catalog->display_order,
+                'is_active' => $catalog->is_active,
+            ])
+            ->all();
+    }
+
+    protected function diamondOptions(): array
+    {
+        return Diamond::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
+            ->all();
+    }
 
     protected function metalOptions(): array
     {
@@ -392,7 +663,10 @@ class ProductController extends Controller
                 'id' => $purity->id,
                 'metal_id' => $purity->metal_id,
                 'name' => $purity->name,
-                'metal' => $purity->metal ? ['id' => $purity->metal->id, 'name' => $purity->metal->name] : null,
+                'metal' => $purity->metal ? [
+                    'id' => $purity->metal->id,
+                    'name' => $purity->metal->name,
+                ] : null,
             ])
             ->all();
     }
@@ -409,362 +683,31 @@ class ProductController extends Controller
                 'id' => $tone->id,
                 'metal_id' => $tone->metal_id,
                 'name' => $tone->name,
-                'metal' => $tone->metal ? ['id' => $tone->metal->id, 'name' => $tone->metal->name] : null,
+                'metal' => $tone->metal ? [
+                    'id' => $tone->metal->id,
+                    'name' => $tone->metal->name,
+                ] : null,
             ])
             ->all();
     }
 
-    protected function brandOptions(): array
+    protected function sizeOptions(): array
     {
-        return Brand::query()
+        return Size::query()
             ->where('is_active', true)
             ->orderBy('display_order')
             ->orderBy('name')
             ->get(['id', 'name'])
-            ->map(fn(Brand $brand) => [
-                'id' => $brand->id,
-                'name' => $brand->name,
+            ->map(fn(Size $size) => [
+                'id' => $size->id,
+                'name' => $size->name,
             ])
             ->all();
     }
 
-    protected function categoryOptions(): array
+    protected function validatePerPage(int $perPage): int
     {
-        return Category::query()
-            ->where('is_active', true)
-            ->orderBy('display_order')
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn(Category $category) => [
-                'id' => $category->id,
-                'name' => $category->name,
-            ])
-            ->all();
-    }
-
-    protected function brandList(): array
-    {
-        return Brand::query()
-            ->where('is_active', true)
-            ->orderBy('display_order')
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
-    }
-
-    protected function categoryList(): array
-    {
-        return Category::query()
-            ->where('is_active', true)
-            ->orderBy('display_order')
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
-    }
-
-    protected function catalogList(): array
-    {
-        return Catalog::query()
-            ->where('is_active', true)
-            ->withCount('products')
-            ->orderBy('display_order')
-            ->orderBy('name')
-            ->get(['id', 'code', 'name', 'display_order', 'is_active'])
-            ->map(fn(Catalog $catalog) => [
-                'id' => $catalog->id,
-                'code' => $catalog->code,
-                'name' => $catalog->name,
-                'products_count' => $catalog->products_count,
-                'display_order' => $catalog->display_order,
-                'is_active' => $catalog->is_active,
-            ])
-            ->all();
-    }
-
-    protected function diamondCatalogOptions(): array
-    {
-        return [
-            'types' => [], // DiamondType model doesn't exist yet
-            'shapes' => DiamondShape::query()
-                ->where('is_active', true)
-                ->orderBy('display_order')
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-                ->all(),
-            'colors' => DiamondColor::query()
-                ->where('is_active', true)
-                ->orderBy('display_order') // diamond_colors uses 'display_order'
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-                ->all(),
-            'clarities' => DiamondClarity::query()
-                ->where('is_active', true)
-                ->orderBy('display_order') // diamond_clarities uses 'display_order'
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-                ->all(),
-        ];
-    }
-
-    protected function diamondOptions(): array
-    {
-        return Diamond::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn($item) => ['id' => $item->id, 'name' => $item->name])
-            ->all();
-    }
-
-
-    protected function prepareProductPayload(array $data): array
-    {
-        $data['is_variant_product'] = (bool) ($data['is_variant_product'] ?? true);
-        $data['mixed_metal_tones_per_purity'] = (bool) ($data['mixed_metal_tones_per_purity'] ?? false);
-        $data['mixed_metal_purities_per_tone'] = (bool) ($data['mixed_metal_purities_per_tone'] ?? false);
-
-        // Ensure mutual exclusion: if both are true, prefer mixed_metal_tones_per_purity
-        if ($data['mixed_metal_tones_per_purity'] && $data['mixed_metal_purities_per_tone']) {
-            $data['mixed_metal_purities_per_tone'] = false;
-        }
-
-        // Sanitize metal_mix_mode: ensure it's an array with valid values
-        $metalMixMode = $data['metal_mix_mode'] ?? [];
-        if (! is_array($metalMixMode)) {
-            $metalMixMode = [];
-        }
-
-        // Validate and sanitize each metal's mode
-        $sanitizedMetalMixMode = [];
-        foreach ($metalMixMode as $metalId => $mode) {
-            $metalIdInt = is_numeric($metalId) ? (int) $metalId : null;
-            if ($metalIdInt && in_array($mode, ['normal', 'mix_tones', 'mix_purities'], true)) {
-                $sanitizedMetalMixMode[$metalIdInt] = $mode;
-            }
-        }
-        // Always set to array (empty array if no modes), never null (column has NOT NULL constraint)
-        $data['metal_mix_mode'] = $sanitizedMetalMixMode;
-
-        $metalIds = $this->sanitizeIds($data['metal_ids'] ?? []);
-        $metalPurityIds = $this->sanitizeIds($data['metal_purity_ids'] ?? []);
-        $metalToneIds = $this->sanitizeIds($data['metal_tone_ids'] ?? []);
-
-        $data['metal_ids'] = ! empty($metalIds) ? $metalIds : null;
-        $data['metal_purity_ids'] = ! empty($metalPurityIds) ? $metalPurityIds : null;
-        $data['metal_tone_ids'] = ! empty($metalToneIds) ? $metalToneIds : null;
-
-        if (! $data['is_variant_product']) {
-            $data['metal_ids'] = null;
-            $data['metal_purity_ids'] = null;
-            $data['metal_tone_ids'] = null;
-            $data['metal_mix_mode'] = []; // Reset to empty array when variant product is disabled
-        }
-
-        // Handle making charge percentage
-        if (isset($data['making_charge_percentage']) && $data['making_charge_percentage'] !== null && $data['making_charge_percentage'] !== '') {
-            $data['making_charge_percentage'] = (float) $data['making_charge_percentage'];
-        } else {
-            $data['making_charge_percentage'] = null;
-        }
-
-        $data['making_charge_discount_type'] = $data['making_charge_discount_type'] ?? null;
-        if (! $data['making_charge_discount_type']) {
-            $data['making_charge_discount_type'] = null;
-            $data['making_charge_discount_value'] = null;
-        } else {
-            $data['making_charge_discount_value'] = isset($data['making_charge_discount_value'])
-                ? (float) $data['making_charge_discount_value']
-                : null;
-        }
-
-        $discountOverrides = $this->sanitizeDiscountOverrides($data['making_charge_discount_overrides'] ?? []);
-        $data['making_charge_discount_overrides'] = ! empty($discountOverrides) ? $discountOverrides : null;
-
-        foreach (['gold_weight', 'silver_weight', 'other_material_weight', 'total_weight'] as $weightField) {
-            if (! array_key_exists($weightField, $data)) {
-                continue;
-            }
-
-            $value = $data[$weightField];
-            $data[$weightField] = ($value === null || $value === '' || ! is_numeric($value))
-                ? null
-                : (float) $value;
-        }
-
-        if (array_key_exists('metadata', $data)) {
-            $metadata = is_array($data['metadata']) ? $data['metadata'] : [];
-
-            $sizeDimension = $this->sanitizeSizeDimension($metadata['size_dimension'] ?? null);
-
-            $metadata = array_filter([
-                'size_dimension' => $sizeDimension,
-            ]);
-
-            $data['metadata'] = ! empty($metadata) ? $metadata : null;
-        }
-
-        return $data;
-    }
-
-    protected function sanitizeIds(array $ids): array
-    {
-        return collect($ids)
-            ->filter(fn($value) => is_numeric($value))
-            ->map(fn($value) => (int) $value)
-            ->unique()
-            ->values()
-            ->all();
-    }
-
-
-    protected function sanitizeDiscountOverrides(array $overrides): array
-    {
-        return collect($overrides)
-            ->filter(function ($override) {
-                return is_array($override)
-                    && isset($override['customer_group_id'], $override['type'], $override['value'])
-                    && $override['customer_group_id'] !== null;
-            })
-            ->map(function (array $override) {
-                return [
-                    'customer_group_id' => (int) $override['customer_group_id'],
-                    'type' => $override['type'] === 'fixed' ? 'fixed' : 'percentage',
-                    'value' => (float) $override['value'],
-                ];
-            })
-            ->unique('customer_group_id')
-            ->values()
-            ->all();
-    }
-
-    protected function sanitizeSizeDimension($sizeDimension): ?array
-    {
-        if (! is_array($sizeDimension)) {
-            return null;
-        }
-
-        $unit = $sizeDimension['unit'] ?? null;
-
-        if (! in_array($unit, ['mm', 'cm'], true)) {
-            return null;
-        }
-
-        $values = collect($sizeDimension['values'] ?? [])
-            ->filter(fn($value) => is_numeric($value))
-            ->map(fn($value) => round((float) $value, 3))
-            ->filter(fn($value) => $value > 0)
-            ->values()
-            ->all();
-
-        return [
-            'unit' => $unit,
-            'values' => $values,
-        ];
-    }
-
-
-    protected function generateProductSku(string $baseSku): string
-    {
-        do {
-            $candidate = sprintf('%s-%s', $baseSku, Str::upper(Str::random(4)));
-        } while (Product::where('sku', $candidate)->exists());
-
-        return $candidate;
-    }
-
-    protected function generateVariantSku(?string $baseSku): ?string
-    {
-        if (! $baseSku) {
-            return null;
-        }
-
-        do {
-            $candidate = sprintf('%s-%s', $baseSku, Str::upper(Str::random(3)));
-        } while (ProductVariant::where('sku', $candidate)->exists());
-
-        return $candidate;
-    }
-
-    protected function syncMedia(Product $product, array $uploads = [], array $removedIds = []): void
-    {
-        if (! empty($removedIds)) {
-            $mediaToRemove = $product->media()->whereIn('id', $removedIds)->get();
-            foreach ($mediaToRemove as $media) {
-                $this->deleteMediaFile($media);
-                $media->delete();
-            }
-        }
-
-        if (empty($uploads)) {
-            return;
-        }
-
-        $nextPosition = (int) (($product->media()->max('position')) ?? -1) + 1;
-
-        /** @var \Illuminate\Filesystem\FilesystemAdapter $publicDisk */
-        $publicDisk = Storage::disk('public');
-
-        foreach ($uploads as $upload) {
-            if (! $upload instanceof UploadedFile) {
-                continue;
-            }
-
-            $path = $upload->store('products', 'public');
-            $mimeType = $upload->getMimeType() ?? '';
-            $type = str_starts_with($mimeType, 'video/') ? 'video' : 'image';
-
-            // Generate relative URL for better portability
-            // Use relative path starting with /storage/ instead of full URL
-            $url = '/storage/' . $path;
-            // Normalize double slashes
-            $url = preg_replace('#(?<!:)/{2,}#', '/', $url);
-
-            $product->media()->create([
-                'type' => $type,
-                'url' => $url,
-                'position' => $nextPosition++,
-                'metadata' => [
-                    'original_name' => $upload->getClientOriginalName(),
-                    'size' => $upload->getSize(),
-                    'mime_type' => $mimeType,
-                    'storage_path' => $path,
-                ],
-            ]);
-        }
-    }
-
-    protected function deleteMediaFile(ProductMedia $media): void
-    {
-        $storagePath = $media->metadata['storage_path'] ?? null;
-        if ($storagePath) {
-            Storage::disk('public')->delete($storagePath);
-
-            return;
-        }
-
-        $url = $media->url;
-        if (! $url) {
-            return;
-        }
-
-        /** @var \Illuminate\Filesystem\FilesystemAdapter $publicDisk */
-        $publicDisk = Storage::disk('public');
-        $publicBase = rtrim($publicDisk->url(''), '/');
-
-        if ($publicBase && str_starts_with($url, $publicBase)) {
-            $relative = ltrim(Str::after($url, $publicBase), '/');
-            if ($relative !== '') {
-                $publicDisk->delete($relative);
-            }
-
-            return;
-        }
-
-        if (str_starts_with($url, '/storage/')) {
-            $publicDisk->delete(ltrim(Str::after($url, '/storage/'), '/'));
-        }
+        $allowed = [10, 25, 50, 100];
+        return in_array($perPage, $allowed, true) ? $perPage : 10;
     }
 }

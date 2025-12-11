@@ -50,14 +50,12 @@ class CartService
         });
 
         $targetQuantity = $existingItem ? $existingItem->quantity + $quantity : $quantity;
-        $mode = $configuration['mode'] ?? 'purchase';
 
         $pricingOptions = [
             'variant' => $variant ? $variant->toArray() : null,
             'quantity' => $targetQuantity,
             'customer_group_id' => $user->customer_group_id ?? null,
             'customer_type' => $user->type ?? null,
-            'mode' => $mode,
         ];
 
         $pricing = $this->pricingService
@@ -75,7 +73,6 @@ class CartService
                 'product_variant_id' => $variant?->id,
                 'quantity' => $quantity,
                 'configuration' => array_merge(
-                    ['mode' => $mode, 'selections' => $configuration['selections'] ?? null],
                     $configuration,
                     ['variant' => $variant?->label]
                 ),
@@ -96,10 +93,6 @@ class CartService
     {
         $existing = $item->configuration ?? [];
         $merged = array_merge($existing, $configuration);
-
-        if (! isset($merged['mode'])) {
-            $merged['mode'] = $existing['mode'] ?? 'purchase';
-        }
 
         $item->update(['configuration' => $merged]);
     }
@@ -122,7 +115,6 @@ class CartService
                     'quantity' => $item->quantity,
                     'customer_group_id' => $cart->user?->customer_group_id ?? null,
                     'customer_type' => $cart->user?->type ?? null,
-                    'mode' => $item->configuration['mode'] ?? null,
                 ]
             )->toArray();
 
@@ -152,7 +144,7 @@ class CartService
                 'line_subtotal' => round($lineSubtotal, 2),
                 'line_discount' => round($lineDiscount, 2),
                 'price_breakdown' => $pricing,
-                'thumbnail' => optional($item->product->media->sortBy('position')->first())?->url,
+                'thumbnail' => optional($item->product->media->sortBy('display_order')->first())?->url,
                 'configuration' => $item->configuration,
             ];
         });
@@ -195,21 +187,15 @@ class CartService
 
     /**
      * Normalize configuration for comparison by extracting only relevant fields
-     * (mode, selections, notes) and ignoring extra fields like 'variant' label.
+     * (notes) and ignoring extra fields like 'variant' label.
      */
     protected function normalizeConfiguration(array $configuration): string
     {
         // Extract only the fields that matter for matching
         $relevantFields = [
-            'mode' => $configuration['mode'] ?? 'purchase',
-            'selections' => $configuration['selections'] ?? null,
             'notes' => $configuration['notes'] ?? null,
         ];
 
-        // Sort selections if it's an array to ensure consistent comparison
-        if (is_array($relevantFields['selections'])) {
-            ksort($relevantFields['selections']);
-        }
 
         // Convert to JSON string for reliable comparison
         return json_encode($relevantFields, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
