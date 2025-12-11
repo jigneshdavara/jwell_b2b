@@ -256,6 +256,9 @@ class CatalogController extends Controller
                     // Note: For percentage-only making charge, this will be 0 if no metal cost
                     $priceTotal = $product->calculateMakingCharge(0);
                 }
+                
+                // Ensure price_total is always a valid number
+                $priceTotal = max(0, (float) $priceTotal);
 
                 // Ensure price_total is always a valid number
                 $priceTotal = max(0, (float) $priceTotal);

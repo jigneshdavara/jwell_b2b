@@ -247,6 +247,10 @@ class ProductController extends Controller
         if (array_key_exists('metadata', $data) && is_array($data['metadata'])) {
             $metadata = $data['metadata'];
             $sizeDimension = $this->sanitizeSizeDimension($metadata['size_dimension'] ?? null);
+            
+            if ($sizeDimension) {
+                $metadata['size_dimension'] = $sizeDimension;
+            }
 
             if ($sizeDimension) {
                 $metadata['size_dimension'] = $sizeDimension;
