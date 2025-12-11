@@ -19,7 +19,6 @@ type VariantDiamondForm = {
     diamonds_count?: string;
 };
 
-
 type VariantForm = {
     id?: number;
     sku: string;
@@ -30,18 +29,8 @@ type VariantForm = {
     is_default: boolean;
     inventory_quantity?: number | string;
     metadata?: Record<string, FormDataConvertible>;
-    // Optional: for multiple metals per variant
     metals?: VariantMetalForm[];
     diamonds?: VariantDiamondForm[];
-};
-
-type ProductDiamondOption = {
-    key?: string | null;
-    shape_id: number | null;
-    color_id: number | null;
-    clarity_id: number | null;
-    weight: number | null;
-    diamonds_count: number | null;
 };
 
 type Product = {
@@ -204,22 +193,12 @@ const generateLocalKey = () => {
     return `local-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 };
 
-const createDiamondOption = (): DiamondOptionForm => ({
-    key: generateLocalKey(),
-    shape_id: '',
-    color_id: '',
-    clarity_id: '',
-    weight: '',
-    diamonds_count: '',
-});
-
 const createEmptyDiamond = (): VariantDiamondForm => ({
     id: undefined,
     diamond_id: '',
     diamonds_count: '',
 });
 
-// Catalog Multi-Select Component
 type CatalogMultiSelectProps = {
     catalogs: CatalogOption[];
     selectedIds: number[];
@@ -232,7 +211,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
     const [searchTerm, setSearchTerm] = useState('');
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Filter catalogs based on search
     const filteredCatalogs = useMemo(() => {
         if (!searchTerm.trim()) {
             return catalogs;
@@ -253,7 +231,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
         }
     };
 
-    // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -271,7 +248,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
         };
     }, [isOpen]);
 
-    // Get selected catalog data for display
     const selectedCatalogs = useMemo(() => {
         return selectedIds
             .map(id => {
@@ -281,7 +257,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
             .filter(Boolean) as Array<{ id: number; name: string }>;
     }, [selectedIds, catalogs]);
 
-    // Remove catalog from selection
     const removeCatalog = (catalogId: number) => {
         onChange(selectedIds.filter(id => id !== catalogId));
     };
@@ -467,10 +442,6 @@ export default function AdminProductEdit() {
         errors,
     } = props;
 
-    // Note: Variants are no longer managed at the product level
-    // Variants should be managed separately through product_variants table
-
-    // Extract purities, tones, diamonds, and metals from existing variants
     const extractSelectionsFromVariants = useMemo(() => {
         if (!product?.variants?.length) {
             return {
@@ -484,11 +455,9 @@ export default function AdminProductEdit() {
         const metalPurityIdsSet = new Set<number>();
         const metalToneIdsSet = new Set<number>();
         const diamondSelectionsMap = new Map<number, { diamond_id: number; count: string }>();
-        // Use a composite key to track unique metal combinations
         const metalSelectionsMap = new Map<string, { metal_id: number; metal_purity_id: number; metal_tone_id: number; weight: string }>();
 
         product.variants.forEach((variant: any) => {
-            // Extract metals
             if (variant.metals?.length) {
                 variant.metals.forEach((metal: any) => {
                     if (metal.metal_id && metal.metal_id !== '' && metal.metal_id !== null) {
@@ -496,8 +465,6 @@ export default function AdminProductEdit() {
                         const purityId = metal.metal_purity_id && metal.metal_purity_id !== '' ? (typeof metal.metal_purity_id === 'number' ? metal.metal_purity_id : Number(metal.metal_purity_id)) : 0;
                         const toneId = metal.metal_tone_id && metal.metal_tone_id !== '' ? (typeof metal.metal_tone_id === 'number' ? metal.metal_tone_id : Number(metal.metal_tone_id)) : 0;
                         const weight = metal.metal_weight ? String(metal.metal_weight) : '';
-                        
-                        // Create composite key to avoid duplicates
                         const key = `${metalId}-${purityId}-${toneId}`;
                         if (!metalSelectionsMap.has(key)) {
                             metalSelectionsMap.set(key, {
@@ -518,12 +485,10 @@ export default function AdminProductEdit() {
                 });
             }
 
-            // Extract diamonds - use diamond_id (simplified structure)
             if (variant.diamonds?.length) {
                 variant.diamonds.forEach((diamond: any) => {
                     if (diamond.diamond_id && diamond.diamond_id !== '' && diamond.diamond_id !== null) {
                         const diamondId = typeof diamond.diamond_id === 'number' ? diamond.diamond_id : Number(diamond.diamond_id);
-                        // Only add if not already in the map (avoid duplicates)
                         if (!diamondSelectionsMap.has(diamondId)) {
                             diamondSelectionsMap.set(diamondId, {
                                 diamond_id: diamondId,
@@ -562,13 +527,12 @@ export default function AdminProductEdit() {
         gender: product?.gender ?? '',
         making_charge_amount: product?.making_charge_amount ? String(product.making_charge_amount) : '',
         making_charge_types: (() => {
-            // Infer from values: if both have values, both are selected
             const hasFixed = product?.making_charge_amount && Number(product.making_charge_amount) > 0;
             const hasPercentage = product?.making_charge_percentage && Number(product.making_charge_percentage) > 0;
             if (hasFixed && hasPercentage) return ['fixed', 'percentage'];
             if (hasPercentage) return ['percentage'];
             if (hasFixed) return ['fixed'];
-            return ['fixed']; // Default to fixed
+            return ['fixed'];
         })(),
         making_charge_percentage: product?.making_charge_percentage ? String(product.making_charge_percentage) : '',
         is_active: product?.is_active ?? true,
@@ -608,12 +572,10 @@ export default function AdminProductEdit() {
     }) as Record<string, any>);
     const { setData, post, put, processing } = form;
     const data = form.data as FormData;
-    
-    // Local state for description to prevent re-renders on every keystroke
+
     const [localDescription, setLocalDescription] = useState(data.description);
     const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Sync local description with form data when form data changes externally
     useEffect(() => {
         if (data.description !== localDescription) {
             setLocalDescription(data.description);
@@ -623,19 +585,14 @@ export default function AdminProductEdit() {
     // Debounced handler for description changes
     const handleDescriptionChange = useCallback((value: string) => {
         setLocalDescription(value);
-        
-        // Clear existing timeout
         if (descriptionTimeoutRef.current) {
             clearTimeout(descriptionTimeoutRef.current);
         }
-        
-        // Set new timeout to update form data after 300ms of no typing
         descriptionTimeoutRef.current = setTimeout(() => {
             setData('description', value);
         }, 300);
     }, [setData]);
 
-    // Cleanup timeout on unmount
     useEffect(() => {
         return () => {
             if (descriptionTimeoutRef.current) {
@@ -643,12 +600,10 @@ export default function AdminProductEdit() {
             }
         };
     }, []);
-    
+
     const [sizeValueInput, setSizeValueInput] = useState('');
-    // Allow multiple variants to be expanded simultaneously
     const [expandedDiamondVariantIndices, setExpandedDiamondVariantIndices] = useState<Set<number>>(new Set());
     const [expandedMetalVariantIndices, setExpandedMetalVariantIndices] = useState<Set<number>>(new Set());
-
 
     const formatDecimal = (value: number): string => {
         if (!Number.isFinite(value)) {
@@ -678,8 +633,6 @@ export default function AdminProductEdit() {
         return formatDecimal(converted);
     };
 
-
-    // Create maps for metal purities and tones
     const metalPurityMap = useMemo(
         () => Object.fromEntries(metalPurities.map((item) => [item.id, item.name])),
         [metalPurities],
@@ -695,11 +648,8 @@ export default function AdminProductEdit() {
 
     const buildVariantMeta = useCallback(
         (variant: VariantForm, state: FormData) => {
-            // Build metal + purity + tone label
-            // Support both old format (metal_id/metal_purity_id on variant) and new format (variant.metals array)
             let metalLabel = '';
             
-            // Check if variant has metals array (new format with support for multiple metals, tones, or purities)
             if (variant.metals && variant.metals.length > 0) {
                 const metalsData = variant.metals
                     .filter((metal) => metal.metal_id !== '' && typeof metal.metal_id === 'number')
@@ -712,7 +662,6 @@ export default function AdminProductEdit() {
                 if (metalsData.length === 0) {
                     metalLabel = '';
                 } else {
-                    // Group metals by metal_id to handle multi-metal variants
                     const metalsByMetalId = new Map<number, typeof metalsData>();
                     metalsData.forEach((metal) => {
                         if (!metalsByMetalId.has(metal.metal_id)) {
@@ -721,21 +670,18 @@ export default function AdminProductEdit() {
                         metalsByMetalId.get(metal.metal_id)!.push(metal);
                     });
                     
-                    // Build label for each metal group
                     const metalLabelParts: string[] = [];
                     
                     metalsByMetalId.forEach((metalsInGroup, metalId) => {
                         const metalName = metalMap[metalId] ?? '';
                         if (!metalName) return;
                         
-                        // Check if we have multiple purities with same tone (mixed purities per tone)
                         const uniquePurities = new Set(metalsInGroup.map((m) => m.metal_purity_id).filter(Boolean));
                         const uniqueTones = new Set(metalsInGroup.map((m) => m.metal_tone_id).filter(Boolean));
                         
                         let groupLabel = '';
                         
                         if (uniquePurities.size > 1 && uniqueTones.size === 1) {
-                            // Mixed purities per tone: "18K + 22K Yellow Gold"
                             const toneId = Array.from(uniqueTones)[0];
                             const toneName = toneId ? (metalToneMap[toneId] ?? '') : '';
                             const purityNames = Array.from(uniquePurities)
@@ -753,7 +699,6 @@ export default function AdminProductEdit() {
                                 groupLabel = metalName;
                             }
                         } else if (uniqueTones.size > 1 && uniquePurities.size === 1) {
-                            // Mixed tones per purity: "18K Yellow + White Gold"
                             const purityId = Array.from(uniquePurities)[0];
                             const purityName = purityId ? (metalPurityMap[purityId] ?? '') : '';
                             const toneNames = Array.from(uniqueTones)
@@ -771,7 +716,6 @@ export default function AdminProductEdit() {
                                 groupLabel = purityName ? `${purityName} ${metalName}` : metalName;
                             }
                         } else {
-                            // Single purity and tone, or fallback
                             const firstMetal = metalsInGroup[0];
                             const purityId = firstMetal.metal_purity_id;
                             const toneId = firstMetal.metal_tone_id;
@@ -794,11 +738,9 @@ export default function AdminProductEdit() {
                         }
                     });
                     
-                    // Join all metal labels with " / " for multi-metal variants
                     metalLabel = metalLabelParts.join(' / ');
                 }
             } else if (variant.metal_id !== '' && typeof variant.metal_id === 'number') {
-                // Fallback to old format (backward compatibility)
                 const metalName = metalMap[variant.metal_id] ?? '';
                 if (variant.metal_purity_id !== '' && typeof variant.metal_purity_id === 'number') {
                     const purityLabel = metalPurityMap[variant.metal_purity_id] ?? '';
@@ -808,12 +750,10 @@ export default function AdminProductEdit() {
                 }
             }
             
-            // Build diamond label from variant.diamonds array
             let diamondLabel = '';
             if (variant.diamonds && variant.diamonds.length > 0) {
                 const diamondParts: string[] = [];
                 variant.diamonds.forEach((diamond) => {
-                    // Use diamond_id to get diamond name (will be resolved in the component where diamonds list is available)
                     if (diamond.diamond_id && typeof diamond.diamond_id === 'number') {
                         const count = diamond.diamonds_count ? ` (${diamond.diamonds_count})` : '';
                         diamondParts.push(`Diamond${count}`);
@@ -845,10 +785,8 @@ export default function AdminProductEdit() {
             const autoLabel = autoLabelParts.length ? autoLabelParts.join(' / ') : 'Variant';
             const metalTone = metalLabel;
 
-            // Build diamond metadata from variant.diamonds array
             let diamondMetadata = null;
             if (variant.diamonds && variant.diamonds.length > 0) {
-                // Use diamonds array (new approach with diamond_id)
                 diamondMetadata = variant.diamonds.map((diamond) => ({
                     diamond_id: diamond.diamond_id !== '' && diamond.diamond_id !== null ? Number(diamond.diamond_id) : null,
                     diamonds_count: diamond.diamonds_count ? Number(diamond.diamonds_count) : null,
@@ -920,36 +858,7 @@ export default function AdminProductEdit() {
         [buildVariantMeta],
     );
 
-
-    // Get all available purities and tones
-
-
-    // Get selected purities and tones
-    // Note: metal_purity_ids and metal_tone_ids removed from products table
-    const selectedPurities = useMemo(() => [], []);
-    const selectedTones = useMemo(() => [], []);
-
-    // Note: diamond_options removed from products table
-    const diamondOptionLabels = useMemo(() => [], []);
-
-    // Note: diamond_options removed from products table
-    const diamondLabelMap = useMemo(() => ({}), []);
-
-    const toggleVariantProduct = (checked: boolean) => {
-        setData((prev: FormData) => ({
-            ...prev,
-            is_variant_product: checked,
-        }));
-    };
-
-    // Note: Diamond options removed from products table
-    const toggleUsesDiamond = (checked: boolean) => {
-        // No-op: diamond options removed from products table
-    };
-
-    // Note: Size dimension removed from products table
     const toggleSizeDimension = (checked: boolean) => {
-        // No-op: size dimension removed from products table
     };
 
     const changeSizeUnit = (unit: 'mm' | 'cm') => {
@@ -1116,7 +1025,6 @@ export default function AdminProductEdit() {
                     case 'metal_id':
                         if (value === '' || typeof value === 'number') {
                             nextVariant.metal_id = value as VariantForm['metal_id'];
-                            // Reset purity when metal changes
                             if (value === '' || typeof value !== 'number') {
                                 nextVariant.metal_purity_id = '';
                             }
@@ -1208,7 +1116,6 @@ export default function AdminProductEdit() {
         }));
     };
 
-    // Diamond management functions (per-variant, manual)
     const addDiamondToVariant = (variantIndex: number) => {
         setData((prev: FormData) => {
             const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
@@ -1280,7 +1187,6 @@ export default function AdminProductEdit() {
         });
     };
 
-    // Metal management functions (per-variant)
     const updateMetalInVariant = (
         variantIndex: number,
         metalIndex: number,
@@ -1314,26 +1220,16 @@ export default function AdminProductEdit() {
         });
     };
 
-
-    // Extract variant matrix generation logic into a reusable function
     const generateVariantMatrixForData = (prev: FormData): FormData => {
-            // No metal purities or tones to process - variants must be created manually
             const puritiesByMetal = new Map<number, number[]>();
             const tonesByMetal = new Map<number, number[]>();
 
-            // For each metal, generate its metal entry combinations based on mode
-            // Each combination represents possible metal entries for that metal
-            // Then we'll take the Cartesian product across all metals
             type MetalEntryCombination = {
                 metal_id: number;
                 metal_purity_id: number | null;
                 metal_tone_id: number | null;
             };
             
-            /**
-             * Generate metal combinations for a single metal based on mixing mode
-             * This follows the same pattern as diamond mixing logic
-             */
             const generateMetalCombinationsForMetal = (
                 metalId: number,
                 purities: number[],
@@ -1342,7 +1238,6 @@ export default function AdminProductEdit() {
             ): MetalEntryCombination[][] => {
                 const combinations: MetalEntryCombination[][] = [];
                 
-                // If no purities and no tones, return single metal entry
                 if (purities.length === 0 && tones.length === 0) {
                     return [[{
                         metal_id: metalId,
@@ -1351,7 +1246,6 @@ export default function AdminProductEdit() {
                     }]];
                 }
                 
-                // If no tones, create one entry per purity
                 if (tones.length === 0 && purities.length > 0) {
                     return purities.map(purityId => [{
                         metal_id: metalId,
@@ -1369,10 +1263,7 @@ export default function AdminProductEdit() {
                     }]);
                 }
                 
-                // Both purities and tones exist - apply mixing mode
                 if (mode === 'normal') {
-                    // MODE 1: Separate variants - Cartesian product of purities × tones
-                    // Example: [18K, 14K] × [Yellow, White] = 4 variants
                     purities.forEach(purityId => {
                         tones.forEach(toneId => {
                             combinations.push([{
@@ -1383,11 +1274,6 @@ export default function AdminProductEdit() {
                         });
                     });
                 } else if (mode === 'mix_tones') {
-                    // MODE 2: Combine tones per purity
-                    // For each purity, combine all tones into ONE variant
-                    // Example: [18K, 14K] with [Yellow, White] = 2 variants:
-                    //   - 18K (Yellow + White)
-                    //   - 14K (Yellow + White)
                     purities.forEach(purityId => {
                         combinations.push(
                             tones.map(toneId => ({
@@ -1398,11 +1284,6 @@ export default function AdminProductEdit() {
                         );
                     });
                 } else if (mode === 'mix_purities') {
-                    // MODE 3: Combine purities per tone
-                    // For each tone, combine all purities into ONE variant
-                    // Example: [18K, 14K] with [Yellow, White] = 2 variants:
-                    //   - Yellow (18K + 14K)
-                    //   - White (18K + 14K)
                     tones.forEach(toneId => {
                         combinations.push(
                             purities.map(purityId => ({
@@ -1417,7 +1298,6 @@ export default function AdminProductEdit() {
                 return combinations;
             };
             
-            // Build metal combinations from checkbox-based metal configuration
             const allMetalCombinations: MetalEntryCombination[][] = [];
             
             const selectedMetals = prev.selected_metals || [];
@@ -1426,10 +1306,9 @@ export default function AdminProductEdit() {
             if (selectedMetals.length > 0) {
                 selectedMetals.forEach((metalId) => {
                     const config = metalConfigurations[metalId] || { purities: [], tones: [] };
-                    const purities = config.purities.length > 0 ? config.purities : [null]; // If no purities selected, use null
-                    const tones = config.tones.length > 0 ? config.tones : [null]; // If no tones selected, use null
+                    const purities = config.purities.length > 0 ? config.purities : [null];
+                    const tones = config.tones.length > 0 ? config.tones : [null];
                     
-                    // Generate Cartesian product: purities × tones
                     purities.forEach((purityId) => {
                         tones.forEach((toneId) => {
                             allMetalCombinations.push([{
@@ -1442,9 +1321,6 @@ export default function AdminProductEdit() {
                 });
             }
 
-            // Build diamond combinations from diamond_options
-            // In 'shared' mode: diamonds don't multiply variants, they're attached to all variants
-            // In 'as_variant' mode: diamonds multiply variants (Cartesian product)
             const diamondCombinations: Array<{
                 key: string;
                 clarity_id: number | null;
@@ -1453,7 +1329,6 @@ export default function AdminProductEdit() {
             }> = [];
             
             if (prev.uses_diamond && (prev.diamond_options || []).length > 0) {
-                // Build diamond combinations from diamond_options
                 (prev.diamond_options || []).forEach((option) => {
                     diamondCombinations.push({
                         key: option.key,
@@ -1463,7 +1338,6 @@ export default function AdminProductEdit() {
                     });
                 });
             } else {
-                // No diamonds, use null placeholder
                 diamondCombinations.push({
                     key: '',
                     clarity_id: null,
@@ -1475,7 +1349,6 @@ export default function AdminProductEdit() {
             const sizeOptions =
                 prev.size_dimension_enabled && (prev.size_values || []).length > 0 ? (prev.size_values || []) : [null];
 
-            // Check if we have at least one option to generate variants
             const hasSizes = prev.size_dimension_enabled && (sizeOptions || []).length > 0 && (sizeOptions || [])[0] !== null;
             const hasDiamonds = prev.uses_diamond && diamondCombinations.length > 0 && diamondCombinations[0].key !== '';
             
@@ -1494,12 +1367,6 @@ export default function AdminProductEdit() {
                 size: string | null;
             }> = [];
 
-            // Generate base combinations: metals × sizes
-            // Then, depending on mode:
-            // - 'shared': attach all diamonds to each base variant (no multiplication)
-            // - 'as_variant': multiply base variants by diamonds (Cartesian product)
-            
-            // First, generate base combinations (metals × sizes)
             const baseCombinations: Array<{
                 metals: MetalEntryCombination[];
                 size: string | null;
@@ -1520,17 +1387,14 @@ export default function AdminProductEdit() {
                         metals: [],
                         size: sizeOption ?? null,
                     });
-                });
-            } else {
-                // No metals, no sizes - create one base variant
+                    });
+                } else {
                 baseCombinations.push({
                     metals: [],
                     size: null,
                 });
             }
             
-            // All base variants get the same diamond list (no multiplication)
-            // Use the first diamond combination (or null if no diamonds)
             const sharedDiamond = hasDiamonds ? diamondCombinations[0] : {
                 key: '',
                 clarity_id: null,
@@ -1550,18 +1414,14 @@ export default function AdminProductEdit() {
                 return prev;
             }
 
-            // Create a map to preserve existing metal weights and diamond counts
-            // Key: variant identifier based on metals + size + diamond
             const existingVariantData = new Map<string, {
                 metals: Array<{ metal_id: number; metal_purity_id: number | null; metal_tone_id: number | null; metal_weight: string }>;
                 diamonds: Array<{ diamond_id: number | null; diamonds_count: string }>;
             }>();
 
-            // Build lookup map from existing variants
             (prev.variants || []).forEach((existingVariant) => {
                 if (!existingVariant.metals || existingVariant.metals.length === 0) return;
                 
-                // Create a key based on metal combination + size + diamond
                 const sizeKey = (existingVariant.metadata?.size_value as string) || 'no-size';
                 const diamondKey = existingVariant.diamond_option_key || 'no-diamond';
                 const metalsKey = existingVariant.metals
@@ -1586,10 +1446,9 @@ export default function AdminProductEdit() {
                 });
             });
 
-            const newVariants = combinations.map((combo, index) => {
+                const newVariants = combinations.map((combo, index) => {
                 const variant = emptyVariant(index === 0);
 
-                // Create lookup key for this combination
                 const sizeKey = combo.size || 'no-size';
                 const diamondKey = combo.diamond.key || 'no-diamond';
                 const metalsKey = combo.metals
@@ -1598,19 +1457,15 @@ export default function AdminProductEdit() {
                     .join('|');
                 const variantKey = `${metalsKey}::${sizeKey}::${diamondKey}`;
                 
-                // Try to find existing data for this variant
                 const existingData = existingVariantData.get(variantKey);
 
-                // Build metals array from the combination, preserving weights if they exist
                 variant.metals = combo.metals.map((metalEntry) => {
-                    // Try to find matching existing metal entry
                     const existingMetal = existingData?.metals.find(
                         em => em.metal_id === metalEntry.metal_id &&
                         em.metal_purity_id === (metalEntry.metal_purity_id ?? null) &&
                         em.metal_tone_id === (metalEntry.metal_tone_id ?? null)
                     );
                     
-                    // Try to find weight from metal_selections
                     let weightFromSelection = '';
                     if ((prev.metal_selections || []).length > 0) {
                         const matchingSelection = (prev.metal_selections || []).find(
@@ -1638,7 +1493,6 @@ export default function AdminProductEdit() {
                     };
                 });
                 
-                // Set metal_id and metal_purity_id on variant for backward compatibility (use first metal)
                 if (combo.metals.length > 0) {
                     const firstMetal = combo.metals[0];
                     variant.metal_id = firstMetal.metal_id;
@@ -1647,11 +1501,9 @@ export default function AdminProductEdit() {
                     }
                 }
 
-                // Set diamonds from diamond_selections
                 variant.diamond_option_key = null;
                 
                 if ((prev.diamond_selections || []).length > 0) {
-                    // Use diamond_selections for all variants
                     variant.diamonds = (prev.diamond_selections || []).map((selection) => {
                         const existingDiamond = existingData?.diamonds.find(
                             ed => ed.diamond_id === (selection.diamond_id !== '' && selection.diamond_id !== null ? (typeof selection.diamond_id === 'number' ? selection.diamond_id : Number(selection.diamond_id)) : null)
@@ -1680,7 +1532,6 @@ export default function AdminProductEdit() {
                     delete metadata.size_unit;
                 }
                 
-                // Store diamond option in metadata
                 if (variant.diamond_option_key) {
                     metadata.diamond_option_key = variant.diamond_option_key;
                 }
@@ -1704,26 +1555,19 @@ export default function AdminProductEdit() {
         setData((prev: FormData) => generateVariantMatrixForData(prev));
     };
 
-
-    // Diamonds are NOT part of automatic variant generation
-    // No useEffect needed for diamond attributes
-
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        // Check for media uploads before transform (since transform may delete the field)
         const hasMediaUploads = (form.data.media_uploads?.length ?? 0) > 0;
 
         form.transform((current) => {
             const formState = current as FormData;
             const payload: any = { ...formState };
             
-            // Preserve File objects in media_uploads (they might be lost in spread)
             if (formState.media_uploads && Array.isArray(formState.media_uploads) && formState.media_uploads.length > 0) {
                 payload.media_uploads = formState.media_uploads;
             }
             
-            // Ensure required string fields are preserved
             payload.sku = formState.sku || '';
             payload.name = formState.name || '';
             payload.titleline = formState.titleline || null;
@@ -1732,8 +1576,6 @@ export default function AdminProductEdit() {
             payload.gender = formState.gender || null;
             payload.description = formState.description || '';
             
-            // Convert string IDs to numbers for backend validation
-            // Ensure brand_id and category_id are always numbers (required fields)
             const brandIdValue = formState.brand_id;
             if (brandIdValue !== '' && brandIdValue !== null && brandIdValue !== undefined) {
                 const brandIdNum = Number(brandIdValue);
@@ -1750,11 +1592,8 @@ export default function AdminProductEdit() {
                 payload.category_id = null;
             }
             
-            
-            // Handle making charge values - type will be inferred from values on backend
             const selectedTypes = formState.making_charge_types || [];
             
-            // Convert making_charge_amount to number (if fixed checkbox is checked)
             if (selectedTypes.includes('fixed')) {
                 const makingChargeValue = formState.making_charge_amount;
                 if (makingChargeValue === '' || makingChargeValue === null || makingChargeValue === undefined) {
@@ -1764,11 +1603,9 @@ export default function AdminProductEdit() {
                     payload.making_charge_amount = isNaN(numValue) ? 0 : numValue;
                 }
             } else {
-                // If fixed checkbox is not checked, set making_charge_amount to 0
                 payload.making_charge_amount = 0;
             }
             
-            // Convert making_charge_percentage to number (if percentage checkbox is checked)
             if (selectedTypes.includes('percentage')) {
                 const makingChargePercentageValue = formState.making_charge_percentage;
                 if (makingChargePercentageValue === '' || makingChargePercentageValue === null || makingChargePercentageValue === undefined) {
@@ -1778,7 +1615,6 @@ export default function AdminProductEdit() {
                     payload.making_charge_percentage = isNaN(numValue) ? null : numValue;
                 }
             } else {
-                // For fixed-only, set percentage to null
                 payload.making_charge_percentage = null;
             }
 
@@ -1790,31 +1626,23 @@ export default function AdminProductEdit() {
                 return typeof value === 'number' ? value : Number(value);
             };
 
-            // Add is_active field
             payload.is_active = formState.is_active ?? true;
 
-            // Remove metadata field (no longer used)
             delete payload.metadata;
 
-            // Only delete media_uploads if it's truly empty (not if it has files)
-            // Files are File objects and need to be preserved for upload
             if (!payload.media_uploads || (Array.isArray(payload.media_uploads) && payload.media_uploads.length === 0)) {
                 delete payload.media_uploads;
             }
-            // Only delete removed_media_ids if it's empty
             if (!payload.removed_media_ids || (Array.isArray(payload.removed_media_ids) && payload.removed_media_ids.length === 0)) {
                 delete payload.removed_media_ids;
             }
 
-
-            // Ensure all required fields are explicitly set (don't rely on spread operator alone)
             if (!payload.sku) payload.sku = '';
             if (!payload.name) payload.name = '';
             if (payload.brand_id === undefined) payload.brand_id = null;
             if (payload.category_id === undefined) payload.category_id = null;
             if (payload.making_charge_amount === undefined) payload.making_charge_amount = 0;
 
-            // Ensure variants are included in payload - they must be sent to backend
             if (formState.variants && Array.isArray(formState.variants)) {
                 payload.variants = formState.variants;
             } else {
@@ -1825,7 +1653,6 @@ export default function AdminProductEdit() {
                 payload.diamond_selections = formState.diamond_selections;
             }
 
-            // Add method spoofing for PUT requests when files are present (Laravel requirement)
             if (product?.id && hasMediaUploads) {
                 payload._method = 'PUT';
             }
@@ -1837,14 +1664,11 @@ export default function AdminProductEdit() {
             preserveScroll: true,
             forceFormData: hasMediaUploads,
             onFinish: () => {
-                // Reset transform so it doesn't affect other requests
                 form.transform((data) => data);
             },
         };
 
         if (product?.id) {
-            // Use POST with _method=PUT for file uploads (Laravel requirement)
-            // Otherwise use PUT for regular updates
             if (hasMediaUploads) {
                 post(route('admin.products.update', product.id), submitOptions);
             } else {
@@ -1899,7 +1723,6 @@ export default function AdminProductEdit() {
     const isMarkedForRemoval = (id: number) => {
         return (data.removed_media_ids ?? []).includes(id);
     };
-
 
     return (
         <AdminLayout>
@@ -2749,22 +2572,18 @@ export default function AdminProductEdit() {
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 bg-white">
                                 {(data.variants || []).map((variant, index) => {
-                                    // Use buildVariantMeta to get the correct metal label (handles mixed tones)
                                     const meta = buildVariantMeta(variant, data);
                                     const metalLabel = meta.metalTone || '—';
                                     
-                                    // Extract metal details from variant.metals array for display
                                     const variantMetals = (variant.metals || []).filter(
                                         (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                                     );
                                     
-                                    // Calculate total metal weight
                                     const totalMetalWeight = variantMetals.reduce((sum, metal) => {
                                         const weight = parseFloat(metal.metal_weight || '0');
                                         return sum + (isNaN(weight) ? 0 : weight);
                                     }, 0);
                                     
-                                    // Group metals by metal_id for display
                                     const metalsByMetalId = new Map<number, Array<{
                                         metal_id: number;
                                         metal_purity_id: number | string | null;
@@ -2783,7 +2602,6 @@ export default function AdminProductEdit() {
                                         });
                                     });
                                     
-                                    // Build display strings for each column
                                     const metalNames: string[] = [];
                                     const purityNames: string[] = [];
                                     const toneNames: string[] = [];
@@ -2794,7 +2612,6 @@ export default function AdminProductEdit() {
                                             metalNames.push(metalName);
                                         }
                                         
-                                        // Collect unique purities for this metal
                                         const purities = new Set<number>();
                                         const tones = new Set<number>();
                                         
@@ -2813,7 +2630,6 @@ export default function AdminProductEdit() {
                                             }
                                         });
                                         
-                                        // Build purity display
                                         if (purities.size > 0) {
                                             const purityLabels = Array.from(purities)
                                                 .map((purityId) => {
@@ -2832,7 +2648,6 @@ export default function AdminProductEdit() {
                                             }
                                         }
                                         
-                                        // Build tone display
                                         if (tones.size > 0) {
                                             const toneLabels = Array.from(tones)
                                                 .map((toneId) => {
@@ -2856,11 +2671,8 @@ export default function AdminProductEdit() {
                                     const purityDisplay = purityNames.length > 0 ? purityNames.join(' / ') : '—';
                                     const toneDisplay = toneNames.length > 0 ? toneNames.join(' / ') : '—';
                                     
-                                    // Build diamond display from variant.diamonds array (variant-specific)
-                                    // Show only diamond name and count, not all details
                                     let variantDiamonds: Array<{ diamond_id: number | null; diamonds_count: string }> = [];
                                     
-                                    // Check if variant has diamonds with diamond_id (from diamond_selections flow)
                                     const diamondsWithId = (variant.diamonds || [])
                                         .filter((d) => d.diamond_id !== '' && d.diamond_id !== null && d.diamond_id !== undefined)
                                         .map((d) => ({
@@ -2871,13 +2683,11 @@ export default function AdminProductEdit() {
                                     if (diamondsWithId.length > 0) {
                                         variantDiamonds = diamondsWithId;
                                     } else if ((variant.diamonds || []).length > 0) {
-                                        // Variant has diamonds with shape/color/clarity IDs - show simplified display
                                         variantDiamonds = (variant.diamonds || []).map((d) => ({
-                                            diamond_id: null, // No direct diamond_id, will show as "Diamond"
+                                            diamond_id: null,
                                             diamonds_count: d.diamonds_count || '',
                                         }));
                                     } else if ((data.diamond_selections || []).length > 0) {
-                                        // Fallback to product-level diamond_selections
                                         variantDiamonds = (data.diamond_selections || [])
                                             .filter((selection) => selection.diamond_id !== '' && selection.diamond_id !== null && selection.diamond_id !== undefined)
                                             .map((selection) => ({
