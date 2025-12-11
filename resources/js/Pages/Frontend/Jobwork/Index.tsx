@@ -11,6 +11,9 @@ type PrefillProduct = {
     purity?: string | null;
     base_price?: number | null;
     making_charge_amount?: number | null;
+    making_charge_percentage?: number | null;
+    making_charge_types?: string[];
+    calculated_making_charge?: number | null;
     variants: Array<{
         id: number;
         label: string;
@@ -198,7 +201,8 @@ export default function JobworkIndex() {
             return null;
         }
         const base = prefillProduct.base_price ?? 0;
-        const making = prefillProduct.making_charge_amount ?? 0;
+        // Use calculated making charge if available, otherwise fallback to fixed amount only
+        const making = prefillProduct.calculated_making_charge ?? prefillProduct.making_charge_amount ?? 0;
 
         return base + making;
     }, [prefillProduct]);
@@ -290,7 +294,30 @@ export default function JobworkIndex() {
                                             </div>
                                             <div>
                                                 <p className="font-medium text-slate-500">Making charge</p>
-                                                <p className="text-slate-900">₹ {(prefillProduct.making_charge_amount ?? 0).toLocaleString('en-IN')}</p>
+                                                {(() => {
+                                                    // Show calculated making charge if available, otherwise show type info
+                                                    if (prefillProduct.calculated_making_charge !== null && prefillProduct.calculated_making_charge !== undefined) {
+                                                        return <p className="text-slate-900">₹ {prefillProduct.calculated_making_charge.toLocaleString('en-IN')}</p>;
+                                                    }
+                                                    
+                                                    const types = prefillProduct.making_charge_types || [];
+                                                    const hasFixed = types.includes('fixed') && prefillProduct.making_charge_amount && prefillProduct.making_charge_amount > 0;
+                                                    const hasPercentage = types.includes('percentage') && prefillProduct.making_charge_percentage && prefillProduct.making_charge_percentage > 0;
+                                                    
+                                                    if (hasFixed && hasPercentage) {
+                                                        return (
+                                                            <p className="text-slate-900">
+                                                                ₹ {prefillProduct.making_charge_amount?.toLocaleString('en-IN')} + {prefillProduct.making_charge_percentage}% of metal cost
+                                                            </p>
+                                                        );
+                                                    } else if (hasFixed) {
+                                                        return <p className="text-slate-900">₹ {(prefillProduct.making_charge_amount ?? 0).toLocaleString('en-IN')} (Fixed)</p>;
+                                                    } else if (hasPercentage) {
+                                                        return <p className="text-slate-900">{prefillProduct.making_charge_percentage}% of metal cost</p>;
+                                                    }
+                                                    
+                                                    return <p className="text-slate-900">₹ {(prefillProduct.making_charge_amount ?? 0).toLocaleString('en-IN')}</p>;
+                                                })()}
                                             </div>
                                             <div>
                                                 <p className="font-medium text-slate-500">Purity</p>

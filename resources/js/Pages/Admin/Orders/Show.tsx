@@ -13,12 +13,23 @@ type OrderItem = {
     total_price: number;
     configuration?: Record<string, unknown> | null;
     metadata?: Record<string, unknown> | null;
+    price_breakdown?: {
+        metal?: number;
+        diamond?: number;
+        making?: number;
+        subtotal?: number;
+        discount?: number;
+        total?: number;
+    } | null;
+    calculated_making_charge?: number | null;
     product?: {
         id: number;
         name: string;
         sku: string;
         base_price?: number | null;
         making_charge_amount?: number | null;
+        making_charge_percentage?: number | null;
+        making_charge_types?: string[];
         media: Array<{ url: string; alt: string }>;
     } | null;
 };
@@ -510,18 +521,44 @@ export default function AdminOrdersShow() {
                                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                     <h5 className="mb-3 text-sm font-semibold text-slate-700">Pricing</h5>
                                     <div className="space-y-2 text-sm">
-                                        {productDetailsModalOpen.product?.base_price && (
-                                            <div className="flex justify-between">
-                                                <span className="text-slate-600">Base Price:</span>
-                                                <span className="font-semibold text-slate-900">{currencyFormatter.format(Number(productDetailsModalOpen.product.base_price))}</span>
-                                            </div>
-                                        )}
-                                        {productDetailsModalOpen.product?.making_charge_amount && (
-                                            <div className="flex justify-between">
-                                                <span className="text-slate-600">Making Charge:</span>
-                                                <span className="font-semibold text-slate-900">{currencyFormatter.format(Number(productDetailsModalOpen.product.making_charge_amount))}</span>
-                                            </div>
-                                        )}
+                                        {(() => {
+                                            // Use stored price breakdown from order if available
+                                            const priceBreakdown = productDetailsModalOpen.price_breakdown;
+                                            const metalCost = priceBreakdown?.metal ?? 0;
+                                            const diamondCost = priceBreakdown?.diamond ?? 0;
+                                            const makingCharge = priceBreakdown?.making ?? productDetailsModalOpen.calculated_making_charge ?? 0;
+                                            const discount = priceBreakdown?.discount ?? 0;
+                                            const subtotal = priceBreakdown?.subtotal ?? (metalCost + diamondCost + makingCharge);
+
+                                            return (
+                                                <>
+                                                    {metalCost > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Metal:</span>
+                                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(metalCost)}</span>
+                                                        </div>
+                                                    )}
+                                                    {diamondCost > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Diamond:</span>
+                                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(diamondCost)}</span>
+                                                        </div>
+                                                    )}
+                                                    {makingCharge > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Making Charge:</span>
+                                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(makingCharge)}</span>
+                                                        </div>
+                                                    )}
+                                                    {discount > 0 && (
+                                                        <div className="flex justify-between text-rose-600">
+                                                            <span>Discount:</span>
+                                                            <span className="font-semibold">-{currencyFormatter.format(discount)}</span>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
                                         <div className="border-t border-slate-300 pt-2">
                                             <div className="flex justify-between">
                                                 <span className="font-semibold text-slate-900">Unit Price:</span>

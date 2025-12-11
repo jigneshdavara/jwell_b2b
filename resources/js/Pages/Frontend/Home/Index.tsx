@@ -18,6 +18,8 @@ type HomePageProps = {
         brand?: string | null;
         price: number;
         making_charge_amount: number;
+        making_charge_percentage?: number | null;
+        making_charge_types?: string[];
     }>;
     features: Array<{ title: string; description: string }>;
 };
@@ -168,7 +170,22 @@ export default function HomeIndex() {
                                         </div>
                                         <div className="text-right text-sm text-ink/80">
                                             <p>{currencyFormatter.format(product.price)}</p>
-                                            <p className="text-xs text-ink/60">Making {currencyFormatter.format(product.making_charge_amount)}</p>
+                                            <p className="text-xs text-ink/60">
+                                                {(() => {
+                                                    const types = product.making_charge_types || [];
+                                                    const hasFixed = types.includes('fixed') && product.making_charge_amount && product.making_charge_amount > 0;
+                                                    const hasPercentage = types.includes('percentage') && product.making_charge_percentage && product.making_charge_percentage > 0;
+                                                    
+                                                    if (hasFixed && hasPercentage) {
+                                                        return `Making: ₹${product.making_charge_amount?.toLocaleString('en-IN')} + ${product.making_charge_percentage}%`;
+                                                    } else if (hasFixed) {
+                                                        return `Making: ${currencyFormatter.format(product.making_charge_amount ?? 0)}`;
+                                                    } else if (hasPercentage) {
+                                                        return `Making: ${product.making_charge_percentage}% of metal`;
+                                                    }
+                                                    return `Making: ${currencyFormatter.format(product.making_charge_amount ?? 0)}`;
+                                                })()}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
