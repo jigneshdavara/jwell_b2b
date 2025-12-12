@@ -1,32 +1,17 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from "react";
 
 interface ConfigMetal {
-    label: string;
     metalId: number;
     metalPurityId: number | null;
     metalToneId: number | null;
-    metalWeight?: string | null;
+    metalName?: string;
     purityName?: string;
     toneName?: string;
-    metalName?: string;
-}
-
-interface ConfigDiamond {
-    label: string;
-    diamondShapeId: number;
-    diamondColorId: number;
-    diamondClarityId: number;
-    stoneCount: number;
-    totalCarat: string;
 }
 
 interface ConfigurationOption {
     variant_id: number;
-    label: string;
-    metal_label: string;
-    diamond_label: string;
     metals: ConfigMetal[];
-    diamonds: ConfigDiamond[];
     price_total: number;
     price_breakup: {
         base: number;
@@ -34,7 +19,6 @@ interface ConfigurationOption {
         diamond: number;
         making: number;
     };
-    sku: string;
     size?: {
         id: number;
         name: string;
@@ -43,349 +27,244 @@ interface ConfigurationOption {
     metadata?: Record<string, unknown> | null;
 }
 
-
-interface CustomizationSectionProps {
+interface Props {
     configurationOptions: ConfigurationOption[];
     selectedVariantId: number | null;
-    onVariantChange: (variantId: number | null) => void;
+    onVariantChange: (id: number | null) => void;
 }
 
-/**
- * CustomizationSection Component
- * 
- * Premium inline customization UI for metal and diamond selection.
- * Shows combined metal and diamond options as pills, with modern description sections.
- */
 export default function CustomizationSection({
     configurationOptions,
     selectedVariantId,
     onVariantChange,
-}: CustomizationSectionProps) {
-    // Dropdown state
-    const [selectedMetalId, setSelectedMetalId] = useState<number | ''>('');
-    const [selectedPurityId, setSelectedPurityId] = useState<number | ''>('');
-    const [selectedToneId, setSelectedToneId] = useState<number | ''>('');
-    const [selectedSize, setSelectedSize] = useState<string>('');
+}: Props) {
+    const [metalId, setMetalId] = useState<number | "">("");
+    const [purityId, setPurityId] = useState<number | "">("");
+    const [toneId, setToneId] = useState<number | "">("");
+    const [size, setSize] = useState<string>("");
 
-    // Get currently selected variant
+    /* ---------- Detect if size exists ---------- */
+    const hasSize = useMemo(() => {
+        return configurationOptions.some(
+            (c) =>
+                c.size ||
+                c.metadata?.size_cm ||
+                c.metadata?.size_value
+        );
+    }, [configurationOptions]);
+
+    /* ---------- Sync from selected variant ---------- */
     const selectedConfig = useMemo(
-        () => configurationOptions.find((c) => c.variant_id === selectedVariantId) ?? null,
+        () =>
+            configurationOptions.find(
+                (c) => c.variant_id === selectedVariantId
+            ) ?? null,
         [selectedVariantId, configurationOptions]
     );
 
-    // Sync dropdowns with selected variant
     useEffect(() => {
-        if (selectedConfig && selectedConfig.metals.length > 0) {
-            const primaryMetal = selectedConfig.metals[0];
-            setSelectedMetalId(primaryMetal.metalId);
-            setSelectedPurityId(primaryMetal.metalPurityId ?? '');
-            setSelectedToneId(primaryMetal.metalToneId ?? '');
-            
-            // Extract size
-            const size = selectedConfig.size?.value || selectedConfig.size?.name;
-            if (size) {
-                setSelectedSize(size);
-            } else if (selectedConfig.metadata) {
-                const metadata = selectedConfig.metadata as Record<string, unknown>;
-                if (metadata.size_cm) {
-                    const sizeCm = parseFloat(String(metadata.size_cm));
-                    if (!isNaN(sizeCm)) {
-                        setSelectedSize(sizeCm % 1 === 0 ? `${sizeCm}cm` : `${sizeCm.toFixed(1)}cm`);
-                    }
-                } else if (metadata.size_value) {
-                    const sizeValue = String(metadata.size_value);
-                    const sizeUnit = metadata.size_unit || 'cm';
-                    setSelectedSize(`${sizeValue}${sizeUnit}`);
-                }
-            }
-        } else {
-            // Reset if no variant selected
-            setSelectedMetalId('');
-            setSelectedPurityId('');
-            setSelectedToneId('');
-            setSelectedSize('');
-        }
-    }, [selectedConfig]);
+        if (!selectedConfig) return;
 
-    // Extract unique metals
+        const metal = selectedConfig.metals[0];
+        setMetalId(metal.metalId);
+        setPurityId(metal.metalPurityId ?? "");
+        setToneId(metal.metalToneId ?? "");
+
+        if (hasSize) {
+            const s =
+                selectedConfig.size?.value ||
+                selectedConfig.size?.name ||
+                (selectedConfig.metadata?.size_value
+                    ? `${selectedConfig.metadata.size_value}${selectedConfig.metadata.size_unit || "cm"}`
+                    : "");
+            setSize(s);
+        }
+    }, [selectedConfig, hasSize]);
+
+    /* ---------- Available dropdowns ---------- */
+
     const availableMetals = useMemo(() => {
-        const metalMap = new Map<number, { id: number; name: string }>();
-        configurationOptions.forEach(config => {
-            config.metals.forEach(metal => {
-                if (metal.metalId && !metalMap.has(metal.metalId)) {
-                    metalMap.set(metal.metalId, {
-                        id: metal.metalId,
-                        name: metal.metalName || 'Unknown Metal'
-                    });
+        const map = new Map<number, string>();
+        configurationOptions.forEach((c) =>
+            c.metals.forEach((m) => {
+                if (!map.has(m.metalId)) {
+                    map.set(m.metalId, m.metalName || "Metal");
                 }
-            });
-        });
-        return Array.from(metalMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+            })
+        );
+        return [...map.entries()];
     }, [configurationOptions]);
 
-    // Extract purities for selected metal
     const availablePurities = useMemo(() => {
-        if (!selectedMetalId) return [];
-        
-        const purityMap = new Map<number | null, { id: number | null; name: string }>();
-        configurationOptions.forEach(config => {
-            config.metals.forEach(metal => {
-                if (metal.metalId === selectedMetalId && metal.metalPurityId !== null) {
-                    if (!purityMap.has(metal.metalPurityId)) {
-                        purityMap.set(metal.metalPurityId, {
-                            id: metal.metalPurityId,
-                            name: metal.purityName || 'Unknown Purity'
-                        });
-                    }
+        if (!metalId) return [];
+        const map = new Map<number, string>();
+        configurationOptions.forEach((c) =>
+            c.metals.forEach((m) => {
+                if (m.metalId === metalId && m.metalPurityId) {
+                    map.set(m.metalPurityId, m.purityName || "Purity");
                 }
-            });
-        });
-        return Array.from(purityMap.values()).sort((a, b) => {
-            const nameA = a.name || '';
-            const nameB = b.name || '';
-            return nameA.localeCompare(nameB);
-        });
-    }, [selectedMetalId, configurationOptions]);
+            })
+        );
+        return [...map.entries()];
+    }, [metalId, configurationOptions]);
 
-    // Extract tones for selected metal + purity
     const availableTones = useMemo(() => {
-        if (!selectedMetalId || !selectedPurityId) return [];
-        
-        const toneMap = new Map<number | null, { id: number | null; name: string }>();
-        configurationOptions.forEach(config => {
-            config.metals.forEach(metal => {
+        if (!metalId || !purityId) return [];
+        const map = new Map<number, string>();
+        configurationOptions.forEach((c) =>
+            c.metals.forEach((m) => {
                 if (
-                    metal.metalId === selectedMetalId &&
-                    metal.metalPurityId === selectedPurityId &&
-                    metal.metalToneId !== null
+                    m.metalId === metalId &&
+                    m.metalPurityId === purityId &&
+                    m.metalToneId
                 ) {
-                    if (!toneMap.has(metal.metalToneId)) {
-                        toneMap.set(metal.metalToneId, {
-                            id: metal.metalToneId,
-                            name: metal.toneName || 'Unknown Tone'
-                        });
-                    }
+                    map.set(m.metalToneId, m.toneName || "Tone");
                 }
-            });
-        });
-        return Array.from(toneMap.values()).sort((a, b) => {
-            const nameA = a.name || '';
-            const nameB = b.name || '';
-            return nameA.localeCompare(nameB);
-        });
-    }, [selectedMetalId, selectedPurityId, configurationOptions]);
+            })
+        );
+        return [...map.entries()];
+    }, [metalId, purityId, configurationOptions]);
 
-    // Extract sizes for selected metal + purity + tone
     const availableSizes = useMemo(() => {
-        if (!selectedMetalId || !selectedPurityId || !selectedToneId) return [];
-        
-        const sizeSet = new Set<string>();
-        configurationOptions.forEach(config => {
-            const hasMatchingMetal = config.metals.some(metal =>
-                metal.metalId === selectedMetalId &&
-                metal.metalPurityId === selectedPurityId &&
-                metal.metalToneId === selectedToneId
+        if (!hasSize || !metalId || !purityId || !toneId) return [];
+        const sizes = new Set<string>();
+
+        configurationOptions.forEach((c) => {
+            const match = c.metals.some(
+                (m) =>
+                    m.metalId === metalId &&
+                    m.metalPurityId === purityId &&
+                    m.metalToneId === toneId
             );
-            
-            if (hasMatchingMetal) {
-                // Check size object first
-                if (config.size) {
-                    const sizeValue = config.size.value || config.size.name;
-                    if (sizeValue) {
-                        sizeSet.add(sizeValue);
-                    }
-                }
-                
-                // Check metadata as fallback
-                if (config.metadata) {
-                    const metadata = config.metadata as Record<string, unknown>;
-                    if (metadata.size_cm) {
-                        const sizeCm = parseFloat(String(metadata.size_cm));
-                        if (!isNaN(sizeCm)) {
-                            sizeSet.add(sizeCm % 1 === 0 ? `${sizeCm}cm` : `${sizeCm.toFixed(1)}cm`);
-                        }
-                    } else if (metadata.size_value) {
-                        const sizeValue = String(metadata.size_value);
-                        const sizeUnit = metadata.size_unit || 'cm';
-                        sizeSet.add(`${sizeValue}${sizeUnit}`);
-                    }
-                }
-            }
-        });
-        
-        // Sort sizes numerically if possible
-        return Array.from(sizeSet).sort((a, b) => {
-            const numA = parseFloat(a.replace(/[^\d.]/g, '')) || 0;
-            const numB = parseFloat(b.replace(/[^\d.]/g, '')) || 0;
-            if (numA > 0 && numB > 0) return numA - numB;
-            return a.localeCompare(b);
-        });
-    }, [selectedMetalId, selectedPurityId, selectedToneId, configurationOptions]);
+            if (!match) return;
 
-    // Find matching variant when all selections are made
-    const findMatchingVariant = (
-        metalId: number | '',
-        purityId: number | '',
-        toneId: number | '',
-        size: string
-    ): number | null => {
-        if (!metalId || !purityId || !toneId || !size) return null;
+            if (c.size?.value || c.size?.name)
+                sizes.add(c.size.value || c.size.name);
 
-        return configurationOptions.find(config => {
-            const hasMatchingMetal = config.metals.some(metal =>
-                metal.metalId === metalId &&
-                metal.metalPurityId === purityId &&
-                metal.metalToneId === toneId
+            if (c.metadata?.size_value)
+                sizes.add(
+                    `${c.metadata.size_value}${c.metadata.size_unit || "cm"}`
+                );
+        });
+
+        return [...sizes];
+    }, [hasSize, metalId, purityId, toneId, configurationOptions]);
+
+    /* ---------- Auto variant matching ---------- */
+    useEffect(() => {
+        if (!metalId || !purityId || !toneId) return;
+        if (hasSize && !size) return;
+
+        const match = configurationOptions.find((c) => {
+            const metalMatch = c.metals.some(
+                (m) =>
+                    m.metalId === metalId &&
+                    m.metalPurityId === purityId &&
+                    m.metalToneId === toneId
             );
+            if (!metalMatch) return false;
 
-            if (!hasMatchingMetal) return false;
+            if (!hasSize) return true;
 
-            // Check size match
-            const configSize = config.size?.value || config.size?.name;
-            if (configSize === size) return true;
+            const s =
+                c.size?.value ||
+                c.size?.name ||
+                (c.metadata?.size_value
+                    ? `${c.metadata.size_value}${c.metadata.size_unit || "cm"}`
+                    : "");
 
-            // Check metadata size
-            if (config.metadata) {
-                const metadata = config.metadata as Record<string, unknown>;
-                if (metadata.size_cm) {
-                    const sizeCm = parseFloat(String(metadata.size_cm));
-                    const sizeValue = parseFloat(size.replace(/[^\d.]/g, ''));
-                    if (!isNaN(sizeCm) && !isNaN(sizeValue) && sizeCm === sizeValue) {
-                        return true;
-                    }
-                } else if (metadata.size_value) {
-                    const metadataSize = `${metadata.size_value}${metadata.size_unit || 'cm'}`;
-                    if (metadataSize === size) return true;
-                }
-            }
+            return s === size;
+        });
 
-            return false;
-        })?.variant_id ?? null;
-    };
-
-    // Handle metal change
-    const handleMetalChange = (metalId: string) => {
-        const id = metalId === '' ? '' : Number(metalId);
-        setSelectedMetalId(id);
-        setSelectedPurityId('');
-        setSelectedToneId('');
-        setSelectedSize('');
-        onVariantChange(null);
-    };
-
-    // Handle purity change
-    const handlePurityChange = (purityId: string) => {
-        const id = purityId === '' ? '' : Number(purityId);
-        setSelectedPurityId(id);
-        setSelectedToneId('');
-        setSelectedSize('');
-        onVariantChange(null);
-    };
-
-    // Handle tone change
-    const handleToneChange = (toneId: string) => {
-        const id = toneId === '' ? '' : Number(toneId);
-        setSelectedToneId(id);
-        setSelectedSize('');
-        onVariantChange(null);
-    };
-
-    // Handle size change
-    const handleSizeChange = (size: string) => {
-        setSelectedSize(size);
-        if (selectedMetalId && selectedPurityId && selectedToneId && size) {
-            const variantId = findMatchingVariant(selectedMetalId, selectedPurityId, selectedToneId, size);
-            onVariantChange(variantId);
+        if (match) {
+            onVariantChange(match.variant_id);
         }
-    };
+    }, [
+        metalId,
+        purityId,
+        toneId,
+        size,
+        hasSize,
+        configurationOptions,
+        onVariantChange,
+    ]);
 
-
+    /* ---------- UI ---------- */
     return (
-        <div className="space-y-6">
-            {/* Customization Header */}
-            <div>
-                <h2 className="text-lg font-semibold text-[#0E244D] mb-2">Customization</h2>
-                <p className="text-sm text-slate-500">
-                    Select your preferred metal, purity, tone, and size to see pricing.
-                </p>
-            </div>
+        <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-[#0E244D]">
+                Customization
+            </h3>
 
-            {/* Cascading Dropdowns: Metal → Purity → Tone → Size */}
-            <div className="space-y-4">
-                {/* Metal Dropdown */}
-                <label className="flex flex-col gap-2 text-sm text-slate-600">
-                    <span className="font-semibold text-[#0E244D]">Metal</span>
-                    <select
-                        value={selectedMetalId}
-                        onChange={(e) => handleMetalChange(e.target.value)}
-                        className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 transition-all"
-                    >
-                        <option value="">Select metal</option>
-                        {availableMetals.map((metal) => (
-                            <option key={metal.id} value={metal.id}>
-                                {metal.name}
-                            </option>
-                        ))}
-                    </select>
-                </label>
+            <select
+                value={metalId}
+                onChange={(e) => {
+                    setMetalId(Number(e.target.value));
+                    setPurityId("");
+                    setToneId("");
+                    setSize("");
+                }}
+                className="w-full rounded-2xl border border-elvee-blue/20 bg-white px-4 py-2.5 text-sm font-medium text-elvee-blue transition-all focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 hover:border-elvee-blue/40"
+            >
+                <option value="">Select Metal</option>
+                {availableMetals.map(([id, name]) => (
+                    <option key={id} value={id}>
+                        {name}
+                    </option>
+                ))}
+            </select>
 
-                {/* Purity Dropdown */}
-                {selectedMetalId && availablePurities.length > 0 && (
-                    <label className="flex flex-col gap-2 text-sm text-slate-600">
-                        <span className="font-semibold text-[#0E244D]">Purity</span>
-                        <select
-                            value={selectedPurityId}
-                            onChange={(e) => handlePurityChange(e.target.value)}
-                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 transition-all"
-                        >
-                            <option value="">Select purity</option>
-                            {availablePurities.map((purity) => (
-                                <option key={purity.id ?? 'null'} value={purity.id ?? ''}>
-                                    {purity.name}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                )}
+            {metalId && (
+                <select
+                    value={purityId}
+                    onChange={(e) => {
+                        setPurityId(Number(e.target.value));
+                        setToneId("");
+                        setSize("");
+                    }}
+                    className="w-full rounded-2xl border border-elvee-blue/20 bg-white px-4 py-2.5 text-sm font-medium text-elvee-blue transition-all focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 hover:border-elvee-blue/40"
+                >
+                    <option value="">Select Purity</option>
+                    {availablePurities.map(([id, name]) => (
+                        <option key={id} value={id}>
+                            {name}
+                        </option>
+                    ))}
+                </select>
+            )}
 
-                {/* Tone Dropdown */}
-                {selectedMetalId && selectedPurityId && availableTones.length > 0 && (
-                    <label className="flex flex-col gap-2 text-sm text-slate-600">
-                        <span className="font-semibold text-[#0E244D]">Tone</span>
-                        <select
-                            value={selectedToneId}
-                            onChange={(e) => handleToneChange(e.target.value)}
-                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 transition-all"
-                        >
-                            <option value="">Select tone</option>
-                            {availableTones.map((tone) => (
-                                <option key={tone.id ?? 'null'} value={tone.id ?? ''}>
-                                    {tone.name}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                )}
+            {purityId && (
+                <select
+                    value={toneId}
+                    onChange={(e) => {
+                        setToneId(Number(e.target.value));
+                        setSize("");
+                    }}
+                    className="w-full rounded-2xl border border-elvee-blue/20 bg-white px-4 py-2.5 text-sm font-medium text-elvee-blue transition-all focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 hover:border-elvee-blue/40"
+                >
+                    <option value="">Select Tone</option>
+                    {availableTones.map(([id, name]) => (
+                        <option key={id} value={id}>
+                            {name}
+                        </option>
+                    ))}
+                </select>
+            )}
 
-                {/* Size Dropdown */}
-                {selectedMetalId && selectedPurityId && selectedToneId && availableSizes.length > 0 && (
-                    <label className="flex flex-col gap-2 text-sm text-slate-600">
-                        <span className="font-semibold text-[#0E244D]">Size</span>
-                        <select
-                            value={selectedSize}
-                            onChange={(e) => handleSizeChange(e.target.value)}
-                            className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 transition-all"
-                        >
-                            <option value="">Select size</option>
-                            {availableSizes.map((size) => (
-                                <option key={size} value={size}>
-                                    {size}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                )}
-            </div>
+            {hasSize && toneId && (
+                <select
+                    value={size}
+                    onChange={(e) => setSize(e.target.value)}
+                    className="w-full rounded-2xl border border-elvee-blue/20 bg-white px-4 py-2.5 text-sm font-medium text-elvee-blue transition-all focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 hover:border-elvee-blue/40"
+                >
+                    <option value="">Select Size</option>
+                    {availableSizes.map((s) => (
+                        <option key={s} value={s}>
+                            {s}
+                        </option>
+                    ))}
+                </select>
+            )}
         </div>
     );
 }

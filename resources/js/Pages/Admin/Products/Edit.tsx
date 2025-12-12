@@ -229,28 +229,139 @@ type SubcategoryMultiSelectProps = {
     error?: string;
 };
 
+type SubcategoryTreeNode = SubcategoryOption & {
+    children: SubcategoryTreeNode[];
+};
+
+type SubcategoryTreeRendererProps = {
+    nodes: SubcategoryTreeNode[];
+    selectedIds: number[];
+    onToggle: (id: number) => void;
+    level: number;
+};
+
+// Recursive component to render subcategory tree with unlimited depth
+// Only shows children when parent is selected
+function SubcategoryTreeRenderer({ nodes, selectedIds, onToggle, level }: SubcategoryTreeRendererProps) {
+    return (
+        <div className="space-y-0.5">
+            {nodes.map((node) => {
+                const isSelected = selectedIds.includes(node.id);
+                const hasChildren = node.children && node.children.length > 0;
+                const shouldShowChildren = hasChildren && isSelected; // Only show children if parent is selected
+                const indentPx = level * 24; // 24px per level
+                const textColorClass = level === 0 
+                    ? (isSelected ? 'text-sky-900' : 'text-slate-900')
+                    : (isSelected ? 'text-sky-900' : 'text-slate-700');
+                const bgColorClass = isSelected
+                    ? 'bg-sky-50 text-sky-700'
+                    : level === 0
+                    ? 'text-slate-700 hover:bg-slate-50'
+                    : 'text-slate-600 hover:bg-slate-50';
+
+                const buttonContent = (
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => onToggle(node.id)}
+                            className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${bgColorClass}`}
+                        >
+                            {/* Checkbox */}
+                            <div
+                                className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
+                                    isSelected
+                                        ? 'border-sky-500 bg-sky-500'
+                                        : 'border-slate-300'
+                                }`}
+                            >
+                                {isSelected && (
+                                    <svg
+                                        className="h-3.5 w-3.5 text-white"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth={3}
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                )}
+                            </div>
+
+                            {/* Subcategory Info */}
+                            <div className="flex-1 min-w-0">
+                                <span className={`text-sm font-medium truncate ${textColorClass}`}>
+                                    {node.name}
+                                </span>
+                            </div>
+
+                            {/* Children Indicator - shows if has children (even if not expanded) */}
+                            {hasChildren && (
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${
+                                        shouldShowChildren ? 'rotate-90 text-sky-500' : 'text-slate-400'
+                                    }`}
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            )}
+                        </button>
+
+                        {/* Recursively render children - only if parent is selected */}
+                        {shouldShowChildren && (
+                            <SubcategoryTreeRenderer
+                                nodes={node.children}
+                                selectedIds={selectedIds}
+                                onToggle={onToggle}
+                                level={level + 1}
+                            />
+                        )}
+                    </>
+                );
+
+                return (
+                    <div key={node.id}>
+                        {level > 0 ? (
+                            <div 
+                                className="border-l-2 border-slate-200 pl-2"
+                                style={{ marginLeft: `${indentPx}px` }}
+                            >
+                                {buttonContent}
+                            </div>
+                        ) : (
+                            buttonContent
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
 function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, onChange, error }: SubcategoryMultiSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Filter subcategories by parent category
+    // Recursive function to build complete tree structure with unlimited depth
+    const buildSubcategoryTree = useCallback((parentId: number): Array<SubcategoryOption & { children: Array<SubcategoryOption & { children: any[] }> }> => {
+        return subcategories
+            .filter(sub => sub.parent_id === parentId)
+            .map(subcategory => ({
+                ...subcategory,
+                children: buildSubcategoryTree(subcategory.id)
+            }));
+    }, [subcategories]);
+
+    // Build hierarchical structure: direct subcategories and all nested children (unlimited depth)
     const availableSubcategories = useMemo(() => {
         if (!parentCategoryId) {
             return [];
         }
-        return subcategories.filter(sub => sub.parent_id === Number(parentCategoryId));
-    }, [subcategories, parentCategoryId]);
-
-    const filteredSubcategories = useMemo(() => {
-        if (!searchTerm.trim()) {
-            return availableSubcategories;
-        }
-        const search = searchTerm.toLowerCase();
-        return availableSubcategories.filter((subcategory) =>
-            subcategory.name.toLowerCase().includes(search)
-        );
-    }, [availableSubcategories, searchTerm]);
+        const categoryIdNum = Number(parentCategoryId);
+        return buildSubcategoryTree(categoryIdNum);
+    }, [parentCategoryId, buildSubcategoryTree]);
 
     // Toggle subcategory selection
     const toggleSubcategory = (subcategoryId: number) => {
@@ -265,7 +376,6 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
-                setSearchTerm('');
             }
         };
 
@@ -291,13 +401,27 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
         onChange(selectedIds.filter(id => id !== subcategoryId));
     };
 
+    // Recursive function to collect all descendant IDs
+    const getAllDescendantIds = useCallback((parentId: number): Set<number> => {
+        const ids = new Set<number>();
+        const children = subcategories.filter(sub => sub.parent_id === parentId);
+        children.forEach(child => {
+            ids.add(child.id);
+            // Recursively get all descendants
+            const descendants = getAllDescendantIds(child.id);
+            descendants.forEach(id => ids.add(id));
+        });
+        return ids;
+    }, [subcategories]);
+
     // Clear selections when parent category changes
     useEffect(() => {
         if (parentCategoryId) {
-            const validIds = selectedIds.filter(id => {
-                const sub = subcategories.find(s => s.id === id);
-                return sub && sub.parent_id === Number(parentCategoryId);
-            });
+            const categoryIdNum = Number(parentCategoryId);
+            // Get all valid subcategory IDs (direct and all nested descendants)
+            const validSubcategoryIds = getAllDescendantIds(categoryIdNum);
+            
+            const validIds = selectedIds.filter(id => validSubcategoryIds.has(id));
             if (validIds.length !== selectedIds.length) {
                 onChange(validIds);
             }
@@ -307,7 +431,7 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                 onChange([]);
             }
         }
-    }, [parentCategoryId]);
+    }, [parentCategoryId, getAllDescendantIds, selectedIds, onChange]);
 
     return (
         <label className="flex flex-col gap-2 text-sm text-slate-600">
@@ -384,84 +508,19 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                 {/* Dropdown Menu */}
                 {isOpen && parentCategoryId && (
                     <div className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
-                        {/* Search Input */}
-                        {availableSubcategories.length > 5 && (
-                            <div className="border-b border-slate-100 p-3">
-                                <div className="relative">
-                                    <svg
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                    <input
-                                        type="text"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        placeholder="Search subcategories..."
-                                        className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
                         {/* Subcategory List */}
                         <div className="max-h-64 overflow-y-auto p-2">
-                            {filteredSubcategories.length === 0 ? (
+                            {availableSubcategories.length === 0 ? (
                                 <div className="px-3 py-6 text-center text-sm text-slate-400">
-                                    {searchTerm ? 'No subcategories found' : 'No subcategories available'}
+                                    No subcategories available
                                 </div>
                             ) : (
-                                <div className="space-y-1">
-                                    {filteredSubcategories.map((subcategory) => {
-                                        const isSelected = selectedIds.includes(subcategory.id);
-                                        return (
-                                            <button
-                                                key={subcategory.id}
-                                                type="button"
-                                                onClick={() => toggleSubcategory(subcategory.id)}
-                                                className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                                                    isSelected
-                                                        ? 'bg-sky-50 text-sky-700'
-                                                        : 'text-slate-700 hover:bg-slate-50'
-                                                }`}
-                                            >
-                                                {/* Checkbox */}
-                                                <div
-                                                    className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
-                                                        isSelected
-                                                            ? 'border-sky-500 bg-sky-500'
-                                                            : 'border-slate-300'
-                                                    }`}
-                                                >
-                                                    {isSelected && (
-                                                        <svg
-                                                            className="h-3.5 w-3.5 text-white"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                            strokeWidth={3}
-                                                        >
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    )}
-                                                </div>
-
-                                                {/* Subcategory Info */}
-                                                <div className="flex-1 min-w-0">
-                                                    <span className={`text-sm font-medium truncate ${
-                                                        isSelected ? 'text-sky-900' : 'text-slate-900'
-                                                    }`}>
-                                                        {subcategory.name}
-                                                    </span>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                <SubcategoryTreeRenderer
+                                    nodes={availableSubcategories}
+                                    selectedIds={selectedIds}
+                                    onToggle={toggleSubcategory}
+                                    level={0}
+                                />
                             )}
                         </div>
                     </div>
