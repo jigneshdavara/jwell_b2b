@@ -715,6 +715,7 @@ class CatalogController extends Controller
                 ],
                 'sku' => $variant->sku ?? $product->sku,
                 'inventory_quantity' => $variant->inventory_quantity ?? 0,
+                'metadata' => $variant->metadata ?? [], // Include variant metadata for size extraction
             ];
         }
 
@@ -747,6 +748,7 @@ class CatalogController extends Controller
                 ],
                 'sku' => $firstVariant->sku ?? $product->sku,
                 'inventory_quantity' => $firstVariant->inventory_quantity ?? 0,
+                'metadata' => $firstVariant->metadata ?? [], // Include variant metadata for size extraction
             ];
         }
 
