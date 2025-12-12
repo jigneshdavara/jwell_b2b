@@ -169,6 +169,7 @@ type FormData = {
     removed_media_ids?: number[];
     selected_sizes?: number[];
     all_sizes_available?: boolean;
+    show_all_variants_by_size?: boolean;
 };
 
 type ProductMedia = {
@@ -958,6 +959,27 @@ export default function AdminProductEdit() {
     const [localDescription, setLocalDescription] = useState(data.description);
     const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Initialize generatedMatrixVariants with existing variants when editing a product
+    useEffect(() => {
+        if (product?.variants && product.variants.length > 0 && generatedMatrixVariants.length === 0) {
+            // Use variants from form data (which are initialized from product)
+            setGeneratedMatrixVariants(data.variants || []);
+        } else if (!product && generatedMatrixVariants.length === 0 && data.variants && data.variants.length > 0) {
+            // For new products, initialize with empty variant if form data has it
+            setGeneratedMatrixVariants(data.variants || []);
+        }
+    }, [product, data.variants]);
+
+    // Ensure show_all_variants_by_size defaults to true when "Select specific sizes" is active
+    useEffect(() => {
+        if (data.all_sizes_available === false && data.show_all_variants_by_size === undefined) {
+            setData((prev: FormData) => ({
+                ...prev,
+                show_all_variants_by_size: true,
+            }));
+        }
+    }, [data.all_sizes_available, data.show_all_variants_by_size, setData]);
+
     useEffect(() => {
         if (data.description !== localDescription) {
             setLocalDescription(data.description);
@@ -984,6 +1006,8 @@ export default function AdminProductEdit() {
 
     const [expandedDiamondVariantIndices, setExpandedDiamondVariantIndices] = useState<Set<number>>(new Set());
     const [expandedMetalVariantIndices, setExpandedMetalVariantIndices] = useState<Set<number>>(new Set());
+    // Separate state for generated variant matrix (for display only, not saved to form until submit)
+    const [generatedMatrixVariants, setGeneratedMatrixVariants] = useState<VariantForm[]>([]);
 
 
     const formatDecimal = (value: number): string => {
@@ -1252,11 +1276,100 @@ export default function AdminProductEdit() {
     };
 
     const updateVariant = (index: number, field: keyof VariantForm, value: string | boolean | number | null) => {
+        // Update generatedMatrixVariants (what's displayed in table)
+        setGeneratedMatrixVariants((prev) => {
+            if (prev.length === 0) return prev;
+            
+            const targetVariant = prev[index];
+            if (!targetVariant) return prev;
+            
+            // If grouped by metal (all_sizes_available === true OR show_all_variants_by_size === false)
+            // and certain fields, update all variants with same metal
+            const shouldGroupUpdate = (data.all_sizes_available === true || data.show_all_variants_by_size === false) 
+                && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default');
+            
+            if (shouldGroupUpdate) {
+                const targetMetals = (targetVariant.metals || []).filter(
+                    (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                );
+                const targetMetalsKey = targetMetals
+                    .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                    .sort()
+                    .join('|');
+                
+                return prev.map((variant: VariantForm) => {
+                    const variantMetals = (variant.metals || []).filter(
+                        (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                    );
+                    const variantMetalsKey = variantMetals
+                        .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                        .sort()
+                        .join('|');
+                    
+                    if (variantMetalsKey === targetMetalsKey) {
+                        const updated = { ...variant };
+                        switch (field) {
+                            case 'is_default':
+                                if (typeof value === 'boolean') updated.is_default = value;
+                                break;
+                            case 'sku':
+                            case 'label':
+                                if (typeof value === 'string') updated[field] = value;
+                                break;
+                            case 'inventory_quantity':
+                                if (value === '' || value === null) {
+                                    updated[field] = 0;
+                                } else if (typeof value === 'string') {
+                                    const numVal = parseInt(value, 10);
+                                    updated[field] = isNaN(numVal) ? 0 : numVal;
+                                } else if (typeof value === 'number') {
+                                    updated[field] = value;
+                                }
+                                break;
+                        }
+                        return updated;
+                    }
+                    return variant;
+                });
+            }
+            
+            // Update single variant
+            return prev.map((variant: VariantForm, idx: number) => {
+                if (idx !== index) return variant;
+                
+                const updated = { ...variant };
+                switch (field) {
+                    case 'is_default':
+                        if (typeof value === 'boolean') updated.is_default = value;
+                        break;
+                    case 'sku':
+                    case 'label':
+                        if (typeof value === 'string') updated[field] = value;
+                        break;
+                    case 'inventory_quantity':
+                        if (value === '' || value === null) {
+                            updated[field] = 0;
+                        } else if (typeof value === 'string') {
+                            const numVal = parseInt(value, 10);
+                            updated[field] = isNaN(numVal) ? 0 : numVal;
+                        } else if (typeof value === 'number') {
+                            updated[field] = value;
+                        }
+                        break;
+                }
+                return updated;
+            });
+        });
+        
+            // Also update form data (for backward compatibility, though we regenerate on submit)
         setData((prev: FormData) => {
             const targetVariant = (prev.variants || [])[index];
             if (!targetVariant) return prev;
             
-            if (prev.all_sizes_available === true && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default')) {
+            const shouldGroupUpdate = (prev.all_sizes_available === true || prev.show_all_variants_by_size === false) 
+                && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default');
+            
+            if (shouldGroupUpdate) {
                 const targetMetals = (targetVariant.metals || []).filter(
                     (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                 );
@@ -1353,6 +1466,32 @@ export default function AdminProductEdit() {
     };
 
     const updateVariantMetadata = (index: number, changes: Record<string, FormDataConvertible | null>) => {
+        // Update generatedMatrixVariants
+        setGeneratedMatrixVariants((prev) => {
+            if (prev.length === 0) return prev;
+            return prev.map((variant: VariantForm, idx: number) => {
+                if (idx !== index) {
+                    return variant;
+                }
+
+                const metadata = { ...(variant.metadata ?? {}) } as Record<string, FormDataConvertible>;
+
+                Object.entries(changes).forEach(([key, value]) => {
+                    if (value === null) {
+                        delete metadata[key];
+                    } else {
+                        metadata[key] = value;
+                    }
+                });
+
+                return {
+                    ...variant,
+                    metadata,
+                };
+            });
+        });
+        
+        // Also update form data (for backward compatibility)
         setData((prev: FormData) => {
             const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== index) {
@@ -1387,6 +1526,16 @@ export default function AdminProductEdit() {
     };
 
     const markDefault = (index: number) => {
+        // Update generatedMatrixVariants
+        setGeneratedMatrixVariants((prev) => {
+            if (prev.length === 0) return prev;
+            return prev.map((variant: VariantForm, idx: number) => ({
+                ...variant,
+                is_default: idx === index,
+            }));
+        });
+        
+        // Also update form data (for backward compatibility)
         setData((prev: FormData) => ({
             ...prev,
             variants: (prev.variants || []).map((variant: VariantForm, idx: number) => ({
@@ -1473,11 +1622,85 @@ export default function AdminProductEdit() {
         field: keyof VariantMetalForm,
         value: string | number | '',
     ) => {
+        // Update generatedMatrixVariants first (what's displayed in table)
+        setGeneratedMatrixVariants((prev) => {
+            if (prev.length === 0) return prev;
+            
+            const targetVariant = prev[variantIndex];
+            if (!targetVariant) return prev;
+            
+            // If grouped by metal (all_sizes_available === true OR show_all_variants_by_size === false)
+            // update all variants with same metal
+            const shouldGroupUpdate = data.all_sizes_available === true || data.show_all_variants_by_size === false;
+            
+            if (shouldGroupUpdate) {
+                const targetMetals = (targetVariant.metals || []).filter(
+                    (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                );
+                const targetMetalsKey = targetMetals
+                    .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                    .sort()
+                    .join('|');
+                
+                return prev.map((variant: VariantForm) => {
+                    const variantMetals = (variant.metals || []).filter(
+                        (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                    );
+                    const variantMetalsKey = variantMetals
+                        .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                        .sort()
+                        .join('|');
+                    
+                    if (variantMetalsKey === targetMetalsKey) {
+                        const currentMetals = variant.metals || [];
+                        const updatedMetals = currentMetals.map((metal: VariantMetalForm, mIdx: number) => {
+                            if (mIdx !== metalIndex) {
+                                return metal;
+                            }
+                            return {
+                                ...metal,
+                                [field]: value,
+                            };
+                        });
+                        return {
+                            ...variant,
+                            metals: updatedMetals,
+                        };
+                    }
+                    return variant;
+                });
+            }
+            
+            // Update single variant
+            return prev.map((variant: VariantForm, idx: number) => {
+                if (idx !== variantIndex) {
+                    return variant;
+                }
+                const currentMetals = variant.metals || [];
+                const updatedMetals = currentMetals.map((metal: VariantMetalForm, mIdx: number) => {
+                    if (mIdx !== metalIndex) {
+                        return metal;
+                    }
+                    return {
+                        ...metal,
+                        [field]: value,
+                    };
+                });
+                return {
+                    ...variant,
+                    metals: updatedMetals,
+                };
+            });
+        });
+        
+        // Also update form data (for backward compatibility)
         setData((prev: FormData) => {
             const targetVariant = (prev.variants || [])[variantIndex];
             if (!targetVariant) return prev;
             
-            if (prev.all_sizes_available === true) {
+            const shouldGroupUpdate = prev.all_sizes_available === true || prev.show_all_variants_by_size === false;
+            
+            if (shouldGroupUpdate) {
                 const targetMetals = (targetVariant.metals || []).filter(
                     (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                 );
@@ -1557,7 +1780,13 @@ export default function AdminProductEdit() {
     };
 
     const generateVariantMatrix = () => {
-        setData((prev: FormData) => generateVariantMatrixForData(prev));
+        // Generate matrix but store in separate state variable, not in form data
+        // Use the current form data to generate variants based on current selections
+        const generatedData = generateVariantMatrixForData(data);
+        const generatedVariants = generatedData.variants || [];
+        
+        // Set the generated variants - generation already handles grouping based on show_all_variants_by_size
+        setGeneratedMatrixVariants([...generatedVariants]);
     };
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -1568,6 +1797,15 @@ export default function AdminProductEdit() {
         form.transform((current) => {
             const formState = current as FormData;
             const payload: any = { ...formState };
+            
+            // Use generatedMatrixVariants if available (contains user edits), otherwise generate fresh variants
+            // This ensures user edits (inventory_quantity, weights, etc.) are preserved
+            let variantsToUse = generatedMatrixVariants.length > 0 
+                ? generatedMatrixVariants 
+                : (() => {
+                    const formDataWithGeneratedVariants = generateVariantMatrixForData(formState);
+                    return formDataWithGeneratedVariants.variants || [];
+                })();
 
             if (formState.media_uploads && Array.isArray(formState.media_uploads) && formState.media_uploads.length > 0) {
                 payload.media_uploads = formState.media_uploads;
@@ -1663,11 +1901,21 @@ export default function AdminProductEdit() {
             }
             delete payload.subcategory_ids;
 
-            if (formState.variants && Array.isArray(formState.variants)) {
+            // Use variants for submission (from generatedMatrixVariants if available, otherwise newly generated)
+            if (variantsToUse && Array.isArray(variantsToUse) && variantsToUse.length > 0) {
                 const diamondSelections = formState.diamond_selections || [];
                 
-                payload.variants = formState.variants.map((variant: any) => {
+                payload.variants = variantsToUse.map((variant: any) => {
                     const formattedVariant = { ...variant };
+                    
+                    // Ensure inventory_quantity is explicitly included
+                    if (variant.inventory_quantity !== undefined && variant.inventory_quantity !== null) {
+                        formattedVariant.inventory_quantity = typeof variant.inventory_quantity === 'number' 
+                            ? variant.inventory_quantity 
+                            : (variant.inventory_quantity === '' ? 0 : parseInt(String(variant.inventory_quantity), 10));
+                    } else {
+                        formattedVariant.inventory_quantity = 0;
+                    }
                     
                     let variantDiamonds: any[] = [];
                     
@@ -2304,6 +2552,7 @@ export default function AdminProductEdit() {
                                                                     setData((prev: FormData) => ({
                                                                         ...prev,
                                                                         all_sizes_available: undefined,
+                                                                        show_all_variants_by_size: undefined,
                                                                     }));
                                                                     return;
                                                                 }
@@ -2318,6 +2567,9 @@ export default function AdminProductEdit() {
                                                                         selected_sizes: newAllSizesAvailable === true 
                                                                             ? allCategorySizeIds 
                                                                             : [],
+                                                                        // Default to true (show all variants) for both "All sizes available" and "Select specific sizes"
+                                                                        // User can then change the preference to "No" if they want to group by metal
+                                                                        show_all_variants_by_size: newAllSizesAvailable !== undefined ? true : undefined,
                                                                     };
                                                                 });
                                                             }}
@@ -2344,9 +2596,76 @@ export default function AdminProductEdit() {
                                                             </span>
                                                         </div>
                                                         <p className="mb-3 text-xs text-slate-600">
-                                                            Variants will be created for all sizes from category "{selectedCategory?.name || product?.category?.name}". 
-                                                            Only metal combinations are shown in the variant table below.
+                                                            Variants will be created for all sizes from category "{selectedCategory?.name || product?.category?.name}".
                                                         </p>
+                                                        <div className="mb-4">
+                                                            <p className="text-xs font-medium text-slate-700 mb-2">
+                                                                Do you want to show all variants according to size?
+                                                            </p>
+                                                            <div className="flex flex-wrap gap-3">
+                                                                <label
+                                                                    className={`
+                                                                        inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                                        ${data.show_all_variants_by_size === true
+                                                                            ? 'bg-sky-600 text-white shadow-sm'
+                                                                            : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                                                        }
+                                                                    `}
+                                                                >
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="show-variants-by-size"
+                                                                        checked={data.show_all_variants_by_size === true}
+                                                                        onChange={() => {
+                                                                            setData((prev: FormData) => ({
+                                                                                ...prev,
+                                                                                show_all_variants_by_size: true,
+                                                                            }));
+                                                                        }}
+                                                                        className={`mr-2 h-4 w-4 ${
+                                                                            data.show_all_variants_by_size === true
+                                                                                ? 'text-white'
+                                                                                : 'text-slate-700'
+                                                                        } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                                    />
+                                                                    Yes
+                                                                </label>
+                                                                <label
+                                                                    className={`
+                                                                        inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                                        ${data.show_all_variants_by_size === false
+                                                                            ? 'bg-sky-600 text-white shadow-sm'
+                                                                            : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                                                        }
+                                                                    `}
+                                                                >
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="show-variants-by-size"
+                                                                        checked={data.show_all_variants_by_size === false}
+                                                                        onChange={() => {
+                                                                            setData((prev: FormData) => ({
+                                                                                ...prev,
+                                                                                show_all_variants_by_size: false,
+                                                                            }));
+                                                                        }}
+                                                                        className={`mr-2 h-4 w-4 ${
+                                                                            data.show_all_variants_by_size === false
+                                                                                ? 'text-white'
+                                                                                : 'text-slate-700'
+                                                                        } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                                    />
+                                                                    No
+                                                                </label>
+                                                            </div>
+                                                            {data.show_all_variants_by_size !== undefined && (
+                                                                <p className="mt-2 text-xs text-slate-500">
+                                                                    {data.show_all_variants_by_size === true
+                                                                        ? 'All variants will be shown in the variant table below.'
+                                                                        : 'Only metal combinations are shown in the variant table below (grouped by metal).'}
+                                                                </p>
+                                                            )}
+                                                        </div>
                                                         <div className="flex flex-wrap gap-2">
                                                             {categorySizes.map((size: any) => (
                                                                 <span
@@ -2373,6 +2692,74 @@ export default function AdminProductEdit() {
                                                             <p className="mb-3 text-xs text-slate-600">
                                                                 Choose sizes from the category to include in your product variants.
                                                             </p>
+                                                            <div className="mb-4">
+                                                                <p className="text-xs font-medium text-slate-700 mb-2">
+                                                                    Do you want to show all variants according to size?
+                                                                </p>
+                                                                <div className="flex flex-wrap gap-3">
+                                                                    <label
+                                                                        className={`
+                                                                            inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                                            ${data.show_all_variants_by_size === true
+                                                                                ? 'bg-sky-600 text-white shadow-sm'
+                                                                                : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                                                            }
+                                                                        `}
+                                                                    >
+                                                                        <input
+                                                                            type="radio"
+                                                                            name="show-variants-by-size"
+                                                                            checked={data.show_all_variants_by_size === true}
+                                                                            onChange={() => {
+                                                                                setData((prev: FormData) => ({
+                                                                                    ...prev,
+                                                                                    show_all_variants_by_size: true,
+                                                                                }));
+                                                                            }}
+                                                                            className={`mr-2 h-4 w-4 ${
+                                                                                data.show_all_variants_by_size === true
+                                                                                    ? 'text-white'
+                                                                                    : 'text-slate-700'
+                                                                            } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                                        />
+                                                                        Yes
+                                                                    </label>
+                                                                    <label
+                                                                        className={`
+                                                                            inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                                            ${data.show_all_variants_by_size === false
+                                                                                ? 'bg-sky-600 text-white shadow-sm'
+                                                                                : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                                                            }
+                                                                        `}
+                                                                    >
+                                                                        <input
+                                                                            type="radio"
+                                                                            name="show-variants-by-size"
+                                                                            checked={data.show_all_variants_by_size === false}
+                                                                            onChange={() => {
+                                                                                setData((prev: FormData) => ({
+                                                                                    ...prev,
+                                                                                    show_all_variants_by_size: false,
+                                                                                }));
+                                                                            }}
+                                                                            className={`mr-2 h-4 w-4 ${
+                                                                                data.show_all_variants_by_size === false
+                                                                                    ? 'text-white'
+                                                                                    : 'text-slate-700'
+                                                                            } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                                        />
+                                                                        No
+                                                                    </label>
+                                                                </div>
+                                                                {data.show_all_variants_by_size !== undefined && (
+                                                                    <p className="mt-2 text-xs text-slate-500">
+                                                                        {data.show_all_variants_by_size === true
+                                                                            ? 'All variants will be shown in the variant table below.'
+                                                                            : 'Only metal combinations are shown in the variant table below (grouped by metal).'}
+                                                                    </p>
+                                                                )}
+                                                            </div>
                                                             <div className="flex flex-wrap gap-2">
                                                                 {categorySizes.map((size: any) => {
                                                                     const sizeId = typeof size.id === 'number' ? size.id : Number(size.id);
@@ -2400,6 +2787,10 @@ export default function AdminProductEdit() {
                                                                                         return {
                                                                                             ...prev,
                                                                                             selected_sizes: newSizes,
+                                                                                            // Ensure show_all_variants_by_size defaults to true when selecting specific sizes
+                                                                                            show_all_variants_by_size: prev.all_sizes_available === false && prev.show_all_variants_by_size === undefined 
+                                                                                                ? true 
+                                                                                                : prev.show_all_variants_by_size,
                                                                                         };
                                                                                     });
                                                                                 }}
@@ -2724,10 +3115,62 @@ export default function AdminProductEdit() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 bg-white">
-                                {(() => {
-                                    const allVariants = data.variants || [];
-                                    return allVariants.map((variant, index) => ({ variant, index }));
-                                })().map(({ variant, index }) => {
+                                {useMemo(() => {
+                                    // Use generated matrix variants for display (separate from form data)
+                                    // Variants are generated when "Generate Matrix" button is clicked
+                                    const allVariants = generatedMatrixVariants.length > 0 ? generatedMatrixVariants : (data.variants || []);
+                                    
+                                    // If no variants at all, return empty array
+                                    if (allVariants.length === 0) {
+                                        return [];
+                                    }
+                                    
+                                    // Note: When show_all_variants_by_size === false, variants are already generated 
+                                    // with only one per metal combination in generateVariantMatrixUtil
+                                    // So we just need to display them as-is
+                                    
+                                    // Group by metal when user chose "No" to show all variants (regardless of which size option is selected)
+                                    // This allows grouping in both "All sizes available" and "Select specific sizes" modes
+                                    // When user chose "Yes", show all variants individually
+                                    // Only group if there are actually multiple variants with the same metal but different sizes
+                                    if (data.show_all_variants_by_size === false && allVariants.length > 0) {
+                                        const groupedVariants = new Map<string, typeof allVariants>();
+                                        
+                                        allVariants.forEach((variant) => {
+                                            const variantMetals = (variant.metals || []).filter(
+                                                (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                                            );
+                                            
+                                            const metalsKey = variantMetals
+                                                .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                                                .sort()
+                                                .join('|');
+                                            
+                                            if (!groupedVariants.has(metalsKey)) {
+                                                groupedVariants.set(metalsKey, []);
+                                            }
+                                            groupedVariants.get(metalsKey)!.push(variant);
+                                        });
+                                        
+                                        // Check if there are multiple variants per metal combination (indicating multiple sizes)
+                                        const hasMultipleSizes = Array.from(groupedVariants.values()).some(group => group.length > 1);
+                                        
+                                        if (hasMultipleSizes) {
+                                            // Return one variant per metal combination group for display
+                                            return Array.from(groupedVariants.values()).map((variantGroup) => {
+                                                const displayVariant = variantGroup[0]; // Use first variant as representative
+                                                const originalIndex = allVariants.findIndex(v => v === displayVariant);
+                                                return { variant: displayVariant, index: originalIndex, group: variantGroup };
+                                            });
+                                        }
+                                    }
+                                    
+                                    // Show all variants individually when:
+                                    // - User chose "Yes" to show all variants by size
+                                    // - Or no grouping needed (show_all_variants_by_size is undefined or true)
+                                    // - Or when variants were already generated grouped (one per metal) when "No" was selected
+                                    return allVariants.map((variant, index) => ({ variant, index, group: [variant] }));
+                                }, [generatedMatrixVariants, data.variants, data.all_sizes_available, data.show_all_variants_by_size]).map(({ variant, index, group }) => {
                                     const meta = buildVariantMeta(variant, data);
                                     const metalLabel = meta.metalTone || '—';
 
@@ -2921,12 +3364,12 @@ export default function AdminProductEdit() {
                                                 </div>
                                             </td>
                                             <td className="px-5 py-3 align-middle text-slate-700">
-                                                <div className="min-w-[120px]">
+                                                <div className="flex flex-col gap-1 min-w-[120px]">
                                                     {variantMetals.length > 0 ? (
                                                         variantMetals.map((metal, metalIndex) => {
                                                             const weight = metal.metal_weight || '';
                                                             return (
-                                                                <div key={metalIndex} className="mb-2 last:mb-0">
+                                                                <div key={metalIndex} className="mb-1 last:mb-0">
                                                                     <input
                                                                         type="number"
                                                                         step="0.001"
@@ -2937,15 +3380,15 @@ export default function AdminProductEdit() {
                                                                             const value = e.target.value;
                                                                             updateMetalInVariant(index, metalIndex, 'metal_weight', value);
                                                                         }}
-                                                                        className={`w-full rounded-lg border px-2.5 py-1.5 text-sm font-mono transition-colors ${
+                                                                        className={`w-full rounded-xl border px-3 py-1.5 text-sm text-slate-700 transition-colors ${
                                                                             (!weight || weight === '')
                                                                                 ? 'border-rose-300 bg-rose-50 text-rose-500 focus:border-rose-400 focus:bg-white'
-                                                                                : 'border-slate-200 bg-white text-slate-700 focus:border-sky-400'
-                                                                        } focus:outline-none focus:ring-1 focus:ring-sky-200`}
+                                                                                : 'border-slate-200 bg-white focus:border-sky-400'
+                                                                        } focus:outline-none focus:ring-2 focus:ring-sky-200`}
                                                                         placeholder="0.000"
                                                                     />
                                                                     {(!weight || weight === '') && (
-                                                                        <span className="mt-1 text-[10px] text-rose-500 block">Required</span>
+                                                                        <span className="text-[10px] text-rose-500">Required</span>
                                                                     )}
                                                                 </div>
                                                             );
@@ -2957,7 +3400,11 @@ export default function AdminProductEdit() {
                                             </td>
                                             <td className="px-5 py-3 align-middle text-slate-700">
                                                 <div className="min-w-[120px]">
-                                                    <span className="text-sm text-slate-700">{sizeDisplay}</span>
+                                                    {group && group.length > 1 ? (
+                                                        <span className="text-sm text-slate-500 italic">All sizes</span>
+                                                    ) : (
+                                                        <span className="text-sm text-slate-700">{sizeDisplay}</span>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-5 py-3 align-middle text-slate-700">

@@ -109,19 +109,61 @@ class DiamondShapeSizeController extends Controller
 
     public function destroy(DiamondShapeSize $shapeSize): RedirectResponse
     {
+        // Check if diamonds exist - if they do, prevent deletion
+        if ($shapeSize->diamonds()->exists()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Cannot delete diamond shape size because it has associated diamonds. Please remove all diamonds first.');
+        }
+
+        // If no diamonds exist, delete the shape size
         $shapeSize->delete();
 
         return redirect()
             ->back()
-            ->with('success', 'Diamond shape size removed.');
+            ->with('success', 'Diamond shape size removed successfully.');
     }
 
     public function bulkDestroy(BulkDestroyDiamondShapeSizesRequest $request): RedirectResponse
     {
-        DiamondShapeSize::whereIn('id', $request->validated('ids'))->delete();
+        $ids = $request->validated('ids');
+        $deletedCount = 0;
+        $skippedCount = 0;
+
+        foreach ($ids as $id) {
+            $shapeSize = DiamondShapeSize::find($id);
+
+            if (! $shapeSize) {
+                continue;
+            }
+
+            // Check if diamonds exist - if they do, skip deletion
+            if ($shapeSize->diamonds()->exists()) {
+                $skippedCount++;
+                continue;
+            }
+
+            // If no diamonds exist, delete the shape size
+            $shapeSize->delete();
+
+            $deletedCount++;
+        }
+
+        $messages = [];
+
+        if ($deletedCount > 0) {
+            $plural = $deletedCount === 1 ? '' : 's';
+            $messages[] = "{$deletedCount} diamond shape size{$plural} deleted successfully.";
+        }
+
+        if ($skippedCount > 0) {
+            $plural = $skippedCount === 1 ? '' : 's';
+            $verb = $skippedCount === 1 ? 'it has' : 'they have';
+            $messages[] = "{$skippedCount} diamond shape size{$plural} could not be deleted because {$verb} associated diamonds.";
+        }
 
         return redirect()
             ->back()
-            ->with('success', 'Selected diamond shape sizes deleted successfully.');
+            ->with($deletedCount > 0 ? 'success' : 'error', implode(' ', $messages));
     }
 }

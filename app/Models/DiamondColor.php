@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DiamondColor extends Model
 {
@@ -27,5 +28,10 @@ class DiamondColor extends Model
     public function type(): BelongsTo
     {
         return $this->belongsTo(DiamondType::class, 'diamond_type_id');
+    }
+
+    public function diamonds(): HasMany
+    {
+        return $this->hasMany(Diamond::class, 'diamond_color_id');
     }
 }
