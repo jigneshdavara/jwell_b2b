@@ -363,7 +363,6 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
         return buildSubcategoryTree(categoryIdNum);
     }, [parentCategoryId, buildSubcategoryTree]);
 
-
     // Toggle subcategory selection
     const toggleSubcategory = (subcategoryId: number) => {
         if (selectedIds.includes(subcategoryId)) {
@@ -377,7 +376,6 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
-                setSearchTerm('');
             }
         };
 
