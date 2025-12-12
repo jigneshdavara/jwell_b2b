@@ -2897,7 +2897,18 @@ export default function AdminProductEdit() {
                                     <p className="text-xs text-slate-400">No diamonds added. Click "Add Diamond" to add one.</p>
                                 )}
                             </div>
-
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={generateVariantMatrix}
+                                    className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+                                    </svg>
+                                    Generate Matrix
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -2909,7 +2920,7 @@ export default function AdminProductEdit() {
                                 Configure product variants with metals and diamonds. The default variant powers the customer catalogue card pricing.
                             </p>
                         </div>
-                            <button
+                            {/* <button
                                 type="button"
                                 onClick={generateVariantMatrix}
                                 className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
@@ -2918,7 +2929,7 @@ export default function AdminProductEdit() {
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
                                 </svg>
                                 Generate Matrix
-                            </button>
+                            </button> */}
                         </div>
 
                         {variantError && (
