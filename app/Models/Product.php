@@ -19,6 +19,7 @@ class Product extends Model
         'description',
         'brand_id',
         'category_id',
+        'style_id',
         'subcategory_ids',
         'collection',
         'producttype',
