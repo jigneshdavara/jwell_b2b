@@ -970,15 +970,15 @@ export default function AdminProductEdit() {
         }
     }, [product, data.variants]);
 
-    // Ensure show_all_variants_by_size defaults to true when "Select specific sizes" is active
+    // Ensure show_all_variants_by_size defaults to true when sizes are selected
     useEffect(() => {
-        if (data.all_sizes_available === false && data.show_all_variants_by_size === undefined) {
+        if ((data.selected_sizes || []).length > 0 && data.show_all_variants_by_size === undefined) {
             setData((prev: FormData) => ({
                 ...prev,
                 show_all_variants_by_size: true,
             }));
         }
-    }, [data.all_sizes_available, data.show_all_variants_by_size, setData]);
+    }, [data.selected_sizes, data.show_all_variants_by_size, setData]);
 
     useEffect(() => {
         if (data.description !== localDescription) {
@@ -1008,6 +1008,8 @@ export default function AdminProductEdit() {
     const [expandedMetalVariantIndices, setExpandedMetalVariantIndices] = useState<Set<number>>(new Set());
     // Separate state for generated variant matrix (for display only, not saved to form until submit)
     const [generatedMatrixVariants, setGeneratedMatrixVariants] = useState<VariantForm[]>([]);
+    // Store the show_all_variants_by_size setting used when generating the matrix
+    const [generatedShowAllVariantsBySize, setGeneratedShowAllVariantsBySize] = useState<boolean | undefined>(undefined);
 
 
     const formatDecimal = (value: number): string => {
@@ -1785,6 +1787,10 @@ export default function AdminProductEdit() {
         const generatedData = generateVariantMatrixForData(data);
         const generatedVariants = generatedData.variants || [];
         
+        // Store the show_all_variants_by_size setting used for this generation
+        // This ensures the display respects the setting at generation time, not the current checkbox state
+        setGeneratedShowAllVariantsBySize(data.show_all_variants_by_size);
+        
         // Set the generated variants - generation already handles grouping based on show_all_variants_by_size
         setGeneratedMatrixVariants([...generatedVariants]);
     };
@@ -2515,10 +2521,10 @@ export default function AdminProductEdit() {
                                     return null;
                                 }
                                 
-                                const sizeOptions = [
-                                    { key: 'all', label: 'All sizes available', value: true },
-                                    { key: 'specific', label: 'Select specific sizes', value: false },
-                                ];
+                                const allCategorySizeIds = categorySizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id));
+                                const selectedSizes = data.selected_sizes || [];
+                                const allSizesSelected = selectedSizes.length > 0 && allCategorySizeIds.length > 0 && 
+                                    allCategorySizeIds.every((id: number) => selectedSizes.includes(id));
                                 
                                 return (
                                     <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
@@ -2526,290 +2532,115 @@ export default function AdminProductEdit() {
                                             <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Sizes</h3>
                                             <p className="text-xs text-slate-500">
                                                 This category "{selectedCategory?.name || product?.category?.name}" has {categorySizes.length} sizes available. 
-                                                Are all sizes available for this product?
+                                                Select sizes to include in your product variants.
                                             </p>
                                         </div>
 
-                                        <div className="flex flex-wrap gap-3">
-                                            {sizeOptions.map((option) => {
-                                                const isSelected = data.all_sizes_available === option.value;
-                                                return (
-                                                    <label
-                                                        key={option.key}
-                                                        className={`
-                                                            inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
-                                                            ${isSelected
-                                                                ? 'bg-sky-600 text-white shadow-sm'
-                                                                : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                                            }
-                                                        `}
-                                                    >
+                                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                            <div className="mb-4 flex items-center justify-between">
+                                                <h4 className="text-sm font-semibold text-slate-900">Select Sizes</h4>
+                                                {selectedSizes.length > 0 && (
+                                                    <span className="text-xs font-medium text-sky-600">
+                                                        {selectedSizes.length} size{selectedSizes.length !== 1 ? 's' : ''} selected
+                                                    </span>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="mb-4">
+                                                <div className="flex items-center justify-end gap-4 flex-wrap">
+                                                    <label className="inline-flex items-center gap-2 cursor-pointer hover:text-sky-600 transition-colors">
                                                         <input
                                                             type="checkbox"
-                                                            checked={isSelected}
+                                                            checked={data.show_all_variants_by_size === true}
                                                             onChange={(e) => {
-                                                                if (!e.target.checked) {
-                                                                    setData((prev: FormData) => ({
-                                                                        ...prev,
-                                                                        all_sizes_available: undefined,
-                                                                        show_all_variants_by_size: undefined,
-                                                                    }));
-                                                                    return;
-                                                                }
-                                                                
+                                                                setData((prev: FormData) => ({
+                                                                    ...prev,
+                                                                    show_all_variants_by_size: e.target.checked ? true : false,
+                                                                }));
+                                                            }}
+                                                            className="h-4 w-4 rounded border-2 border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-0 cursor-pointer"
+                                                        />
+                                                        <span className="text-sm font-semibold text-slate-700 hover:text-sky-600 whitespace-nowrap">
+                                                            Show all variants
+                                                        </span>
+                                                    </label>
+                                                    <label className="inline-flex items-center gap-2 cursor-pointer hover:text-sky-600 transition-colors">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={allSizesSelected}
+                                                            onChange={(e) => {
                                                                 setData((prev: FormData) => {
                                                                     const allCategorySizeIds = categorySizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id));
-                                                                    const newAllSizesAvailable = option.value;
+                                                                    const currentSizes = prev.selected_sizes || [];
+                                                                    const allSelected = currentSizes.length > 0 && allCategorySizeIds.every((id: number) => currentSizes.includes(id));
+                                                                    
+                                                                    const newSizes = e.target.checked ? allCategorySizeIds : [];
+                                                                    const newAllSelected = newSizes.length > 0 && allCategorySizeIds.every((id: number) => newSizes.includes(id));
                                                                     
                                                                     return {
                                                                         ...prev,
-                                                                        all_sizes_available: newAllSizesAvailable,
-                                                                        selected_sizes: newAllSizesAvailable === true 
-                                                                            ? allCategorySizeIds 
-                                                                            : [],
-                                                                        // Default to true (show all variants) for both "All sizes available" and "Select specific sizes"
-                                                                        // User can then change the preference to "No" if they want to group by metal
-                                                                        show_all_variants_by_size: newAllSizesAvailable !== undefined ? true : undefined,
+                                                                        selected_sizes: newSizes,
+                                                                        all_sizes_available: newAllSelected ? true : undefined,
+                                                                        show_all_variants_by_size: prev.show_all_variants_by_size === undefined ? true : prev.show_all_variants_by_size,
                                                                     };
                                                                 });
                                                             }}
-                                                            className={`mr-2 h-4 w-4 rounded border-2 ${
-                                                                isSelected
-                                                                    ? 'border-white bg-white text-sky-600'
-                                                                    : 'border-slate-300 bg-white text-slate-700'
-                                                            } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                            className="h-4 w-4 rounded border-2 border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-0 cursor-pointer"
                                                         />
-                                                        {option.label}
+                                                        <span className="text-sm font-semibold text-slate-700 hover:text-sky-600 whitespace-nowrap">
+                                                            Select all sizes
+                                                        </span>
                                                     </label>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {data.all_sizes_available !== undefined && (
-                                            <div className="space-y-4">
-                                                {data.all_sizes_available === true ? (
-                                                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                                                        <div className="mb-4 flex items-center justify-between">
-                                                            <h4 className="text-sm font-semibold text-slate-900">All Category Sizes</h4>
-                                                            <span className="text-xs font-medium text-sky-600">
-                                                                {categorySizes.length} sizes will be used
-                                                            </span>
-                                                        </div>
-                                                        <p className="mb-3 text-xs text-slate-600">
-                                                            Variants will be created for all sizes from category "{selectedCategory?.name || product?.category?.name}".
-                                                        </p>
-                                                        <div className="mb-4">
-                                                            <p className="text-xs font-medium text-slate-700 mb-2">
-                                                                Do you want to show all variants according to size?
-                                                            </p>
-                                                            <div className="flex flex-wrap gap-3">
-                                                                <label
-                                                                    className={`
-                                                                        inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
-                                                                        ${data.show_all_variants_by_size === true
-                                                                            ? 'bg-sky-600 text-white shadow-sm'
-                                                                            : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                                                        }
-                                                                    `}
-                                                                >
-                                                                    <input
-                                                                        type="radio"
-                                                                        name="show-variants-by-size"
-                                                                        checked={data.show_all_variants_by_size === true}
-                                                                        onChange={() => {
-                                                                            setData((prev: FormData) => ({
-                                                                                ...prev,
-                                                                                show_all_variants_by_size: true,
-                                                                            }));
-                                                                        }}
-                                                                        className={`mr-2 h-4 w-4 ${
-                                                                            data.show_all_variants_by_size === true
-                                                                                ? 'text-white'
-                                                                                : 'text-slate-700'
-                                                                        } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
-                                                                    />
-                                                                    Yes
-                                                                </label>
-                                                                <label
-                                                                    className={`
-                                                                        inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
-                                                                        ${data.show_all_variants_by_size === false
-                                                                            ? 'bg-sky-600 text-white shadow-sm'
-                                                                            : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                                                        }
-                                                                    `}
-                                                                >
-                                                                    <input
-                                                                        type="radio"
-                                                                        name="show-variants-by-size"
-                                                                        checked={data.show_all_variants_by_size === false}
-                                                                        onChange={() => {
-                                                                            setData((prev: FormData) => ({
-                                                                                ...prev,
-                                                                                show_all_variants_by_size: false,
-                                                                            }));
-                                                                        }}
-                                                                        className={`mr-2 h-4 w-4 ${
-                                                                            data.show_all_variants_by_size === false
-                                                                                ? 'text-white'
-                                                                                : 'text-slate-700'
-                                                                        } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
-                                                                    />
-                                                                    No
-                                                                </label>
-                                                            </div>
-                                                            {data.show_all_variants_by_size !== undefined && (
-                                                                <p className="mt-2 text-xs text-slate-500">
-                                                                    {data.show_all_variants_by_size === true
-                                                                        ? 'All variants will be shown in the variant table below.'
-                                                                        : 'Only metal combinations are shown in the variant table below (grouped by metal).'}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {categorySizes.map((size: any) => (
-                                                                <span
-                                                                    key={size.id || size.name}
-                                                                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600"
-                                                                >
-                                                                    {size.name || size.value}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                                                        <div className="mb-4 flex items-center justify-between">
-                                                            <h4 className="text-sm font-semibold text-slate-900">Select Specific Sizes</h4>
-                                                            {(data.selected_sizes || []).length > 0 && (
-                                                                <span className="text-xs font-medium text-sky-600">
-                                                                    {(data.selected_sizes || []).length} size{(data.selected_sizes || []).length !== 1 ? 's' : ''} selected
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        
-                                                        <div>
-                                                            <p className="mb-3 text-xs text-slate-600">
-                                                                Choose sizes from the category to include in your product variants.
-                                                            </p>
-                                                            <div className="mb-4">
-                                                                <p className="text-xs font-medium text-slate-700 mb-2">
-                                                                    Do you want to show all variants according to size?
-                                                                </p>
-                                                                <div className="flex flex-wrap gap-3">
-                                                                    <label
-                                                                        className={`
-                                                                            inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
-                                                                            ${data.show_all_variants_by_size === true
-                                                                                ? 'bg-sky-600 text-white shadow-sm'
-                                                                                : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                                                            }
-                                                                        `}
-                                                                    >
-                                                                        <input
-                                                                            type="radio"
-                                                                            name="show-variants-by-size"
-                                                                            checked={data.show_all_variants_by_size === true}
-                                                                            onChange={() => {
-                                                                                setData((prev: FormData) => ({
-                                                                                    ...prev,
-                                                                                    show_all_variants_by_size: true,
-                                                                                }));
-                                                                            }}
-                                                                            className={`mr-2 h-4 w-4 ${
-                                                                                data.show_all_variants_by_size === true
-                                                                                    ? 'text-white'
-                                                                                    : 'text-slate-700'
-                                                                            } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
-                                                                        />
-                                                                        Yes
-                                                                    </label>
-                                                                    <label
-                                                                        className={`
-                                                                            inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
-                                                                            ${data.show_all_variants_by_size === false
-                                                                                ? 'bg-sky-600 text-white shadow-sm'
-                                                                                : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                                                            }
-                                                                        `}
-                                                                    >
-                                                                        <input
-                                                                            type="radio"
-                                                                            name="show-variants-by-size"
-                                                                            checked={data.show_all_variants_by_size === false}
-                                                                            onChange={() => {
-                                                                                setData((prev: FormData) => ({
-                                                                                    ...prev,
-                                                                                    show_all_variants_by_size: false,
-                                                                                }));
-                                                                            }}
-                                                                            className={`mr-2 h-4 w-4 ${
-                                                                                data.show_all_variants_by_size === false
-                                                                                    ? 'text-white'
-                                                                                    : 'text-slate-700'
-                                                                            } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
-                                                                        />
-                                                                        No
-                                                                    </label>
-                                                                </div>
-                                                                {data.show_all_variants_by_size !== undefined && (
-                                                                    <p className="mt-2 text-xs text-slate-500">
-                                                                        {data.show_all_variants_by_size === true
-                                                                            ? 'All variants will be shown in the variant table below.'
-                                                                            : 'Only metal combinations are shown in the variant table below (grouped by metal).'}
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {categorySizes.map((size: any) => {
-                                                                    const sizeId = typeof size.id === 'number' ? size.id : Number(size.id);
-                                                                    const isSizeSelected = (data.selected_sizes || []).includes(sizeId);
-                                                                    return (
-                                                                        <label
-                                                                            key={sizeId || size.name}
-                                                                            className={`
-                                                                                inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
-                                                                                ${isSizeSelected
-                                                                                    ? 'bg-sky-600 text-white shadow-sm'
-                                                                                    : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                                                                }
-                                                                            `}
-                                                                        >
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                checked={isSizeSelected}
-                                                                                onChange={(e) => {
-                                                                                    setData((prev: FormData) => {
-                                                                                        const currentSizes = prev.selected_sizes || [];
-                                                                                        const newSizes = e.target.checked
-                                                                                            ? [...currentSizes, sizeId]
-                                                                                            : currentSizes.filter(id => id !== sizeId);
-                                                                                        return {
-                                                                                            ...prev,
-                                                                                            selected_sizes: newSizes,
-                                                                                            // Ensure show_all_variants_by_size defaults to true when selecting specific sizes
-                                                                                            show_all_variants_by_size: prev.all_sizes_available === false && prev.show_all_variants_by_size === undefined 
-                                                                                                ? true 
-                                                                                                : prev.show_all_variants_by_size,
-                                                                                        };
-                                                                                    });
-                                                                                }}
-                                                                                className={`mr-2 h-4 w-4 rounded border-2 ${
-                                                                                    isSizeSelected
-                                                                                        ? 'border-white bg-white text-sky-600'
-                                                                                        : 'border-slate-300 bg-white text-slate-700'
-                                                                                } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
-                                                                            />
-                                                                            {size.name || size.value}
-                                                                        </label>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                </div>
                                             </div>
-                                        )}
+                                            
+                                            <div className="flex flex-wrap gap-2">
+                                                {categorySizes.map((size: any) => {
+                                                    const sizeId = typeof size.id === 'number' ? size.id : Number(size.id);
+                                                    const isSizeSelected = selectedSizes.includes(sizeId);
+                                                    return (
+                                                        <label
+                                                            key={sizeId || size.name}
+                                                            className={`
+                                                                inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                                ${isSizeSelected
+                                                                    ? 'bg-sky-600 text-white shadow-sm'
+                                                                    : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                                                }
+                                                            `}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isSizeSelected}
+                                                                onChange={(e) => {
+                                                                    setData((prev: FormData) => {
+                                                                        const currentSizes = prev.selected_sizes || [];
+                                                                        const newSizes = e.target.checked
+                                                                            ? [...currentSizes, sizeId]
+                                                                            : currentSizes.filter(id => id !== sizeId);
+                                                                        const allCategorySizeIds = categorySizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id));
+                                                                        const allSelected = newSizes.length > 0 && allCategorySizeIds.every((id: number) => newSizes.includes(id));
+                                                                        
+                                                                        return {
+                                                                            ...prev,
+                                                                            selected_sizes: newSizes,
+                                                                            all_sizes_available: allSelected ? true : undefined,
+                                                                            show_all_variants_by_size: prev.show_all_variants_by_size === undefined ? true : prev.show_all_variants_by_size,
+                                                                        };
+                                                                    });
+                                                                }}
+                                                                className={`mr-2 h-4 w-4 rounded border-2 ${
+                                                                    isSizeSelected
+                                                                        ? 'border-white bg-white text-sky-600'
+                                                                        : 'border-slate-300 bg-white text-slate-700'
+                                                                } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                            />
+                                                            {size.name || size.value}
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
                                     </div>
                                 );
                             })()}
@@ -2887,11 +2718,11 @@ export default function AdminProductEdit() {
                                             <div key={metal.id} className="rounded-xl border border-slate-200 bg-white p-4">
                                                 <div className="mb-4 flex items-center justify-between">
                                                     <h4 className="text-sm font-semibold text-slate-900">Metal: {metal.name}</h4>
-                                                    {variantCount > 0 && (
+                                                    {/* {variantCount > 0 && (
                                                         <span className="text-xs font-medium text-sky-600">
                                                             {variantCount} variant{variantCount !== 1 ? 's' : ''} for this metal
                                                         </span>
-                                                    )}
+                                                    )} */}
                                                 </div>
 
                                                 <div className="mb-4">
@@ -3125,15 +2956,21 @@ export default function AdminProductEdit() {
                                         return [];
                                     }
                                     
+                                    // Use the show_all_variants_by_size setting from when the matrix was generated
+                                    // This ensures the display respects the setting at generation time, not the current checkbox state
+                                    const showAllVariants = generatedShowAllVariantsBySize !== undefined 
+                                        ? generatedShowAllVariantsBySize 
+                                        : (data.show_all_variants_by_size !== undefined ? data.show_all_variants_by_size : true);
+                                    
                                     // Note: When show_all_variants_by_size === false, variants are already generated 
                                     // with only one per metal combination in generateVariantMatrixUtil
                                     // So we just need to display them as-is
                                     
-                                    // Group by metal when user chose "No" to show all variants (regardless of which size option is selected)
+                                    // Group by metal when user chose "No" to show all variants at generation time
                                     // This allows grouping in both "All sizes available" and "Select specific sizes" modes
                                     // When user chose "Yes", show all variants individually
                                     // Only group if there are actually multiple variants with the same metal but different sizes
-                                    if (data.show_all_variants_by_size === false && allVariants.length > 0) {
+                                    if (showAllVariants === false && allVariants.length > 0) {
                                         const groupedVariants = new Map<string, typeof allVariants>();
                                         
                                         allVariants.forEach((variant) => {
@@ -3166,11 +3003,11 @@ export default function AdminProductEdit() {
                                     }
                                     
                                     // Show all variants individually when:
-                                    // - User chose "Yes" to show all variants by size
+                                    // - User chose "Yes" to show all variants by size at generation time
                                     // - Or no grouping needed (show_all_variants_by_size is undefined or true)
                                     // - Or when variants were already generated grouped (one per metal) when "No" was selected
                                     return allVariants.map((variant, index) => ({ variant, index, group: [variant] }));
-                                }, [generatedMatrixVariants, data.variants, data.all_sizes_available, data.show_all_variants_by_size]).map(({ variant, index, group }) => {
+                                }, [generatedMatrixVariants, data.variants, generatedShowAllVariantsBySize]).map(({ variant, index, group }) => {
                                     const meta = buildVariantMeta(variant, data);
                                     const metalLabel = meta.metalTone || '—';
 
