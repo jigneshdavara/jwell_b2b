@@ -4,6 +4,7 @@ import type { PageProps as AppPageProps } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormDataConvertible } from '@inertiajs/core';
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { generateVariantMatrix as generateVariantMatrixUtil } from '@/utils/variantMatrixGenerator';
 
 type VariantMetalForm = {
     id?: number;
@@ -89,7 +90,6 @@ type OptionList = Record<string, string>;
 type MetalOption = {
     id: number;
     name: string;
-    slug: string;
 };
 
 type MetalPurityOption = {
@@ -154,29 +154,18 @@ type FormData = {
     variants?: VariantForm[];
     diamond_selections?: Array<{ diamond_id: number | ''; count: string }>;
     metal_selections?: Array<{ metal_id: number | ''; metal_purity_id: number | ''; metal_tone_id: number | ''; weight: string }>;
-    // Checkbox-based metal configuration
-    selected_metals?: number[]; // Array of selected metal IDs
-    metal_configurations?: Record<number, { // metal_id -> configuration
-        purities: number[]; // Selected purity IDs for this metal
-        tones: number[]; // Selected tone IDs for this metal
+    selected_metals?: number[];
+    metal_configurations?: Record<number, {
+        purities: number[];
+        tones: number[];
     }>;
-    diamond_options?: DiamondOptionForm[];
     uses_diamond?: boolean;
     catalog_ids?: number[];
     subcategory_ids?: number[];
     media_uploads?: File[];
     removed_media_ids?: number[];
-    selected_sizes?: number[]; // Selected size IDs from category
-    all_sizes_available?: boolean; // If true, all category sizes are used
-};
-
-type DiamondOptionForm = {
-    key: string;
-    shape_id: number | '';
-    color_id: number | '';
-    clarity_id: number | '';
-    weight: string;
-    diamonds_count: string;
+    selected_sizes?: number[];
+    all_sizes_available?: boolean;
 };
 
 type ProductMedia = {
@@ -200,14 +189,6 @@ const emptyVariant = (isDefault = false): VariantForm => ({
     diamonds: [],
 });
 
-const generateLocalKey = () => {
-    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-        return crypto.randomUUID();
-    }
-
-    return `local-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-};
-
 const createEmptyDiamond = (): VariantDiamondForm => ({
     id: undefined,
     diamond_id: '',
@@ -229,30 +210,132 @@ type SubcategoryMultiSelectProps = {
     error?: string;
 };
 
+type SubcategoryTreeNode = SubcategoryOption & {
+    children: SubcategoryTreeNode[];
+};
+
+type SubcategoryTreeRendererProps = {
+    nodes: SubcategoryTreeNode[];
+    selectedIds: number[];
+    onToggle: (id: number) => void;
+    level: number;
+};
+
+function SubcategoryTreeRenderer({ nodes, selectedIds, onToggle, level }: SubcategoryTreeRendererProps) {
+    return (
+        <div className="space-y-0.5">
+            {nodes.map((node) => {
+                const isSelected = selectedIds.includes(node.id);
+                const hasChildren = node.children && node.children.length > 0;
+                const shouldShowChildren = hasChildren && isSelected;
+                const indentPx = level * 24;
+                const textColorClass = level === 0 
+                    ? (isSelected ? 'text-sky-900' : 'text-slate-900')
+                    : (isSelected ? 'text-sky-900' : 'text-slate-700');
+                const bgColorClass = isSelected
+                    ? 'bg-sky-50 text-sky-700'
+                    : level === 0
+                    ? 'text-slate-700 hover:bg-slate-50'
+                    : 'text-slate-600 hover:bg-slate-50';
+
+                const buttonContent = (
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => onToggle(node.id)}
+                            className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${bgColorClass}`}
+                        >
+                            <div
+                                className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
+                                    isSelected
+                                        ? 'border-sky-500 bg-sky-500'
+                                        : 'border-slate-300'
+                                }`}
+                            >
+                                {isSelected && (
+                                    <svg
+                                        className="h-3.5 w-3.5 text-white"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth={3}
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                                <span className={`text-sm font-medium truncate ${textColorClass}`}>
+                                    {node.name}
+                                </span>
+                            </div>
+
+                            {hasChildren && (
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${
+                                        shouldShowChildren ? 'rotate-90 text-sky-500' : 'text-slate-400'
+                                    }`}
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            )}
+                        </button>
+
+                        {shouldShowChildren && (
+                            <SubcategoryTreeRenderer
+                                nodes={node.children}
+                                selectedIds={selectedIds}
+                                onToggle={onToggle}
+                                level={level + 1}
+                            />
+                        )}
+                    </>
+                );
+
+                return (
+                    <div key={node.id}>
+                        {level > 0 ? (
+                            <div 
+                                className="border-l-2 border-slate-200 pl-2"
+                                style={{ marginLeft: `${indentPx}px` }}
+                            >
+                                {buttonContent}
+                            </div>
+                        ) : (
+                            buttonContent
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
 function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, onChange, error }: SubcategoryMultiSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Filter subcategories by parent category
+    const buildSubcategoryTree = useCallback((parentId: number): Array<SubcategoryOption & { children: Array<SubcategoryOption & { children: any[] }> }> => {
+        return subcategories
+            .filter(sub => sub.parent_id === parentId)
+            .map(subcategory => ({
+                ...subcategory,
+                children: buildSubcategoryTree(subcategory.id)
+            }));
+    }, [subcategories]);
+
     const availableSubcategories = useMemo(() => {
         if (!parentCategoryId) {
             return [];
         }
-        return subcategories.filter(sub => sub.parent_id === Number(parentCategoryId));
-    }, [subcategories, parentCategoryId]);
+        const categoryIdNum = Number(parentCategoryId);
+        return buildSubcategoryTree(categoryIdNum);
+    }, [parentCategoryId, buildSubcategoryTree]);
 
-    const filteredSubcategories = useMemo(() => {
-        if (!searchTerm.trim()) {
-            return availableSubcategories;
-        }
-        const search = searchTerm.toLowerCase();
-        return availableSubcategories.filter((subcategory) =>
-            subcategory.name.toLowerCase().includes(search)
-        );
-    }, [availableSubcategories, searchTerm]);
-
-    // Toggle subcategory selection
     const toggleSubcategory = (subcategoryId: number) => {
         if (selectedIds.includes(subcategoryId)) {
             onChange(selectedIds.filter(id => id !== subcategoryId));
@@ -265,7 +348,6 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
                 setIsOpen(false);
-                setSearchTerm('');
             }
         };
 
@@ -291,23 +373,32 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
         onChange(selectedIds.filter(id => id !== subcategoryId));
     };
 
-    // Clear selections when parent category changes
+    const getAllDescendantIds = useCallback((parentId: number): Set<number> => {
+        const ids = new Set<number>();
+        const children = subcategories.filter(sub => sub.parent_id === parentId);
+        children.forEach(child => {
+            ids.add(child.id);
+            const descendants = getAllDescendantIds(child.id);
+            descendants.forEach(id => ids.add(id));
+        });
+        return ids;
+    }, [subcategories]);
+
     useEffect(() => {
         if (parentCategoryId) {
-            const validIds = selectedIds.filter(id => {
-                const sub = subcategories.find(s => s.id === id);
-                return sub && sub.parent_id === Number(parentCategoryId);
-            });
+            const categoryIdNum = Number(parentCategoryId);
+            const validSubcategoryIds = getAllDescendantIds(categoryIdNum);
+            
+            const validIds = selectedIds.filter(id => validSubcategoryIds.has(id));
             if (validIds.length !== selectedIds.length) {
                 onChange(validIds);
             }
         } else {
-            // Clear all if no parent selected
             if (selectedIds.length > 0) {
                 onChange([]);
             }
         }
-    }, [parentCategoryId]);
+    }, [parentCategoryId, getAllDescendantIds, selectedIds, onChange]);
 
     return (
         <label className="flex flex-col gap-2 text-sm text-slate-600">
@@ -320,7 +411,6 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                 )}
             </div>
             <div className="relative" ref={dropdownRef}>
-                {/* Dropdown Button */}
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
@@ -381,87 +471,20 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                     </div>
                 </button>
 
-                {/* Dropdown Menu */}
                 {isOpen && parentCategoryId && (
                     <div className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
-                        {/* Search Input */}
-                        {availableSubcategories.length > 5 && (
-                            <div className="border-b border-slate-100 p-3">
-                                <div className="relative">
-                                    <svg
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                    <input
-                                        type="text"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        placeholder="Search subcategories..."
-                                        className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Subcategory List */}
                         <div className="max-h-64 overflow-y-auto p-2">
-                            {filteredSubcategories.length === 0 ? (
+                            {availableSubcategories.length === 0 ? (
                                 <div className="px-3 py-6 text-center text-sm text-slate-400">
-                                    {searchTerm ? 'No subcategories found' : 'No subcategories available'}
+                                    No subcategories available
                                 </div>
                             ) : (
-                                <div className="space-y-1">
-                                    {filteredSubcategories.map((subcategory) => {
-                                        const isSelected = selectedIds.includes(subcategory.id);
-                                        return (
-                                            <button
-                                                key={subcategory.id}
-                                                type="button"
-                                                onClick={() => toggleSubcategory(subcategory.id)}
-                                                className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                                                    isSelected
-                                                        ? 'bg-sky-50 text-sky-700'
-                                                        : 'text-slate-700 hover:bg-slate-50'
-                                                }`}
-                                            >
-                                                {/* Checkbox */}
-                                                <div
-                                                    className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
-                                                        isSelected
-                                                            ? 'border-sky-500 bg-sky-500'
-                                                            : 'border-slate-300'
-                                                    }`}
-                                                >
-                                                    {isSelected && (
-                                                        <svg
-                                                            className="h-3.5 w-3.5 text-white"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                            strokeWidth={3}
-                                                        >
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    )}
-                                                </div>
-
-                                                {/* Subcategory Info */}
-                                                <div className="flex-1 min-w-0">
-                                                    <span className={`text-sm font-medium truncate ${
-                                                        isSelected ? 'text-sky-900' : 'text-slate-900'
-                                                    }`}>
-                                                        {subcategory.name}
-                                                    </span>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                <SubcategoryTreeRenderer
+                                    nodes={availableSubcategories}
+                                    selectedIds={selectedIds}
+                                    onToggle={toggleSubcategory}
+                                    level={0}
+                                />
                             )}
                         </div>
                     </div>
@@ -488,7 +511,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
         );
     }, [catalogs, searchTerm]);
 
-    // Toggle catalog selection
     const toggleCatalog = (catalogId: number) => {
         if (selectedIds.includes(catalogId)) {
             onChange(selectedIds.filter(id => id !== catalogId));
@@ -538,7 +560,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                 )}
             </div>
             <div className="relative" ref={dropdownRef}>
-                {/* Dropdown Button */}
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
@@ -594,10 +615,8 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                     </div>
                 </button>
 
-                {/* Dropdown Menu */}
                 {isOpen && (
                     <div className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
-                        {/* Search Input */}
                         {catalogs.length > 5 && (
                             <div className="border-b border-slate-100 p-3">
                                 <div className="relative">
@@ -621,7 +640,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                             </div>
                         )}
 
-                        {/* Catalog List */}
                         <div className="max-h-64 overflow-y-auto p-2">
                             {filteredCatalogs.length === 0 ? (
                                 <div className="px-3 py-6 text-center text-sm text-slate-400">
@@ -642,7 +660,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                                         : 'text-slate-700 hover:bg-slate-50'
                                                 }`}
                                             >
-                                                {/* Checkbox */}
                                                 <div
                                                     className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
                                                         isSelected
@@ -663,7 +680,6 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                                     )}
                                                 </div>
 
-                                                {/* Catalog Info */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
                                                         <span className={`text-sm font-medium truncate ${
@@ -727,7 +743,6 @@ export default function AdminProductEdit() {
         const diamondSelectionsMap = new Map<number, { diamond_id: number; count: string }>();
         const metalSelectionsMap = new Map<string, { metal_id: number; metal_purity_id: number; metal_tone_id: number; weight: string }>();
 
-        // Extract selected metals and their configurations
         const selectedMetalsSet = new Set<number>();
         const metalConfigurationsMap = new Map<number, { purities: Set<number>; tones: Set<number> }>();
 
@@ -737,13 +752,11 @@ export default function AdminProductEdit() {
                     if (metal.metal_id && metal.metal_id !== '' && metal.metal_id !== null) {
                         const metalId = typeof metal.metal_id === 'number' ? metal.metal_id : Number(metal.metal_id);
 
-                        // Handle metal_purity_id - check for valid number
                         let purityIdValue = metal.metal_purity_id;
                         if ((purityIdValue === null || purityIdValue === undefined || purityIdValue === '' || purityIdValue === 0) && metal.metal_purity) {
                             purityIdValue = metal.metal_purity.id;
                         }
 
-                        // Handle metal_tone_id - check for valid number
                         let toneIdValue = metal.metal_tone_id;
                         if ((toneIdValue === null || toneIdValue === undefined || toneIdValue === '' || toneIdValue === 0) && metal.metal_tone) {
                             toneIdValue = metal.metal_tone.id;
@@ -766,11 +779,9 @@ export default function AdminProductEdit() {
                             });
                         }
 
-                        // Add metal to selected metals
                         if (!isNaN(metalId) && metalId > 0) {
                             selectedMetalsSet.add(metalId);
 
-                            // Initialize metal configuration if not exists
                             if (!metalConfigurationsMap.has(metalId)) {
                                 metalConfigurationsMap.set(metalId, { purities: new Set<number>(), tones: new Set<number>() });
                             }
@@ -804,7 +815,6 @@ export default function AdminProductEdit() {
             }
         });
 
-        // Convert metal configurations map to object format
         const metalConfigurations: Record<number, { purities: number[]; tones: number[] }> = {};
         metalConfigurationsMap.forEach((config, metalId) => {
             metalConfigurations[metalId] = {
@@ -884,22 +894,18 @@ export default function AdminProductEdit() {
                   };
               })
             : [emptyVariant(true)],
-        diamond_options: [],
         uses_diamond: (extractSelectionsFromVariants.diamondSelections?.length ?? 0) > 0,
         diamond_selections: extractSelectionsFromVariants.diamondSelections ?? [],
         metal_selections: extractSelectionsFromVariants.metalSelections ?? [],
         selected_metals: extractSelectionsFromVariants.selectedMetals ?? [],
         metal_configurations: extractSelectionsFromVariants.metalConfigurations ?? {},
         all_sizes_available: (() => {
-            // Detect if all category sizes are used in variants
             if (product?.category?.sizes && product.category.sizes.length > 0 && product?.variants && product.variants.length > 0) {
-                // Normalize category size IDs to numbers for comparison
                 const categorySizeIds = product.category.sizes
                     .map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id))
                     .filter((id: any) => !isNaN(id))
                     .sort();
                 
-                // Normalize variant size IDs to numbers
                 const variantSizeIds = product.variants
                     .map((v: any) => {
                         const sizeId = v.size_id;
@@ -907,32 +913,24 @@ export default function AdminProductEdit() {
                     })
                     .filter((id: any) => id !== null && !isNaN(id))
                     .sort()
-                    .filter((v: any, i: number, arr: any[]) => arr.indexOf(v) === i); // unique
+                    .filter((v: any, i: number, arr: any[]) => arr.indexOf(v) === i);
                 
-                // If no sizes are used in variants, return undefined (neither option selected)
                 if (variantSizeIds.length === 0) {
                     return undefined;
                 }
                 
-                // Check if all category sizes are present in variants
-                // Both arrays must have the same length AND all category sizes must be in variants
                 const allSizesMatch = categorySizeIds.length === variantSizeIds.length && 
                     categorySizeIds.every((categoryId) => variantSizeIds.includes(categoryId));
                 
                 if (allSizesMatch) {
-                    // All category sizes are used → select "All sizes available"
                     return true;
                 } else {
-                    // Some sizes are used but not all → select "Select specific sizes"
                     return false;
                 }
             }
-            // No category sizes or no variants → return undefined (neither option selected)
             return undefined;
         })(),
         selected_sizes: (() => {
-            // Extract selected sizes from existing variants
-            // Only include sizes that are in the current category
             if (product?.variants && product.variants.length > 0 && product?.category?.sizes) {
                 const categorySizeIds = new Set(
                     product.category.sizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id))
@@ -943,7 +941,7 @@ export default function AdminProductEdit() {
                         return sizeId !== null && sizeId !== undefined ? (typeof sizeId === 'number' ? sizeId : Number(sizeId)) : null;
                     })
                     .filter((id: any) => id !== null && !isNaN(id) && categorySizeIds.has(id));
-                return [...new Set(sizeIds)]; // Unique size IDs that are in the category
+                return [...new Set(sizeIds)];
             }
             return [];
         })(),
@@ -962,7 +960,6 @@ export default function AdminProductEdit() {
         }
     }, [data.description]);
 
-    // Debounced handler for description changes
     const handleDescriptionChange = useCallback((value: string) => {
         setLocalDescription(value);
         if (descriptionTimeoutRef.current) {
@@ -1111,23 +1108,14 @@ export default function AdminProductEdit() {
                 }
             }
 
-            let diamondLabel = '';
-            if (variant.diamonds && variant.diamonds.length > 0) {
-                const diamondParts: string[] = [];
-                variant.diamonds.forEach((diamond) => {
-                    if (diamond.diamond_id && typeof diamond.diamond_id === 'number') {
-                        const count = diamond.diamonds_count ? ` (${diamond.diamonds_count})` : '';
-                        diamondParts.push(`Diamond${count}`);
-                    }
-                });
-                diamondLabel = diamondParts.join(' / ');
-            }
+            // Diamond label removed - only metal details will be in variant label
+            // Diamonds are still stored in metadata but not shown in the label
 
             const rawMetadata = (variant.metadata ?? {}) as Record<string, FormDataConvertible>;
-            // Size handling removed - use size_id and size relationship instead
             const sizeLabel = '';
 
-            const autoLabelParts = [diamondLabel, metalLabel, sizeLabel].filter(Boolean);
+            // Only include metal label and size label (no diamond label)
+            const autoLabelParts = [metalLabel, sizeLabel].filter(Boolean);
             const autoLabel = autoLabelParts.length ? autoLabelParts.join(' / ') : 'Variant';
             const metalTone = metalLabel;
 
@@ -1261,6 +1249,42 @@ export default function AdminProductEdit() {
 
     const updateVariant = (index: number, field: keyof VariantForm, value: string | boolean | number | null) => {
         setData((prev: FormData) => {
+            const targetVariant = (prev.variants || [])[index];
+            if (!targetVariant) return prev;
+            
+            if (prev.all_sizes_available === true && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default')) {
+                const targetMetals = (targetVariant.metals || []).filter(
+                    (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                );
+                const targetMetalsKey = targetMetals
+                    .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                    .sort()
+                    .join('|');
+                
+                const variants = (prev.variants || []).map((variant: VariantForm) => {
+                    const variantMetals = (variant.metals || []).filter(
+                        (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                    );
+                    const variantMetalsKey = variantMetals
+                        .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                        .sort()
+                        .join('|');
+                    
+                    if (variantMetalsKey === targetMetalsKey) {
+                        return {
+                            ...variant,
+                            [field]: value,
+                        };
+                    }
+                    return variant;
+                });
+                
+                return {
+                    ...prev,
+                    variants,
+                };
+            }
+            
             const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== index) {
                     return variant;
@@ -1446,6 +1470,52 @@ export default function AdminProductEdit() {
         value: string | number | '',
     ) => {
         setData((prev: FormData) => {
+            const targetVariant = (prev.variants || [])[variantIndex];
+            if (!targetVariant) return prev;
+            
+            if (prev.all_sizes_available === true) {
+                const targetMetals = (targetVariant.metals || []).filter(
+                    (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                );
+                const targetMetalsKey = targetMetals
+                    .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                    .sort()
+                    .join('|');
+                
+                const variants = (prev.variants || []).map((variant: VariantForm) => {
+                    const variantMetals = (variant.metals || []).filter(
+                        (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                    );
+                    const variantMetalsKey = variantMetals
+                        .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                        .sort()
+                        .join('|');
+                    
+                    if (variantMetalsKey === targetMetalsKey) {
+                        const currentMetals = variant.metals || [];
+                        const updatedMetals = currentMetals.map((metal: VariantMetalForm, mIdx: number) => {
+                            if (mIdx !== metalIndex) {
+                                return metal;
+                            }
+                            return {
+                                ...metal,
+                                [field]: value,
+                            };
+                        });
+                        return {
+                            ...variant,
+                            metals: updatedMetals,
+                        };
+                    }
+                    return variant;
+                });
+                
+                return {
+                    ...prev,
+                    variants,
+                };
+            }
+            
             const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== variantIndex) {
                     return variant;
@@ -1473,193 +1543,13 @@ export default function AdminProductEdit() {
     };
 
     const generateVariantMatrixForData = (prev: FormData): FormData => {
-            type MetalEntryCombination = {
-                metal_id: number;
-                metal_purity_id: number | null;
-                metal_tone_id: number | null;
-            };
-
-            const allMetalCombinations: MetalEntryCombination[][] = [];
-
-            const selectedMetals = prev.selected_metals || [];
-            const metalConfigurations = prev.metal_configurations || {};
-
-            if (selectedMetals.length > 0) {
-                selectedMetals.forEach((metalId) => {
-                    const config = metalConfigurations[metalId] || { purities: [], tones: [] };
-                    const purities = config.purities.length > 0 ? config.purities : [null];
-                    const tones = config.tones.length > 0 ? config.tones : [null];
-
-                    purities.forEach((purityId) => {
-                        tones.forEach((toneId) => {
-                            allMetalCombinations.push([{
-                                metal_id: metalId,
-                                metal_purity_id: purityId !== null ? purityId : null,
-                                metal_tone_id: toneId !== null ? toneId : null,
-                            }]);
-                        });
-                    });
-                });
-            }
-
-            if (allMetalCombinations.length === 0) {
-                return prev;
-            }
-
-            // Generate metal × size combinations if sizes are selected
-            let selectedSizes = prev.selected_sizes || [];
-            
-            // If all_sizes_available is true but selected_sizes is empty, populate it with all category sizes
-            if (prev.all_sizes_available === true && selectedSizes.length === 0) {
-                // Get category sizes from props or product
-                const categoryId = prev.category_id ? Number(prev.category_id) : null;
-                const selectedCategory = categoryId ? parentCategories.find(cat => cat.id === categoryId) : null;
-                const categorySizes = (selectedCategory && 'sizes' in selectedCategory && selectedCategory.sizes) || 
-                                      (product?.category?.sizes || []);
-                if (categorySizes.length > 0) {
-                    selectedSizes = categorySizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id));
-                }
-            }
-            
-            const combinations: Array<{
-                metals: MetalEntryCombination[];
-                size_id: number | null;
-            }> = [];
-
-            if (selectedSizes.length > 0) {
-                // Generate metal × size combinations
-                allMetalCombinations.forEach((metalEntries) => {
-                    selectedSizes.forEach((sizeId) => {
-                        combinations.push({
-                            metals: metalEntries,
-                            size_id: sizeId,
-                        });
-                    });
-                });
-            } else {
-                // Generate only metal combinations (no sizes selected)
-                allMetalCombinations.forEach((metalEntries) => {
-                    combinations.push({
-                        metals: metalEntries,
-                        size_id: null,
-                    });
-                });
-            }
-
-            if (combinations.length === 0) {
-                return prev;
-            }
-
-            const existingVariantData = new Map<string, {
-                metals: Array<{ metal_id: number; metal_purity_id: number | null; metal_tone_id: number | null; metal_weight: string }>;
-                diamonds: Array<{ diamond_id: number | null; diamonds_count: string }>;
-            }>();
-
-            (prev.variants || []).forEach((existingVariant) => {
-                if (!existingVariant.metals || existingVariant.metals.length === 0) return;
-
-                // Match by metals and size_id
-                const existingSizeId = (existingVariant as any).size_id || null;
-                const sizeKey = existingSizeId ? `size-${existingSizeId}` : 'no-size';
-                const metalsKey = existingVariant.metals
-                    .filter(m => m.metal_id !== '' && typeof m.metal_id === 'number')
-                    .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
-                    .sort()
-                    .join('|');
-
-                const variantKey = `${metalsKey}::${sizeKey}`;
-
-                existingVariantData.set(variantKey, {
-                    metals: existingVariant.metals.map(m => ({
-                        metal_id: typeof m.metal_id === 'number' ? m.metal_id : 0,
-                        metal_purity_id: m.metal_purity_id !== '' && m.metal_purity_id !== null ? (typeof m.metal_purity_id === 'number' ? m.metal_purity_id : Number(m.metal_purity_id)) : null,
-                        metal_tone_id: m.metal_tone_id !== '' && m.metal_tone_id !== null ? (typeof m.metal_tone_id === 'number' ? m.metal_tone_id : Number(m.metal_tone_id)) : null,
-                        metal_weight: m.metal_weight || '',
-                    })),
-                    diamonds: (existingVariant.diamonds || []).map(d => ({
-                        diamond_id: d.diamond_id !== '' && d.diamond_id !== null ? (typeof d.diamond_id === 'number' ? d.diamond_id : Number(d.diamond_id)) : null,
-                        diamonds_count: d.diamonds_count || '',
-                    })),
-                });
-            });
-
-                const newVariants = combinations.map((combo, index) => {
-                const variant = emptyVariant(index === 0);
-
-                const sizeKey = combo.size_id ? `size-${combo.size_id}` : 'no-size';
-                const metalsKey = combo.metals
-                    .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
-                    .sort()
-                    .join('|');
-                const variantKey = `${metalsKey}::${sizeKey}`;
-
-                const existingData = existingVariantData.get(variantKey);
-
-                variant.metals = combo.metals.map((metalEntry) => {
-                    const existingMetal = existingData?.metals.find(
-                        em => em.metal_id === metalEntry.metal_id &&
-                        em.metal_purity_id === (metalEntry.metal_purity_id ?? null) &&
-                        em.metal_tone_id === (metalEntry.metal_tone_id ?? null)
-                    );
-
-                    let weightFromSelection = '';
-                    if ((prev.metal_selections || []).length > 0) {
-                        const matchingSelection = (prev.metal_selections || []).find(
-                            s => {
-                                const sMetalId = typeof s.metal_id === 'number' ? s.metal_id : Number(s.metal_id);
-                                const sPurityId = s.metal_purity_id === '' ? null : (typeof s.metal_purity_id === 'number' ? s.metal_purity_id : Number(s.metal_purity_id));
-                                const sToneId = s.metal_tone_id === '' ? null : (typeof s.metal_tone_id === 'number' ? s.metal_tone_id : Number(s.metal_tone_id));
-
-                                return sMetalId === metalEntry.metal_id &&
-                                    sPurityId === (metalEntry.metal_purity_id ?? null) &&
-                                    sToneId === (metalEntry.metal_tone_id ?? null);
-                            }
-                        );
-                        if (matchingSelection) {
-                            weightFromSelection = matchingSelection.weight || '';
-                        }
-                    }
-
-                    return {
-                        id: undefined,
-                        metal_id: metalEntry.metal_id,
-                        metal_purity_id: metalEntry.metal_purity_id ?? '',
-                        metal_tone_id: metalEntry.metal_tone_id ?? '',
-                        metal_weight: existingMetal?.metal_weight || weightFromSelection || '',
-                    };
-                });
-
-                if (combo.metals.length > 0) {
-                    const firstMetal = combo.metals[0];
-                    variant.metal_id = firstMetal.metal_id;
-                    if (firstMetal.metal_purity_id !== null) {
-                        variant.metal_purity_id = firstMetal.metal_purity_id;
-                    }
-                }
-
-                variant.diamond_option_key = null;
-                variant.diamonds = [];
-                variant.size_id = combo.size_id || null;
-
-                const metadata: Record<string, FormDataConvertible> = {
-                    ...(variant.metadata ?? {}),
-                    status: 'enabled',
-                };
-
-
-                variant.metadata = metadata;
-
-                return variant;
-            });
-
-            const draft: FormData = {
-                ...prev,
-                variants: newVariants,
-            };
-
-            draft.variants = recalculateVariants(draft);
-
-            return draft;
+        return generateVariantMatrixUtil({
+            formData: prev,
+            parentCategories,
+            product: product ?? null,
+            emptyVariant,
+            recalculateVariants: recalculateVariants as (draft: FormData) => VariantForm[],
+        });
     };
 
     const generateVariantMatrix = () => {
@@ -1759,11 +1649,86 @@ export default function AdminProductEdit() {
             } else {
                 payload.category_ids = [];
             }
-            // Remove subcategory_ids from payload as backend doesn't expect it
             delete payload.subcategory_ids;
 
             if (formState.variants && Array.isArray(formState.variants)) {
-                payload.variants = formState.variants;
+                const diamondSelections = formState.diamond_selections || [];
+                
+                payload.variants = formState.variants.map((variant: any) => {
+                    const formattedVariant = { ...variant };
+                    
+                    let variantDiamonds: any[] = [];
+                    
+                    if (formattedVariant.diamonds && Array.isArray(formattedVariant.diamonds) && formattedVariant.diamonds.length > 0) {
+                        variantDiamonds = formattedVariant.diamonds
+                            .map((diamond: any) => {
+                                const diamondId = diamond.diamond_id !== '' && 
+                                                 diamond.diamond_id !== null && 
+                                                 diamond.diamond_id !== undefined
+                                    ? (typeof diamond.diamond_id === 'number' 
+                                        ? diamond.diamond_id 
+                                        : Number(diamond.diamond_id))
+                                    : null;
+                                
+                                if (diamondId === null || diamondId === 0 || isNaN(diamondId)) {
+                                    return null;
+                                }
+                                
+                                const diamondsCount = diamond.diamonds_count !== '' && 
+                                                     diamond.diamonds_count !== null && 
+                                                     diamond.diamonds_count !== undefined
+                                    ? (typeof diamond.diamonds_count === 'number' 
+                                        ? diamond.diamonds_count 
+                                        : Number(diamond.diamonds_count))
+                                    : null;
+                                
+                                return {
+                                    id: diamond.id ?? null,
+                                    diamond_id: diamondId,
+                                    diamonds_count: diamondsCount,
+                                    metadata: diamond.metadata ?? {},
+                                };
+                            })
+                            .filter((d: any) => d !== null);
+                    }
+                    
+                    if (variantDiamonds.length === 0 && diamondSelections.length > 0) {
+                        variantDiamonds = diamondSelections
+                            .map((selection: any) => {
+                                const diamondId = selection.diamond_id !== '' && 
+                                                 selection.diamond_id !== null && 
+                                                 selection.diamond_id !== undefined
+                                    ? (typeof selection.diamond_id === 'number' 
+                                        ? selection.diamond_id 
+                                        : Number(selection.diamond_id))
+                                    : null;
+                                
+                                if (diamondId === null || diamondId === 0 || isNaN(diamondId)) {
+                                    return null;
+                                }
+                                
+                                const diamondsCount = selection.count !== '' && 
+                                                     selection.count !== null && 
+                                                     selection.count !== undefined
+                                    ? (typeof selection.count === 'number' 
+                                        ? selection.count 
+                                        : Number(selection.count))
+                                    : null;
+                                
+                                return {
+                                    id: null,
+                                    diamond_id: diamondId,
+                                    diamonds_count: diamondsCount,
+                                    metadata: {},
+                                };
+                            })
+                            .filter((d: any) => d !== null);
+                    }
+                    
+                    formattedVariant.diamonds = variantDiamonds;
+                    
+                    return formattedVariant;
+                });
             } else {
                 payload.variants = [];
             }
@@ -1868,7 +1833,6 @@ export default function AdminProductEdit() {
                     </div>
 
                     <div className="mt-6 space-y-6">
-                        {/* Basic Information Section */}
                         <div className="grid gap-6 lg:grid-cols-2">
                             <div className="space-y-4">
                                 <label className="flex flex-col gap-2 text-sm text-slate-600">
@@ -2244,7 +2208,6 @@ export default function AdminProductEdit() {
                                 </div>
                             </div>
 
-                            {/* Sizes selection - Matching Metals section structure */}
                             {(() => {
                                 const categoryId = data.category_id ? Number(data.category_id) : null;
                                 const selectedCategory = categoryId ? parentCategories.find(cat => cat.id === categoryId) : null;
@@ -2253,7 +2216,6 @@ export default function AdminProductEdit() {
                                 const categorySizes = (selectedCategory && 'sizes' in selectedCategory && selectedCategory.sizes) || 
                                                       (product?.category?.sizes || []);
                                 
-                                // Only show Sizes section if category has sizes
                                 if (!categoryHasSizes) {
                                     return null;
                                 }
@@ -2273,7 +2235,6 @@ export default function AdminProductEdit() {
                                             </p>
                                         </div>
 
-                                        {/* Size option selection pills */}
                                         <div className="flex flex-wrap gap-3">
                                             {sizeOptions.map((option) => {
                                                 const isSelected = data.all_sizes_available === option.value;
@@ -2292,15 +2253,24 @@ export default function AdminProductEdit() {
                                                             type="checkbox"
                                                             checked={isSelected}
                                                             onChange={(e) => {
+                                                                if (!e.target.checked) {
+                                                                    setData((prev: FormData) => ({
+                                                                        ...prev,
+                                                                        all_sizes_available: undefined,
+                                                                    }));
+                                                                    return;
+                                                                }
+                                                                
                                                                 setData((prev: FormData) => {
                                                                     const allCategorySizeIds = categorySizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id));
-                                                                    const newAllSizesAvailable = e.target.checked ? option.value : undefined;
+                                                                    const newAllSizesAvailable = option.value;
+                                                                    
                                                                     return {
                                                                         ...prev,
                                                                         all_sizes_available: newAllSizesAvailable,
                                                                         selected_sizes: newAllSizesAvailable === true 
                                                                             ? allCategorySizeIds 
-                                                                            : (option.value === false ? [] : prev.selected_sizes || []),
+                                                                            : [],
                                                                     };
                                                                 });
                                                             }}
@@ -2316,11 +2286,9 @@ export default function AdminProductEdit() {
                                             })}
                                         </div>
 
-                                        {/* Expanded size configurations */}
                                         {data.all_sizes_available !== undefined && (
                                             <div className="space-y-4">
                                                 {data.all_sizes_available === true ? (
-                                                    // All sizes configuration
                                                     <div className="rounded-xl border border-slate-200 bg-white p-4">
                                                         <div className="mb-4 flex items-center justify-between">
                                                             <h4 className="text-sm font-semibold text-slate-900">All Category Sizes</h4>
@@ -2344,7 +2312,6 @@ export default function AdminProductEdit() {
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    // Specific sizes configuration
                                                     <div className="rounded-xl border border-slate-200 bg-white p-4">
                                                         <div className="mb-4 flex items-center justify-between">
                                                             <h4 className="text-sm font-semibold text-slate-900">Select Specific Sizes</h4>
@@ -2409,14 +2376,12 @@ export default function AdminProductEdit() {
                                 );
                             })()}
 
-                            {/* Metals selection - Checkbox-based with pill design */}
                             <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
                                 <div>
                                     <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Metals</h3>
                                     <p className="text-xs text-slate-500">Select metals that can be used in your product variants.</p>
                                 </div>
 
-                                {/* Metal selection pills */}
                                 <div className="flex flex-wrap gap-3">
                                     {metals.map((metal) => {
                                         const isSelected = (data.selected_metals || []).includes(metal.id);
@@ -2467,7 +2432,6 @@ export default function AdminProductEdit() {
                                     })}
                                 </div>
 
-                                {/* Expanded metal configurations */}
                                 <div className="space-y-4">
                                     {metals.map((metal) => {
                                         const isSelected = (data.selected_metals || []).includes(metal.id);
@@ -2477,7 +2441,6 @@ export default function AdminProductEdit() {
                                         const availablePurities = metalPurities.filter(p => p.metal_id === metal.id);
                                         const availableTones = metalTones.filter(t => t.metal_id === metal.id);
 
-                                        // Calculate variant count for this metal
                                         const puritiesCount = metalConfig.purities.length > 0 ? metalConfig.purities.length : (availablePurities.length > 0 ? availablePurities.length : 1);
                                         const tonesCount = metalConfig.tones.length > 0 ? metalConfig.tones.length : (availableTones.length > 0 ? availableTones.length : 1);
                                         const variantCount = puritiesCount * tonesCount;
@@ -2493,7 +2456,6 @@ export default function AdminProductEdit() {
                                                     )}
                                                 </div>
 
-                                                {/* Purities */}
                                                 <div className="mb-4">
                                                     <p className="mb-3 text-xs text-slate-600">
                                                         Choose all purities in which this design is available for {metal.name}.
@@ -2545,7 +2507,6 @@ export default function AdminProductEdit() {
                                                     </div>
                                                 </div>
 
-                                                {/* Tones */}
                                                 <div>
                                                     <p className="mb-3 text-xs text-slate-600">
                                                         Choose all tones in which this design is available for {metal.name}.
@@ -2602,7 +2563,6 @@ export default function AdminProductEdit() {
                                 </div>
                             </div>
 
-                            {/* Diamonds selection */}
                             <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -2698,7 +2658,6 @@ export default function AdminProductEdit() {
                             </div>
                         )}
 
-                        {/* Variant Table */}
                         <div className="mt-8 overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-slate-200 text-sm">
@@ -2710,6 +2669,7 @@ export default function AdminProductEdit() {
                                             <th className="px-5 py-3 text-left min-w-[120px]">Purity</th>
                                             <th className="px-5 py-3 text-left min-w-[120px]">Tone</th>
                                             <th className="px-5 py-3 text-left min-w-[120px]">Weight (g)</th>
+                                            <th className="px-5 py-3 text-left min-w-[120px]">Size</th>
                                             <th className="px-5 py-3 text-left">Inventory Quantity</th>
                                             <th className="px-5 py-3 text-left">Status</th>
                                             <th className="px-5 py-3 text-left">Default</th>
@@ -2717,18 +2677,16 @@ export default function AdminProductEdit() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 bg-white">
-                                {(data.variants || []).map((variant, index) => {
+                                {(() => {
+                                    const allVariants = data.variants || [];
+                                    return allVariants.map((variant, index) => ({ variant, index }));
+                                })().map(({ variant, index }) => {
                                     const meta = buildVariantMeta(variant, data);
                                     const metalLabel = meta.metalTone || '—';
 
                                     const variantMetals = (variant.metals || []).filter(
                                         (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                                     );
-
-                                    const totalMetalWeight = variantMetals.reduce((sum, metal) => {
-                                        const weight = parseFloat(metal.metal_weight || '0');
-                                        return sum + (isNaN(weight) ? 0 : weight);
-                                    }, 0);
 
                                     const metalsByMetalId = new Map<number, Array<{
                                         metal_id: number;
@@ -2844,8 +2802,26 @@ export default function AdminProductEdit() {
 
 
                                     const variantMetadata = (variant.metadata ?? {}) as Record<string, FormDataConvertible>;
-                                    // Size display - use metadata size_value if available
-                                    const sizeDisplay = variantMetadata.size_value ? String(variantMetadata.size_value) : '—';
+                                    
+                                    const variantSizeId = (variant as any).size_id;
+                                    let sizeDisplay = '—';
+                                    if (variantSizeId !== null && variantSizeId !== undefined) {
+                                        const categoryId = data.category_id ? Number(data.category_id) : null;
+                                        const selectedCategory = categoryId ? parentCategories.find(cat => cat.id === categoryId) : null;
+                                        const categorySizes = (selectedCategory && 'sizes' in selectedCategory && selectedCategory.sizes) || 
+                                                              (product?.category?.sizes || []);
+                                        const sizeObj = categorySizes.find((s: any) => {
+                                            const sId = typeof s.id === 'number' ? s.id : Number(s.id);
+                                            const vId = typeof variantSizeId === 'number' ? variantSizeId : Number(variantSizeId);
+                                            return sId === vId;
+                                        });
+                                        if (sizeObj) {
+                                            sizeDisplay = sizeObj.name || sizeObj.value || String(variantSizeId);
+                                        } else {
+                                            sizeDisplay = String(variantSizeId);
+                                        }
+                                    }
+                                    
                                     const variantStatus =
                                         typeof variantMetadata.status === 'string' && variantMetadata.status.trim().length > 0
                                             ? String(variantMetadata.status)
@@ -2933,6 +2909,11 @@ export default function AdminProductEdit() {
                                                 </div>
                                             </td>
                                             <td className="px-5 py-3 align-middle text-slate-700">
+                                                <div className="min-w-[120px]">
+                                                    <span className="text-sm text-slate-700">{sizeDisplay}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-3 align-middle text-slate-700">
                                                 <div className="flex flex-col gap-1">
                                                     <input
                                                         type="number"
@@ -3010,7 +2991,6 @@ export default function AdminProductEdit() {
                                                 </div>
                                             </td>
                                         </tr>
-                                        {/* Expandable metal management section */}
                                         {expandedMetalVariantIndices.has(index) && (
                                             <tr>
                                                 <td colSpan={13} className="px-5 py-4">
@@ -3085,7 +3065,6 @@ export default function AdminProductEdit() {
                                                 </td>
                                             </tr>
                                         )}
-                                        {/* Expandable diamond management section */}
                                         {expandedDiamondVariantIndices.has(index) && (
                                             <tr>
                                                 <td colSpan={13} className="px-5 py-4">
