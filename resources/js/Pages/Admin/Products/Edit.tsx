@@ -43,7 +43,7 @@ type Product = {
     description?: string;
     brand_id?: number;
     category_id?: number;
-    style_id?: number;
+    style_ids?: number[];
     category_ids?: number[];
     category?: {
         id: number;
@@ -146,7 +146,7 @@ type FormData = {
     description: string;
     brand_id: string;
     category_id: string;
-    style_id?: string;
+    style_ids?: number[];
     collection: string;
     producttype: string;
     gender: string;
@@ -210,6 +210,13 @@ type SubcategoryMultiSelectProps = {
     subcategories: SubcategoryOption[];
     selectedIds: number[];
     parentCategoryId: number | '';
+    onChange: (selectedIds: number[]) => void;
+    error?: string;
+};
+
+type StyleMultiSelectProps = {
+    styles: Array<{ id: number; name: string }>;
+    selectedIds: number[];
     onChange: (selectedIds: number[]) => void;
     error?: string;
 };
@@ -714,6 +721,211 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
     );
 }
 
+function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSelectProps) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const filteredStyles = useMemo(() => {
+        if (!searchTerm.trim()) {
+            return styles;
+        }
+        const search = searchTerm.toLowerCase();
+        return styles.filter((style) =>
+            style.name.toLowerCase().includes(search)
+        );
+    }, [styles, searchTerm]);
+
+    const toggleStyle = (styleId: number) => {
+        if (selectedIds.includes(styleId)) {
+            onChange(selectedIds.filter(id => id !== styleId));
+        } else {
+            onChange([...selectedIds, styleId]);
+        }
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+                setSearchTerm('');
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]);
+
+    const selectedStyles = useMemo(() => {
+        return selectedIds
+            .map(id => {
+                const style = styles.find(s => s.id === id);
+                return style ? { id, name: style.name } : null;
+            })
+            .filter(Boolean) as Array<{ id: number; name: string }>;
+    }, [selectedIds, styles]);
+
+    const removeStyle = (styleId: number) => {
+        onChange(selectedIds.filter(id => id !== styleId));
+    };
+
+    return (
+        <label className="flex flex-col gap-2 text-sm text-slate-600">
+            <div className="flex items-center justify-between">
+                <span>Style</span>
+                {selectedIds.length > 0 && (
+                    <span className="text-xs font-medium text-sky-600">
+                        {selectedIds.length} selected
+                    </span>
+                )}
+            </div>
+            <div className="relative" ref={dropdownRef}>
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={`w-full rounded-2xl border ${
+                        error ? 'border-rose-300' : 'border-slate-200'
+                    } bg-white px-4 py-2.5 text-left focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 transition-all ${
+                        isOpen ? 'border-sky-400 ring-2 ring-sky-200' : ''
+                    }`}
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-h-[20px] flex flex-wrap gap-1.5">
+                            {selectedIds.length === 0 ? (
+                                <span className="text-slate-400">Select styles...</span>
+                            ) : (
+                                selectedStyles.map((style) => (
+                                    <span
+                                        key={style.id}
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 border border-sky-200"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <span>{style.name}</span>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                removeStyle(style.id);
+                                            }}
+                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors"
+                                        >
+                                            <svg
+                                                className="h-3 w-3 text-sky-600"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </span>
+                                ))
+                            )}
+                        </div>
+                        <svg
+                            className={`ml-2 h-5 w-5 text-slate-400 transition-transform flex-shrink-0 ${
+                                isOpen ? 'rotate-180' : ''
+                            }`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </button>
+
+                {isOpen && (
+                    <div className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
+                        {styles.length > 5 && (
+                            <div className="border-b border-slate-100 p-3">
+                                <div className="relative">
+                                    <svg
+                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <input
+                                        type="text"
+                                        placeholder="Search styles..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="max-h-64 overflow-y-auto p-2">
+                            {filteredStyles.length === 0 ? (
+                                <div className="px-3 py-6 text-center text-sm text-slate-400">
+                                    {searchTerm ? 'No styles found' : 'No styles available'}
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    {filteredStyles.map((style) => {
+                                        const isSelected = selectedIds.includes(style.id);
+                                        return (
+                                            <button
+                                                key={style.id}
+                                                type="button"
+                                                onClick={() => toggleStyle(style.id)}
+                                                className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                                                    isSelected
+                                                        ? 'bg-sky-50 text-sky-700'
+                                                        : 'text-slate-700 hover:bg-slate-50'
+                                                }`}
+                                            >
+                                                <div
+                                                    className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
+                                                        isSelected
+                                                            ? 'border-sky-500 bg-sky-500'
+                                                            : 'border-slate-300'
+                                                    }`}
+                                                >
+                                                    {isSelected && (
+                                                        <svg
+                                                            className="h-3.5 w-3.5 text-white"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                            strokeWidth={3}
+                                                        >
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex-1 min-w-0">
+                                                    <span className={`text-sm font-medium truncate ${
+                                                        isSelected ? 'text-sky-900' : 'text-slate-900'
+                                                    }`}>
+                                                        {style.name}
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+            {error && <span className="text-xs text-rose-500">{error}</span>}
+        </label>
+    );
+}
+
 export default function AdminProductEdit() {
     const { props } = usePage<AdminProductEditPageProps>();
     const {
@@ -851,7 +1063,7 @@ export default function AdminProductEdit() {
         subcategory_ids: product?.category_ids ?? [],
         brand_id: String(product?.brand_id ?? ''),
         category_id: String(product?.category_id ?? ''),
-        style_id: product?.style_id ? String(product.style_id) : '',
+        style_ids: product?.style_ids || [],
         collection: product?.collection ?? '',
         producttype: product?.producttype ?? '',
         gender: product?.gender ?? '',
@@ -1841,12 +2053,12 @@ export default function AdminProductEdit() {
                 payload.category_id = null;
             }
 
-            const styleIdValue = formState.style_id;
-            if (styleIdValue !== '' && styleIdValue !== null && styleIdValue !== undefined) {
-                const styleIdNum = Number(styleIdValue);
-                payload.style_id = isNaN(styleIdNum) ? null : styleIdNum;
+            // Handle style_ids (multi-select)
+            const styleIds = formState.style_ids || [];
+            if (Array.isArray(styleIds) && styleIds.length > 0) {
+                payload.style_ids = styleIds.filter(id => typeof id === 'number' && !isNaN(id));
             } else {
-                payload.style_id = null;
+                payload.style_ids = [];
             }
 
             const selectedTypes = formState.making_charge_types || [];
@@ -2195,8 +2407,8 @@ export default function AdminProductEdit() {
                                         value={data.category_id}
                                         onChange={(event) => {
                                             setData('category_id', event.target.value);
-                                            // Clear style_id when category changes
-                                            setData('style_id', '');
+                                            // Clear style_ids when category changes
+                                            setData('style_ids', []);
                                         }}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                     >
@@ -2217,33 +2429,19 @@ export default function AdminProductEdit() {
                                     error={errors.subcategory_ids}
                                 />
                                 
-                                {/* Style dropdown - appears after subcategory selection */}
+                                {/* Style multi-select - appears after category selection */}
                                 {data.category_id && data.category_id !== '' && (() => {
                                     const selectedCategoryId = Number(data.category_id);
                                     const selectedCategory = parentCategories.find(cat => cat.id === selectedCategoryId);
                                     const availableStyles = selectedCategory?.styles || [];
                                     
                                     return (
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Style</span>
-                                            <select
-                                                value={data.style_id || ''}
-                                                onChange={(event) => setData('style_id', event.target.value)}
-                                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            >
-                                                <option value="">Select style</option>
-                                                {availableStyles.length === 0 ? (
-                                                    <option value="" disabled>No option available</option>
-                                                ) : (
-                                                    availableStyles.map((style: { id: number; name: string }) => (
-                                                        <option key={style.id} value={style.id}>
-                                                            {style.name}
-                                                        </option>
-                                                    ))
-                                                )}
-                                            </select>
-                                            {errors.style_id && <span className="text-xs text-rose-500">{errors.style_id}</span>}
-                                        </label>
+                                        <StyleMultiSelect
+                                            styles={availableStyles}
+                                            selectedIds={Array.isArray(data.style_ids) ? data.style_ids : []}
+                                            onChange={(selectedIds) => setData('style_ids', selectedIds)}
+                                            error={errors.style_ids}
+                                        />
                                     );
                                 })()}
                                 
@@ -2539,11 +2737,11 @@ export default function AdminProductEdit() {
                                         <div className="rounded-xl border border-slate-200 bg-white p-4">
                                             <div className="mb-4 flex items-center justify-between">
                                                 <h4 className="text-sm font-semibold text-slate-900">Select Sizes</h4>
-                                                {selectedSizes.length > 0 && (
+                                                {/* {selectedSizes.length > 0 && (
                                                     <span className="text-xs font-medium text-sky-600">
                                                         {selectedSizes.length} size{selectedSizes.length !== 1 ? 's' : ''} selected
                                                     </span>
-                                                )}
+                                                )} */}
                                             </div>
                                             
                                             <div className="mb-4">
