@@ -309,6 +309,7 @@ class ProductController extends Controller
             'description' => $product->description,
             'brand_id' => $product->brand_id,
             'category_id' => $product->category_id,
+            'style_id' => $product->style_id,
             'category_ids' => $product->subcategory_ids ?? [],
             'category' => $product->category ? [
                 'id' => $product->category->id,
@@ -576,7 +577,10 @@ class ProductController extends Controller
         return Category::query()
             ->where('is_active', true)
             ->whereNull('parent_id')
-            ->with(['sizes' => fn($query) => $query->where('is_active', true)->orderBy('name')])
+            ->with([
+                'sizes' => fn($query) => $query->where('is_active', true)->orderBy('name'),
+                'styles' => fn($query) => $query->where('is_active', true)->orderBy('display_order')->orderBy('name')
+            ])
             ->orderBy('display_order')
             ->orderBy('name')
             ->get(['id', 'name'])
@@ -586,6 +590,10 @@ class ProductController extends Controller
                 'sizes' => $category->sizes->map(fn($size) => [
                     'id' => $size->id,
                     'name' => $size->name,
+                ])->all(),
+                'styles' => $category->styles->map(fn($style) => [
+                    'id' => $style->id,
+                    'name' => $style->name,
                 ])->all(),
             ])
             ->all();

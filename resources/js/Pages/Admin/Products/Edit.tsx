@@ -43,6 +43,7 @@ type Product = {
     description?: string;
     brand_id?: number;
     category_id?: number;
+    style_id?: number;
     category_ids?: number[];
     category?: {
         id: number;
@@ -83,6 +84,7 @@ type OptionListItem = {
     id: number;
     name: string;
     sizes?: Array<{ id: number; name: string; value?: string }>;
+    styles?: Array<{ id: number; name: string }>;
 };
 
 type OptionList = Record<string, string>;
@@ -144,6 +146,7 @@ type FormData = {
     description: string;
     brand_id: string;
     category_id: string;
+    style_id?: string;
     collection: string;
     producttype: string;
     gender: string;
@@ -847,6 +850,7 @@ export default function AdminProductEdit() {
         subcategory_ids: product?.category_ids ?? [],
         brand_id: String(product?.brand_id ?? ''),
         category_id: String(product?.category_id ?? ''),
+        style_id: product?.style_id ? String(product.style_id) : '',
         collection: product?.collection ?? '',
         producttype: product?.producttype ?? '',
         gender: product?.gender ?? '',
@@ -1593,6 +1597,14 @@ export default function AdminProductEdit() {
                 payload.category_id = null;
             }
 
+            const styleIdValue = formState.style_id;
+            if (styleIdValue !== '' && styleIdValue !== null && styleIdValue !== undefined) {
+                const styleIdNum = Number(styleIdValue);
+                payload.style_id = isNaN(styleIdNum) ? null : styleIdNum;
+            } else {
+                payload.style_id = null;
+            }
+
             const selectedTypes = formState.making_charge_types || [];
 
             if (selectedTypes.includes('fixed')) {
@@ -1927,7 +1939,11 @@ export default function AdminProductEdit() {
                                     <span>Category *</span>
                                     <select
                                         value={data.category_id}
-                                        onChange={(event) => setData('category_id', event.target.value)}
+                                        onChange={(event) => {
+                                            setData('category_id', event.target.value);
+                                            // Clear style_id when category changes
+                                            setData('style_id', '');
+                                        }}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                     >
                                         <option value="">Select category</option>
@@ -1946,6 +1962,37 @@ export default function AdminProductEdit() {
                                     onChange={(selectedIds) => setData('subcategory_ids', selectedIds)}
                                     error={errors.subcategory_ids}
                                 />
+                                
+                                {/* Style dropdown - appears after subcategory selection */}
+                                {data.category_id && data.category_id !== '' && (() => {
+                                    const selectedCategoryId = Number(data.category_id);
+                                    const selectedCategory = parentCategories.find(cat => cat.id === selectedCategoryId);
+                                    const availableStyles = selectedCategory?.styles || [];
+                                    
+                                    return (
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Style</span>
+                                            <select
+                                                value={data.style_id || ''}
+                                                onChange={(event) => setData('style_id', event.target.value)}
+                                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            >
+                                                <option value="">Select style</option>
+                                                {availableStyles.length === 0 ? (
+                                                    <option value="" disabled>No option available</option>
+                                                ) : (
+                                                    availableStyles.map((style: { id: number; name: string }) => (
+                                                        <option key={style.id} value={style.id}>
+                                                            {style.name}
+                                                        </option>
+                                                    ))
+                                                )}
+                                            </select>
+                                            {errors.style_id && <span className="text-xs text-rose-500">{errors.style_id}</span>}
+                                        </label>
+                                    );
+                                })()}
+                                
                                  <CatalogMultiSelect
                                     catalogs={catalogs}
                                     selectedIds={Array.isArray(data.catalog_ids) ? data.catalog_ids : []}
