@@ -1505,6 +1505,34 @@ export default function AdminProductEdit() {
         });
     };
 
+    // Helper function to generate a unique key for a variant
+    const getVariantUniqueKey = (v: VariantForm): string => {
+        // Use ID if available (most reliable)
+        if (v.id) {
+            return `id:${v.id}`;
+        }
+        
+        // Use SKU if available
+        if (v.sku && v.sku.trim()) {
+            return `sku:${v.sku}`;
+        }
+        
+        // Generate composite key from distinguishing properties
+        const metalsKey = JSON.stringify((v.metals || []).map(m => ({
+            metal_id: m.metal_id,
+            metal_purity_id: m.metal_purity_id,
+            metal_tone_id: m.metal_tone_id,
+        })).sort());
+        
+        const variantMetadata = (v.metadata ?? {}) as Record<string, any>;
+        const sizeId = v.size_id ?? variantMetadata.size_id ?? null;
+        const diamondOptionKey = v.diamond_option_key ?? variantMetadata.diamond_option_key ?? null;
+        const colorstoneOptionKey = variantMetadata.colorstone_option_key ?? null;
+        
+        // Create a unique key combining all distinguishing properties
+        return `composite:${metalsKey}:size:${sizeId}:diamond:${diamondOptionKey}:colorstone:${colorstoneOptionKey}:label:${v.label || ''}`;
+    };
+
     const removeVariant = (index: number, variant?: VariantForm) => {
         // Update generatedMatrixVariants if it's being used (what's displayed in table)
         if (generatedMatrixVariants.length > 0) {
@@ -1519,36 +1547,14 @@ export default function AdminProductEdit() {
                 // If variant object is provided, use it to find the exact variant to remove
                 // This is more reliable than using index, especially when variants are grouped
                 if (variant) {
-                    // Find variant by comparing key properties (id, sku, label, metals)
+                    // Generate unique key for the variant to remove
+                    const targetKey = getVariantUniqueKey(variant);
+                    
+                    // Filter out the variant that matches the unique key
                     remaining = prev.filter((v) => {
-                        // If both have IDs, compare by ID
-                        if (variant.id && v.id && variant.id === v.id) {
-                            return false;
-                        }
-                        
-                        // Compare by SKU if available
-                        if (variant.sku && v.sku && variant.sku === v.sku) {
-                            return false;
-                        }
-                        
-                        // Compare by label and metals to ensure it's the same variant
-                        if (variant.label && v.label && variant.label === v.label) {
-                            // Also compare metals to ensure it's the same variant
-                            const variantMetalsKey = JSON.stringify((variant.metals || []).map(m => ({
-                                metal_id: m.metal_id,
-                                metal_purity_id: m.metal_purity_id,
-                                metal_tone_id: m.metal_tone_id,
-                            })).sort());
-                            const vMetalsKey = JSON.stringify((v.metals || []).map(m => ({
-                                metal_id: m.metal_id,
-                                metal_purity_id: m.metal_purity_id,
-                                metal_tone_id: m.metal_tone_id,
-                            })).sort());
-                            if (variantMetalsKey === vMetalsKey) {
-                                return false;
-                            }
-                        }
-                        return true;
+                        const variantKey = getVariantUniqueKey(v);
+                        // Keep variants that don't match the target key
+                        return variantKey !== targetKey;
                     });
                     
                     // If no match found by variant object, fall back to index
