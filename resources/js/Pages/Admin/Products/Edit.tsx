@@ -1222,6 +1222,8 @@ export default function AdminProductEdit() {
     const [generatedMatrixVariants, setGeneratedMatrixVariants] = useState<VariantForm[]>([]);
     // Store the show_all_variants_by_size setting used when generating the matrix
     const [generatedShowAllVariantsBySize, setGeneratedShowAllVariantsBySize] = useState<boolean | undefined>(undefined);
+    // Client-side validation error for metal selection
+    const [metalSelectionError, setMetalSelectionError] = useState<string | null>(null);
 
 
     const formatDecimal = (value: number): string => {
@@ -1468,25 +1470,45 @@ export default function AdminProductEdit() {
     };
 
     const removeVariant = (index: number) => {
-        setData((prev: FormData) => {
-            if ((prev.variants || []).length === 1) {
-                return prev;
+        // Update generatedMatrixVariants if it's being used (what's displayed in table)
+        if (generatedMatrixVariants.length > 0) {
+            if (generatedMatrixVariants.length === 1) {
+                // Don't allow removing the last variant
+                return;
             }
 
-            const remaining = (prev.variants || []).filter((_, idx: number) => idx !== index);
-            if (remaining.every((variant) => !variant.is_default) && remaining.length > 0) {
-                remaining[0].is_default = true;
-            }
+            setGeneratedMatrixVariants((prev) => {
+                const remaining = prev.filter((_, idx: number) => idx !== index);
+                
+                // Ensure at least one variant is marked as default
+                if (remaining.every((variant) => !variant.is_default) && remaining.length > 0) {
+                    remaining[0].is_default = true;
+                }
 
-            const draft: FormData = {
-                ...prev,
-                variants: remaining,
-            };
+                return remaining;
+            });
+        } else {
+            // Update data.variants if generatedMatrixVariants is not being used
+            setData((prev: FormData) => {
+                if ((prev.variants || []).length === 1) {
+                    return prev;
+                }
 
-            draft.variants = recalculateVariants(draft);
+                const remaining = (prev.variants || []).filter((_, idx: number) => idx !== index);
+                if (remaining.every((variant) => !variant.is_default) && remaining.length > 0) {
+                    remaining[0].is_default = true;
+                }
 
-            return draft;
-        });
+                const draft: FormData = {
+                    ...prev,
+                    variants: remaining,
+                };
+
+                draft.variants = recalculateVariants(draft);
+
+                return draft;
+            });
+        }
     };
 
     const updateVariant = (index: number, field: keyof VariantForm, value: string | boolean | number | null) => {
@@ -2006,6 +2028,55 @@ export default function AdminProductEdit() {
     };
 
     const generateVariantMatrix = () => {
+        // Validate that at least one metal is selected before generating matrix
+        const selectedMetals = data.selected_metals || [];
+        
+        if (!Array.isArray(selectedMetals) || selectedMetals.length === 0) {
+            setMetalSelectionError('Please select at least one metal before generating the variant matrix. Metals are required.');
+            return;
+        }
+        
+        // Validate that each selected metal has at least one purity and one tone selected
+        const metalConfigurations = data.metal_configurations || {};
+        const missingConfigurations: string[] = [];
+        
+        selectedMetals.forEach((metalId) => {
+            const metal = metals.find(m => m.id === metalId);
+            if (!metal) return;
+            
+            const config = metalConfigurations[metalId] || { purities: [], tones: [] };
+            const availablePurities = metalPurities.filter(p => p.metal_id === metalId);
+            const availableTones = metalTones.filter(t => t.metal_id === metalId);
+            
+            // Check if purities are required and selected
+            const hasPurities = availablePurities.length === 0 || (config.purities && config.purities.length > 0);
+            // Check if tones are required and selected
+            const hasTones = availableTones.length === 0 || (config.tones && config.tones.length > 0);
+            
+            if (!hasPurities || !hasTones) {
+                const missingParts: string[] = [];
+                if (availablePurities.length > 0 && (!config.purities || config.purities.length === 0)) {
+                    missingParts.push('purity');
+                }
+                if (availableTones.length > 0 && (!config.tones || config.tones.length === 0)) {
+                    missingParts.push('tone');
+                }
+                if (missingParts.length > 0) {
+                    missingConfigurations.push(`${metal.name} (${missingParts.join(' and ')})`);
+                }
+            }
+        });
+        
+        if (missingConfigurations.length > 0) {
+            const metalList = missingConfigurations.slice(0, 3).join(', ');
+            const moreCount = missingConfigurations.length > 3 ? ` and ${missingConfigurations.length - 3} more` : '';
+            setMetalSelectionError(`Please select at least one purity and one tone for the following metal${missingConfigurations.length > 1 ? 's' : ''}: ${metalList}${moreCount}.`);
+            return;
+        }
+        
+        // Clear any previous error if all validations pass
+        setMetalSelectionError(null);
+        
         // Generate matrix but store in separate state variable, not in form data
         // Use the current form data to generate variants based on current selections
         const generatedData = generateVariantMatrixForData(data);
@@ -2134,6 +2205,38 @@ export default function AdminProductEdit() {
             // Use variants for submission (from generatedMatrixVariants if available, otherwise newly generated)
             if (variantsToUse && Array.isArray(variantsToUse) && variantsToUse.length > 0) {
                 const diamondSelections = formState.diamond_selections || [];
+                
+                // Validate that each variant has at least one metal (required)
+                const variantsWithoutMetals: string[] = [];
+                variantsToUse.forEach((variant: any, index: number) => {
+                    const metals = variant.metals || [];
+                    const metalId = variant.metal_id;
+                    
+                    // Check if metals array has at least one valid metal
+                    let hasValidMetal = false;
+                    if (Array.isArray(metals) && metals.length > 0) {
+                        hasValidMetal = metals.some((m: any) => 
+                            m.metal_id !== '' && m.metal_id !== null && m.metal_id !== undefined && typeof m.metal_id === 'number' && m.metal_id > 0
+                        );
+                    }
+                    
+                    // Also check if metal_id is set directly on variant (legacy support)
+                    if (!hasValidMetal && metalId !== '' && metalId !== null && metalId !== undefined && typeof metalId === 'number' && metalId > 0) {
+                        hasValidMetal = true;
+                    }
+                    
+                    if (!hasValidMetal) {
+                        const variantLabel = variant.label || variant.sku || `Variant #${index + 1}`;
+                        variantsWithoutMetals.push(variantLabel);
+                    }
+                });
+                
+                if (variantsWithoutMetals.length > 0) {
+                    const variantList = variantsWithoutMetals.slice(0, 3).join(', ');
+                    const moreCount = variantsWithoutMetals.length > 3 ? ` and ${variantsWithoutMetals.length - 3} more` : '';
+                    form.setError('variants', `The following variant${variantsWithoutMetals.length > 1 ? 's' : ''} must have at least one metal: ${variantList}${moreCount}. Metals are required for all variants.`);
+                    return payload;
+                }
                 
                 // Create a deep copy of variants to avoid mutating the original
                 let processedVariants = variantsToUse.map((variant: any) => ({
@@ -2927,6 +3030,9 @@ export default function AdminProductEdit() {
                                 <div>
                                     <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Metals</h3>
                                     <p className="text-xs text-slate-500">Select metals that can be used in your product variants.</p>
+                                    {(errors.selected_metals || metalSelectionError) && (
+                                        <span className="mt-2 block text-xs text-rose-500">{errors.selected_metals || metalSelectionError}</span>
+                                    )}
                                 </div>
 
                                 <div className="flex flex-wrap gap-3">
@@ -2966,6 +3072,11 @@ export default function AdminProductEdit() {
                                                                 metal_configurations: newConfig,
                                                             };
                                                         });
+                                                        
+                                                        // Clear error when metal is selected
+                                                        if (e.target.checked && metalSelectionError) {
+                                                            setMetalSelectionError(null);
+                                                        }
                                                     }}
                                                     className={`mr-2 h-4 w-4 rounded border-2 ${
                                                         isSelected
@@ -3040,6 +3151,11 @@ export default function AdminProductEdit() {
                                                                                     metal_configurations: config,
                                                                                 };
                                                                             });
+                                                                            
+                                                                            // Clear error when purity is selected
+                                                                            if (e.target.checked && metalSelectionError) {
+                                                                                setMetalSelectionError(null);
+                                                                            }
                                                                         }}
                                                                         className={`mr-2 h-4 w-4 rounded border-2 ${
                                                                             isPuritySelected
@@ -3091,6 +3207,11 @@ export default function AdminProductEdit() {
                                                                                     metal_configurations: config,
                                                                                 };
                                                                             });
+                                                                            
+                                                                            // Clear error when tone is selected
+                                                                            if (e.target.checked && metalSelectionError) {
+                                                                                setMetalSelectionError(null);
+                                                                            }
                                                                         }}
                                                                         className={`mr-2 h-4 w-4 rounded border-2 ${
                                                                             isToneSelected
