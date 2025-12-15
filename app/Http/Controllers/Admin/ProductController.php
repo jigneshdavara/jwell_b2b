@@ -81,13 +81,21 @@ class ProductController extends Controller
     {
         $validated = $request->validated();
 
-        return DB::transaction(function () use ($validated, $variantSync) {
-            $product = $this->createProduct($validated, $variantSync);
+        try {
+            return DB::transaction(function () use ($validated, $variantSync) {
+                $product = $this->createProduct($validated, $variantSync);
 
+                return redirect()
+                    ->route('admin.products.edit', $product)
+                    ->with('status', 'product_created');
+            });
+        } catch (\InvalidArgumentException $e) {
             return redirect()
-                ->route('admin.products.edit', $product)
-                ->with('status', 'product_created');
-        });
+                ->back()
+                ->withInput()
+                ->withErrors(['variants' => $e->getMessage()])
+                ->with('error', $e->getMessage());
+        }
     }
 
     public function edit(Product $product): Response
@@ -125,13 +133,21 @@ class ProductController extends Controller
     ): RedirectResponse {
         $validated = $request->validated();
 
-        DB::transaction(function () use ($product, $validated, $variantSync): void {
-            $this->updateProduct($product, $validated, $variantSync);
-        });
+        try {
+            DB::transaction(function () use ($product, $validated, $variantSync): void {
+                $this->updateProduct($product, $validated, $variantSync);
+            });
 
-        return redirect()
-            ->route('admin.products.edit', $product)
-            ->with('status', 'product_updated');
+            return redirect()
+                ->route('admin.products.edit', $product)
+                ->with('status', 'product_updated');
+        } catch (\InvalidArgumentException $e) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors(['variants' => $e->getMessage()])
+                ->with('error', $e->getMessage());
+        }
     }
 
     public function destroy(Product $product): RedirectResponse
@@ -257,8 +273,9 @@ class ProductController extends Controller
                 $metadata['size_dimension'] = $sizeDimension;
             }
 
-            if ($sizeDimension) {
-                $metadata['size_dimension'] = $sizeDimension;
+            // Preserve show_all_variants_by_size if provided
+            if (isset($metadata['show_all_variants_by_size'])) {
+                $metadata['show_all_variants_by_size'] = (bool) $metadata['show_all_variants_by_size'];
             }
 
             $data['metadata'] = !empty($metadata) ? $metadata : null;
