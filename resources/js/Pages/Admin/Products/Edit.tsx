@@ -1497,12 +1497,16 @@ export default function AdminProductEdit() {
             const targetVariant = prev[index];
             if (!targetVariant) return prev;
             
-            // If grouped by metal (all_sizes_available === true OR show_all_variants_by_size === false)
-            // and certain fields, update all variants with same metal
-            const shouldGroupUpdate = (data.all_sizes_available === true || data.show_all_variants_by_size === false) 
-                && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default');
+            // If "Show all variants" is unchecked, inventory_quantity is common for all variants with same metal
+            // If "Show all variants" is checked, inventory_quantity is separate for each variant
+            const shouldGroupUpdate = (data.show_all_variants_by_size === false) 
+                && (field === 'inventory_quantity');
             
-            if (shouldGroupUpdate) {
+            // For sku, label, is_default: group when all_sizes_available OR show_all_variants_by_size is false
+            const shouldGroupOtherFields = (data.all_sizes_available === true || data.show_all_variants_by_size === false) 
+                && (field === 'sku' || field === 'label' || field === 'is_default');
+            
+            if (shouldGroupUpdate || shouldGroupOtherFields) {
                 const targetMetals = (targetVariant.metals || []).filter(
                     (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                 );
@@ -1580,10 +1584,16 @@ export default function AdminProductEdit() {
             const targetVariant = (prev.variants || [])[index];
             if (!targetVariant) return prev;
             
-            const shouldGroupUpdate = (prev.all_sizes_available === true || prev.show_all_variants_by_size === false) 
-                && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default');
+            // If "Show all variants" is unchecked, inventory_quantity is common for all variants with same metal
+            // If "Show all variants" is checked, inventory_quantity is separate for each variant
+            const shouldGroupUpdate = (prev.show_all_variants_by_size === false) 
+                && (field === 'inventory_quantity');
             
-            if (shouldGroupUpdate) {
+            // For sku, label, is_default: group when all_sizes_available OR show_all_variants_by_size is false
+            const shouldGroupOtherFields = (prev.all_sizes_available === true || prev.show_all_variants_by_size === false) 
+                && (field === 'sku' || field === 'label' || field === 'is_default');
+            
+            if (shouldGroupUpdate || shouldGroupOtherFields) {
                 const targetMetals = (targetVariant.metals || []).filter(
                     (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                 );
@@ -1843,9 +1853,9 @@ export default function AdminProductEdit() {
             const targetVariant = prev[variantIndex];
             if (!targetVariant) return prev;
             
-            // If grouped by metal (all_sizes_available === true OR show_all_variants_by_size === false)
-            // update all variants with same metal
-            const shouldGroupUpdate = data.all_sizes_available === true || data.show_all_variants_by_size === false;
+            // If "Show all variants" is unchecked, weight is common for all variants with same metal
+            // If "Show all variants" is checked, weight is separate for each variant
+            const shouldGroupUpdate = data.show_all_variants_by_size === false;
             
             if (shouldGroupUpdate) {
                 const targetMetals = (targetVariant.metals || []).filter(
@@ -1912,7 +1922,9 @@ export default function AdminProductEdit() {
             const targetVariant = (prev.variants || [])[variantIndex];
             if (!targetVariant) return prev;
             
-            const shouldGroupUpdate = prev.all_sizes_available === true || prev.show_all_variants_by_size === false;
+            // If "Show all variants" is unchecked, weight is common for all variants with same metal
+            // If "Show all variants" is checked, weight is separate for each variant
+            const shouldGroupUpdate = prev.show_all_variants_by_size === false;
             
             if (shouldGroupUpdate) {
                 const targetMetals = (targetVariant.metals || []).filter(
