@@ -3,7 +3,7 @@ import Modal from '@/Components/Modal';
 import ConfirmationModal from '@/Components/ConfirmationModal';
 import type { PageProps } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { FormEvent, useState, useEffect, useRef } from 'react';
+import { FormEvent, useState, useEffect, useRef, useMemo } from 'react';
 
 type RelatedQuotation = {
     id: number;
@@ -144,10 +144,50 @@ export default function AdminQuotationShow() {
     const [addItemModalOpen, setAddItemModalOpen] = useState(false);
     const [productSearch, setProductSearch] = useState('');
     const [searchResults, setSearchResults] = useState<Array<{ id: number; name: string; sku: string }>>([]);
-    const [selectedProduct, setSelectedProduct] = useState<{ id: number; name: string; sku: string; variants: Array<{ id: number; label: string }> } | null>(null);
+    const [selectedProduct, setSelectedProduct] = useState<{ 
+        id: number; 
+        name: string; 
+        sku: string; 
+        variants: Array<{ 
+            id: number; 
+            label: string; 
+            metadata?: Record<string, unknown> | null;
+            size_id?: number | null;
+            size?: { id: number; name: string; value?: string } | null;
+            metals?: Array<{
+                id: number;
+                metal_id: number;
+                metal_purity_id: number | null;
+                metal_tone_id: number | null;
+                metal?: { id: number; name: string } | null;
+                metal_purity?: { id: number; name: string } | null;
+                metal_tone?: { id: number; name: string } | null;
+            }>;
+        }> 
+    } | null>(null);
     const [addItemProductSearch, setAddItemProductSearch] = useState('');
     const [addItemSearchResults, setAddItemSearchResults] = useState<Array<{ id: number; name: string; sku: string }>>([]);
-    const [addItemSelectedProduct, setAddItemSelectedProduct] = useState<{ id: number; name: string; sku: string; variants: Array<{ id: number; label: string }> } | null>(null);
+    const [addItemSelectedProduct, setAddItemSelectedProduct] = useState<{ 
+        id: number; 
+        name: string; 
+        sku: string; 
+        variants: Array<{ 
+            id: number; 
+            label: string; 
+            metadata?: Record<string, unknown> | null;
+            size_id?: number | null;
+            size?: { id: number; name: string; value?: string } | null;
+            metals?: Array<{
+                id: number;
+                metal_id: number;
+                metal_purity_id: number | null;
+                metal_tone_id: number | null;
+                metal?: { id: number; name: string } | null;
+                metal_purity?: { id: number; name: string } | null;
+                metal_tone?: { id: number; name: string } | null;
+            }>;
+        }> 
+    } | null>(null);
     const [isManualAddItemSearch, setIsManualAddItemSearch] = useState(false);
     // Track if changes have been made that require customer confirmation
     const [hasChanges, setHasChanges] = useState(quotation.status === 'pending_customer_confirmation');
@@ -259,14 +299,13 @@ export default function AdminQuotationShow() {
 
     const openChangeModal = (quotationItem: RelatedQuotation | QuotationDetails) => {
         setChangeProductModalOpen(quotationItem.id);
-        setIsManualSearch(false); // Reset manual search flag
+        setIsManualSearch(false);
         changeProductForm.setData({
             product_id: quotationItem.product.id.toString(),
             product_variant_id: quotationItem.variant?.id.toString() ?? '',
             quantity: quotationItem.quantity,
             admin_notes: '',
         });
-        // Set product search but don't trigger search immediately
         setProductSearch(quotationItem.product.name);
         setSelectedProduct({
             id: quotationItem.product.id,
@@ -274,7 +313,33 @@ export default function AdminQuotationShow() {
             sku: quotationItem.product.sku,
             variants: quotationItem.product.variants,
         });
-        setSearchResults([]); // Clear search results when opening modal
+        setSearchResults([]);
+        
+        // Initialize customization state from selected variant
+        if (quotationItem.variant && quotationItem.product.variants) {
+            const selectedVariant = quotationItem.product.variants.find(v => v.id === quotationItem.variant?.id);
+            if (selectedVariant?.metals && selectedVariant.metals.length > 0) {
+                const firstMetal = selectedVariant.metals[0];
+                setChangeProductMetalId(firstMetal.metal_id);
+                setChangeProductPurityId(firstMetal.metal_purity_id ?? "");
+                setChangeProductToneId(firstMetal.metal_tone_id ?? "");
+                if (selectedVariant.size) {
+                    setChangeProductSize(selectedVariant.size.value || selectedVariant.size.name);
+                } else {
+                    setChangeProductSize("");
+                }
+            } else {
+                setChangeProductMetalId("");
+                setChangeProductPurityId("");
+                setChangeProductToneId("");
+                setChangeProductSize("");
+            }
+        } else {
+            setChangeProductMetalId("");
+            setChangeProductPurityId("");
+            setChangeProductToneId("");
+            setChangeProductSize("");
+        }
     };
 
     const closeChangeModal = () => {
@@ -284,12 +349,16 @@ export default function AdminQuotationShow() {
         setSelectedProduct(null);
         setIsManualSearch(false);
         changeProductForm.reset();
+        setChangeProductMetalId("");
+        setChangeProductPurityId("");
+        setChangeProductToneId("");
+        setChangeProductSize("");
     };
 
     const selectProduct = (product: { id: number; name: string; sku: string }) => {
         changeProductForm.setData('product_id', product.id.toString());
         changeProductForm.setData('product_variant_id', '');
-        setProductSearch(product.name); // Update search to show selected product
+        setProductSearch(product.name);
         
         // Try to find variants from existing quotations first
         const currentQuotation = allQuotations.find((q) => q.product.id === product.id);
@@ -299,13 +368,296 @@ export default function AdminQuotationShow() {
                 variants: currentQuotation.product.variants,
             });
         } else {
-            // If not found, set empty variants (user can still proceed)
-            setSelectedProduct({
-                ...product,
-                variants: [],
-            });
+            // Fetch product details with variants using edit route (which loads full product data)
+            fetch(route('admin.products.edit', product.id), {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'X-Inertia': 'true',
+                },
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    const productData = data.props?.product;
+                    if (productData?.variants) {
+                        setSelectedProduct({
+                            ...product,
+                            variants: productData.variants.map((v: any) => ({
+                                id: v.id,
+                                label: v.label,
+                                metadata: v.metadata ?? {},
+                                size_id: v.size_id,
+                                size: v.size,
+                                metals: v.metals || [],
+                            })),
+                        });
+                    } else {
+                        setSelectedProduct({
+                            ...product,
+                            variants: [],
+                        });
+                    }
+                })
+                .catch(() => {
+                    setSelectedProduct({
+                        ...product,
+                        variants: [],
+                    });
+                });
         }
+        
+        // Reset customization state
+        setChangeProductMetalId("");
+        setChangeProductPurityId("");
+        setChangeProductToneId("");
+        setChangeProductSize("");
     };
+
+    // Build configuration options from variants (similar to customer panel)
+    const buildConfigurationOptions = useMemo(() => {
+        if (!selectedProduct || !selectedProduct.variants || selectedProduct.variants.length === 0) {
+            return [];
+        }
+
+        return selectedProduct.variants.map((variant) => {
+            const metals = (variant.metals || []).map((metal) => ({
+                metalId: metal.metal_id,
+                metalPurityId: metal.metal_purity_id,
+                metalToneId: metal.metal_tone_id,
+                metalName: metal.metal?.name || 'Metal',
+                purityName: metal.metal_purity?.name || 'Purity',
+                toneName: metal.metal_tone?.name || 'Tone',
+            }));
+
+            return {
+                variant_id: variant.id,
+                metals,
+                size: variant.size ? {
+                    id: variant.size.id,
+                    name: variant.size.name,
+                    value: variant.size.value || variant.size.name,
+                } : null,
+                metadata: variant.metadata || {},
+            };
+        });
+    }, [selectedProduct]);
+
+    // Customization state for change product modal
+    const [changeProductMetalId, setChangeProductMetalId] = useState<number | "">("");
+    const [changeProductPurityId, setChangeProductPurityId] = useState<number | "">("");
+    const [changeProductToneId, setChangeProductToneId] = useState<number | "">("");
+    const [changeProductSize, setChangeProductSize] = useState<string>("");
+
+    // Customization state for add item modal
+    const [addItemMetalId, setAddItemMetalId] = useState<number | "">("");
+    const [addItemPurityId, setAddItemPurityId] = useState<number | "">("");
+    const [addItemToneId, setAddItemToneId] = useState<number | "">("");
+    const [addItemSize, setAddItemSize] = useState<string>("");
+
+    // Available options for change product modal
+    const changeProductAvailableMetals = useMemo(() => {
+        const map = new Map<number, string>();
+        buildConfigurationOptions.forEach((c) =>
+            c.metals.forEach((m) => {
+                if (!map.has(m.metalId)) {
+                    map.set(m.metalId, m.metalName);
+                }
+            })
+        );
+        return [...map.entries()];
+    }, [buildConfigurationOptions]);
+
+    const changeProductAvailablePurities = useMemo(() => {
+        if (!changeProductMetalId) return [];
+        const map = new Map<number, string>();
+        buildConfigurationOptions.forEach((c) =>
+            c.metals.forEach((m) => {
+                if (m.metalId === changeProductMetalId && m.metalPurityId) {
+                    map.set(m.metalPurityId, m.purityName);
+                }
+            })
+        );
+        return [...map.entries()];
+    }, [changeProductMetalId, buildConfigurationOptions]);
+
+    const changeProductAvailableTones = useMemo(() => {
+        if (!changeProductMetalId || !changeProductPurityId) return [];
+        const map = new Map<number, string>();
+        buildConfigurationOptions.forEach((c) =>
+            c.metals.forEach((m) => {
+                if (m.metalId === changeProductMetalId && m.metalPurityId === changeProductPurityId && m.metalToneId) {
+                    map.set(m.metalToneId, m.toneName);
+                }
+            })
+        );
+        return [...map.entries()];
+    }, [changeProductMetalId, changeProductPurityId, buildConfigurationOptions]);
+
+    const changeProductAvailableSizes = useMemo(() => {
+        if (!changeProductMetalId || !changeProductPurityId || !changeProductToneId) return [];
+        const sizes = new Set<string>();
+        buildConfigurationOptions.forEach((c) => {
+            const match = c.metals.some(
+                (m) =>
+                    m.metalId === changeProductMetalId &&
+                    m.metalPurityId === changeProductPurityId &&
+                    m.metalToneId === changeProductToneId
+            );
+            if (!match) return;
+            if (c.size?.value || c.size?.name) {
+                sizes.add(c.size.value || c.size.name);
+            }
+        });
+        return [...sizes];
+    }, [changeProductMetalId, changeProductPurityId, changeProductToneId, buildConfigurationOptions]);
+
+    // Auto-match variant when customization changes (change product modal)
+    useEffect(() => {
+        if (!changeProductMetalId || !changeProductPurityId || !changeProductToneId) {
+            changeProductForm.setData('product_variant_id', '');
+            return;
+        }
+        if (changeProductAvailableSizes.length > 0 && !changeProductSize) {
+            changeProductForm.setData('product_variant_id', '');
+            return;
+        }
+
+        const match = buildConfigurationOptions.find((c) => {
+            const metalMatch = c.metals.some(
+                (m) =>
+                    m.metalId === changeProductMetalId &&
+                    m.metalPurityId === changeProductPurityId &&
+                    m.metalToneId === changeProductToneId
+            );
+            if (!metalMatch) return false;
+            if (changeProductAvailableSizes.length === 0) return true;
+            const s = c.size?.value || c.size?.name || "";
+            return s === changeProductSize;
+        });
+
+        if (match) {
+            changeProductForm.setData('product_variant_id', match.variant_id.toString());
+        } else {
+            changeProductForm.setData('product_variant_id', '');
+        }
+    }, [changeProductMetalId, changeProductPurityId, changeProductToneId, changeProductSize, buildConfigurationOptions, changeProductAvailableSizes.length]);
+
+    // Available options for add item modal
+    const addItemBuildConfigurationOptions = useMemo(() => {
+        if (!addItemSelectedProduct || !addItemSelectedProduct.variants || addItemSelectedProduct.variants.length === 0) {
+            return [];
+        }
+
+        return addItemSelectedProduct.variants.map((variant) => {
+            const metals = (variant.metals || []).map((metal) => ({
+                metalId: metal.metal_id,
+                metalPurityId: metal.metal_purity_id,
+                metalToneId: metal.metal_tone_id,
+                metalName: metal.metal?.name || 'Metal',
+                purityName: metal.metal_purity?.name || 'Purity',
+                toneName: metal.metal_tone?.name || 'Tone',
+            }));
+
+            return {
+                variant_id: variant.id,
+                metals,
+                size: variant.size ? {
+                    id: variant.size.id,
+                    name: variant.size.name,
+                    value: variant.size.value || variant.size.name,
+                } : null,
+                metadata: variant.metadata || {},
+            };
+        });
+    }, [addItemSelectedProduct]);
+
+    const addItemAvailableMetals = useMemo(() => {
+        const map = new Map<number, string>();
+        addItemBuildConfigurationOptions.forEach((c) =>
+            c.metals.forEach((m) => {
+                if (!map.has(m.metalId)) {
+                    map.set(m.metalId, m.metalName);
+                }
+            })
+        );
+        return [...map.entries()];
+    }, [addItemBuildConfigurationOptions]);
+
+    const addItemAvailablePurities = useMemo(() => {
+        if (!addItemMetalId) return [];
+        const map = new Map<number, string>();
+        addItemBuildConfigurationOptions.forEach((c) =>
+            c.metals.forEach((m) => {
+                if (m.metalId === addItemMetalId && m.metalPurityId) {
+                    map.set(m.metalPurityId, m.purityName);
+                }
+            })
+        );
+        return [...map.entries()];
+    }, [addItemMetalId, addItemBuildConfigurationOptions]);
+
+    const addItemAvailableTones = useMemo(() => {
+        if (!addItemMetalId || !addItemPurityId) return [];
+        const map = new Map<number, string>();
+        addItemBuildConfigurationOptions.forEach((c) =>
+            c.metals.forEach((m) => {
+                if (m.metalId === addItemMetalId && m.metalPurityId === addItemPurityId && m.metalToneId) {
+                    map.set(m.metalToneId, m.toneName);
+                }
+            })
+        );
+        return [...map.entries()];
+    }, [addItemMetalId, addItemPurityId, addItemBuildConfigurationOptions]);
+
+    const addItemAvailableSizes = useMemo(() => {
+        if (!addItemMetalId || !addItemPurityId || !addItemToneId) return [];
+        const sizes = new Set<string>();
+        addItemBuildConfigurationOptions.forEach((c) => {
+            const match = c.metals.some(
+                (m) =>
+                    m.metalId === addItemMetalId &&
+                    m.metalPurityId === addItemPurityId &&
+                    m.metalToneId === addItemToneId
+            );
+            if (!match) return;
+            if (c.size?.value || c.size?.name) {
+                sizes.add(c.size.value || c.size.name);
+            }
+        });
+        return [...sizes];
+    }, [addItemMetalId, addItemPurityId, addItemToneId, addItemBuildConfigurationOptions]);
+
+    // Auto-match variant when customization changes (add item modal)
+    useEffect(() => {
+        if (!addItemMetalId || !addItemPurityId || !addItemToneId) {
+            addItemForm.setData('product_variant_id', '');
+            return;
+        }
+        if (addItemAvailableSizes.length > 0 && !addItemSize) {
+            addItemForm.setData('product_variant_id', '');
+            return;
+        }
+
+        const match = addItemBuildConfigurationOptions.find((c) => {
+            const metalMatch = c.metals.some(
+                (m) =>
+                    m.metalId === addItemMetalId &&
+                    m.metalPurityId === addItemPurityId &&
+                    m.metalToneId === addItemToneId
+            );
+            if (!metalMatch) return false;
+            if (addItemAvailableSizes.length === 0) return true;
+            const s = c.size?.value || c.size?.name || "";
+            return s === addItemSize;
+        });
+
+        if (match) {
+            addItemForm.setData('product_variant_id', match.variant_id.toString());
+        } else {
+            addItemForm.setData('product_variant_id', '');
+        }
+    }, [addItemMetalId, addItemPurityId, addItemToneId, addItemSize, addItemBuildConfigurationOptions, addItemAvailableSizes.length]);
 
     const submitChangeProduct = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -342,6 +694,10 @@ export default function AdminQuotationShow() {
         setAddItemSelectedProduct(null);
         setIsManualAddItemSearch(false);
         addItemForm.reset();
+        setAddItemMetalId("");
+        setAddItemPurityId("");
+        setAddItemToneId("");
+        setAddItemSize("");
     };
 
     const selectAddItemProduct = (product: { id: number; name: string; sku: string }) => {
@@ -356,11 +712,50 @@ export default function AdminQuotationShow() {
                 variants: currentQuotation.product.variants,
             });
         } else {
-            setAddItemSelectedProduct({
-                ...product,
-                variants: [],
-            });
+            // Fetch product details with variants using edit route (which loads full product data)
+            fetch(route('admin.products.edit', product.id), {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'X-Inertia': 'true',
+                },
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    const productData = data.props?.product;
+                    if (productData?.variants) {
+                        setAddItemSelectedProduct({
+                            ...product,
+                            variants: productData.variants.map((v: any) => ({
+                                id: v.id,
+                                label: v.label,
+                                metadata: v.metadata ?? {},
+                                size_id: v.size_id,
+                                size: v.size,
+                                metals: v.metals || [],
+                            })),
+                        });
+                    } else {
+                        setAddItemSelectedProduct({
+                            ...product,
+                            variants: [],
+                        });
+                    }
+                })
+                .catch(() => {
+                    setAddItemSelectedProduct({
+                        ...product,
+                        variants: [],
+                    });
+                });
         }
+        
+        // Reset customization state
+        setAddItemMetalId("");
+        setAddItemPurityId("");
+        setAddItemToneId("");
+        setAddItemSize("");
     };
 
     const submitAddItem = (event: FormEvent<HTMLFormElement>) => {
@@ -1036,20 +1431,88 @@ export default function AdminQuotationShow() {
                                     </div>
 
                                     {selectedProduct.variants.length > 0 && (
-                                        <div>
-                                            <label className="mb-2 block text-sm font-semibold text-slate-700">Variant</label>
-                                            <select
-                                                value={changeProductForm.data.product_variant_id}
-                                                onChange={(e) => changeProductForm.setData('product_variant_id', e.target.value)}
-                                                className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            >
-                                                <option value="">No variant</option>
-                                                {selectedProduct.variants.map((variant) => (
-                                                    <option key={variant.id} value={variant.id}>
-                                                        {variant.label}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="mb-2 block text-sm font-semibold text-slate-700">Metal</label>
+                                                <select
+                                                    value={changeProductMetalId}
+                                                    onChange={(e) => {
+                                                        setChangeProductMetalId(Number(e.target.value) || "");
+                                                        setChangeProductPurityId("");
+                                                        setChangeProductToneId("");
+                                                        setChangeProductSize("");
+                                                    }}
+                                                    className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                >
+                                                    <option value="">Select Metal</option>
+                                                    {changeProductAvailableMetals.map(([id, name]) => (
+                                                        <option key={id} value={id}>
+                                                            {name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {changeProductMetalId && (
+                                                <div>
+                                                    <label className="mb-2 block text-sm font-semibold text-slate-700">Purity</label>
+                                                    <select
+                                                        value={changeProductPurityId}
+                                                        onChange={(e) => {
+                                                            setChangeProductPurityId(Number(e.target.value) || "");
+                                                            setChangeProductToneId("");
+                                                            setChangeProductSize("");
+                                                        }}
+                                                        className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    >
+                                                        <option value="">Select Purity</option>
+                                                        {changeProductAvailablePurities.map(([id, name]) => (
+                                                            <option key={id} value={id}>
+                                                                {name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+
+                                            {changeProductPurityId && (
+                                                <div>
+                                                    <label className="mb-2 block text-sm font-semibold text-slate-700">Tone</label>
+                                                    <select
+                                                        value={changeProductToneId}
+                                                        onChange={(e) => {
+                                                            setChangeProductToneId(Number(e.target.value) || "");
+                                                            setChangeProductSize("");
+                                                        }}
+                                                        className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    >
+                                                        <option value="">Select Tone</option>
+                                                        {changeProductAvailableTones.map(([id, name]) => (
+                                                            <option key={id} value={id}>
+                                                                {name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+
+                                            {changeProductAvailableSizes.length > 0 && changeProductToneId && (
+                                                <div>
+                                                    <label className="mb-2 block text-sm font-semibold text-slate-700">Size</label>
+                                                    <select
+                                                        value={changeProductSize}
+                                                        onChange={(e) => setChangeProductSize(e.target.value)}
+                                                        className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    >
+                                                        <option value="">Select Size</option>
+                                                        {changeProductAvailableSizes.map((s) => (
+                                                            <option key={s} value={s}>
+                                                                {s}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
@@ -1154,20 +1617,88 @@ export default function AdminQuotationShow() {
                                     </div>
 
                                     {addItemSelectedProduct.variants.length > 0 && (
-                                        <div>
-                                            <label className="mb-2 block text-sm font-semibold text-slate-700">Variant</label>
-                                            <select
-                                                value={addItemForm.data.product_variant_id}
-                                                onChange={(e) => addItemForm.setData('product_variant_id', e.target.value)}
-                                                className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            >
-                                                <option value="">No variant</option>
-                                                {addItemSelectedProduct.variants.map((variant) => (
-                                                    <option key={variant.id} value={variant.id}>
-                                                        {variant.label}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="mb-2 block text-sm font-semibold text-slate-700">Metal</label>
+                                                <select
+                                                    value={addItemMetalId}
+                                                    onChange={(e) => {
+                                                        setAddItemMetalId(Number(e.target.value) || "");
+                                                        setAddItemPurityId("");
+                                                        setAddItemToneId("");
+                                                        setAddItemSize("");
+                                                    }}
+                                                    className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                >
+                                                    <option value="">Select Metal</option>
+                                                    {addItemAvailableMetals.map(([id, name]) => (
+                                                        <option key={id} value={id}>
+                                                            {name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {addItemMetalId && (
+                                                <div>
+                                                    <label className="mb-2 block text-sm font-semibold text-slate-700">Purity</label>
+                                                    <select
+                                                        value={addItemPurityId}
+                                                        onChange={(e) => {
+                                                            setAddItemPurityId(Number(e.target.value) || "");
+                                                            setAddItemToneId("");
+                                                            setAddItemSize("");
+                                                        }}
+                                                        className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    >
+                                                        <option value="">Select Purity</option>
+                                                        {addItemAvailablePurities.map(([id, name]) => (
+                                                            <option key={id} value={id}>
+                                                                {name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+
+                                            {addItemPurityId && (
+                                                <div>
+                                                    <label className="mb-2 block text-sm font-semibold text-slate-700">Tone</label>
+                                                    <select
+                                                        value={addItemToneId}
+                                                        onChange={(e) => {
+                                                            setAddItemToneId(Number(e.target.value) || "");
+                                                            setAddItemSize("");
+                                                        }}
+                                                        className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    >
+                                                        <option value="">Select Tone</option>
+                                                        {addItemAvailableTones.map(([id, name]) => (
+                                                            <option key={id} value={id}>
+                                                                {name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+
+                                            {addItemAvailableSizes.length > 0 && addItemToneId && (
+                                                <div>
+                                                    <label className="mb-2 block text-sm font-semibold text-slate-700">Size</label>
+                                                    <select
+                                                        value={addItemSize}
+                                                        onChange={(e) => setAddItemSize(e.target.value)}
+                                                        className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    >
+                                                        <option value="">Select Size</option>
+                                                        {addItemAvailableSizes.map((s) => (
+                                                            <option key={s} value={s}>
+                                                                {s}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
