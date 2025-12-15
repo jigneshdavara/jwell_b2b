@@ -1497,12 +1497,16 @@ export default function AdminProductEdit() {
             const targetVariant = prev[index];
             if (!targetVariant) return prev;
             
-            // If grouped by metal (all_sizes_available === true OR show_all_variants_by_size === false)
-            // and certain fields, update all variants with same metal
-            const shouldGroupUpdate = (data.all_sizes_available === true || data.show_all_variants_by_size === false) 
-                && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default');
+            // If "Show all variants" is unchecked, inventory_quantity is common for all variants with same metal
+            // If "Show all variants" is checked, inventory_quantity is separate for each variant
+            const shouldGroupUpdate = (data.show_all_variants_by_size === false) 
+                && (field === 'inventory_quantity');
             
-            if (shouldGroupUpdate) {
+            // For sku, label, is_default: group when all_sizes_available OR show_all_variants_by_size is false
+            const shouldGroupOtherFields = (data.all_sizes_available === true || data.show_all_variants_by_size === false) 
+                && (field === 'sku' || field === 'label' || field === 'is_default');
+            
+            if (shouldGroupUpdate || shouldGroupOtherFields) {
                 const targetMetals = (targetVariant.metals || []).filter(
                     (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                 );
@@ -1580,10 +1584,16 @@ export default function AdminProductEdit() {
             const targetVariant = (prev.variants || [])[index];
             if (!targetVariant) return prev;
             
-            const shouldGroupUpdate = (prev.all_sizes_available === true || prev.show_all_variants_by_size === false) 
-                && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default');
+            // If "Show all variants" is unchecked, inventory_quantity is common for all variants with same metal
+            // If "Show all variants" is checked, inventory_quantity is separate for each variant
+            const shouldGroupUpdate = (prev.show_all_variants_by_size === false) 
+                && (field === 'inventory_quantity');
             
-            if (shouldGroupUpdate) {
+            // For sku, label, is_default: group when all_sizes_available OR show_all_variants_by_size is false
+            const shouldGroupOtherFields = (prev.all_sizes_available === true || prev.show_all_variants_by_size === false) 
+                && (field === 'sku' || field === 'label' || field === 'is_default');
+            
+            if (shouldGroupUpdate || shouldGroupOtherFields) {
                 const targetMetals = (targetVariant.metals || []).filter(
                     (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                 );
@@ -1843,9 +1853,9 @@ export default function AdminProductEdit() {
             const targetVariant = prev[variantIndex];
             if (!targetVariant) return prev;
             
-            // If grouped by metal (all_sizes_available === true OR show_all_variants_by_size === false)
-            // update all variants with same metal
-            const shouldGroupUpdate = data.all_sizes_available === true || data.show_all_variants_by_size === false;
+            // If "Show all variants" is unchecked, weight is common for all variants with same metal
+            // If "Show all variants" is checked, weight is separate for each variant
+            const shouldGroupUpdate = data.show_all_variants_by_size === false;
             
             if (shouldGroupUpdate) {
                 const targetMetals = (targetVariant.metals || []).filter(
@@ -1912,7 +1922,9 @@ export default function AdminProductEdit() {
             const targetVariant = (prev.variants || [])[variantIndex];
             if (!targetVariant) return prev;
             
-            const shouldGroupUpdate = prev.all_sizes_available === true || prev.show_all_variants_by_size === false;
+            // If "Show all variants" is unchecked, weight is common for all variants with same metal
+            // If "Show all variants" is checked, weight is separate for each variant
+            const shouldGroupUpdate = prev.show_all_variants_by_size === false;
             
             if (shouldGroupUpdate) {
                 const targetMetals = (targetVariant.metals || []).filter(
@@ -2123,7 +2135,75 @@ export default function AdminProductEdit() {
             if (variantsToUse && Array.isArray(variantsToUse) && variantsToUse.length > 0) {
                 const diamondSelections = formState.diamond_selections || [];
                 
-                payload.variants = variantsToUse.map((variant: any) => {
+                // Create a deep copy of variants to avoid mutating the original
+                let processedVariants = variantsToUse.map((variant: any) => ({
+                    ...variant,
+                    metals: variant.metals ? variant.metals.map((m: any) => ({ ...m })) : [],
+                    diamonds: variant.diamonds ? variant.diamonds.map((d: any) => ({ ...d })) : [],
+                }));
+                
+                // If "Show all variants" is unchecked, apply weight and inventory_quantity to all variants with same metal
+                if (formState.show_all_variants_by_size === false) {
+                    // Group variants by metal configuration
+                    const variantGroups = new Map<string, any[]>();
+                    
+                    processedVariants.forEach((variant: any) => {
+                        const variantMetals = (variant.metals || []).filter(
+                            (m: any) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                        );
+                        const metalsKey = variantMetals
+                            .map((m: any) => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                            .sort()
+                            .join('|');
+                        
+                        if (!variantGroups.has(metalsKey)) {
+                            variantGroups.set(metalsKey, []);
+                        }
+                        variantGroups.get(metalsKey)!.push(variant);
+                    });
+                    
+                    // For each group, apply weight and inventory_quantity from first variant to all variants
+                    variantGroups.forEach((group) => {
+                        if (group.length > 1) {
+                            // Get weight and inventory_quantity from first variant in group
+                            const firstVariant = group[0];
+                            const firstVariantMetals = (firstVariant.metals || []).filter(
+                                (m: any) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                            );
+                            
+                            // Create a map of metal weights by metal configuration
+                            const metalWeightsMap = new Map<string, string>();
+                            firstVariantMetals.forEach((metal: any) => {
+                                const metalKey = `${metal.metal_id}-${metal.metal_purity_id || 'null'}-${metal.metal_tone_id || 'null'}`;
+                                metalWeightsMap.set(metalKey, metal.metal_weight || '');
+                            });
+                            
+                            const commonInventory = firstVariant.inventory_quantity !== undefined && firstVariant.inventory_quantity !== null && firstVariant.inventory_quantity !== ''
+                                ? firstVariant.inventory_quantity
+                                : 0;
+                            
+                            // Apply to all variants in the group
+                            group.forEach((variant: any) => {
+                                // Apply weight to matching metals in the variant
+                                if (variant.metals && Array.isArray(variant.metals) && variant.metals.length > 0) {
+                                    variant.metals = variant.metals.map((metal: any) => {
+                                        const metalKey = `${metal.metal_id}-${metal.metal_purity_id || 'null'}-${metal.metal_tone_id || 'null'}`;
+                                        const weight = metalWeightsMap.get(metalKey) || '';
+                                        return {
+                                            ...metal,
+                                            metal_weight: weight,
+                                        };
+                                    });
+                                }
+                                
+                                // Apply inventory_quantity
+                                variant.inventory_quantity = commonInventory;
+                            });
+                        }
+                    });
+                }
+                
+                payload.variants = processedVariants.map((variant: any) => {
                     const formattedVariant = { ...variant };
                     
                     // Ensure inventory_quantity is explicitly included
