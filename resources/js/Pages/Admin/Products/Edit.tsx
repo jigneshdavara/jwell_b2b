@@ -1060,10 +1060,10 @@ export default function AdminProductEdit() {
         titleline: product?.titleline ?? '',
         description: product?.description ?? '',
         catalog_ids: product?.catalog_ids ?? [],
-        subcategory_ids: product?.category_ids ?? [],
+        subcategory_ids: (product?.category_ids ?? []).map(id => Number(id)).filter(id => !isNaN(id) && id > 0),
         brand_id: String(product?.brand_id ?? ''),
         category_id: String(product?.category_id ?? ''),
-        style_ids: product?.style_ids || [],
+        style_ids: (product?.style_ids || []).map(id => Number(id)).filter(id => !isNaN(id) && id > 0),
         collection: product?.collection ?? '',
         producttype: product?.producttype ?? '',
         gender: product?.gender ?? '',
@@ -2251,7 +2251,7 @@ export default function AdminProductEdit() {
             // Handle style_ids (multi-select)
             const styleIds = formState.style_ids || [];
             if (Array.isArray(styleIds) && styleIds.length > 0) {
-                payload.style_ids = styleIds.filter(id => typeof id === 'number' && !isNaN(id));
+                payload.style_ids = styleIds;
             } else {
                 payload.style_ids = [];
             }
