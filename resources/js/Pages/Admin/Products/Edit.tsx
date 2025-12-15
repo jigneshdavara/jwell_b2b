@@ -1215,6 +1215,62 @@ export default function AdminProductEdit() {
     // Client-side validation error for metal selection
     const [metalSelectionError, setMetalSelectionError] = useState<string | null>(null);
 
+    // Initialize generatedMatrixVariants from existing product variants when editing
+    useEffect(() => {
+        if (product?.id && product?.variants && product.variants.length > 0 && generatedMatrixVariants.length === 0) {
+            // Format existing variants to match VariantForm structure
+            const formattedVariants: VariantForm[] = product.variants.map((variant: any) => {
+                // Format metals
+                const formattedMetals: VariantMetalForm[] = (variant.metals || []).map((metal: any) => ({
+                    id: metal.id,
+                    metal_id: metal.metal_id ?? '',
+                    metal_purity_id: metal.metal_purity_id ?? '',
+                    metal_tone_id: metal.metal_tone_id ?? '',
+                    metal_weight: metal.metal_weight ? String(metal.metal_weight) : '',
+                }));
+
+                // Format diamonds
+                const formattedDiamonds: VariantDiamondForm[] = (variant.diamonds || []).map((diamond: any) => ({
+                    id: diamond.id,
+                    diamond_id: diamond.diamond_id ?? '',
+                    diamonds_count: diamond.diamonds_count ? String(diamond.diamonds_count) : '',
+                }));
+
+                return {
+                    id: variant.id,
+                    sku: variant.sku ?? '',
+                    label: variant.label ?? '',
+                    metal_id: variant.metals?.[0]?.metal_id ?? '',
+                    metal_purity_id: variant.metals?.[0]?.metal_purity_id ?? '',
+                    diamond_option_key: variant.metadata?.diamond_option_key ?? null,
+                    size_id: variant.metadata?.size_id ?? variant.size_id ?? null,
+                    is_default: variant.is_default ?? false,
+                    inventory_quantity: variant.inventory_quantity ?? 0,
+                    metadata: variant.metadata ?? {},
+                    metals: formattedMetals,
+                    diamonds: formattedDiamonds,
+                };
+            });
+
+            setGeneratedMatrixVariants(formattedVariants);
+            
+            // Also set the show_all_variants_by_size based on existing variants
+            // If all variants have the same metal configuration but different sizes, it was likely "show all"
+            if (product.variants && product.variants.length > 1) {
+                const hasMultipleSizes = product.variants.some((v: any) => 
+                    v.metadata?.size_id && v.metadata.size_id !== product.variants?.[0]?.metadata?.size_id
+                );
+                // If variants have different sizes, it was likely "show all variants by size"
+                if (hasMultipleSizes) {
+                    setGeneratedShowAllVariantsBySize(true);
+                } else {
+                    setGeneratedShowAllVariantsBySize(false);
+                }
+            } else {
+                setGeneratedShowAllVariantsBySize(true);
+            }
+        }
+    }, [product?.id, product?.variants]);
 
     const formatDecimal = (value: number): string => {
         if (!Number.isFinite(value)) {
@@ -1459,7 +1515,7 @@ export default function AdminProductEdit() {
         });
     };
 
-    const removeVariant = (index: number) => {
+    const removeVariant = (index: number, variant?: VariantForm) => {
         // Update generatedMatrixVariants if it's being used (what's displayed in table)
         if (generatedMatrixVariants.length > 0) {
             if (generatedMatrixVariants.length === 1) {
@@ -1468,10 +1524,54 @@ export default function AdminProductEdit() {
             }
 
             setGeneratedMatrixVariants((prev) => {
-                const remaining = prev.filter((_, idx: number) => idx !== index);
+                let remaining: VariantForm[];
+                
+                // If variant object is provided, use it to find the exact variant to remove
+                // This is more reliable than using index, especially when variants are grouped
+                if (variant) {
+                    // Find variant by comparing key properties (id, sku, label, metals)
+                    remaining = prev.filter((v) => {
+                        // If both have IDs, compare by ID
+                        if (variant.id && v.id && variant.id === v.id) {
+                            return false;
+                        }
+                        
+                        // Compare by SKU if available
+                        if (variant.sku && v.sku && variant.sku === v.sku) {
+                            return false;
+                        }
+                        
+                        // Compare by label and metals to ensure it's the same variant
+                        if (variant.label && v.label && variant.label === v.label) {
+                            // Also compare metals to ensure it's the same variant
+                            const variantMetalsKey = JSON.stringify((variant.metals || []).map(m => ({
+                                metal_id: m.metal_id,
+                                metal_purity_id: m.metal_purity_id,
+                                metal_tone_id: m.metal_tone_id,
+                            })).sort());
+                            const vMetalsKey = JSON.stringify((v.metals || []).map(m => ({
+                                metal_id: m.metal_id,
+                                metal_purity_id: m.metal_purity_id,
+                                metal_tone_id: m.metal_tone_id,
+                            })).sort());
+                            if (variantMetalsKey === vMetalsKey) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+                    
+                    // If no match found by variant object, fall back to index
+                    if (remaining.length === prev.length) {
+                        remaining = prev.filter((_, idx: number) => idx !== index);
+                    }
+                } else {
+                    // Fall back to index-based removal
+                    remaining = prev.filter((_, idx: number) => idx !== index);
+                }
                 
                 // Ensure at least one variant is marked as default
-                if (remaining.every((variant) => !variant.is_default) && remaining.length > 0) {
+                if (remaining.every((v) => !v.is_default) && remaining.length > 0) {
                     remaining[0].is_default = true;
                 }
 
@@ -2514,6 +2614,7 @@ export default function AdminProductEdit() {
                                         value={data.sku}
                                         onChange={(event) => setData('sku', event.target.value)}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        placeholder="Enter SKU"
                                     />
                                     {errors.sku && <span className="text-xs text-rose-500">{errors.sku}</span>}
                                 </label>
@@ -2524,6 +2625,7 @@ export default function AdminProductEdit() {
                                         value={data.name}
                                         onChange={(event) => setData('name', event.target.value)}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        placeholder="Enter product name"
                                     />
                                     {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
                                 </label>
@@ -3760,7 +3862,7 @@ export default function AdminProductEdit() {
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
                                                         type="button"
-                                                        onClick={() => removeVariant(index)}
+                                                        onClick={() => removeVariant(index, variant)}
                                                         className="inline-flex items-center justify-center rounded-full border border-rose-200 p-1.5 text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
                                                         aria-label="Remove variant"
                                                         title="Remove Variant"
