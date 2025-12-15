@@ -442,9 +442,10 @@ export default function ProductDetailsPanel({
                             </button>
                             {expandedSections.has('description') && (
                                 <div className="px-6 pb-6">
-                                    <div className="text-sm text-gray-700 leading-relaxed">
-                                        {productDescription}
-                                    </div>
+                                    <div 
+                                        className="text-sm text-gray-700 leading-relaxed"
+                                        dangerouslySetInnerHTML={{ __html: productDescription || '' }}
+                                    />
                                 </div>
                             )}
                         </div>
