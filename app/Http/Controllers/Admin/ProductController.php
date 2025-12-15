@@ -273,8 +273,9 @@ class ProductController extends Controller
                 $metadata['size_dimension'] = $sizeDimension;
             }
 
-            if ($sizeDimension) {
-                $metadata['size_dimension'] = $sizeDimension;
+            // Preserve show_all_variants_by_size if provided
+            if (isset($metadata['show_all_variants_by_size'])) {
+                $metadata['show_all_variants_by_size'] = (bool) $metadata['show_all_variants_by_size'];
             }
 
             $data['metadata'] = !empty($metadata) ? $metadata : null;

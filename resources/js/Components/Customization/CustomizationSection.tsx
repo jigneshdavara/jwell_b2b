@@ -31,12 +31,23 @@ interface Props {
     configurationOptions: ConfigurationOption[];
     selectedVariantId: number | null;
     onVariantChange: (id: number | null) => void;
+    onSelectionStateChange?: (state: { metalId: number | ""; purityId: number | ""; toneId: number | ""; size: string; hasSize: boolean }) => void;
+    validationErrors?: {
+        metal?: string;
+        purity?: string;
+        tone?: string;
+        size?: string;
+    };
+    onClearValidationError?: (field: 'metal' | 'purity' | 'tone' | 'size') => void;
 }
 
 export default function CustomizationSection({
     configurationOptions,
     selectedVariantId,
     onVariantChange,
+    onSelectionStateChange,
+    validationErrors,
+    onClearValidationError,
 }: Props) {
     const [metalId, setMetalId] = useState<number | "">("");
     const [purityId, setPurityId] = useState<number | "">("");
@@ -62,10 +73,15 @@ export default function CustomizationSection({
         [selectedVariantId, configurationOptions]
     );
 
+    // Track if this is the initial load - only populate once
+    const [hasInitialized, setHasInitialized] = useState(false);
+
     useEffect(() => {
-        if (!selectedConfig) return;
+        if (!selectedConfig || hasInitialized) return;
 
         const metal = selectedConfig.metals[0];
+        
+        // Set default values on initial load only
         setMetalId(metal.metalId);
         setPurityId(metal.metalPurityId ?? "");
         setToneId(metal.metalToneId ?? "");
@@ -79,11 +95,31 @@ export default function CustomizationSection({
                     : "");
             setSize(s);
         }
-    }, [selectedConfig, hasSize]);
+
+        if (onSelectionStateChange) {
+            const s = hasSize
+                ? (selectedConfig.size?.value ||
+                    selectedConfig.size?.name ||
+                    (selectedConfig.metadata?.size_value
+                        ? `${selectedConfig.metadata.size_value}${selectedConfig.metadata.size_unit || "cm"}`
+                        : ""))
+                : "";
+            onSelectionStateChange({
+                metalId: metal.metalId,
+                purityId: metal.metalPurityId ?? "",
+                toneId: metal.metalToneId ?? "",
+                size: s,
+                hasSize,
+            });
+        }
+        
+        setHasInitialized(true);
+    }, [selectedConfig, hasSize, onSelectionStateChange, hasInitialized]);
 
     /* ---------- Available dropdowns ---------- */
 
-    const availableMetals = useMemo(() => {
+    // All available metals (not filtered) - for display count
+    const allAvailableMetals = useMemo(() => {
         const map = new Map<number, string>();
         configurationOptions.forEach((c) =>
             c.metals.forEach((m) => {
@@ -95,28 +131,74 @@ export default function CustomizationSection({
         return [...map.entries()];
     }, [configurationOptions]);
 
-    const availablePurities = useMemo(() => {
-        if (!metalId) return [];
+    const availableMetals = useMemo(() => {
         const map = new Map<number, string>();
         configurationOptions.forEach((c) =>
             c.metals.forEach((m) => {
-                if (m.metalId === metalId && m.metalPurityId) {
+                // Always show all metals, not filtered by purity or tone
+                if (!map.has(m.metalId)) {
+                    map.set(m.metalId, m.metalName || "Metal");
+                }
+            })
+        );
+        return [...map.entries()];
+    }, [configurationOptions]);
+
+    // All available purities (not filtered) - for display count
+    const allAvailablePurities = useMemo(() => {
+        const map = new Map<number, string>();
+        configurationOptions.forEach((c) =>
+            c.metals.forEach((m) => {
+                if (m.metalPurityId) {
                     map.set(m.metalPurityId, m.purityName || "Purity");
                 }
             })
         );
         return [...map.entries()];
-    }, [metalId, configurationOptions]);
+    }, [configurationOptions]);
 
-    const availableTones = useMemo(() => {
-        if (!metalId || !purityId) return [];
+    const availablePurities = useMemo(() => {
         const map = new Map<number, string>();
         configurationOptions.forEach((c) =>
             c.metals.forEach((m) => {
+                // Filter by metal if selected, or by tone if selected
+                // Otherwise show all purities
                 if (
-                    m.metalId === metalId &&
-                    m.metalPurityId === purityId &&
-                    m.metalToneId
+                    m.metalPurityId &&
+                    (!metalId || m.metalId === metalId) &&
+                    (!toneId || m.metalToneId === toneId)
+                ) {
+                    map.set(m.metalPurityId, m.purityName || "Purity");
+                }
+            })
+        );
+        return [...map.entries()];
+    }, [metalId, toneId, configurationOptions]);
+
+    // All available tones (not filtered) - for display count
+    const allAvailableTones = useMemo(() => {
+        const map = new Map<number, string>();
+        configurationOptions.forEach((c) =>
+            c.metals.forEach((m) => {
+                if (m.metalToneId) {
+                    map.set(m.metalToneId, m.toneName || "Tone");
+                }
+            })
+        );
+        return [...map.entries()];
+    }, [configurationOptions]);
+
+    const availableTones = useMemo(() => {
+        const map = new Map<number, string>();
+        configurationOptions.forEach((c) =>
+            c.metals.forEach((m) => {
+                // Show all tones if no metal selected
+                // If metal selected, filter by metal
+                // If purity also selected, filter by metal + purity
+                if (
+                    m.metalToneId &&
+                    (!metalId || m.metalId === metalId) &&
+                    (!purityId || m.metalPurityId === purityId)
                 ) {
                     map.set(m.metalToneId, m.toneName || "Tone");
                 }
@@ -125,16 +207,36 @@ export default function CustomizationSection({
         return [...map.entries()];
     }, [metalId, purityId, configurationOptions]);
 
-    const availableSizes = useMemo(() => {
-        if (!hasSize || !metalId || !purityId || !toneId) return [];
+    // All available sizes (not filtered) - for display count
+    const allAvailableSizes = useMemo(() => {
+        if (!hasSize) return [];
         const sizes = new Set<string>();
 
         configurationOptions.forEach((c) => {
+            if (c.size?.value || c.size?.name)
+                sizes.add(c.size.value || c.size.name);
+
+            if (c.metadata?.size_value)
+                sizes.add(
+                    `${c.metadata.size_value}${c.metadata.size_unit || "cm"}`
+                );
+        });
+
+        return [...sizes];
+    }, [hasSize, configurationOptions]);
+
+    const availableSizes = useMemo(() => {
+        if (!hasSize) return [];
+        const sizes = new Set<string>();
+
+        configurationOptions.forEach((c) => {
+            // Match by metal if selected, then filter by purity if selected, then by tone if selected
+            // If no metal selected, show all sizes
             const match = c.metals.some(
                 (m) =>
-                    m.metalId === metalId &&
-                    m.metalPurityId === purityId &&
-                    m.metalToneId === toneId
+                    (!metalId || m.metalId === metalId) &&
+                    (!purityId || m.metalPurityId === purityId) &&
+                    (!toneId || m.metalToneId === toneId)
             );
             if (!match) return;
 
@@ -196,74 +298,308 @@ export default function CustomizationSection({
                 Customization
             </h3>
 
-            <select
-                value={metalId}
-                onChange={(e) => {
-                    setMetalId(Number(e.target.value));
-                    setPurityId("");
-                    setToneId("");
-                    setSize("");
-                }}
-                className="w-full rounded-2xl border border-elvee-blue/20 bg-white px-4 py-2.5 text-sm font-medium text-elvee-blue transition-all focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 hover:border-elvee-blue/40"
-            >
-                <option value="">Select Metal</option>
-                {availableMetals.map(([id, name]) => (
-                    <option key={id} value={id}>
-                        {name}
-                    </option>
-                ))}
-            </select>
-
-            {metalId && (
+            <div>
                 <select
-                    value={purityId}
+                    value={metalId === "" ? "" : metalId}
                     onChange={(e) => {
-                        setPurityId(Number(e.target.value));
+                        const value = e.target.value;
+                        const selectedMetalId = value === "" ? "" : Number(value);
+                        
+                        // Check if current size is still valid for the new metal
+                        let keepSize = false;
+                        if (size !== "" && selectedMetalId !== "" && hasSize) {
+                            keepSize = configurationOptions.some((c) => {
+                                const metalMatch = c.metals.some((m) => m.metalId === selectedMetalId);
+                                if (!metalMatch) return false;
+                                
+                                const s = c.size?.value || c.size?.name ||
+                                    (c.metadata?.size_value
+                                        ? `${c.metadata.size_value}${c.metadata.size_unit || "cm"}`
+                                        : "");
+                                return s === size;
+                            });
+                        }
+                        
+                        setMetalId(selectedMetalId);
+                        setPurityId("");
                         setToneId("");
-                        setSize("");
+                        // Only clear size if it's not valid for the new metal
+                        if (!keepSize) {
+                            setSize("");
+                        }
+                        if (value !== "" && onClearValidationError) {
+                            onClearValidationError('metal');
+                        }
+                        if (onSelectionStateChange) {
+                            onSelectionStateChange({
+                                metalId: selectedMetalId,
+                                purityId: "",
+                                toneId: "",
+                                size: keepSize ? size : "",
+                                hasSize,
+                            });
+                        }
                     }}
-                    className="w-full rounded-2xl border border-elvee-blue/20 bg-white px-4 py-2.5 text-sm font-medium text-elvee-blue transition-all focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 hover:border-elvee-blue/40"
+                    className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 ${
+                        validationErrors?.metal
+                            ? "border-rose-300 bg-rose-50 text-rose-700 focus:border-rose-400 focus:ring-rose-400/20"
+                            : "border-elvee-blue/20 bg-white text-elvee-blue focus:border-feather-gold focus:ring-feather-gold/20 hover:border-elvee-blue/40"
+                    }`}
+                >
+                    <option value="">Select Metal</option>
+                    {availableMetals.length > 0 ? (
+                        availableMetals.map(([id, name]) => (
+                            <option key={id} value={id}>
+                                {name}
+                            </option>
+                        ))
+                    ) : (
+                        <option value="" disabled>Not available</option>
+                    )}
+                </select>
+                {validationErrors?.metal && (
+                    <p className="mt-1 text-xs text-rose-600">{validationErrors.metal}</p>
+                )}
+            </div>
+
+            <div>
+                <select
+                    value={purityId === "" ? "" : purityId}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        const selectedPurityId = value === "" ? "" : Number(value);
+                        
+                        // Auto-select metal based on selected purity
+                        let foundMetalId: number | "" = "";
+                        if (selectedPurityId !== "") {
+                            // Find which metal this purity belongs to
+                            for (const c of configurationOptions) {
+                                for (const m of c.metals) {
+                                    if (m.metalPurityId === selectedPurityId) {
+                                        foundMetalId = m.metalId;
+                                        break;
+                                    }
+                                }
+                                if (foundMetalId !== "") break;
+                            }
+                            
+                            // Auto-select the metal if found and different from current
+                            if (foundMetalId !== "" && foundMetalId !== metalId) {
+                                setMetalId(foundMetalId);
+                            }
+                        }
+                        
+                        // Check if current tone is still valid for the new purity
+                        let keepTone = false;
+                        if (toneId !== "" && selectedPurityId !== "") {
+                            // Check if the current tone exists with the new purity
+                            keepTone = configurationOptions.some((c) =>
+                                c.metals.some(
+                                    (m) =>
+                                        m.metalToneId === toneId &&
+                                        m.metalPurityId === selectedPurityId &&
+                                        (!foundMetalId || m.metalId === foundMetalId)
+                                )
+                            );
+                        }
+                        
+                        setPurityId(selectedPurityId);
+                        // Only clear tone if it's not valid for the new purity
+                        if (!keepTone) {
+                            setToneId("");
+                        }
+                        
+                        // Check if current size is still valid for the new purity
+                        let keepSize = false;
+                        if (size !== "" && selectedPurityId !== "" && hasSize) {
+                            keepSize = configurationOptions.some((c) => {
+                                const match = c.metals.some(
+                                    (m) =>
+                                        m.metalPurityId === selectedPurityId &&
+                                        (!foundMetalId || m.metalId === foundMetalId) &&
+                                        (!keepTone || m.metalToneId === toneId)
+                                );
+                                if (!match) return false;
+                                
+                                const s = c.size?.value || c.size?.name ||
+                                    (c.metadata?.size_value
+                                        ? `${c.metadata.size_value}${c.metadata.size_unit || "cm"}`
+                                        : "");
+                                return s === size;
+                            });
+                        }
+                        
+                        // Only clear size if it's not valid for the new purity
+                        if (!keepSize) {
+                            setSize("");
+                        }
+                        if (value !== "" && onClearValidationError) {
+                            onClearValidationError('purity');
+                        }
+                        if (onSelectionStateChange) {
+                            onSelectionStateChange({
+                                metalId: foundMetalId !== "" ? foundMetalId : metalId,
+                                purityId: selectedPurityId,
+                                toneId: keepTone ? toneId : "",
+                                size: keepSize ? size : "",
+                                hasSize,
+                            });
+                        }
+                    }}
+                    className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 ${
+                        validationErrors?.purity
+                            ? "border-rose-300 bg-rose-50 text-rose-700 focus:border-rose-400 focus:ring-rose-400/20"
+                            : "border-elvee-blue/20 bg-white text-elvee-blue focus:border-feather-gold focus:ring-feather-gold/20 hover:border-elvee-blue/40"
+                    }`}
                 >
                     <option value="">Select Purity</option>
-                    {availablePurities.map(([id, name]) => (
-                        <option key={id} value={id}>
-                            {name}
-                        </option>
-                    ))}
+                    {availablePurities.length > 0 ? (
+                        availablePurities.map(([id, name]) => (
+                            <option key={id} value={id}>
+                                {name}
+                            </option>
+                        ))
+                    ) : (
+                        <option value="">Not available</option>
+                    )}
                 </select>
-            )}
+                {validationErrors?.purity && (
+                    <p className="mt-1 text-xs text-rose-600">{validationErrors.purity}</p>
+                )}
+            </div>
 
-            {purityId && (
+            <div>
                 <select
-                    value={toneId}
+                    value={toneId === "" ? "" : toneId}
                     onChange={(e) => {
-                        setToneId(Number(e.target.value));
-                        setSize("");
+                        const value = e.target.value;
+                        const selectedToneId = value === "" ? "" : Number(value);
+                        
+                        // Auto-select metal and purity based on selected tone
+                        let foundMetalId: number | "" = "";
+                        let foundPurityId: number | "" = "";
+                        if (selectedToneId !== "") {
+                            // Find which metal and purity this tone belongs to
+                            for (const c of configurationOptions) {
+                                for (const m of c.metals) {
+                                    if (m.metalToneId === selectedToneId) {
+                                        foundMetalId = m.metalId;
+                                        foundPurityId = m.metalPurityId ?? "";
+                                        break;
+                                    }
+                                }
+                                if (foundMetalId !== "") break;
+                            }
+                            
+                            // Auto-select the metal and purity if found
+                            if (foundMetalId !== "" && foundMetalId !== metalId) {
+                                setMetalId(foundMetalId);
+                            }
+                            if (foundPurityId !== "" && foundPurityId !== purityId) {
+                                setPurityId(foundPurityId);
+                            }
+                        }
+                        
+                        // Check if current size is still valid for the new tone
+                        let keepSize = false;
+                        if (size !== "" && selectedToneId !== "" && hasSize) {
+                            keepSize = configurationOptions.some((c) => {
+                                const match = c.metals.some(
+                                    (m) =>
+                                        m.metalToneId === selectedToneId &&
+                                        (!metalId || m.metalId === metalId) &&
+                                        (!purityId || m.metalPurityId === purityId)
+                                );
+                                if (!match) return false;
+                                
+                                const s = c.size?.value || c.size?.name ||
+                                    (c.metadata?.size_value
+                                        ? `${c.metadata.size_value}${c.metadata.size_unit || "cm"}`
+                                        : "");
+                                return s === size;
+                            });
+                        }
+                        
+                        setToneId(selectedToneId);
+                        // Only clear size if it's not valid for the new tone
+                        if (!keepSize) {
+                            setSize("");
+                        }
+                        if (value !== "" && onClearValidationError) {
+                            onClearValidationError('tone');
+                        }
+                        if (onSelectionStateChange) {
+                            onSelectionStateChange({
+                                metalId: foundMetalId !== "" ? foundMetalId : metalId,
+                                purityId: foundPurityId !== "" ? foundPurityId : purityId,
+                                toneId: selectedToneId,
+                                size: keepSize ? size : "",
+                                hasSize,
+                            });
+                        }
                     }}
-                    className="w-full rounded-2xl border border-elvee-blue/20 bg-white px-4 py-2.5 text-sm font-medium text-elvee-blue transition-all focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 hover:border-elvee-blue/40"
+                    className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 ${
+                        validationErrors?.tone
+                            ? "border-rose-300 bg-rose-50 text-rose-700 focus:border-rose-400 focus:ring-rose-400/20"
+                            : "border-elvee-blue/20 bg-white text-elvee-blue focus:border-feather-gold focus:ring-feather-gold/20 hover:border-elvee-blue/40"
+                    }`}
                 >
                     <option value="">Select Tone</option>
-                    {availableTones.map(([id, name]) => (
-                        <option key={id} value={id}>
-                            {name}
-                        </option>
-                    ))}
+                    {availableTones.length > 0 ? (
+                        availableTones.map(([id, name]) => (
+                            <option key={id} value={id}>
+                                {name}
+                            </option>
+                        ))
+                    ) : (
+                        <option value="">Not available</option>
+                    )}
                 </select>
-            )}
+                {validationErrors?.tone && (
+                    <p className="mt-1 text-xs text-rose-600">{validationErrors.tone}</p>
+                )}
+            </div>
 
-            {hasSize && toneId && (
-                <select
-                    value={size}
-                    onChange={(e) => setSize(e.target.value)}
-                    className="w-full rounded-2xl border border-elvee-blue/20 bg-white px-4 py-2.5 text-sm font-medium text-elvee-blue transition-all focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 hover:border-elvee-blue/40"
-                >
-                    <option value="">Select Size</option>
-                    {availableSizes.map((s) => (
-                        <option key={s} value={s}>
-                            {s}
-                        </option>
-                    ))}
-                </select>
+            {hasSize && (
+                <div>
+                    <select
+                        value={size}
+                        onChange={(e) => {
+                            setSize(e.target.value);
+                            if (e.target.value !== "" && onClearValidationError) {
+                                onClearValidationError('size');
+                            }
+                            if (onSelectionStateChange) {
+                                onSelectionStateChange({
+                                    metalId,
+                                    purityId,
+                                    toneId,
+                                    size: e.target.value,
+                                    hasSize,
+                                });
+                            }
+                        }}
+                        className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 ${
+                            validationErrors?.size
+                                ? "border-rose-300 bg-rose-50 text-rose-700 focus:border-rose-400 focus:ring-rose-400/20"
+                                : "border-elvee-blue/20 bg-white text-elvee-blue focus:border-feather-gold focus:ring-feather-gold/20 hover:border-elvee-blue/40"
+                        }`}
+                    >
+                        <option value="">Select Size</option>
+                        {availableSizes.length > 0 ? (
+                            availableSizes.map((s) => (
+                                <option key={s} value={s}>
+                                    {s}
+                                </option>
+                            ))
+                        ) : (
+                            <option value="">Not available</option>
+                        )}
+                    </select>
+                    {validationErrors?.size && (
+                        <p className="mt-1 text-xs text-rose-600">{validationErrors.size}</p>
+                    )}
+                </div>
             )}
         </div>
     );

@@ -88,6 +88,8 @@ export default function ProductDetailsPanel({
                 if (!isNaN(parsed) && parsed > 0) {
                     grossMetalWeight =
                         parsed % 1 === 0 ? `${parsed.toFixed(0)} g` : `${parsed.toFixed(2)} g`;
+                } else if (parsed === 0) {
+                    grossMetalWeight = '—';
                 }
             }
 

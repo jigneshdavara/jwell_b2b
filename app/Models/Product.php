@@ -27,6 +27,7 @@ class Product extends Model
         'making_charge_amount',
         'making_charge_percentage',
         'is_active',
+        'metadata',
     ];
 
     protected $casts = [

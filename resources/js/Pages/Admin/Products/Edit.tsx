@@ -57,6 +57,7 @@ type Product = {
     making_charge_amount?: number | string;
     making_charge_percentage?: number | string;
     is_active?: boolean;
+    metadata?: Record<string, any> | null;
     media?: ProductMedia[];
     variants?: Array<{
         id?: number;
@@ -1060,10 +1061,10 @@ export default function AdminProductEdit() {
         titleline: product?.titleline ?? '',
         description: product?.description ?? '',
         catalog_ids: product?.catalog_ids ?? [],
-        subcategory_ids: product?.category_ids ?? [],
+        subcategory_ids: (product?.category_ids ?? []).map(id => Number(id)).filter(id => !isNaN(id) && id > 0),
         brand_id: String(product?.brand_id ?? ''),
         category_id: String(product?.category_id ?? ''),
-        style_ids: product?.style_ids || [],
+        style_ids: (product?.style_ids || []).map(id => Number(id)).filter(id => !isNaN(id) && id > 0),
         collection: product?.collection ?? '',
         producttype: product?.producttype ?? '',
         gender: product?.gender ?? '',
@@ -1162,6 +1163,7 @@ export default function AdminProductEdit() {
             }
             return [];
         })(),
+        show_all_variants_by_size: product?.metadata?.show_all_variants_by_size ?? true,
         media_uploads: [],
         removed_media_ids: [],
     }) as Record<string, any>);
@@ -1256,19 +1258,7 @@ export default function AdminProductEdit() {
             
             // Also set the show_all_variants_by_size based on existing variants
             // If all variants have the same metal configuration but different sizes, it was likely "show all"
-            if (product.variants && product.variants.length > 1) {
-                const hasMultipleSizes = product.variants.some((v: any) => 
-                    v.metadata?.size_id && v.metadata.size_id !== product.variants?.[0]?.metadata?.size_id
-                );
-                // If variants have different sizes, it was likely "show all variants by size"
-                if (hasMultipleSizes) {
-                    setGeneratedShowAllVariantsBySize(true);
-                } else {
-                    setGeneratedShowAllVariantsBySize(false);
-                }
-            } else {
-                setGeneratedShowAllVariantsBySize(true);
-            }
+            setGeneratedShowAllVariantsBySize(product?.metadata?.show_all_variants_by_size ?? true);
         }
     }, [product?.id, product?.variants]);
 
@@ -1515,6 +1505,34 @@ export default function AdminProductEdit() {
         });
     };
 
+    // Helper function to generate a unique key for a variant
+    const getVariantUniqueKey = (v: VariantForm): string => {
+        // Use ID if available (most reliable)
+        if (v.id) {
+            return `id:${v.id}`;
+        }
+        
+        // Use SKU if available
+        if (v.sku && v.sku.trim()) {
+            return `sku:${v.sku}`;
+        }
+        
+        // Generate composite key from distinguishing properties
+        const metalsKey = JSON.stringify((v.metals || []).map(m => ({
+            metal_id: m.metal_id,
+            metal_purity_id: m.metal_purity_id,
+            metal_tone_id: m.metal_tone_id,
+        })).sort());
+        
+        const variantMetadata = (v.metadata ?? {}) as Record<string, any>;
+        const sizeId = v.size_id ?? variantMetadata.size_id ?? null;
+        const diamondOptionKey = v.diamond_option_key ?? variantMetadata.diamond_option_key ?? null;
+        const colorstoneOptionKey = variantMetadata.colorstone_option_key ?? null;
+        
+        // Create a unique key combining all distinguishing properties
+        return `composite:${metalsKey}:size:${sizeId}:diamond:${diamondOptionKey}:colorstone:${colorstoneOptionKey}:label:${v.label || ''}`;
+    };
+
     const removeVariant = (index: number, variant?: VariantForm) => {
         // Update generatedMatrixVariants if it's being used (what's displayed in table)
         if (generatedMatrixVariants.length > 0) {
@@ -1529,36 +1547,14 @@ export default function AdminProductEdit() {
                 // If variant object is provided, use it to find the exact variant to remove
                 // This is more reliable than using index, especially when variants are grouped
                 if (variant) {
-                    // Find variant by comparing key properties (id, sku, label, metals)
+                    // Generate unique key for the variant to remove
+                    const targetKey = getVariantUniqueKey(variant);
+                    
+                    // Filter out the variant that matches the unique key
                     remaining = prev.filter((v) => {
-                        // If both have IDs, compare by ID
-                        if (variant.id && v.id && variant.id === v.id) {
-                            return false;
-                        }
-                        
-                        // Compare by SKU if available
-                        if (variant.sku && v.sku && variant.sku === v.sku) {
-                            return false;
-                        }
-                        
-                        // Compare by label and metals to ensure it's the same variant
-                        if (variant.label && v.label && variant.label === v.label) {
-                            // Also compare metals to ensure it's the same variant
-                            const variantMetalsKey = JSON.stringify((variant.metals || []).map(m => ({
-                                metal_id: m.metal_id,
-                                metal_purity_id: m.metal_purity_id,
-                                metal_tone_id: m.metal_tone_id,
-                            })).sort());
-                            const vMetalsKey = JSON.stringify((v.metals || []).map(m => ({
-                                metal_id: m.metal_id,
-                                metal_purity_id: m.metal_purity_id,
-                                metal_tone_id: m.metal_tone_id,
-                            })).sort());
-                            if (variantMetalsKey === vMetalsKey) {
-                                return false;
-                            }
-                        }
-                        return true;
+                        const variantKey = getVariantUniqueKey(v);
+                        // Keep variants that don't match the target key
+                        return variantKey !== targetKey;
                     });
                     
                     // If no match found by variant object, fall back to index
@@ -2189,6 +2185,12 @@ export default function AdminProductEdit() {
             const formState = current as FormData;
             const payload: any = { ...formState };
             
+            // Get the current show_all_variants_by_size value from form state
+            // Check both the current formState and the reactive data to ensure we get the latest checkbox value
+            const showAllVariantsBySizeValue = generatedMatrixVariants.length > 0 
+            ? (generatedShowAllVariantsBySize ?? false) 
+            : false;
+
             // Only use variants if matrix has been explicitly generated (user clicked "Generate Matrix")
             // If generatedMatrixVariants is empty, don't include variants in payload
             let variantsToUse: VariantForm[] = [];
@@ -2251,7 +2253,7 @@ export default function AdminProductEdit() {
             // Handle style_ids (multi-select)
             const styleIds = formState.style_ids || [];
             if (Array.isArray(styleIds) && styleIds.length > 0) {
-                payload.style_ids = styleIds.filter(id => typeof id === 'number' && !isNaN(id));
+                payload.style_ids = styleIds;
             } else {
                 payload.style_ids = [];
             }
@@ -2292,8 +2294,17 @@ export default function AdminProductEdit() {
 
             payload.is_active = formState.is_active ?? true;
 
-            delete payload.metadata;
-
+            // Prepare metadata object with show_all_variants_by_size
+            // Always set show_all_variants_by_size in metadata, using the current value from form data
+            // This ensures the checkbox state is saved even if "Generate Matrix" wasn't clicked
+            const metadata: Record<string, any> = {};
+            metadata.show_all_variants_by_size = showAllVariantsBySizeValue;
+            
+            if (Object.keys(metadata).length > 0) {
+                payload.metadata = metadata;
+            } else {
+                delete payload.metadata;
+            }
             if (!payload.media_uploads || (Array.isArray(payload.media_uploads) && payload.media_uploads.length === 0)) {
                 delete payload.media_uploads;
             }
@@ -2982,7 +2993,7 @@ export default function AdminProductEdit() {
                     </div>
 
                     <div className="mt-6 space-y-6">
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            {/* <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                 <h3 className="text-sm font-semibold text-slate-900 mb-2">Variant Configuration Options</h3>
                                 <p className="text-xs text-slate-600 mb-4">
                                     Use the configuration buttons in the variant table below to add metals (with purity and tone) and diamonds to each variant.
@@ -3001,7 +3012,7 @@ export default function AdminProductEdit() {
                                         <span className="text-slate-700">Configure Diamonds</span>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
 
                             {(() => {
                                 const categoryId = data.category_id ? Number(data.category_id) : null;

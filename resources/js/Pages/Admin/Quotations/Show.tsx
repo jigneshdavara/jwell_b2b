@@ -1438,9 +1438,6 @@ export default function AdminQuotationShow() {
                                                     value={changeProductMetalId}
                                                     onChange={(e) => {
                                                         setChangeProductMetalId(Number(e.target.value) || "");
-                                                        setChangeProductPurityId("");
-                                                        setChangeProductToneId("");
-                                                        setChangeProductSize("");
                                                     }}
                                                     className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 >
@@ -1460,8 +1457,6 @@ export default function AdminQuotationShow() {
                                                         value={changeProductPurityId}
                                                         onChange={(e) => {
                                                             setChangeProductPurityId(Number(e.target.value) || "");
-                                                            setChangeProductToneId("");
-                                                            setChangeProductSize("");
                                                         }}
                                                         className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                     >
@@ -1482,7 +1477,6 @@ export default function AdminQuotationShow() {
                                                         value={changeProductToneId}
                                                         onChange={(e) => {
                                                             setChangeProductToneId(Number(e.target.value) || "");
-                                                            setChangeProductSize("");
                                                         }}
                                                         className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                     >

@@ -669,25 +669,61 @@ class QuotationController extends Controller
         $previousProduct = $quotation->product->name;
         $newProduct = $product->name;
 
-        $quotation->update([
-            'product_id' => $product->id,
-            'product_variant_id' => $data['product_variant_id'] ?? null,
-            'quantity' => $data['quantity'],
-            'status' => 'pending_customer_confirmation',
-            'admin_notes' => $data['admin_notes'] ?? null,
-        ]);
-
-        $quotation->load(['user', 'product']);
+        // Find all related quotations in the same group
+        $relatedQuotations = $this->getRelatedQuotations($quotation)
+            ->whereIn('status', ['pending', 'approved', 'rejected', 'customer_confirmed'])
+            ->get();
 
         $message = (string) ($data['admin_notes'] ?? "Product changed from '{$previousProduct}' to '{$newProduct}'.");
 
-        $quotation->messages()->create([
-            'user_id' => auth('web')->id(),
-            'sender' => 'admin',
-            'message' => $message,
-        ]);
+        DB::transaction(function () use ($quotation, $data, $product, $relatedQuotations, $message): void {
+            // Prepare update data for main quotation
+            $updateData = [
+                'product_id' => $product->id,
+                'quantity' => $data['quantity'],
+                'status' => 'pending_customer_confirmation',
+                'admin_notes' => $data['admin_notes'] ?? null,
+            ];
+            
+            // Only update product_variant_id if it's explicitly provided and not null/empty
+            // If not provided or null/empty, preserve the existing variant_id
+            if (isset($data['product_variant_id']) && !empty($data['product_variant_id'])) {
+                $updateData['product_variant_id'] = $data['product_variant_id'];
+            } else {
+                // Preserve existing variant_id if not provided or empty
+                $updateData['product_variant_id'] = $quotation->product_variant_id;
+            }
+            
+            // Update the main quotation
+            $quotation->update($updateData);
 
-        // Send confirmation request email to customer
+            // Update all related quotations to pending_customer_confirmation status
+            // IMPORTANT: Only update status and admin_notes, preserve their product_id and product_variant_id
+            foreach ($relatedQuotations as $q) {
+                if ($q->id !== $quotation->id) {
+                    // Preserve existing product_id and product_variant_id, only update status and notes
+                    $q->update([
+                        'status' => 'pending_customer_confirmation',
+                        'admin_notes' => $data['admin_notes'] ?? null,
+                        // Explicitly preserve product_id and product_variant_id
+                        'product_id' => $q->product_id,
+                        'product_variant_id' => $q->product_variant_id ?? null, // Preserve even if null
+                        'quantity' => $q->quantity,
+                    ]);
+                }
+            }
+
+            // Add message to the main quotation
+            $quotation->messages()->create([
+                'user_id' => auth('web')->id(),
+                'sender' => 'admin',
+                'message' => $message,
+            ]);
+        });
+
+        $quotation->load(['user', 'product']);
+
+        // Send confirmation request email to customer (only once for the group)
         if (config('mail.from.address') && $quotation->user->email) {
             Mail::to($quotation->user->email)->send(new QuotationConfirmationRequestMail($quotation, $message));
 
