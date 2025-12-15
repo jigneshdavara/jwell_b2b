@@ -3049,47 +3049,64 @@ export default function AdminProductEdit() {
                                 </div>
                                 {(data.diamond_selections || []).length > 0 ? (
                                     <div className="space-y-3">
-                                        {(data.diamond_selections || []).map((selection, index) => (
-                                            <div key={index} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3">
-                                                <div className="flex-1">
-                                                    <label className="mb-1 block text-xs font-semibold text-slate-600">Diamond</label>
-                                                    <select
-                                                        value={selection.diamond_id === '' ? '' : selection.diamond_id}
-                                                        onChange={(e) => updateDiamondSelection(index, 'diamond_id', e.target.value === '' ? '' : Number(e.target.value))}
-                                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        {(data.diamond_selections || []).map((selection, index) => {
+                                            const isDiamondSelected = selection.diamond_id !== '' && selection.diamond_id !== null && selection.diamond_id !== undefined;
+                                            const isCountEmpty = !selection.count || selection.count.trim() === '' || Number(selection.count) <= 0;
+                                            const hasError = isDiamondSelected && isCountEmpty;
+                                            
+                                            return (
+                                                <div key={index} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                                                    <div className="flex-1">
+                                                        <label className="mb-1 block text-xs font-semibold text-slate-600">Diamond</label>
+                                                        <select
+                                                            value={selection.diamond_id === '' ? '' : selection.diamond_id}
+                                                            onChange={(e) => updateDiamondSelection(index, 'diamond_id', e.target.value === '' ? '' : Number(e.target.value))}
+                                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                        >
+                                                            <option value="">Select diamond</option>
+                                                            {diamonds.map((diamond) => (
+                                                                <option key={diamond.id} value={diamond.id}>
+                                                                    {diamond.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="w-32">
+                                                        <label className="mb-1 block text-xs font-semibold text-slate-600">
+                                                            Count
+                                                            {isDiamondSelected && <span className="ml-1 text-rose-500">*</span>}
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            step="1"
+                                                            required={isDiamondSelected}
+                                                            value={selection.count}
+                                                            onChange={(e) => updateDiamondSelection(index, 'count', e.target.value)}
+                                                            className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                                                                hasError
+                                                                    ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-rose-200'
+                                                                    : 'border-slate-200 focus:border-sky-400 focus:ring-sky-200'
+                                                            }`}
+                                                            placeholder={isDiamondSelected ? "Required" : "0"}
+                                                        />
+                                                        {hasError && (
+                                                            <span className="mt-1 block text-xs text-rose-500">Count is required</span>
+                                                        )}
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeDiamondSelection(index)}
+                                                        className="mt-6 rounded-full border border-rose-200 p-2 text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
+                                                        aria-label="Remove diamond"
                                                     >
-                                                        <option value="">Select diamond</option>
-                                                        {diamonds.map((diamond) => (
-                                                            <option key={diamond.id} value={diamond.id}>
-                                                                {diamond.name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
                                                 </div>
-                                                <div className="w-32">
-                                                    <label className="mb-1 block text-xs font-semibold text-slate-600">Count</label>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="1"
-                                                        value={selection.count}
-                                                        onChange={(e) => updateDiamondSelection(index, 'count', e.target.value)}
-                                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeDiamondSelection(index)}
-                                                    className="mt-6 rounded-full border border-rose-200 p-2 text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
-                                                    aria-label="Remove diamond"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 ) : (
                                     <p className="text-xs text-slate-400">No diamonds added. Click "Add Diamond" to add one.</p>
