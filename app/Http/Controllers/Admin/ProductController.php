@@ -234,6 +234,11 @@ class ProductController extends Controller
             $data['making_charge_percentage'] = null;
         }
 
+        // Handle style_ids - normalize empty arrays to null
+        if (isset($data['style_ids']) && is_array($data['style_ids'])) {
+            $data['style_ids'] = !empty($data['style_ids']) ? array_values(array_filter($data['style_ids'], fn($id) => is_numeric($id))) : null;
+        }
+
         // Handle making charge types - store in metadata
         $makingChargeTypes = $data['making_charge_types'] ?? [];
         if (!empty($makingChargeTypes) && is_array($makingChargeTypes)) {
@@ -247,7 +252,7 @@ class ProductController extends Controller
         if (array_key_exists('metadata', $data) && is_array($data['metadata'])) {
             $metadata = $data['metadata'];
             $sizeDimension = $this->sanitizeSizeDimension($metadata['size_dimension'] ?? null);
-            
+
             if ($sizeDimension) {
                 $metadata['size_dimension'] = $sizeDimension;
             }
@@ -309,7 +314,7 @@ class ProductController extends Controller
             'description' => $product->description,
             'brand_id' => $product->brand_id,
             'category_id' => $product->category_id,
-            'style_id' => $product->style_id,
+            'style_ids' => $product->style_ids ?? [],
             'category_ids' => $product->subcategory_ids ?? [],
             'category' => $product->category ? [
                 'id' => $product->category->id,
