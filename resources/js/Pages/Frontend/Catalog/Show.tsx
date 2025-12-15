@@ -150,6 +150,19 @@ export default function CatalogShow() {
     const [submitting, setSubmitting] = useState(false);
     const [quantityInput, setQuantityInput] = useState<string>("1");
     const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const [selectionState, setSelectionState] = useState<{
+        metalId: number | "";
+        purityId: number | "";
+        toneId: number | "";
+        size: string;
+        hasSize: boolean;
+    } | null>(null);
+    const [validationErrors, setValidationErrors] = useState<{
+        metal?: string;
+        purity?: string;
+        tone?: string;
+        size?: string;
+    }>({});
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxZoom, setLightboxZoom] = useState(1.5);
     const mediaCount = product.media.length;
@@ -229,6 +242,20 @@ export default function CatalogShow() {
             return;
         }
 
+        // Validate selections
+        const errors = validateSelections();
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            return;
+        }
+
+        if (!selectedVariantId) {
+            return;
+        }
+
+        // Clear errors if validation passes
+        setValidationErrors({});
+
         // Directly add to cart without modal
         const payload = {
             product_id: product.id,
@@ -246,6 +273,20 @@ export default function CatalogShow() {
 
     const confirmSubmit = () => {
         if (processing || submitting) return;
+
+        // Validate selections
+        const errors = validateSelections();
+        if (Object.keys(errors).length > 0) {
+            setValidationErrors(errors);
+            return;
+        }
+
+        if (!selectedVariantId) {
+            return;
+        }
+
+        // Clear errors if validation passes
+        setValidationErrors({});
 
         setSubmitting(true);
         post(route("frontend.quotations.store"), {
@@ -335,6 +376,51 @@ export default function CatalogShow() {
 
     const invalidCombination =
         configurationOptions.length > 0 && !selectedConfig;
+
+    // Check if all required dropdowns are selected
+    const isSelectionComplete = useMemo(() => {
+        if (!selectionState) return false;
+        const { metalId, purityId, toneId, size, hasSize } = selectionState;
+        if (!metalId || !purityId || !toneId) return false;
+        if (hasSize && !size) return false;
+        return true;
+    }, [selectionState]);
+
+    // Validate selections and return errors
+    const validateSelections = () => {
+        const errors: { metal?: string; purity?: string; tone?: string; size?: string } = {};
+        
+        if (!selectionState) {
+            errors.metal = "Please select Metal";
+            errors.purity = "Please select Purity";
+            errors.tone = "Please select Tone";
+            // Check if product has sizes from configuration options
+            const hasSize = configurationOptions.some(
+                (opt) => opt.size?.value || opt.size?.name || opt.metadata?.size_value
+            );
+            if (hasSize) {
+                errors.size = "Please select Size";
+            }
+            return errors;
+        }
+
+        const { metalId, purityId, toneId, size, hasSize } = selectionState;
+        
+        if (!metalId) {
+            errors.metal = "Please select Metal";
+        }
+        if (!purityId) {
+            errors.purity = "Please select Purity";
+        }
+        if (!toneId) {
+            errors.tone = "Please select Tone";
+        }
+        if (hasSize && !size) {
+            errors.size = "Please select Size";
+        }
+
+        return errors;
+    };
 
     // Check inventory availability
     const maxQuantity = selectedConfig?.inventory_quantity ?? null;
@@ -455,11 +541,22 @@ export default function CatalogShow() {
 
                             {/* Customization Section */}
                             {configurationOptions.length > 0 && (
-                                <CustomizationSection
-                                    configurationOptions={configurationOptions}
-                                    selectedVariantId={selectedVariantId}
-                                    onVariantChange={setSelectedVariantId}
-                                />
+                                <>
+                                    <CustomizationSection
+                                        configurationOptions={configurationOptions}
+                                        selectedVariantId={selectedVariantId}
+                                        onVariantChange={setSelectedVariantId}
+                                        onSelectionStateChange={setSelectionState}
+                                        validationErrors={validationErrors}
+                                        onClearValidationError={(field) => {
+                                            setValidationErrors((prev) => {
+                                                const updated = { ...prev };
+                                                delete updated[field];
+                                                return updated;
+                                            });
+                                        }}
+                                    />
+                                </>
                             )}
 
                             <label className="block space-y-1">
