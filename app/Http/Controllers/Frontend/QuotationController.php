@@ -57,10 +57,19 @@ class QuotationController extends Controller
                 $first = $group->first();
                 $totalQuantity = $group->sum('quantity');
 
+                // Prioritize pending_customer_confirmation status if any quotation in the group has it
+                $status = $first->status;
+                $hasPendingConfirmation = $group->contains(function ($q) {
+                    return $q->status === 'pending_customer_confirmation';
+                });
+                if ($hasPendingConfirmation) {
+                    $status = 'pending_customer_confirmation';
+                }
+
                 return [
                     'id' => $first->id,
                     'ids' => $group->pluck('id')->values()->all(),
-                    'status' => $first->status,
+                    'status' => $status,
                     'quantity' => $totalQuantity,
                     'approved_at' => optional($first->approved_at)?->toDateTimeString(),
                     'created_at' => optional($first->created_at)?->toDateTimeString(),
@@ -114,7 +123,19 @@ class QuotationController extends Controller
                         ->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
                 }
             })
-            ->with(['product.media', 'variant', 'product.variants'])
+            ->with([
+                'product.media', 
+                'variant' => function ($query) {
+                    $query->with([
+                        'metals.metal',
+                        'metals.metalPurity',
+                        'metals.metalTone',
+                        'diamonds.diamond',
+                        'size',
+                    ]);
+                },
+                'product.variants'
+            ])
             ->orderBy('created_at')
             ->get();
 
@@ -129,11 +150,21 @@ class QuotationController extends Controller
                 'created_at' => optional($quotation->created_at)?->toDateTimeString(),
                 'updated_at' => optional($quotation->updated_at)?->toDateTimeString(),
                 'related_quotations' => $relatedQuotations->map(function ($q) use ($quotation) {
+                    // Ensure variant is properly loaded with all relationships for pricing calculation
+                    $variantData = null;
+                    if ($q->variant) {
+                        // Reload variant with all necessary relationships if not already loaded
+                        if (!$q->variant->relationLoaded('metals') || !$q->variant->relationLoaded('diamonds')) {
+                            $q->variant->load(['metals.metal', 'metals.metalPurity', 'metals.metalTone', 'diamonds.diamond']);
+                        }
+                        $variantData = $q->variant->toArray();
+                    }
+                    
                     $pricing = $this->pricingService->calculateProductPrice(
                         $q->product,
                         $quotation->user,
                         [
-                            'variant' => $q->variant ? $q->variant->toArray() : null,
+                            'variant' => $variantData,
                             'quantity' => $q->quantity,
                             'customer_group_id' => $quotation->user?->customer_group_id ?? null,
                             'customer_type' => $quotation->user?->type ?? null,
@@ -455,17 +486,57 @@ class QuotationController extends Controller
     {
         abort_unless($quotation->user_id === Auth::id(), 403);
 
-        if ($quotation->status !== 'pending_customer_confirmation') {
+        // Find all related quotations in the same group
+        $relatedQuotations = Quotation::query()
+            ->when($quotation->quotation_group_id, function ($q) use ($quotation) {
+                $q->where('quotation_group_id', $quotation->quotation_group_id);
+            }, function ($q) use ($quotation) {
+                // Fallback for old quotations without group_id: use timestamp-based grouping
+                $createdAt = $quotation->created_at;
+                $timeWindow = $createdAt ? $createdAt->copy()->subMinutes(5) : null;
+                $timeWindowEnd = $createdAt ? $createdAt->copy()->addMinutes(5) : null;
+                if ($timeWindow && $timeWindowEnd) {
+                    $q->where('user_id', $quotation->user_id)
+                        ->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
+                }
+            })
+            ->where('user_id', Auth::id())
+            ->get();
+
+        // Check if any quotation in the group requires confirmation
+        $hasPendingConfirmation = $relatedQuotations->contains(function ($q) {
+            return $q->status === 'pending_customer_confirmation';
+        });
+
+        if (!$hasPendingConfirmation) {
             return redirect()->route('frontend.quotations.index')->with('error', 'No confirmation required for this quotation.');
         }
 
-        $quotation->update(['status' => 'customer_confirmed']);
+        // Check if already confirmed (prevent duplicate confirmations)
+        $alreadyConfirmed = $relatedQuotations->every(function ($q) {
+            return $q->status === 'customer_confirmed';
+        });
 
-        $quotation->messages()->create([
-            'user_id' => Auth::id(),
-            'sender' => 'customer',
-            'message' => 'Customer approved the updated quotation.',
-        ]);
+        if ($alreadyConfirmed) {
+            return redirect()->route('frontend.quotations.index')->with('info', 'Quotation already confirmed.');
+        }
+
+        // Update all related quotations in the group to customer_confirmed
+        DB::transaction(function () use ($relatedQuotations, $quotation): void {
+            foreach ($relatedQuotations as $q) {
+                // Only update if it's pending confirmation
+                if ($q->status === 'pending_customer_confirmation') {
+                    $q->update(['status' => 'customer_confirmed']);
+                }
+            }
+
+            // Add message to the main quotation only (to avoid duplicate messages)
+            $quotation->messages()->create([
+                'user_id' => Auth::id(),
+                'sender' => 'customer',
+                'message' => 'Customer approved the updated quotation.',
+            ]);
+        });
 
         return redirect()->route('frontend.quotations.index')->with('success', 'Quotation approved. Awaiting admin confirmation.');
     }
@@ -474,17 +545,57 @@ class QuotationController extends Controller
     {
         abort_unless($quotation->user_id === Auth::id(), 403);
 
-        if ($quotation->status !== 'pending_customer_confirmation') {
+        // Find all related quotations in the same group
+        $relatedQuotations = Quotation::query()
+            ->when($quotation->quotation_group_id, function ($q) use ($quotation) {
+                $q->where('quotation_group_id', $quotation->quotation_group_id);
+            }, function ($q) use ($quotation) {
+                // Fallback for old quotations without group_id: use timestamp-based grouping
+                $createdAt = $quotation->created_at;
+                $timeWindow = $createdAt ? $createdAt->copy()->subMinutes(5) : null;
+                $timeWindowEnd = $createdAt ? $createdAt->copy()->addMinutes(5) : null;
+                if ($timeWindow && $timeWindowEnd) {
+                    $q->where('user_id', $quotation->user_id)
+                        ->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
+                }
+            })
+            ->where('user_id', Auth::id())
+            ->get();
+
+        // Check if any quotation in the group requires confirmation
+        $hasPendingConfirmation = $relatedQuotations->contains(function ($q) {
+            return $q->status === 'pending_customer_confirmation';
+        });
+
+        if (!$hasPendingConfirmation) {
             return redirect()->route('frontend.quotations.index')->with('error', 'No confirmation required for this quotation.');
         }
 
-        $quotation->update(['status' => 'customer_declined']);
+        // Check if already declined (prevent duplicate declines)
+        $alreadyDeclined = $relatedQuotations->every(function ($q) {
+            return $q->status === 'customer_declined';
+        });
 
-        $quotation->messages()->create([
-            'user_id' => Auth::id(),
-            'sender' => 'customer',
-            'message' => 'Customer declined the updated quotation.',
-        ]);
+        if ($alreadyDeclined) {
+            return redirect()->route('frontend.quotations.index')->with('info', 'Quotation already declined.');
+        }
+
+        // Update all related quotations in the group to customer_declined
+        DB::transaction(function () use ($relatedQuotations, $quotation): void {
+            foreach ($relatedQuotations as $q) {
+                // Only update if it's pending confirmation
+                if ($q->status === 'pending_customer_confirmation') {
+                    $q->update(['status' => 'customer_declined']);
+                }
+            }
+
+            // Add message to the main quotation only (to avoid duplicate messages)
+            $quotation->messages()->create([
+                'user_id' => Auth::id(),
+                'sender' => 'customer',
+                'message' => 'Customer declined the updated quotation.',
+            ]);
+        });
 
         return redirect()->route('frontend.quotations.index')->with('success', 'Quotation declined.');
     }
