@@ -383,8 +383,8 @@ export default function CustomizationSection({
                                 if (foundMetalId !== "") break;
                             }
                             
-                            // Auto-select the metal if found and different from current
-                            if (foundMetalId !== "" && foundMetalId !== metalId) {
+                            // Auto-select the metal only if not already selected
+                            if (foundMetalId !== "" && !metalId) {
                                 setMetalId(foundMetalId);
                             }
                         }
@@ -476,6 +476,7 @@ export default function CustomizationSection({
                         const selectedToneId = value === "" ? "" : Number(value);
                         
                         // Auto-select metal and purity based on selected tone
+                        // BUT only if they are not already selected by the user
                         let foundMetalId: number | "" = "";
                         let foundPurityId: number | "" = "";
                         if (selectedToneId !== "") {
@@ -491,11 +492,12 @@ export default function CustomizationSection({
                                 if (foundMetalId !== "") break;
                             }
                             
-                            // Auto-select the metal and purity if found
-                            if (foundMetalId !== "" && foundMetalId !== metalId) {
+                            // Auto-select the metal only if not already selected
+                            if (foundMetalId !== "" && !metalId) {
                                 setMetalId(foundMetalId);
                             }
-                            if (foundPurityId !== "" && foundPurityId !== purityId) {
+                            // Auto-select the purity only if not already selected
+                            if (foundPurityId !== "" && !purityId) {
                                 setPurityId(foundPurityId);
                             }
                         }
@@ -530,8 +532,8 @@ export default function CustomizationSection({
                         }
                         if (onSelectionStateChange) {
                             onSelectionStateChange({
-                                metalId: foundMetalId !== "" ? foundMetalId : metalId,
-                                purityId: foundPurityId !== "" ? foundPurityId : purityId,
+                                metalId: (!metalId && foundMetalId !== "") ? foundMetalId : metalId,
+                                purityId: (!purityId && foundPurityId !== "") ? foundPurityId : purityId,
                                 toneId: selectedToneId,
                                 size: keepSize ? size : "",
                                 hasSize,
