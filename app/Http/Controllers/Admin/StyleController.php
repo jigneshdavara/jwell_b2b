@@ -78,6 +78,13 @@ class StyleController extends Controller
 
     public function destroy(Style $style): RedirectResponse
     {
+        // Check if style is used in any category
+        if ($style->categories()->exists()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Cannot delete style because it is associated with one or more categories. Please remove it from all categories first.');
+        }
+
         $style->delete();
 
         return redirect()
@@ -87,10 +94,49 @@ class StyleController extends Controller
 
     public function bulkDestroy(BulkDestroyStylesRequest $request): RedirectResponse
     {
-        Style::whereIn('id', $request->validated('ids'))->delete();
+        $ids = $request->validated('ids');
+        $deletedCount = 0;
+        $skippedCount = 0;
+        $skippedStyles = [];
+
+        foreach ($ids as $id) {
+            $style = Style::find($id);
+
+            if (! $style) {
+                continue;
+            }
+
+            // Check if style is used in any category
+            if ($style->categories()->exists()) {
+                $skippedCount++;
+                $skippedStyles[] = $style->name;
+                continue;
+            }
+
+            $style->delete();
+            $deletedCount++;
+        }
+
+        $messages = [];
+
+        if ($deletedCount > 0) {
+            $plural = $deletedCount === 1 ? '' : 's';
+            $messages[] = "{$deletedCount} style{$plural} deleted successfully.";
+        }
+
+        if ($skippedCount > 0) {
+            $plural = $skippedCount === 1 ? 'is' : 'are';
+            $styleNames = implode(', ', array_slice($skippedStyles, 0, 5));
+            if (count($skippedStyles) > 5) {
+                $styleNames .= ' and ' . (count($skippedStyles) - 5) . ' more';
+            }
+            $messages[] = "Cannot delete {$skippedCount} style{$plural} because {$plural} associated with categories. Please remove {$plural} from categories first: {$styleNames}.";
+        }
+
+        $message = ! empty($messages) ? implode(' ', $messages) : 'No styles were deleted.';
 
         return redirect()
             ->back()
-            ->with('success', 'Selected styles deleted successfully.');
+            ->with($skippedCount > 0 && $deletedCount === 0 ? 'error' : 'success', $message);
     }
 }

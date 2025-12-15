@@ -11,7 +11,7 @@ class QuotationConfirmationRequestMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public Quotation $quotation, public ?string $message = null)
+    public function __construct(public Quotation $quotation, public ?string $adminMessage = null)
     {
     }
 
@@ -22,7 +22,7 @@ class QuotationConfirmationRequestMail extends Mailable
         return $this->subject($subject)
             ->view('emails.quotation-confirmation-request', [
                 'quotation' => $this->quotation,
-                'message' => $this->message,
+                'adminMessage' => $this->adminMessage,
                 'subject' => $subject,
             ]);
     }

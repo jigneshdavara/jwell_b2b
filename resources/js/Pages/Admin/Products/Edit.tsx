@@ -1171,16 +1171,6 @@ export default function AdminProductEdit() {
     const [localDescription, setLocalDescription] = useState(data.description);
     const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Initialize generatedMatrixVariants with existing variants when editing a product
-    useEffect(() => {
-        if (product?.variants && product.variants.length > 0 && generatedMatrixVariants.length === 0) {
-            // Use variants from form data (which are initialized from product)
-            setGeneratedMatrixVariants(data.variants || []);
-        } else if (!product && generatedMatrixVariants.length === 0 && data.variants && data.variants.length > 0) {
-            // For new products, initialize with empty variant if form data has it
-            setGeneratedMatrixVariants(data.variants || []);
-        }
-    }, [product, data.variants]);
 
     // Ensure show_all_variants_by_size defaults to true when sizes are selected
     useEffect(() => {
@@ -1222,6 +1212,8 @@ export default function AdminProductEdit() {
     const [generatedMatrixVariants, setGeneratedMatrixVariants] = useState<VariantForm[]>([]);
     // Store the show_all_variants_by_size setting used when generating the matrix
     const [generatedShowAllVariantsBySize, setGeneratedShowAllVariantsBySize] = useState<boolean | undefined>(undefined);
+    // Client-side validation error for metal selection
+    const [metalSelectionError, setMetalSelectionError] = useState<string | null>(null);
 
 
     const formatDecimal = (value: number): string => {
@@ -1468,25 +1460,45 @@ export default function AdminProductEdit() {
     };
 
     const removeVariant = (index: number) => {
-        setData((prev: FormData) => {
-            if ((prev.variants || []).length === 1) {
-                return prev;
+        // Update generatedMatrixVariants if it's being used (what's displayed in table)
+        if (generatedMatrixVariants.length > 0) {
+            if (generatedMatrixVariants.length === 1) {
+                // Don't allow removing the last variant
+                return;
             }
 
-            const remaining = (prev.variants || []).filter((_, idx: number) => idx !== index);
-            if (remaining.every((variant) => !variant.is_default) && remaining.length > 0) {
-                remaining[0].is_default = true;
-            }
+            setGeneratedMatrixVariants((prev) => {
+                const remaining = prev.filter((_, idx: number) => idx !== index);
+                
+                // Ensure at least one variant is marked as default
+                if (remaining.every((variant) => !variant.is_default) && remaining.length > 0) {
+                    remaining[0].is_default = true;
+                }
 
-            const draft: FormData = {
-                ...prev,
-                variants: remaining,
-            };
+                return remaining;
+            });
+        } else {
+            // Update data.variants if generatedMatrixVariants is not being used
+            setData((prev: FormData) => {
+                if ((prev.variants || []).length === 1) {
+                    return prev;
+                }
 
-            draft.variants = recalculateVariants(draft);
+                const remaining = (prev.variants || []).filter((_, idx: number) => idx !== index);
+                if (remaining.every((variant) => !variant.is_default) && remaining.length > 0) {
+                    remaining[0].is_default = true;
+                }
 
-            return draft;
-        });
+                const draft: FormData = {
+                    ...prev,
+                    variants: remaining,
+                };
+
+                draft.variants = recalculateVariants(draft);
+
+                return draft;
+            });
+        }
     };
 
     const updateVariant = (index: number, field: keyof VariantForm, value: string | boolean | number | null) => {
@@ -1497,12 +1509,16 @@ export default function AdminProductEdit() {
             const targetVariant = prev[index];
             if (!targetVariant) return prev;
             
-            // If grouped by metal (all_sizes_available === true OR show_all_variants_by_size === false)
-            // and certain fields, update all variants with same metal
-            const shouldGroupUpdate = (data.all_sizes_available === true || data.show_all_variants_by_size === false) 
-                && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default');
+            // If "Show all variants" is unchecked, inventory_quantity is common for all variants with same metal
+            // If "Show all variants" is checked, inventory_quantity is separate for each variant
+            const shouldGroupUpdate = (data.show_all_variants_by_size === false) 
+                && (field === 'inventory_quantity');
             
-            if (shouldGroupUpdate) {
+            // For sku, label, is_default: group when all_sizes_available OR show_all_variants_by_size is false
+            const shouldGroupOtherFields = (data.all_sizes_available === true || data.show_all_variants_by_size === false) 
+                && (field === 'sku' || field === 'label' || field === 'is_default');
+            
+            if (shouldGroupUpdate || shouldGroupOtherFields) {
                 const targetMetals = (targetVariant.metals || []).filter(
                     (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                 );
@@ -1580,10 +1596,16 @@ export default function AdminProductEdit() {
             const targetVariant = (prev.variants || [])[index];
             if (!targetVariant) return prev;
             
-            const shouldGroupUpdate = (prev.all_sizes_available === true || prev.show_all_variants_by_size === false) 
-                && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default');
+            // If "Show all variants" is unchecked, inventory_quantity is common for all variants with same metal
+            // If "Show all variants" is checked, inventory_quantity is separate for each variant
+            const shouldGroupUpdate = (prev.show_all_variants_by_size === false) 
+                && (field === 'inventory_quantity');
             
-            if (shouldGroupUpdate) {
+            // For sku, label, is_default: group when all_sizes_available OR show_all_variants_by_size is false
+            const shouldGroupOtherFields = (prev.all_sizes_available === true || prev.show_all_variants_by_size === false) 
+                && (field === 'sku' || field === 'label' || field === 'is_default');
+            
+            if (shouldGroupUpdate || shouldGroupOtherFields) {
                 const targetMetals = (targetVariant.metals || []).filter(
                     (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                 );
@@ -1843,9 +1865,9 @@ export default function AdminProductEdit() {
             const targetVariant = prev[variantIndex];
             if (!targetVariant) return prev;
             
-            // If grouped by metal (all_sizes_available === true OR show_all_variants_by_size === false)
-            // update all variants with same metal
-            const shouldGroupUpdate = data.all_sizes_available === true || data.show_all_variants_by_size === false;
+            // If "Show all variants" is unchecked, weight is common for all variants with same metal
+            // If "Show all variants" is checked, weight is separate for each variant
+            const shouldGroupUpdate = data.show_all_variants_by_size === false;
             
             if (shouldGroupUpdate) {
                 const targetMetals = (targetVariant.metals || []).filter(
@@ -1912,7 +1934,9 @@ export default function AdminProductEdit() {
             const targetVariant = (prev.variants || [])[variantIndex];
             if (!targetVariant) return prev;
             
-            const shouldGroupUpdate = prev.all_sizes_available === true || prev.show_all_variants_by_size === false;
+            // If "Show all variants" is unchecked, weight is common for all variants with same metal
+            // If "Show all variants" is checked, weight is separate for each variant
+            const shouldGroupUpdate = prev.show_all_variants_by_size === false;
             
             if (shouldGroupUpdate) {
                 const targetMetals = (targetVariant.metals || []).filter(
@@ -1994,6 +2018,55 @@ export default function AdminProductEdit() {
     };
 
     const generateVariantMatrix = () => {
+        // Validate that at least one metal is selected before generating matrix
+        const selectedMetals = data.selected_metals || [];
+        
+        if (!Array.isArray(selectedMetals) || selectedMetals.length === 0) {
+            setMetalSelectionError('Please select at least one metal before generating the variant matrix. Metals are required.');
+            return;
+        }
+        
+        // Validate that each selected metal has at least one purity and one tone selected
+        const metalConfigurations = data.metal_configurations || {};
+        const missingConfigurations: string[] = [];
+        
+        selectedMetals.forEach((metalId) => {
+            const metal = metals.find(m => m.id === metalId);
+            if (!metal) return;
+            
+            const config = metalConfigurations[metalId] || { purities: [], tones: [] };
+            const availablePurities = metalPurities.filter(p => p.metal_id === metalId);
+            const availableTones = metalTones.filter(t => t.metal_id === metalId);
+            
+            // Check if purities are required and selected
+            const hasPurities = availablePurities.length === 0 || (config.purities && config.purities.length > 0);
+            // Check if tones are required and selected
+            const hasTones = availableTones.length === 0 || (config.tones && config.tones.length > 0);
+            
+            if (!hasPurities || !hasTones) {
+                const missingParts: string[] = [];
+                if (availablePurities.length > 0 && (!config.purities || config.purities.length === 0)) {
+                    missingParts.push('purity');
+                }
+                if (availableTones.length > 0 && (!config.tones || config.tones.length === 0)) {
+                    missingParts.push('tone');
+                }
+                if (missingParts.length > 0) {
+                    missingConfigurations.push(`${metal.name} (${missingParts.join(' and ')})`);
+                }
+            }
+        });
+        
+        if (missingConfigurations.length > 0) {
+            const metalList = missingConfigurations.slice(0, 3).join(', ');
+            const moreCount = missingConfigurations.length > 3 ? ` and ${missingConfigurations.length - 3} more` : '';
+            setMetalSelectionError(`Please select at least one purity and one tone for the following metal${missingConfigurations.length > 1 ? 's' : ''}: ${metalList}${moreCount}.`);
+            return;
+        }
+        
+        // Clear any previous error if all validations pass
+        setMetalSelectionError(null);
+        
         // Generate matrix but store in separate state variable, not in form data
         // Use the current form data to generate variants based on current selections
         const generatedData = generateVariantMatrixForData(data);
@@ -2016,14 +2089,36 @@ export default function AdminProductEdit() {
             const formState = current as FormData;
             const payload: any = { ...formState };
             
-            // Use generatedMatrixVariants if available (contains user edits), otherwise generate fresh variants
-            // This ensures user edits (inventory_quantity, weights, etc.) are preserved
-            let variantsToUse = generatedMatrixVariants.length > 0 
-                ? generatedMatrixVariants 
-                : (() => {
-                    const formDataWithGeneratedVariants = generateVariantMatrixForData(formState);
-                    return formDataWithGeneratedVariants.variants || [];
-                })();
+            // Only use variants if matrix has been explicitly generated (user clicked "Generate Matrix")
+            // If generatedMatrixVariants is empty, don't include variants in payload
+            let variantsToUse: VariantForm[] = [];
+            if (generatedMatrixVariants.length > 0) {
+                // Use generatedMatrixVariants (contains user edits from Generate Matrix button)
+                // Filter out empty/invalid variants (no metals, no label, no sku)
+                variantsToUse = generatedMatrixVariants.filter((variant: any) => {
+                    // Check if variant has at least one metal
+                    const metals = variant.metals || [];
+                    const metalId = variant.metal_id;
+                    
+                    const hasValidMetal = 
+                        (Array.isArray(metals) && metals.length > 0 && metals.some((m: any) => 
+                            m.metal_id !== '' && m.metal_id !== null && m.metal_id !== undefined && typeof m.metal_id === 'number' && m.metal_id > 0
+                        )) ||
+                        (metalId !== '' && metalId !== null && metalId !== undefined && typeof metalId === 'number' && metalId > 0);
+                    
+                    // Variant is valid if it has a metal and at least a label or sku
+                    return hasValidMetal && (variant.label || variant.sku);
+                });
+            }
+            // If generatedMatrixVariants is empty or all variants are invalid, variantsToUse remains empty array (no variants in payload)
+
+            // Validate that at least one valid variant is required
+            if (variantsToUse.length === 0) {
+                form.setError('variants', 'At least one product variant is required. Please generate the variant matrix before saving.');
+                // Don't include variants in payload if validation fails
+                payload.variants = [];
+                return payload;
+            }
 
             if (formState.media_uploads && Array.isArray(formState.media_uploads) && formState.media_uploads.length > 0) {
                 payload.media_uploads = formState.media_uploads;
@@ -2123,7 +2218,107 @@ export default function AdminProductEdit() {
             if (variantsToUse && Array.isArray(variantsToUse) && variantsToUse.length > 0) {
                 const diamondSelections = formState.diamond_selections || [];
                 
-                payload.variants = variantsToUse.map((variant: any) => {
+                // Validate that each variant has at least one metal (required)
+                const variantsWithoutMetals: string[] = [];
+                variantsToUse.forEach((variant: any, index: number) => {
+                    const metals = variant.metals || [];
+                    const metalId = variant.metal_id;
+                    
+                    // Check if metals array has at least one valid metal
+                    let hasValidMetal = false;
+                    if (Array.isArray(metals) && metals.length > 0) {
+                        hasValidMetal = metals.some((m: any) => 
+                            m.metal_id !== '' && m.metal_id !== null && m.metal_id !== undefined && typeof m.metal_id === 'number' && m.metal_id > 0
+                        );
+                    }
+                    
+                    // Also check if metal_id is set directly on variant (legacy support)
+                    if (!hasValidMetal && metalId !== '' && metalId !== null && metalId !== undefined && typeof metalId === 'number' && metalId > 0) {
+                        hasValidMetal = true;
+                    }
+                    
+                    if (!hasValidMetal) {
+                        const variantLabel = variant.label || variant.sku || `Variant #${index + 1}`;
+                        variantsWithoutMetals.push(variantLabel);
+                    }
+                });
+                
+                if (variantsWithoutMetals.length > 0) {
+                    const variantList = variantsWithoutMetals.slice(0, 3).join(', ');
+                    const moreCount = variantsWithoutMetals.length > 3 ? ` and ${variantsWithoutMetals.length - 3} more` : '';
+                    form.setError('variants', `The following variant${variantsWithoutMetals.length > 1 ? 's' : ''} must have at least one metal: ${variantList}${moreCount}. Metals are required for all variants.`);
+                    return payload;
+                }
+                
+                // Create a deep copy of variants to avoid mutating the original
+                let processedVariants = variantsToUse.map((variant: any) => ({
+                    ...variant,
+                    metals: variant.metals ? variant.metals.map((m: any) => ({ ...m })) : [],
+                    diamonds: variant.diamonds ? variant.diamonds.map((d: any) => ({ ...d })) : [],
+                }));
+                
+                // If "Show all variants" is unchecked, apply weight and inventory_quantity to all variants with same metal
+                if (formState.show_all_variants_by_size === false) {
+                    // Group variants by metal configuration
+                    const variantGroups = new Map<string, any[]>();
+                    
+                    processedVariants.forEach((variant: any) => {
+                        const variantMetals = (variant.metals || []).filter(
+                            (m: any) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                        );
+                        const metalsKey = variantMetals
+                            .map((m: any) => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                            .sort()
+                            .join('|');
+                        
+                        if (!variantGroups.has(metalsKey)) {
+                            variantGroups.set(metalsKey, []);
+                        }
+                        variantGroups.get(metalsKey)!.push(variant);
+                    });
+                    
+                    // For each group, apply weight and inventory_quantity from first variant to all variants
+                    variantGroups.forEach((group) => {
+                        if (group.length > 1) {
+                            // Get weight and inventory_quantity from first variant in group
+                            const firstVariant = group[0];
+                            const firstVariantMetals = (firstVariant.metals || []).filter(
+                                (m: any) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                            );
+                            
+                            // Create a map of metal weights by metal configuration
+                            const metalWeightsMap = new Map<string, string>();
+                            firstVariantMetals.forEach((metal: any) => {
+                                const metalKey = `${metal.metal_id}-${metal.metal_purity_id || 'null'}-${metal.metal_tone_id || 'null'}`;
+                                metalWeightsMap.set(metalKey, metal.metal_weight || '');
+                            });
+                            
+                            const commonInventory = firstVariant.inventory_quantity !== undefined && firstVariant.inventory_quantity !== null && firstVariant.inventory_quantity !== ''
+                                ? firstVariant.inventory_quantity
+                                : 0;
+                            
+                            // Apply to all variants in the group
+                            group.forEach((variant: any) => {
+                                // Apply weight to matching metals in the variant
+                                if (variant.metals && Array.isArray(variant.metals) && variant.metals.length > 0) {
+                                    variant.metals = variant.metals.map((metal: any) => {
+                                        const metalKey = `${metal.metal_id}-${metal.metal_purity_id || 'null'}-${metal.metal_tone_id || 'null'}`;
+                                        const weight = metalWeightsMap.get(metalKey) || '';
+                                        return {
+                                            ...metal,
+                                            metal_weight: weight,
+                                        };
+                                    });
+                                }
+                                
+                                // Apply inventory_quantity
+                                variant.inventory_quantity = commonInventory;
+                            });
+                        }
+                    });
+                }
+                
+                payload.variants = processedVariants.map((variant: any) => {
                     const formattedVariant = { ...variant };
                     
                     // Ensure inventory_quantity is explicitly included
@@ -2241,7 +2436,6 @@ export default function AdminProductEdit() {
         }
     };
 
-    const variantError = errors.variants;
 
     const mediaErrors = useMemo(
         () =>
@@ -2886,6 +3080,11 @@ export default function AdminProductEdit() {
                                                                 metal_configurations: newConfig,
                                                             };
                                                         });
+                                                        
+                                                        // Clear error when metal is selected
+                                                        if (e.target.checked && metalSelectionError) {
+                                                            setMetalSelectionError(null);
+                                                        }
                                                     }}
                                                     className={`mr-2 h-4 w-4 rounded border-2 ${
                                                         isSelected
@@ -2960,6 +3159,11 @@ export default function AdminProductEdit() {
                                                                                     metal_configurations: config,
                                                                                 };
                                                                             });
+                                                                            
+                                                                            // Clear error when purity is selected
+                                                                            if (e.target.checked && metalSelectionError) {
+                                                                                setMetalSelectionError(null);
+                                                                            }
                                                                         }}
                                                                         className={`mr-2 h-4 w-4 rounded border-2 ${
                                                                             isPuritySelected
@@ -3011,6 +3215,11 @@ export default function AdminProductEdit() {
                                                                                     metal_configurations: config,
                                                                                 };
                                                                             });
+                                                                            
+                                                                            // Clear error when tone is selected
+                                                                            if (e.target.checked && metalSelectionError) {
+                                                                                setMetalSelectionError(null);
+                                                                            }
                                                                         }}
                                                                         className={`mr-2 h-4 w-4 rounded border-2 ${
                                                                             isToneSelected
@@ -3028,6 +3237,30 @@ export default function AdminProductEdit() {
                                         );
                                     })}
                                 </div>
+                                
+                                {/* Error message box at the bottom of metals section */}
+                                {(errors.selected_metals || metalSelectionError) && (
+                                    <div className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3">
+                                        <div className="flex items-start gap-2">
+                                            <svg
+                                                className="h-5 w-5 flex-shrink-0 text-rose-600 mt-0.5"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                />
+                                            </svg>
+                                            <p className="text-sm text-rose-800">
+                                                {errors.selected_metals || metalSelectionError}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
@@ -3049,47 +3282,64 @@ export default function AdminProductEdit() {
                                 </div>
                                 {(data.diamond_selections || []).length > 0 ? (
                                     <div className="space-y-3">
-                                        {(data.diamond_selections || []).map((selection, index) => (
-                                            <div key={index} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3">
-                                                <div className="flex-1">
-                                                    <label className="mb-1 block text-xs font-semibold text-slate-600">Diamond</label>
-                                                    <select
-                                                        value={selection.diamond_id === '' ? '' : selection.diamond_id}
-                                                        onChange={(e) => updateDiamondSelection(index, 'diamond_id', e.target.value === '' ? '' : Number(e.target.value))}
-                                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        {(data.diamond_selections || []).map((selection, index) => {
+                                            const isDiamondSelected = selection.diamond_id !== '' && selection.diamond_id !== null && selection.diamond_id !== undefined;
+                                            const isCountEmpty = !selection.count || selection.count.trim() === '' || Number(selection.count) <= 0;
+                                            const hasError = isDiamondSelected && isCountEmpty;
+                                            
+                                            return (
+                                                <div key={index} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
+                                                    <div className="flex-1">
+                                                        <label className="mb-1 block text-xs font-semibold text-slate-600">Diamond</label>
+                                                        <select
+                                                            value={selection.diamond_id === '' ? '' : selection.diamond_id}
+                                                            onChange={(e) => updateDiamondSelection(index, 'diamond_id', e.target.value === '' ? '' : Number(e.target.value))}
+                                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                        >
+                                                            <option value="">Select diamond</option>
+                                                            {diamonds.map((diamond) => (
+                                                                <option key={diamond.id} value={diamond.id}>
+                                                                    {diamond.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="w-32">
+                                                        <label className="mb-1 block text-xs font-semibold text-slate-600">
+                                                            Count
+                                                            {isDiamondSelected && <span className="ml-1 text-rose-500">*</span>}
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            step="1"
+                                                            required={isDiamondSelected}
+                                                            value={selection.count}
+                                                            onChange={(e) => updateDiamondSelection(index, 'count', e.target.value)}
+                                                            className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                                                                hasError
+                                                                    ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-rose-200'
+                                                                    : 'border-slate-200 focus:border-sky-400 focus:ring-sky-200'
+                                                            }`}
+                                                            placeholder={isDiamondSelected ? "Required" : "0"}
+                                                        />
+                                                        {hasError && (
+                                                            <span className="mt-1 block text-xs text-rose-500">Count is required</span>
+                                                        )}
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeDiamondSelection(index)}
+                                                        className="mt-6 rounded-full border border-rose-200 p-2 text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
+                                                        aria-label="Remove diamond"
                                                     >
-                                                        <option value="">Select diamond</option>
-                                                        {diamonds.map((diamond) => (
-                                                            <option key={diamond.id} value={diamond.id}>
-                                                                {diamond.name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
                                                 </div>
-                                                <div className="w-32">
-                                                    <label className="mb-1 block text-xs font-semibold text-slate-600">Count</label>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="1"
-                                                        value={selection.count}
-                                                        onChange={(e) => updateDiamondSelection(index, 'count', e.target.value)}
-                                                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeDiamondSelection(index)}
-                                                    className="mt-6 rounded-full border border-rose-200 p-2 text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
-                                                    aria-label="Remove diamond"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 ) : (
                                     <p className="text-xs text-slate-400">No diamonds added. Click "Add Diamond" to add one.</p>
@@ -3130,11 +3380,6 @@ export default function AdminProductEdit() {
                             </button> */}
                         </div>
 
-                        {variantError && (
-                            <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600 ring-1 ring-rose-200/50">
-                                {variantError}
-                            </div>
-                        )}
 
                         <div className="mt-8 overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                             <div className="overflow-x-auto">
@@ -3156,11 +3401,8 @@ export default function AdminProductEdit() {
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 bg-white">
                                 {useMemo(() => {
-                                    // Use generated matrix variants for display (separate from form data)
-                                    // Variants are generated when "Generate Matrix" button is clicked
-                                    const allVariants = generatedMatrixVariants.length > 0 ? generatedMatrixVariants : (data.variants || []);
+                                    const allVariants = generatedMatrixVariants;
                                     
-                                    // If no variants at all, return empty array
                                     if (allVariants.length === 0) {
                                         return [];
                                     }

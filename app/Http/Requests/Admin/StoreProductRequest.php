@@ -98,6 +98,46 @@ class StoreProductRequest extends FormRequest
                     $validator->errors()->add('making_charge_percentage', 'Percentage value is required when Percentage is selected.');
                 }
             }
+
+            // Ensure at least one variant is provided
+            $variants = $this->input('variants', []);
+            if (empty($variants) || !is_array($variants) || count($variants) === 0) {
+                $errorMessage = 'At least one product variant is required. Please generate the variant matrix before saving.';
+                $validator->errors()->add('variants', $errorMessage);
+                // Set flash error message for header display
+                session()->flash('error', $errorMessage);
+            } else {
+                // Ensure each variant has at least one metal
+                foreach ($variants as $index => $variant) {
+                    $metals = $variant['metals'] ?? [];
+                    $metalId = $variant['metal_id'] ?? null;
+
+                    // Check if metals array has at least one valid metal
+                    $hasValidMetal = false;
+                    if (is_array($metals)) {
+                        foreach ($metals as $metal) {
+                            if (!empty($metal['metal_id']) && $metal['metal_id'] > 0) {
+                                $hasValidMetal = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Also check if metal_id is set directly on variant (legacy support)
+                    if (!$hasValidMetal && !empty($metalId) && $metalId > 0) {
+                        $hasValidMetal = true;
+                    }
+
+                    if (!$hasValidMetal) {
+                        $errorMessage = "Variant #" . ($index + 1) . " must have at least one metal.";
+                        $validator->errors()->add("variants.{$index}.metals", $errorMessage);
+                        // Set flash error message for header display if not already set
+                        if (!session()->has('error')) {
+                            session()->flash('error', 'One or more variants are missing required metals. Please ensure all variants have at least one metal configured.');
+                        }
+                    }
+                }
+            }
         });
     }
 }

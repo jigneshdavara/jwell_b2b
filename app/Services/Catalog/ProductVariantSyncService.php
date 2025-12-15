@@ -111,6 +111,12 @@ class ProductVariantSyncService
                 ]];
             }
 
+            // Validate that variant has at least one metal (required)
+            if (empty($metals)) {
+                $variantLabel = $variant['label'] ?? $variant['sku'] ?? 'Unknown';
+                throw new \InvalidArgumentException("Variant '{$variantLabel}' must have at least one metal. Metals are required for all variants.");
+            }
+
             // Normalize diamonds array: filter out empty entries
             // Only include diamonds with diamond_id (simplified structure)
             $diamonds = array_filter($diamonds, function ($diamond) {
@@ -301,13 +307,14 @@ class ProductVariantSyncService
             }
         }
 
-        // Delete any metals that are not in the persisted list (removed metals)
-        if (! empty($persistedIds)) {
-            $variant->metals()->whereNotIn('id', $persistedIds)->delete();
-        } else {
-            // If no metals provided, delete all existing metals for this variant
-            $variant->metals()->delete();
+        // Validate that at least one metal is provided (required)
+        if (empty($persistedIds)) {
+            $variantLabel = $variant->label ?? $variant->sku ?? 'Unknown';
+            throw new \InvalidArgumentException("Variant '{$variantLabel}' must have at least one metal. Metals are required for all variants.");
         }
+
+        // Delete any metals that are not in the persisted list (removed metals)
+        $variant->metals()->whereNotIn('id', $persistedIds)->delete();
     }
 
     protected function syncVariantDiamonds(ProductVariant $variant, array $diamonds): void
