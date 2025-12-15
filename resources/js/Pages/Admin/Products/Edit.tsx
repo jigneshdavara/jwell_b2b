@@ -1171,16 +1171,6 @@ export default function AdminProductEdit() {
     const [localDescription, setLocalDescription] = useState(data.description);
     const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Initialize generatedMatrixVariants with existing variants when editing a product
-    useEffect(() => {
-        if (product?.variants && product.variants.length > 0 && generatedMatrixVariants.length === 0) {
-            // Use variants from form data (which are initialized from product)
-            setGeneratedMatrixVariants(data.variants || []);
-        } else if (!product && generatedMatrixVariants.length === 0 && data.variants && data.variants.length > 0) {
-            // For new products, initialize with empty variant if form data has it
-            setGeneratedMatrixVariants(data.variants || []);
-        }
-    }, [product, data.variants]);
 
     // Ensure show_all_variants_by_size defaults to true when sizes are selected
     useEffect(() => {
@@ -2099,14 +2089,36 @@ export default function AdminProductEdit() {
             const formState = current as FormData;
             const payload: any = { ...formState };
             
-            // Use generatedMatrixVariants if available (contains user edits), otherwise generate fresh variants
-            // This ensures user edits (inventory_quantity, weights, etc.) are preserved
-            let variantsToUse = generatedMatrixVariants.length > 0 
-                ? generatedMatrixVariants 
-                : (() => {
-                    const formDataWithGeneratedVariants = generateVariantMatrixForData(formState);
-                    return formDataWithGeneratedVariants.variants || [];
-                })();
+            // Only use variants if matrix has been explicitly generated (user clicked "Generate Matrix")
+            // If generatedMatrixVariants is empty, don't include variants in payload
+            let variantsToUse: VariantForm[] = [];
+            if (generatedMatrixVariants.length > 0) {
+                // Use generatedMatrixVariants (contains user edits from Generate Matrix button)
+                // Filter out empty/invalid variants (no metals, no label, no sku)
+                variantsToUse = generatedMatrixVariants.filter((variant: any) => {
+                    // Check if variant has at least one metal
+                    const metals = variant.metals || [];
+                    const metalId = variant.metal_id;
+                    
+                    const hasValidMetal = 
+                        (Array.isArray(metals) && metals.length > 0 && metals.some((m: any) => 
+                            m.metal_id !== '' && m.metal_id !== null && m.metal_id !== undefined && typeof m.metal_id === 'number' && m.metal_id > 0
+                        )) ||
+                        (metalId !== '' && metalId !== null && metalId !== undefined && typeof metalId === 'number' && metalId > 0);
+                    
+                    // Variant is valid if it has a metal and at least a label or sku
+                    return hasValidMetal && (variant.label || variant.sku);
+                });
+            }
+            // If generatedMatrixVariants is empty or all variants are invalid, variantsToUse remains empty array (no variants in payload)
+
+            // Validate that at least one valid variant is required
+            if (variantsToUse.length === 0) {
+                form.setError('variants', 'At least one product variant is required. Please generate the variant matrix before saving.');
+                // Don't include variants in payload if validation fails
+                payload.variants = [];
+                return payload;
+            }
 
             if (formState.media_uploads && Array.isArray(formState.media_uploads) && formState.media_uploads.length > 0) {
                 payload.media_uploads = formState.media_uploads;
@@ -2424,7 +2436,6 @@ export default function AdminProductEdit() {
         }
     };
 
-    const variantError = errors.variants;
 
     const mediaErrors = useMemo(
         () =>
@@ -3030,9 +3041,6 @@ export default function AdminProductEdit() {
                                 <div>
                                     <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Metals</h3>
                                     <p className="text-xs text-slate-500">Select metals that can be used in your product variants.</p>
-                                    {(errors.selected_metals || metalSelectionError) && (
-                                        <span className="mt-2 block text-xs text-rose-500">{errors.selected_metals || metalSelectionError}</span>
-                                    )}
                                 </div>
 
                                 <div className="flex flex-wrap gap-3">
@@ -3229,6 +3237,30 @@ export default function AdminProductEdit() {
                                         );
                                     })}
                                 </div>
+                                
+                                {/* Error message box at the bottom of metals section */}
+                                {(errors.selected_metals || metalSelectionError) && (
+                                    <div className="mt-4 rounded-lg border border-rose-300 bg-rose-50 p-3">
+                                        <div className="flex items-start gap-2">
+                                            <svg
+                                                className="h-5 w-5 flex-shrink-0 text-rose-600 mt-0.5"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                />
+                                            </svg>
+                                            <p className="text-sm text-rose-800">
+                                                {errors.selected_metals || metalSelectionError}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
@@ -3348,11 +3380,6 @@ export default function AdminProductEdit() {
                             </button> */}
                         </div>
 
-                        {variantError && (
-                            <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600 ring-1 ring-rose-200/50">
-                                {variantError}
-                            </div>
-                        )}
 
                         <div className="mt-8 overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                             <div className="overflow-x-auto">
@@ -3374,11 +3401,8 @@ export default function AdminProductEdit() {
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 bg-white">
                                 {useMemo(() => {
-                                    // Use generated matrix variants for display (separate from form data)
-                                    // Variants are generated when "Generate Matrix" button is clicked
-                                    const allVariants = generatedMatrixVariants.length > 0 ? generatedMatrixVariants : (data.variants || []);
+                                    const allVariants = generatedMatrixVariants;
                                     
-                                    // If no variants at all, return empty array
                                     if (allVariants.length === 0) {
                                         return [];
                                     }
