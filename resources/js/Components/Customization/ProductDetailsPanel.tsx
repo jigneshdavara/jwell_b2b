@@ -88,6 +88,8 @@ export default function ProductDetailsPanel({
                 if (!isNaN(parsed) && parsed > 0) {
                     grossMetalWeight =
                         parsed % 1 === 0 ? `${parsed.toFixed(0)} g` : `${parsed.toFixed(2)} g`;
+                } else if (parsed === 0) {
+                    grossMetalWeight = '—';
                 }
             }
 
@@ -119,65 +121,79 @@ export default function ProductDetailsPanel({
         });
     }, [selectedConfig]);
 
-    // Calculate diamond aggregates
-    const diamondData = useMemo(() => {
+    // Process individual diamonds - each diamond gets its own data
+    const individualDiamondData = useMemo(() => {
+        if (!selectedConfig || !selectedConfig.diamonds || selectedConfig.diamonds.length === 0) {
+            return [];
+        }
+
+        return selectedConfig.diamonds.map((diamond) => {
+            const parts = diamond.label
+                .split(' ')
+                .filter(
+                    (p) =>
+                        p.length > 0 &&
+                        !p.match(/^\d+\.\d+ct$/i) &&
+                        !p.match(/^\(\d+\)$/)
+                );
+
+            let clarity = '';
+            let color = '';
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                if (/^(SI|VS|VVS|IF|FL|I[1-3]|VVS[12]|VS[12])/i.test(part)) {
+                    clarity = part.toUpperCase();
+                    if (i > 0) {
+                        const colorPart = parts[i - 1];
+                        if (/^[A-Z]{1,2}$/i.test(colorPart) && colorPart.length <= 2) {
+                            color = colorPart.toUpperCase();
+                        }
+                    }
+                    break;
+                }
+            }
+            const diamondQuality =
+                clarity && color
+                    ? `${clarity} ${color}`
+                    : diamond.label.split(' ').slice(0, 4).join(' ');
+
+            const shapeMatch = diamond.label.match(
+                /\b(Round|Princess|Oval|Emerald|Cushion|Marquise|Pear|Asscher|Radiant|Heart)\b/i
+            );
+            const diamondShape = shapeMatch ? shapeMatch[1] : '—';
+
+            const carat = parseFloat(diamond.totalCarat || '0');
+            const caratWeight = !isNaN(carat) && carat > 0 ? `${carat.toFixed(2)} ct` : '—';
+            const stoneCount = diamond.stoneCount || 0;
+            const numberOfDiamonds = stoneCount > 0 ? stoneCount.toString() : '—';
+
+            return {
+                id: `${diamond.diamondShapeId}_${diamond.diamondColorId}_${diamond.diamondClarityId}`,
+                diamondQuality,
+                diamondShape,
+                caratWeight,
+                numberOfDiamonds,
+            };
+        });
+    }, [selectedConfig]);
+
+    // Calculate diamond aggregates for summary
+    const diamondAggregates = useMemo(() => {
         if (!selectedConfig || selectedConfig.diamonds.length === 0) {
             return null;
         }
 
         const diamonds = selectedConfig.diamonds;
-
-        // Extract quality (clarity + color) from first diamond
-        const firstDiamond = diamonds[0];
-        const parts = firstDiamond.label
-            .split(' ')
-            .filter(
-                (p) =>
-                    p.length > 0 &&
-                    !p.match(/^\d+\.\d+ct$/i) &&
-                    !p.match(/^\(\d+\)$/)
-            );
-
-        let clarity = '';
-        let color = '';
-        for (let i = 0; i < parts.length; i++) {
-            const part = parts[i];
-            if (/^(SI|VS|VVS|IF|FL|I[1-3]|VVS[12]|VS[12])/i.test(part)) {
-                clarity = part.toUpperCase();
-                if (i > 0) {
-                    const colorPart = parts[i - 1];
-                    if (/^[A-Z]{1,2}$/i.test(colorPart) && colorPart.length <= 2) {
-                        color = colorPart.toUpperCase();
-                    }
-                }
-                break;
-            }
-        }
-        const diamondQuality =
-            clarity && color
-                ? `${clarity} ${color}`
-                : firstDiamond.label.split(' ').slice(0, 4).join(' ');
-
-        // Extract shape from label (usually second word after type)
-        const shapeMatch = firstDiamond.label.match(
-            /\b(Round|Princess|Oval|Emerald|Cushion|Marquise|Pear|Asscher|Radiant|Heart)\b/i
-        );
-        const diamondShape = shapeMatch ? shapeMatch[1] : '—';
-
-        // Total carat weight
         const totalCarat = diamonds.reduce((sum, d) => {
             const carat = parseFloat(d.totalCarat || '0');
             return sum + (isNaN(carat) ? 0 : carat);
         }, 0);
         const totalCaratWeight = totalCarat > 0 ? `${totalCarat.toFixed(2)} ct` : '—';
 
-        // Total number of diamonds
         const totalCount = diamonds.reduce((sum, d) => sum + (d.stoneCount || 0), 0);
         const numberOfDiamonds = totalCount > 0 ? totalCount.toString() : '—';
 
         return {
-            diamondQuality,
-            diamondShape,
             totalCaratWeight,
             numberOfDiamonds,
         };
@@ -331,42 +347,77 @@ export default function ProductDetailsPanel({
                                     </svg>
                                 </button>
                                 {expandedSections.has('diamond') && (
-                                    <div className="px-6 pb-6">
-                                        {diamondData ? (
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                                                        Diamond Quality
+                                    <div className="px-6 pb-6 space-y-6">
+                                        {individualDiamondData.length > 0 ? (
+                                            <>
+                                                {individualDiamondData.map((diamondData, index) => (
+                                                    <div
+                                                        key={diamondData.id}
+                                                        className={
+                                                            index > 0
+                                                                ? 'pt-6 border-t border-gray-200'
+                                                                : ''
+                                                        }
+                                                    >
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                                    Diamond Quality
+                                                                </div>
+                                                                <div className="text-lg font-semibold text-[#0E244D]">
+                                                                    {diamondData.diamondQuality}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                                    Diamond Shape
+                                                                </div>
+                                                                <div className="text-lg font-semibold text-[#0E244D]">
+                                                                    {diamondData.diamondShape}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                                    Carat Weight
+                                                                </div>
+                                                                <div className="text-lg font-semibold text-[#0E244D]">
+                                                                    {diamondData.caratWeight}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                                    Number of Diamonds
+                                                                </div>
+                                                                <div className="text-lg font-semibold text-[#0E244D]">
+                                                                    {diamondData.numberOfDiamonds}
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div className="text-lg font-semibold text-[#0E244D]">
-                                                        {diamondData.diamondQuality}
+                                                ))}
+                                                {diamondAggregates && individualDiamondData.length > 1 && (
+                                                    <div className="pt-6 border-t-2 border-gray-300">
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div>
+                                                                <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                                    Total Carat Weight
+                                                                </div>
+                                                                <div className="text-lg font-semibold text-[#0E244D]">
+                                                                    {diamondAggregates.totalCaratWeight}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                                    Total Number of Diamonds
+                                                                </div>
+                                                                <div className="text-lg font-semibold text-[#0E244D]">
+                                                                    {diamondAggregates.numberOfDiamonds}
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div>
-                                                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                                                        Diamond Shape
-                                                    </div>
-                                                    <div className="text-lg font-semibold text-[#0E244D]">
-                                                        {diamondData.diamondShape}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                                                        Total Carat Weight
-                                                    </div>
-                                                    <div className="text-lg font-semibold text-[#0E244D]">
-                                                        {diamondData.totalCaratWeight}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
-                                                        Number of Diamonds
-                                                    </div>
-                                                    <div className="text-lg font-semibold text-[#0E244D]">
-                                                        {diamondData.numberOfDiamonds}
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                )}
+                                            </>
                                         ) : (
                                             <div className="text-sm text-gray-500">
                                                 No diamond details available for this configuration.
@@ -442,9 +493,10 @@ export default function ProductDetailsPanel({
                             </button>
                             {expandedSections.has('description') && (
                                 <div className="px-6 pb-6">
-                                    <div className="text-sm text-gray-700 leading-relaxed">
-                                        {productDescription}
-                                    </div>
+                                    <div 
+                                        className="text-sm text-gray-700 leading-relaxed"
+                                        dangerouslySetInnerHTML={{ __html: productDescription || '' }}
+                                    />
                                 </div>
                             )}
                         </div>

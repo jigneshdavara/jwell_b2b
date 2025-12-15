@@ -204,6 +204,7 @@ export function generateVariantMatrix({
     const existingVariantData = new Map<string, {
         metals: Array<{ metal_id: number; metal_purity_id: number | null; metal_tone_id: number | null; metal_weight: string }>;
         diamonds: Array<{ diamond_id: number | null; diamonds_count: string }>;
+        inventory_quantity?: number | string;
     }>();
 
     (formData.variants || []).forEach((existingVariant) => {
@@ -230,6 +231,9 @@ export function generateVariantMatrix({
                 diamond_id: d.diamond_id !== '' && d.diamond_id !== null ? (typeof d.diamond_id === 'number' ? d.diamond_id : Number(d.diamond_id)) : null,
                 diamonds_count: d.diamonds_count || '',
             })),
+            inventory_quantity: existingVariant.inventory_quantity !== undefined && existingVariant.inventory_quantity !== null && existingVariant.inventory_quantity !== '' 
+                ? existingVariant.inventory_quantity 
+                : undefined,
         });
     });
 
@@ -273,12 +277,23 @@ export function generateVariantMatrix({
                 }
             }
 
+            // For new variants, set weight to empty (only preserve if existing data exists)
+            // Don't use weightFromSelection - always set to empty for new variants to show as required
+            let metalWeight = '';
+            if (existingMetal?.metal_weight && existingMetal.metal_weight !== '') {
+                // Only preserve existing weight if it has a value
+                metalWeight = existingMetal.metal_weight;
+            } else {
+                // New variant - set to empty string (will show as required)
+                metalWeight = '';
+            }
+
             return {
                 id: undefined,
                 metal_id: metalEntry.metal_id,
                 metal_purity_id: metalEntry.metal_purity_id ?? '',
                 metal_tone_id: metalEntry.metal_tone_id ?? '',
-                metal_weight: existingMetal?.metal_weight || weightFromSelection || '',
+                metal_weight: metalWeight,
             };
         });
 
@@ -322,6 +337,15 @@ export function generateVariantMatrix({
         }
         
         variant.size_id = combo.size_id || null;
+
+        // Set inventory_quantity to empty for new variants (preserve existing if available)
+        if (existingData && existingData.inventory_quantity !== undefined && existingData.inventory_quantity !== null && existingData.inventory_quantity !== '') {
+            // Preserve existing inventory quantity
+            variant.inventory_quantity = typeof existingData.inventory_quantity === 'number' ? existingData.inventory_quantity : parseInt(String(existingData.inventory_quantity), 10);
+        } else {
+            // Set to empty/undefined for new variants (will show as required)
+            variant.inventory_quantity = undefined;
+        }
 
         // Set metadata
         const metadata: Record<string, FormDataConvertible> = {

@@ -89,19 +89,60 @@ class DiamondShapeController extends Controller
 
     public function destroy(DiamondShape $shape): RedirectResponse
     {
+        // Check if diamonds exist - if they do, prevent deletion
+        if ($shape->diamonds()->exists()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Cannot delete diamond shape because it has associated diamonds. Please remove all diamonds first.');
+        }
+
+        // If no diamonds exist, delete the shape
+        // Shape sizes will be automatically deleted due to cascadeOnDelete foreign key constraint
         $shape->delete();
 
         return redirect()
             ->back()
-            ->with('success', 'Diamond shape removed.');
+            ->with('success', 'Diamond shape and all related shape sizes removed successfully.');
     }
 
     public function bulkDestroy(BulkDestroyDiamondShapesRequest $request): RedirectResponse
     {
-        DiamondShape::whereIn('id', $request->validated('ids'))->delete();
+        $ids = $request->validated('ids');
+        $deletedCount = 0;
+        $skippedCount = 0;
+
+        foreach ($ids as $id) {
+            $shape = DiamondShape::find($id);
+
+            if (! $shape) {
+                continue;
+            }
+
+            // Check if diamonds exist - if they do, skip deletion
+            if ($shape->diamonds()->exists()) {
+                $skippedCount++;
+                continue;
+            }
+
+            // If no diamonds exist, delete the shape
+            // Shape sizes will be automatically deleted due to cascadeOnDelete
+            $shape->delete();
+
+            $deletedCount++;
+        }
+
+        $messages = [];
+
+        if ($deletedCount > 0) {
+            $messages[] = "{$deletedCount} diamond shape(s) and all related shape sizes deleted successfully.";
+        }
+
+        if ($skippedCount > 0) {
+            $messages[] = "{$skippedCount} diamond shape(s) could not be deleted because they have associated diamonds.";
+        }
 
         return redirect()
             ->back()
-            ->with('success', 'Selected diamond shapes deleted successfully.');
+            ->with($deletedCount > 0 ? 'success' : 'error', implode(' ', $messages));
     }
 }

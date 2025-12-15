@@ -89,19 +89,61 @@ class DiamondColorController extends Controller
 
     public function destroy(DiamondColor $color): RedirectResponse
     {
+        // Check if diamonds exist - if they do, prevent deletion
+        if ($color->diamonds()->exists()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Cannot delete diamond color because it has associated diamonds. Please remove all diamonds first.');
+        }
+
+        // If no diamonds exist, delete the color
         $color->delete();
 
         return redirect()
             ->back()
-            ->with('success', 'Diamond color removed.');
+            ->with('success', 'Diamond color removed successfully.');
     }
 
     public function bulkDestroy(BulkDestroyDiamondColorsRequest $request): RedirectResponse
     {
-        DiamondColor::whereIn('id', $request->validated('ids'))->delete();
+        $ids = $request->validated('ids');
+        $deletedCount = 0;
+        $skippedCount = 0;
+
+        foreach ($ids as $id) {
+            $color = DiamondColor::find($id);
+
+            if (! $color) {
+                continue;
+            }
+
+            // Check if diamonds exist - if they do, skip deletion
+            if ($color->diamonds()->exists()) {
+                $skippedCount++;
+                continue;
+            }
+
+            // If no diamonds exist, delete the color
+            $color->delete();
+
+            $deletedCount++;
+        }
+
+        $messages = [];
+
+        if ($deletedCount > 0) {
+            $plural = $deletedCount === 1 ? '' : 's';
+            $messages[] = "{$deletedCount} diamond color{$plural} deleted successfully.";
+        }
+
+        if ($skippedCount > 0) {
+            $plural = $skippedCount === 1 ? '' : 's';
+            $verb = $skippedCount === 1 ? 'it has' : 'they have';
+            $messages[] = "{$skippedCount} diamond color{$plural} could not be deleted because {$verb} associated diamonds.";
+        }
 
         return redirect()
             ->back()
-            ->with('success', 'Selected diamond colors deleted successfully.');
+            ->with($deletedCount > 0 ? 'success' : 'error', implode(' ', $messages));
     }
 }

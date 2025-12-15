@@ -89,19 +89,61 @@ class DiamondClarityController extends Controller
 
     public function destroy(DiamondClarity $clarity): RedirectResponse
     {
+        // Check if diamonds exist - if they do, prevent deletion
+        if ($clarity->diamonds()->exists()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Cannot delete diamond clarity because it has associated diamonds. Please remove all diamonds first.');
+        }
+
+        // If no diamonds exist, delete the clarity
         $clarity->delete();
 
         return redirect()
             ->back()
-            ->with('success', 'Diamond clarity removed.');
+            ->with('success', 'Diamond clarity removed successfully.');
     }
 
     public function bulkDestroy(BulkDestroyDiamondClaritiesRequest $request): RedirectResponse
     {
-        DiamondClarity::whereIn('id', $request->validated('ids'))->delete();
+        $ids = $request->validated('ids');
+        $deletedCount = 0;
+        $skippedCount = 0;
+
+        foreach ($ids as $id) {
+            $clarity = DiamondClarity::find($id);
+
+            if (! $clarity) {
+                continue;
+            }
+
+            // Check if diamonds exist - if they do, skip deletion
+            if ($clarity->diamonds()->exists()) {
+                $skippedCount++;
+                continue;
+            }
+
+            // If no diamonds exist, delete the clarity
+            $clarity->delete();
+
+            $deletedCount++;
+        }
+
+        $messages = [];
+
+        if ($deletedCount > 0) {
+            $plural = $deletedCount === 1 ? 'y' : 'ies';
+            $messages[] = "{$deletedCount} diamond clarit{$plural} deleted successfully.";
+        }
+
+        if ($skippedCount > 0) {
+            $plural = $skippedCount === 1 ? 'y' : 'ies';
+            $verb = $skippedCount === 1 ? 'it has' : 'they have';
+            $messages[] = "{$skippedCount} diamond clarit{$plural} could not be deleted because {$verb} associated diamonds.";
+        }
 
         return redirect()
             ->back()
-            ->with('success', 'Selected diamond clarities deleted successfully.');
+            ->with($deletedCount > 0 ? 'success' : 'error', implode(' ', $messages));
     }
 }
