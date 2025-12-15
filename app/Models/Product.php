@@ -19,6 +19,7 @@ class Product extends Model
         'description',
         'brand_id',
         'category_id',
+        'style_ids',
         'subcategory_ids',
         'collection',
         'producttype',
@@ -32,6 +33,7 @@ class Product extends Model
         'is_active' => 'boolean',
         'making_charge_percentage' => 'float',
         'subcategory_ids' => 'array',
+        'style_ids' => 'array',
         'metadata' => 'array',
     ];
 
@@ -74,12 +76,12 @@ class Product extends Model
     public function calculateMakingCharge(float $metalCost = 0.0): float
     {
         $types = $this->metadata['making_charge_types'] ?? [];
-        
+
         // Infer types from existing data if not stored in metadata (backward compatibility)
         if (empty($types)) {
             $hasFixed = $this->making_charge_amount !== null && (float) $this->making_charge_amount > 0;
             $hasPercentage = $this->making_charge_percentage !== null && (float) $this->making_charge_percentage > 0;
-            
+
             if ($hasFixed && $hasPercentage) {
                 $types = ['fixed', 'percentage'];
             } elseif ($hasFixed) {
@@ -113,12 +115,12 @@ class Product extends Model
     public function getMakingChargeTypes(): array
     {
         $types = $this->metadata['making_charge_types'] ?? [];
-        
+
         // Infer types from existing data if not stored in metadata (backward compatibility)
         if (empty($types)) {
             $hasFixed = $this->making_charge_amount !== null && (float) $this->making_charge_amount > 0;
             $hasPercentage = $this->making_charge_percentage !== null && (float) $this->making_charge_percentage > 0;
-            
+
             if ($hasFixed && $hasPercentage) {
                 return ['fixed', 'percentage'];
             } elseif ($hasFixed) {

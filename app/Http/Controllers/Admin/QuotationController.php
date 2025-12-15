@@ -138,7 +138,24 @@ class QuotationController extends Controller
 
     public function show(Quotation $quotation): Response
     {
-        $quotation->load(['user', 'product.media', 'variant', 'product.variants', 'order.statusHistory', 'messages.user']);
+        $quotation->load([
+            'user', 
+            'product.media', 
+            'variant.metals.metal', 
+            'variant.metals.metalPurity', 
+            'variant.metals.metalTone',
+            'variant.size',
+            'product.variants' => function ($query) {
+                $query->with([
+                    'metals.metal',
+                    'metals.metalPurity',
+                    'metals.metalTone',
+                    'size',
+                ]);
+            },
+            'order.statusHistory', 
+            'messages.user'
+        ]);
 
         // Find all related quotations (same quotation_group_id)
         $relatedQuotations = Quotation::query()
@@ -155,7 +172,21 @@ class QuotationController extends Controller
                         ->whereBetween('created_at', [$timeWindow, $timeWindowEnd]);
                 }
             })
-            ->with(['product.media', 'variant', 'product.variants'])
+            ->with([
+                'product.media', 
+                'variant.metals.metal', 
+                'variant.metals.metalPurity', 
+                'variant.metals.metalTone',
+                'variant.size',
+                'product.variants' => function ($query) {
+                    $query->with([
+                        'metals.metal',
+                        'metals.metalPurity',
+                        'metals.metalTone',
+                        'size',
+                    ]);
+                }
+            ])
             ->orderBy('created_at')
             ->get();
 
@@ -196,11 +227,39 @@ class QuotationController extends Controller
                                 'url' => $media->url,
                                 'alt' => $media->metadata['alt'] ?? $q->product->name,
                             ]),
-                            'variants' => $q->product->variants->map(fn($variant) => [
-                                'id' => $variant->id,
-                                'label' => $variant->label,
-                                'metadata' => $variant->metadata ?? [],
-                            ]),
+                            'variants' => $q->product->variants->map(function($variant) {
+                                return [
+                                    'id' => $variant->id,
+                                    'label' => $variant->label,
+                                    'metadata' => $variant->metadata ?? [],
+                                    'size_id' => $variant->size_id,
+                                    'size' => $variant->size ? [
+                                        'id' => $variant->size->id,
+                                        'name' => $variant->size->name,
+                                        'value' => $variant->size->value ?? $variant->size->name,
+                                    ] : null,
+                                    'metals' => $variant->metals->map(function($metal) {
+                                        return [
+                                            'id' => $metal->id,
+                                            'metal_id' => $metal->metal_id,
+                                            'metal_purity_id' => $metal->metal_purity_id,
+                                            'metal_tone_id' => $metal->metal_tone_id,
+                                            'metal' => $metal->metal ? [
+                                                'id' => $metal->metal->id,
+                                                'name' => $metal->metal->name,
+                                            ] : null,
+                                            'metal_purity' => $metal->metalPurity ? [
+                                                'id' => $metal->metalPurity->id,
+                                                'name' => $metal->metalPurity->name,
+                                            ] : null,
+                                            'metal_tone' => $metal->metalTone ? [
+                                                'id' => $metal->metalTone->id,
+                                                'name' => $metal->metalTone->name,
+                                            ] : null,
+                                        ];
+                                    })->all(),
+                                ];
+                            }),
                         ],
                         'variant' => $q->variant ? [
                             'id' => $q->variant->id,
@@ -220,11 +279,39 @@ class QuotationController extends Controller
                         'url' => $media->url,
                         'alt' => $media->metadata['alt'] ?? $quotation->product->name,
                     ]),
-                    'variants' => $quotation->product->variants->map(fn(ProductVariant $variant) => [
-                        'id' => $variant->id,
-                        'label' => $variant->label,
-                        'metadata' => $variant->metadata ?? [],
-                    ]),
+                    'variants' => $quotation->product->variants->map(function(ProductVariant $variant) {
+                        return [
+                            'id' => $variant->id,
+                            'label' => $variant->label,
+                            'metadata' => $variant->metadata ?? [],
+                            'size_id' => $variant->size_id,
+                            'size' => $variant->size ? [
+                                'id' => $variant->size->id,
+                                'name' => $variant->size->name,
+                                'value' => $variant->size->value ?? $variant->size->name,
+                            ] : null,
+                            'metals' => $variant->metals->map(function($metal) {
+                                return [
+                                    'id' => $metal->id,
+                                    'metal_id' => $metal->metal_id,
+                                    'metal_purity_id' => $metal->metal_purity_id,
+                                    'metal_tone_id' => $metal->metal_tone_id,
+                                    'metal' => $metal->metal ? [
+                                        'id' => $metal->metal->id,
+                                        'name' => $metal->metal->name,
+                                    ] : null,
+                                    'metal_purity' => $metal->metalPurity ? [
+                                        'id' => $metal->metalPurity->id,
+                                        'name' => $metal->metalPurity->name,
+                                    ] : null,
+                                    'metal_tone' => $metal->metalTone ? [
+                                        'id' => $metal->metalTone->id,
+                                        'name' => $metal->metalTone->name,
+                                    ] : null,
+                                ];
+                            })->all(),
+                        ];
+                    }),
                 ],
                 'variant' => $quotation->variant ? [
                     'id' => $quotation->variant->id,
@@ -480,7 +567,7 @@ class QuotationController extends Controller
         $quotation->load(['user', 'product']);
 
         // Send confirmation request email to customer
-        Mail::to($quotation->user->email)->send(new QuotationConfirmationRequestMail($quotation, $message));
+        Mail::to($quotation->user->email)->send(new QuotationConfirmationRequestMail($quotation, $message ?? null));
 
         // Send status update email
         Mail::to($quotation->user->email)->send(new QuotationStatusUpdatedMail(

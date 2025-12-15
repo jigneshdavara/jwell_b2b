@@ -81,13 +81,21 @@ class ProductController extends Controller
     {
         $validated = $request->validated();
 
-        return DB::transaction(function () use ($validated, $variantSync) {
-            $product = $this->createProduct($validated, $variantSync);
+        try {
+            return DB::transaction(function () use ($validated, $variantSync) {
+                $product = $this->createProduct($validated, $variantSync);
 
+                return redirect()
+                    ->route('admin.products.edit', $product)
+                    ->with('status', 'product_created');
+            });
+        } catch (\InvalidArgumentException $e) {
             return redirect()
-                ->route('admin.products.edit', $product)
-                ->with('status', 'product_created');
-        });
+                ->back()
+                ->withInput()
+                ->withErrors(['variants' => $e->getMessage()])
+                ->with('error', $e->getMessage());
+        }
     }
 
     public function edit(Product $product): Response
@@ -125,13 +133,21 @@ class ProductController extends Controller
     ): RedirectResponse {
         $validated = $request->validated();
 
-        DB::transaction(function () use ($product, $validated, $variantSync): void {
-            $this->updateProduct($product, $validated, $variantSync);
-        });
+        try {
+            DB::transaction(function () use ($product, $validated, $variantSync): void {
+                $this->updateProduct($product, $validated, $variantSync);
+            });
 
-        return redirect()
-            ->route('admin.products.edit', $product)
-            ->with('status', 'product_updated');
+            return redirect()
+                ->route('admin.products.edit', $product)
+                ->with('status', 'product_updated');
+        } catch (\InvalidArgumentException $e) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors(['variants' => $e->getMessage()])
+                ->with('error', $e->getMessage());
+        }
     }
 
     public function destroy(Product $product): RedirectResponse
@@ -234,6 +250,11 @@ class ProductController extends Controller
             $data['making_charge_percentage'] = null;
         }
 
+        // Handle style_ids - normalize empty arrays to null
+        if (isset($data['style_ids']) && is_array($data['style_ids'])) {
+            $data['style_ids'] = !empty($data['style_ids']) ? array_values(array_filter($data['style_ids'], fn($id) => is_numeric($id))) : null;
+        }
+
         // Handle making charge types - store in metadata
         $makingChargeTypes = $data['making_charge_types'] ?? [];
         if (!empty($makingChargeTypes) && is_array($makingChargeTypes)) {
@@ -247,7 +268,7 @@ class ProductController extends Controller
         if (array_key_exists('metadata', $data) && is_array($data['metadata'])) {
             $metadata = $data['metadata'];
             $sizeDimension = $this->sanitizeSizeDimension($metadata['size_dimension'] ?? null);
-            
+
             if ($sizeDimension) {
                 $metadata['size_dimension'] = $sizeDimension;
             }
@@ -309,6 +330,7 @@ class ProductController extends Controller
             'description' => $product->description,
             'brand_id' => $product->brand_id,
             'category_id' => $product->category_id,
+            'style_ids' => $product->style_ids ?? [],
             'category_ids' => $product->subcategory_ids ?? [],
             'category' => $product->category ? [
                 'id' => $product->category->id,
@@ -576,7 +598,10 @@ class ProductController extends Controller
         return Category::query()
             ->where('is_active', true)
             ->whereNull('parent_id')
-            ->with(['sizes' => fn($query) => $query->where('is_active', true)->orderBy('name')])
+            ->with([
+                'sizes' => fn($query) => $query->where('is_active', true)->orderBy('name'),
+                'styles' => fn($query) => $query->where('is_active', true)->orderBy('display_order')->orderBy('name')
+            ])
             ->orderBy('display_order')
             ->orderBy('name')
             ->get(['id', 'name'])
@@ -586,6 +611,10 @@ class ProductController extends Controller
                 'sizes' => $category->sizes->map(fn($size) => [
                     'id' => $size->id,
                     'name' => $size->name,
+                ])->all(),
+                'styles' => $category->styles->map(fn($style) => [
+                    'id' => $style->id,
+                    'name' => $style->name,
                 ])->all(),
             ])
             ->all();
