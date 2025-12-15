@@ -2187,10 +2187,10 @@ export default function AdminProductEdit() {
             
             // Get the current show_all_variants_by_size value from form state
             // Check both the current formState and the reactive data to ensure we get the latest checkbox value
-            const currentShowAllVariantsBySize = (data.show_all_variants_by_size !== undefined) 
-                ? data.show_all_variants_by_size 
-                : ((formState.show_all_variants_by_size !== undefined) ? formState.show_all_variants_by_size : true);
-            
+            const showAllVariantsBySizeValue = generatedMatrixVariants.length > 0 
+            ? (generatedShowAllVariantsBySize ?? false) 
+            : false;
+
             // Only use variants if matrix has been explicitly generated (user clicked "Generate Matrix")
             // If generatedMatrixVariants is empty, don't include variants in payload
             let variantsToUse: VariantForm[] = [];
@@ -2298,14 +2298,13 @@ export default function AdminProductEdit() {
             // Always set show_all_variants_by_size in metadata, using the current value from form data
             // This ensures the checkbox state is saved even if "Generate Matrix" wasn't clicked
             const metadata: Record<string, any> = {};
-            metadata.show_all_variants_by_size = currentShowAllVariantsBySize;
+            metadata.show_all_variants_by_size = showAllVariantsBySizeValue;
             
             if (Object.keys(metadata).length > 0) {
                 payload.metadata = metadata;
             } else {
                 delete payload.metadata;
             }
-
             if (!payload.media_uploads || (Array.isArray(payload.media_uploads) && payload.media_uploads.length === 0)) {
                 delete payload.media_uploads;
             }
@@ -2994,7 +2993,7 @@ export default function AdminProductEdit() {
                     </div>
 
                     <div className="mt-6 space-y-6">
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            {/* <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                 <h3 className="text-sm font-semibold text-slate-900 mb-2">Variant Configuration Options</h3>
                                 <p className="text-xs text-slate-600 mb-4">
                                     Use the configuration buttons in the variant table below to add metals (with purity and tone) and diamonds to each variant.
@@ -3013,7 +3012,7 @@ export default function AdminProductEdit() {
                                         <span className="text-slate-700">Configure Diamonds</span>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
 
                             {(() => {
                                 const categoryId = data.category_id ? Number(data.category_id) : null;
