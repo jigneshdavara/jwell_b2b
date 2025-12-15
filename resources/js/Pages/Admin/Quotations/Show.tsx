@@ -21,6 +21,17 @@ type RelatedQuotation = {
             id: number;
             label: string;
             metadata?: Record<string, unknown> | null;
+            metals?: Array<{
+                id: number;
+                metal_id: number;
+                metal_purity_id: number | null;
+                metal_tone_id: number | null;
+            }>;
+            size?: {
+                id: number;
+                name: string;
+                value?: string;
+            } | null;
         }>;
     };
     variant?: {
@@ -59,6 +70,17 @@ type QuotationDetails = {
             id: number;
             label: string;
             metadata?: Record<string, unknown> | null;
+            metals?: Array<{
+                id: number;
+                metal_id: number;
+                metal_purity_id: number | null;
+                metal_tone_id: number | null;
+            }>;
+            size?: {
+                id: number;
+                name: string;
+                value?: string;
+            } | null;
         }>;
     };
     variant?: {
