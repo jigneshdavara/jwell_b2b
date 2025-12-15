@@ -75,6 +75,8 @@ class StoreProductRequest extends FormRequest
             'variants.*.diamonds' => ['nullable', 'array'],
             'variants.*.diamonds.*.diamond_id' => ['required', 'integer', 'exists:diamonds,id'],
             'variants.*.diamonds.*.diamonds_count' => ['nullable', 'integer', 'min:0'],
+            'metadata' => ['nullable', 'array'],
+            'metadata.show_all_variants_by_size' => ['nullable', 'boolean'],
         ];
     }
 

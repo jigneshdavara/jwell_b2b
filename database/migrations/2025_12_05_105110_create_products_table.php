@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignId('brand_id')->constrained()->cascadeOnDelete();
             $table->foreignId('category_id')->constrained()->cascadeOnDelete();
             $table->jsonb('subcategory_ids')->nullable();
+            $table->jsonb('style_ids')->nullable();
             $table->string('collection')->nullable();
             $table->string('producttype')->nullable();
             $table->string('gender')->nullable();
@@ -26,6 +27,7 @@ return new class extends Migration
             $table->decimal('making_charge_amount', 12, 2)->nullable();
             $table->decimal('making_charge_percentage', 10, 2)->nullable();
             $table->boolean('is_active')->default(true);
+            $table->jsonb('metadata')->nullable();
             $table->timestampsTz();
         });
     }

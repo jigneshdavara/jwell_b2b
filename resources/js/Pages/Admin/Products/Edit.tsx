@@ -57,6 +57,7 @@ type Product = {
     making_charge_amount?: number | string;
     making_charge_percentage?: number | string;
     is_active?: boolean;
+    metadata?: Record<string, any> | null;
     media?: ProductMedia[];
     variants?: Array<{
         id?: number;
@@ -1162,6 +1163,7 @@ export default function AdminProductEdit() {
             }
             return [];
         })(),
+        show_all_variants_by_size: product?.metadata?.show_all_variants_by_size ?? true,
         media_uploads: [],
         removed_media_ids: [],
     }) as Record<string, any>);
@@ -1256,19 +1258,7 @@ export default function AdminProductEdit() {
             
             // Also set the show_all_variants_by_size based on existing variants
             // If all variants have the same metal configuration but different sizes, it was likely "show all"
-            if (product.variants && product.variants.length > 1) {
-                const hasMultipleSizes = product.variants.some((v: any) => 
-                    v.metadata?.size_id && v.metadata.size_id !== product.variants?.[0]?.metadata?.size_id
-                );
-                // If variants have different sizes, it was likely "show all variants by size"
-                if (hasMultipleSizes) {
-                    setGeneratedShowAllVariantsBySize(true);
-                } else {
-                    setGeneratedShowAllVariantsBySize(false);
-                }
-            } else {
-                setGeneratedShowAllVariantsBySize(true);
-            }
+            setGeneratedShowAllVariantsBySize(product?.metadata?.show_all_variants_by_size ?? true);
         }
     }, [product?.id, product?.variants]);
 
@@ -2189,6 +2179,12 @@ export default function AdminProductEdit() {
             const formState = current as FormData;
             const payload: any = { ...formState };
             
+            // Get the current show_all_variants_by_size value from form state
+            // Check both the current formState and the reactive data to ensure we get the latest checkbox value
+            const currentShowAllVariantsBySize = (data.show_all_variants_by_size !== undefined) 
+                ? data.show_all_variants_by_size 
+                : ((formState.show_all_variants_by_size !== undefined) ? formState.show_all_variants_by_size : true);
+            
             // Only use variants if matrix has been explicitly generated (user clicked "Generate Matrix")
             // If generatedMatrixVariants is empty, don't include variants in payload
             let variantsToUse: VariantForm[] = [];
@@ -2292,7 +2288,17 @@ export default function AdminProductEdit() {
 
             payload.is_active = formState.is_active ?? true;
 
-            delete payload.metadata;
+            // Prepare metadata object with show_all_variants_by_size
+            // Always set show_all_variants_by_size in metadata, using the current value from form data
+            // This ensures the checkbox state is saved even if "Generate Matrix" wasn't clicked
+            const metadata: Record<string, any> = {};
+            metadata.show_all_variants_by_size = currentShowAllVariantsBySize;
+            
+            if (Object.keys(metadata).length > 0) {
+                payload.metadata = metadata;
+            } else {
+                delete payload.metadata;
+            }
 
             if (!payload.media_uploads || (Array.isArray(payload.media_uploads) && payload.media_uploads.length === 0)) {
                 delete payload.media_uploads;
