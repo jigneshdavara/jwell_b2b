@@ -97,6 +97,12 @@ interface ConfigurationOption {
     };
     sku: string;
     inventory_quantity?: number;
+    size?: {
+        id: number;
+        name: string;
+        value?: string;
+    } | null;
+    metadata?: Record<string, unknown> | null;
 }
 
 type CatalogShowPageProps = AppPageProps<{
