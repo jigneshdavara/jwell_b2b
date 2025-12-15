@@ -78,6 +78,13 @@ class SizeController extends Controller
 
     public function destroy(Size $size): RedirectResponse
     {
+        // Check if size is used in any category
+        if ($size->categories()->exists()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Cannot delete size because it is associated with one or more categories. Please remove it from all categories first.');
+        }
+
         $size->delete();
 
         return redirect()
@@ -87,10 +94,49 @@ class SizeController extends Controller
 
     public function bulkDestroy(BulkDestroySizesRequest $request): RedirectResponse
     {
-        Size::whereIn('id', $request->validated('ids'))->delete();
+        $ids = $request->validated('ids');
+        $deletedCount = 0;
+        $skippedCount = 0;
+        $skippedSizes = [];
+
+        foreach ($ids as $id) {
+            $size = Size::find($id);
+
+            if (! $size) {
+                continue;
+            }
+
+            // Check if size is used in any category
+            if ($size->categories()->exists()) {
+                $skippedCount++;
+                $skippedSizes[] = $size->name;
+                continue;
+            }
+
+            $size->delete();
+            $deletedCount++;
+        }
+
+        $messages = [];
+
+        if ($deletedCount > 0) {
+            $plural = $deletedCount === 1 ? '' : 's';
+            $messages[] = "{$deletedCount} size{$plural} deleted successfully.";
+        }
+
+        if ($skippedCount > 0) {
+            $plural = $skippedCount === 1 ? 'is' : 'are';
+            $sizeNames = implode(', ', array_slice($skippedSizes, 0, 5));
+            if (count($skippedSizes) > 5) {
+                $sizeNames .= ' and ' . (count($skippedSizes) - 5) . ' more';
+            }
+            $messages[] = "Cannot delete {$skippedCount} size{$plural} because {$plural} associated with categories. Please remove {$plural} from categories first: {$sizeNames}.";
+        }
+
+        $message = ! empty($messages) ? implode(' ', $messages) : 'No sizes were deleted.';
 
         return redirect()
             ->back()
-            ->with('success', 'Selected sizes deleted successfully.');
+            ->with($skippedCount > 0 && $deletedCount === 0 ? 'error' : 'success', $message);
     }
 }
