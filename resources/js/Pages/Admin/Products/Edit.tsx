@@ -43,7 +43,7 @@ type Product = {
     description?: string;
     brand_id?: number;
     category_id?: number;
-    style_id?: number;
+    style_ids?: number[];
     category_ids?: number[];
     category?: {
         id: number;
@@ -146,7 +146,7 @@ type FormData = {
     description: string;
     brand_id: string;
     category_id: string;
-    style_id?: string;
+    style_ids?: number[];
     collection: string;
     producttype: string;
     gender: string;
@@ -169,6 +169,7 @@ type FormData = {
     removed_media_ids?: number[];
     selected_sizes?: number[];
     all_sizes_available?: boolean;
+    show_all_variants_by_size?: boolean;
 };
 
 type ProductMedia = {
@@ -209,6 +210,13 @@ type SubcategoryMultiSelectProps = {
     subcategories: SubcategoryOption[];
     selectedIds: number[];
     parentCategoryId: number | '';
+    onChange: (selectedIds: number[]) => void;
+    error?: string;
+};
+
+type StyleMultiSelectProps = {
+    styles: Array<{ id: number; name: string }>;
+    selectedIds: number[];
     onChange: (selectedIds: number[]) => void;
     error?: string;
 };
@@ -713,6 +721,211 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
     );
 }
 
+function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSelectProps) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    const filteredStyles = useMemo(() => {
+        if (!searchTerm.trim()) {
+            return styles;
+        }
+        const search = searchTerm.toLowerCase();
+        return styles.filter((style) =>
+            style.name.toLowerCase().includes(search)
+        );
+    }, [styles, searchTerm]);
+
+    const toggleStyle = (styleId: number) => {
+        if (selectedIds.includes(styleId)) {
+            onChange(selectedIds.filter(id => id !== styleId));
+        } else {
+            onChange([...selectedIds, styleId]);
+        }
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+                setSearchTerm('');
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]);
+
+    const selectedStyles = useMemo(() => {
+        return selectedIds
+            .map(id => {
+                const style = styles.find(s => s.id === id);
+                return style ? { id, name: style.name } : null;
+            })
+            .filter(Boolean) as Array<{ id: number; name: string }>;
+    }, [selectedIds, styles]);
+
+    const removeStyle = (styleId: number) => {
+        onChange(selectedIds.filter(id => id !== styleId));
+    };
+
+    return (
+        <label className="flex flex-col gap-2 text-sm text-slate-600">
+            <div className="flex items-center justify-between">
+                <span>Style</span>
+                {selectedIds.length > 0 && (
+                    <span className="text-xs font-medium text-sky-600">
+                        {selectedIds.length} selected
+                    </span>
+                )}
+            </div>
+            <div className="relative" ref={dropdownRef}>
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={`w-full rounded-2xl border ${
+                        error ? 'border-rose-300' : 'border-slate-200'
+                    } bg-white px-4 py-2.5 text-left focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 transition-all ${
+                        isOpen ? 'border-sky-400 ring-2 ring-sky-200' : ''
+                    }`}
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-h-[20px] flex flex-wrap gap-1.5">
+                            {selectedIds.length === 0 ? (
+                                <span className="text-slate-400">Select styles...</span>
+                            ) : (
+                                selectedStyles.map((style) => (
+                                    <span
+                                        key={style.id}
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 border border-sky-200"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <span>{style.name}</span>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                removeStyle(style.id);
+                                            }}
+                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors"
+                                        >
+                                            <svg
+                                                className="h-3 w-3 text-sky-600"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </span>
+                                ))
+                            )}
+                        </div>
+                        <svg
+                            className={`ml-2 h-5 w-5 text-slate-400 transition-transform flex-shrink-0 ${
+                                isOpen ? 'rotate-180' : ''
+                            }`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </button>
+
+                {isOpen && (
+                    <div className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
+                        {styles.length > 5 && (
+                            <div className="border-b border-slate-100 p-3">
+                                <div className="relative">
+                                    <svg
+                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <input
+                                        type="text"
+                                        placeholder="Search styles..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="max-h-64 overflow-y-auto p-2">
+                            {filteredStyles.length === 0 ? (
+                                <div className="px-3 py-6 text-center text-sm text-slate-400">
+                                    {searchTerm ? 'No styles found' : 'No styles available'}
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    {filteredStyles.map((style) => {
+                                        const isSelected = selectedIds.includes(style.id);
+                                        return (
+                                            <button
+                                                key={style.id}
+                                                type="button"
+                                                onClick={() => toggleStyle(style.id)}
+                                                className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                                                    isSelected
+                                                        ? 'bg-sky-50 text-sky-700'
+                                                        : 'text-slate-700 hover:bg-slate-50'
+                                                }`}
+                                            >
+                                                <div
+                                                    className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
+                                                        isSelected
+                                                            ? 'border-sky-500 bg-sky-500'
+                                                            : 'border-slate-300'
+                                                    }`}
+                                                >
+                                                    {isSelected && (
+                                                        <svg
+                                                            className="h-3.5 w-3.5 text-white"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                            strokeWidth={3}
+                                                        >
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex-1 min-w-0">
+                                                    <span className={`text-sm font-medium truncate ${
+                                                        isSelected ? 'text-sky-900' : 'text-slate-900'
+                                                    }`}>
+                                                        {style.name}
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+            {error && <span className="text-xs text-rose-500">{error}</span>}
+        </label>
+    );
+}
+
 export default function AdminProductEdit() {
     const { props } = usePage<AdminProductEditPageProps>();
     const {
@@ -850,7 +1063,7 @@ export default function AdminProductEdit() {
         subcategory_ids: product?.category_ids ?? [],
         brand_id: String(product?.brand_id ?? ''),
         category_id: String(product?.category_id ?? ''),
-        style_id: product?.style_id ? String(product.style_id) : '',
+        style_ids: product?.style_ids || [],
         collection: product?.collection ?? '',
         producttype: product?.producttype ?? '',
         gender: product?.gender ?? '',
@@ -958,6 +1171,27 @@ export default function AdminProductEdit() {
     const [localDescription, setLocalDescription] = useState(data.description);
     const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Initialize generatedMatrixVariants with existing variants when editing a product
+    useEffect(() => {
+        if (product?.variants && product.variants.length > 0 && generatedMatrixVariants.length === 0) {
+            // Use variants from form data (which are initialized from product)
+            setGeneratedMatrixVariants(data.variants || []);
+        } else if (!product && generatedMatrixVariants.length === 0 && data.variants && data.variants.length > 0) {
+            // For new products, initialize with empty variant if form data has it
+            setGeneratedMatrixVariants(data.variants || []);
+        }
+    }, [product, data.variants]);
+
+    // Ensure show_all_variants_by_size defaults to true when sizes are selected
+    useEffect(() => {
+        if ((data.selected_sizes || []).length > 0 && data.show_all_variants_by_size === undefined) {
+            setData((prev: FormData) => ({
+                ...prev,
+                show_all_variants_by_size: true,
+            }));
+        }
+    }, [data.selected_sizes, data.show_all_variants_by_size, setData]);
+
     useEffect(() => {
         if (data.description !== localDescription) {
             setLocalDescription(data.description);
@@ -984,6 +1218,10 @@ export default function AdminProductEdit() {
 
     const [expandedDiamondVariantIndices, setExpandedDiamondVariantIndices] = useState<Set<number>>(new Set());
     const [expandedMetalVariantIndices, setExpandedMetalVariantIndices] = useState<Set<number>>(new Set());
+    // Separate state for generated variant matrix (for display only, not saved to form until submit)
+    const [generatedMatrixVariants, setGeneratedMatrixVariants] = useState<VariantForm[]>([]);
+    // Store the show_all_variants_by_size setting used when generating the matrix
+    const [generatedShowAllVariantsBySize, setGeneratedShowAllVariantsBySize] = useState<boolean | undefined>(undefined);
 
 
     const formatDecimal = (value: number): string => {
@@ -1252,11 +1490,100 @@ export default function AdminProductEdit() {
     };
 
     const updateVariant = (index: number, field: keyof VariantForm, value: string | boolean | number | null) => {
+        // Update generatedMatrixVariants (what's displayed in table)
+        setGeneratedMatrixVariants((prev) => {
+            if (prev.length === 0) return prev;
+            
+            const targetVariant = prev[index];
+            if (!targetVariant) return prev;
+            
+            // If grouped by metal (all_sizes_available === true OR show_all_variants_by_size === false)
+            // and certain fields, update all variants with same metal
+            const shouldGroupUpdate = (data.all_sizes_available === true || data.show_all_variants_by_size === false) 
+                && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default');
+            
+            if (shouldGroupUpdate) {
+                const targetMetals = (targetVariant.metals || []).filter(
+                    (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                );
+                const targetMetalsKey = targetMetals
+                    .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                    .sort()
+                    .join('|');
+                
+                return prev.map((variant: VariantForm) => {
+                    const variantMetals = (variant.metals || []).filter(
+                        (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                    );
+                    const variantMetalsKey = variantMetals
+                        .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                        .sort()
+                        .join('|');
+                    
+                    if (variantMetalsKey === targetMetalsKey) {
+                        const updated = { ...variant };
+                        switch (field) {
+                            case 'is_default':
+                                if (typeof value === 'boolean') updated.is_default = value;
+                                break;
+                            case 'sku':
+                            case 'label':
+                                if (typeof value === 'string') updated[field] = value;
+                                break;
+                            case 'inventory_quantity':
+                                if (value === '' || value === null) {
+                                    updated[field] = 0;
+                                } else if (typeof value === 'string') {
+                                    const numVal = parseInt(value, 10);
+                                    updated[field] = isNaN(numVal) ? 0 : numVal;
+                                } else if (typeof value === 'number') {
+                                    updated[field] = value;
+                                }
+                                break;
+                        }
+                        return updated;
+                    }
+                    return variant;
+                });
+            }
+            
+            // Update single variant
+            return prev.map((variant: VariantForm, idx: number) => {
+                if (idx !== index) return variant;
+                
+                const updated = { ...variant };
+                switch (field) {
+                    case 'is_default':
+                        if (typeof value === 'boolean') updated.is_default = value;
+                        break;
+                    case 'sku':
+                    case 'label':
+                        if (typeof value === 'string') updated[field] = value;
+                        break;
+                    case 'inventory_quantity':
+                        if (value === '' || value === null) {
+                            updated[field] = 0;
+                        } else if (typeof value === 'string') {
+                            const numVal = parseInt(value, 10);
+                            updated[field] = isNaN(numVal) ? 0 : numVal;
+                        } else if (typeof value === 'number') {
+                            updated[field] = value;
+                        }
+                        break;
+                }
+                return updated;
+            });
+        });
+        
+            // Also update form data (for backward compatibility, though we regenerate on submit)
         setData((prev: FormData) => {
             const targetVariant = (prev.variants || [])[index];
             if (!targetVariant) return prev;
             
-            if (prev.all_sizes_available === true && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default')) {
+            const shouldGroupUpdate = (prev.all_sizes_available === true || prev.show_all_variants_by_size === false) 
+                && (field === 'sku' || field === 'label' || field === 'inventory_quantity' || field === 'is_default');
+            
+            if (shouldGroupUpdate) {
                 const targetMetals = (targetVariant.metals || []).filter(
                     (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                 );
@@ -1353,6 +1680,32 @@ export default function AdminProductEdit() {
     };
 
     const updateVariantMetadata = (index: number, changes: Record<string, FormDataConvertible | null>) => {
+        // Update generatedMatrixVariants
+        setGeneratedMatrixVariants((prev) => {
+            if (prev.length === 0) return prev;
+            return prev.map((variant: VariantForm, idx: number) => {
+                if (idx !== index) {
+                    return variant;
+                }
+
+                const metadata = { ...(variant.metadata ?? {}) } as Record<string, FormDataConvertible>;
+
+                Object.entries(changes).forEach(([key, value]) => {
+                    if (value === null) {
+                        delete metadata[key];
+                    } else {
+                        metadata[key] = value;
+                    }
+                });
+
+                return {
+                    ...variant,
+                    metadata,
+                };
+            });
+        });
+        
+        // Also update form data (for backward compatibility)
         setData((prev: FormData) => {
             const variants = (prev.variants || []).map((variant: VariantForm, idx: number) => {
                 if (idx !== index) {
@@ -1387,6 +1740,16 @@ export default function AdminProductEdit() {
     };
 
     const markDefault = (index: number) => {
+        // Update generatedMatrixVariants
+        setGeneratedMatrixVariants((prev) => {
+            if (prev.length === 0) return prev;
+            return prev.map((variant: VariantForm, idx: number) => ({
+                ...variant,
+                is_default: idx === index,
+            }));
+        });
+        
+        // Also update form data (for backward compatibility)
         setData((prev: FormData) => ({
             ...prev,
             variants: (prev.variants || []).map((variant: VariantForm, idx: number) => ({
@@ -1473,11 +1836,85 @@ export default function AdminProductEdit() {
         field: keyof VariantMetalForm,
         value: string | number | '',
     ) => {
+        // Update generatedMatrixVariants first (what's displayed in table)
+        setGeneratedMatrixVariants((prev) => {
+            if (prev.length === 0) return prev;
+            
+            const targetVariant = prev[variantIndex];
+            if (!targetVariant) return prev;
+            
+            // If grouped by metal (all_sizes_available === true OR show_all_variants_by_size === false)
+            // update all variants with same metal
+            const shouldGroupUpdate = data.all_sizes_available === true || data.show_all_variants_by_size === false;
+            
+            if (shouldGroupUpdate) {
+                const targetMetals = (targetVariant.metals || []).filter(
+                    (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                );
+                const targetMetalsKey = targetMetals
+                    .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                    .sort()
+                    .join('|');
+                
+                return prev.map((variant: VariantForm) => {
+                    const variantMetals = (variant.metals || []).filter(
+                        (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                    );
+                    const variantMetalsKey = variantMetals
+                        .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                        .sort()
+                        .join('|');
+                    
+                    if (variantMetalsKey === targetMetalsKey) {
+                        const currentMetals = variant.metals || [];
+                        const updatedMetals = currentMetals.map((metal: VariantMetalForm, mIdx: number) => {
+                            if (mIdx !== metalIndex) {
+                                return metal;
+                            }
+                            return {
+                                ...metal,
+                                [field]: value,
+                            };
+                        });
+                        return {
+                            ...variant,
+                            metals: updatedMetals,
+                        };
+                    }
+                    return variant;
+                });
+            }
+            
+            // Update single variant
+            return prev.map((variant: VariantForm, idx: number) => {
+                if (idx !== variantIndex) {
+                    return variant;
+                }
+                const currentMetals = variant.metals || [];
+                const updatedMetals = currentMetals.map((metal: VariantMetalForm, mIdx: number) => {
+                    if (mIdx !== metalIndex) {
+                        return metal;
+                    }
+                    return {
+                        ...metal,
+                        [field]: value,
+                    };
+                });
+                return {
+                    ...variant,
+                    metals: updatedMetals,
+                };
+            });
+        });
+        
+        // Also update form data (for backward compatibility)
         setData((prev: FormData) => {
             const targetVariant = (prev.variants || [])[variantIndex];
             if (!targetVariant) return prev;
             
-            if (prev.all_sizes_available === true) {
+            const shouldGroupUpdate = prev.all_sizes_available === true || prev.show_all_variants_by_size === false;
+            
+            if (shouldGroupUpdate) {
                 const targetMetals = (targetVariant.metals || []).filter(
                     (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
                 );
@@ -1557,7 +1994,17 @@ export default function AdminProductEdit() {
     };
 
     const generateVariantMatrix = () => {
-        setData((prev: FormData) => generateVariantMatrixForData(prev));
+        // Generate matrix but store in separate state variable, not in form data
+        // Use the current form data to generate variants based on current selections
+        const generatedData = generateVariantMatrixForData(data);
+        const generatedVariants = generatedData.variants || [];
+        
+        // Store the show_all_variants_by_size setting used for this generation
+        // This ensures the display respects the setting at generation time, not the current checkbox state
+        setGeneratedShowAllVariantsBySize(data.show_all_variants_by_size);
+        
+        // Set the generated variants - generation already handles grouping based on show_all_variants_by_size
+        setGeneratedMatrixVariants([...generatedVariants]);
     };
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -1568,6 +2015,15 @@ export default function AdminProductEdit() {
         form.transform((current) => {
             const formState = current as FormData;
             const payload: any = { ...formState };
+            
+            // Use generatedMatrixVariants if available (contains user edits), otherwise generate fresh variants
+            // This ensures user edits (inventory_quantity, weights, etc.) are preserved
+            let variantsToUse = generatedMatrixVariants.length > 0 
+                ? generatedMatrixVariants 
+                : (() => {
+                    const formDataWithGeneratedVariants = generateVariantMatrixForData(formState);
+                    return formDataWithGeneratedVariants.variants || [];
+                })();
 
             if (formState.media_uploads && Array.isArray(formState.media_uploads) && formState.media_uploads.length > 0) {
                 payload.media_uploads = formState.media_uploads;
@@ -1597,12 +2053,12 @@ export default function AdminProductEdit() {
                 payload.category_id = null;
             }
 
-            const styleIdValue = formState.style_id;
-            if (styleIdValue !== '' && styleIdValue !== null && styleIdValue !== undefined) {
-                const styleIdNum = Number(styleIdValue);
-                payload.style_id = isNaN(styleIdNum) ? null : styleIdNum;
+            // Handle style_ids (multi-select)
+            const styleIds = formState.style_ids || [];
+            if (Array.isArray(styleIds) && styleIds.length > 0) {
+                payload.style_ids = styleIds.filter(id => typeof id === 'number' && !isNaN(id));
             } else {
-                payload.style_id = null;
+                payload.style_ids = [];
             }
 
             const selectedTypes = formState.making_charge_types || [];
@@ -1663,11 +2119,21 @@ export default function AdminProductEdit() {
             }
             delete payload.subcategory_ids;
 
-            if (formState.variants && Array.isArray(formState.variants)) {
+            // Use variants for submission (from generatedMatrixVariants if available, otherwise newly generated)
+            if (variantsToUse && Array.isArray(variantsToUse) && variantsToUse.length > 0) {
                 const diamondSelections = formState.diamond_selections || [];
                 
-                payload.variants = formState.variants.map((variant: any) => {
+                payload.variants = variantsToUse.map((variant: any) => {
                     const formattedVariant = { ...variant };
+                    
+                    // Ensure inventory_quantity is explicitly included
+                    if (variant.inventory_quantity !== undefined && variant.inventory_quantity !== null) {
+                        formattedVariant.inventory_quantity = typeof variant.inventory_quantity === 'number' 
+                            ? variant.inventory_quantity 
+                            : (variant.inventory_quantity === '' ? 0 : parseInt(String(variant.inventory_quantity), 10));
+                    } else {
+                        formattedVariant.inventory_quantity = 0;
+                    }
                     
                     let variantDiamonds: any[] = [];
                     
@@ -1941,8 +2407,8 @@ export default function AdminProductEdit() {
                                         value={data.category_id}
                                         onChange={(event) => {
                                             setData('category_id', event.target.value);
-                                            // Clear style_id when category changes
-                                            setData('style_id', '');
+                                            // Clear style_ids when category changes
+                                            setData('style_ids', []);
                                         }}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                     >
@@ -1963,33 +2429,19 @@ export default function AdminProductEdit() {
                                     error={errors.subcategory_ids}
                                 />
                                 
-                                {/* Style dropdown - appears after subcategory selection */}
+                                {/* Style multi-select - appears after category selection */}
                                 {data.category_id && data.category_id !== '' && (() => {
                                     const selectedCategoryId = Number(data.category_id);
                                     const selectedCategory = parentCategories.find(cat => cat.id === selectedCategoryId);
                                     const availableStyles = selectedCategory?.styles || [];
                                     
                                     return (
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Style</span>
-                                            <select
-                                                value={data.style_id || ''}
-                                                onChange={(event) => setData('style_id', event.target.value)}
-                                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                            >
-                                                <option value="">Select style</option>
-                                                {availableStyles.length === 0 ? (
-                                                    <option value="" disabled>No option available</option>
-                                                ) : (
-                                                    availableStyles.map((style: { id: number; name: string }) => (
-                                                        <option key={style.id} value={style.id}>
-                                                            {style.name}
-                                                        </option>
-                                                    ))
-                                                )}
-                                            </select>
-                                            {errors.style_id && <span className="text-xs text-rose-500">{errors.style_id}</span>}
-                                        </label>
+                                        <StyleMultiSelect
+                                            styles={availableStyles}
+                                            selectedIds={Array.isArray(data.style_ids) ? data.style_ids : []}
+                                            onChange={(selectedIds) => setData('style_ids', selectedIds)}
+                                            error={errors.style_ids}
+                                        />
                                     );
                                 })()}
                                 
@@ -2267,10 +2719,10 @@ export default function AdminProductEdit() {
                                     return null;
                                 }
                                 
-                                const sizeOptions = [
-                                    { key: 'all', label: 'All sizes available', value: true },
-                                    { key: 'specific', label: 'Select specific sizes', value: false },
-                                ];
+                                const allCategorySizeIds = categorySizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id));
+                                const selectedSizes = data.selected_sizes || [];
+                                const allSizesSelected = selectedSizes.length > 0 && allCategorySizeIds.length > 0 && 
+                                    allCategorySizeIds.every((id: number) => selectedSizes.includes(id));
                                 
                                 return (
                                     <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
@@ -2278,147 +2730,115 @@ export default function AdminProductEdit() {
                                             <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Sizes</h3>
                                             <p className="text-xs text-slate-500">
                                                 This category "{selectedCategory?.name || product?.category?.name}" has {categorySizes.length} sizes available. 
-                                                Are all sizes available for this product?
+                                                Select sizes to include in your product variants.
                                             </p>
                                         </div>
 
-                                        <div className="flex flex-wrap gap-3">
-                                            {sizeOptions.map((option) => {
-                                                const isSelected = data.all_sizes_available === option.value;
-                                                return (
-                                                    <label
-                                                        key={option.key}
-                                                        className={`
-                                                            inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
-                                                            ${isSelected
-                                                                ? 'bg-sky-600 text-white shadow-sm'
-                                                                : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                                            }
-                                                        `}
-                                                    >
+                                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                            <div className="mb-4 flex items-center justify-between">
+                                                <h4 className="text-sm font-semibold text-slate-900">Select Sizes</h4>
+                                                {/* {selectedSizes.length > 0 && (
+                                                    <span className="text-xs font-medium text-sky-600">
+                                                        {selectedSizes.length} size{selectedSizes.length !== 1 ? 's' : ''} selected
+                                                    </span>
+                                                )} */}
+                                            </div>
+                                            
+                                            <div className="mb-4">
+                                                <div className="flex items-center justify-end gap-4 flex-wrap">
+                                                    <label className="inline-flex items-center gap-2 cursor-pointer hover:text-sky-600 transition-colors">
                                                         <input
                                                             type="checkbox"
-                                                            checked={isSelected}
+                                                            checked={data.show_all_variants_by_size === true}
                                                             onChange={(e) => {
-                                                                if (!e.target.checked) {
-                                                                    setData((prev: FormData) => ({
-                                                                        ...prev,
-                                                                        all_sizes_available: undefined,
-                                                                    }));
-                                                                    return;
-                                                                }
-                                                                
+                                                                setData((prev: FormData) => ({
+                                                                    ...prev,
+                                                                    show_all_variants_by_size: e.target.checked ? true : false,
+                                                                }));
+                                                            }}
+                                                            className="h-4 w-4 rounded border-2 border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-0 cursor-pointer"
+                                                        />
+                                                        <span className="text-sm font-semibold text-slate-700 hover:text-sky-600 whitespace-nowrap">
+                                                            Show all variants
+                                                        </span>
+                                                    </label>
+                                                    <label className="inline-flex items-center gap-2 cursor-pointer hover:text-sky-600 transition-colors">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={allSizesSelected}
+                                                            onChange={(e) => {
                                                                 setData((prev: FormData) => {
                                                                     const allCategorySizeIds = categorySizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id));
-                                                                    const newAllSizesAvailable = option.value;
+                                                                    const currentSizes = prev.selected_sizes || [];
+                                                                    const allSelected = currentSizes.length > 0 && allCategorySizeIds.every((id: number) => currentSizes.includes(id));
+                                                                    
+                                                                    const newSizes = e.target.checked ? allCategorySizeIds : [];
+                                                                    const newAllSelected = newSizes.length > 0 && allCategorySizeIds.every((id: number) => newSizes.includes(id));
                                                                     
                                                                     return {
                                                                         ...prev,
-                                                                        all_sizes_available: newAllSizesAvailable,
-                                                                        selected_sizes: newAllSizesAvailable === true 
-                                                                            ? allCategorySizeIds 
-                                                                            : [],
+                                                                        selected_sizes: newSizes,
+                                                                        all_sizes_available: newAllSelected ? true : undefined,
+                                                                        show_all_variants_by_size: prev.show_all_variants_by_size === undefined ? true : prev.show_all_variants_by_size,
                                                                     };
                                                                 });
                                                             }}
-                                                            className={`mr-2 h-4 w-4 rounded border-2 ${
-                                                                isSelected
-                                                                    ? 'border-white bg-white text-sky-600'
-                                                                    : 'border-slate-300 bg-white text-slate-700'
-                                                            } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                            className="h-4 w-4 rounded border-2 border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-0 cursor-pointer"
                                                         />
-                                                        {option.label}
+                                                        <span className="text-sm font-semibold text-slate-700 hover:text-sky-600 whitespace-nowrap">
+                                                            Select all sizes
+                                                        </span>
                                                     </label>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {data.all_sizes_available !== undefined && (
-                                            <div className="space-y-4">
-                                                {data.all_sizes_available === true ? (
-                                                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                                                        <div className="mb-4 flex items-center justify-between">
-                                                            <h4 className="text-sm font-semibold text-slate-900">All Category Sizes</h4>
-                                                            <span className="text-xs font-medium text-sky-600">
-                                                                {categorySizes.length} sizes will be used
-                                                            </span>
-                                                        </div>
-                                                        <p className="mb-3 text-xs text-slate-600">
-                                                            Variants will be created for all sizes from category "{selectedCategory?.name || product?.category?.name}". 
-                                                            Only metal combinations are shown in the variant table below.
-                                                        </p>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {categorySizes.map((size: any) => (
-                                                                <span
-                                                                    key={size.id || size.name}
-                                                                    className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600"
-                                                                >
-                                                                    {size.name || size.value}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                                                        <div className="mb-4 flex items-center justify-between">
-                                                            <h4 className="text-sm font-semibold text-slate-900">Select Specific Sizes</h4>
-                                                            {(data.selected_sizes || []).length > 0 && (
-                                                                <span className="text-xs font-medium text-sky-600">
-                                                                    {(data.selected_sizes || []).length} size{(data.selected_sizes || []).length !== 1 ? 's' : ''} selected
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        
-                                                        <div>
-                                                            <p className="mb-3 text-xs text-slate-600">
-                                                                Choose sizes from the category to include in your product variants.
-                                                            </p>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {categorySizes.map((size: any) => {
-                                                                    const sizeId = typeof size.id === 'number' ? size.id : Number(size.id);
-                                                                    const isSizeSelected = (data.selected_sizes || []).includes(sizeId);
-                                                                    return (
-                                                                        <label
-                                                                            key={sizeId || size.name}
-                                                                            className={`
-                                                                                inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
-                                                                                ${isSizeSelected
-                                                                                    ? 'bg-sky-600 text-white shadow-sm'
-                                                                                    : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                                                                                }
-                                                                            `}
-                                                                        >
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                checked={isSizeSelected}
-                                                                                onChange={(e) => {
-                                                                                    setData((prev: FormData) => {
-                                                                                        const currentSizes = prev.selected_sizes || [];
-                                                                                        const newSizes = e.target.checked
-                                                                                            ? [...currentSizes, sizeId]
-                                                                                            : currentSizes.filter(id => id !== sizeId);
-                                                                                        return {
-                                                                                            ...prev,
-                                                                                            selected_sizes: newSizes,
-                                                                                        };
-                                                                                    });
-                                                                                }}
-                                                                                className={`mr-2 h-4 w-4 rounded border-2 ${
-                                                                                    isSizeSelected
-                                                                                        ? 'border-white bg-white text-sky-600'
-                                                                                        : 'border-slate-300 bg-white text-slate-700'
-                                                                                } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
-                                                                            />
-                                                                            {size.name || size.value}
-                                                                        </label>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                </div>
                                             </div>
-                                        )}
+                                            
+                                            <div className="flex flex-wrap gap-2">
+                                                {categorySizes.map((size: any) => {
+                                                    const sizeId = typeof size.id === 'number' ? size.id : Number(size.id);
+                                                    const isSizeSelected = selectedSizes.includes(sizeId);
+                                                    return (
+                                                        <label
+                                                            key={sizeId || size.name}
+                                                            className={`
+                                                                inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                                ${isSizeSelected
+                                                                    ? 'bg-sky-600 text-white shadow-sm'
+                                                                    : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                                                }
+                                                            `}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isSizeSelected}
+                                                                onChange={(e) => {
+                                                                    setData((prev: FormData) => {
+                                                                        const currentSizes = prev.selected_sizes || [];
+                                                                        const newSizes = e.target.checked
+                                                                            ? [...currentSizes, sizeId]
+                                                                            : currentSizes.filter(id => id !== sizeId);
+                                                                        const allCategorySizeIds = categorySizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id));
+                                                                        const allSelected = newSizes.length > 0 && allCategorySizeIds.every((id: number) => newSizes.includes(id));
+                                                                        
+                                                                        return {
+                                                                            ...prev,
+                                                                            selected_sizes: newSizes,
+                                                                            all_sizes_available: allSelected ? true : undefined,
+                                                                            show_all_variants_by_size: prev.show_all_variants_by_size === undefined ? true : prev.show_all_variants_by_size,
+                                                                        };
+                                                                    });
+                                                                }}
+                                                                className={`mr-2 h-4 w-4 rounded border-2 ${
+                                                                    isSizeSelected
+                                                                        ? 'border-white bg-white text-sky-600'
+                                                                        : 'border-slate-300 bg-white text-slate-700'
+                                                                } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                            />
+                                                            {size.name || size.value}
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
                                     </div>
                                 );
                             })()}
@@ -2496,11 +2916,11 @@ export default function AdminProductEdit() {
                                             <div key={metal.id} className="rounded-xl border border-slate-200 bg-white p-4">
                                                 <div className="mb-4 flex items-center justify-between">
                                                     <h4 className="text-sm font-semibold text-slate-900">Metal: {metal.name}</h4>
-                                                    {variantCount > 0 && (
+                                                    {/* {variantCount > 0 && (
                                                         <span className="text-xs font-medium text-sky-600">
                                                             {variantCount} variant{variantCount !== 1 ? 's' : ''} for this metal
                                                         </span>
-                                                    )}
+                                                    )} */}
                                                 </div>
 
                                                 <div className="mb-4">
@@ -2675,7 +3095,18 @@ export default function AdminProductEdit() {
                                     <p className="text-xs text-slate-400">No diamonds added. Click "Add Diamond" to add one.</p>
                                 )}
                             </div>
-
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={generateVariantMatrix}
+                                    className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+                                    </svg>
+                                    Generate Matrix
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -2687,7 +3118,7 @@ export default function AdminProductEdit() {
                                 Configure product variants with metals and diamonds. The default variant powers the customer catalogue card pricing.
                             </p>
                         </div>
-                            <button
+                            {/* <button
                                 type="button"
                                 onClick={generateVariantMatrix}
                                 className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
@@ -2696,7 +3127,7 @@ export default function AdminProductEdit() {
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
                                 </svg>
                                 Generate Matrix
-                            </button>
+                            </button> */}
                         </div>
 
                         {variantError && (
@@ -2724,10 +3155,68 @@ export default function AdminProductEdit() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 bg-white">
-                                {(() => {
-                                    const allVariants = data.variants || [];
-                                    return allVariants.map((variant, index) => ({ variant, index }));
-                                })().map(({ variant, index }) => {
+                                {useMemo(() => {
+                                    // Use generated matrix variants for display (separate from form data)
+                                    // Variants are generated when "Generate Matrix" button is clicked
+                                    const allVariants = generatedMatrixVariants.length > 0 ? generatedMatrixVariants : (data.variants || []);
+                                    
+                                    // If no variants at all, return empty array
+                                    if (allVariants.length === 0) {
+                                        return [];
+                                    }
+                                    
+                                    // Use the show_all_variants_by_size setting from when the matrix was generated
+                                    // This ensures the display respects the setting at generation time, not the current checkbox state
+                                    const showAllVariants = generatedShowAllVariantsBySize !== undefined 
+                                        ? generatedShowAllVariantsBySize 
+                                        : (data.show_all_variants_by_size !== undefined ? data.show_all_variants_by_size : true);
+                                    
+                                    // Note: When show_all_variants_by_size === false, variants are already generated 
+                                    // with only one per metal combination in generateVariantMatrixUtil
+                                    // So we just need to display them as-is
+                                    
+                                    // Group by metal when user chose "No" to show all variants at generation time
+                                    // This allows grouping in both "All sizes available" and "Select specific sizes" modes
+                                    // When user chose "Yes", show all variants individually
+                                    // Only group if there are actually multiple variants with the same metal but different sizes
+                                    if (showAllVariants === false && allVariants.length > 0) {
+                                        const groupedVariants = new Map<string, typeof allVariants>();
+                                        
+                                        allVariants.forEach((variant) => {
+                                            const variantMetals = (variant.metals || []).filter(
+                                                (m) => m.metal_id !== '' && m.metal_id !== null && typeof m.metal_id === 'number'
+                                            );
+                                            
+                                            const metalsKey = variantMetals
+                                                .map(m => `${m.metal_id}-${m.metal_purity_id || 'null'}-${m.metal_tone_id || 'null'}`)
+                                                .sort()
+                                                .join('|');
+                                            
+                                            if (!groupedVariants.has(metalsKey)) {
+                                                groupedVariants.set(metalsKey, []);
+                                            }
+                                            groupedVariants.get(metalsKey)!.push(variant);
+                                        });
+                                        
+                                        // Check if there are multiple variants per metal combination (indicating multiple sizes)
+                                        const hasMultipleSizes = Array.from(groupedVariants.values()).some(group => group.length > 1);
+                                        
+                                        if (hasMultipleSizes) {
+                                            // Return one variant per metal combination group for display
+                                            return Array.from(groupedVariants.values()).map((variantGroup) => {
+                                                const displayVariant = variantGroup[0]; // Use first variant as representative
+                                                const originalIndex = allVariants.findIndex(v => v === displayVariant);
+                                                return { variant: displayVariant, index: originalIndex, group: variantGroup };
+                                            });
+                                        }
+                                    }
+                                    
+                                    // Show all variants individually when:
+                                    // - User chose "Yes" to show all variants by size at generation time
+                                    // - Or no grouping needed (show_all_variants_by_size is undefined or true)
+                                    // - Or when variants were already generated grouped (one per metal) when "No" was selected
+                                    return allVariants.map((variant, index) => ({ variant, index, group: [variant] }));
+                                }, [generatedMatrixVariants, data.variants, generatedShowAllVariantsBySize]).map(({ variant, index, group }) => {
                                     const meta = buildVariantMeta(variant, data);
                                     const metalLabel = meta.metalTone || '—';
 
@@ -2921,12 +3410,12 @@ export default function AdminProductEdit() {
                                                 </div>
                                             </td>
                                             <td className="px-5 py-3 align-middle text-slate-700">
-                                                <div className="min-w-[120px]">
+                                                <div className="flex flex-col gap-1 min-w-[120px]">
                                                     {variantMetals.length > 0 ? (
                                                         variantMetals.map((metal, metalIndex) => {
                                                             const weight = metal.metal_weight || '';
                                                             return (
-                                                                <div key={metalIndex} className="mb-2 last:mb-0">
+                                                                <div key={metalIndex} className="mb-1 last:mb-0">
                                                                     <input
                                                                         type="number"
                                                                         step="0.001"
@@ -2937,15 +3426,15 @@ export default function AdminProductEdit() {
                                                                             const value = e.target.value;
                                                                             updateMetalInVariant(index, metalIndex, 'metal_weight', value);
                                                                         }}
-                                                                        className={`w-full rounded-lg border px-2.5 py-1.5 text-sm font-mono transition-colors ${
+                                                                        className={`w-full rounded-xl border px-3 py-1.5 text-sm text-slate-700 transition-colors ${
                                                                             (!weight || weight === '')
                                                                                 ? 'border-rose-300 bg-rose-50 text-rose-500 focus:border-rose-400 focus:bg-white'
-                                                                                : 'border-slate-200 bg-white text-slate-700 focus:border-sky-400'
-                                                                        } focus:outline-none focus:ring-1 focus:ring-sky-200`}
+                                                                                : 'border-slate-200 bg-white focus:border-sky-400'
+                                                                        } focus:outline-none focus:ring-2 focus:ring-sky-200`}
                                                                         placeholder="0.000"
                                                                     />
                                                                     {(!weight || weight === '') && (
-                                                                        <span className="mt-1 text-[10px] text-rose-500 block">Required</span>
+                                                                        <span className="text-[10px] text-rose-500">Required</span>
                                                                     )}
                                                                 </div>
                                                             );
@@ -2957,7 +3446,11 @@ export default function AdminProductEdit() {
                                             </td>
                                             <td className="px-5 py-3 align-middle text-slate-700">
                                                 <div className="min-w-[120px]">
-                                                    <span className="text-sm text-slate-700">{sizeDisplay}</span>
+                                                    {group && group.length > 1 ? (
+                                                        <span className="text-sm text-slate-500 italic">All sizes</span>
+                                                    ) : (
+                                                        <span className="text-sm text-slate-700">{sizeDisplay}</span>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-5 py-3 align-middle text-slate-700">

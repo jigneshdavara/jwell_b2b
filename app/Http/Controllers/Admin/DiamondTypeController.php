@@ -78,19 +78,67 @@ class DiamondTypeController extends Controller
 
     public function destroy(DiamondType $type): RedirectResponse
     {
-        $type->delete();
+        // Check if diamonds exist - if they do, prevent deletion
+        if ($type->diamonds()->exists()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Cannot delete diamond type because it has associated diamonds. Please remove all diamonds first.');
+        }
+
+        // If no diamonds exist, cascade delete all related data
+        // Delete in order to respect foreign key constraints
+        $type->shapeSizes()->delete(); // Delete shape sizes first (they may reference shapes)
+        $type->shapes()->delete();     // Delete shapes
+        $type->clarities()->delete();  // Delete clarities
+        $type->colors()->delete();     // Delete colors
+        $type->delete();               // Finally delete the type
 
         return redirect()
             ->back()
-            ->with('success', 'Diamond type removed.');
+            ->with('success', 'Diamond type and all related data (clarities, colors, shapes, shape sizes) removed successfully.');
     }
 
     public function bulkDestroy(BulkDestroyDiamondTypesRequest $request): RedirectResponse
     {
-        DiamondType::whereIn('id', $request->validated('ids'))->delete();
+        $ids = $request->validated('ids');
+        $deletedCount = 0;
+        $skippedCount = 0;
+
+        foreach ($ids as $id) {
+            $type = DiamondType::find($id);
+
+            if (! $type) {
+                continue;
+            }
+
+            // Check if diamonds exist - if they do, skip deletion
+            if ($type->diamonds()->exists()) {
+                $skippedCount++;
+                continue;
+            }
+
+            // If no diamonds exist, cascade delete all related data
+            $type->shapeSizes()->delete();
+            $type->shapes()->delete();
+            $type->clarities()->delete();
+            $type->colors()->delete();
+            $type->delete();
+
+            $deletedCount++;
+        }
+
+        $messages = [];
+
+        if ($deletedCount > 0) {
+            $messages[] = "{$deletedCount} diamond type(s) and all related data deleted successfully.";
+        }
+
+        if ($skippedCount > 0) {
+            $messages[] = "{$skippedCount} diamond type(s) could not be deleted because they have associated diamonds.";
+        }
 
         return redirect()
             ->back()
-            ->with('success', 'Selected diamond types deleted successfully.');
+            ->with($deletedCount > 0 ? 'success' : 'error', implode(' ', $messages));
     }
 }

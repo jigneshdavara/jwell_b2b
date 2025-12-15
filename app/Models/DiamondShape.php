@@ -34,4 +34,9 @@ class DiamondShape extends Model
     {
         return $this->hasMany(DiamondShapeSize::class);
     }
+
+    public function diamonds(): HasMany
+    {
+        return $this->hasMany(Diamond::class, 'diamond_shape_id');
+    }
 }
