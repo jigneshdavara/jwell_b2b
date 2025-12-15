@@ -35,10 +35,10 @@
                 <td style="padding:8px 0;font-size:13px;color:#0f172a;">{{ $quotation->admin_notes }}</td>
             </tr>
             @endif
-            @if($message)
+            @if($adminMessage)
             <tr>
                 <td style="padding:8px 0;font-size:13px;color:#64748b;font-weight:600;">Message</td>
-                <td style="padding:8px 0;font-size:13px;color:#0f172a;">{{ $message }}</td>
+                <td style="padding:8px 0;font-size:13px;color:#0f172a;">{{ $adminMessage }}</td>
             </tr>
             @endif
         </table>
