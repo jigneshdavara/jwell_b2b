@@ -301,6 +301,15 @@ export default function CustomizationSection({
 
         if (match) {
             onVariantChange(match.variant_id);
+            // Clear all validation errors when variant is successfully matched
+            if (onClearValidationError) {
+                onClearValidationError('metal');
+                onClearValidationError('purity');
+                onClearValidationError('tone');
+                if (hasSize) {
+                    onClearValidationError('size');
+                }
+            }
         }
     }, [
         metalId,
@@ -310,6 +319,7 @@ export default function CustomizationSection({
         hasSize,
         configurationOptions,
         onVariantChange,
+        onClearValidationError,
     ]);
 
     /* ---------- UI ---------- */
@@ -344,9 +354,17 @@ export default function CustomizationSection({
                         setMetalId(selectedMetalId);
                         setPurityId("");
                         setToneId("");
+                        // Clear validation errors for cleared fields
+                        if (onClearValidationError) {
+                            onClearValidationError('purity');
+                            onClearValidationError('tone');
+                        }
                         // Only clear size if it's not valid for the new metal
                         if (!keepSize) {
                             setSize("");
+                            if (onClearValidationError) {
+                                onClearValidationError('size');
+                            }
                         }
                         if (value !== "" && onClearValidationError) {
                             onClearValidationError('metal');
@@ -420,6 +438,10 @@ export default function CustomizationSection({
                             // Auto-select the metal only if not already selected
                             if (foundMetalId !== "" && !metalId) {
                                 setMetalId(foundMetalId);
+                                // Clear metal validation error when auto-selected
+                                if (onClearValidationError) {
+                                    onClearValidationError('metal');
+                                }
                             }
                         }
                         
@@ -441,6 +463,10 @@ export default function CustomizationSection({
                         // Only clear tone if it's not valid for the new purity
                         if (!keepTone) {
                             setToneId("");
+                            // Clear tone validation error when cleared
+                            if (onClearValidationError) {
+                                onClearValidationError('tone');
+                            }
                         }
                         
                         // Check if current size is still valid for the new purity
@@ -466,6 +492,10 @@ export default function CustomizationSection({
                         // Only clear size if it's not valid for the new purity
                         if (!keepSize) {
                             setSize("");
+                            // Clear size validation error when cleared
+                            if (onClearValidationError) {
+                                onClearValidationError('size');
+                            }
                         }
                         if (value !== "" && onClearValidationError) {
                             onClearValidationError('purity');
@@ -542,10 +572,18 @@ export default function CustomizationSection({
                             // Auto-select the metal only if not already selected
                             if (foundMetalId !== "" && !metalId) {
                                 setMetalId(foundMetalId);
+                                // Clear metal validation error when auto-selected
+                                if (onClearValidationError) {
+                                    onClearValidationError('metal');
+                                }
                             }
                             // Auto-select the purity only if not already selected
                             if (foundPurityId !== "" && !purityId) {
                                 setPurityId(foundPurityId);
+                                // Clear purity validation error when auto-selected
+                                if (onClearValidationError) {
+                                    onClearValidationError('purity');
+                                }
                             }
                         }
                         
@@ -573,6 +611,10 @@ export default function CustomizationSection({
                         // Only clear size if it's not valid for the new tone
                         if (!keepSize) {
                             setSize("");
+                            // Clear size validation error when cleared
+                            if (onClearValidationError) {
+                                onClearValidationError('size');
+                            }
                         }
                         if (value !== "" && onClearValidationError) {
                             onClearValidationError('tone');
@@ -682,12 +724,24 @@ export default function CustomizationSection({
                             // Clear metal, purity, and tone if they're not valid for the new size
                             if (!keepMetal && metalId) {
                                 setMetalId("");
+                                // Clear metal validation error when cleared
+                                if (onClearValidationError) {
+                                    onClearValidationError('metal');
+                                }
                             }
                             if (!keepPurity && purityId) {
                                 setPurityId("");
+                                // Clear purity validation error when cleared
+                                if (onClearValidationError) {
+                                    onClearValidationError('purity');
+                                }
                             }
                             if (!keepTone && toneId) {
                                 setToneId("");
+                                // Clear tone validation error when cleared
+                                if (onClearValidationError) {
+                                    onClearValidationError('tone');
+                                }
                             }
                             
                             if (selectedSize !== "" && onClearValidationError) {
