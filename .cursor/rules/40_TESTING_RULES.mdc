@@ -1,0 +1,437 @@
+---
+alwaysApply: true
+---
+
+# Testing Rules
+
+## Test Structure
+
+### Test Location
+**Evidence:** `tests/` directory
+
+**Structure:**
+```
+tests/
+├── TestCase.php          # Base test case
+├── Feature/              # Feature tests (13 files)
+│   ├── Auth/            # Authentication tests
+│   ├── AdminAccessTest.php
+│   ├── CartCheckoutTest.php
+│   ├── KycMiddlewareTest.php
+│   └── ProfileTest.php
+└── Unit/                # Unit tests (1 file)
+    └── ExampleTest.php
+```
+
+### Base Test Case
+**Evidence:** `tests/TestCase.php`
+
+**Setup:**
+- Extends `Illuminate\Foundation\Testing\TestCase`
+- Uses `CreatesApplication` trait
+
+## Test Patterns
+
+### Feature Tests
+**Evidence:** `tests/Feature/CartCheckoutTest.php`
+
+#### Structure
+```php
+class CartCheckoutTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Test setup
+    }
+
+    public function test_feature_works(): void
+    {
+        // Arrange
+        $user = Customer::factory()->retailer()->approved()->create();
+        
+        // Act
+        $response = $this->actingAs($user)->post(route('...'));
+        
+        // Assert
+        $response->assertRedirect();
+        $this->assertDatabaseHas('table', ['field' => 'value']);
+    }
+}
+```
+
+#### Common Patterns
+
+**Authentication:**
+```php
+$user = Customer::factory()->retailer()->approved()->create();
+$response = $this->actingAs($user)->get(route('...'));
+```
+
+**Factory Usage:**
+- `Customer::factory()->retailer()->approved()->create()`
+- Creates customer with retailer type and approved KYC status
+
+**Assertions:**
+- `$response->assertOk()` - Status 200
+- `$response->assertRedirect()` - Redirect response
+- `$this->assertDatabaseHas('table', ['field' => 'value'])` - Database assertion
+
+### Test Setup Patterns
+
+#### RefreshDatabase Trait
+**Evidence:** Used in `CartCheckoutTest.php` line 20
+
+**Rules:**
+1. Use `RefreshDatabase` trait for tests that modify database
+2. Database reset between tests
+3. Migrations run automatically
+
+#### Configuration Overrides
+**Evidence:** `CartCheckoutTest.php` line 26
+
+**Pattern:**
+```php
+protected function setUp(): void
+{
+    parent::setUp();
+    config(['payments.default' => 'fake']);
+}
+```
+
+**Rules:**
+1. Override config in `setUp()` method
+2. Use test-friendly values (e.g., fake payment gateway)
+3. Reset after test if needed
+
+#### Factory Data
+**Evidence:** `CartCheckoutTest.php` line 28-34
+
+**Pattern:**
+```php
+PaymentGateway::factory()->create([
+    'slug' => 'fake',
+    'name' => 'Fake Gateway',
+    'driver' => FakeGateway::class,
+    'is_active' => true,
+    'is_default' => true,
+]);
+```
+
+**Rules:**
+1. Use factories to create test data
+2. Customize factory attributes as needed
+3. Create minimal required data for test
+
+## What Must Be Tested
+
+### KYC Workflow Tests
+**Evidence:** `tests/Feature/KycMiddlewareTest.php`
+
+**Required Tests:**
+1. ✅ Unapproved users redirected to KYC page
+2. ✅ Approved users can access protected routes
+3. ✅ KYC status update by admin works
+4. ✅ Document upload works
+
+**Rules:**
+- Test middleware enforcement
+- Test status transitions
+- Test document handling
+
+### Pricing/Workflow Tests
+**Evidence:** `tests/Feature/CartCheckoutTest.php`
+
+**Required Tests:**
+1. ✅ User can add product to cart
+2. ✅ Checkout flow creates order
+3. ✅ Payment completion updates order status
+4. Cart summary calculates prices correctly
+5. Discounts applied correctly
+
+**Rules:**
+- Test price calculations with different configurations
+- Test discount application
+- Test tax calculation
+- Test order status transitions
+
+### Payment Tests
+**Required Tests:**
+1. Payment intent creation works
+2. Payment success updates order status
+3. Payment failure handles correctly
+4. Payment gateway integration (use FakeGateway in tests)
+
+**Rules:**
+- Use `FakeGateway` for tests (evidence: `CartCheckoutTest.php` line 31)
+- Test success and failure scenarios
+- Test order status transitions after payment
+
+### Order Status Workflow Tests
+**Required Tests:**
+1. Status transitions work via `OrderWorkflowService`
+2. Order history created for each transition
+3. Events dispatched correctly
+4. Invalid transitions rejected
+
+**Rules:**
+- Test `OrderWorkflowService::transitionOrder()` method
+- Verify history entries created
+- Verify events dispatched
+
+### Admin Access Tests
+**Evidence:** `tests/Feature/AdminAccessTest.php`
+
+**Required Tests:**
+1. ✅ Admin users can access admin routes
+2. ✅ Non-admin users redirected
+3. ✅ Customer users cannot access admin portal
+
+**Rules:**
+- Test gate enforcement
+- Test middleware behavior
+- Test user type restrictions
+
+### Quotation Tests
+**Required Tests:**
+1. Customer can create quotation
+2. Admin can approve/reject quotation
+3. Customer can confirm approved quotation
+4. Messages work between customer and admin
+
+## Running Tests
+
+### Composer Scripts
+**Evidence:** `composer.json` lines 52-55
+
+**Command:**
+```bash
+composer test
+```
+
+**What it does:**
+- Clears config cache
+- Runs `php artisan test`
+
+### PHPUnit Command
+**Direct command:**
+```bash
+php artisan test
+```
+
+**Options:**
+- `--filter=TestName` - Run specific test
+- `--coverage` - Generate coverage report
+
+### PHPUnit Configuration
+**Evidence:** `phpunit.xml` file exists
+
+**Rules:**
+- PHPUnit config in `phpunit.xml`
+- Test environment configured there
+
+## Test Coverage Requirements
+
+### Critical Paths (Must Have Tests)
+1. **KYC Approval Flow** - Security critical
+2. **Checkout Flow** - Revenue critical
+3. **Payment Processing** - Financial critical
+4. **Order Status Transitions** - Business logic critical
+5. **Price Calculations** - Accuracy critical
+6. **Admin Access Control** - Security critical
+
+### Recommended Coverage
+1. **Service Layer** - All services should have tests
+2. **Controllers** - Feature tests for all routes
+3. **Middleware** - Test access control
+4. **Models** - Test relationships and scopes
+
+## Testing Anti-Patterns (FORBIDDEN)
+
+**These testing patterns are STRICTLY FORBIDDEN and will cause immediate test review rejection.**
+
+### 1. Snapshot Testing Business Logic (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: Snapshot testing price calculation results
+$this->assertMatchesSnapshot($price);
+// If pricing logic changes, snapshot will fail without understanding why
+```
+
+**✅ REQUIRED:**
+```php
+// ✅ REQUIRED: Assert specific values and business rules
+$this->assertEquals(8500.00, $price['subtotal']);
+$this->assertEquals(200.00, $price['discount']);
+$this->assertEquals(8300.00, $price['total']);
+// Test explicitly validates business logic
+```
+
+**Why this matters:**
+- Snapshot tests hide business logic failures
+- Changes in business rules should cause explicit test failures
+- Business logic must be tested with specific assertions
+
+### 2. Testing Framework Internals (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: Testing Laravel internals
+$this->assertTrue($order->getConnection()->getName() === 'mysql');
+// Testing framework implementation details, not our code
+```
+
+**✅ REQUIRED:**
+```php
+// ✅ REQUIRED: Test behavior, not implementation
+$this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'pending']);
+// Test what matters: our business logic and data integrity
+```
+
+### 3. Duplicating Backend Logic in Frontend Tests (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```tsx
+// ❌ FORBIDDEN: Recalculating prices in frontend tests
+const expectedPrice = metalCost + diamondCost + makingCharge;
+expect(displayedPrice).toBe(expectedPrice);
+// Duplicates backend pricing logic
+```
+
+**✅ REQUIRED:**
+```tsx
+// ✅ REQUIRED: Test that frontend displays backend-provided price
+expect(displayedPrice).toBe(product.price_total); // Use backend-provided value
+// Frontend should display, not calculate
+```
+
+**Evidence:**
+- Backend is source of truth: `app/Services/PricingService.php`
+- Frontend receives pre-calculated prices: `resources/js/Pages/Frontend/Catalog/Show.tsx`
+
+### 4. Visual-Only Tests Without Behavior Assertions (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```tsx
+// ❌ FORBIDDEN: Only checking if component renders
+render(<Component />);
+expect(screen.getByText('Submit')).toBeInTheDocument();
+// Doesn't verify behavior or business logic
+```
+
+**✅ REQUIRED:**
+```tsx
+// ✅ REQUIRED: Test behavior and interactions
+const onSubmit = jest.fn();
+render(<Component onSubmit={onSubmit} />);
+fireEvent.click(screen.getByText('Submit'));
+expect(onSubmit).toHaveBeenCalledWith(expectedData);
+// Verifies component behavior, not just appearance
+```
+
+### Enforcement
+
+**Test review MUST reject:**
+- Snapshot tests for business logic
+- Tests of framework internals
+- Duplicated backend logic in frontend tests
+- Visual-only tests without behavior assertions
+
+**Required Actions:**
+- Use explicit assertions for business logic
+- Test behavior, not implementation details
+- Frontend tests should verify display of backend data, not recalculate
+- Always include behavior/interaction assertions in component tests
+
+## Testing Best Practices
+
+### 1. Use Factories
+**Pattern:**
+```php
+$product = Product::factory()->create(['base_price' => 10000]);
+$user = Customer::factory()->retailer()->approved()->create();
+```
+
+**Rules:**
+- Use factories for test data creation
+- Customize only necessary attributes
+- Keep factories in `database/factories/`
+
+### 2. Test Isolation
+**Rules:**
+- Each test is independent
+- Use `RefreshDatabase` to reset database
+- Don't rely on test execution order
+
+### 3. Arrange-Act-Assert Pattern
+**Structure:**
+```php
+// Arrange
+$user = Customer::factory()->approved()->create();
+$product = Product::factory()->create();
+
+// Act
+$response = $this->actingAs($user)->post(route('cart.store'), [
+    'product_id' => $product->id,
+]);
+
+// Assert
+$response->assertRedirect();
+$this->assertDatabaseHas('cart_items', [
+    'product_id' => $product->id,
+]);
+```
+
+### 4. Test Naming
+**Pattern:**
+- `test_user_can_add_product_to_cart()`
+- `test_checkout_flow_creates_order_and_completes_payment()`
+
+**Rules:**
+- Use descriptive names
+- Format: `test_{subject}_{action}_{expected_result}`
+- Use snake_case
+
+### 5. Mock External Services
+**Evidence:** `FakeGateway` used in tests (line 31)
+
+**Rules:**
+- Mock payment gateways in tests
+- Use fake drivers for external APIs
+- Don't make real API calls in tests
+
+### 6. Test Edge Cases
+**Examples:**
+- Empty cart checkout
+- Invalid payment status
+- Missing KYC documents
+- Invalid order status transitions
+
+## Test Data Setup
+
+### Factories Location
+**Evidence:** `database/factories/` (20 factory files)
+
+**Rules:**
+- Factories in `database/factories/`
+- Follow Laravel factory patterns
+- Define states for common scenarios (e.g., `->approved()`, `->retailer()`)
+
+### Seeders
+**Evidence:** `database/seeders/` (14 seeder files)
+
+**Rules:**
+- Seeders for development data
+- Don't rely on seeders in tests (use factories instead)
+
+## Continuous Integration
+
+**Status:** NOT FOUND IN CODEBASE
+
+**Rules:**
+- Tests should run in CI/CD pipeline
+- All tests must pass before merge
+- Coverage reports recommended
