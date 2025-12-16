@@ -3802,7 +3802,7 @@ export default function AdminProductEdit() {
                                             <td className="px-5 py-3 align-middle text-slate-700">
                                                 <div className="min-w-[120px]">
                                                     {group && group.length > 1 ? (
-                                                        <span className="text-sm text-slate-500 italic">All sizes</span>
+                                                        <span className="text-sm text-slate-500 italic">All selected sizes</span>
                                                     ) : (
                                                         <span className="text-sm text-slate-700">{sizeDisplay}</span>
                                                     )}
