@@ -1,0 +1,325 @@
+---
+alwaysApply: true
+---
+
+# Frontend Pricing Display Rules
+
+## Pricing Calculation Source of Truth
+
+**Backend Service:** `app/Services/PricingService.php::calculateProductPrice()`
+**API Endpoint:** `POST /catalog/{product}/calculate-price` (route line 69)
+**Controller:** `app/Http/Controllers/Frontend/CatalogController.php::calculatePrice()`
+
+## Where Pricing is Displayed
+
+### 1. Product Catalog List
+**Evidence:** `resources/js/Pages/Frontend/Catalog/Index.tsx`
+
+**Calculation:**
+- Calculated in backend: `app/Http/Controllers/Frontend/CatalogController.php::index()` lines 206-264
+- Price calculated for default variant (or first variant)
+- Formula: `metal_cost + diamond_cost + making_charge`
+- Stored in `price_total` field of product object
+
+**Display:**
+- Product card shows `price_total`
+- Price filter applied after calculation (lines 293-307)
+
+**Rules:**
+- Prices calculated server-side before sending to frontend
+- Frontend displays `product.price_total` directly
+- Do NOT recalculate prices on frontend for catalog list
+
+### 2. Product Detail Page
+**Evidence:** `resources/js/Pages/Frontend/Catalog/Show.tsx`
+
+**Configuration Options:**
+- Backend builds `configurationOptions` array (Controller line 432, method line 504)
+- Each option includes:
+  - `price_total`: Pre-calculated total
+  - `price_breakup`: `{ base, metal, diamond, making }`
+  - `variant_id`: For selection
+
+**Dynamic Calculation:**
+- On variant/configuration change, frontend can:
+  - Use pre-calculated `price_total` from configuration options
+  - OR call API: `POST /catalog/{product}/calculate-price` for custom configurations
+
+**API Call Pattern:**
+```tsx
+const { post } = useForm({
+    variant_id: selectedVariantId,
+    quantity: 1,
+});
+
+post(route('frontend.catalog.calculate-price', product.id), {
+    preserveScroll: true,
+    onSuccess: (page) => {
+        // page.props.price contains calculated breakdown
+    },
+});
+```
+
+**Rules:**
+1. Use pre-calculated prices from `configurationOptions` when possible
+2. For custom configurations (size changes, quantity changes), call API
+3. Always show price breakdown (metal, diamond, making) when available
+
+### 3. Cart Display
+**Evidence:** `resources/js/Pages/Frontend/Cart/Index.tsx`
+
+**Calculation:**
+- Cart summary calculated via `CartService::summarize()`
+- Prices recalculated on page load (backend)
+- Stored in `cart_items.price_breakdown` JSON field
+
+**Display:**
+- Line item totals: `item.line_total` (unit_total × quantity)
+- Cart totals: `cart.subtotal`, `cart.tax`, `cart.discount`, `cart.total`
+
+**Rules:**
+1. Prices come from backend cart summary
+2. Display line totals and cart totals from backend response
+3. Do NOT calculate cart totals on frontend
+
+### 4. Checkout Page
+**Evidence:** `resources/js/Pages/Frontend/Checkout/Index.tsx`
+
+**Calculation:**
+- Initialized via `CheckoutService::initialize($cart)`
+- Summary includes: `subtotal`, `tax`, `discount`, `total`, `items[]`
+
+**Display:**
+- Order summary from backend response
+- Final total for payment
+
+**Rules:**
+1. Use totals from checkout initialization response
+2. Do NOT modify totals on frontend
+3. Display breakdown: subtotal - discount + tax = total
+
+## API Endpoints for Price Calculation
+
+### Calculate Product Price
+**Endpoint:** `POST /catalog/{product}/calculate-price`
+**Route:** `frontend.catalog.calculate-price` (web.php line 69)
+**Controller:** `app/Http/Controllers/Frontend/CatalogController.php::calculatePrice()`
+
+**Request:**
+```json
+{
+    "variant_id": 123,
+    "quantity": 2,
+    "customer_group_id": 1,
+    "customer_type": "retailer"
+}
+```
+
+**Response:**
+```json
+{
+    "metal": 5000.00,
+    "diamond": 2000.00,
+    "making": 1500.00,
+    "subtotal": 8500.00,
+    "discount": 200.00,
+    "total": 8300.00,
+    "price_breakdown": {
+        "metal": 5000.00,
+        "diamond": 2000.00,
+        "making": 1500.00,
+        "subtotal": 8500.00,
+        "discount": 200.00,
+        "total": 8300.00
+    }
+}
+```
+
+**Rules:**
+1. Use this endpoint for custom price calculations
+2. Include variant_id, quantity, customer context
+3. Response includes full breakdown
+
+### Cart Summary (Automatic)
+**Endpoint:** Cart data includes prices (calculated server-side)
+**Service:** `CartService::summarize()`
+
+**Response Structure:**
+```json
+{
+    "items": [
+        {
+            "line_total": 16600.00,
+            "line_subtotal": 17000.00,
+            "line_discount": 400.00,
+            "price_breakdown": { ... }
+        }
+    ],
+    "subtotal": 16600.00,
+    "tax": 2988.00,
+    "discount": 400.00,
+    "total": 19588.00
+}
+```
+
+## No Silent Price Change Rule (Hard Requirement)
+
+**Prices cannot change silently after order creation. Any price change must be explicit, logged, and visible in UI.**
+
+**Evidence:**
+- Orders store `price_breakdown` and `locked_rates` at creation time
+- Frontend displays prices from backend API responses
+
+**Rules:**
+1. **Frontend must display locked prices for existing orders**
+   - Do NOT recalculate prices for orders
+   - Use `order.price_breakdown` from backend
+   - If price adjustment exists, display both original and adjusted prices
+
+2. **Price changes must be visible in UI**
+   - Show price change history if adjustments exist
+   - Display original price vs. adjusted price
+   - Show reason for adjustment (from order history)
+
+3. **Forbid frontend price recalculation for orders**
+   - ❌ FORBIDDEN: Recalculating order prices in React components
+   - ❌ FORBIDDEN: Using current rates to update existing order prices
+   - ✅ ALLOWED: Displaying prices from backend order data
+
+**Enforcement:**
+- Frontend code review MUST reject price recalculation for existing orders
+- UI must display price change history when adjustments exist
+
+## Rules to Avoid Wrong Totals
+
+### 1. NEVER Calculate Prices on Frontend
+**Why:** Prices depend on:
+- Current metal rates (from `PriceRate` table)
+- Customer-specific discounts
+- Making charge formulas (fixed + percentage combinations)
+- Tax calculations
+
+**Rule:** Always fetch prices from backend API or use pre-calculated values
+
+### 2. Always Recalculate on Configuration Change
+**When to Recalculate:**
+- Variant selection changes
+- Quantity changes
+- Size changes (if affects price)
+
+**How:**
+```tsx
+// Call API for new calculation
+post(route('frontend.catalog.calculate-price', product.id), {
+    variant_id: selectedVariant,
+    quantity: quantity,
+});
+```
+
+### 3. Display Price Breakdown
+**Show:**
+- Metal cost (if applicable)
+- Diamond cost (if applicable)
+- Making charge
+- Discount (if applicable)
+- Tax (at checkout)
+- Total
+
+**Purpose:**
+- Transparency for customers
+- Easier debugging if prices seem wrong
+
+### 4. Handle Loading States
+**Pattern:**
+```tsx
+const [priceLoading, setPriceLoading] = useState(false);
+
+const calculatePrice = () => {
+    setPriceLoading(true);
+    post(route('frontend.catalog.calculate-price', product.id), {
+        onSuccess: () => setPriceLoading(false),
+        onError: () => setPriceLoading(false),
+    });
+};
+```
+
+**Rules:**
+1. Show loading indicator during price calculation
+2. Disable "Add to Cart" button while calculating
+3. Handle errors gracefully (show error message)
+
+### 5. Cache Pre-calculated Prices
+**Where:**
+- Product catalog: Prices pre-calculated in backend response
+- Product detail: `configurationOptions` include pre-calculated prices
+
+**Rules:**
+1. Use pre-calculated prices when available
+2. Only call API for custom configurations
+3. Cache prices in component state while user is on page
+
+### 6. Currency Formatting
+**Evidence:** Backend uses INR currency (from Cart model, Order model)
+
+**Pattern:**
+```tsx
+const formatPrice = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+    }).format(amount);
+};
+```
+
+**Rules:**
+1. Format all prices as INR currency
+2. Use Indian number format (lakhs, crores)
+3. Show 2 decimal places for amounts
+
+### 7. Price Comparison Rules
+
+**DO:**
+- Compare prices from same source (both from backend)
+- Use backend response as single source of truth
+- Round prices consistently (backend rounds to 2 decimals)
+
+**DON'T:**
+- Compare frontend-calculated prices with backend prices
+- Round prices differently on frontend vs backend
+- Store prices in localStorage for comparison
+
+## Common Pitfalls
+
+### Pitfall 1: Stale Prices
+**Problem:** Cart shows old prices after rates change
+**Solution:** Always recalculate cart summary on page load (backend does this in `CartService::summarize()`)
+
+### Pitfall 2: Missing Discounts
+**Problem:** Discounts not applied in frontend calculation
+**Solution:** Never calculate on frontend; use backend service that includes discount logic
+
+### Pitfall 3: Wrong Quantity Calculations
+**Problem:** Line total = unit price × quantity, but frontend multiplies wrong values
+**Solution:** Use `line_total` from backend cart summary (already includes quantity)
+
+### Pitfall 4: Tax Not Included
+**Problem:** Showing subtotal as total (missing tax)
+**Solution:** Use `total` from backend, which includes tax (tax added at checkout)
+
+## Testing Price Display
+
+**Test Cases:**
+1. Product catalog shows correct prices for default variants
+2. Product detail page shows price breakdown correctly
+3. Changing variant updates price (API call works)
+4. Cart shows correct line totals and grand total
+5. Checkout shows final total including tax
+6. Currency formatting is consistent (INR)
+7. Loading states show during price calculation
+8. Errors are handled gracefully
+
+**Rules:**
+1. Test with different customer types (retailer vs wholesaler - may have different discounts)
+2. Test with products that have no metals/diamonds (making charge only)
+3. Test with products that have discounts applied
+4. Test cart with multiple items and different quantities

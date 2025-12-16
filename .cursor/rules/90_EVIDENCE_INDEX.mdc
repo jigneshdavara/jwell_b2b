@@ -1,0 +1,444 @@
+---
+alwaysApply: true
+---
+
+# Evidence Index
+
+This document maps each rules file to key supporting evidence files in the codebase.
+
+## 00_OVERVIEW.mdc
+
+**Rule Authority & Conflict Resolution:**
+- Priority order defined: Business > Security > Structure > Style > Convenience
+- Evidence: Business-critical services (`app/Services/PricingService.php`, `app/Services/OrderWorkflowService.php`)
+
+**Rule Violation Severity Levels:**
+- CRITICAL/HIGH/MEDIUM/LOW definitions
+- Severity mapping to rule categories
+- Evidence: Rule categories align with severity levels
+
+**Rules vs Reality (Living Docs):**
+- Rules Sync process references
+- Evidence index: `.cursor/rules/90_EVIDENCE_INDEX.mdc`
+- Violations report: `.cursor/rules/VIOLATIONS_REPORT.md`
+
+**Rules May Require Refactor:**
+- No grandfathering policy
+- Exception requirements documented
+- Evidence: VIOLATIONS_REPORT.md with refactor plans
+
+**AI Behavior Rules:**
+- Priority order defined: Business > Security > Structure > Style > Convenience
+- Evidence: Business-critical services (`app/Services/PricingService.php`, `app/Services/OrderWorkflowService.php`)
+
+**Rule Violation Severity Levels:**
+- CRITICAL/HIGH/MEDIUM/LOW definitions
+- Severity mapping to rule categories
+- Evidence: Rule categories align with severity levels
+
+**Rules vs Reality (Living Docs):**
+- Rules Sync process references
+- Evidence index: `.cursor/rules/90_EVIDENCE_INDEX.mdc`
+- Violations report: `.cursor/rules/VIOLATIONS_REPORT.md`
+
+**Rules May Require Refactor:**
+- No grandfathering policy
+- Exception requirements documented
+- Evidence: VIOLATIONS_REPORT.md with refactor plans
+
+**Portals Evidence:**
+- `routes/web.php` (lines 47-139: customer portal, 146-290: admin portal, 292-297: production portal)
+- `app/Http/Controllers/Frontend/*` (9 controllers)
+- `app/Http/Controllers/Admin/*` (34 controllers)
+- `app/Http/Controllers/Production/DashboardController.php`
+- `resources/js/Layouts/AuthenticatedLayout.tsx`
+- `config/auth.php` (guards configuration)
+- `app/Enums/UserType.php`
+
+**Workflow Evidence:**
+- `app/Enums/KycStatus.php`
+- `app/Enums/OrderStatus.php`
+- `app/Enums/PaymentStatus.php`
+- `app/Http/Middleware/EnsureKycApproved.php`
+- `app/Http/Controllers/Frontend/KycOnboardingController.php`
+- `app/Http/Controllers/Admin/KycController.php`
+- `app/Services/PricingService.php`
+- `app/Services/CheckoutService.php`
+- `app/Services/OrderWorkflowService.php`
+- `app/Models/Order.php`
+- `app/Models/Quotation.php`
+
+**Rules Sync: Code Changes → Rules Update Evidence:**
+- `.cursor/rules/*.mdc` (11 rule files)
+- `.cursor/rules/90_EVIDENCE_INDEX.mdc` (evidence index)
+- `.git/hooks/` (empty - no pre-commit hooks)
+- `.github/workflows/main.yml` (deployment only, no CI validation)
+- `composer.json` (Laravel Pint: line 21, test script: lines 52-55)
+- `package.json` (TypeScript build: line 6)
+- `phpunit.xml` (PHPUnit configuration)
+- Repository structure: `routes/`, `app/Http/Controllers/`, `app/Services/`, `app/Models/`, `resources/js/Pages/`, `resources/js/Components/`
+
+**Single Source of Truth & Forbidden Patterns Evidence:**
+- `app/Services/PricingService.php` (single source for pricing)
+- `app/Services/OrderWorkflowService.php` (single source for status transitions)
+- `app/Http/Controllers/Frontend/CatalogController.php` lines 213-264 (violation: duplicated pricing logic)
+- `app/Enums/OrderStatus.php`, `app/Enums/KycStatus.php`, `app/Enums/UserType.php` (no magic strings)
+- `app/Services/Payments/PaymentGatewayManager.php` (gateway abstraction)
+- `app/Http/Middleware/EnsureKycApproved.php` (permission enforcement)
+
+**Database & Migration Discipline Evidence:**
+- `database/migrations/2025_11_08_184948_create_payments_table.php` (down() method example)
+- `database/migrations/2025_12_05_202426_create_product_variants_table.php` line 20 (default values)
+- `app/Models/Order.php` (price_breakdown, locked_rates fields)
+
+**Security & Sensitive Data Evidence:**
+- `app/Http/Controllers/Frontend/KycOnboardingController.php` line 112 (KYC storage - currently public disk)
+- `app/Http/Controllers/Frontend/KycOnboardingController.php::downloadDocument()` (authorization check)
+- `app/Http/Requests/Auth/LoginRequest.php` lines 68-84 (rate limiting)
+- `app/Http/Controllers/Auth/OtpLoginController.php` lines 29-35 (OTP rate limiting)
+
+**Performance Rules Evidence:**
+- `app/Http/Controllers/Admin/QuotationController.php` line 40 (eager loading with())
+- `app/Http/Controllers/Admin/ProductController.php` line 58 (pagination)
+- `app/Http/Controllers/Frontend/CatalogController.php` lines 206-290 (violation: recalculating prices in loop)
+
+**Logging & Audit Evidence:**
+- `app/Models/OrderStatusHistory.php` (order audit trail)
+- `app/Services/OrderWorkflowService.php` line 31 (creates history entries)
+- `config/logging.php` (logging configuration)
+
+**Frontend Quality Rules Evidence:**
+- `resources/js/Components/PrimaryButton.tsx`, `SecondaryButton.tsx`, `DangerButton.tsx` (shared components)
+- `resources/js/Pages/Frontend/Catalog/Show.tsx` (828 lines - should be split)
+- `resources/js/Pages/Admin/Users/KycReview.tsx` (642 lines - should be split)
+
+## 10_BACKEND_CONVENTIONS.mdc
+
+**Controller Patterns:**
+- `app/Http/Controllers/Admin/ProductController.php`
+- `app/Http/Controllers/Frontend/CatalogController.php`
+- `app/Http/Controllers/Frontend/CartController.php`
+- `app/Http/Controllers/Frontend/CheckoutController.php`
+- `app/Http/Controllers/Controller.php` (base class)
+- `routes/web.php` (route definitions)
+
+**Code Structure & Clean Code Rules:**
+- `app/Http/Controllers/Frontend/CartController.php` (thin controller pattern)
+- `app/Http/Controllers/Frontend/CheckoutController.php` (service delegation)
+- `app/Services/PricingService.php` (business logic extraction)
+- `app/Services/CartService.php` (shared logic reuse)
+- `app/Services/OrderWorkflowService.php` (centralized status transitions)
+- `app/Http/Requests/` (validation patterns - 93 files)
+- `app/Enums/OrderStatus.php`, `app/Enums/KycStatus.php` (enum usage)
+
+**Cleanup & Removal Rules:**
+- `composer.json` (Laravel Pint: line 21, PHPUnit: line 25)
+- `package.json` (TypeScript build: line 6)
+- `tsconfig.json` (TypeScript configuration)
+- `phpunit.xml` (test configuration)
+- `app/Services/OfferService.php` (TODO comments - intentional placeholders)
+- `database/migrations/2025_11_12_120000_create_user_kyc_messages_table.php` (documentation comments)
+
+**Request Validation:**
+- `app/Http/Requests/Admin/StoreProductRequest.php`
+- `app/Http/Requests/Admin/UpdateProductRequest.php`
+- `app/Http/Requests/Frontend/Cart/AddCartItemRequest.php`
+- All 93 request classes in `app/Http/Requests/`
+
+**Policies/Permissions:**
+- `app/Providers/AppServiceProvider.php` (lines 29-36: Gate definitions)
+- `app/Http/Middleware/EnsureKycApproved.php`
+- `app/Http/Middleware/EnsureCustomerPortalAccess.php`
+- `app/Enums/UserType.php`
+- `config/auth.php`
+
+**Route Grouping:**
+- `routes/web.php` (full file - all route groups)
+- `routes/api.php`
+- `routes/auth.php`
+
+**Error Handling:**
+- `app/Exceptions/PaymentGatewayException.php`
+- Controller error handling patterns in `ProductController.php`
+
+## 11_BACKEND_SERVICES.mdc
+
+**Service Files:**
+- `app/Services/PricingService.php`
+- `app/Services/CartService.php`
+- `app/Services/CheckoutService.php`
+- `app/Services/OrderWorkflowService.php`
+- `app/Services/MakingChargeDiscountService.php`
+- `app/Services/TaxService.php`
+- `app/Services/WishlistService.php`
+- `app/Services/OfferService.php`
+- `app/Services/NotificationService.php`
+- `app/Services/RateSyncService.php`
+- `app/Services/Catalog/ProductVariantSyncService.php`
+- `app/Services/Payments/PaymentGatewayManager.php`
+- `app/Services/Payments/Contracts/PaymentGatewayDriver.php`
+- `app/Services/Payments/Drivers/StripeGateway.php`
+- `app/Services/Payments/Drivers/FakeGateway.php`
+
+**Service Usage:**
+- `app/Http/Controllers/Frontend/CatalogController.php` (uses PricingService)
+- `app/Http/Controllers/Frontend/CartController.php` (uses CartService)
+- `app/Http/Controllers/Frontend/CheckoutController.php` (uses CheckoutService)
+- `app/Http/Controllers/Admin/ProductController.php` (uses ProductVariantSyncService)
+
+## 12_BACKEND_DATA_MODELS.mdc
+
+**Model Files:**
+- `app/Models/Order.php`
+- `app/Models/Product.php`
+- `app/Models/Cart.php`
+- `app/Models/CartItem.php`
+- `app/Models/Customer.php`
+- `app/Models/ProductVariant.php`
+- `app/Models/Quotation.php`
+- `app/Models/Payment.php`
+- All 49 models in `app/Models/`
+
+**Enum Files:**
+- `app/Enums/KycStatus.php`
+- `app/Enums/OrderStatus.php`
+- `app/Enums/PaymentStatus.php`
+- `app/Enums/UserType.php`
+- `app/Enums/JobworkStatus.php`
+
+**Pivot Tables:**
+- Database migrations in `database/migrations/` (52 migration files)
+- Model relationships define pivot tables
+
+**Model Methods:**
+- `app/Models/Product.php::calculateMakingCharge()` (lines 77-109)
+- `app/Models/Order.php::scopeStatus()` (line 69)
+
+## 13_BACKEND_WORKFLOWS.mdc
+
+**KYC Workflow:**
+- `app/Http/Middleware/EnsureKycApproved.php`
+- `app/Enums/KycStatus.php`
+- `app/Http/Controllers/Frontend/KycOnboardingController.php`
+- `app/Http/Controllers/Admin/KycController.php`
+- `app/Http/Controllers/Admin/UserController.php::updateKycStatus()`
+- `routes/web.php` (onboarding routes: lines 50-55, admin routes: lines 153-159)
+
+**Quotation Lifecycle:**
+- `app/Models/Quotation.php`
+- `app/Models/QuotationMessage.php`
+- `app/Http/Controllers/Frontend/QuotationController.php`
+- `app/Http/Controllers/Admin/QuotationController.php`
+- `routes/web.php` (customer routes: lines 119-138, admin routes: lines 255-263)
+
+**Order Status Lifecycle:**
+- `app/Services/OrderWorkflowService.php`
+- `app/Enums/OrderStatus.php`
+- `app/Models/OrderStatusHistory.php`
+- `app/Events/OrderStatusUpdated.php`
+- `app/Http/Controllers/Admin/OrderController.php`
+- `routes/web.php` (order status update: line 253)
+
+**Payment Lifecycle:**
+- `app/Services/CheckoutService.php`
+- `app/Services/Payments/PaymentGatewayManager.php`
+- `app/Enums/PaymentStatus.php`
+- `app/Models/Payment.php`
+- `app/Exceptions/PaymentGatewayException.php`
+- `config/payments.php`
+- `routes/web.php` (checkout routes: lines 101-114)
+
+**Pricing Workflow:**
+- `app/Services/PricingService.php`
+- `app/Models/Product.php::calculateMakingCharge()`
+- `app/Services/MakingChargeDiscountService.php`
+- `app/Models/PriceRate.php`
+
+**Cart to Order:**
+- `app/Services/CheckoutService.php::initialize()`
+- `app/Services/CartService.php::summarize()`
+
+## 20_FRONTEND_CONVENTIONS.mdc
+
+**Page Files:**
+- `resources/js/Pages/Frontend/Catalog/Show.tsx`
+- `resources/js/Pages/Frontend/Catalog/Index.tsx`
+- `resources/js/Pages/Frontend/Cart/Index.tsx`
+- `resources/js/Pages/Admin/Products/Index.tsx`
+- `resources/js/Pages/Admin/Orders/Index.tsx`
+- All pages in `resources/js/Pages/`
+
+**Code Structure & Clean Code Rules:**
+- `resources/js/utils/variantMatrixGenerator.ts` (pure utility function pattern)
+- `resources/js/Pages/Frontend/Catalog/Show.tsx` (destructuring patterns)
+- `resources/js/Components/PrimaryButton.tsx` (component patterns)
+- `resources/js/Components/Customization/CustomizationSection.tsx` (domain component organization)
+- `tailwind.config.js` (theme tokens for styling)
+
+**Cleanup & Removal Rules (Frontend):**
+- `package.json` (TypeScript build script: line 6)
+- `tsconfig.json` (TypeScript configuration with strict mode)
+- `vite.config.js` (build configuration)
+- NOT FOUND: No ESLint configuration (recommended addition documented)
+
+**Layout Files:**
+- `resources/js/Layouts/AuthenticatedLayout.tsx`
+- `resources/js/Layouts/AdminLayout.tsx`
+- `resources/js/Layouts/GuestLayout.tsx`
+- `resources/js/Layouts/ProductionLayout.tsx`
+
+**Component Files:**
+- `resources/js/Components/PrimaryButton.tsx`
+- `resources/js/Components/FlashMessage.tsx`
+- All components in `resources/js/Components/`
+
+**Type Definitions:**
+- `resources/js/types/index.d.ts`
+- `resources/js/types/global.d.ts`
+- `resources/js/ziggy.js`
+
+**Form Patterns:**
+- Inertia `useForm()` usage in pages
+- `@inertiajs/react` package in `package.json`
+
+## 21_FRONTEND_UI_COMPONENTS.mdc
+
+**Component Files:**
+- `resources/js/Components/PrimaryButton.tsx`
+- `resources/js/Components/SecondaryButton.tsx`
+- `resources/js/Components/DangerButton.tsx`
+- `resources/js/Components/TextInput.tsx`
+- `resources/js/Components/InputLabel.tsx`
+- `resources/js/Components/InputError.tsx`
+- `resources/js/Components/Checkbox.tsx`
+- `resources/js/Components/Modal.tsx`
+- `resources/js/Components/AlertModal.tsx`
+- `resources/js/Components/ConfirmationModal.tsx`
+- `resources/js/Components/FlashMessage.tsx`
+- `resources/js/Components/Pagination.tsx`
+- `resources/js/Components/Dropdown.tsx`
+- `resources/js/Components/Customization/CustomizationSection.tsx`
+- `resources/js/Components/Customization/ProductDetailsPanel.tsx`
+- `resources/js/Components/ApplicationLogo.tsx`
+- `resources/js/Components/CustomerHeader.tsx`
+- `resources/js/Components/CustomerFooter.tsx`
+
+**Accessibility:**
+- `package.json` (Headless UI dependency: `@headlessui/react`)
+- `resources/js/Layouts/AuthenticatedLayout.tsx` (aria-label usage, focus management)
+
+**Component Patterns:**
+- All component files in `resources/js/Components/`
+
+## 22_FRONTEND_PRICING_DISPLAY_RULES.mdc
+
+**Backend Pricing:**
+- `app/Services/PricingService.php::calculateProductPrice()`
+- `app/Http/Controllers/Frontend/CatalogController.php::calculatePrice()` (route line 69)
+- `app/Services/CartService.php::summarize()`
+- `app/Services/CheckoutService.php::initialize()`
+
+**Frontend Pricing Display:**
+- `resources/js/Pages/Frontend/Catalog/Index.tsx`
+- `resources/js/Pages/Frontend/Catalog/Show.tsx`
+- `resources/js/Pages/Frontend/Cart/Index.tsx`
+- `resources/js/Pages/Frontend/Checkout/Index.tsx`
+
+**API Routes:**
+- `routes/web.php` (line 69: calculate-price endpoint)
+
+**Price Calculation:**
+- `app/Http/Controllers/Frontend/CatalogController.php::index()` (lines 206-264: catalog price calculation)
+- `app/Http/Controllers/Frontend/CatalogController.php::buildConfigurationOptions()` (lines 504-756: variant pricing)
+
+## 30_STYLE_THEME.mdc
+
+**Status Color Policy (Source of Truth):**
+- Section 3.2 - Status Color Mapping (Mandatory - Applied to ALL Portals)
+- Evidence: `resources/js/Components/FlashMessage.tsx`, `resources/js/Components/InputError.tsx`, `resources/js/Components/AlertModal.tsx`
+- Both portals use same status colors: `resources/js/Pages/Admin/Orders/Index.tsx`, `resources/js/Pages/Frontend/Orders/Index.tsx`
+- Policy applies uniformly: Customer Portal UI and Admin Portal UI (see Section: UI Differences: Customer vs Admin)
+
+**Elvee Brand Rules:**
+- Brand positioning: Elegant, confident, warm, modern
+- Approved palette: Elvee Blue (#0E244D), Feather Gold (#AE8135), Ivory (#F8F5F0)
+- Typography: Avenir primary font
+- Logo integrity rules: `resources/js/Components/ApplicationLogo.tsx`
+
+**Tailwind Config:**
+- `tailwind.config.js` (theme extension, colors, fonts)
+- `resources/css/app.css` (CSS variables, brand colors, typography classes)
+
+**Component Styling:**
+- `resources/js/Components/PrimaryButton.tsx` (button styling patterns)
+- `resources/js/Components/SecondaryButton.tsx` (secondary button patterns)
+- `resources/js/Components/DangerButton.tsx` (danger button patterns)
+- `resources/js/Components/TextInput.tsx` (form input patterns)
+- `resources/js/Components/InputError.tsx` (error message styling)
+- `resources/js/Components/FlashMessage.tsx` (flash message styling)
+- `resources/js/Layouts/AuthenticatedLayout.tsx` (customer vs admin UI differences)
+
+**Brand Assets:**
+- `assets/` directory (image files)
+- `resources/js/Components/ApplicationLogo.tsx` (logo component)
+- `resources/js/Components/CustomerHeader.tsx` (logo placement)
+
+**Color Usage:**
+- All component files using brand colors
+- `tailwind.config.js` color definitions
+- `resources/css/app.css` CSS variables
+
+**Font Configuration:**
+- `tailwind.config.js` font family configuration (Avenir primary)
+- `resources/css/app.css` font imports (Montserrat, Nunito fallbacks)
+- Note: Avenir should be primary, verify font loading
+
+**Voice & Tone:**
+- `resources/js/Components/FlashMessage.tsx` (error/success message examples)
+- UI copy patterns in components
+
+**UI Status Colors Rule:**
+- `tailwind.config.js` (brand color definitions)
+- `resources/css/app.css` (CSS variables)
+- `resources/js/Components/FlashMessage.tsx` (current implementation with violations)
+- `resources/js/Components/InputError.tsx` (current implementation with violations)
+- `resources/js/Components/AlertModal.tsx` (current implementation with violations)
+- `resources/js/Pages/Admin/Orders/Index.tsx` (status color violations)
+- `resources/js/Pages/Frontend/Orders/Index.tsx` (status color violations)
+- `resources/js/Pages/Admin/Quotations/Show.tsx` (status color violations)
+- `resources/js/Components/Customization/CustomizationSection.tsx` (validation error color violations)
+- `resources/js/Pages/Frontend/Catalog/Show.tsx` (validation error color violations)
+
+**UI Color Shades Rule:**
+- `tailwind.config.js` (current color definitions - needs shade system implementation)
+- `resources/css/app.css` (CSS variables - needs shade variables)
+- Current state: Single color values, not shade system
+- Desired state: 4-shade system per base color (base + 3 lighter variants)
+- Base colors mapping: Elvee Blue = `#0A1F47` (currently "navy"), Feather Gold = `#927038` (currently "warm-gold")
+
+## 40_TESTING_RULES.mdc
+
+**Test Files:**
+- `tests/TestCase.php` (base test case)
+- `tests/Feature/CartCheckoutTest.php`
+- `tests/Feature/KycMiddlewareTest.php`
+- `tests/Feature/AdminAccessTest.php`
+- `tests/Feature/ProfileTest.php`
+- All 13 feature test files in `tests/Feature/`
+- `tests/Unit/ExampleTest.php`
+
+**Test Configuration:**
+- `phpunit.xml`
+- `composer.json` (test script: lines 52-55)
+
+**Factory Files:**
+- `database/factories/` (20 factory files)
+- Factory usage in test files
+
+**Service Tests:**
+- `app/Services/Payments/Drivers/FakeGateway.php` (used in tests)
+
+**Test Patterns:**
+- All test files demonstrate patterns
+- `RefreshDatabase` trait usage
+- Factory usage examples

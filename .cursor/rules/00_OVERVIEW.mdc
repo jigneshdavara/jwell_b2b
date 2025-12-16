@@ -1,0 +1,711 @@
+---
+alwaysApply: true
+---
+
+# Project Overview: Jwell B2B Platform
+
+## Rule Authority & Conflict Resolution
+
+**When rules conflict, the following priority order applies (highest → lowest):**
+
+### Priority Order
+
+1. **Business Rules** (highest priority)
+   - Pricing calculations (`PricingService` only)
+   - KYC enforcement (middleware required)
+   - Workflow transitions (`OrderWorkflowService` only)
+   - Payment processing (gateway abstraction required)
+   - **Evidence:** `app/Services/PricingService.php`, `app/Services/OrderWorkflowService.php`, `app/Services/CheckoutService.php`
+
+2. **Security Rules**
+   - Authorization checks (Gates, middleware)
+   - KYC file protection
+   - Rate limiting
+   - **Evidence:** `app/Http/Middleware/EnsureKycApproved.php`, `app/Providers/AppServiceProvider.php` (Gates)
+
+3. **Code Structure Rules**
+   - Controllers must be thin
+   - Business logic in services
+   - Shared logic extraction
+   - **Evidence:** `10_BACKEND_CONVENTIONS.mdc` - Code Structure & Clean Code Rules
+
+4. **Style & Theme Rules**
+   - Brand colors (Elvee Blue, Feather Gold, Ivory)
+   - Status colors (green/red/yellow for status indicators only)
+   - Typography (Avenir)
+   - **Evidence:** `30_STYLE_THEME.mdc`
+
+5. **Developer Convenience** (lowest priority)
+   - Naming conventions
+   - Code organization patterns
+   - Documentation style
+
+### Conflict Resolution Rule
+
+**If rules conflict, higher priority always wins.**
+
+**Examples:**
+- If style rule suggests a new color, but business rule requires price accuracy → Business rule wins
+- If developer convenience suggests a shortcut, but security rule requires checks → Security rule wins
+- If code structure suggests a pattern, but workflow rule requires service → Workflow rule wins
+
+**Evidence:**
+- Rules documents: `.cursor/rules/*.mdc`
+- Business-critical services: `app/Services/PricingService.php`, `app/Services/OrderWorkflowService.php`
+
+## Rule Violation Severity Levels
+
+**All rule violations are classified by severity to prioritize fixes and enforcements.**
+
+### Severity Definitions
+
+1. **CRITICAL**
+   - Violations that cause security risks, data integrity issues, or business logic failures
+   - Examples: Bypassing KYC middleware, direct pricing calculations, unauthorized access
+   - **Action Required**: Must fix immediately, code review must reject
+
+2. **HIGH**
+   - Violations that break architectural patterns or create maintenance burden
+   - Examples: Business logic in controllers, duplicated service logic, missing audit trails
+   - **Action Required**: Must fix before merge, code review should reject
+
+3. **MEDIUM**
+   - Violations that reduce code quality or violate conventions
+   - Examples: Component size limits exceeded, missing documentation, inconsistent naming
+   - **Action Required**: Should fix, acceptable with exception justification
+
+4. **LOW**
+   - Violations that are stylistic or minor improvements
+   - Examples: Formatting inconsistencies, minor code organization
+   - **Action Required**: Nice to have, low priority
+
+### Severity by Rule Category
+
+**CRITICAL:**
+- Pricing calculations (must use `PricingService`)
+- Workflow transitions (must use `OrderWorkflowService`)
+- Security (KYC enforcement, authorization)
+- Payment processing (must use gateway abstraction)
+
+**HIGH:**
+- Business logic in controllers/pages
+- Duplicated service logic
+- Missing audit trails
+- Status updates bypassing workflows
+
+**MEDIUM:**
+- Component/page size limits
+- Code organization violations
+- Missing documentation
+
+**LOW:**
+- Naming convention violations
+- Formatting inconsistencies
+
+**Evidence:**
+- Rule categories map to severity levels
+- Enforcement gates align with severity (CRITICAL/HIGH must reject)
+
+## AI Behavior Rules (Critical)
+
+**AI assistants (including Cursor AI, GitHub Copilot, ChatGPT, etc.) MUST follow these rules when generating or suggesting code:**
+
+### Mandatory Behavior
+
+1. **AI must follow rules before generating code**
+   - Read relevant rule documents before suggesting code
+   - Check rule priority order (Business > Security > Structure > Style > Convenience)
+   - Verify proposed code aligns with existing patterns
+
+2. **Rules override AI suggestions**
+   - If AI suggests code that violates rules, reject the suggestion
+   - Prioritize rule compliance over "best practice" suggestions from AI
+   - Do NOT accept AI suggestions that bypass workflow services or introduce shortcuts
+
+3. **AI must update rules when introducing new patterns**
+   - If AI suggests a new pattern that doesn't exist in rules, update rules first
+   - Follow Rules Sync process (see Section: Rules Sync: Code Changes → Rules Update)
+   - Document evidence for new patterns
+
+### AI Must Refuse These Violations
+
+**AI MUST refuse to generate or suggest:**
+
+1. **New colors outside brand palette**
+   - Do NOT suggest `bg-red-500`, `text-green-600`, etc. for general UI
+   - Status colors (green/red/yellow) allowed for status indicators only
+   - **Correct approach**: Use brand colors (Elvee Blue, Feather Gold, Ivory)
+   - **Evidence**: `30_STYLE_THEME.mdc` - Color System (Strict)
+
+2. **New pricing calculation locations**
+   - Do NOT suggest price calculations in controllers, React pages, or utilities
+   - Do NOT duplicate pricing logic
+   - **Correct approach**: Always use `PricingService::calculateProductPrice()`
+   - **Evidence**: `app/Services/PricingService.php`, `13_BACKEND_WORKFLOWS.mdc` - Single Source of Truth
+
+3. **Workflow shortcuts**
+   - Do NOT suggest direct status updates: `$order->status = OrderStatus::Pending`
+   - Do NOT suggest bypassing `OrderWorkflowService`
+   - Do NOT suggest KYC checks in controllers instead of middleware
+   - **Correct approach**: Use `OrderWorkflowService::transitionOrder()`, middleware for KYC
+   - **Evidence**: `app/Services/OrderWorkflowService.php`, `app/Http/Middleware/EnsureKycApproved.php`
+
+4. **Business logic in controllers or UI**
+   - Do NOT suggest calculations, validations, or business logic in controllers
+   - Do NOT suggest business logic in React pages/components
+   - **Correct approach**: Extract to services, use FormRequests for validation
+   - **Evidence**: `10_BACKEND_CONVENTIONS.mdc` - Code Structure & Clean Code Rules
+
+5. **Direct payment gateway calls**
+   - Do NOT suggest direct Stripe/Payment API calls from controllers
+   - **Correct approach**: Use `PaymentGatewayManager` via `CheckoutService`
+   - **Evidence**: `app/Services/Payments/PaymentGatewayManager.php`, `app/Services/CheckoutService.php`
+
+### AI Code Review Checklist
+
+Before accepting AI-generated code, verify:
+
+- [ ] Pricing calculations use `PricingService`
+- [ ] Status updates use workflow services
+- [ ] Colors use brand palette (or allowed status colors)
+- [ ] Business logic is in services, not controllers/pages
+- [ ] Payment operations go through gateway manager
+- [ ] KYC checks use middleware
+- [ ] Rules documents updated if new patterns introduced
+
+**Evidence:**
+- All rules documents: `.cursor/rules/*.mdc`
+- Forbidden patterns documented in: `10_BACKEND_CONVENTIONS.mdc`, `13_BACKEND_WORKFLOWS.mdc`, `30_STYLE_THEME.mdc`
+
+## Rules vs Reality (Living Docs)
+
+**Rules documents are living documents that must reflect code reality. Silent divergence is forbidden.**
+
+### When Rules Conflict with Code
+
+**If rules conflict with actual code implementation, you MUST:**
+
+1. **Identify the divergence**
+   - Check if code implements pattern differently than rules state
+   - Determine if code is correct or rules need update
+
+2. **Choose resolution path:**
+
+   **Option A: Fix code to match rules**
+   - If rules represent desired state
+   - If code violates CRITICAL or HIGH severity rules
+   - Example: Remove duplicated pricing logic to match "use PricingService only" rule
+
+   **Option B: Update rules to match code**
+   - If code represents correct implementation
+   - If rules are outdated or incorrect
+   - Must document evidence for the change
+   - Update evidence index
+
+3. **Never allow silent divergence**
+   - ❌ FORBIDDEN: Rules say X, code does Y, no update made
+   - ✅ REQUIRED: Either fix code OR update rules explicitly
+   - Document decision in rules or code comments
+
+### Evidence Requirement
+
+**Every rule must be backed by evidence:**
+- File paths
+- Class/function names
+- Line numbers when referencing specific code
+- If pattern doesn't exist: Mark as "NOT FOUND IN CODEBASE"
+
+**If evidence becomes outdated:**
+- Update evidence references when code changes
+- Follow Rules Sync process (see Section: Rules Sync: Code Changes → Rules Update)
+
+### Rules Sync Process
+
+**When code changes:**
+1. Check if rules need update (see Rules Sync trigger list)
+2. Compare code reality vs. rules documentation
+3. Update rules to reflect reality OR fix code to match rules
+4. Update evidence index
+5. Document any intentional divergences
+
+**Evidence:**
+- Rules Sync section in this document
+- Evidence index: `.cursor/rules/90_EVIDENCE_INDEX.mdc`
+
+## Rules May Require Refactor
+
+**Legacy code is not exempt from CRITICAL/HIGH severity rule violations.**
+
+### Refactor Requirements
+
+**CRITICAL severity violations MUST be fixed:**
+- Bypassing KYC middleware
+- Direct pricing calculations outside `PricingService`
+- Direct status updates bypassing `OrderWorkflowService`
+- Security vulnerabilities
+
+**HIGH severity violations SHOULD be fixed:**
+- Business logic in controllers
+- Duplicated service logic
+- Missing audit trails
+- Component size limits exceeded (with exception justification)
+
+### Legacy Code Exception Policy
+
+**Exceptions are ONLY allowed with:**
+1. Explicit exception comment in code
+2. Justification for why refactor is deferred
+3. Timeline for fixing (e.g., "FIXME: Refactor by 2025-06-30")
+4. Link to issue/ticket tracking the refactor
+
+**Example:**
+```php
+// EXCEPTION: Legacy pricing calculation - violates CRITICAL rule
+// TODO: Refactor to use PricingService::calculateProductPrice() by 2025-06-30
+// Issue: #123 - Pricing refactor
+$price = $this->calculatePriceManually($product); // Temporary exception
+```
+
+### No Grandfathering
+
+**Rules apply to all code, including:**
+- Pre-existing code
+- Third-party integrations
+- Generated code
+- Template code
+
+**If code violates rules:**
+- Mark with exception comment if immediate fix not possible
+- Plan refactor timeline
+- Do NOT create rules exemptions for legacy code
+
+**Evidence:**
+- Violations report: `.cursor/rules/VIOLATIONS_REPORT.md`
+- Existing violations documented with refactor plans
+
+## Portals Discovery
+
+### 1. Customer Portal (Frontend)
+**Evidence:**
+- Routes: `routes/web.php` lines 57-139 (middleware `portal.customer`)
+- Controllers: `app/Http/Controllers/Frontend/*`
+- Layout: `resources/js/Layouts/AuthenticatedLayout.tsx` (customer section)
+- Routes prefix: None (default `/`)
+- Guard: `web` (uses `customers` provider from `config/auth.php`)
+- User types allowed: `retailer`, `wholesaler`, `sales` (from `app/Enums/UserType.php`)
+
+**Features:**
+- Dashboard, Catalog browsing, Cart, Checkout, Orders, Quotations, Wishlist
+- KYC onboarding workflow
+- All routes require KYC approval (`ensure.kyc.approved` middleware)
+
+### 2. Admin Portal
+**Evidence:**
+- Routes: `routes/web.php` lines 146-290 (`prefix('admin')`)
+- Controllers: `app/Http/Controllers/Admin/*` (34 controllers)
+- Guard: `auth:admin` (uses `users` provider)
+- Middleware: `can:access admin portal` (Gate defined in `app/Providers/AppServiceProvider.php` line 29)
+- User types: `admin`, `super-admin` (from `app/Enums/UserType.php`)
+
+**Features:**
+- Dashboard, Customer management, KYC review, Product/Catalog management
+- Order/Quotation management, Rates management, Settings (Taxes, Payment Gateways)
+- Diamond/Metal/Material management, Offers and Discounts
+
+### 3. Production Portal
+**Evidence:**
+- Routes: `routes/web.php` lines 292-297 (`prefix('production')`)
+- Controller: `app/Http/Controllers/Production/DashboardController.php`
+- Guard: `auth:admin` (same as admin)
+- Middleware: `can:update production status` (Gate in `AppServiceProvider.php` line 36)
+- User types: `production`, `super-admin`
+
+**Features:**
+- Dashboard for production workflow management
+- Work order queues (structure present but minimal implementation)
+
+## High-Level Workflows Discovered
+
+### KYC Workflow
+**Evidence:**
+- Enum: `app/Enums/KycStatus.php` (pending, review, approved, rejected)
+- Models: `app/Models/UserKycProfile.php`, `app/Models/UserKycDocument.php`, `app/Models/UserKycMessage.php`
+- Controllers: `app/Http/Controllers/Frontend/KycOnboardingController.php`, `app/Http/Controllers/Admin/KycController.php`
+- Middleware: `app/Http/Middleware/EnsureKycApproved.php` (redirects to `onboarding.kyc.show` if not approved)
+- Routes:
+  - Customer: `routes/web.php` lines 50-55 (onboarding routes)
+  - Admin: `routes/web.php` lines 153-159 (review routes)
+
+**Flow:**
+1. User registers → KYC status = `pending`
+2. User uploads documents via `/onboarding/kyc`
+3. Admin reviews in `/admin/customers/{user}/kyc`
+4. Admin approves/rejects → status changes to `approved` or `rejected`
+5. Only `approved` users can access customer portal features
+
+### Pricing Workflow
+**Evidence:**
+- Service: `app/Services/PricingService.php`
+- Price calculation: `PricingService::calculateProductPrice()` (lines 25-122)
+- Components: Metal cost (from `PriceRate`), Diamond cost, Making charge (from `Product`), Discounts
+- Making charge calculation: `app/Models/Product.php::calculateMakingCharge()` (lines 77-109)
+- Discount service: `app/Services/MakingChargeDiscountService.php`
+- Rate source: `app/Models/PriceRate.php` (metal + purity → price_per_gram)
+
+**Flow:**
+1. Product has variants with metals (weights) and diamonds (counts)
+2. Metal cost = Σ(metal_weight × current_price_rate)
+3. Diamond cost = Σ(diamond_price × count)
+4. Making charge = fixed OR percentage OR both (from Product metadata)
+5. Subtotal = metal + diamond + making
+6. Discount applied (making charge discounts based on customer group/type)
+7. Final total = subtotal - discount + tax
+
+### Quotation Lifecycle
+**Evidence:**
+- Model: `app/Models/Quotation.php`
+- Controllers: `app/Http/Controllers/Frontend/QuotationController.php`, `app/Http/Controllers/Admin/QuotationController.php`
+- Routes: Customer (lines 119-138), Admin (lines 255-263)
+- Messages: `app/Models/QuotationMessage.php` for customer-admin communication
+
+**Flow:**
+1. Customer creates quotation from cart or product
+2. Admin reviews, can approve/reject/request confirmation
+3. Customer can confirm/decline approved quotation
+4. Messages exchanged between customer and admin
+5. Product modifications possible by admin
+
+### Order Status Lifecycle
+**Evidence:**
+- Enum: `app/Enums/OrderStatus.php` (19 statuses: pending_payment, pending, approved, in_production, quality_check, ready_to_dispatch, dispatched, delivered, cancelled, etc.)
+- Service: `app/Services/OrderWorkflowService.php::transitionOrder()` (lines 21-46)
+- Model: `app/Models/OrderStatusHistory.php` (audit trail)
+- Events: `app/Events/OrderStatusUpdated.php`
+- Routes: Admin order status update (line 253)
+
+**Flow:**
+1. Order created with `pending_payment` status
+2. Payment succeeds → `pending` (via `CheckoutService::finalize()` line 98)
+3. Admin approves → `approved` or `awaiting_materials`
+4. Production workflow: `in_production` → `quality_check` → `ready_to_dispatch` → `dispatched` → `delivered`
+5. Each transition creates history entry and dispatches event
+
+### Payment Lifecycle
+**Evidence:**
+- Enum: `app/Enums/PaymentStatus.php` (pending, requires_action, succeeded, failed)
+- Service: `app/Services/CheckoutService.php`
+- Gateway manager: `app/Services/Payments/PaymentGatewayManager.php`
+- Drivers: `app/Services/Payments/Drivers/StripeGateway.php`, `app/Services/Payments/Drivers/FakeGateway.php`
+- Model: `app/Models/Payment.php`
+- Config: `config/payments.php`
+
+**Flow:**
+1. Checkout initialized → Payment intent created (Stripe/Fake)
+2. Payment stored with `pending` status
+3. Customer confirms payment → `CheckoutService::finalize()` checks gateway status
+4. If succeeded → Payment `succeeded`, Order → `pending`
+5. If failed → Payment `failed`, Order → `payment_failed`
+
+## Key Modules
+
+1. **Catalog Management**: Products, Variants, Metals, Diamonds, Categories, Catalogs
+2. **Customer Management**: User types, Groups, KYC profiles
+3. **Pricing Engine**: Rates, Making charges, Discounts
+4. **Order Management**: Orders, Items, Status workflow, History
+5. **Quotation System**: Quotations, Messages, Approval workflow
+6. **Payment Processing**: Gateways, Payments, Intents
+7. **User Management**: Customers, Admins, Teams, Groups
+
+## Rules Sync: Code Changes → Rules Update (Mandatory)
+
+### A) Trigger List: What Code Changes Require Rules Update
+
+**Evidence:** Repository structure analysis
+
+**Rules MUST be regenerated/updated when ANY files change in these areas:**
+
+**Backend Changes:**
+- **Routes**: `routes/web.php`, `routes/api.php`, `routes/auth.php`
+- **Controllers**: `app/Http/Controllers/{Portal}/*.php` (Admin, Frontend, Production)
+- **Middleware**: `app/Http/Middleware/*.php`
+- **Services**: `app/Services/*.php` (including subdirectories like `Services/Catalog/`, `Services/Payments/`)
+- **Models**: `app/Models/*.php`
+- **Migrations**: `database/migrations/*.php`
+- **FormRequests**: `app/Http/Requests/{Portal}/*.php`
+- **Enums**: `app/Enums/*.php`
+- **Events/Listeners**: `app/Events/*.php`, `app/Listeners/*.php`
+
+**Frontend Changes:**
+- **Pages**: `resources/js/Pages/{Portal}/{Resource}/*.tsx`
+- **Components**: `resources/js/Components/*.tsx` (especially new reusable components)
+- **Hooks**: `resources/js/hooks/*.ts` (when hooks directory exists)
+- **Utils**: `resources/js/utils/*.ts`
+
+**Configuration Changes:**
+- **Theme/Style**: `tailwind.config.js`, `resources/css/app.css`
+- **Payments**: `config/payments.php`
+- **Auth**: `config/auth.php`
+- **Vite**: `vite.config.js`
+
+**Critical Modules (Always Update Rules):**
+- **Pricing/Workflow**: Any changes to `app/Services/PricingService.php`, `app/Services/OrderWorkflowService.php`, `app/Services/CheckoutService.php`
+- **KYC**: Any changes to `app/Http/Middleware/EnsureKycApproved.php`, `app/Enums/KycStatus.php`, KYC controllers
+- **Payment**: Any changes to `app/Services/Payments/*.php`, `app/Models/Payment.php`, payment gateways
+
+**Rules:**
+1. If you modify files in any of the above paths, rules MUST be updated
+2. Adding new services/components/modules requires new rule entries
+3. Removing code requires marking as removed in rules (see Cleanup & Removal Rules)
+4. Renaming classes/components requires updating evidence references
+
+### C) Required Diff-Style Update Behavior
+
+**Evidence:**
+- Rules documents location: `.cursor/rules/*.mdc`
+- Evidence index: `.cursor/rules/90_EVIDENCE_INDEX.mdc`
+- Cleanup markers exist in Cleanup & Removal Rules section
+
+**Rules Update MUST:**
+
+1. **Compare current code vs existing rules documents**
+   - Scan codebase for actual patterns
+   - Compare with what's documented in rules
+   - Identify gaps and discrepancies
+
+2. **Update only impacted rule sections**
+   - Don't rewrite entire documents
+   - Update specific sections that changed
+   - Preserve unrelated content
+
+3. **Add new rules when new modules/services/components appear**
+   - New service → Add to `11_BACKEND_SERVICES.mdc`
+   - New component → Add to `21_FRONTEND_UI_COMPONENTS.mdc`
+   - New workflow → Add to `13_BACKEND_WORKFLOWS.mdc` or `00_OVERVIEW.mdc`
+
+4. **Mark removed/renamed things explicitly using markers:**
+   - `**NO LONGER PRESENT IN CODEBASE**` - Code was removed
+   - `**RENAMED IN CODEBASE** (YYYY-MM-DD): OldName → NewName` - Code was renamed
+   - `**NOT FOUND IN CODEBASE** (GAP)` - Pattern doesn't exist but should (documented gap)
+   - `**REMOVED FEATURE – CODE CLEANED** (YYYY-MM-DD)` - Feature removed (from Cleanup Rules)
+
+5. **Update evidence references**
+   - Update file paths if files moved
+   - Update line numbers if code shifted
+   - Remove evidence for deleted code (or mark as removed)
+
+**Example Update Pattern:**
+```markdown
+### NewService (ADDED 2025-01-15)
+**Evidence:**
+- Location: `app/Services/NewService.php`
+- Called from: `app/Http/Controllers/Admin/ResourceController.php` line 42
+
+### OldService (RENAMED IN CODEBASE 2025-01-15: OldService → NewService)
+**Status:** This service was renamed. See NewService above.
+```
+
+### D) "Definition of Done" Gate
+
+**A task is NOT DONE unless:**
+
+**Evidence:** Based on Cleanup & Removal Rules and Testing Rules
+
+1. **Rules documents updated (if triggered)**
+   - Check trigger list (Section A) - did you change routes/controllers/services/etc.?
+   - If yes → Rules MUST be updated before task completion
+   - Verification: Run "Regenerate Rules" prompt and verify changes reflected
+
+2. **Evidence index updated**
+   - Update `.cursor/rules/90_EVIDENCE_INDEX.mdc` with new evidence paths
+   - Remove or mark deprecated evidence for removed code
+   - Add evidence for new modules/components/services
+
+3. **Unused code removed (where applicable)**
+   - If removing features → Follow Feature Removal Checklist (see Cleanup & Removal Rules)
+   - Remove dead code, unused imports, commented code
+   - Update rules to mark removals
+
+4. **Tests updated (where applicable)**
+   - If changing critical paths (pricing, workflows, KYC, payments) → Tests MUST be updated
+   - Evidence: `40_TESTING_RULES.mdc` - Critical paths require tests
+   - Run `composer test` to verify tests pass
+
+**Checklist Before Marking Task Complete:**
+- [ ] Code changes reviewed against trigger list (Section A)
+- [ ] If triggered → Rules documents updated
+- [ ] Evidence index (`90_EVIDENCE_INDEX.mdc`) updated
+- [ ] Removed code cleaned up (if applicable)
+- [ ] Tests updated and passing (if applicable)
+- [ ] Build succeeds: `npm run build` (for frontend changes)
+
+### E) Evidence Requirement
+
+**Each updated rule MUST include Evidence:**
+
+**Evidence Format:**
+- **File paths**: Use actual repository paths (e.g., `app/Http/Controllers/Admin/ProductController.php`)
+- **Class/function/component names**: Use exact names from code (e.g., `PricingService::calculateProductPrice()`)
+- **Route names**: Use Laravel route names (e.g., `frontend.catalog.index` from `routes/web.php`)
+- **Line numbers**: Include when referencing specific code locations (e.g., `line 42`)
+- **Multiple examples**: Provide 3-5+ evidence links when possible
+
+**Evidence Examples:**
+
+**Good Evidence Block:**
+```markdown
+**Evidence:**
+- Location: `app/Services/PricingService.php`
+- Entry point: `calculateProductPrice(Product $product, ?Customer $user, array $options)`
+- Called from: `app/Services/CartService.php` lines 61-63, `app/Http/Controllers/Frontend/CatalogController.php` line 25
+- Route: `POST /catalog/{product}/calculate-price` (route name: `frontend.catalog.calculate-price`)
+```
+
+**Bad Evidence Block (Too Generic):**
+```markdown
+**Evidence:** PricingService exists in the codebase
+```
+
+**Rules:**
+1. Every rule MUST have an Evidence block
+2. Evidence must be specific (file paths, class names, line numbers)
+3. Evidence must be verifiable (someone can grep the codebase and find it)
+4. If pattern doesn't exist, mark as `NOT FOUND IN CODEBASE` and recommend where to add it
+
+### F) Standard "Regenerate Rules Prompt" Snippet
+
+**Use this prompt in Cursor to regenerate rules after code changes:**
+
+```
+You are a senior Laravel 12 + React 18 (Inertia) architect.
+
+Goal: Regenerate and update rules documents based on code changes.
+
+Instructions:
+1. Scan the repository codebase for changes in:
+   - routes/ (web.php, api.php, auth.php)
+   - app/Http/Controllers/
+   - app/Services/
+   - app/Models/
+   - app/Http/Middleware/
+   - resources/js/Pages/
+   - resources/js/Components/
+   - config/ (payments.php, auth.php, tailwind.config.js)
+
+2. Compare current code patterns with existing rules documents in .cursor/rules/
+
+3. Update ONLY impacted rule sections:
+   - Add new services/components/modules to appropriate rule files
+   - Update evidence paths/line numbers for modified code
+   - Mark removed code with: **NO LONGER PRESENT IN CODEBASE** or **REMOVED FEATURE – CODE CLEANED**
+   - Mark renamed code with: **RENAMED IN CODEBASE (YYYY-MM-DD): OldName → NewName**
+
+4. Update .cursor/rules/90_EVIDENCE_INDEX.mdc:
+   - Add new evidence references
+   - Remove or mark deprecated evidence
+   - Update file paths if files moved
+
+5. Preserve unrelated content - only update what changed
+
+6. Every updated rule must include Evidence block with:
+   - File paths
+   - Class/function/component names
+   - Route names if relevant
+   - Line numbers when referencing specific code
+
+Execute: Scan repo, compare with existing rules docs, update only what changed, refresh evidence, update evidence index, mark removals.
+```
+
+**Usage:**
+- Copy the prompt above
+- Paste into Cursor after making code changes
+- Review the updated rules documents
+- Verify evidence is accurate
+
+### G) Current Tooling & Workflow Evidence
+
+**Git Hooks:**
+- **Evidence**: `.git/hooks/` directory exists but is empty
+- **Status**: NOT FOUND - No pre-commit hooks configured
+- **Recommendation**: Add Husky or similar for pre-commit validation
+
+**CI/CD:**
+- **Evidence**: `.github/workflows/main.yml` exists (deployment only)
+- **Status**: NOT FOUND - No CI validation for rules updates
+- **Recommendation**: Add workflow step to check if rules need update (see Section B, Option 2)
+
+**Linting/Formatting:**
+- **Evidence**: `composer.json` line 21 - Laravel Pint installed
+- **Evidence**: `package.json` line 6 - TypeScript compiler in build script
+- **Status**: EXISTS - Code formatting tools available
+- **Usage**: Run `./vendor/bin/pint` for PHP, `npm run build` for TypeScript validation
+
+**Testing:**
+- **Evidence**: `composer.json` lines 52-55 - `composer test` script exists
+- **Evidence**: `phpunit.xml` - PHPUnit configured
+- **Status**: EXISTS - Tests can validate code changes
+- **Usage**: Run `composer test` after code changes
+
+**Rules Documentation:**
+- **Evidence**: `.cursor/rules/*.mdc` (11 rule files)
+- **Evidence**: `.cursor/rules/90_EVIDENCE_INDEX.mdc` - Evidence index exists
+- **Status**: EXISTS - Rules structure in place
+- **Update Process**: Manual via Cursor AI prompt (see Section F)
+
+## Release / Definition of Done Gates
+
+### Strict "Done" Checklist
+
+**Evidence:**
+- **Testing Script**: `composer.json` lines 52-55 - `composer test` script
+- **Build Script**: `package.json` line 6 - `npm run build` (TypeScript + Vite)
+- **Rules Sync**: Section in this document (Rules Sync: Code Changes → Rules Update)
+
+**A task is NOT DONE unless ALL of the following are complete:**
+
+1. **Tests Updated When Required**
+   - Critical paths (pricing, workflows, KYC, payments) → Tests MUST be updated
+   - Run `composer test` - All tests must pass
+   - **Evidence**: `40_TESTING_RULES.mdc` - Critical paths require tests
+
+2. **Rules Updated When Code Changed**
+   - Check trigger list (Rules Sync Section A) - did you change routes/controllers/services/etc.?
+   - If triggered → Rules MUST be updated
+   - Evidence index (`90_EVIDENCE_INDEX.mdc`) updated
+   - Run "Regenerate Rules" prompt (Section F)
+
+3. **Migrations Safe**
+   - All migrations have working `down()` methods
+   - Non-nullable columns have defaults or backfill migrations
+   - Test rollback: `php artisan migrate:rollback` works
+   - **Evidence**: Database & Migration Discipline rules
+
+4. **Build Passes**
+   - Frontend: `npm run build` succeeds (TypeScript compilation + Vite build)
+   - No TypeScript errors or unused import warnings
+   - Backend: No syntax errors (Laravel will catch on boot)
+
+5. **Code Quality Checks**
+   - No violations of forbidden patterns (see Forbidden Patterns section)
+   - No duplicated business logic
+   - No magic numbers (use enums)
+   - No direct gateway calls from controllers
+
+6. **Security Checks**
+   - Authorization verified for sensitive operations (KYC files, admin actions)
+   - No secrets in logs
+   - Rate limiting on authentication endpoints
+
+7. **Performance Checks**
+   - No N+1 queries (use eager loading)
+   - List pages paginated
+   - No tight loops recalculating prices (use service/batch)
+
+**Pre-Merge Checklist:**
+- [ ] All tests pass (`composer test`)
+- [ ] Build succeeds (`npm run build`)
+- [ ] Migrations tested (rollback works)
+- [ ] Rules updated (if code changed)
+- [ ] Evidence index updated
+- [ ] No forbidden patterns violated
+- [ ] No security issues (authorization, secrets)
+- [ ] Performance acceptable (no N+1, pagination)
