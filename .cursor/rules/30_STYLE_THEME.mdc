@@ -1,0 +1,1155 @@
+---
+alwaysApply: true
+---
+
+# Elvee UI Style & Theme Rules (Strict)
+
+**These rules are mandatory for all customer-facing UI and any branded admin screens. They enforce Elvee's luxury identity: Elegant • Confident • Warm • Modern.**
+
+## 1) Brand Personality & Design Principles
+
+### 1.1 Brand Positioning
+**Evidence:** Brand identity requirements
+
+- **Elegant, confident, warm, modern** - The Elvee brand identity
+- Designs must feel **premium, calm, and minimal**—never loud or cluttered
+- Reflect luxury jewelry craftsmanship in every UI element
+
+### 1.2 Core Design Principles
+
+**Rules:**
+1. **Minimal layouts, strong whitespace** - Allow content to breathe
+2. **Clear hierarchy** (headings → sections → details) - Guide user attention
+3. **Focus on craftsmanship**: Details, textures, clean presentation
+4. "Less but better" - Quality over quantity in UI elements
+
+**Evidence:**
+- `resources/js/Layouts/AuthenticatedLayout.tsx` - Spacious layouts with generous padding
+- Component patterns show minimal, clean design approach
+
+## 2) Color System (Strict)
+
+### 2.1 Approved Palette (ONLY)
+
+**Evidence:** `tailwind.config.js` lines 18-26, `resources/css/app.css` lines 8-16
+
+Use ONLY these primary brand colors in UI:
+
+```js
+colors: {
+    'elvee-blue': '#0E244D',    // Primary brand color
+    'feather-gold': '#AE8135',   // Accent color
+    'ivory': '#F8F5F0',          // Default background
+    // Supporting colors (use sparingly):
+    'warm-gold': '#927038',
+    'steel': '#B6B6B6',
+    'navy': '#0A1F47',
+    'ink': '#0C1424',
+}
+```
+
+**Rules:**
+1. **Elvee Blue (`#0E244D`)**: Primary text, headings, navigation, key UI anchors
+2. **Feather Gold (`#AE8135`)**: Accent color - highlights, badges, key CTAs, focus states (use sparingly)
+3. **Ivory White (`#F8F5F0`)**: Default background for all customer-facing pages
+
+### 2.2 Usage Rules
+
+**Customer Portal:**
+- **Default background**: `bg-ivory` or `bg-white` (prefer ivory for warmth)
+- **Primary text**: `text-elvee-blue` or `text-slate-900` (dark for contrast)
+- **Primary buttons**: `bg-elvee-blue` with `text-white` OR `bg-white` with `text-elvee-blue`
+- **Accent/hover**: `text-feather-gold`, `border-feather-gold`, `hover:text-feather-gold`
+- **Focus states**: `focus:ring-feather-gold` (gold accent for focus)
+
+**Evidence:**
+- `resources/js/Layouts/AuthenticatedLayout.tsx` lines 177-613 - Customer header uses ivory/white backgrounds
+- `resources/js/Components/PrimaryButton.tsx` - Uses `bg-elvee-blue`
+- `resources/js/Layouts/AuthenticatedLayout.tsx` line 52 - Hover states use `hover:text-feather-gold`
+
+### 2.3 Forbidden
+
+**Rules:**
+1. **NO unapproved colors** for branding elements - Only use colors from approved palette
+2. **NO random gradients**, neon colors, or overly saturated UI accents
+3. **NO recoloring the logo** - Logo must maintain original colors
+4. Avoid mixing brand colors with generic Tailwind colors (prefer brand palette)
+
+**Example Violations:**
+```tsx
+// ❌ FORBIDDEN: Unapproved color
+<div className="bg-red-500 text-yellow-400">...</div>
+
+// ✅ REQUIRED: Use brand palette
+<div className="bg-elvee-blue text-feather-gold">...</div>
+```
+
+## 3) UI Status Colors Rule (Strict – No External Colors Allowed)
+
+**STATUS COLOR POLICY (Source of Truth - Applied to BOTH Customer and Admin UI):**
+
+This project uses semantic status colors (green/red/yellow) for status indicators ONLY. All other UI elements must use brand colors (Elvee Blue, Feather Gold, Ivory).
+
+**Policy applies uniformly across:**
+- Customer Portal UI
+- Admin Portal UI
+- All status indicators (success, error, warning, info)
+
+**Evidence:**
+- `resources/js/Components/FlashMessage.tsx` - Uses emerald (success), rose (error), elvee-blue (info)
+- `resources/js/Components/InputError.tsx` - Uses red-600 for errors
+- `resources/js/Components/AlertModal.tsx` - Uses amber (warning), rose (error)
+- Both portals use same status colors: `resources/js/Pages/Admin/Orders/Index.tsx`, `resources/js/Pages/Frontend/Orders/Index.tsx`
+
+### 3.1 Allowed Status Colors (ONLY THESE)
+
+**All UI status states must be implemented using semantic colors for status indicators, brand colors for general UI.**
+
+#### Base Brand Colors (Source of Truth)
+- **Primary / Neutral:** Elvee Blue `#0E244D`
+- **Accent / Premium:** Feather Gold `#AE8135`
+- **Background:** Ivory White `#F8F5F0`
+
+**These are the ONLY base colors allowed for general UI elements.**
+
+**Evidence:**
+- `tailwind.config.js` lines 19-21 - Brand color definitions
+- `resources/css/app.css` lines 8-11 - CSS variables for brand colors
+
+### 3.2 Status Color Mapping (Mandatory - Applied to ALL Portals)
+
+#### Success
+- **Color:** Green (allowed for success indicators)
+- **Usage:**
+  - success messages
+  - confirmations
+  - completed states
+  - approved / verified statuses
+- **Allowed Colors:** Green shades (e.g., `bg-emerald-50`, `text-emerald-700`, `border-emerald-200`)
+
+**Current Implementation:**
+- `resources/js/Components/FlashMessage.tsx` lines 6-8 - Uses `bg-emerald-50`, `border-emerald-200`, `text-emerald-900` for success ✅
+- `resources/js/Pages/Admin/Orders/Index.tsx` line 45 - Uses `bg-emerald-100 text-emerald-700` for approved/delivered statuses ✅
+- `resources/js/Pages/Frontend/Orders/Index.tsx` line 38 - Uses `bg-emerald-100 text-emerald-700` for approved/delivered statuses ✅
+- `resources/js/Pages/Admin/Quotations/Show.tsx` line 135 - Uses `bg-emerald-100 text-emerald-700` for approved status ✅
+
+**Rules:**
+1. Green is allowed for success indicators
+2. Use consistent green shades across the application (prefer `emerald` palette)
+3. Keep green usage limited to status indicators, not general UI elements
+
+#### Error
+- **Color:** Red (allowed for error indicators)
+- **Usage:**
+  - form errors
+  - validation failures
+  - system failures
+  - failed/payment_failed/cancelled statuses
+- **Allowed Colors:** Red/rose shades (e.g., `bg-rose-50`, `text-rose-600`, `border-rose-300`)
+
+**Current Implementation:**
+- `resources/js/Components/FlashMessage.tsx` lines 10-13 - Uses `bg-rose-50`, `border-rose-200`, `text-rose-900` for error ✅
+- `resources/js/Components/InputError.tsx` line 11 - Uses `text-red-600` for error text ✅
+- `resources/js/Components/AlertModal.tsx` lines 30-32 - Uses `text-rose-600`, `bg-rose-600/10` for error ✅
+- `resources/js/Components/Customization/CustomizationSection.tsx` - Uses `border-rose-300`, `bg-rose-50`, `text-rose-600/700` for validation errors ✅
+- `resources/js/Pages/Frontend/Catalog/Show.tsx` - Uses `border-rose-300`, `bg-rose-50`, `text-rose-500/600` for validation errors ✅
+- `resources/js/Pages/Admin/Orders/Index.tsx` - Uses `bg-rose-100 text-rose-700` for payment_failed/cancelled ✅
+- `resources/js/Pages/Frontend/Orders/Index.tsx` - Uses `bg-rose-100 text-rose-700` for payment_failed/cancelled ✅
+- `resources/js/Pages/Admin/Quotations/Show.tsx` - Uses `bg-rose-100 text-rose-700` for rejected status ✅
+
+**Rules:**
+1. Red/rose is allowed for error indicators
+2. Use consistent red/rose shades across the application (prefer `rose` or `red` palette)
+3. Keep red usage limited to status indicators and errors, not general UI elements
+
+#### Warning
+- **Color:** Yellow/Amber (allowed for warning indicators)
+- **Usage:**
+  - warnings
+  - attention-required states
+  - incomplete steps
+  - pending statuses
+- **Allowed Colors:** Yellow/amber shades (e.g., `bg-amber-100`, `text-amber-700`, `bg-yellow-50`)
+
+**Current Implementation:**
+- `resources/js/Components/AlertModal.tsx` lines 26-28 - Uses `text-amber-600`, `bg-amber-600/10` for warning ✅
+- `resources/js/Pages/Admin/Orders/Index.tsx` lines 40-41 - Uses `bg-amber-100 text-amber-700` for pending statuses ✅
+- `resources/js/Pages/Frontend/Orders/Index.tsx` lines 33-34 - Uses `bg-amber-100 text-amber-700` for pending statuses ✅
+
+**Rules:**
+1. Yellow/amber is allowed for warning indicators
+2. Use consistent yellow/amber shades across the application (prefer `amber` or `yellow` palette)
+3. Keep yellow/amber usage limited to status indicators and warnings, not general UI elements
+4. Warning should feel calm and advisory, not alarming
+
+#### Info / Neutral Messages
+- **Color:** Elvee Blue (standard or lighter variant)
+- **Usage:**
+  - informational banners
+  - helper messages
+  - guidance text
+- **Style Rule:**
+  - informational, not dominant
+
+**Current Implementation (Correct):**
+- `resources/js/Components/FlashMessage.tsx` lines 15-19 - Uses `bg-elvee-blue/5`, `border-elvee-blue/20`, `text-elvee-blue` for info ✅
+
+**Status Colors Using Other Colors (Review Needed):**
+- `resources/js/Pages/Admin/Orders/Index.tsx` lines 43-47 - Uses `bg-indigo-100 text-indigo-700`, `bg-blue-100 text-blue-700` for production statuses
+- `resources/js/Pages/Frontend/Orders/Index.tsx` lines 36-40 - Uses `bg-indigo-100 text-indigo-700`, `bg-blue-100 text-blue-700` for production statuses
+
+**Rules:**
+1. For info messages: Use Elvee Blue (brand color)
+2. For status indicators: Green (success), Red (error), Yellow (warning) are allowed
+3. Indigo, purple, and other framework colors should not be used for status indicators
+4. Use Elvee Blue or brand colors for informational/neutral messages
+
+#### Disabled / Inactive
+- **Color:** Elvee Blue with opacity OR neutral gray derived from it
+- **Usage:**
+  - disabled buttons
+  - inactive states
+- **Rule:**
+  - Must be derived from Elvee Blue
+  - No random gray shades
+
+**Evidence:**
+- `resources/js/Components/PrimaryButton.tsx` - Uses `opacity-25` for disabled state (should derive from Elvee Blue)
+
+### 3.3 Implementation Rules (Strict)
+
+#### No Framework Default Colors (Except Status Colors)
+
+**Evidence:** Status colors (green/red/yellow) are allowed for status indicators only
+
+**Rules:**
+1. **Status colors are ALLOWED** (green, red, yellow/amber for status indicators only):
+   - ✅ `text-green-*`, `bg-green-*`, `text-emerald-*`, `bg-emerald-*` (for success status)
+   - ✅ `text-red-*`, `bg-red-*`, `text-rose-*`, `bg-rose-*` (for error status)
+   - ✅ `text-yellow-*`, `bg-yellow-*`, `text-amber-*`, `bg-amber-*` (for warning status)
+
+2. **Do NOT use** for general UI elements (non-status):
+   - ❌ `text-red-*`, `bg-red-*` (unless for error status)
+   - ❌ `text-green-*`, `bg-green-*` (unless for success status)
+   - ❌ `text-yellow-*`, `bg-yellow-*` (unless for warning status)
+   - ❌ `text-indigo-*`, `bg-indigo-*` (not allowed for status)
+   - ❌ `text-purple-*`, `bg-purple-*` (not allowed)
+   - ❌ Any other framework default colors for general UI
+
+3. **For general UI elements**, use brand colors only:
+   - Elvee Blue (`text-elvee-blue`, `bg-elvee-blue`)
+   - Feather Gold (`text-feather-gold`, `bg-feather-gold`)
+   - Ivory (`bg-ivory`)
+   - Steel/Gray (`text-steel`, `bg-steel`)
+
+4. **Do NOT use alert/toast defaults from UI libraries** for non-status elements unless mapped to brand tokens
+
+#### Tailwind / CSS Enforcement
+
+**Rules:**
+1. All status colors must come from:
+   - theme tokens (`elvee-blue`, `feather-gold`, `ivory`)
+   - CSS variables (`--elvee-blue`, `--feather-gold`, `--ivory`)
+   - shared UI components
+
+2. Inline hex values are **not allowed** in components
+
+**Evidence:**
+- `tailwind.config.js` - Brand color tokens defined
+- `resources/css/app.css` - CSS variables defined
+
+#### Shared Components Only
+
+**Rules:**
+1. Error, success, warning, and info messages must use:
+   - shared Alert component
+   - shared Toast component
+   - shared StatusBadge component
+
+2. **No one-off styling in pages** - Must use shared components
+
+**Current Violations:**
+- Status colors defined inline in pages: `resources/js/Pages/Admin/Orders/Index.tsx`, `resources/js/Pages/Frontend/Orders/Index.tsx`
+- Should be extracted to shared `StatusBadge` component
+
+### 3.4 Accessibility Rule
+
+**Rules:**
+1. Contrast must remain readable against Ivory White background
+2. Do NOT "fix" contrast by introducing new colors
+3. Use:
+   - font weight
+   - spacing
+   - icons
+   - borders
+
+**Evidence:**
+- WCAG AA contrast requirements must be met
+- Brand colors (`#0E244D`, `#AE8135`) tested for contrast on `#F8F5F0` background
+
+### 3.5 Forbidden Patterns (Hard Fail)
+
+**❌ Forbidden:**
+1. Using red/green/yellow for non-status UI elements (only allowed for error/success/warning indicators)
+2. Using color alone to communicate meaning
+3. Inline styling for status colors (use shared components)
+4. Third-party component default colors for non-status elements
+5. Admin panels using different status colors than customer UI
+6. Using indigo, purple, or other framework colors for status indicators (use green/red/yellow only)
+
+**Allowed Status Colors:**
+- **Success**: Green (emerald palette)
+- **Error**: Red/rose palette
+- **Warning**: Yellow/amber palette
+- **Info**: Elvee Blue (brand color)
+
+**Forbidden Status Colors:**
+- **NOT ALLOWED**: Indigo, purple, blue variants for status (use Elvee Blue for info only)
+
+**Current Status:**
+- Status colors using green/red/yellow are ✅ CORRECT
+- Status colors using indigo/purple/blue variants need to be reviewed (see Section 3.2.4)
+
+### 3.6 Enforcement Rule
+
+**If any UI introduces:**
+- non-brand colors for general UI elements (non-status)
+- framework colors for status that aren't green/red/yellow
+- ad-hoc hex values
+- red/green/yellow for non-status elements
+
+**→ The change MUST be rejected and corrected before merge.**
+
+**This applies to:**
+- pages
+- components
+- modals
+- tables
+- alerts
+- toasts
+- forms
+- dashboards
+
+**Allowed Colors Summary:**
+- **General UI**: Elvee Blue, Feather Gold, Ivory (brand palette only)
+- **Status Indicators**: Green (success), Red (error), Yellow (warning), Elvee Blue (info)
+- **Forbidden**: Red/green/yellow for non-status UI, indigo/purple/blue for status
+
+**Evidence:**
+- Rules Sync section in `00_OVERVIEW.mdc` - Code changes require rules update
+- Definition of Done gates - UI work must pass brand checks
+
+### 3.7 Definition of Done (UI Changes)
+
+**A UI change is NOT complete unless:**
+- [ ] status messages use approved colors (green/red/yellow for status, Elvee Blue for info)
+- [ ] brand colors (Elvee Blue, Feather Gold, Ivory) used for general UI elements
+- [ ] red/green/yellow only used for status indicators, not general UI
+- [ ] shared components are used
+- [ ] theme tokens are respected
+
+**Evidence:**
+- Current implementation uses correct status colors (green/red/yellow) ✅
+- Indigo/purple status colors need review (see Section 3.2.4)
+- All new code must follow status color mapping rules
+
+## 3.8) UI Color Shades Rule (Strict – Controlled Shades Only)
+
+**The Elvee UI color system allows controlled light shades (tints) derived ONLY from the approved brand colors. No arbitrary colors, no framework defaults, no uncontrolled shades are allowed.**
+
+### 3.8.1 Base Brand Colors (Source of Truth)
+
+**Evidence:** Current Tailwind config vs. desired shade system
+
+**These are the ONLY base colors allowed in the project:**
+
+- **Elvee Blue (Primary):** `#0A1F47` *(Note: Currently "navy" in `tailwind.config.js` line 24)*
+- **Feather Gold (Accent):** `#927038` *(Note: Currently "warm-gold" in `tailwind.config.js` line 22)*
+- **Neutral Gray:** `#B6B6B6` *(Currently "steel" in `tailwind.config.js` line 23)*
+- **Background:** Ivory White `#F8F5F0` *(Currently "ivory" in `tailwind.config.js` line 21)*
+
+**Current State vs. Desired State:**
+- **Current**: `elvee-blue: #0E244D`, `feather-gold: #AE8135`, `navy: #0A1F47`, `warm-gold: #927038`
+- **Desired Shade System**: Elvee Blue base = `#0A1F47`, Feather Gold base = `#927038`
+- **Note**: Tailwind config may need update to align base colors with shade system
+
+**Rules:**
+1. All other colors MUST be derived from these base colors
+2. No arbitrary colors allowed
+3. Base colors defined in `tailwind.config.js` must match this system
+
+### 3.8.2 Allowed Shade System (Maximum 4 Shades per Color)
+
+**Each base color may have up to 4 predefined shades:**
+- 1 Base
+- 3 lighter variants (tints)
+
+**❌ Forbidden:**
+- No darker experimental shades
+- No saturation/hue changes
+- No new hex values outside this system
+
+**Implementation:**
+- Shades must be defined as Tailwind theme tokens OR CSS variables
+- Example pattern: `elvee-blue-900` (base), `elvee-blue-700`, `elvee-blue-500`, `elvee-blue-300`
+
+### 3.8.3 Elvee Blue – Allowed Shades
+
+**Used for:**
+- primary text
+- headings
+- borders
+- info/error states
+- navigation
+
+**Allowed shades:**
+- **Blue-900 (Base):** `#0A1F47` *(Currently "navy" in config)*
+- **Blue-700:** lighter variant (to be defined)
+- **Blue-500:** softer UI elements (to be defined)
+- **Blue-300:** backgrounds, subtle borders (to be defined)
+
+**Rules:**
+1. Blue-900 is default for text
+2. Lighter blues only for UI depth, never primary text
+3. All shades must be derived from base `#0A1F47`
+
+**NOT FOUND IN CODEBASE:**
+- Shade system not yet implemented in Tailwind config
+- **Recommended**: Update `tailwind.config.js` to define shade scale:
+  ```js
+  'elvee-blue': {
+    900: '#0A1F47',  // Base
+    700: '#...',      // Lighter variant
+    500: '#...',      // Softer UI elements
+    300: '#...',      // Backgrounds, borders
+  }
+  ```
+
+### 3.8.4 Feather Gold – Allowed Shades
+
+**Used for:**
+- success
+- highlights
+- premium CTAs
+- warnings
+- accents
+
+**Allowed shades:**
+- **Gold-900 (Base):** `#927038` *(Currently "warm-gold" in config)*
+- **Gold-700:** secondary highlights (to be defined)
+- **Gold-500:** subtle emphasis (to be defined)
+- **Gold-300:** soft backgrounds (to be defined)
+
+**Rules:**
+1. Gold must remain elegant and subtle
+2. Never overpower the UI
+3. Never replace primary text color
+4. All shades must be derived from base `#927038`
+
+**NOT FOUND IN CODEBASE:**
+- Shade system not yet implemented
+- **Recommended**: Define shade scale in Tailwind config
+
+### 3.8.5 Neutral Gray – Allowed Shades
+
+**Used for:**
+- disabled states
+- borders
+- separators
+- secondary text
+
+**Allowed shades:**
+- **Gray-500 (Base):** `#B6B6B6` *(Currently "steel" in config)*
+- **Gray-300:** dividers (to be defined)
+- **Gray-200:** backgrounds (to be defined)
+- **Gray-100:** very light UI surfaces (to be defined)
+
+**Rules:**
+1. Gray must not dominate
+2. Gray is supportive, never expressive
+3. All shades must be derived from base `#B6B6B6`
+
+**NOT FOUND IN CODEBASE:**
+- Shade system not yet implemented
+- **Recommended**: Define shade scale in Tailwind config
+
+### 3.8.6 Status Color Mapping (Updated – Using Shades)
+
+**Success:**
+- Green (allowed) - Can use green shades for success indicators
+- Example: `bg-emerald-50`, `text-emerald-700`, `border-emerald-200`
+
+**Error:**
+- Red/Rose (allowed) - Can use red/rose shades for error indicators
+- Example: `bg-rose-50`, `text-rose-600`, `border-rose-300`
+
+**Warning:**
+- Yellow/Amber (allowed) - Can use yellow/amber shades for warning indicators
+- Example: `bg-amber-100`, `text-amber-700`
+
+**Info:**
+- Elvee Blue (brand color) - Use Elvee Blue shades for info/neutral messages
+- Example: `bg-elvee-blue/5`, `text-elvee-blue`
+
+**Disabled / Inactive:**
+- Neutral Gray (lighter shade)
+
+**Evidence:**
+- See Section 3.2 for detailed status color mapping
+- Green/red/yellow are allowed for status indicators only
+- Brand colors (Elvee Blue, Feather Gold) for general UI elements
+
+### 3.8.7 Implementation Rules (Hard)
+
+**Rules:**
+1. All shades must be defined as:
+   - Tailwind theme tokens OR
+   - CSS variables
+2. No inline hex values in JSX/TSX/CSS
+3. No framework default classes (`text-red-*`, `bg-green-*`, etc.)
+
+**Evidence:**
+- `tailwind.config.js` - Theme extension pattern exists
+- `resources/css/app.css` - CSS variables pattern exists
+- Current implementation uses single color values, needs shade system
+
+**Recommended Implementation:**
+```js
+// tailwind.config.js
+colors: {
+    'elvee-blue': {
+        900: '#0A1F47',  // Base (primary text)
+        700: '#...',      // Lighter variant
+        500: '#...',      // Softer UI elements
+        300: '#...',      // Backgrounds, borders
+    },
+    'feather-gold': {
+        900: '#927038',  // Base
+        700: '#...',      // Secondary highlights
+        500: '#...',      // Subtle emphasis
+        300: '#...',      // Soft backgrounds
+    },
+    'steel': {
+        500: '#B6B6B6',  // Base
+        300: '#...',      // Dividers
+        200: '#...',      // Backgrounds
+        100: '#...',      // Very light surfaces
+    },
+}
+```
+
+### 3.8.8 Forbidden Patterns (Hard Fail)
+
+**❌ Forbidden:**
+1. Introducing new hex values without approval
+2. Using Tailwind default color palette
+3. Mixing non-brand blues, greens, reds, oranges
+4. Using color alone to convey meaning
+5. Admin UI using different color logic than customer UI
+6. Creating shades outside the 4-shade system
+
+**Evidence:**
+- Multiple violations found using framework default colors (see Section 3.2)
+- Inline color definitions in pages/components (see VIOLATIONS_REPORT.md)
+
+### 3.8.9 Enforcement Rule
+
+**If any UI uses:**
+- colors outside the approved shades
+- inline hex values
+- framework default status colors
+
+**→ MUST be rejected before merge.**
+
+**Evidence:**
+- Rules Sync section in `00_OVERVIEW.mdc` - Code changes require rules update
+- Definition of Done gates - UI work must pass brand checks
+
+### 3.8.10 Definition of Done (UI Work)
+
+**UI work is complete ONLY when:**
+- [ ] all colors come from approved base + shade system
+- [ ] shared components are used
+- [ ] no random Tailwind color utilities exist
+- [ ] theme tokens are respected everywhere
+
+**Evidence:**
+- Current violations documented in Section 3.2
+- Tailwind config needs update to implement shade system
+
+## 4) Typography (Strict)
+
+### 3.1 Font Family
+
+**Evidence:** `tailwind.config.js` line 16, `resources/css/app.css` lines 1, 30
+
+**Primary font: Avenir** (consistent across headings and body)
+
+```js
+fontFamily: {
+    sans: ['Avenir', 'Montserrat', 'Nunito', ...defaultTheme.fontFamily.sans],
+}
+```
+
+**Fallback Stack:**
+- Primary: Avenir
+- Fallbacks: Montserrat, Nunito, system fonts
+- **Current Issue**: CSS imports Montserrat/Nunito but Avenir should be primary
+
+**Rules:**
+1. Use `font-sans` class (defaults to Avenir stack)
+2. Ensure Avenir font is loaded/available
+3. Maintain consistent font family across all UI
+
+### 3.2 Hierarchy Rules
+
+**Evidence:** `resources/css/app.css` lines 87-97 (headline/body-text classes)
+
+**Rules:**
+1. **Maintain clear, consistent hierarchy:**
+   - Page Title → Section Title → Subheading → Body → Helper text
+2. **Keep spacing balanced and modern** (no cramped text)
+3. Use appropriate font weights:
+   - Headings: `font-semibold` (600) or `font-bold` (700)
+   - Body: `font-normal` (400) or `font-medium` (500)
+   - Helper text: `font-normal` with lighter color
+
+**Font Size Guidelines:**
+- Page Title: `text-3xl` or `text-4xl` (30-36px)
+- Section Title: `text-2xl` (24px)
+- Subheading: `text-xl` (20px)
+- Body: `text-base` (16px) or `text-sm` (14px)
+- Helper text: `text-sm` or `text-xs` (12-14px)
+
+### 3.3 Forbidden
+
+**Rules:**
+1. **NO mixing multiple font families** unless approved
+2. **NO overly decorative fonts** - Keep it elegant and readable
+3. **NO inconsistent font sizes** - Use Tailwind scale consistently
+
+## 5) Logo Rules (Strict)
+
+### 4.1 Integrity Rules
+
+**Evidence:** `resources/js/Components/ApplicationLogo.tsx` - SVG logo component
+
+**Rules:**
+1. **NEVER stretch, rotate, recolor, or add shadows** to the Elvee logo
+2. **ALWAYS preserve clear space** around the logo and Feather icon
+3. Logo must maintain aspect ratio (viewBox: 0 0 316 316)
+4. Logo colors should come from brand palette only
+
+**Current Implementation:**
+- Logo is SVG component: `ApplicationLogo.tsx`
+- Accepts `className` prop for sizing/coloring
+- **Warning**: Logo color is controlled via `text-*` classes (e.g., `text-elvee-blue`, `text-white`)
+
+**Forbidden Examples:**
+```tsx
+// ❌ FORBIDDEN: Recoloring logo to non-brand colors
+<ApplicationLogo className="text-red-500" />
+
+// ❌ FORBIDDEN: Adding shadows/effects
+<ApplicationLogo className="drop-shadow-2xl" />
+
+// ✅ REQUIRED: Use brand colors or neutral
+<ApplicationLogo className="text-elvee-blue" />
+<ApplicationLogo className="text-white" /> // For dark backgrounds
+```
+
+### 4.2 Placement Rules
+
+**Evidence:** 
+- `resources/js/Components/CustomerHeader.tsx` line 99 - Logo in customer header
+- `resources/js/Layouts/AuthenticatedLayout.tsx` - Logo placement in headers
+
+**Rules:**
+1. **Customer portal**: Logo must be visible in header/footer depending on layout
+2. **Admin portal**: Logo may be smaller but must remain correct and clean
+3. Maintain consistent logo placement across pages
+4. Logo size should be appropriate for context (header: h-8 to h-12, footer: h-6 to h-8)
+
+**Current Usage:**
+- Customer header: `className="h-10 w-10 text-elvee-blue"` (line 99 in CustomerHeader.tsx)
+
+## 6) UI Components & Layout Rules
+
+### 5.1 Layout
+
+**Evidence:** `resources/js/Layouts/AuthenticatedLayout.tsx` - Layout patterns
+
+**Rules:**
+1. **Default background**: Ivory White (`bg-ivory`) or white (`bg-white`)
+2. **Use clean cards/sections** with soft borders or subtle separation (no heavy boxed UI)
+3. **Avoid overcrowded pages**: "Less but better"
+4. **Generous whitespace**: Use padding/spacing liberally (`p-4`, `p-6`, `py-10`, `gap-4`, `gap-6`)
+
+**Current Patterns:**
+- Containers: `max-w-[95rem]` with padding `px-4`, `py-10 lg:py-12`
+- Cards: `rounded-2xl`, `border border-slate-100`, `shadow-sm` or `shadow-lg`
+- Background: `bg-white` or `bg-ivory`
+
+### 5.2 Buttons
+
+**Evidence:** 
+- `resources/js/Components/PrimaryButton.tsx`
+- `resources/js/Components/SecondaryButton.tsx`
+- `resources/js/Components/DangerButton.tsx`
+- `resources/css/app.css` lines 48-56 (btn-primary, btn-secondary classes)
+
+**Primary Action Buttons:**
+- **Style 1**: `bg-elvee-blue` with `text-white` (Elvee Blue background, white text)
+- **Style 2**: `bg-white` with `text-elvee-blue` (White background, Elvee Blue text) - for light backgrounds
+- Rounded: `rounded-xl`
+- Shadow: `shadow-lg shadow-elvee-blue/25`
+- Hover: `hover:bg-navy`, `hover:-translate-y-0.5` (subtle lift)
+
+**Secondary Action Buttons:**
+- Outlined style: `border border-elvee-blue` with `text-elvee-blue`
+- Background: `bg-transparent` or `bg-white`
+- Hover: `hover:bg-elvee-blue/10`
+
+**Gold Accent (Sparingly):**
+- Reserved for premium CTA emphasis or "confirmed/success" highlights
+- Use `bg-feather-gold` or `border-feather-gold` with appropriate text color
+- **Use sparingly** - Don't overuse gold accent
+
+**Rules:**
+1. Use shared button components (`PrimaryButton`, `SecondaryButton`, `DangerButton`)
+2. Don't create one-off button styles
+3. Maintain consistent button styling across application
+
+### 5.3 Tables (Important for B2B)
+
+**Evidence:** Admin portal likely uses tables for data display
+
+**Rules:**
+1. **Tables must feel premium:**
+   - Light separators: `border border-slate-200` or `border-slate-100`
+   - Generous row padding: `py-4`, `px-6`
+   - Clear header styling: `font-semibold`, `text-elvee-blue` or `text-slate-900`
+2. **Avoid "enterprise ugly tables":**
+   - No heavy borders: Use subtle borders (`border-slate-200`)
+   - No loud zebra stripes: Use subtle alternate row colors if needed (`bg-slate-50/50`)
+   - No dense rows: Use generous padding
+
+**Recommended Pattern:**
+```tsx
+<table className="min-w-full border-separate border-spacing-0">
+  <thead className="bg-ivory">
+    <tr>
+      <th className="px-6 py-4 text-left font-semibold text-elvee-blue border-b border-slate-200">
+        Column Header
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr className="hover:bg-slate-50/50">
+      <td className="px-6 py-4 border-b border-slate-100">
+        Content
+      </td>
+    </tr>
+  </tbody>
+</table>
+```
+
+### 5.4 Forms
+
+**Evidence:** 
+- `resources/js/Components/TextInput.tsx`
+- `resources/js/Components/InputLabel.tsx`
+- `resources/js/Components/InputError.tsx`
+
+**Rules:**
+1. **Clear labels**: Use `InputLabel` component with proper `htmlFor` association
+2. **Helpful placeholders**: Provide context in placeholder text
+3. **Validation errors**: Must be calm + clear (use `InputError` component)
+   - Never aggressive or harsh language
+   - Show errors near the relevant field
+   - Style: `text-sm text-red-600` (calm red, not bright)
+4. **Focus state**: Prefer Feather Gold accent (`focus:ring-feather-gold`, `focus:border-feather-gold`)
+
+**Current Pattern:**
+- Inputs: `rounded-2xl` or `rounded-xl`, `border-slate-200`
+- Focus: `focus:border-feather-gold focus:ring-2 focus:ring-feather-gold/20`
+- Errors: Red text (`text-red-600`) displayed below input
+
+## 7) Imagery Style Rules
+
+### 6.1 Photography Style
+
+**Evidence:** `assets/` directory contains product images
+
+**Rules:**
+1. **Use natural light + soft shadows** - Professional, editorial feel
+2. **Highlight details, textures, craftsmanship** - Show jewelry quality
+3. **Prefer clean backgrounds** in ivory, beige, or soft gold tones
+4. **Keep jewelry images crisp, well-lit** - Editorial quality
+5. **Maintain consistency** in image style across product catalog
+
+**Recommended:**
+- Background colors: Ivory, beige, soft gold tones (matching brand palette)
+- Lighting: Natural, soft, highlights product details
+- Composition: Clean, minimal, product-focused
+
+### 6.2 Forbidden
+
+**Rules:**
+1. **NO pixelated, cluttered, low-quality visuals** - All images must be high quality
+2. **NO overly busy compositions** behind product images - Keep backgrounds clean
+3. **NO inconsistent image styles** - Maintain editorial consistency
+
+## 8) Voice & Tone (UI Copy Rules)
+
+### 7.1 Tone Requirements
+
+**Rules:**
+1. **Confident, refined, warm** - Reflect luxury brand personality
+2. **Professional and respectful** - B2B appropriate but engaging
+3. **Emotionally engaging but not salesy** - Build relationships, don't push
+
+**Current Patterns:**
+- Flash messages: Professional, clear (see `resources/js/Components/FlashMessage.tsx`)
+- Button text: Action-oriented, clear ("Submit", "Save", "Continue")
+- Error messages: Respectful, actionable
+
+### 7.2 Messaging Rules
+
+**Rules:**
+1. **NO harsh language** - Always respectful
+2. **NO pressure selling** - Avoid aggressive sales language
+3. **NO overly casual phrases** (e.g., "Hey!", "Oops!") unless explicitly approved
+4. Keep messaging consistent across all portals (customer, admin)
+
+**Forbidden Examples:**
+```tsx
+// ❌ FORBIDDEN: Too casual
+<FlashMessage message="Oops! Something went wrong!" />
+
+// ❌ FORBIDDEN: Pressure selling
+<Button>Buy Now Before It's Too Late!</Button>
+
+// ✅ REQUIRED: Professional and respectful
+<FlashMessage message="We couldn't save your changes. Please check the required fields and try again." />
+<Button>Add to Cart</Button>
+```
+
+### 7.3 Error and Status Copy
+
+**Rules:**
+1. **Errors must be:**
+   - Short - Get to the point
+   - Respectful - No blame, no harshness
+   - Actionable - Tell user what to do next
+
+**Example Format:**
+- "We couldn't save your changes. Please check the required fields and try again."
+- "The selected file is too large. Please choose a file smaller than 8MB."
+- "Your payment could not be processed. Please check your card details and try again."
+
+**Evidence:**
+- `resources/js/Components/FlashMessage.tsx` - Shows professional error/success messages
+- `resources/js/Components/InputError.tsx` - Field-level error display
+
+## 9) Do's & Don'ts (Enforced)
+
+### Do
+
+**Rules:**
+1. **Use official palette and typography consistently** - Brand colors and Avenir font
+2. **Use minimal, elegant visuals** reflecting craftsmanship
+3. **Keep layouts clean and premium** - Whitespace, clear hierarchy
+4. **Maintain consistent messaging tone** across all portals
+
+### Don't
+
+**Rules:**
+1. **Don't alter/distort the logo** (no recolor to non-brand colors, rotate, shadow)
+2. **Don't use unapproved colors** - Stick to brand palette
+3. **Don't overcrowd layouts** (no excessive text/graphics)
+4. **Don't use low-quality imagery** - All visuals must be premium quality
+5. **Don't use inconsistent or overly casual tone** - Maintain brand voice
+
+## 10) Enforcement Rule (Project-Wide)
+
+**If any UI work is submitted that violates:**
+- Palette (unapproved colors)
+- Typography (wrong font family)
+- Logo rules (altered logo)
+- Imagery rules (low-quality visuals)
+- Tone/voice rules (inappropriate messaging)
+
+**Then it must be rejected and revised before merge/release.**
+
+**This is non-negotiable for brand consistency.**
+
+**Evidence:**
+- Rules Sync section in `00_OVERVIEW.mdc` - Code changes require rules update
+- Definition of Done gates - UI work must pass brand checks
+
+## Tailwind Theme Configuration Reference
+
+**Evidence:** `tailwind.config.js`
+
+**Complete theme configuration:**
+```js
+// tailwind.config.js
+theme: {
+    extend: {
+        fontFamily: {
+            sans: ['Avenir', 'Montserrat', 'Nunito', ...defaultTheme.fontFamily.sans],
+        },
+        colors: {
+            'elvee-blue': '#0E244D',    // Primary brand
+            'feather-gold': '#AE8135',   // Accent (use sparingly)
+            'ivory': '#F8F5F0',          // Default background
+            'warm-gold': '#927038',      // Supporting (sparingly)
+            'steel': '#B6B6B6',          // Neutral/gray
+            'navy': '#0A1F47',           // Darker blue variant
+            'ink': '#0C1424',            // Dark text
+        },
+    },
+}
+```
+
+**CSS Variables** (`resources/css/app.css`):
+```css
+:root {
+    --elvee-blue: #0E244D;
+    --feather-gold: #AE8135;
+    --ivory: #F8F5F0;
+    --warm-gold: #927038;
+    --steel: #B6B6B6;
+    --navy: #0A1F47;
+    --ink: #0C1424;
+}
+```
+
+## UI Differences: Customer vs Admin (Strict)
+
+### Customer Portal UI (Strict Luxury Branding)
+**Evidence:** `resources/js/Layouts/AuthenticatedLayout.tsx` lines 177-613
+
+**Branding Requirements:**
+- **MUST** follow strict luxury branding rules
+- **MUST** use brand colors (Elvee Blue, Feather Gold, Ivory) for general UI elements
+- **MUST** maintain elegant, minimal aesthetic
+- Status colors: Green/red/yellow allowed for status indicators only (see Section 3.2 - Status Color Mapping)
+
+**Header:**
+- Background: `bg-white`
+- Text: `text-slate-900`
+- Top bar: `bg-slate-900` (dark) with contact info
+- Navigation: Light background, hover states with `feather-gold`
+- Cart/Wishlist icons: Badge counts displayed
+
+**Colors:**
+- Primary buttons: `bg-elvee-blue` (dark blue)
+- Hover states: `hover:text-feather-gold`, `hover:bg-feather-gold/10`
+- Links: `text-slate-600` → `hover:text-feather-gold`
+- Borders: `border-slate-100`, `border-slate-200`
+
+**Footer:**
+- Customer footer component included (line 750)
+
+### Admin Portal UI (Professional Density)
+**Evidence:** `resources/js/Layouts/AuthenticatedLayout.tsx` lines 616-736
+
+**Styling Rules:**
+- **MAY** use neutral grays for density and data presentation
+- **MUST** still forbid red/green/yellow for non-status elements (general UI)
+- **MUST** still forbid framework defaults for general UI
+- Status colors: Green/red/yellow allowed for status indicators only (see Section 3.2 - Status Color Mapping)
+- **MAY** use darker backgrounds and more compact spacing for data density
+
+**Header:**
+- Background: `bg-gradient-to-r from-slate-950 via-slate-900 to-blue-900` (dark gradient)
+- Text: `text-white`
+- Navigation: Pill-style buttons with `bg-white` for active state
+- User info displayed in header
+
+**Colors:**
+- Background: Dark gradient (allowed for admin density)
+- Active nav: `bg-white text-slate-900`
+- Inactive nav: `text-slate-200 hover:bg-white/20`
+- Buttons: `bg-white/90` for primary actions
+- **Neutral grays allowed:** For tables, borders, separators (e.g., `border-slate-200`, `bg-slate-50`)
+
+**Layout:**
+- More compact, professional look
+- No customer footer
+- **Denser spacing allowed:** For data tables and admin dashboards
+
+### Common Rules (Both Portals)
+
+**MUST apply to both Customer and Admin UI:**
+1. Status colors: Green/red/yellow allowed for status indicators only (see Section 3.2 - Status Color Mapping - applies uniformly)
+2. Framework defaults (red/green/yellow) forbidden for general UI elements
+3. Brand colors (Elvee Blue, Feather Gold, Ivory) required for general UI elements (customer portal)
+4. Typography: Avenir font family
+5. Logo integrity rules apply to both portals
+
+**Differences Allowed:**
+- Admin may use neutral grays for density (customer uses brand colors)
+- Admin may use darker backgrounds (customer uses ivory/white)
+- Admin may use more compact spacing (customer uses generous whitespace)
+
+## Branding Constants
+
+### Color Usage Guidelines
+
+**Primary Brand (`elvee-blue`):**
+- Primary buttons
+- Headings (admin portal)
+- Focus rings: `focus:ring-elvee-blue`
+
+**Accent (`feather-gold`):**
+- Hover states on links
+- Focus rings: `focus:ring-feather-gold`
+- Active states
+- Highlights
+
+**Background (`ivory`):**
+- Card backgrounds
+- Section backgrounds
+- Neutral, warm tone
+
+**Neutral (`steel`):**
+- Disabled states
+- Secondary text
+- Borders
+
+### Typography
+
+**Headings:**
+- Font weights: `font-semibold`, `font-bold`
+- Sizes: `text-lg`, `text-xl`, `text-2xl`
+
+**Body:**
+- Default: `text-sm`, `text-base`
+- Secondary: `text-slate-500`, `text-slate-600`
+
+### Spacing & Layout
+
+**Container:**
+- Max width: `max-w-[95rem]` (from AuthenticatedLayout)
+- Padding: `px-4`, `py-10 lg:py-12`
+
+**Card/Component Spacing:**
+- Rounded corners: `rounded-xl`, `rounded-2xl`, `rounded-3xl`
+- Padding: `p-4`, `p-6`
+- Gaps: `gap-3`, `gap-4`, `gap-6`
+
+### Shadow & Effects
+
+**Shadows:**
+- Cards: `shadow-sm`, `shadow-lg`, `shadow-xl`, `shadow-2xl`
+- Buttons: `shadow-lg shadow-elvee-blue/25`
+- Hover lift: `hover:-translate-y-0.5` (subtle animation)
+
+**Transitions:**
+- Default: `transition`, `transition duration-200 ease-out`
+
+## Component Styling Patterns
+
+### Buttons
+**Evidence:** `PrimaryButton.tsx`
+
+**Primary:**
+- `bg-elvee-blue` → `hover:bg-navy`
+- White text
+- Rounded: `rounded-xl`
+- Shadow: `shadow-lg shadow-elvee-blue/25`
+
+### Inputs
+**Pattern:**
+- Border: `border-slate-200`
+- Focus: `focus:border-feather-gold focus:ring-2 focus:ring-feather-gold/20`
+- Rounded: `rounded-2xl` or `rounded-xl`
+
+### Cards
+**Pattern:**
+- Background: `bg-white` or `bg-ivory`
+- Border: `border border-slate-100` or `border-slate-200`
+- Rounded: `rounded-2xl`
+- Shadow: `shadow-sm` or `shadow-lg`
+
+### Modals
+**Pattern:**
+- Background overlay: `bg-slate-900/60`
+- Modal: `bg-white rounded-3xl shadow-2xl`
+- Padding: `p-6`
+
+## Responsive Design
+
+**Breakpoints (Tailwind defaults):**
+- `sm`: 640px
+- `lg`: 1024px
+
+**Pattern:**
+- Mobile-first approach
+- Hide/show elements: `hidden lg:block`
+- Responsive padding: `px-4 lg:px-6`
+- Grid columns: `grid-cols-1 lg:grid-cols-3`
+
+## Dark Mode
+
+**Status:** NOT FOUND IN CODEBASE
+
+**Current State:** No dark mode implementation
+
+**Rule:** If adding dark mode, use Tailwind's dark mode variant and maintain brand colors
+
+## Accessibility Colors
+
+**Contrast:**
+- Ensure sufficient contrast (WCAG AA minimum)
+- Text on `elvee-blue`: white text (high contrast)
+- Text on `ivory`: dark text (`text-slate-900`)
+
+**Focus Indicators:**
+- Ring color: `focus:ring-feather-gold`
+- Ring width: `focus:ring-2`
+- Offset: `focus:ring-offset-2`
+
+## Assets
+
+### Images
+**Location:** `assets/` directory
+
+**Evidence:** Multiple image files in `assets/` directory (PNG files)
+
+**Rules:**
+- Store images in `assets/` directory
+- Reference via Laravel asset helper or public path
+- Use proper alt text for accessibility
+
+### Logo
+**Component:** `ApplicationLogo.tsx`
+
+**Usage:**
+- Customer portal: `text-slate-900` (dark logo)
+- Admin portal: `text-white` (light logo)
+
+## Customization Rules
+
+### Adding New Colors
+1. Add to `tailwind.config.js` theme extension
+2. Use semantic names (not generic like "blue-500")
+3. Document usage in this file
+
+### Component Variants
+- Use Tailwind's variant system (`hover:`, `focus:`, `active:`)
+- Create component variants via props, not separate components (when possible)
+
+### Consistent Spacing
+- Use Tailwind spacing scale (4px increments)
+- Common: `gap-3`, `gap-4`, `gap-6` for layouts
+- Padding: `p-4`, `p-6` for cards
+
+### Border Radius
+- Buttons: `rounded-xl`
+- Cards: `rounded-2xl`
+- Modals: `rounded-3xl`
+- Small elements: `rounded-lg` or `rounded-full`

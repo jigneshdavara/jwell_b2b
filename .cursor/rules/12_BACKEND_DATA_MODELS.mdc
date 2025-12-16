@@ -1,0 +1,248 @@
+---
+alwaysApply: true
+---
+
+# Backend Data Models
+
+## Key Models
+
+### Order Model
+**Evidence:** `app/Models/Order.php`
+
+**Relationships:**
+- `user(): BelongsTo` → `Customer` (line 44)
+- `items(): HasMany` → `OrderItem` (line 49)
+- `payments(): HasMany` → `Payment` (line 54)
+- `statusHistory(): HasMany` → `OrderStatusHistory` (line 59)
+- `quotations(): HasMany` → `Quotation` (line 64)
+
+**Fillable:**
+- `user_id`, `status`, `reference`, `currency`, `total_amount`, `subtotal_amount`, `tax_amount`, `discount_amount`, `price_breakdown`, `locked_rates`, `status_meta`
+
+**Casts:**
+- `status`: `OrderStatus` enum
+- `price_breakdown`: `array` (JSON)
+- `locked_rates`: `array` (JSON)
+- `status_meta`: `array` (JSON)
+- Amounts: `float`
+
+**Rules:**
+- Status is enum (`app/Enums/OrderStatus.php`) - DO NOT use string literals
+- Use `scopeStatus()` query scope for filtering (line 69)
+- Price breakdown stored as JSON with subtotal, tax, discount, shipping
+
+### Product Model
+**Evidence:** `app/Models/Product.php` (partial, lines 1-100)
+
+**Relationships:**
+- `brand(): BelongsTo` → `Brand` (line 41)
+- `category(): BelongsTo` → `Category` (line 46)
+- `media(): HasMany` → `ProductMedia` (line 51)
+- `variants(): HasMany` → `ProductVariant` (line 56)
+- `orderItems(): HasMany` → `OrderItem` (line 61)
+- `catalogs(): BelongsToMany` → `Catalog` (line 66)
+
+**Key Methods:**
+- `calculateMakingCharge(float $metalCost): float` (line 77)
+  - Supports fixed amount, percentage, or both
+  - Types stored in `metadata['making_charge_types']`
+  - Backward compatible with `making_charge_amount` and `making_charge_percentage`
+
+**Rules:**
+- Making charge calculation: Use `calculateMakingCharge()` method, never calculate manually
+- Metadata used for making charge types: `['fixed']`, `['percentage']`, or `['fixed', 'percentage']`
+- Base price is NOT included in dynamic pricing (only metal + diamond + making)
+
+### Customer Model
+**Evidence:** Referenced in routes and services
+
+**Key Fields:**
+- `kyc_status`: Enum (`KycStatus`)
+- `type`: Enum (`UserType`)
+- `customer_group_id`: Foreign key to `CustomerGroup`
+- `is_active`: Boolean
+
+**Rules:**
+- KYC status required for customer portal access
+- Type must be one of: `retailer`, `wholesaler`, `sales`
+- Used with `web` guard (from `config/auth.php`)
+
+### ProductVariant Model
+**Evidence:** Referenced in services and controllers
+
+**Relationships:**
+- `metals()` → `ProductVariantMetal` (pivot with Metal, MetalPurity, MetalTone)
+- `diamonds()` → `ProductVariantDiamond` (pivot with Diamond)
+- `size()` → `Size` (BelongsTo)
+
+**Key Fields:**
+- `metal_weight`: Float (grams)
+- `diamonds_count`: Integer
+- `is_default`: Boolean
+- `sku`: String (nullable, falls back to product SKU)
+
+**Rules:**
+- Variants can have MULTIPLE metals and MULTIPLE diamonds
+- Metal weight stored in grams (no conversion needed)
+- Diamond price is per stone, count stored separately
+
+### Cart & CartItem Models
+**Evidence:** Used in `CartService`
+
+**Cart:**
+- `status`: String ('active', 'converted')
+- `metadata`: JSON (stores `pending_order_id` during checkout)
+
+**CartItem:**
+- `product_id`, `product_variant_id`, `quantity`, `configuration` (JSON), `price_breakdown` (JSON)
+
+**Rules:**
+- Configuration stores user selections (notes, etc.) - only `notes` used for duplicate matching
+- Price breakdown recalculated on add/update (stored as JSON)
+- Cart status changes to 'converted' after successful checkout
+
+## Enums
+
+### KycStatus
+**Evidence:** `app/Enums/KycStatus.php`
+
+**Values:**
+- `Pending` → 'pending'
+- `Review` → 'review'
+- `Approved` → 'approved'
+- `Rejected` → 'rejected'
+
+**Usage:**
+- Check: `$user->kyc_status === KycStatus::Approved->value`
+- Database stores string value
+
+### OrderStatus
+**Evidence:** `app/Enums/OrderStatus.php`
+
+**Values:**
+- `PendingPayment` → 'pending_payment'
+- `Pending` → 'pending'
+- `Approved` → 'approved'
+- `InProduction` → 'in_production'
+- `QualityCheck` → 'quality_check'
+- `ReadyToDispatch` → 'ready_to_dispatch'
+- `Dispatched` → 'dispatched'
+- `Delivered` → 'delivered'
+- `Cancelled` → 'cancelled'
+- `PaymentFailed` → 'payment_failed'
+- `AwaitingMaterials` → 'awaiting_materials'
+
+**Rules:**
+- ALWAYS use enum, never string literals
+- Cast in model: `'status' => OrderStatus::class`
+- Use `OrderWorkflowService::transitionOrder()` to change status
+
+### PaymentStatus
+**Evidence:** `app/Enums/PaymentStatus.php`
+
+**Values:**
+- `Pending` → 'pending'
+- `RequiresAction` → 'requires_action'
+- `Succeeded` → 'succeeded'
+- `Failed` → 'failed'
+
+### UserType
+**Evidence:** `app/Enums/UserType.php`
+
+**Values:**
+- `Retailer` → 'retailer'
+- `Wholesaler` → 'wholesaler'
+- `Admin` → 'admin'
+- `SuperAdmin` → 'super-admin'
+- `Sales` → 'sales'
+- `Production` → 'production'
+
+**Usage:**
+- Gate checks: `in_array($user->type, [UserType::Admin->value, UserType::SuperAdmin->value])`
+- Middleware: `EnsureCustomerPortalAccess` checks allowed types
+
+### JobworkStatus
+**Evidence:** `app/Enums/JobworkStatus.php` (exists but usage not fully documented)
+
+## Pivot Tables
+
+### product_variant_metals
+**Purpose:** Links variants to metals with purity, tone, and weight
+**Fields:**
+- `product_variant_id`, `metal_id`, `metal_purity_id`, `metal_tone_id`, `metal_weight`
+
+**Rules:**
+- One variant can have multiple metals (e.g., ring with gold + silver)
+- Weight stored in grams
+
+### product_variant_diamonds
+**Purpose:** Links variants to diamonds with count
+**Fields:**
+- `product_variant_id`, `diamond_id`, `diamonds_count`
+
+**Rules:**
+- One variant can have multiple diamond types
+- Count is number of stones (diamond price is per stone)
+
+### catalog_products
+**Purpose:** Many-to-many between Catalog and Product
+**Evidence:** `app/Models/Product.php` line 68
+
+## Naming Conventions
+
+### Model Names
+- Singular, PascalCase: `Product`, `Order`, `CartItem`
+- Relationship methods: camelCase, singular for belongsTo, plural for hasMany
+
+### Enum Names
+- PascalCase, descriptive: `OrderStatus`, `KycStatus`, `PaymentStatus`
+- Values: snake_case strings ('pending_payment', 'in_production')
+
+### Table Names
+- Plural, snake_case: `products`, `order_items`, `product_variant_metals`
+
+### Foreign Keys
+- Pattern: `{related_model}_id` (singular): `product_id`, `user_id`, `metal_purity_id`
+- Exception: `user_id` for Customer (kept for backward compatibility)
+
+## "Don't Do This" Warnings
+
+1. **NEVER update Order.status directly**
+   - Use `OrderWorkflowService::transitionOrder()`
+   - Direct updates skip audit trail and events
+
+2. **NEVER calculate prices manually**
+   - Always use `PricingService::calculateProductPrice()`
+   - Metal rates change, calculations are complex
+
+3. **NEVER use string literals for status values**
+   - Use enum: `OrderStatus::Pending->value`, not `'pending'`
+   - Prevents typos and provides IDE autocomplete
+
+4. **NEVER bypass KYC middleware**
+   - All customer portal routes MUST have `ensure.kyc.approved`
+   - Direct model access bypasses security
+
+5. **NEVER store calculated prices without recalculation**
+   - Price breakdowns in CartItem/Order should be recalculated before use
+   - Rates can change between cart add and checkout
+
+6. **NEVER create orders without transactions**
+   - Order creation involves multiple models (Order, OrderItem, Payment)
+   - Use `DB::transaction()` to ensure consistency
+
+7. **NEVER hardcode user types**
+   - Use `UserType` enum: `UserType::Admin->value`, not `'admin'`
+
+8. **NEVER mix Customer and User models**
+   - Customer = `web` guard (customers table)
+   - User = `admin` guard (users table)
+   - They are separate entities
+
+9. **NEVER store variant configurations as plain arrays without normalization**
+   - Use `CartService::normalizeConfiguration()` for duplicate detection
+   - Only compare relevant fields (notes), ignore variant labels
+
+10. **NEVER access relationships without eager loading**
+    - Use `with()` or `load()` to avoid N+1 queries
+    - Example: `$product->load(['variants.metals.metal', 'variants.diamonds.diamond'])`

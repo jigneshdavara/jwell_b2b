@@ -1,0 +1,838 @@
+---
+alwaysApply: true
+---
+
+# Frontend Conventions
+
+## Inertia Page Patterns
+
+### Page Location
+**Evidence:** `resources/js/Pages/`
+
+**Structure:**
+- Admin pages: `resources/js/Pages/Admin/{Resource}/{Page}.tsx`
+- Frontend pages: `resources/js/Pages/Frontend/{Resource}/{Page}.tsx`
+- Auth pages: `resources/js/Pages/Auth/{Page}.tsx`
+- Production pages: `resources/js/Pages/Production/{Resource}/{Page}.tsx`
+
+### Page Component Pattern
+**Evidence:** `resources/js/Pages/Frontend/Catalog/Show.tsx`
+
+**Rules:**
+1. Import `AuthenticatedLayout` or `GuestLayout` from `@/Layouts/`
+2. Use `Head` from `@inertiajs/react` for page title
+3. Use `usePage()` and `useForm()` from Inertia for data and form handling
+4. Type page props: `type PageProps = { product: Product; ... }`
+5. Accept props via destructuring: `export default function Page({ product }: PageProps)`
+
+**Example:**
+```tsx
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head } from "@inertiajs/react";
+
+type PageProps = {
+    product: Product;
+};
+
+export default function Show({ product }: PageProps) {
+    return (
+        <AuthenticatedLayout>
+            <Head title="Product Details" />
+            {/* Content */}
+        </AuthenticatedLayout>
+    );
+}
+```
+
+### Form Handling
+**Evidence:** Forms use Inertia's `useForm()` hook
+
+**Pattern:**
+```tsx
+import { useForm } from "@inertiajs/react";
+
+const { data, setData, post, processing, errors } = useForm({
+    field1: '',
+    field2: '',
+});
+
+const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    post(route('resource.store'), {
+        onSuccess: () => {
+            // Handle success
+        },
+    });
+};
+```
+
+**Rules:**
+1. Use `useForm()` for form state management
+2. Access errors via `errors` object (Inertia provides automatically)
+3. Use `processing` flag to disable submit button during request
+4. `onSuccess` callback for redirects/flash messages
+5. Submit via `post()`, `put()`, `patch()`, `delete()` methods
+
+### Router Usage
+**Evidence:** `router.get()`, `router.post()` used throughout
+
+**Rules:**
+1. Import `router` from `@inertiajs/react`
+2. Use `router.get(route('name'), { params })` for GET requests
+3. Use `router.post(route('name'), { data })` for POST requests
+4. Use Ziggy route helper: `route('frontend.catalog.index')`
+5. Ziggy types available via `resources/js/ziggy.js`
+
+## Layout Usage
+
+### AuthenticatedLayout
+**Evidence:** `resources/js/Layouts/AuthenticatedLayout.tsx`
+
+**Features:**
+- Customer header (lines 177-613): White background, navigation menu, cart/wishlist icons
+- Admin header (lines 616-736): Dark gradient, admin navigation
+- Automatically detects user type: `const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType)`
+- Renders customer footer if `isCustomer` (line 750)
+
+**Usage:**
+```tsx
+<AuthenticatedLayout header={<h1>Page Title</h1>}>
+    {/* Page content */}
+</AuthenticatedLayout>
+```
+
+**Props:**
+- `header?`: Optional header content
+- `children`: Page content
+
+### AdminLayout
+**Evidence:** `resources/js/Layouts/AdminLayout.tsx` (likely exists)
+
+**Rules:**
+- Use for admin-only pages
+- Different styling from customer layout
+
+### GuestLayout
+**Evidence:** `resources/js/Layouts/GuestLayout.tsx`
+
+**Usage:**
+- Auth pages (login, register, password reset)
+- Public pages (home page for guests)
+
+### ProductionLayout
+**Evidence:** `resources/js/Layouts/ProductionLayout.tsx`
+
+**Usage:**
+- Production portal pages
+
+## Component Structure
+
+### Common Components
+**Location:** `resources/js/Components/`
+
+**Components:**
+- `AlertModal.tsx`, `ConfirmationModal.tsx`, `Modal.tsx`
+- `Button` components: `PrimaryButton.tsx`, `SecondaryButton.tsx`, `DangerButton.tsx`
+- `TextInput.tsx`, `Checkbox.tsx`, `InputLabel.tsx`, `InputError.tsx`
+- `FlashMessage.tsx` (displays Inertia flash messages)
+- `Pagination.tsx`
+- `Dropdown.tsx`
+- Custom: `CustomizationSection.tsx`, `ProductDetailsPanel.tsx` (in `Customization/` subfolder)
+
+**Rules:**
+1. Components in `Components/` directory
+2. Subfolders for grouped components (e.g., `Customization/`)
+3. Use TypeScript for all components
+4. Props typed via TypeScript interfaces
+
+### State Management Patterns
+
+**Evidence:** React hooks used throughout (useState, useMemo, useCallback)
+
+**Pattern:**
+- **Local state:** `useState()` for component-level state
+- **Computed values:** `useMemo()` for expensive calculations
+- **Callbacks:** `useCallback()` for memoized functions
+- **No global state:** No Redux/Zustand found (Inertia handles server state)
+
+**Example from Catalog/Show.tsx:**
+```tsx
+const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
+const price = useMemo(() => {
+    // Calculate price based on selected variant
+}, [selectedVariant, product]);
+```
+
+**Rules:**
+1. Use React hooks for local state
+2. Use `useMemo()` for derived/computed values
+3. Server state managed by Inertia (page props)
+4. No client-side state management library needed
+
+### Form Patterns
+
+**Evidence:** React Hook Form NOT used (Inertia's `useForm()` used instead)
+
+**Pattern:**
+- Inertia `useForm()` for form state and validation
+- Errors from backend automatically available in `errors` object
+- No separate form library needed
+
+**Rules:**
+1. Use Inertia's `useForm()` hook
+2. Errors displayed via `InputError` component
+3. Validation happens on backend
+4. Form submission via Inertia methods (`post()`, `put()`, etc.)
+
+### Error Handling
+
+**Evidence:** 
+- `FlashMessage` component: `resources/js/Components/FlashMessage.tsx`
+- Inertia error handling: `errors` object from `useForm()`
+- `InputError` component: `resources/js/Components/InputError.tsx`
+
+**Pattern:**
+1. **Flash messages:** Displayed via `<FlashMessage />` component
+   - Shows success/error messages from backend
+   - Inertia flash messages: `with('status', 'message')` on backend
+
+2. **Validation errors:** From Inertia `useForm()` hook
+   - `errors.fieldName` contains validation errors
+   - Display via `<InputError message={errors.fieldName} />`
+
+3. **Page-level errors:** Accessible via `usePage()` hook
+   - `page.props.errors` for global errors
+
+**Rules:**
+1. Always include `<FlashMessage />` in layout
+2. Display field errors via `InputError` component
+3. Flash messages from backend: `->with('status', 'success')` or `->with('error', 'message')`
+
+## Navigation Patterns
+
+### Route Helpers
+**Evidence:** Ziggy used for route generation
+
+**Usage:**
+```tsx
+import { route } from 'ziggy-js';
+// Or from types
+router.get(route('frontend.catalog.index'));
+```
+
+**Rules:**
+1. Use Ziggy route helper for all route generation
+2. TypeScript types available from `@/types` (Ziggy routes)
+3. Route names match Laravel route names (e.g., `frontend.catalog.index`)
+
+### Active Route Detection
+**Evidence:** `route().current()` used in `AuthenticatedLayout.tsx` line 63
+
+**Pattern:**
+```tsx
+const isActive = route().current('frontend.catalog.*');
+```
+
+**Rules:**
+1. Use `route().current('pattern')` for active route detection
+2. Supports wildcards: `'frontend.orders.*'` matches all order routes
+
+## Page Props Typing
+
+### Type Definitions
+**Evidence:** `resources/js/types/index.d.ts`
+
+**Types:**
+- `User` type for authenticated user
+- Page props extended from `PageProps` base type
+
+**Pattern:**
+```tsx
+import type { PageProps as AppPageProps } from "@/types";
+
+type PageProps = AppPageProps & {
+    product: Product;
+    // Additional props
+};
+```
+
+**Rules:**
+1. Extend base `PageProps` type
+2. Define page-specific props
+3. Use TypeScript for type safety
+
+## File Organization
+
+### Directory Structure
+```
+resources/js/
+├── Components/         # Reusable components
+├── Layouts/           # Layout components
+├── Pages/             # Inertia pages
+│   ├── Admin/         # Admin pages
+│   ├── Frontend/      # Customer pages
+│   ├── Auth/          # Auth pages
+│   └── Production/    # Production pages
+├── types/             # TypeScript type definitions
+└── utils/             # Utility functions
+```
+
+**Rules:**
+1. Pages organized by portal (Admin, Frontend, Auth, Production)
+2. Components in `Components/` directory
+3. Shared utilities in `utils/` directory
+4. Types in `types/` directory
+
+## Code Structure & Clean Code Rules
+
+### A) Pages vs Components vs Hooks vs Utils Separation
+
+#### Pages (Inertia Route Handlers)
+**Evidence:**
+- `resources/js/Pages/Frontend/Catalog/Show.tsx` - Inertia page component
+- `resources/js/Pages/Admin/Orders/Index.tsx` - Admin list page
+- Pattern: Pages use `usePage()` and `useForm()` from Inertia
+
+**Rules:**
+1. Pages are Inertia route handlers (one per route)
+2. Pages handle: data fetching via props, form submission via `useForm()`, layout selection
+3. Pages should NOT contain complex business logic (extract to hooks/utils)
+4. Pages organize UI layout and compose components
+
+#### Components (Reusable UI)
+**Evidence:**
+- `resources/js/Components/PrimaryButton.tsx` - Reusable button
+- `resources/js/Components/Customization/CustomizationSection.tsx` - Domain-specific component
+- `resources/js/Components/FlashMessage.tsx` - Shared UI pattern
+
+**Rules:**
+1. Components are reusable UI elements
+2. Components receive props, render UI, emit events/callbacks
+3. Components can use hooks for local state (`useState`, `useMemo`, `useCallback`)
+4. Components should be focused (single responsibility)
+
+#### Utils (Pure Functions)
+**Evidence:**
+- `resources/js/utils/variantMatrixGenerator.ts` - Pure function for variant matrix generation
+- Pattern: Exported functions, no React dependencies, pure data transformations
+
+**Rules:**
+1. Utils contain pure functions (no side effects, no React dependencies)
+2. Utils are for: data transformations, calculations, formatting
+3. Utils are testable in isolation
+4. NOT FOUND: No custom hooks directory - **TODO**: Consider `resources/js/hooks/` for reusable hook logic
+
+**Example:**
+```tsx
+// ✅ GOOD: Pure utility function
+export function generateVariantMatrix({ formData, ... }: GenerateVariantMatrixParams): FormData {
+    // Pure data transformation logic
+}
+
+// ❌ BAD: React hook in utils file
+export function usePriceCalculation() { // This should be in hooks/, not utils/
+}
+```
+
+#### Hooks Pattern
+**Evidence:**
+- NOT FOUND: No dedicated hooks directory
+- Current pattern: Hooks defined inline in components/pages
+- Example: `useState`, `useMemo`, `useCallback` used directly in pages
+
+**Rules:**
+1. React built-in hooks used directly in components/pages (current pattern)
+2. **TODO**: If reusable hook logic emerges (used in 2+ places), create `resources/js/hooks/` directory
+3. Custom hooks should follow naming: `use{FeatureName}()` (e.g., `usePriceCalculation()`)
+
+### B) Shared UI Patterns Must Be Extracted
+
+**Evidence:**
+- Currency formatting: `Intl.NumberFormat` used in `resources/js/Pages/Frontend/Catalog/Show.tsx` line 113
+- NOT FOUND: No shared currency formatter utility - **TODO**: Consider `resources/js/utils/currency.ts`
+
+**Rules:**
+1. If UI pattern appears in 2+ places → extract to component
+   - Example: Button variants (`PrimaryButton`, `SecondaryButton`, `DangerButton`)
+   - Example: Modal patterns (`Modal`, `AlertModal`, `ConfirmationModal`)
+
+2. If formatting/calculation logic appears in 2+ places → extract to utility
+   - Current: Currency formatting duplicated (evidence: `Catalog/Show.tsx` line 113)
+   - **TODO**: Create `resources/js/utils/currency.ts` with `formatPrice(amount: number): string`
+
+3. Shared form patterns → extract to components
+   - Evidence: Form inputs already extracted (`TextInput`, `InputLabel`, `InputError`)
+
+### C) Shared Domain Logic Must Not Live in Components
+
+**Evidence:**
+- Price calculation: Backend does this (frontend receives pre-calculated prices)
+- NOT FOUND: No frontend pricing calculation logic (good - backend is source of truth)
+
+**Rules:**
+1. Business logic (pricing, discounts, calculations) → backend services
+2. Frontend should only: display data, format for UI, handle user interactions
+3. If frontend needs complex data transformation → extract to utils (pure functions)
+4. Example: `variantMatrixGenerator.ts` is pure data transformation (not business logic)
+
+### D) Code Destructuring Rules
+
+**Evidence:**
+- `resources/js/Pages/Frontend/Catalog/Show.tsx` lines 119-124: Destructures props and page props
+- `resources/js/Pages/Frontend/Cart/Index.tsx`: Destructures Inertia `useForm()` hook
+- `resources/js/Pages/Frontend/Catalog/Show.tsx` line 147: Destructures specific fields from configuration options
+
+**Patterns Found:**
+```tsx
+// ✅ GOOD: Simple destructuring for readability
+const { product, configurationOptions } = page.props;
+const { data, setData, post, processing, errors } = useForm({...});
+
+// ✅ GOOD: Destructuring specific nested fields when needed
+const selectedConfig = useMemo(() => 
+    configurationOptions.find(c => c.variant_id === selectedVariantId),
+    [selectedVariantId, configurationOptions]
+);
+// Then using selectedConfig.metals, selectedConfig.price_total
+
+// ✅ GOOD: Typed destructuring in function parameters
+export default function Page({ product }: PageProps) {
+```
+
+**Rules:**
+1. **Use destructuring when it improves readability**
+   - Destructure props: `export default function Page({ product }: PageProps)`
+   - Destructure hook returns: `const { data, post } = useForm({...})`
+   - Destructure specific nested fields when used multiple times
+
+2. **Never destructure huge objects just to shorten names**
+   ```tsx
+   // ❌ BAD: Destructuring everything just to save typing
+   const { id, name, sku, description, brand, material, purity, base_price, 
+           making_charge_amount, making_charge_percentage, uses_gold, 
+           uses_silver, uses_diamond, media, variants } = product;
+   
+   // ✅ GOOD: Access properties as needed
+   return <div>{product.name}</div>
+   // Or destructure only what you use frequently
+   const { name, variants } = product;
+   ```
+
+3. **Avoid deep destructuring in function parameters if it harms clarity**
+   ```tsx
+   // ❌ BAD: Too deep, unclear
+   function Component({ product: { media: [firstImage, ...rest] } }: Props) {
+   
+   // ✅ GOOD: Destructure in function body
+   function Component({ product }: Props) {
+       const [firstImage, ...rest] = product.media;
+   ```
+
+4. **Use typed destructuring in TypeScript**
+   - Evidence: `resources/js/Pages/Frontend/Catalog/Show.tsx` line 108: `type CatalogShowPageProps = AppPageProps<{ product: Product; ... }>`
+   - Pattern: Type the props object, then destructure with type inference
+
+### E) Consistent Project-Wide Structure (Frontend)
+
+#### Frontend Directory Structure
+**Evidence:** From repository scan
+
+```
+resources/js/
+├── Components/                # Reusable UI components
+│   └── Customization/        # Domain-specific component group
+├── Layouts/                   # Layout components (AuthenticatedLayout, GuestLayout, etc.)
+├── Pages/                     # Inertia pages (route handlers)
+│   ├── Admin/
+│   ├── Frontend/
+│   ├── Auth/
+│   └── Production/
+├── types/                     # TypeScript type definitions
+└── utils/                     # Pure utility functions (currently 1 file)
+```
+
+#### Naming Conventions (Frontend)
+**Evidence:** From codebase patterns
+
+- **Components:** PascalCase (`PrimaryButton.tsx`, `CustomizationSection.tsx`)
+- **Pages:** PascalCase matching route structure (`Show.tsx`, `Index.tsx`)
+- **Utils:** camelCase functions (`generateVariantMatrix`)
+- **Types/Interfaces:** PascalCase (`PageProps`, `Product`, `ConfigurationOption`)
+- **Hooks:** camelCase starting with `use` (NOT FOUND in codebase yet - follows React convention)
+
+### F) Quality Gates (Frontend)
+
+#### No Inline Styling
+**Evidence:**
+- All styling uses Tailwind classes
+- Pattern: `className="bg-elvee-blue text-white rounded-xl"`
+- No `style={{...}}` props found in components
+
+**Rules:**
+1. **NEVER** use inline `style` prop
+2. Use Tailwind utility classes exclusively
+3. Use brand theme tokens (see `30_STYLE_THEME.mdc` for available tokens)
+4. Extract repeated className strings to constants if needed (NOT FOUND in codebase - consider for future)
+
+#### Keep UI Aligned with Brand Theme Tokens
+**Evidence:**
+- `tailwind.config.js` defines brand colors: `elvee-blue`, `feather-gold`, `ivory`, etc.
+- Components use these tokens: `bg-elvee-blue`, `text-feather-gold`, `bg-ivory`
+
+**Rules:**
+1. Use theme tokens from `tailwind.config.js`, not arbitrary colors
+2. Customer portal: Use `bg-white`, `text-slate-900`, `text-feather-gold` for accents
+3. Admin portal: Use dark gradient, `bg-white` for active nav items
+4. See `30_STYLE_THEME.mdc` for complete token reference
+
+#### No Duplicated Formatting Logic
+**Evidence:**
+- Currency formatting duplicated: `new Intl.NumberFormat("en-IN", {...})` pattern appears in multiple places
+- **TODO**: Extract to `resources/js/utils/currency.ts`
+
+**Rules:**
+1. Extract repeated formatting/calculation logic to utils
+2. Format functions should be pure (no side effects)
+3. Format functions should accept typed parameters and return typed values
+
+**Recommended Implementation:**
+```tsx
+// resources/js/utils/currency.ts
+export function formatPrice(amount: number): string {
+    return new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+    }).format(amount);
+}
+```
+
+#### Avoid Prop Drilling
+**Evidence:**
+- NOT FOUND: No Context API or state management library (Redux/Zustand)
+- Current pattern: Props passed down component tree (acceptable for shallow trees)
+
+**Rules:**
+1. Current pattern (props drilling) is acceptable for shallow component trees
+2. If prop drilling becomes deep (3+ levels), consider Context API or extracting components
+3. Inertia page props available via `usePage()` - use this instead of drilling if possible
+
+### G) How to Add a New Feature (Frontend)
+
+**Evidence:** Based on existing patterns
+
+1. **Page** → Create in appropriate portal directory:
+   - `resources/js/Pages/Frontend/{Resource}/{Action}.tsx` OR
+   - `resources/js/Pages/Admin/{Resource}/{Action}.tsx`
+
+2. **Components** (if reusable UI needed):
+   - `resources/js/Components/{ComponentName}.tsx`
+   - Domain-specific: `resources/js/Components/{Domain}/{ComponentName}.tsx`
+
+3. **Utils** (if pure function needed):
+   - `resources/js/utils/{feature}.ts` (e.g., `currency.ts`, `formatting.ts`)
+
+4. **Types** (if new types needed):
+   - Add to `resources/js/types/index.d.ts` OR
+   - Define locally in page/component file
+
+5. **Hooks** (if reusable hook logic needed):
+   - NOT FOUND: No hooks directory yet
+   - **TODO**: If needed, create `resources/js/hooks/use{FeatureName}.ts`
+
+## Cleanup & Removal Rules (Frontend)
+
+### 1) Unused Frontend Code Must Be Removed
+
+#### No Dead Code in Components/Pages
+**Evidence:**
+- TypeScript compiler: `package.json` line 6 - `tsc` will catch type errors and unused declarations
+- Build process: `npm run build` runs TypeScript compilation
+
+**Rules:**
+1. **Remove unused imports immediately**
+   - TypeScript compiler will flag unused imports during build
+   - Example: `import { UnusedComponent } from './components'` → Remove if not used
+
+2. **Remove unused components**
+   - Search for component usage: `grep -r "ComponentName" resources/js/`
+   - Check if imported anywhere before deleting
+   - Remove component file if unused
+
+3. **Remove unused hooks/utils**
+   - Search for function usage: `grep -r "functionName" resources/js/`
+   - Check if exported and used elsewhere
+   - Remove if unused
+
+4. **Remove unused types/interfaces**
+   - TypeScript will flag unused types during compilation
+   - Remove from `resources/js/types/index.d.ts` if unused
+
+5. **Remove unused routes/constants**
+   - Search for route usage: `grep -r "route('feature" resources/js/`
+   - Remove route constants if unused
+
+#### No Commented-Out JSX/TSX Code
+**Evidence:**
+- NOT FOUND: No systematic checking for commented React code
+
+**Rules:**
+1. **NEVER** commit commented-out JSX blocks
+   ```tsx
+   // ❌ BAD:
+   // <Component prop="value" />
+   // <AnotherComponent />
+   
+   // ✅ GOOD: Remove entirely
+   ```
+
+2. **Remove commented code immediately** when editing
+   - If needed later, use version control history
+
+3. **Temporary debugging code** must be removed before merge
+   - No `console.log()` statements (except intentional logging)
+   - No commented-out state or effects
+
+#### Frontend-Specific Cleanup Detection
+
+**TypeScript Compiler:**
+- **Current**: `tsconfig.json` has `"strict": true`
+- **Missing**: `noUnusedLocals` and `noUnusedParameters` not enabled
+- **Action**: Run `npm run build` - TypeScript will catch some unused code
+- **Recommended**: Enable strict unused checks (see Backend Cleanup Rules section)
+
+**Manual Verification Steps:**
+1. **Search component usage**:
+   ```bash
+   grep -r "ComponentName" resources/js/Pages/ resources/js/Components/
+   ```
+
+2. **Search utility function usage**:
+   ```bash
+   grep -r "functionName" resources/js/
+   ```
+
+3. **Search route usage**:
+   ```bash
+   grep -r "route('feature" resources/js/
+   ```
+
+4. **Search type usage**:
+   ```bash
+   grep -r "FeatureType\|FeatureInterface" resources/js/
+   ```
+
+### 2) Frontend Feature Removal Checklist
+
+When removing a frontend feature, complete this checklist:
+
+- [ ] **Remove pages**
+  - Delete: `resources/js/Pages/{Portal}/{Resource}/{Action}.tsx`
+  - Verify route is removed from `routes/web.php`
+
+- [ ] **Remove feature-specific components**
+  - Delete: `resources/js/Components/{Feature}/` directory
+  - OR delete specific component files if feature-specific
+  - **Before deleting**: Verify component not used elsewhere
+    ```bash
+    grep -r "ComponentName" resources/js/
+    ```
+
+- [ ] **Remove feature-specific hooks**
+  - Delete: `resources/js/hooks/use{Feature}.ts` (when hooks directory exists)
+  - Search for hook usage before deleting
+
+- [ ] **Remove feature-specific utils**
+  - Delete: `resources/js/utils/{feature}.ts`
+  - Verify function not used elsewhere
+
+- [ ] **Remove API calls/route references**
+  - Search and remove: `route('feature.name')` calls
+  - Remove API service functions if feature-specific
+  - Check: `grep -r "route('feature" resources/js/`
+
+- [ ] **Remove TypeScript types**
+  - Remove from: `resources/js/types/index.d.ts`
+  - OR remove type definitions from component/page files
+  - Search for type usage: `grep -r "FeatureType" resources/js/`
+
+- [ ] **Remove UI strings/text**
+  - Search for feature-related text in components
+  - Remove hardcoded strings related to feature
+
+- [ ] **Verify build succeeds**
+  - Run: `npm run build`
+  - Fix TypeScript errors related to removed code
+  - Verify no unused import warnings
+
+- [ ] **Update rules documents**
+  - Mark removed in `20_FRONTEND_CONVENTIONS.mdc`
+  - Update `90_EVIDENCE_INDEX.mdc`
+
+### 3) Frontend-Specific Enforcement
+
+#### Build-Time Detection
+**Evidence:**
+- `package.json` line 6: `"build": "tsc && vite build"`
+- TypeScript compiler runs before Vite build
+
+**Current Capabilities:**
+- TypeScript catches type errors and some unused code
+- Build fails if TypeScript errors exist
+- **Limitation**: `noUnusedLocals`/`noUnusedParameters` not enabled
+
+**Recommended Enhancement:**
+Add to `tsconfig.json`:
+```json
+{
+  "compilerOptions": {
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  }
+}
+```
+
+#### Recommended ESLint Setup (NOT FOUND)
+**Current State**: No ESLint configuration found
+
+**Recommended Addition**:
+```json
+// package.json
+"devDependencies": {
+  "eslint": "^8.0.0",
+  "@typescript-eslint/parser": "^6.0.0",
+  "@typescript-eslint/eslint-plugin": "^6.0.0",
+  "eslint-plugin-unused-imports": "^3.0.0",
+  "eslint-plugin-react": "^7.33.0",
+  "eslint-plugin-react-hooks": "^4.6.0"
+}
+```
+
+```json
+// .eslintrc.json
+{
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint", "react", "react-hooks", "unused-imports"],
+  "rules": {
+    "unused-imports/no-unused-imports": "error",
+    "unused-imports/no-unused-vars": "error",
+    "@typescript-eslint/no-unused-vars": "off"
+  }
+}
+```
+
+This setup would automatically detect and flag:
+- Unused imports
+- Unused variables
+- Unused React components
+- Unused React hooks dependencies
+
+**Note**: This is a recommendation. Current tooling (TypeScript compiler) is sufficient but less automated.
+
+## Frontend Size Discipline (Strict)
+
+**Component, page, and hook size limits are enforced to maintain code maintainability and readability.**
+
+### Size Limits
+
+1. **Pages > 300 lines → MUST be split**
+   - Pages exceeding 300 lines must be broken into smaller components
+   - Extract complex sections to separate components
+   - Extract complex logic to custom hooks
+
+2. **Components > 250 lines → MUST be split**
+   - Components exceeding 250 lines must be broken into smaller components
+   - Extract sub-sections to separate components
+   - Use composition to combine smaller components
+
+3. **Hooks > 150 lines → MUST be split**
+   - Hooks exceeding 150 lines must be broken into smaller hooks
+   - Extract complex logic to utility functions
+   - Combine smaller hooks as needed
+
+### Exceptions
+
+**Exceptions are allowed ONLY with justification comment:**
+```tsx
+// EXCEPTION: This component is 320 lines but cannot be split because:
+// 1. Complex state interdependencies require single component
+// 2. Performance optimization requires inline implementation
+// 3. External library constraints (e.g., complex form library)
+// REVIEW: Revisit in [date] to refactor
+```
+
+**Evidence:**
+- Large components found: `resources/js/Pages/Frontend/Catalog/Show.tsx` (828 lines - should be split)
+- Large components found: `resources/js/Pages/Admin/Users/KycReview.tsx` (642 lines - should be split)
+
+### Enforcement
+
+**Code review MUST reject:**
+- Pages exceeding 300 lines without exception justification
+- Components exceeding 250 lines without exception justification
+- Hooks exceeding 150 lines without exception justification
+
+**Required Actions:**
+- Split large files into smaller, focused components
+- Extract complex logic to custom hooks
+- Extract reusable UI sections to components
+
+## Frontend Quality Rules
+
+### Shared UI Components Only (No One-Off Buttons)
+**Evidence:**
+- **Shared Components**: `resources/js/Components/PrimaryButton.tsx`, `SecondaryButton.tsx`, `DangerButton.tsx`
+- **Shared Components**: `resources/js/Components/TextInput.tsx`, `InputLabel.tsx`, `InputError.tsx`
+- **Pattern**: Components in `resources/js/Components/` are reusable
+
+**Rules:**
+1. **NEVER** create one-off button components in pages
+2. **ALWAYS** use shared button components (`PrimaryButton`, `SecondaryButton`, `DangerButton`)
+3. If you need a new button variant, add it to shared components, not page-specific
+4. Extract repeated UI patterns to shared components
+
+**Example:**
+```tsx
+// ❌ BAD: One-off button in page
+<button className="bg-blue-500 text-white px-4 py-2">Submit</button>
+
+// ✅ GOOD: Use shared component
+<PrimaryButton>Submit</PrimaryButton>
+```
+
+### Avoid Duplicated Tailwind Blocks; Extract Components
+**Evidence:**
+- **Current**: Components use Tailwind classes directly
+- **Pattern**: Repeated className strings should be extracted
+
+**Rules:**
+1. **NEVER** duplicate long Tailwind className strings across components
+2. Extract repeated patterns to shared components
+3. Use component composition for variations
+4. Keep className strings DRY (Don't Repeat Yourself)
+
+**Example:**
+```tsx
+// ❌ BAD: Duplicated className
+<div className="rounded-2xl border bg-white p-6 shadow-lg">...</div>
+<div className="rounded-2xl border bg-white p-6 shadow-lg">...</div>
+
+// ✅ GOOD: Extract to Card component
+<Card>...</Card>
+```
+
+### Component Size Limit Guideline + Split Rules
+**Evidence:**
+- **Large Components**: `resources/js/Pages/Frontend/Catalog/Show.tsx` - 828 lines (should be split)
+- **Large Components**: `resources/js/Pages/Admin/Users/KycReview.tsx` - 642 lines (should be split)
+
+**Rules:**
+1. Components should be under 300 lines (guideline)
+2. If component exceeds 300 lines, split into smaller components
+3. Extract complex logic to custom hooks
+4. Extract sub-sections to separate components
+5. Keep pages focused on layout and composition
+
+**Recommended Splits:**
+- `Catalog/Show.tsx` - Extract variant selector, price display, configuration section to separate components
+- `KycReview.tsx` - Extract document list, message section, status update form to separate components

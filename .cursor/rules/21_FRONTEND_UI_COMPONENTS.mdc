@@ -1,0 +1,273 @@
+---
+alwaysApply: true
+---
+
+# Frontend UI Components
+
+## Common Components
+
+### Button Components
+**Evidence:** `resources/js/Components/PrimaryButton.tsx`, `SecondaryButton.tsx`, `DangerButton.tsx`
+
+#### PrimaryButton
+**Pattern:**
+```tsx
+<PrimaryButton disabled={processing} onClick={handleSubmit}>
+    Submit
+</PrimaryButton>
+```
+
+**Styling:**
+- Background: `bg-elvee-blue` (brand color)
+- Hover: `hover:bg-navy`, `hover:-translate-y-0.5` (subtle lift)
+- Focus: `focus:ring-2 focus:ring-feather-gold`
+- Disabled: `opacity-25`
+
+**Rules:**
+1. Use for primary actions (submit, save, confirm)
+2. Accepts all standard button props via `ButtonHTMLAttributes`
+3. Disabled state automatically applies opacity
+4. Custom classes can be merged via `className` prop
+
+#### SecondaryButton
+**Evidence:** `resources/js/Components/SecondaryButton.tsx`
+
+**Rules:**
+- Use for secondary actions
+- Different styling from primary (likely border style)
+
+#### DangerButton
+**Evidence:** `resources/js/Components/DangerButton.tsx`
+
+**Rules:**
+- Use for destructive actions (delete, remove)
+- Red/danger color scheme
+
+### Form Components
+
+#### TextInput
+**Evidence:** `resources/js/Components/TextInput.tsx`
+
+**Rules:**
+1. Standard input component with Tailwind styling
+2. Integrates with Inertia form errors
+3. Use with `InputLabel` and `InputError` components
+
+#### InputLabel
+**Evidence:** `resources/js/Components/InputLabel.tsx`
+
+**Rules:**
+- Use for form field labels
+- Properly associated with inputs via `htmlFor`
+
+#### InputError
+**Evidence:** `resources/js/Components/InputError.tsx`
+
+**Pattern:**
+```tsx
+<InputError message={errors.fieldName} />
+```
+
+**Rules:**
+1. Display validation errors from Inertia
+2. Access via `errors.fieldName` from `useForm()` hook
+3. Automatically hidden if error is null/undefined
+
+#### Checkbox
+**Evidence:** `resources/js/Components/Checkbox.tsx`
+
+**Rules:**
+- Use for boolean inputs
+- Styled with Tailwind
+
+### Modal Components
+
+#### Modal
+**Evidence:** `resources/js/Components/Modal.tsx`
+
+**Rules:**
+- Base modal component
+- Likely uses Headless UI for accessibility
+
+#### AlertModal
+**Evidence:** `resources/js/Components/AlertModal.tsx`
+
+**Rules:**
+- Use for alert/notification modals
+
+#### ConfirmationModal
+**Evidence:** `resources/js/Components/ConfirmationModal.tsx`
+
+**Rules:**
+- Use for confirmation dialogs (delete confirmations, etc.)
+
+### FlashMessage
+**Evidence:** `resources/js/Components/FlashMessage.tsx`
+
+**Pattern:**
+```tsx
+<FlashMessage />
+```
+
+**Features:**
+- Displays Inertia flash messages
+- Variants: `success`, `error`, `info`
+- Status messages mapped (e.g., `kyc_pending` → custom message)
+
+**Styling:**
+- Success: `bg-emerald-50`, `border-emerald-200`, `text-emerald-900`
+- Error: `bg-rose-50`, `border-rose-200`, `text-rose-900`
+- Info: `bg-elvee-blue/5`, `border-elvee-blue/20`, `text-elvee-blue`
+
+**Rules:**
+1. Include in layout (already in `AuthenticatedLayout.tsx` line 746)
+2. Automatically displays flash messages from backend
+3. Backend sends: `->with('success', 'message')` or `->with('error', 'message')`
+
+### Pagination
+**Evidence:** `resources/js/Components/Pagination.tsx`
+
+**Rules:**
+- Use for paginated lists
+- Integrates with Laravel pagination response
+
+### Dropdown
+**Evidence:** `resources/js/Components/Dropdown.tsx`
+
+**Rules:**
+- Likely uses Headless UI Menu component
+- Use for dropdown menus (account menu, etc.)
+
+### Custom Components
+
+#### CustomizationSection
+**Evidence:** `resources/js/Components/Customization/CustomizationSection.tsx`
+
+**Purpose:**
+- Product customization options (variants, metals, diamonds)
+
+#### ProductDetailsPanel
+**Evidence:** `resources/js/Components/Customization/ProductDetailsPanel.tsx`
+
+**Purpose:**
+- Product details display panel
+
+#### ApplicationLogo
+**Evidence:** `resources/js/Components/ApplicationLogo.tsx`
+
+**Usage:**
+- Logo component used in headers
+- Accepts `className` prop for sizing/coloring
+
+#### CustomerHeader / CustomerFooter
+**Evidence:** 
+- `resources/js/Components/CustomerHeader.tsx`
+- `resources/js/Components/CustomerFooter.tsx`
+
+**Usage:**
+- Customer portal-specific header/footer
+- Used in `AuthenticatedLayout` for customer users
+
+## Rules for Building New Components
+
+### 1. Component Location
+- Place in `resources/js/Components/`
+- Group related components in subfolders (e.g., `Customization/`)
+
+### 2. TypeScript
+- Use TypeScript for all components
+- Type props via interfaces or `React.ComponentProps<>`
+- Export default function component
+
+### 3. Props Pattern
+**Evidence:** `PrimaryButton.tsx` pattern
+
+```tsx
+export default function Component({
+    className = '',
+    // ... other props
+    ...props
+}: ComponentProps) {
+    return (
+        <element
+            className={`base-classes ${className}`}
+            {...props}
+        />
+    );
+}
+```
+
+**Rules:**
+- Accept `className` prop for style merging
+- Spread remaining props to underlying element
+- Default `className` to empty string
+
+### 4. Styling
+- Use Tailwind CSS utility classes
+- Use brand colors from theme (see `30_STYLE_THEME.mdc`)
+- Follow existing component patterns for consistency
+
+### 5. Accessibility Patterns
+
+#### Headless UI
+**Evidence:** `package.json` includes `@headlessui/react` version 2.0.0
+
+**Rules:**
+1. Use Headless UI components for accessible modals, dropdowns, menus
+2. Components: `Dialog`, `Menu`, `Popover`, `Disclosure`, etc.
+3. Ensure proper ARIA attributes via Headless UI
+
+#### ARIA Attributes
+**Evidence:** `AuthenticatedLayout.tsx` uses `aria-label` (line 221, 341, 390)
+
+**Rules:**
+1. Add `aria-label` to icon-only buttons
+2. Use semantic HTML elements (`<nav>`, `<header>`, `<main>`)
+3. Ensure keyboard navigation (Tab order, Enter/Space for buttons)
+
+#### Focus Management
+**Evidence:** `AuthenticatedLayout.tsx` uses focus handlers (line 256, 386)
+
+**Rules:**
+1. Use `onFocus` and `onBlur` for interactive elements
+2. Auto-focus search inputs when opened (line 47-51)
+3. Focus ring styles: `focus:ring-2 focus:ring-feather-gold`
+
+### 6. Component Patterns
+
+#### Conditional Rendering
+```tsx
+{condition && <Component />}
+{condition ? <ComponentA /> : <ComponentB />}
+```
+
+#### Map Rendering
+```tsx
+{items.map((item) => (
+    <ItemComponent key={item.id} item={item} />
+))}
+```
+
+#### Event Handlers
+```tsx
+const handleAction = (event: FormEvent) => {
+    event.preventDefault();
+    // Handler logic
+};
+```
+
+### 7. Reusability
+- Create reusable components for repeated patterns
+- Accept props for customization (colors, sizes, variants)
+- Keep components focused (single responsibility)
+
+## Component Checklist
+
+When creating a new component:
+- [ ] Located in `Components/` directory
+- [ ] TypeScript with typed props
+- [ ] Accepts `className` prop for style merging
+- [ ] Uses Tailwind utility classes
+- [ ] Accessible (ARIA, keyboard navigation)
+- [ ] Follows existing component patterns
+- [ ] Uses Headless UI for complex interactions (modals, dropdowns)
