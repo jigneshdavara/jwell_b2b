@@ -59,7 +59,6 @@ export default function CustomizationSection({
         return configurationOptions.some(
             (c) =>
                 c.size ||
-                c.metadata?.size_cm ||
                 c.metadata?.size_value
         );
     }, [configurationOptions]);

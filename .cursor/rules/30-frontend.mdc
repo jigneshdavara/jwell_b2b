@@ -139,10 +139,6 @@ interface ProductVariant {
   id: number;
   sku: string;
   label: string;
-  metadata: {
-    diamond_option_key?: string;
-    size_cm?: number;
-  };
 }
 ```
 
@@ -177,8 +173,6 @@ interface ProductVariant {
 - Match selection to variant using:
   - `metal_id`, `metal_purity_id`, `metal_tone_id`
   - `diamond_option_key` (from metadata)
-  - `colorstone_option_key` (from metadata)
-  - `size_cm` (from metadata)
 - Display price for matched variant
 - Keep matching logic centralized (helper function or service)
 
