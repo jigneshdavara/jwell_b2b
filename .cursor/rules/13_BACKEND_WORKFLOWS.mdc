@@ -1,0 +1,548 @@
+---
+alwaysApply: true
+---
+# Backend Workflows
+
+## KYC Enforcement Workflow
+
+### Source of Truth
+**Middleware:** `app/Http/Middleware/EnsureKycApproved.php`
+**Enum:** `app/Enums/KycStatus.php`
+**Model:** `app/Models/Customer.php` (kyc_status field)
+
+### Flow
+1. **Registration** → User created with `kyc_status = 'pending'`
+   - Evidence: Customer registration in `app/Http/Controllers/Auth/RegisteredUserController.php`
+
+2. **Document Upload** → User uploads KYC documents
+   - Route: `POST /onboarding/kyc/documents` (web.php line 52)
+   - Controller: `app/Http/Controllers/Frontend/KycOnboardingController.php::storeDocument()`
+   - Documents stored in: `user_kyc_documents` table
+
+3. **Admin Review** → Admin reviews documents
+   - Route: `GET /admin/customers/{user}/kyc` (web.php line 156)
+   - Controller: `app/Http/Controllers/Admin/KycController.php::show()`
+   - Admin can approve/reject: `POST /admin/customers/{user}/kyc-status` (line 153)
+
+4. **Status Update** → KYC status changes to `approved` or `rejected`
+   - Controller: `app/Http/Controllers/Admin/UserController.php::updateKycStatus()`
+
+5. **Access Control** → Middleware enforces approval
+   - All customer portal routes have `middleware('ensure.kyc.approved')` (web.php lines 59-138)
+   - If not approved → redirect to `onboarding.kyc.show`
+
+### Rules
+- **NEVER** bypass `EnsureKycApproved` middleware
+- Status check: `$user->kyc_status === KycStatus::Approved->value`
+- Redirect route: `onboarding.kyc.show`
+
+## Quotation Lifecycle
+
+### Source of Truth
+**Model:** `app/Models/Quotation.php`
+**Controllers:**
+- Customer: `app/Http/Controllers/Frontend/QuotationController.php`
+- Admin: `app/Http/Controllers/Admin/QuotationController.php`
+
+### Flow
+1. **Creation**
+   - Customer creates from cart: `POST /quotations/from-cart` (route line 128)
+   - Or from product page: `POST /quotations` (route line 125)
+   - Status: initial status stored in quotation
+
+2. **Admin Review**
+   - Admin views: `GET /admin/quotations/{quotation}` (route line 256)
+   - Admin actions:
+     - Approve: `POST /admin/quotations/{quotation}/approve` (line 257)
+     - Reject: `POST /admin/quotations/{quotation}/reject` (line 258)
+     - Request confirmation: `POST /admin/quotations/{quotation}/request-confirmation` (line 260)
+     - Update product: `POST /admin/quotations/{quotation}/update-product` (line 261)
+     - Add item: `POST /admin/quotations/{quotation}/add-item` (line 262)
+
+3. **Customer Confirmation**
+   - Customer confirms: `POST /quotations/{quotation}/confirm` (route line 137)
+   - Customer declines: `POST /quotations/{quotation}/decline` (route line 138)
+
+4. **Messaging**
+   - Customer: `POST /quotations/{quotation}/messages` (route line 134)
+   - Admin: `POST /admin/quotations/{quotation}/messages` (route line 259)
+   - Messages stored in: `quotation_messages` table
+
+### Rules
+- Quotations allow back-and-forth communication between customer and admin
+- Admin can modify quotation products before approval
+- Customer must confirm approved quotation to proceed
+
+## Forbidden Shortcuts (Hard Fail)
+
+**These workflow shortcuts are STRICTLY FORBIDDEN and will cause immediate code review rejection.**
+
+### 1. Direct Order Status Updates (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: Direct status update
+$order->status = OrderStatus::Approved;
+$order->save();
+```
+
+**✅ REQUIRED:**
+```php
+// ✅ REQUIRED: Use OrderWorkflowService
+$this->orderWorkflowService->transitionOrder($order, OrderStatus::Approved, ['note' => 'Admin approved']);
+```
+
+**Why this matters:**
+- Bypasses audit trail (`OrderStatusHistory`)
+- Skips event dispatching (`OrderStatusUpdated`)
+- Breaks transaction atomicity
+- **Evidence:** `app/Services/OrderWorkflowService.php::transitionOrder()` creates history and dispatches events
+
+### 2. Manual Price Recalculation After Order Creation (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: Recalculating prices for existing order
+$order->total_amount = $this->pricingService->calculateProductPrice(...);
+$order->save(); // Prices changed silently!
+```
+
+**✅ REQUIRED:**
+- Prices are locked at order creation (stored in `order.price_breakdown` and `order.locked_rates`)
+- If price change is needed, create new order or explicit price adjustment with logging
+- **Evidence:** `app/Models/Order.php` has `price_breakdown` and `locked_rates` JSON fields
+
+### 3. Bypassing KYC Middleware (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: KYC check in controller
+if ($user->kyc_status !== KycStatus::Approved->value) {
+    abort(403);
+}
+```
+
+**✅ REQUIRED:**
+```php
+// ✅ REQUIRED: Use middleware
+Route::middleware(['portal.customer', 'ensure.kyc.approved'])->group(...);
+```
+
+**Evidence:**
+- Middleware: `app/Http/Middleware/EnsureKycApproved.php`
+- All customer portal routes use this middleware: `routes/web.php` lines 59-138
+
+### 4. Payment Gateway Direct Calls (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: Direct Stripe API call
+$stripe = new \Stripe\StripeClient($key);
+$intent = $stripe->paymentIntents->create([...]);
+```
+
+**✅ REQUIRED:**
+```php
+// ✅ REQUIRED: Use PaymentGatewayManager via CheckoutService
+$paymentData = $this->checkoutService->initialize($cart);
+```
+
+**Evidence:**
+- Gateway abstraction: `app/Services/Payments/PaymentGatewayManager.php`
+- Service: `app/Services/CheckoutService.php` (uses gateway manager)
+
+### Enforcement
+
+**Code review MUST reject:**
+- Direct status updates without workflow service
+- Price recalculation for existing orders
+- KYC checks in controllers
+- Direct payment gateway calls
+- Any workflow bypass that skips audit trails or events
+
+## Order Status Lifecycle
+
+### Source of Truth
+**Service:** `app/Services/OrderWorkflowService.php::transitionOrder()`
+**Enum:** `app/Enums/OrderStatus.php`
+**Model:** `app/Models/Order.php`
+**Event:** `app/Events/OrderStatusUpdated.php`
+
+### Status Flow
+```
+pending_payment → (payment succeeds) → pending → approved → in_production → 
+quality_check → ready_to_dispatch → dispatched → delivered
+```
+
+**Alternative paths:**
+- `pending_payment` → (payment fails) → `payment_failed` → (retry) → `pending_payment`
+- `approved` → `awaiting_materials` → (materials ready) → `in_production`
+- Any status → `cancelled`
+
+### Transitions
+
+1. **Pending Payment → Pending**
+   - Triggered by: `CheckoutService::finalize()` line 98
+   - Condition: Payment status = `succeeded`
+   - Service: `OrderWorkflowService::transitionOrder($order, OrderStatus::Pending)`
+
+2. **Pending → Approved**
+   - Triggered by: Admin approval
+   - Route: `POST /admin/orders/{order}/status` (web.php line 253)
+   - Controller: `app/Http/Controllers/Admin/OrderController.php::updateStatus()`
+
+3. **Approved → In Production**
+   - Triggered by: Production team or admin
+   - Status: `OrderStatus::InProduction`
+
+4. **Production Workflow**
+   - `in_production` → `quality_check` → `ready_to_dispatch` → `dispatched` → `delivered`
+
+### Audit Trail
+**Model:** `app/Models/OrderStatusHistory.php`
+
+**Fields:**
+- `order_id`, `user_id` (customer if customer actor), `status`, `meta` (JSON)
+
+**Meta includes:**
+- `actor_guard`: 'customer' or 'admin'
+- `actor_user_id`: ID of user who made change
+- Custom meta from transition call
+
+**Rules:**
+- **ALWAYS** use `OrderWorkflowService::transitionOrder()` to change status
+- History entry created automatically
+- Event dispatched for notifications/listeners
+- Transaction ensures order + history + event are atomic
+
+## Payment Lifecycle
+
+### Source of Truth
+**Service:** `app/Services/CheckoutService.php`
+**Gateway Manager:** `app/Services/Payments/PaymentGatewayManager.php`
+**Enum:** `app/Enums/PaymentStatus.php`
+**Model:** `app/Models/Payment.php`
+
+### Flow
+
+1. **Checkout Initialization**
+   - Route: `GET /checkout` (web.php line 101)
+   - Service: `CheckoutService::initialize($cart)`
+   - Actions:
+     - Summarize cart (recalculate prices)
+     - Create/update Order with `pending_payment` status
+     - Create Payment intent via gateway manager
+     - Store Payment with `pending` status
+
+2. **Payment Intent Creation**
+   - Gateway: `PaymentGatewayManager::activeGateway()` (from `payment_gateways` table)
+   - Driver: StripeGateway or FakeGateway
+   - Method: `driver->ensurePaymentIntent($order, $existingPayment)`
+   - Returns: `provider_reference`, `client_secret`, `amount`, `currency`
+
+3. **Payment Confirmation**
+   - Route: `POST /checkout/confirm` (web.php line 104)
+   - Service: `CheckoutService::finalize($payment)`
+   - Actions:
+     - Retrieve intent from gateway: `driver->retrieveIntent($providerReference)`
+     - Check status: must be `succeeded` or `requires_capture`
+     - If succeeded:
+       - Update Payment status to `succeeded`
+       - Transition Order to `pending` via `OrderWorkflowService`
+       - Dispatch `OrderConfirmed` event
+       - Clear cart
+
+4. **Payment Failure**
+   - If gateway status is not succeeded:
+     - Payment status → `failed`
+     - Order status → `payment_failed`
+     - Throw `PaymentGatewayException`
+
+5. **Existing Order Payment**
+   - Route: `GET /orders/{order}/pay` (web.php line 112)
+   - Service: `CheckoutService::initializeExistingOrder($order)`
+   - Only for orders with `pending_payment` or `payment_failed` status
+
+### Rules
+- **ALWAYS** check payment status from gateway before finalizing
+- Payment intent stored in `Payment.provider_reference`
+- Client secret stored in `Payment.meta['client_secret']`
+- Use transactions for payment + order updates
+- Payment failures must update both Payment and Order status
+
+## Pricing Calculation Workflow
+
+### Source of Truth
+**Service:** `app/Services/PricingService.php::calculateProductPrice()`
+**Making Charge:** `app/Models/Product.php::calculateMakingCharge()`
+**Discounts:** `app/Services/MakingChargeDiscountService.php::resolve()`
+
+### Flow
+
+1. **Input:**
+   - Product (with making charge configuration)
+   - Customer (for discount eligibility)
+   - Variant (with metals and diamonds)
+   - Options: quantity, customer_group_id, customer_type
+
+2. **Metal Cost Calculation:**
+   - For each variant metal:
+     - Get metal name (normalized to lowercase: 'gold', 'silver', 'platinum')
+     - Get purity name (e.g., '18K', '22K', '925')
+     - Query `PriceRate` table: `where('metal', $metalName)->where('purity', $purityName)->latest('effective_at')`
+     - Calculate: `metal_weight (grams) × price_per_gram`
+   - Sum all metal costs
+
+3. **Diamond Cost Calculation:**
+   - For each variant diamond:
+     - Get diamond price (per stone)
+     - Get count: `diamonds_count`
+     - Calculate: `diamond_price × count`
+   - Sum all diamond costs
+
+4. **Making Charge Calculation:**
+   - Call `Product::calculateMakingCharge($metalCost)`
+   - Types from `metadata['making_charge_types']` or inferred from fields
+   - Fixed: add `making_charge_amount`
+   - Percentage: add `metalCost × (making_charge_percentage / 100)`
+   - Both: add fixed + percentage
+
+5. **Subtotal:**
+   - `subtotal = metal + diamond + making`
+   - Base price is NOT included
+
+6. **Discount Application:**
+   - Call `MakingChargeDiscountService::resolve($product, $user, $context)`
+   - Context includes: quantity, unit_subtotal, metal_cost
+   - Discount applied only to making charge
+   - Discount cannot exceed making charge
+   - Discount: `min(discount_amount, making_charge)`
+
+7. **Total:**
+   - `total = subtotal - discount`
+
+### Rules
+- **ALWAYS** use `PricingService`, never calculate manually
+- Metal rates come from `PriceRate` table (most recent `effective_at`)
+- Diamond price is per stone, multiply by count
+- Making charge supports fixed, percentage, or both (from Product metadata)
+- Discounts only apply to making charge, not metal/diamond costs
+- Base price is never included in dynamic pricing
+
+## Single Source of Truth (SoT) Rules
+
+### Pricing Truth = Backend Service Only
+**Evidence:**
+- **Source of Truth**: `app/Services/PricingService.php::calculateProductPrice()` (lines 25-122)
+- **Called From**: `app/Services/CartService.php` lines 61-63, 110-119, `app/Http/Controllers/Frontend/CatalogController.php::calculatePrice()` (route line 69)
+- **Violation Found**: `app/Http/Controllers/Frontend/CatalogController.php` lines 213-264 - Duplicated pricing calculation logic in `index()` method instead of using `PricingService`
+
+**Rules:**
+1. **NEVER** calculate prices in controllers or frontend pages
+2. **ALWAYS** use `PricingService::calculateProductPrice()` for all price calculations
+3. Frontend receives pre-calculated prices only (no recalculation on client)
+4. If pricing logic is duplicated, refactor to use `PricingService`
+
+### No Silent Price Change Rule (Hard Requirement)
+
+**Prices cannot change silently after order creation. Any price change must be explicit, logged, and visible in UI.**
+
+**Evidence:**
+- `app/Models/Order.php` has `price_breakdown` and `locked_rates` JSON fields (snapshot at order creation)
+- `app/Services/CheckoutService.php::initialize()` stores price breakdown in order
+
+**Rules:**
+1. **Prices are locked at order creation**
+   - Prices stored in `order.price_breakdown` (JSON field)
+   - Rates locked in `order.locked_rates` (JSON field)
+   - These values must NOT change after order creation
+
+2. **Price changes after order creation are FORBIDDEN**
+   - ❌ FORBIDDEN: `$order->total_amount = $this->pricingService->calculateProductPrice(...)`
+   - ❌ FORBIDDEN: Recalculating prices for existing orders using current rates
+   - ❌ FORBIDDEN: Silent price adjustments without logging
+
+3. **If price change is absolutely necessary:**
+   - Must be explicit action (e.g., "Adjust Price" admin action)
+   - Must be logged (create `OrderPriceAdjustment` or use `OrderStatusHistory` with price change reason)
+   - Must be visible in UI (show original price, adjusted price, reason)
+   - Must update `price_breakdown` and preserve original values in history
+
+4. **Rate changes only affect new orders**
+   - When `PriceRate` table updates, existing orders retain locked rates
+   - New orders use current rates
+
+**Enforcement:**
+- Code review MUST reject any code that recalculates prices for existing orders
+- Price changes must go through explicit adjustment workflow with logging
+- UI must display price change history
+
+**Example of Allowed Price Adjustment:**
+```php
+// ✅ ALLOWED: Explicit price adjustment with logging
+public function adjustOrderPrice(Order $order, float $newAmount, string $reason): void
+{
+    DB::transaction(function () use ($order, $newAmount, $reason) {
+        // Store original price breakdown in history
+        $originalBreakdown = $order->price_breakdown;
+        
+        // Update order with new amount
+        $order->total_amount = $newAmount;
+        $order->price_breakdown['adjustment'] = [
+            'original_total' => $originalBreakdown['total'],
+            'new_total' => $newAmount,
+            'reason' => $reason,
+            'adjusted_at' => now(),
+            'adjusted_by' => Auth::id(),
+        ];
+        $order->save();
+        
+        // Log in order history
+        OrderStatusHistory::create([
+            'order_id' => $order->id,
+            'status' => $order->status,
+            'meta' => [
+                'type' => 'price_adjustment',
+                'original_total' => $originalBreakdown['total'],
+                'new_total' => $newAmount,
+                'reason' => $reason,
+            ],
+        ]);
+    });
+}
+```
+
+**Forbidden Patterns:**
+```php
+// ❌ FORBIDDEN: Direct price calculation in controller
+$metalCost = 0;
+foreach ($variant->metals as $variantMetal) {
+    $priceRate = PriceRate::where(...)->first();
+    $metalCost += $weight * $priceRate->price_per_gram;
+}
+
+// ✅ REQUIRED: Use PricingService
+$price = $this->pricingService->calculateProductPrice($product, $user, ['variant' => $variant]);
+```
+
+### Order Status Truth = Workflow Service Only
+**Evidence:**
+- **Source of Truth**: `app/Services/OrderWorkflowService.php::transitionOrder()` (lines 21-46)
+- **Transaction**: Wraps status change, history creation, and event dispatch in `DB::transaction()` (line 23)
+- **Audit Trail**: Creates `OrderStatusHistory` entry (lines 31-42)
+- **Event Dispatch**: Dispatches `OrderStatusUpdated` event (line 44)
+- **Called From**: `app/Services/CheckoutService.php` line 98, `app/Http/Controllers/Admin/OrderController.php` (likely)
+
+**Rules:**
+1. **NEVER** update `Order.status` directly: `$order->status = OrderStatus::Pending` (FORBIDDEN)
+2. **ALWAYS** use `OrderWorkflowService::transitionOrder($order, $status, $meta)`
+3. Status transitions are transactional (order + history + event)
+4. History entry created automatically for audit trail
+5. Events dispatched for listeners (emails, notifications)
+
+**Forbidden Patterns:**
+```php
+// ❌ FORBIDDEN: Direct status update
+$order->status = OrderStatus::Approved;
+$order->save();
+
+// ✅ REQUIRED: Use workflow service
+$this->orderWorkflowService->transitionOrder($order, OrderStatus::Approved, ['note' => 'Admin approved']);
+```
+
+### Permissions Truth = Middleware/Policies Only
+**Evidence:**
+- **Gates**: `app/Providers/AppServiceProvider.php` lines 29-36 (Gate definitions)
+- **Middleware**: `app/Http/Middleware/EnsureKycApproved.php`, `app/Http/Middleware/EnsureCustomerPortalAccess.php`
+- **Route Enforcement**: `routes/web.php` - Admin routes use `can:access admin portal`, Customer routes use `ensure.kyc.approved`
+
+**Rules:**
+1. **NEVER** rely on UI hiding as security (frontend can be bypassed)
+2. **ALWAYS** enforce permissions in backend: middleware, gates, policies
+3. Check permissions in controllers using `Gate::allows()` or `$this->authorize()`
+4. Frontend hiding is UX only, not security
+
+**Forbidden Patterns:**
+```php
+// ❌ FORBIDDEN: Only hiding in frontend
+{user.type === 'admin' && <AdminButton />}
+
+// ✅ REQUIRED: Backend enforcement
+Route::middleware(['can:access admin portal'])->group(function () {
+    Route::get('/admin/dashboard', ...);
+});
+```
+
+### Idempotency & Concurrency Rules
+
+**Order Creation + Rate Lock + Status History Must Be Transactional**
+**Evidence:**
+- `app/Services/CheckoutService.php::initialize()` line 36 - Uses `DB::transaction()` for order creation
+- `app/Services/OrderWorkflowService.php::transitionOrder()` line 23 - Status transitions wrapped in transaction
+- `app/Services/CheckoutService.php::finalize()` - Payment finalization updates order status via workflow service (transactional)
+
+**Rules:**
+1. Order creation with payment intent must be atomic (order + payment in one transaction)
+2. Status transitions must be atomic (order update + history + event dispatch)
+3. Rate locking must happen during order creation (evidence: `Order.locked_rates` field exists in model)
+4. Use `DB::transaction()` for multi-step operations
+
+**Payment Webhooks Idempotency**
+**Evidence:**
+- **NOT FOUND**: No webhook handler found for payment gateways
+- **Current**: Payment finalization happens via `CheckoutService::finalize()` which checks gateway status
+- **Payment Model**: `app/Models/Payment.php` has `provider_reference` field (unique constraint in migration)
+
+**Recommended Implementation:**
+- Check `provider_reference` uniqueness before creating payment
+- Use database unique constraint on `payments.provider_reference`
+- Handle duplicate webhook events gracefully (check payment status before processing)
+
+**NOT FOUND IN CODEBASE:**
+- Webhook handlers for Stripe/payment gateways
+- **Recommended Location**: `app/Http/Controllers/Api/PaymentWebhookController.php`
+- **Recommended Pattern**: Check `Payment::where('provider_reference', $webhookId)->exists()` before processing
+
+## Cart to Order Conversion
+
+### Source of Truth
+**Service:** `app/Services/CheckoutService.php::initialize()`
+
+### Flow
+
+1. **Cart Summary**
+   - Call `CartService::summarize($cart)`
+   - Recalculates all item prices
+   - Returns: items array, subtotal, tax, discount, total
+
+2. **Order Creation/Update**
+   - Check `cart.metadata['pending_order_id']` for existing order
+   - If exists and belongs to user → update order
+   - Otherwise → create new order
+   - Status: `OrderStatus::PendingPayment`
+   - Store amounts: `subtotal_amount`, `tax_amount`, `discount_amount`, `total_amount`
+   - Store `price_breakdown` (without items)
+
+3. **Order Items Creation**
+   - Delete existing items
+   - Create items from cart summary
+   - Store: `product_id`, `sku`, `name`, `quantity`, `unit_price`, `total_price`, `configuration` (variant info)
+
+4. **Payment Intent Creation**
+   - Create via `PaymentGatewayManager`
+   - Store payment with `pending` status
+
+5. **Cart Update**
+   - Update `cart.metadata['pending_order_id']` = order.id
+   - Cart remains active until payment succeeds
+
+6. **After Payment Success**
+   - Cart status → `converted`
+   - Cart items deleted
+   - Cart metadata updated with `converted_at`
+
+### Rules
+- Order created BEFORE payment (status = `pending_payment`)
+- Order can be updated if user revisits checkout
+- Cart cleared only after successful payment
+- All operations wrapped in transaction

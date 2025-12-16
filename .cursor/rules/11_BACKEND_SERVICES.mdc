@@ -1,0 +1,365 @@
+---
+alwaysApply: true
+---
+
+# Backend Services
+
+## Service Architecture
+
+All services are located in `app/Services/` directory.
+
+## Service Inventory
+
+### 1. PricingService
+**Evidence:** `app/Services/PricingService.php`
+
+**Purpose:** Calculate detailed price breakdown for products
+**Dependencies:** `MakingChargeDiscountService` (injected via constructor line 13)
+
+**Entry Points:**
+- `calculateProductPrice(Product $product, ?Customer $user, array $options): Collection`
+
+**Called From:**
+- `app/Services/CartService.php` lines 61-63, 110-119
+- `app/Http/Controllers/Frontend/CatalogController.php::calculatePrice()` (route line 69)
+
+**Responsibilities:**
+- Calculate metal cost from variant metals × current price rates
+- Calculate diamond cost from variant diamonds (price per stone × count)
+- Calculate making charge using `Product::calculateMakingCharge()`
+- Apply making charge discounts via `MakingChargeDiscountService`
+- Return collection with: metal, diamond, making, subtotal, discount, total
+
+**Rules:**
+- ALWAYS use this service for price calculations, never calculate manually
+- Price = Metal + Diamond + Making - Discount (base_price is NOT included in calculation)
+- Metal cost fetched from `PriceRate` table (metal + purity → price_per_gram)
+- Diamond price is per stone, multiply by count
+
+### 2. CartService
+**Evidence:** `app/Services/CartService.php`
+
+**Purpose:** Manage shopping cart operations
+**Dependencies:** `PricingService`, `TaxService` (constructor lines 13-15)
+
+**Entry Points:**
+- `getActiveCart(Customer $user): Cart`
+- `addItem(Customer $user, Product $product, ?ProductVariant $variant, int $quantity, array $configuration): Cart`
+- `updateItemQuantity(CartItem $item, int $quantity): void`
+- `updateItemConfiguration(CartItem $item, array $configuration): void`
+- `removeItem(CartItem $item): void`
+- `summarize(Cart $cart): array`
+- `clear(Cart $cart): void`
+- `clearItems(Cart $cart): void`
+
+**Called From:**
+- `app/Http/Controllers/Frontend/CartController.php`
+- `app/Services/CheckoutService.php` lines 34, 154
+
+**Responsibilities:**
+- Get or create active cart for user
+- Add/update/remove cart items with configuration matching
+- Recalculate pricing on add/update (stores in `price_breakdown` JSON)
+- Summarize cart with line items, subtotals, tax, discounts, total
+- Normalize configurations for duplicate detection (only compares `notes` field)
+
+**Rules:**
+- Always use `summarize()` before checkout (updates price breakdowns)
+- Configuration matching uses normalized comparison (ignores variant label, only notes)
+- Quantity must be >= 1 (enforced in methods)
+- Price breakdown stored as JSON in `cart_items.price_breakdown`
+
+### 3. CheckoutService
+**Evidence:** `app/Services/CheckoutService.php`
+
+**Purpose:** Handle checkout flow and payment initialization
+**Dependencies:** `CartService`, `PaymentGatewayManager`, `OrderWorkflowService` (constructor lines 21-25)
+
+**Entry Points:**
+- `initialize(Cart $cart): array` - Initialize checkout from cart
+- `initializeExistingOrder(Order $order): array` - Initialize payment for existing order
+- `finalize(Payment $payment): Order` - Finalize payment and transition order
+
+**Called From:**
+- `app/Http/Controllers/Frontend/CheckoutController.php`
+
+**Responsibilities:**
+- Create or update order from cart summary
+- Create payment intent via gateway manager
+- Store payment with `pending` status
+- Finalize payment after gateway confirmation
+- Transition order to `pending` status on success
+- Dispatch `OrderConfirmed` event
+
+**Rules:**
+- ALWAYS use transactions for order/payment creation (DB::transaction)
+- Order status = `PendingPayment` during checkout
+- Payment status checked from gateway (Stripe/Fake) before finalizing
+- On success: Payment → `succeeded`, Order → `pending` (via OrderWorkflowService)
+- On failure: Payment → `failed`, Order → `payment_failed`
+
+### 4. OrderWorkflowService
+**Evidence:** `app/Services/OrderWorkflowService.php`
+
+**Purpose:** Manage order status transitions and audit trail
+**Dependencies:** None (stateless service)
+
+**Entry Points:**
+- `transitionOrder(Order $order, OrderStatus $status, array $meta = []): void`
+
+**Called From:**
+- `app/Services/CheckoutService.php` line 98
+- `app/Http/Controllers/Admin/OrderController.php` (likely)
+
+**Responsibilities:**
+- Update order status
+- Create `OrderStatusHistory` entry (audit trail)
+- Store actor information (customer or admin guard)
+- Dispatch `OrderStatusUpdated` event
+- All operations wrapped in transaction
+
+**Rules:**
+- ALWAYS use this service for status changes, never update directly
+- History entry includes: order_id, user_id (if customer), status, meta (actor info)
+- Meta includes: `actor_guard` ('customer' or 'admin'), `actor_user_id`
+- Dispatches event for listeners (email notifications, etc.)
+
+### 5. MakingChargeDiscountService
+**Evidence:** `app/Services/MakingChargeDiscountService.php`
+
+**Purpose:** Resolve applicable making charge discounts
+**Dependencies:** None
+
+**Entry Points:**
+- `resolve(Product $product, ?Customer $user, array $context): array`
+
+**Called From:**
+- `app/Services/PricingService.php` line 104
+
+**Responsibilities:**
+- Determine discount based on customer group, type, quantity, metal cost
+- Return discount amount and details
+- Applied only to making charge (not metal/diamond costs)
+
+**Rules:**
+- Discounts are stored in `making_charge_discounts` table
+- Discount cannot exceed making charge amount
+- Context includes: quantity, unit_subtotal, metal_cost, customer_group_id, customer_type
+
+### 6. TaxService
+**Evidence:** `app/Services/TaxService.php`
+
+**Purpose:** Calculate tax on taxable amount
+**Dependencies:** None
+
+**Entry Points:**
+- `calculateTax(float $taxableAmount): float`
+
+**Called From:**
+- `app/Services/CartService.php` line 155
+
+**Responsibilities:**
+- Calculate tax based on tax groups and rates
+- Applied to subtotal after discounts
+
+**Rules:**
+- Tax calculated on `subtotal - discount` (taxable amount)
+- Tax rates managed in admin settings
+
+### 7. WishlistService
+**Evidence:** `app/Services/WishlistService.php`
+
+**Purpose:** Manage user wishlist
+**Dependencies:** None (likely, needs verification)
+
+**Entry Points:**
+- Methods likely: `addItem()`, `removeItem()`, `moveToCart()`
+
+**Called From:**
+- `app/Http/Controllers/Frontend/WishlistController.php`
+
+### 8. OfferService
+**Evidence:** `app/Services/OfferService.php`
+
+**Purpose:** Manage product offers
+**Dependencies:** Unknown (needs verification)
+
+**Called From:**
+- Likely `app/Http/Controllers/Admin/OfferController.php`
+
+### 9. NotificationService
+**Evidence:** `app/Services/NotificationService.php`
+
+**Purpose:** Dispatch notifications (email/SMS/WhatsApp)
+**Dependencies:** Unknown (needs verification)
+
+**Called From:**
+- Likely used by event listeners
+
+### 10. RateSyncService
+**Evidence:** `app/Services/RateSyncService.php`
+
+**Purpose:** Sync price rates from external APIs or manual entry
+**Dependencies:** Unknown (needs verification)
+
+**Called From:**
+- Likely `app/Http/Controllers/Admin/RateController.php`
+
+### 11. ProductVariantSyncService
+**Evidence:** `app/Services/Catalog/ProductVariantSyncService.php`
+
+**Purpose:** Sync product variants (metals, diamonds) during create/update
+**Dependencies:** Unknown (needs verification)
+
+**Called From:**
+- `app/Http/Controllers/Admin/ProductController.php` lines 80, 132
+
+**Responsibilities:**
+- Handle complex variant relationships
+- Sync metals and diamonds for variants
+
+### 12. PaymentGatewayManager
+**Evidence:** `app/Services/Payments/PaymentGatewayManager.php`
+
+**Purpose:** Manage payment gateway drivers (Stripe, Fake)
+**Dependencies:** None
+
+**Entry Points:**
+- `driver(PaymentGateway $gateway): PaymentGatewayDriver`
+- `activeGateway(): PaymentGateway`
+- Drivers implement: `app/Services/Payments/Contracts/PaymentGatewayDriver.php`
+
+**Called From:**
+- `app/Services/CheckoutService.php` lines 82, 163
+
+**Drivers:**
+- `app/Services/Payments/Drivers/StripeGateway.php`
+- `app/Services/Payments/Drivers/FakeGateway.php`
+
+**Rules:**
+- Gateway selected from `payment_gateways` table (is_active, is_default)
+- Each driver implements `PaymentGatewayDriver` contract
+- Methods: `ensurePaymentIntent()`, `retrieveIntent()`, `publishableKey()`
+
+## Rules for Adding New Services
+
+1. **Placement:** Always in `app/Services/` directory
+2. **Dependency Injection:** Inject dependencies via constructor, type-hint interfaces where possible
+3. **Stateless:** Services must be stateless (no instance properties that change)
+4. **Single Responsibility:** One service = one domain concern
+5. **Transaction Boundaries:** Use `DB::transaction()` in service methods that modify multiple models
+6. **Exception Handling:** Throw domain exceptions (extend base Exception)
+7. **Naming:** Use descriptive names ending in `Service` (e.g., `PricingService`, `CartService`)
+8. **Documentation:** Document purpose, dependencies, entry points, and called-from locations
+
+**Example Pattern:**
+```php
+namespace App\Services;
+
+class NewService
+{
+    public function __construct(
+        protected DependencyService $dependency
+    ) {}
+    
+    public function doWork(): Result
+    {
+        return DB::transaction(function () {
+            // Work here
+        });
+    }
+}
+```
+
+## Forbidden Shortcuts (Hard Fail)
+
+**These patterns are STRICTLY FORBIDDEN when working with services.**
+
+### 1. Bypassing Service Layer from Controllers (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: Direct model manipulation in controller
+public function store(Request $request) {
+    $order = Order::create([...]);
+    $order->items()->createMany([...]);
+    $order->status = OrderStatus::Pending;
+    $order->save();
+}
+```
+
+**✅ REQUIRED:**
+```php
+// ✅ REQUIRED: Use service
+public function store(StoreOrderRequest $request) {
+    $order = $this->checkoutService->initialize($cart);
+    return redirect()->route('checkout.show');
+}
+```
+
+**Evidence:**
+- Service ownership: `app/Services/CheckoutService.php` owns checkout flow
+- Service ownership: `app/Services/OrderWorkflowService.php` owns status transitions
+
+### 2. Duplicating Service Logic (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: Duplicating pricing logic
+// In CartController
+$price = $metalCost + $diamondCost + $makingCharge;
+
+// In QuotationController  
+$price = $metalCost + $diamondCost + $makingCharge; // Same logic!
+```
+
+**✅ REQUIRED:**
+```php
+// ✅ REQUIRED: Use shared service
+$price = $this->pricingService->calculateProductPrice($product, $user, $options);
+```
+
+**Evidence:**
+- Single source of truth: `app/Services/PricingService.php`
+- Called from: `app/Services/CartService.php`, `app/Http/Controllers/Frontend/CatalogController.php`
+
+### 3. Creating New Services for Existing Functionality (FORBIDDEN)
+
+**Before creating a new service, check if existing service already handles the functionality.**
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: Creating NewPriceCalculatorService when PricingService exists
+class NewPriceCalculatorService {
+    public function calculate($product) {
+        // Duplicate logic
+    }
+}
+```
+
+**✅ REQUIRED:**
+```php
+// ✅ REQUIRED: Use existing service or extend it
+$this->pricingService->calculateProductPrice($product, $user, $options);
+```
+
+**Evidence:**
+- Service inventory: See "Service Inventory" section above
+- Check ownership boundaries before creating new services
+
+### Enforcement
+
+**Code review MUST reject:**
+- Controllers that bypass service layer
+- Duplicated service logic
+- New services created without checking existing service ownership
+- Business logic outside service layer
+
+## Service Ownership Boundaries
+
+- **PricingService**: Owns ALL price calculation logic. Never calculate prices outside this service.
+- **CartService**: Owns cart operations. Never directly manipulate Cart/CartItem models.
+- **CheckoutService**: Owns checkout/payment flow. Coordinates Cart, Order, Payment creation.
+- **OrderWorkflowService**: Owns order status transitions. Never update Order.status directly.
+- **TaxService**: Owns tax calculation. Never calculate tax outside this service.
+- **PaymentGatewayManager**: Owns gateway driver selection and payment intent management.

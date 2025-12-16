@@ -1,0 +1,1416 @@
+---
+alwaysApply: true
+---
+# Backend Conventions
+
+## Controller Patterns
+
+### Admin Controllers
+**Evidence:**
+- Location: `app/Http/Controllers/Admin/*` (34 files)
+- Base class: `app/Http/Controllers/Controller.php`
+- Example: `app/Http/Controllers/Admin/ProductController.php`
+
+**Rules:**
+1. All admin controllers extend `App\Http\Controllers\Controller`
+2. Use Inertia for responses: `Inertia::render('Admin/Resource/Page')`
+3. Format data for frontend in controller methods (e.g., `formatProductForList()` line 150+)
+4. Use `validatePerPage()` helper for pagination (line 37 in ProductController)
+5. Bulk operations use separate routes (e.g., `bulkDestroy`, `bulkStatus`)
+6. Return `RedirectResponse` with `with('status', 'action_completed')` for success
+
+**Example Pattern:**
+```php
+public function index(): Response
+{
+    $filters = request()->only(['search', 'status']);
+    $perPage = $this->validatePerPage(request('per_page', 10));
+    
+    $resources = Model::query()
+        ->when($filters['search'], fn($q, $search) => /* filter */)
+        ->paginate($perPage)
+        ->through(fn($item) => $this->formatForList($item));
+    
+    return Inertia::render('Admin/Resources/Index', [
+        'resources' => $resources,
+        'filters' => $filters,
+    ]);
+}
+```
+
+### Frontend Controllers
+**Evidence:**
+- Location: `app/Http/Controllers/Frontend/*` (9 files)
+- Example: `app/Http/Controllers/Frontend/CatalogController.php`
+- Pattern: Inject services via constructor
+
+**Rules:**
+1. Inject services in constructor (e.g., `PricingService` in CatalogController line 25)
+2. Load relationships eagerly to avoid N+1
+3. Build configuration options for products (see `buildConfigurationOptions()` line 504)
+4. Manual pagination for filtered collections (line 320-329)
+
+### Request Validation
+**Evidence:**
+- Location: `app/Http/Requests/Admin/*` (83 files), `app/Http/Requests/Frontend/*`
+- Pattern: `Store{Resource}Request`, `Update{Resource}Request`
+- Base class: `Illuminate\Foundation\Http\FormRequest`
+
+**Rules:**
+1. Separate Store and Update requests (Update often extends Store)
+2. Store requests: `app/Http/Requests/Admin/StoreProductRequest.php`
+3. Update requests: `app/Http/Requests/Admin/UpdateProductRequest.php` extends StoreProductRequest
+4. Bulk operations: `BulkProductsRequest`, `BulkDestroyProductsRequest`
+5. Validation rules in `rules()` method
+6. Authorization in `authorize()` method (return `true` or `Gate::allows()`)
+
+### Policies and Permissions
+**Evidence:**
+- Gates defined in: `app/Providers/AppServiceProvider.php` lines 29-36
+- No Policy classes found (uses Gates instead)
+- Gates: `access admin portal`, `approve kyc`, `manage products`, `manage customers`, `manage orders`, `manage offers`, `manage rates`, `update production status`
+
+**Rules:**
+1. Use Gates, not Policies (current pattern)
+2. Check user type: `in_array($user->type, ['admin', 'super-admin'], true)`
+3. Apply via middleware: `can:access admin portal`
+4. Use `UserType` enum values (from `app/Enums/UserType.php`)
+
+**Gate Pattern:**
+```php
+Gate::define('manage products', fn (User $user) => 
+    in_array($user->type, ['admin', 'super-admin'], true)
+);
+```
+
+### Middleware Rules
+
+#### EnsureKycApproved
+**Evidence:** `app/Http/Controllers/Middleware/EnsureKycApproved.php`
+
+**Rules:**
+1. Must check `$user->kyc_status === KycStatus::Approved->value`
+2. Redirect to `onboarding.kyc.show` if not approved
+3. Return 403 JSON response if `expectsJson()`
+
+#### EnsureCustomerPortalAccess
+**Evidence:** `app/Http/Controllers/Middleware/EnsureCustomerPortalAccess.php`
+
+**Rules:**
+1. Default allowed roles: `retailer`, `wholesaler`, `sales`
+2. Can accept custom roles via parameters: `portal.customer:retailer,wholesaler`
+3. Redirect based on user type if unauthorized
+4. Use `UserType` enum values
+
+**Applied to routes:** All customer portal routes (web.php lines 57-139)
+
+### Route Grouping Rules
+
+#### Customer Portal Routes
+**Evidence:** `routes/web.php` lines 57-139
+
+**Rules:**
+1. Group: `middleware(['portal.customer'])`
+2. All routes require: `middleware('ensure.kyc.approved')`
+3. Route names: `frontend.{resource}.{action}`
+4. Use resource controllers where applicable
+
+**Pattern:**
+```php
+Route::middleware(['portal.customer'])->group(function () {
+    Route::get('/resource', [Controller::class, 'index'])
+        ->middleware('ensure.kyc.approved')
+        ->name('frontend.resource.index');
+});
+```
+
+#### Admin Portal Routes
+**Evidence:** `routes/web.php` lines 146-290
+
+**Rules:**
+1. Prefix: `admin`
+2. Route names: `admin.{resource}.{action}`
+3. Middleware: `['auth:admin', 'can:access admin portal']`
+4. Use resource routes where applicable: `Route::resource('products', ProductController::class)`
+5. Bulk operations: separate routes (`/bulk`, `/bulk/{action}`)
+6. Nested resources use `prefix()->name()->group()` (e.g., diamond routes lines 187-209)
+
+**Pattern:**
+```php
+Route::prefix('admin')
+    ->name('admin.')
+    ->middleware(['auth:admin', 'can:access admin portal'])
+    ->group(function () {
+        Route::resource('resources', ResourceController::class)
+            ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+    });
+```
+
+#### Production Portal Routes
+**Evidence:** `routes/web.php` lines 292-297
+
+**Rules:**
+1. Prefix: `production`
+2. Route names: `production.{action}`
+3. Middleware: `['auth:admin', 'can:update production status']`
+4. Minimal routes (only dashboard currently)
+
+### Authentication Guards
+
+**Evidence:** `config/auth.php`
+
+**Rules:**
+1. **Web guard** (`web`): Uses `customers` provider (Customer model)
+   - Default guard for customer portal
+   - Provider: `App\Models\Customer`
+   
+2. **Admin guard** (`admin`): Uses `users` provider (User model)
+   - Used for admin and production portals
+   - Provider: `App\Models\User`
+
+**Usage:**
+- Customer routes: `auth` middleware (defaults to `web`)
+- Admin routes: `auth:admin` middleware
+- Check guard in code: `Auth::guard('web')->id()` or `Auth::guard('admin')->id()`
+
+### Database Transactions
+
+**Evidence:**
+- `app/Services/CheckoutService.php` lines 36, 64 (DB::transaction)
+- `app/Http/Controllers/Admin/ProductController.php` line 85 (DB::transaction)
+- `app/Services/OrderWorkflowService.php` line 23 (DB::transaction)
+
+**Rules:**
+1. Use transactions for multi-step operations (order creation, product updates)
+2. Wrap in `DB::transaction(function () { ... })`
+3. Throw exceptions to rollback
+4. Used in: checkout, product variant sync, order status transitions
+
+### Error Handling
+
+**Evidence:**
+- Exception: `app/Exceptions/PaymentGatewayException.php`
+- Pattern in controllers: catch `InvalidArgumentException` for validation errors
+
+**Rules:**
+1. Custom exceptions extend base Exception class
+2. Redirect back with errors: `->back()->withInput()->withErrors(['field' => 'message'])`
+3. Flash messages: `->with('status', 'action_completed')` or `->with('error', 'message')`
+4. Payment errors: throw `PaymentGatewayException`
+
+## Code Structure & Clean Code Rules
+
+### A) Clean Structure Rules (Backend)
+
+#### Controllers Must Be Thin
+**Evidence:**
+- `app/Http/Controllers/Frontend/CartController.php` (lines 17-128): Delegates to `CartService`
+- `app/Http/Controllers/Frontend/CheckoutController.php` (lines 18-123): Uses `CheckoutService` and `CartService`
+- `app/Http/Controllers/Frontend/CatalogController.php` (lines 25-27): Injects `PricingService` via constructor
+- `app/Http/Controllers/Admin/OrderController.php` (lines 17-19): Uses `OrderWorkflowService` for status transitions
+- `app/Http/Controllers/Frontend/QuotationController.php` (lines 27-31): Injects multiple services (CartService, PricingService, TaxService)
+
+**Pattern:**
+```php
+// ✅ GOOD: Controller delegates to service
+public function store(AddCartItemRequest $request): RedirectResponse
+{
+    $user = $request->user();
+    $product = Product::findOrFail($request->input('product_id'));
+    $this->cartService->addItem($user, $product, $variant, $quantity, $configuration);
+    return redirect()->back()->with('success', 'Item added.');
+}
+
+// ❌ BAD: Business logic in controller
+public function store(Request $request) {
+    // Price calculation logic here...
+    // Cart item creation logic here...
+    // Discount calculation here...
+}
+```
+
+**Rules:**
+1. Controllers must only handle: validation (via FormRequest), service calls, response formatting, redirects
+2. Inject services via constructor (evidence: all Frontend controllers follow this pattern)
+3. Never contain business logic (pricing, discounts, status transitions)
+4. Keep controller methods under 50 lines (most controllers follow this)
+
+#### Business Logic Must Live in Services
+**Evidence:**
+- All pricing logic in `app/Services/PricingService.php`
+- Cart operations in `app/Services/CartService.php`
+- Checkout flow in `app/Services/CheckoutService.php`
+- Order status transitions in `app/Services/OrderWorkflowService.php`
+- Discount resolution in `app/Services/MakingChargeDiscountService.php`
+
+**Rules:**
+1. Extract reusable business logic into services
+2. Services are stateless (no instance properties that change)
+3. Services handle single domain concerns (see `11_BACKEND_SERVICES.mdc`)
+4. Complex operations (product variant sync) use specialized services: `app/Services/Catalog/ProductVariantSyncService.php`
+
+#### Shared Business Logic Must Be Extracted
+**Evidence:**
+- Price calculation reused: `PricingService` called from `CartService` (lines 61-63, 110-119) and `CatalogController` (line 25)
+- Tax calculation reused: `TaxService` called from `CartService` (line 155)
+- Status transitions centralized: `OrderWorkflowService::transitionOrder()` used by `CheckoutService` (line 98) and `OrderController`
+
+**Anti-Pattern Found:**
+- Some controllers have direct Eloquent queries (acceptable for simple reads): `app/Http/Controllers/Admin/QuotationController.php` lines 46-60 (filtering queries)
+
+**Rules:**
+1. If business logic is used in 2+ places → create/use a service
+2. Shared queries → consider Query Scopes on models or Repositories (NOT FOUND IN CODEBASE - current pattern uses direct queries)
+3. Common formatting → extract to helper methods in base Controller or Traits (NOT FOUND IN CODEBASE - recommended: `app/Http/Controllers/Controller.php`)
+
+#### Validation Must Be in FormRequest Classes
+**Evidence:**
+- All validation in `app/Http/Requests/` directory (93 files)
+- Pattern: `Store{Resource}Request`, `Update{Resource}Request`, `Bulk{Action}Request`
+- Example: `app/Http/Requests/Frontend/Cart/AddCartItemRequest.php`, `app/Http/Requests/Admin/StoreProductRequest.php`
+
+**Rules:**
+1. **NEVER** use `$request->validate()` in controllers
+2. Create FormRequest for each action that accepts input
+3. Authorization in `authorize()` method
+4. Validation rules in `rules()` method
+
+#### Enums/Status Transitions Must Use Central Service
+**Evidence:**
+- Order status transitions: `app/Services/OrderWorkflowService.php::transitionOrder()` (single source of truth)
+- Enum usage: `app/Enums/OrderStatus.php`, `app/Enums/KycStatus.php`, `app/Enums/PaymentStatus.php`
+- Direct enum updates forbidden: All status changes go through `OrderWorkflowService`
+
+**Rules:**
+1. **NEVER** update status directly: `$order->status = OrderStatus::Pending` (WRONG)
+2. **ALWAYS** use service: `$this->orderWorkflowService->transitionOrder($order, OrderStatus::Pending)`
+3. Status checks use enum values: `$user->kyc_status === KycStatus::Approved->value`
+4. Never use string literals for statuses
+
+### B) Common vs Different Functionality Rule
+
+**Evidence:**
+- Common pricing logic → `PricingService` (used by Cart, Catalog, Quotations)
+- Common tax calculation → `TaxService` (used by Cart, Checkout)
+- Feature-specific variant sync → `ProductVariantSyncService` (only used by ProductController)
+
+**Rules:**
+1. **If functionality is reused in 2+ places** → Create a common service/helper
+   - Example: `PricingService` used by CartService, CatalogController, QuotationController
+   
+2. **If functionality is feature-specific** → Create separate service/module within that feature area
+   - Example: `ProductVariantSyncService` in `app/Services/Catalog/` (only products need this)
+   - Example: Payment gateway drivers in `app/Services/Payments/Drivers/`
+
+3. **Never create "god utils" files**
+   - NOT FOUND: No single `Utils.php` or `Helpers.php` with mixed concerns
+   - Current pattern: Services organized by domain (`PricingService`, `CartService`, `TaxService`)
+   - Recommended: Keep this pattern, create domain-specific services
+
+4. **Split by domain** when creating shared utilities:
+   - Pricing domain → `PricingService`
+   - KYC domain → (no service found, KYC logic in controllers - **TODO**: Consider `KycService`)
+   - Orders domain → `OrderWorkflowService`, `CheckoutService`
+   - Quotations domain → (business logic in controllers - **TODO**: Consider `QuotationService`)
+
+### C) Consistent Project-Wide Structure
+
+#### Canonical Folder Structure
+**Evidence:** From repository scan
+
+**Backend:**
+```
+app/
+├── Console/Commands/          # Artisan commands
+├── Enums/                     # Status and type enums
+├── Events/                    # Domain events
+├── Exceptions/                # Custom exceptions
+├── Http/
+│   ├── Controllers/
+│   │   ├── Admin/            # Admin portal controllers (34 files)
+│   │   ├── Frontend/         # Customer portal controllers (9 files)
+│   │   ├── Auth/             # Authentication controllers
+│   │   └── Production/       # Production portal controllers
+│   ├── Middleware/            # Custom middleware
+│   └── Requests/              # FormRequest validation (93 files)
+│       ├── Admin/
+│       └── Frontend/
+├── Models/                    # Eloquent models (49 files)
+├── Services/                  # Business logic services
+│   ├── Catalog/              # Catalog-specific services
+│   └── Payments/             # Payment gateway services
+│       ├── Contracts/
+│       └── Drivers/
+├── Providers/                 # Service providers
+├── Listeners/                 # Event listeners
+└── Mail/                      # Mailable classes
+```
+
+**Frontend:**
+```
+resources/js/
+├── Components/                # Reusable UI components
+│   └── Customization/        # Domain-specific component group
+├── Layouts/                   # Layout components
+├── Pages/                     # Inertia pages
+│   ├── Admin/
+│   ├── Frontend/
+│   ├── Auth/
+│   └── Production/
+├── types/                     # TypeScript type definitions
+└── utils/                     # Pure utility functions (1 file: variantMatrixGenerator.ts)
+```
+
+#### Naming Conventions
+**Evidence:** From codebase patterns
+
+**Backend:**
+- Controllers: `{Resource}Controller` (PascalCase)
+- Services: `{Domain}Service` (PascalCase, ends in Service)
+- Requests: `{Action}{Resource}Request` (StoreProductRequest, UpdateProductRequest)
+- Models: Singular PascalCase (`Product`, `Order`, `CartItem`)
+- Enums: `{Domain}Status` or `{Domain}Type` (PascalCase)
+
+**Frontend:**
+- Components: PascalCase (`PrimaryButton.tsx`, `CustomizationSection.tsx`)
+- Pages: PascalCase matching route structure (`Show.tsx`, `Index.tsx`)
+- Utils: camelCase functions (`generateVariantMatrix`)
+- Types: PascalCase interfaces/types (`PageProps`, `Product`, `ConfigurationOption`)
+
+#### How to Add a New Feature Checklist
+**Evidence:** Based on existing patterns
+
+1. **Route** → Add to appropriate group in `routes/web.php`:
+   - Customer portal: `Route::middleware(['portal.customer', 'ensure.kyc.approved'])`
+   - Admin portal: `Route::prefix('admin')->middleware(['auth:admin', 'can:access admin portal'])`
+
+2. **Controller** → Create in appropriate namespace:
+   - `app/Http/Controllers/Frontend/{Resource}Controller.php` OR
+   - `app/Http/Controllers/Admin/{Resource}Controller.php`
+
+3. **FormRequest** → Create validation class:
+   - `app/Http/Requests/{Portal}/{Action}{Resource}Request.php`
+
+4. **Service** (if business logic needed):
+   - `app/Services/{Domain}Service.php` OR
+   - Domain-specific: `app/Services/{Domain}/{Specific}Service.php`
+
+5. **Model** (if new entity):
+   - `app/Models/{Resource}.php`
+   - Migration: `database/migrations/YYYY_MM_DD_HHMMSS_create_{resources}_table.php`
+
+6. **Frontend Page**:
+   - `resources/js/Pages/{Portal}/{Resource}/{Action}.tsx`
+
+7. **Tests**:
+   - `tests/Feature/{Resource}Test.php`
+
+### D) Quality Gates
+
+#### No Duplicated Business Logic
+**Evidence:**
+- Pricing logic centralized in `PricingService` (called from multiple places)
+- Status transitions centralized in `OrderWorkflowService`
+- Discount logic in `MakingChargeDiscountService`
+
+**Rules:**
+1. **NEVER** duplicate pricing calculations (always use `PricingService`)
+2. **NEVER** duplicate status transition logic (always use workflow services)
+3. **NEVER** duplicate KYC checks (use `EnsureKycApproved` middleware)
+
+#### No Direct DB Queries in Controllers
+**Evidence:**
+- Controllers use Eloquent queries for simple reads (acceptable pattern)
+- Example: `app/Http/Controllers/Frontend/CatalogController.php` line 46: `Product::query()->with([...])`
+- Complex queries in services: `app/Services/PricingService.php` uses `PriceRate::where(...)`
+
+**Rules:**
+1. Simple Eloquent queries for filtering/reading in controllers are acceptable
+2. Complex queries or business logic queries → move to service
+3. Transactions → always in services (evidence: `CheckoutService::initialize()` line 36 uses `DB::transaction`)
+4. NEVER use `DB::table()` or raw queries in controllers (use Eloquent or service)
+
+#### Add/Update Tests When Touching Critical Areas
+**Evidence:**
+- Existing tests: `tests/Feature/CartCheckoutTest.php`, `tests/Feature/KycMiddlewareTest.php`
+
+**Rules:**
+1. **MUST** add tests when modifying:
+   - Pricing calculations (`PricingService`)
+   - Order status workflows (`OrderWorkflowService`)
+   - Payment processing (`CheckoutService`)
+   - KYC enforcement (middleware/controllers)
+
+2. **SHOULD** add tests when modifying:
+   - Cart operations (`CartService`)
+   - Checkout flow
+   - Quotation lifecycle
+
+3. Use factories for test data (evidence: `database/factories/` with 20 factory files)
+4. Use `RefreshDatabase` trait (evidence: `CartCheckoutTest.php` line 20)
+
+## Cleanup & Removal Rules
+
+### 1) Unused/Unnecessary Code Must Be Removed
+
+#### No Dead Code Allowed
+**Evidence:**
+- TypeScript compiler: `package.json` line 6 (`"build": "tsc && vite build"`) - TypeScript will catch unused imports/declarations
+- Laravel Pint: `composer.json` line 21 (`"laravel/pint": "^1.24"`) - Code formatter installed
+- PHPUnit: `phpunit.xml` - Tests verify code usage
+
+**Rules:**
+1. **No unused imports/variables** - Remove immediately when editing code
+   - TypeScript compiler (`tsc`) will flag unused imports/types during build
+   - PHP: Manually check imports, IDE should flag unused `use` statements
+
+2. **No unused functions/methods** - Delete if not called anywhere
+   - Search codebase for function name before removing
+   - Check if used in tests (acceptable usage)
+
+3. **No unused components/services** - Remove instead of keeping "maybe later" code
+   - Evidence: `app/Services/OfferService.php` lines 20, 29 - Contains TODO comments for future implementation (acceptable - intentional placeholders, not dead code)
+
+4. **No unused routes** - Remove from `routes/web.php` if controller method doesn't exist or route is unreachable
+
+5. **No unused config keys** - Remove from `config/*.php` if not referenced in code
+
+#### No Commented-Out Code Blocks
+**Evidence:**
+- NOT FOUND: No systematic checking for commented code blocks
+- Found: Only intentional comments like migration notes (`database/migrations/2025_11_12_120000_create_user_kyc_messages_table.php` line 14, 21)
+
+**Rules:**
+1. **NEVER** commit commented-out code blocks
+   - Exception: Temporary debugging code MUST be removed before merge
+   - Exception: Documentation comments explaining WHY code exists (acceptable)
+
+2. **Remove commented code immediately** when editing files
+   - If code is needed later, it belongs in version control history, not in comments
+
+3. **Intentional placeholders** are acceptable:
+   - `// TODO: Implement offer resolution rules` in `OfferService.php` (lines 20, 29) - Intentional placeholder for future work
+   - Must be tracked and resolved (either implement or remove service if not needed)
+
+#### Experimental/Intentionally Kept Code
+**Evidence:**
+- NOT FOUND: No "experimental" directory or pattern exists in codebase
+
+**Rules:**
+1. **No experimental directory pattern exists** - Do NOT create one
+2. If code is intentionally kept for future use:
+   - Add clear TODO comment with issue/ticket reference
+   - Document in code why it's kept
+   - Set deadline for implementation or removal
+   - Example: `app/Services/OfferService.php` - Service exists with TODOs (acceptable pattern)
+
+#### Enforcement Tooling
+**Backend:**
+- **Laravel Pint**: `composer.json` line 21 - Code formatter (runs `./vendor/bin/pint`)
+- **NOT FOUND**: No PHPStan/Psalm/Larastan for static analysis
+- **Recommended**: Add Larastan (`composer require --dev larastan/larastan`) for unused code detection
+
+**Frontend:**
+- **TypeScript**: `tsconfig.json` - Compiler catches unused imports/types during build
+- **NOT FOUND**: No ESLint configuration for unused import detection
+- **Recommended**: Add ESLint with `eslint-plugin-unused-imports`:
+  ```json
+  // package.json
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "eslint-plugin-unused-imports": "^3.0.0"
+  }
+  ```
+  ```json
+  // .eslintrc.json
+  {
+    "plugins": ["unused-imports"],
+    "rules": {
+      "unused-imports/no-unused-imports": "error"
+    }
+  }
+  ```
+
+**TypeScript Configuration:**
+- **Current**: `tsconfig.json` has `"strict": true` but no `noUnusedLocals`/`noUnusedParameters`
+- **Recommended**: Add to `tsconfig.json`:
+  ```json
+  "compilerOptions": {
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  }
+  ```
+
+## Deprecation Rules (Controlled Process)
+
+**Deprecation is a controlled process. Production-used features cannot be deleted directly without following deprecation steps.**
+
+### Deprecation Process (Required Steps)
+
+1. **Mark as Deprecated**
+   - Add `@deprecated` annotation to class/method
+   - Document deprecation date and removal target date
+   - Add deprecation notice in code comments
+   - Example: `@deprecated Since 2025-01-15, will be removed in 2025-04-15. Use NewService instead.`
+
+2. **Block New Usage**
+   - Add deprecation warnings in development/testing environments
+   - Log deprecation usage to identify callers
+   - Update documentation to discourage new usage
+   - Example: `trigger_error('This method is deprecated, use NewService::method() instead', E_USER_DEPRECATED);`
+
+3. **Migrate Data (If Applicable)**
+   - Create migration plan for existing data
+   - Run data migration script to move to new structure
+   - Verify data integrity after migration
+   - Keep old data structure until migration is complete
+
+4. **Remove Code + Update Rules**
+   - After migration complete and no usage remains → Remove code
+   - Follow Feature Removal Checklist (see Section: Feature Removal Checklist)
+   - Update rules documents (mark as removed)
+   - Update evidence index
+
+### Forbidden: Direct Deletion of Production Features
+
+**❌ FORBIDDEN:**
+- Deleting production-used features without deprecation process
+- Removing code that is actively used in production
+- Breaking changes without migration plan
+
+**✅ REQUIRED:**
+- Follow deprecation process above
+- Maintain backward compatibility during deprecation period
+- Provide migration path for existing code/data
+
+### Evidence
+- Feature removal checklist exists in Cleanup & Removal Rules
+- Rules update process exists in Rules Sync section
+
+### 2) Feature Removal Checklist
+
+When removing a functionality, you MUST delete ALL of its footprint:
+
+#### Feature Removal Checklist
+
+**Evidence:** Based on repository structure patterns
+
+**Backend Removal:**
+- [ ] **Remove routes** from `routes/web.php` or `routes/api.php`
+  - Search for route name: `route('feature.name')`
+  - Remove route definition and verify controller method is removed
+
+- [ ] **Remove controllers/requests/services**
+  - Delete controller file: `app/Http/Controllers/{Portal}/{Resource}Controller.php`
+  - Delete FormRequest files: `app/Http/Requests/{Portal}/{Action}{Resource}Request.php`
+  - Delete service if feature-specific: `app/Services/{Feature}Service.php`
+  - Check if service is shared (used elsewhere) - only remove feature-specific methods
+
+- [ ] **Remove DB references**
+  - Remove model relationships if unused elsewhere: Check `app/Models/*.php` for relationships
+  - Remove migrations ONLY if safe (database already migrated, no production data)
+  - Mark migrations as deprecated rather than deleting if production data exists
+
+- [ ] **Remove events/listeners/jobs/notifications**
+  - Delete event: `app/Events/{Feature}Event.php`
+  - Delete listener: `app/Listeners/{Feature}Listener.php`
+  - Delete job if feature-specific: `app/Jobs/{Feature}Job.php`
+  - Delete notification: `app/Notifications/{Feature}Notification.php`
+  - Update `app/Providers/EventServiceProvider.php` if listeners registered
+
+- [ ] **Remove mailables**
+  - Delete: `app/Mail/{Feature}Mail.php`
+  - Remove usage in controllers/listeners
+
+- [ ] **Remove config entries**
+  - Remove from `config/*.php` if feature-specific
+  - Check `.env.example` for related keys
+
+**Frontend Removal:**
+- [ ] **Remove pages**
+  - Delete: `resources/js/Pages/{Portal}/{Resource}/{Action}.tsx`
+  - Check for route references in `routes/web.php`
+
+- [ ] **Remove components** (if feature-specific)
+  - Delete: `resources/js/Components/{Feature}/` or feature-specific component files
+  - Check if component is reused elsewhere before deleting
+
+- [ ] **Remove hooks/utils** (if feature-specific)
+  - Delete: `resources/js/hooks/use{Feature}.ts` (when hooks directory exists)
+  - Delete: `resources/js/utils/{feature}.ts` if feature-specific
+
+- [ ] **Remove API calls/constants**
+  - Search frontend code for route references: `route('feature.name')`
+  - Remove API service calls if feature-specific
+  - Remove TypeScript types if unused: `resources/js/types/index.d.ts`
+
+- [ ] **Remove UI strings/translations**
+  - Search for feature-related text in components/pages
+  - Remove translation keys if translation files exist
+
+**Testing & Verification:**
+- [ ] **Remove or update tests**
+  - Delete: `tests/Feature/{Feature}Test.php`
+  - Delete: `tests/Unit/{Feature}Test.php`
+  - Update tests that depend on removed feature
+  - Run: `composer test` to verify no broken tests
+
+- [ ] **Remove factories** (if feature-specific)
+  - Delete: `database/factories/{Feature}Factory.php`
+  - Update factories that reference removed models
+
+- [ ] **Remove seeders** (if feature-specific)
+  - Delete: `database/seeders/{Feature}Seeder.php`
+  - Update seeders that reference removed models
+
+**Build & Verification:**
+- [ ] **Run build**
+  - Frontend: `npm run build` - Verify TypeScript compilation succeeds
+  - Check for unused import warnings
+
+- [ ] **Verify route removal**
+  - Search codebase: `grep -r "route('feature"` - Ensure no references remain
+  - Search: `grep -r "feature.name"` for route name strings
+
+- [ ] **Verify model removal**
+  - Search: `grep -r "Feature::"` or `grep -r "use App\\Models\\Feature"`
+  - Ensure no controllers/services reference removed model
+
+**Documentation:**
+- [ ] **Update rules documents**
+  - Mark as removed in appropriate rule document: `10_BACKEND_CONVENTIONS.mdc` or `20_FRONTEND_CONVENTIONS.mdc`
+  - Add marker: `**REMOVED FEATURE – CODE CLEANED**` with removal date
+  - Update `90_EVIDENCE_INDEX.mdc` - Remove or mark evidence as deprecated
+
+### 3) Rules Must Be Updated When Cleanup Happens
+
+#### Marking Removed/Renamed Code in Rules
+**Evidence:**
+- Rules documents: `.cursor/rules/*.mdc`
+- Evidence index: `.cursor/rules/90_EVIDENCE_INDEX.mdc`
+
+**Rules:**
+1. **When code is removed:**
+   - Add marker in relevant rule document: `**REMOVED FEATURE – CODE CLEANED** (YYYY-MM-DD)`
+   - Remove evidence references from `90_EVIDENCE_INDEX.mdc`
+   - Keep historical context if useful (mark as removed, don't delete entirely)
+
+2. **When code is renamed:**
+   - Add marker: `**RENAMED IN CODEBASE** (YYYY-MM-DD): OldName → NewName`
+   - Update all evidence references to new name
+   - Update evidence index
+
+3. **When code is no longer present:**
+   - Add marker: `**NO LONGER PRESENT IN CODEBASE**`
+   - Remove from active rules, keep in historical section if needed
+
+**Pattern:**
+```markdown
+### RemovedFeature (REMOVED FEATURE – CODE CLEANED 2025-01-15)
+**Status:** This feature was removed. All related code has been cleaned up.
+**Removed:** Routes, Controllers, Services, Models, Frontend pages
+**Reason:** Replaced by NewFeature implementation
+```
+
+### 4) Enforcement Gates (Current Tooling)
+
+#### How to Detect Unused Code (With Current Tools)
+
+**Backend Detection:**
+- **NOT FOUND**: No PHP static analysis tool (PHPStan/Psalm/Larastan)
+- **Manual verification:**
+  1. Search for class name: `grep -r "ClassName" app/`
+  2. Check route usage: `grep -r "route('feature" routes/`
+  3. Check controller methods: `grep -r "->featureMethod" app/`
+- **Recommended**: Add Larastan for automated detection:
+  ```bash
+  composer require --dev larastan/larastan
+  # Configure in phpstan.neon
+  ```
+
+**Frontend Detection:**
+- **TypeScript compiler**: `npm run build` - Will fail on unused imports/types if configured
+- **Current**: `tsconfig.json` has `"strict": true` but missing unused checks
+- **Recommended**: Add to `tsconfig.json`:
+  ```json
+  {
+    "compilerOptions": {
+      "noUnusedLocals": true,
+      "noUnusedParameters": true
+    }
+  }
+  ```
+- **NOT FOUND**: No ESLint for unused import detection
+- **Manual verification:**
+  1. Search component usage: `grep -r "ComponentName" resources/js/`
+  2. Search route usage: `grep -r "route('feature" resources/js/`
+  3. Search type usage: `grep -r "FeatureType" resources/js/`
+
+**Route Verification:**
+- **Manual**: Search codebase for route name:
+  ```bash
+  grep -r "route('removed.feature" app/ resources/js/ routes/
+  ```
+- **Check controller exists**: Verify controller file exists for route
+- **Check method exists**: Verify controller method exists
+
+**Grep Verification (Last Resort):**
+- Search for feature keywords across codebase
+- Check models: `grep -r "RemovedModel" app/ database/`
+- Check services: `grep -r "RemovedService" app/`
+- Check frontend: `grep -r "RemovedFeature\|removed-feature" resources/js/`
+
+#### Recommended Tooling Additions
+
+**Backend (Recommended, Not Required):**
+1. **Larastan** (Laravel PHPStan):
+   ```bash
+   composer require --dev larastan/larastan
+   ```
+   - Configure: Create `phpstan.neon`
+   - Detects: Unused classes, methods, properties
+   - Add to `composer.json` scripts: `"analyse": "phpstan analyse"`
+
+2. **Laravel Pint** (Already installed):
+   - Run: `./vendor/bin/pint` to format code
+   - Can help identify unused imports through formatting
+
+**Frontend (Recommended, Not Required):**
+1. **ESLint with unused-imports plugin**:
+   ```json
+   // package.json
+   "devDependencies": {
+     "eslint": "^8.0.0",
+     "eslint-plugin-unused-imports": "^3.0.0"
+   }
+   ```
+   - Detects: Unused imports, variables
+   - Add to `package.json` scripts: `"lint": "eslint resources/js/**/*.{ts,tsx}"`
+
+2. **TypeScript strict unused checks** (Recommended):
+   ```json
+   // tsconfig.json
+   {
+     "compilerOptions": {
+       "noUnusedLocals": true,
+       "noUnusedParameters": true
+     }
+   }
+   ```
+   - Detects: Unused local variables, function parameters
+   - Will cause build to fail on unused code
+
+**Note**: These are recommendations. Current tooling (TypeScript compiler, manual grep) is sufficient but less automated.
+
+## Forbidden Shortcuts (Hard Fail)
+
+**These patterns are STRICTLY FORBIDDEN and will cause immediate code review rejection. Higher priority rules (Business > Security > Structure) override developer convenience.**
+
+### 1. Business Logic in Controllers or UI (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: Business logic in controller
+public function index() {
+    $metalCost = 0;
+    foreach ($variant->metals as $variantMetal) {
+        $priceRate = PriceRate::where(...)->first();
+        $metalCost += $weight * $priceRate->price_per_gram;
+    }
+}
+```
+
+```tsx
+// ❌ FORBIDDEN: Business logic in React page
+const calculatePrice = () => {
+    let total = 0;
+    items.forEach(item => {
+        total += item.price * item.quantity;
+    });
+    // Discount logic here...
+};
+```
+
+**✅ REQUIRED:**
+```php
+// ✅ REQUIRED: Use service
+public function index() {
+    $products = $this->catalogService->getProducts($filters);
+    return Inertia::render('Catalog/Index', ['products' => $products]);
+}
+```
+
+**Evidence:**
+- Controllers delegate to services: `app/Http/Controllers/Frontend/CartController.php` (uses `CartService`)
+- Pricing calculations: `app/Services/PricingService.php` (single source of truth)
+- Violation found: `app/Http/Controllers/Frontend/CatalogController.php` lines 213-264 (duplicated pricing logic)
+
+### 2. Direct Status Updates Bypassing Workflow Services (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: Direct status update
+$order->status = OrderStatus::Approved;
+$order->save();
+```
+
+**✅ REQUIRED:**
+```php
+// ✅ REQUIRED: Use workflow service
+$this->orderWorkflowService->transitionOrder($order, OrderStatus::Approved, ['note' => 'Admin approved']);
+```
+
+**Evidence:**
+- Single source of truth: `app/Services/OrderWorkflowService.php::transitionOrder()`
+- Creates audit trail: `app/Models/OrderStatusHistory.php`
+- Dispatches events: `app/Events/OrderStatusUpdated.php`
+
+### 3. Pricing Calculations Outside Pricing Services (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: Manual price calculation
+$metalCost = $variant->metal_weight * $priceRate->price_per_gram;
+$diamondCost = $variant->diamonds_count * $diamond->price;
+$total = $metalCost + $diamondCost + $makingCharge;
+```
+
+**✅ REQUIRED:**
+```php
+// ✅ REQUIRED: Use PricingService
+$price = $this->pricingService->calculateProductPrice($product, $user, ['variant' => $variant]);
+```
+
+**Evidence:**
+- Single source of truth: `app/Services/PricingService.php::calculateProductPrice()`
+- Called from: `app/Services/CartService.php`, `app/Http/Controllers/Frontend/CatalogController.php::calculatePrice()`
+
+### 4. Payment Gateway Calls from Controllers (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: Direct gateway call
+use Stripe\StripeClient;
+$stripe = new StripeClient($key);
+$intent = $stripe->paymentIntents->create([...]);
+```
+
+**✅ REQUIRED:**
+```php
+// ✅ REQUIRED: Use gateway manager via service
+$paymentData = $this->checkoutService->initialize($cart);
+```
+
+**Evidence:**
+- Gateway abstraction: `app/Services/Payments/PaymentGatewayManager.php`
+- Service layer: `app/Services/CheckoutService.php` (uses gateway manager)
+- Drivers: `app/Services/Payments/Drivers/StripeGateway.php`, `app/Services/Payments/Drivers/FakeGateway.php`
+
+### 5. KYC Checks in Controllers Instead of Middleware (FORBIDDEN)
+
+**❌ FORBIDDEN:**
+```php
+// ❌ FORBIDDEN: KYC check in controller
+public function index() {
+    if ($user->kyc_status !== KycStatus::Approved->value) {
+        return redirect()->route('onboarding.kyc.show');
+    }
+    // ...
+}
+```
+
+**✅ REQUIRED:**
+```php
+// ✅ REQUIRED: Use middleware
+Route::middleware(['portal.customer', 'ensure.kyc.approved'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+});
+```
+
+**Evidence:**
+- Middleware: `app/Http/Middleware/EnsureKycApproved.php`
+- Applied to routes: `routes/web.php` lines 59-138 (all customer portal routes)
+
+### Enforcement
+
+**Code review MUST reject:**
+- Any code that violates these forbidden shortcuts
+- Pull requests with business logic in controllers/pages
+- Direct status updates without workflow services
+- Manual pricing calculations
+- Direct payment gateway calls
+- KYC checks in controllers
+
+**Priority:** Business Rules (highest) override developer convenience.
+
+## Forbidden Patterns (DO NOT DO)
+
+### No Business Logic in Controllers or React Pages
+**Evidence:**
+- **Correct Pattern**: `app/Http/Controllers/Frontend/CartController.php` - Delegates to `CartService`
+- **Correct Pattern**: `app/Http/Controllers/Frontend/CheckoutController.php` - Uses `CheckoutService`
+- **Violation Found**: `app/Http/Controllers/Frontend/CatalogController.php` lines 213-264 - Contains pricing calculation logic instead of using `PricingService`
+
+**Rules:**
+1. **NEVER** put business logic (calculations, workflows, validations) in controllers
+2. **NEVER** put business logic in React pages/components
+3. Controllers must only: validate (via FormRequest), call services, format response, redirect
+4. React pages must only: display data, handle UI interactions, call backend APIs
+
+**Forbidden Examples:**
+```php
+// ❌ FORBIDDEN: Business logic in controller
+public function index() {
+    $metalCost = 0;
+    foreach ($variant->metals as $variantMetal) {
+        $priceRate = PriceRate::where(...)->first();
+        $metalCost += $weight * $priceRate->price_per_gram;
+    }
+}
+
+// ✅ REQUIRED: Delegate to service
+public function index() {
+    $products = $this->catalogService->getProducts($filters);
+    return Inertia::render('Catalog/Index', ['products' => $products]);
+}
+```
+
+### No Copy-Pasted Pricing Logic Across Modules
+**Evidence:**
+- **Correct**: `app/Services/PricingService.php` - Single source for pricing
+- **Violation**: `app/Http/Controllers/Frontend/CatalogController.php` lines 213-264 duplicates pricing logic
+
+**Rules:**
+1. **NEVER** duplicate pricing calculation code
+2. **ALWAYS** use `PricingService::calculateProductPrice()` from any module
+3. If you see pricing logic in multiple places, refactor to use `PricingService`
+
+### No Magic Numbers for Roles/Statuses/Taxes
+**Evidence:**
+- **Correct**: `app/Enums/OrderStatus.php` - Enum values used instead of strings
+- **Correct**: `app/Enums/KycStatus.php` - Enum for KYC statuses
+- **Correct**: `app/Enums/UserType.php` - Enum for user types
+- **Correct**: `app/Enums/PaymentStatus.php` - Enum for payment statuses
+
+**Rules:**
+1. **NEVER** use string literals for statuses: `$order->status = 'pending'` (FORBIDDEN)
+2. **ALWAYS** use enum values: `$order->status = OrderStatus::Pending->value`
+3. **NEVER** hardcode role checks: `if ($user->type === 'admin')` (use enum)
+4. **ALWAYS** use enum: `if ($user->type === UserType::Admin->value)`
+5. Tax rates should come from `tax_groups`/`taxes` tables, not hardcoded
+
+**Forbidden Examples:**
+```php
+// ❌ FORBIDDEN: Magic strings
+if ($order->status === 'pending') { ... }
+if ($user->type === 'admin') { ... }
+
+// ✅ REQUIRED: Use enums
+if ($order->status === OrderStatus::Pending->value) { ... }
+if ($user->type === UserType::Admin->value) { ... }
+```
+
+### No Direct Payment Gateway Calls from Controllers
+**Evidence:**
+- **Correct Pattern**: `app/Services/Payments/PaymentGatewayManager.php` - Gateway manager abstraction
+- **Correct Pattern**: `app/Services/CheckoutService.php` line 82 - Uses `$this->gatewayManager->driver($payment->gateway)`
+- **Drivers**: `app/Services/Payments/Drivers/StripeGateway.php`, `app/Services/Payments/Drivers/FakeGateway.php`
+
+**Rules:**
+1. **NEVER** call payment gateway APIs directly from controllers
+2. **ALWAYS** use `PaymentGatewayManager::driver()` to get gateway instance
+3. **ALWAYS** use services (`CheckoutService`) to handle payment operations
+4. Controllers should only call service methods, not gateway drivers directly
+
+**Forbidden Examples:**
+```php
+// ❌ FORBIDDEN: Direct gateway call in controller
+use Stripe\StripeClient;
+$stripe = new StripeClient($key);
+$intent = $stripe->paymentIntents->create([...]);
+
+// ✅ REQUIRED: Use gateway manager via service
+$paymentData = $this->checkoutService->initialize($cart);
+```
+
+## Database & Migration Discipline
+
+### Rollbacks Must Work
+**Evidence:**
+- Migrations have `down()` methods: Example: `database/migrations/2025_11_08_184948_create_payments_table.php` lines 30-33
+- **NOT FOUND**: Need to verify all migrations have working `down()` methods
+
+**Rules:**
+1. **ALWAYS** implement `down()` method in migrations
+2. `down()` must reverse all changes made in `up()`
+3. Test rollbacks: `php artisan migrate:rollback` must work
+4. Be careful with data loss on rollback (consider separate data migration)
+
+### Backfill Strategy When Adding Non-Null Columns
+**Evidence:**
+- **Pattern Found**: `database/migrations/2025_12_05_202426_create_product_variants_table.php` line 20 - Uses `->default(0)` for `inventory_quantity`
+- **Pattern Found**: `database/migrations/2025_12_05_105110_create_products_table.php` line 29 - Uses `->default(true)` for `is_active`
+
+**Rules:**
+1. **ALWAYS** provide default value when adding non-nullable column to existing table
+2. Use `->default(value)` in migration
+3. OR create data migration first to backfill values, then add column with default
+4. OR make column nullable first, backfill, then make non-nullable
+
+**Example Pattern:**
+```php
+// ✅ Good: Default value provided
+$table->integer('inventory_quantity')->default(0);
+$table->boolean('is_active')->default(true);
+
+// ❌ Bad: Non-nullable without default on existing table
+$table->string('required_field'); // Will fail on existing rows
+```
+
+### Indexes on Foreign Keys + Frequent Filters
+**Evidence:**
+- **Foreign Keys**: Migrations use `->foreignId()` which automatically creates indexes
+- **Pattern**: `database/migrations/2025_11_08_184948_create_payments_table.php` line 16 - `$table->foreignId('order_id')->constrained()` creates index
+- **NOT FOUND**: Need to verify indexes exist for frequently filtered columns
+
+**Rules:**
+1. Foreign keys automatically get indexes (Laravel default)
+2. **ALWAYS** add indexes on columns used in WHERE clauses frequently
+3. Add composite indexes for multi-column filters
+4. Check queries for missing indexes using `EXPLAIN` or query logs
+
+**Recommended Locations for Additional Indexes:**
+- `orders.status` - Frequently filtered (add if missing)
+- `orders.user_id` - Foreign key (should have index already)
+- `order_status_histories.order_id` - Foreign key (should have index)
+- `payments.status` - Frequently filtered (add if missing)
+- `user_kyc_documents.user_id` - Foreign key (should have index)
+
+### No Breaking Changes to Pricing/Order/Rate-Lock Without Snapshot Handling
+**Evidence:**
+- **Order Model**: Has `locked_rates` JSON field (snapshot of rates at order time)
+- **Order Model**: Has `price_breakdown` JSON field (snapshot of calculated prices)
+- **Payment Model**: Has `meta` JSON field for gateway-specific data
+
+**Rules:**
+1. **ALWAYS** snapshot pricing data when creating orders (store in `price_breakdown`)
+2. **ALWAYS** snapshot rate data when creating orders (store in `locked_rates`)
+3. Never recalculate prices for existing orders using current rates
+4. Rate changes must only affect new orders, not historical orders
+5. If changing pricing calculation logic, ensure old orders retain their original breakdown
+
+**Evidence from Code:**
+- `app/Models/Order.php` - Has `price_breakdown` and `locked_rates` JSON fields
+- `app/Services/CartService.php` - Stores `price_breakdown` in cart items
+
+## API Contract Stability (Even with Inertia)
+
+### Request Validation Shape is Consistent
+**Evidence:**
+- **FormRequests**: `app/Http/Requests/` (93 files) - All validation in dedicated request classes
+- **Pattern**: `Store{Resource}Request`, `Update{Resource}Request` naming convention
+- **Example**: `app/Http/Requests/Frontend/Cart/AddCartItemRequest.php`
+
+**Rules:**
+1. **ALWAYS** use FormRequest classes for validation (never `$request->validate()` in controllers)
+2. Validation rules must be consistent across similar endpoints
+3. Field names should match between frontend form and backend request
+4. Use same validation rules for create/update where applicable
+
+### Predictable Error Format
+**Evidence:**
+- **Frontend**: `resources/js/Components/InputError.tsx` - Displays validation errors
+- **Frontend**: `resources/js/Components/FlashMessage.tsx` - Displays flash messages
+- **Backend**: Inertia automatically passes validation errors to frontend via `errors` prop
+
+**Rules:**
+1. Validation errors automatically formatted by Inertia (accessible via `errors.fieldName`)
+2. Flash messages: Use `->with('success', 'message')` or `->with('error', 'message')`
+3. **ALWAYS** use consistent error message format
+4. **NEVER** return raw exception messages to frontend (user-safe messages only)
+
+**Current Pattern:**
+```php
+// Backend
+return redirect()->back()->withErrors(['field' => 'Error message']);
+
+// Frontend (Inertia)
+<InputError message={errors.fieldName} />
+```
+
+### No Ad-Hoc JSON Payloads
+**Evidence:**
+- **Current**: Inertia responses use structured data passed to `Inertia::render()`
+- **Pattern**: Controllers format data arrays before passing to Inertia
+
+**Rules:**
+1. **ALWAYS** use structured data arrays for Inertia responses
+2. **NEVER** pass raw model instances (format data explicitly)
+3. Keep response shape consistent across similar endpoints
+4. Use same data structure for list/detail views where applicable
+
+## Security & Sensitive Data (KYC)
+
+### KYC Files Must Be Private/Protected
+**Evidence:**
+- **Storage**: `app/Http/Controllers/Frontend/KycOnboardingController.php` line 112 - Uses `Storage::disk('public')` for KYC documents
+- **Issue**: KYC documents stored in 'public' disk (accessible via URL)
+- **Download Route**: `app/Http/Controllers/Frontend/KycOnboardingController.php::downloadDocument()` line 170 - Has authorization check
+
+**Rules:**
+1. **NEVER** store KYC documents in 'public' disk (security risk)
+2. **ALWAYS** store sensitive files in 'private' or 'local' disk
+3. Use signed URLs for temporary access if needed
+4. **ALWAYS** verify authorization before serving files
+
+**NOT FOUND IN CODEBASE:**
+- KYC documents currently stored in 'public' disk
+- **Recommended Change**: Move to 'private' disk in `config/filesystems.php`
+- **Recommended Implementation**: 
+  - Change storage to `Storage::disk('private')->store("kyc/{$user->id}", 'private')`
+  - Use `Storage::disk('private')->download()` with authorization middleware
+
+**Evidence:**
+- `config/filesystems.php` line 33-38 - 'local' disk exists (private storage)
+- `config/filesystems.php` line 41-48 - 'public' disk is currently used for KYC
+
+### Authorization Checks for Download/View
+**Evidence:**
+- **Correct Pattern**: `app/Http/Controllers/Frontend/KycOnboardingController.php::downloadDocument()` lines 170-186
+  - Checks `if ($document->user_id !== $user->id)` before download (line 174)
+  - Returns 403 if unauthorized
+- **Admin View**: `app/Http/Controllers/Admin/KycController.php` - Admin can view all documents (proper authorization via middleware)
+
+**Rules:**
+1. **ALWAYS** verify user ownership or admin access before serving files
+2. Use authorization checks: `abort_unless($document->user_id === $user->id, 403)`
+3. Admin access must go through proper middleware (`can:access admin portal`)
+
+### Rate Limiting for OTP/Login Endpoints
+**Evidence:**
+- **Login**: `app/Http/Requests/Auth/LoginRequest.php` lines 68-84 - Uses `RateLimiter::tooManyAttempts()` with 5 attempts limit
+- **OTP**: `app/Http/Controllers/Auth/OtpLoginController.php` lines 29-35 - Uses `RateLimiter::tooManyAttempts()` with 5 attempts, 600 second decay
+
+**Rules:**
+1. **ALWAYS** rate limit authentication endpoints (login, OTP, password reset)
+2. Use Laravel's `RateLimiter` facade
+3. Standard limits: 5 attempts per email+IP, 600 second decay
+4. Clear rate limit on successful authentication
+
+**Current Implementation:**
+- Login: 5 attempts, per email+IP (line 70)
+- OTP send: 5 attempts, 600 second decay (line 31)
+- OTP verify: Rate limit cleared on success (line 82)
+
+## Error Handling Standard
+
+### Backend Errors User-Safe (No Stack Traces)
+**Evidence:**
+- **Exception Handler**: NOT FOUND - Need to check `app/Exceptions/Handler.php`
+- **Custom Exception**: `app/Exceptions/PaymentGatewayException.php` exists
+- **Current Pattern**: Controllers use `->with('error', 'message')` for user-facing errors
+
+**Rules:**
+1. **NEVER** expose stack traces to users in production
+2. **ALWAYS** catch exceptions and return user-safe messages
+3. Log exceptions with full details for debugging
+4. Use custom exceptions for domain errors (`PaymentGatewayException`)
+
+**NOT FOUND IN CODEBASE:**
+- Exception handler configuration
+- **Recommended**: Check `app/Exceptions/Handler.php` for production error handling
+- **Recommended Pattern**:
+  ```php
+  public function render($request, Throwable $exception) {
+      if ($request->expectsJson()) {
+          return response()->json(['error' => 'An error occurred'], 500);
+      }
+      return parent::render($request, $exception);
+  }
+  ```
+
+### Consistent Validation Error Rendering
+**Evidence:**
+- **Frontend Component**: `resources/js/Components/InputError.tsx` - Displays validation errors
+- **Flash Messages**: `resources/js/Components/FlashMessage.tsx` - Displays success/error messages
+- **Inertia**: Automatically passes validation errors via `errors` prop
+
+**Rules:**
+1. Use `<InputError message={errors.fieldName} />` for field-level errors
+2. Use `<FlashMessage />` for general success/error messages
+3. Keep error styling consistent (red text for errors)
+4. Show errors near the relevant form fields
+
+## Settings / Feature Flags Discipline
+
+### Settings Must Have Defaults
+**Evidence:**
+- **Settings Table**: `database/migrations/2025_11_14_062020_create_settings_table.php` exists
+- **NOT FOUND**: Settings model/usage pattern not found in codebase
+
+**Rules:**
+1. **ALWAYS** provide default values for settings
+2. Settings should be cacheable (use config cache)
+3. Settings changes should be logged/audited
+4. Use `config()` helper or Settings model with defaults
+
+**NOT FOUND IN CODEBASE:**
+- Settings model: `app/Models/Setting.php`
+- Settings service/helper
+- **Recommended Location**: `app/Models/Setting.php`, `app/Services/SettingsService.php`
+- **Recommended Pattern**: 
+  ```php
+  Setting::firstOrCreate(['key' => 'feature_flag'], ['value' => 'default']);
+  ```
+
+### Only Authorized Roles Can Edit Settings
+**Evidence:**
+- **Settings Routes**: NOT FOUND - Need to check if settings admin routes exist
+- **Admin Portal**: Routes in `routes/web.php` lines 146-290
+
+**Rules:**
+1. Settings edit endpoints must require admin authorization
+2. Use middleware: `can:access admin portal` or similar
+3. **ALWAYS** verify authorization in controller: `$this->authorize('manage settings')`
+
+**NOT FOUND IN CODEBASE:**
+- Settings management controller
+- **Recommended Location**: `app/Http/Controllers/Admin/SettingsController.php`
+- **Recommended Pattern**: Gate check for settings management
+
+### Caching Rules if Repo Uses Caching
+**Evidence:**
+- **Cache Config**: `config/cache.php` exists
+- **Cache Table**: `database/migrations/0001_01_01_000001_create_cache_table.php` exists
+- **NOT FOUND**: No explicit cache usage found in services
+
+**Rules:**
+1. Cache expensive operations (price rates, settings, tax rates)
+2. Clear cache when data changes (price rates updated → clear cache)
+3. Use cache tags if available for easy invalidation
+4. Set appropriate TTL for cached data
+
+**Recommended Locations for Caching:**
+- `PricingService` - Cache price rate lookups
+- `TaxService` - Cache tax rates
+- Settings - Cache all settings (invalidate on update)
+
+## Performance Rules
+
+### Avoid N+1, Use Eager Loading
+**Evidence:**
+- **Correct Pattern**: `app/Http/Controllers/Admin/QuotationController.php` line 40 - Uses `->with(['user', 'product', 'variant', 'order'])`
+- **Correct Pattern**: `app/Http/Controllers/Frontend/CatalogController.php` lines 200-202 - Uses `->with([...])` for variants relationships
+- **Pattern**: `app/Services/PricingService.php` line 32 - Uses `->with([...])` to eager load variant relationships
+
+**Rules:**
+1. **ALWAYS** use `->with()` or `->load()` to eager load relationships
+2. Identify N+1 queries using Laravel Debugbar or query log
+3. Load relationships in controller/service layer, not in views
+4. Use `->loadMissing()` if relationships may already be loaded
+
+**Example:**
+```php
+// ❌ BAD: N+1 queries
+$products = Product::all();
+foreach ($products as $product) {
+    $product->category->name; // N+1 query
+}
+
+// ✅ GOOD: Eager loading
+$products = Product::with('category')->get();
+```
+
+### Paginate List Pages
+**Evidence:**
+- **Pattern**: `app/Http/Controllers/Admin/ProductController.php` line 58 - Uses `->paginate($perPage)`
+- **Pattern**: `app/Http/Controllers/Admin/StyleController.php` line 27 - Uses `->paginate($perPage)`
+- **Frontend**: `resources/js/Components/Pagination.tsx` exists for pagination UI
+
+**Rules:**
+1. **ALWAYS** paginate list endpoints (never return all records)
+2. Default per page: 10-25 items
+3. Allow per_page parameter (validate max limit)
+4. Use Laravel's `paginate()` method
+
+**Current Pattern:**
+```php
+$perPage = $this->validatePerPage(request('per_page', 10));
+$products = Product::query()->paginate($perPage);
+```
+
+### Avoid Recalculating Pricing in Tight Loops Without Batching/Caching
+**Evidence:**
+- **Violation**: `app/Http/Controllers/Frontend/CatalogController.php` lines 206-290 - Recalculates prices for each product in loop
+- **Better Approach**: Batch calculate or use service with caching
+
+**Rules:**
+1. **NEVER** calculate prices for multiple products in a loop (use batch service method)
+2. Cache price rates (they change infrequently)
+3. Pre-calculate prices when possible (store in database, recalculate on rate change)
+4. Use `PricingService` for batch calculations if needed
+
+**NOT FOUND IN CODEBASE:**
+- Batch pricing calculation method
+- **Recommended**: Add `PricingService::calculateProductPrices(Collection $products, ?Customer $user)` method
+- **Recommended**: Cache price rates in `PricingService` constructor or use cache layer
+
+## Logging & Audit Rules
+
+### Money/KYC/Order/Payment Actions Must Be Logged/Audited
+**Evidence:**
+- **Order Status History**: `app/Models/OrderStatusHistory.php` - Audit trail for order status changes
+- **Order Workflow**: `app/Services/OrderWorkflowService.php` line 31 - Creates history entry for each status change
+- **Payment Model**: `app/Models/Payment.php` - Stores payment data with status and meta
+
+**Rules:**
+1. **ALWAYS** log order status changes (via `OrderStatusHistory`)
+2. **ALWAYS** log payment creation and status updates
+3. **ALWAYS** log KYC status changes (evidence needed - NOT FOUND)
+4. **ALWAYS** log money-related actions (price changes, discount applications)
+5. Store actor information (who made the change)
+
+**NOT FOUND IN CODEBASE:**
+- KYC status change audit log
+- Price rate change audit log
+- Payment action audit log (beyond payment model itself)
+
+**Recommended Implementation:**
+- **KYC Audit**: Create `KycStatusHistory` model similar to `OrderStatusHistory`
+- **Payment Audit**: Use `Payment` model meta field or create `PaymentHistory` model
+- **Price Rate Audit**: Log price rate changes when rates are updated (create migration/event)
+
+**Current Audit Coverage:**
+- ✅ Order status changes (via `OrderStatusHistory`)
+- ❌ KYC status changes (NOT FOUND)
+- ❌ Payment actions (only stored in Payment model, no separate audit)
+- ❌ Price rate changes (NOT FOUND)
+
+### Never Log Secrets
+**Evidence:**
+- **Logging Config**: `config/logging.php` exists
+- **NOT FOUND**: No explicit secret filtering in logging
+
+**Rules:**
+1. **NEVER** log passwords, API keys, tokens, or other secrets
+2. **NEVER** log full request bodies containing sensitive data
+3. Redact sensitive fields before logging
+4. Use Laravel's `Log::info()` with sanitized data only
+
+**Recommended Pattern:**
+```php
+// ❌ BAD: Logging sensitive data
+Log::info('Payment created', $payment->toArray()); // May contain secrets
+
+// ✅ GOOD: Sanitize before logging
+Log::info('Payment created', [
+    'id' => $payment->id,
+    'amount' => $payment->amount,
+    'status' => $payment->status,
+    // Exclude meta field if it contains secrets
+]);
+```
+
+**NOT FOUND IN CODEBASE:**
+- Logging service with secret filtering
+- **Recommended**: Create `app/Services/LoggingService.php` with `safeLog()` method that filters secrets
