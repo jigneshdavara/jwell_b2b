@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             BrandSeeder::class,
             CategorySeeder::class,
+            CatalogSeeder::class,
             DiamondDataSeeder::class,
             GeneralSettingsSeeder::class,
             MetalDataSeeder::class,
@@ -20,7 +21,7 @@ class DatabaseSeeder extends Seeder
             SizeSeeder::class,
             StyleSeeder::class,
             UserAndKycSeeder::class,
-
+            ProductSeeder::class,
         ]);
     }
 }
