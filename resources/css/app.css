@@ -5,13 +5,31 @@
 @tailwind utilities;
 
 :root {
-    /* Elvee Brand Colors */
-    --elvee-blue: #0E244D;
-    --feather-gold: #AE8135;
+    /* Elvee Blue Palette (Base: #0A1F47) */
+    --elvee-blue-900: #0A1F47; /* Base (navy) - Primary text, headings, navigation */
+    --elvee-blue-700: #0E244D; /* Lighter variant - Secondary text, borders */
+    --elvee-blue-500: #1A3A6B; /* Softer UI elements - Backgrounds, subtle borders */
+    --elvee-blue-300: #2D4F8F; /* Light backgrounds, borders */
+    
+    /* Feather Gold Palette (Base: #927038) */
+    --feather-gold-900: #927038; /* Base (warm-gold) - Primary accent */
+    --feather-gold-700: #AE8135; /* Lighter variant - Secondary highlights */
+    --feather-gold-500: #C99A4A; /* Subtle emphasis - Soft backgrounds */
+    --feather-gold-300: #E4B85F; /* Very light backgrounds */
+    
+    /* Steel/Grey Palette (Base: #B6B6B6) */
+    --steel-500: #B6B6B6; /* Base - Disabled states, borders */
+    --steel-300: #D1D1D1; /* Dividers - Lighter borders */
+    --steel-200: #E5E5E5; /* Backgrounds - Very light surfaces */
+    --steel-100: #F5F5F5; /* Very light UI surfaces */
+    
+    /* Legacy single-value support (maps to base for backward compatibility) */
+    --elvee-blue: var(--elvee-blue-900);
+    --feather-gold: var(--feather-gold-900);
+    --warm-gold: var(--feather-gold-900);
+    --steel: var(--steel-500);
+    --navy: var(--elvee-blue-900);
     --ivory: #F8F5F0;
-    --warm-gold: #927038;
-    --steel: #B6B6B6;
-    --navy: #0A1F47;
     --ink: #0C1424;
     
     /* Legacy support */
@@ -35,23 +53,23 @@ body {
 
 a {
     @apply transition-colors duration-200;
-    color: var(--elvee-blue);
+    color: var(--elvee-blue-900);
     text-decoration: none;
 }
 
 a:hover {
-    color: var(--feather-gold);
+    color: var(--feather-gold-900);
     text-decoration: none;
 }
 
 @layer components {
     .btn-primary {
-        @apply inline-flex items-center justify-center rounded-lg bg-elvee-blue px-5 py-2.5 font-medium text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy hover:text-white focus:outline-none focus:ring-2 focus:ring-feather-gold focus:ring-offset-2 focus:ring-offset-ivory;
+        @apply inline-flex items-center justify-center rounded-lg bg-elvee-blue-900 px-5 py-2.5 font-medium text-white shadow-lg shadow-elvee-blue-900/30 transition hover:bg-elvee-blue-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-feather-gold-900 focus:ring-offset-2 focus:ring-offset-ivory;
         letter-spacing: 0.02em;
     }
 
     .btn-secondary {
-        @apply inline-flex items-center justify-center rounded-lg border border-feather-gold/30 bg-feather-gold/10 px-5 py-2.5 font-medium text-elvee-blue transition hover:bg-feather-gold/20 hover:text-elvee-blue focus:outline-none focus:ring-2 focus:ring-feather-gold/50;
+        @apply inline-flex items-center justify-center rounded-lg border border-feather-gold-900/30 bg-feather-gold-900/10 px-5 py-2.5 font-medium text-elvee-blue-900 transition hover:bg-feather-gold-900/20 hover:text-elvee-blue-900 focus:outline-none focus:ring-2 focus:ring-feather-gold-900/50;
         letter-spacing: 0.02em;
     }
 
@@ -88,7 +106,7 @@ a:hover {
     .headline {
         font-weight: 700;
         letter-spacing: 0.08em;
-        color: var(--elvee-blue);
+        color: var(--elvee-blue-900);
     }
     
     .body-text {

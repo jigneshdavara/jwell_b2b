@@ -969,18 +969,33 @@ export default function AdminCategoriesIndex() {
                                                                 .filter((style) =>
                                                                     style.name.toLowerCase().includes(styleSearchQuery.toLowerCase())
                                                                 )
-                                                                .map((style) => (
+                                                                .map((style) => {
+                                                                    const isChecked = form.data.style_ids?.includes(style.id) || false;
+                                                                    return (
                                                                     <Menu.Item key={style.id}>
                                                                         {({ active }) => (
-                                                                            <label
+                                                                            <div
                                                                                 className={`flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer ${
                                                                                     active ? 'bg-slate-50' : ''
                                                                                 }`}
-                                                                            >
-                                                                                <input
+                                                                         onClick={(e) => {
+            if ((e.target as HTMLElement).tagName !== 'INPUT') {
+                e.stopPropagation();
+                e.preventDefault();
+                                                                                           const currentIds = form.data.style_ids || [];
+                if (isChecked) {
+                    form.setData('style_ids', currentIds.filter((id) => id !== style.id));
+                } else {
+                    form.setData('style_ids', [...currentIds, style.id]);
+                }
+            }
+        }}
+    >
+                                                                               <input
                                                                                     type="checkbox"
-                                                                                    checked={form.data.style_ids?.includes(style.id) || false}
+                                                                                    checked={isChecked}
                                                                                     onChange={(e) => {
+                                                                                            e.stopPropagation();
                                                                                         const currentIds = form.data.style_ids || [];
                                                                                         if (e.target.checked) {
                                                                                             form.setData('style_ids', [...currentIds, style.id]);
@@ -992,10 +1007,11 @@ export default function AdminCategoriesIndex() {
                                                                                     onClick={(e) => e.stopPropagation()}
                                                                                 />
                                                                                 <span className="text-sm text-slate-700">{style.name}</span>
-                                                                            </label>
+                                                                            </div>
                                                                         )}
                                                                     </Menu.Item>
-                                                                ))}
+                                                                );
+         })}
                                                             {styles.filter((style) =>
                                                                 style.name.toLowerCase().includes(styleSearchQuery.toLowerCase())
                                                             ).length === 0 && (
@@ -1089,18 +1105,34 @@ export default function AdminCategoriesIndex() {
                                                                 .filter((size) =>
                                                                     size.name.toLowerCase().includes(sizeSearchQuery.toLowerCase())
                                                                 )
-                                                                .map((size) => (
-                                                                    <Menu.Item key={size.id}>
+                                                                .map((size) => {
+                                                                    const isChecked = form.data.size_ids?.includes(size.id) || false;
+                                                                    return (
+                                                                        <Menu.Item key={size.id}>
                                                                         {({ active }) => (
-                                                                            <label
+                                                                            <div
                                                                                 className={`flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer ${
-                                                                                    active ? 'bg-slate-50' : ''
+                                                                                   active ? 'bg-slate-50' : ''
                                                                                 }`}
-                                                                            >
+                                                                                    onClick={(e) => {
+             // Only handle if click is not directly on checkbox
+                                                                                        if ((e.target as HTMLElement).tagName !== 'INPUT') {
+                 e.stopPropagation();
+                 e.preventDefault();
+                                                                                            const currentIds = form.data.size_ids || [];
+                 if (isChecked) {
+                     form.setData('size_ids', currentIds.filter((id) => id !== size.id));
+                 } else {
+                     form.setData('size_ids', [...currentIds, size.id]);
+                 }
+             }
+         }}
+     >
                                                                                 <input
                                                                                     type="checkbox"
-                                                                                    checked={form.data.size_ids?.includes(size.id) || false}
+                                                                                    checked={isChecked}
                                                                                     onChange={(e) => {
+                                                                                            e.stopPropagation();
                                                                                         const currentIds = form.data.size_ids || [];
                                                                                         if (e.target.checked) {
                                                                                             form.setData('size_ids', [...currentIds, size.id]);
@@ -1108,14 +1140,14 @@ export default function AdminCategoriesIndex() {
                                                                                             form.setData('size_ids', currentIds.filter((id) => id !== size.id));
                                                                                         }
                                                                                     }}
-                                                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"                                                                          onClick={(e) => e.stopPropagation()}
                                                                                 />
                                                                                 <span className="text-sm text-slate-700">{size.name}</span>
-                                                                            </label>
+                                                                            </div>
                                                                         )}
                                                                     </Menu.Item>
-                                                                ))}
+                                                               );
+                                                                })}
                                                             {sizes.filter((size) =>
                                                                 size.name.toLowerCase().includes(sizeSearchQuery.toLowerCase())
                                                             ).length === 0 && (
