@@ -734,10 +734,4 @@ class ProductController extends Controller
             ])
             ->all();
     }
-
-    protected function validatePerPage(int $perPage): int
-    {
-        $allowed = [10, 25, 50, 100];
-        return in_array($perPage, $allowed, true) ? $perPage : 10;
-    }
 }
