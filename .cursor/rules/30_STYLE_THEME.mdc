@@ -409,7 +409,7 @@ This project uses semantic status colors (green/red/yellow) for status indicator
 - **Blue-300:** backgrounds, subtle borders (to be defined)
 
 **Rules:**
-1. Blue-900 is default for text
+<!-- 1. Blue-900 is default for text -->
 2. Lighter blues only for UI depth, never primary text
 3. All shades must be derived from base `#0A1F47`
 
@@ -926,7 +926,7 @@ theme: {
 }
 ```
 
-## UI Differences: Customer vs Admin (Strict)
+<!-- ## UI Differences: Customer vs Admin (Strict)
 
 ### Customer Portal UI (Strict Luxury Branding)
 **Evidence:** `resources/js/Layouts/AuthenticatedLayout.tsx` lines 177-613
@@ -993,7 +993,7 @@ theme: {
 **Differences Allowed:**
 - Admin may use neutral grays for density (customer uses brand colors)
 - Admin may use darker backgrounds (customer uses ivory/white)
-- Admin may use more compact spacing (customer uses generous whitespace)
+- Admin may use more compact spacing (customer uses generous whitespace) -->
 
 ## Branding Constants
 
@@ -1092,14 +1092,6 @@ theme: {
 - Hide/show elements: `hidden lg:block`
 - Responsive padding: `px-4 lg:px-6`
 - Grid columns: `grid-cols-1 lg:grid-cols-3`
-
-## Dark Mode
-
-**Status:** NOT FOUND IN CODEBASE
-
-**Current State:** No dark mode implementation
-
-**Rule:** If adding dark mode, use Tailwind's dark mode variant and maintain brand colors
 
 ## Accessibility Colors
 

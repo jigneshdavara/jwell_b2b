@@ -35,7 +35,7 @@ alwaysApply: true
    - Typography (Avenir)
    - **Evidence:** `30_STYLE_THEME.mdc`
 
-5. **Developer Convenience** (lowest priority)
+5. **Developer Convenience**
    - Naming conventions
    - Code organization patterns
    - Documentation style
@@ -52,59 +52,6 @@ alwaysApply: true
 **Evidence:**
 - Rules documents: `.cursor/rules/*.mdc`
 - Business-critical services: `app/Services/PricingService.php`, `app/Services/OrderWorkflowService.php`
-
-## Rule Violation Severity Levels
-
-**All rule violations are classified by severity to prioritize fixes and enforcements.**
-
-### Severity Definitions
-
-1. **CRITICAL**
-   - Violations that cause security risks, data integrity issues, or business logic failures
-   - Examples: Bypassing KYC middleware, direct pricing calculations, unauthorized access
-   - **Action Required**: Must fix immediately, code review must reject
-
-2. **HIGH**
-   - Violations that break architectural patterns or create maintenance burden
-   - Examples: Business logic in controllers, duplicated service logic, missing audit trails
-   - **Action Required**: Must fix before merge, code review should reject
-
-3. **MEDIUM**
-   - Violations that reduce code quality or violate conventions
-   - Examples: Component size limits exceeded, missing documentation, inconsistent naming
-   - **Action Required**: Should fix, acceptable with exception justification
-
-4. **LOW**
-   - Violations that are stylistic or minor improvements
-   - Examples: Formatting inconsistencies, minor code organization
-   - **Action Required**: Nice to have, low priority
-
-### Severity by Rule Category
-
-**CRITICAL:**
-- Pricing calculations (must use `PricingService`)
-- Workflow transitions (must use `OrderWorkflowService`)
-- Security (KYC enforcement, authorization)
-- Payment processing (must use gateway abstraction)
-
-**HIGH:**
-- Business logic in controllers/pages
-- Duplicated service logic
-- Missing audit trails
-- Status updates bypassing workflows
-
-**MEDIUM:**
-- Component/page size limits
-- Code organization violations
-- Missing documentation
-
-**LOW:**
-- Naming convention violations
-- Formatting inconsistencies
-
-**Evidence:**
-- Rule categories map to severity levels
-- Enforcement gates align with severity (CRITICAL/HIGH must reject)
 
 ## AI Behavior Rules (Critical)
 
@@ -622,16 +569,6 @@ Execute: Scan repo, compare with existing rules docs, update only what changed, 
 - Verify evidence is accurate
 
 ### G) Current Tooling & Workflow Evidence
-
-**Git Hooks:**
-- **Evidence**: `.git/hooks/` directory exists but is empty
-- **Status**: NOT FOUND - No pre-commit hooks configured
-- **Recommendation**: Add Husky or similar for pre-commit validation
-
-**CI/CD:**
-- **Evidence**: `.github/workflows/main.yml` exists (deployment only)
-- **Status**: NOT FOUND - No CI validation for rules updates
-- **Recommendation**: Add workflow step to check if rules need update (see Section B, Option 2)
 
 **Linting/Formatting:**
 - **Evidence**: `composer.json` line 21 - Laravel Pint installed

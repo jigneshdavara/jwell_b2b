@@ -402,7 +402,7 @@ export default function CatalogShow() {
             errors.tone = "Please select Tone";
             // Check if product has sizes from configuration options
             const hasSize = configurationOptions.some(
-                (opt) => opt.size?.value || opt.size?.name || opt.metadata?.size_value
+                (opt) => opt.size?.value || opt.size?.name
             );
             if (hasSize) {
                 errors.size = "Please select Size";

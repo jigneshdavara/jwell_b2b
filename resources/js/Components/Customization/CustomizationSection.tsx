@@ -57,9 +57,7 @@ export default function CustomizationSection({
     /* ---------- Detect if size exists ---------- */
     const hasSize = useMemo(() => {
         return configurationOptions.some(
-            (c) =>
-                c.size ||
-                c.metadata?.size_value
+            (c) => c.size
         );
     }, [configurationOptions]);
 
@@ -89,9 +87,7 @@ export default function CustomizationSection({
             const s =
                 selectedConfig.size?.value ||
                 selectedConfig.size?.name ||
-                (selectedConfig.metadata?.size_value
-                    ? `${selectedConfig.metadata.size_value}${selectedConfig.metadata.size_unit || "cm"}`
-                    : "");
+                "";
             setSize(s);
         }
 
@@ -99,9 +95,7 @@ export default function CustomizationSection({
             const s = hasSize
                 ? (selectedConfig.size?.value ||
                     selectedConfig.size?.name ||
-                    (selectedConfig.metadata?.size_value
-                        ? `${selectedConfig.metadata.size_value}${selectedConfig.metadata.size_unit || "cm"}`
-                        : ""))
+                    "")
                 : "";
             onSelectionStateChange({
                 metalId: metal.metalId,
@@ -236,11 +230,6 @@ export default function CustomizationSection({
         configurationOptions.forEach((c) => {
             if (c.size?.value || c.size?.name)
                 sizes.add(c.size.value || c.size.name);
-
-            if (c.metadata?.size_value)
-                sizes.add(
-                    `${c.metadata.size_value}${c.metadata.size_unit || "cm"}`
-                );
         });
 
         return [...sizes];
@@ -263,11 +252,6 @@ export default function CustomizationSection({
 
             if (c.size?.value || c.size?.name)
                 sizes.add(c.size.value || c.size.name);
-
-            if (c.metadata?.size_value)
-                sizes.add(
-                    `${c.metadata.size_value}${c.metadata.size_unit || "cm"}`
-                );
         });
 
         return [...sizes];
@@ -292,9 +276,7 @@ export default function CustomizationSection({
             const s =
                 c.size?.value ||
                 c.size?.name ||
-                (c.metadata?.size_value
-                    ? `${c.metadata.size_value}${c.metadata.size_unit || "cm"}`
-                    : "");
+                "";
 
             return s === size;
         });
@@ -343,10 +325,7 @@ export default function CustomizationSection({
                                 const metalMatch = c.metals.some((m) => m.metalId === selectedMetalId);
                                 if (!metalMatch) return false;
                                 
-                                const s = c.size?.value || c.size?.name ||
-                                    (c.metadata?.size_value
-                                        ? `${c.metadata.size_value}${c.metadata.size_unit || "cm"}`
-                                        : "");
+                                const s = c.size?.value || c.size?.name || "";
                                 return s === size;
                             });
                         }
@@ -481,10 +460,7 @@ export default function CustomizationSection({
                                 );
                                 if (!match) return false;
                                 
-                                const s = c.size?.value || c.size?.name ||
-                                    (c.metadata?.size_value
-                                        ? `${c.metadata.size_value}${c.metadata.size_unit || "cm"}`
-                                        : "");
+                                const s = c.size?.value || c.size?.name || "";
                                 return s === size;
                             });
                         }
@@ -599,10 +575,7 @@ export default function CustomizationSection({
                                 );
                                 if (!match) return false;
                                 
-                                const s = c.size?.value || c.size?.name ||
-                                    (c.metadata?.size_value
-                                        ? `${c.metadata.size_value}${c.metadata.size_unit || "cm"}`
-                                        : "");
+                                const s = c.size?.value || c.size?.name || "";
                                 return s === size;
                             });
                         }

@@ -1,5 +1,12 @@
+// EXCEPTION: This file is 4055 lines but cannot be split because:
+// 1. Complex form state interdependencies require single component
+// 2. Product variant matrix generation requires shared state
+// 3. Admin product edit form has tightly coupled sections (basic info, variants, media, etc.)
+// REVIEW: Revisit in 2025-06-30 to refactor into smaller components
+
 import RichTextEditor from '@/Components/RichTextEditor';
 import AdminLayout from '@/Layouts/AdminLayout';
+import PrimaryButton from '@/Components/PrimaryButton';
 import type { PageProps as AppPageProps } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormDataConvertible } from '@inertiajs/core';
@@ -242,10 +249,10 @@ function SubcategoryTreeRenderer({ nodes, selectedIds, onToggle, level }: Subcat
                 const shouldShowChildren = hasChildren && isSelected;
                 const indentPx = level * 24;
                 const textColorClass = level === 0 
-                    ? (isSelected ? 'text-sky-900' : 'text-slate-900')
-                    : (isSelected ? 'text-sky-900' : 'text-slate-700');
+                    ? (isSelected ? 'text-elvee-blue' : 'text-slate-900')
+                    : (isSelected ? 'text-elvee-blue' : 'text-slate-700');
                 const bgColorClass = isSelected
-                    ? 'bg-sky-50 text-sky-700'
+                    ? 'bg-elvee-blue/5 text-elvee-blue'
                     : level === 0
                     ? 'text-slate-700 hover:bg-slate-50'
                     : 'text-slate-600 hover:bg-slate-50';
@@ -260,7 +267,7 @@ function SubcategoryTreeRenderer({ nodes, selectedIds, onToggle, level }: Subcat
                             <div
                                 className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
                                     isSelected
-                                        ? 'border-sky-500 bg-sky-500'
+                                        ? 'border-elvee-blue bg-elvee-blue'
                                         : 'border-slate-300'
                                 }`}
                             >
@@ -286,7 +293,7 @@ function SubcategoryTreeRenderer({ nodes, selectedIds, onToggle, level }: Subcat
                             {hasChildren && (
                                 <svg
                                     className={`h-4 w-4 transition-transform ${
-                                        shouldShowChildren ? 'rotate-90 text-sky-500' : 'text-slate-400'
+                                        shouldShowChildren ? 'rotate-90 text-elvee-blue' : 'text-slate-400'
                                     }`}
                                     fill="none"
                                     viewBox="0 0 24 24"
@@ -417,7 +424,7 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
             <div className="flex items-center justify-between">
                 <span>Subcategories</span>
                 {selectedIds.length > 0 && (
-                    <span className="text-xs font-medium text-sky-600">
+                    <span className="text-xs font-medium text-elvee-blue">
                         {selectedIds.length} selected
                     </span>
                 )}
@@ -429,8 +436,8 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                     disabled={!parentCategoryId}
                     className={`w-full rounded-2xl border ${
                         error ? 'border-rose-300' : 'border-slate-200'
-                    } bg-white px-4 py-2.5 text-left focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 transition-all ${
-                        isOpen ? 'border-sky-400 ring-2 ring-sky-200' : ''
+                    } bg-white px-4 py-2.5 text-left focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 transition-all ${
+                        isOpen ? 'border-feather-gold ring-2 ring-feather-gold/20' : ''
                     } ${
                         !parentCategoryId ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
@@ -445,7 +452,7 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                                 selectedSubcategories.map((subcategory) => (
                                     <span
                                         key={subcategory.id}
-                                        className="inline-flex items-center gap-1.5 rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 border border-sky-200"
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-elvee-blue/5 px-2 py-1 text-xs font-medium text-elvee-blue border border-elvee-blue/20"
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <span>{subcategory.name}</span>
@@ -455,10 +462,10 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                                                 e.stopPropagation();
                                                 removeSubcategory(subcategory.id);
                                             }}
-                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors"
+                                            className="hover:bg-elvee-blue/10 rounded-full p-0.5 transition-colors"
                                         >
                                             <svg
-                                                className="h-3 w-3 text-sky-600"
+                                                className="h-3 w-3 text-elvee-blue"
                                                 fill="none"
                                                 viewBox="0 0 24 24"
                                                 stroke="currentColor"
@@ -566,7 +573,7 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
             <div className="flex items-center justify-between">
                 <span>Catalogs</span>
                 {selectedIds.length > 0 && (
-                    <span className="text-xs font-medium text-sky-600">
+                    <span className="text-xs font-medium text-elvee-blue">
                         {selectedIds.length} selected
                     </span>
                 )}
@@ -577,8 +584,8 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                     onClick={() => setIsOpen(!isOpen)}
                     className={`w-full rounded-2xl border ${
                         error ? 'border-rose-300' : 'border-slate-200'
-                    } bg-white px-4 py-2.5 text-left focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 transition-all ${
-                        isOpen ? 'border-sky-400 ring-2 ring-sky-200' : ''
+                    } bg-white px-4 py-2.5 text-left focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 transition-all ${
+                        isOpen ? 'border-feather-gold ring-2 ring-feather-gold/20' : ''
                     }`}
                 >
                     <div className="flex items-center justify-between gap-2">
@@ -589,7 +596,7 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                 selectedCatalogs.map((catalog) => (
                                     <span
                                         key={catalog.id}
-                                        className="inline-flex items-center gap-1.5 rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 border border-sky-200"
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-elvee-blue/5 px-2 py-1 text-xs font-medium text-elvee-blue border border-elvee-blue/20"
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <span>{catalog.name}</span>
@@ -599,10 +606,10 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                                 e.stopPropagation();
                                                 removeCatalog(catalog.id);
                                             }}
-                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors"
+                                            className="hover:bg-elvee-blue/10 rounded-full p-0.5 transition-colors"
                                         >
                                             <svg
-                                                className="h-3 w-3 text-sky-600"
+                                                className="h-3 w-3 text-elvee-blue"
                                                 fill="none"
                                                 viewBox="0 0 24 24"
                                                 stroke="currentColor"
@@ -645,7 +652,7 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         placeholder="Search catalogs..."
-                                        className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 py-2 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                         onClick={(e) => e.stopPropagation()}
                                     />
                                 </div>
@@ -668,14 +675,14 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                                 onClick={() => toggleCatalog(catalog.id)}
                                                 className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
                                                     isSelected
-                                                        ? 'bg-sky-50 text-sky-700'
+                                                        ? 'bg-elvee-blue/5 text-elvee-blue'
                                                         : 'text-slate-700 hover:bg-slate-50'
                                                 }`}
                                             >
                                                 <div
                                                     className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
                                                         isSelected
-                                                            ? 'border-sky-500 bg-sky-500'
+                                                            ? 'border-elvee-blue bg-elvee-blue'
                                                             : 'border-slate-300'
                                                     }`}
                                                 >
@@ -695,13 +702,13 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
                                                         <span className={`text-sm font-medium truncate ${
-                                                            isSelected ? 'text-sky-900' : 'text-slate-900'
+                                                            isSelected ? 'text-elvee-blue' : 'text-slate-900'
                                                         }`}>
                                                             {catalog.name}
                                                         </span>
                                                         {catalog.code && (
                                                             <span className={`text-xs font-mono ${
-                                                                isSelected ? 'text-sky-600' : 'text-slate-500'
+                                                                isSelected ? 'text-elvee-blue' : 'text-slate-500'
                                                             }`}>
                                                                 ({catalog.code})
                                                             </span>
@@ -780,7 +787,7 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
             <div className="flex items-center justify-between">
                 <span>Style</span>
                 {selectedIds.length > 0 && (
-                    <span className="text-xs font-medium text-sky-600">
+                    <span className="text-xs font-medium text-elvee-blue">
                         {selectedIds.length} selected
                     </span>
                 )}
@@ -791,8 +798,8 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                     onClick={() => setIsOpen(!isOpen)}
                     className={`w-full rounded-2xl border ${
                         error ? 'border-rose-300' : 'border-slate-200'
-                    } bg-white px-4 py-2.5 text-left focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 transition-all ${
-                        isOpen ? 'border-sky-400 ring-2 ring-sky-200' : ''
+                    } bg-white px-4 py-2.5 text-left focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 transition-all ${
+                        isOpen ? 'border-feather-gold ring-2 ring-feather-gold/20' : ''
                     }`}
                 >
                     <div className="flex items-center justify-between gap-2">
@@ -803,7 +810,7 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                                 selectedStyles.map((style) => (
                                     <span
                                         key={style.id}
-                                        className="inline-flex items-center gap-1.5 rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700 border border-sky-200"
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-elvee-blue/5 px-2 py-1 text-xs font-medium text-elvee-blue border border-elvee-blue/20"
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <span>{style.name}</span>
@@ -813,10 +820,10 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                                                 e.stopPropagation();
                                                 removeStyle(style.id);
                                             }}
-                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors"
+                                            className="hover:bg-elvee-blue/10 rounded-full p-0.5 transition-colors"
                                         >
                                             <svg
-                                                className="h-3 w-3 text-sky-600"
+                                                className="h-3 w-3 text-elvee-blue"
                                                 fill="none"
                                                 viewBox="0 0 24 24"
                                                 stroke="currentColor"
@@ -859,7 +866,7 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                                         placeholder="Search styles..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                         onClick={(e) => e.stopPropagation()}
                                     />
                                 </div>
@@ -882,14 +889,14 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                                                 onClick={() => toggleStyle(style.id)}
                                                 className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
                                                     isSelected
-                                                        ? 'bg-sky-50 text-sky-700'
+                                                        ? 'bg-elvee-blue/5 text-elvee-blue'
                                                         : 'text-slate-700 hover:bg-slate-50'
                                                 }`}
                                             >
                                                 <div
                                                     className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
                                                         isSelected
-                                                            ? 'border-sky-500 bg-sky-500'
+                                                            ? 'border-elvee-blue bg-elvee-blue'
                                                             : 'border-slate-300'
                                                     }`}
                                                 >
@@ -908,7 +915,7 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
 
                                                 <div className="flex-1 min-w-0">
                                                     <span className={`text-sm font-medium truncate ${
-                                                        isSelected ? 'text-sky-900' : 'text-slate-900'
+                                                        isSelected ? 'text-elvee-blue' : 'text-slate-900'
                                                     }`}>
                                                         {style.name}
                                                     </span>
@@ -2606,13 +2613,13 @@ export default function AdminProductEdit() {
                                 Define product master information and atelier references.
                             </p>
                         </div>
-                        <button
+                        <PrimaryButton
                             type="submit"
                             disabled={processing}
-                            className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="gap-2"
                         >
                             {processing ? 'Saving…' : product?.id ? 'Save changes' : 'Create product'}
-                        </button>
+                        </PrimaryButton>
                     </div>
 
                     <div className="mt-6 space-y-6">
@@ -2624,7 +2631,7 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.sku}
                                         onChange={(event) => setData('sku', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                         placeholder="Enter SKU"
                                     />
                                     {errors.sku && <span className="text-xs text-rose-500">{errors.sku}</span>}
@@ -2635,7 +2642,7 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.name}
                                         onChange={(event) => setData('name', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                         placeholder="Enter product name"
                                     />
                                     {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
@@ -2646,7 +2653,7 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.producttype}
                                         onChange={(event) => setData('producttype', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                         placeholder="Enter product type"
                                     />
                                     {errors.producttype && <span className="text-xs text-rose-500">{errors.producttype}</span>}
@@ -2657,7 +2664,7 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.titleline}
                                         onChange={(event) => setData('titleline', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                         placeholder="Enter product title line"
                                     />
                                     {errors.titleline && <span className="text-xs text-rose-500">{errors.titleline}</span>}
@@ -2668,7 +2675,7 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.collection}
                                         onChange={(event) => setData('collection', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                         placeholder="Enter collection name"
                                     />
                                     {errors.collection && <span className="text-xs text-rose-500">{errors.collection}</span>}
@@ -2679,7 +2686,7 @@ export default function AdminProductEdit() {
                                     <select
                                         value={data.gender}
                                         onChange={(event) => setData('gender', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                     >
                                         <option value="">Select gender</option>
                                         <option value="Men">Men</option>
@@ -2697,7 +2704,7 @@ export default function AdminProductEdit() {
                                     <select
                                         value={data.brand_id}
                                         onChange={(event) => setData('brand_id', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                     >
                                         <option value="">Select brand</option>
                                         {Object.entries(brands).map(([id, name]) => (
@@ -2717,7 +2724,7 @@ export default function AdminProductEdit() {
                                             // Clear style_ids when category changes
                                             setData('style_ids', []);
                                         }}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                     >
                                         <option value="">Select category</option>
                                         {(parentCategories || []).map((category) => (
@@ -2810,7 +2817,7 @@ export default function AdminProductEdit() {
                                             min="0"
                                             value={data.making_charge_amount}
                                             onChange={(event) => setData('making_charge_amount', event.target.value)}
-                                            className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                             placeholder="Enter fixed making charge"
                                         />
                                         {errors.making_charge_amount && <span className="text-xs text-rose-500">{errors.making_charge_amount}</span>}
@@ -2826,7 +2833,7 @@ export default function AdminProductEdit() {
                                             max="100"
                                             value={data.making_charge_percentage}
                                             onChange={(event) => setData('making_charge_percentage', event.target.value)}
-                                            className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                             placeholder="Enter percentage (e.g., 10 for 10%)"
                                         />
                                         <span className="text-xs text-slate-500">Percentage will be calculated on metal cost</span>
@@ -3000,13 +3007,13 @@ export default function AdminProductEdit() {
                                 </p>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                                     <div className="flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-elvee-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 13h8l-4-4m0 8l4-4" />
                                         </svg>
                                         <span className="text-slate-700">Configure Metals</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-elvee-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                         </svg>
                                         <span className="text-slate-700">Configure Diamonds</span>
@@ -3045,7 +3052,7 @@ export default function AdminProductEdit() {
                                             <div className="mb-4 flex items-center justify-between">
                                                 <h4 className="text-sm font-semibold text-slate-900">Select Sizes</h4>
                                                 {/* {selectedSizes.length > 0 && (
-                                                    <span className="text-xs font-medium text-sky-600">
+                                                    <span className="text-xs font-medium text-elvee-blue">
                                                         {selectedSizes.length} size{selectedSizes.length !== 1 ? 's' : ''} selected
                                                     </span>
                                                 )} */}
@@ -3053,7 +3060,7 @@ export default function AdminProductEdit() {
                                             
                                             <div className="mb-4">
                                                 <div className="flex items-center justify-end gap-4 flex-wrap">
-                                                    <label className="inline-flex items-center gap-2 cursor-pointer hover:text-sky-600 transition-colors">
+                                                    <label className="inline-flex items-center gap-2 cursor-pointer hover:text-elvee-blue transition-colors">
                                                         <input
                                                             type="checkbox"
                                                             checked={data.show_all_variants_by_size === true}
@@ -3063,13 +3070,13 @@ export default function AdminProductEdit() {
                                                                     show_all_variants_by_size: e.target.checked ? true : false,
                                                                 }));
                                                             }}
-                                                            className="h-4 w-4 rounded border-2 border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-0 cursor-pointer"
+                                                            className="h-4 w-4 rounded border-2 border-slate-300 text-elvee-blue focus:ring-2 focus:ring-feather-gold focus:ring-offset-0 cursor-pointer"
                                                         />
-                                                        <span className="text-sm font-semibold text-slate-700 hover:text-sky-600 whitespace-nowrap">
+                                                        <span className="text-sm font-semibold text-slate-700 hover:text-elvee-blue whitespace-nowrap">
                                                             Show all variants
                                                         </span>
                                                     </label>
-                                                    <label className="inline-flex items-center gap-2 cursor-pointer hover:text-sky-600 transition-colors">
+                                                    <label className="inline-flex items-center gap-2 cursor-pointer hover:text-elvee-blue transition-colors">
                                                         <input
                                                             type="checkbox"
                                                             checked={allSizesSelected}
@@ -3090,9 +3097,9 @@ export default function AdminProductEdit() {
                                                                     };
                                                                 });
                                                             }}
-                                                            className="h-4 w-4 rounded border-2 border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-0 cursor-pointer"
+                                                            className="h-4 w-4 rounded border-2 border-slate-300 text-elvee-blue focus:ring-2 focus:ring-feather-gold focus:ring-offset-0 cursor-pointer"
                                                         />
-                                                        <span className="text-sm font-semibold text-slate-700 hover:text-sky-600 whitespace-nowrap">
+                                                        <span className="text-sm font-semibold text-slate-700 hover:text-elvee-blue whitespace-nowrap">
                                                             Select all sizes
                                                         </span>
                                                     </label>
@@ -3109,7 +3116,7 @@ export default function AdminProductEdit() {
                                                             className={`
                                                                 inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
                                                                 ${isSizeSelected
-                                                                    ? 'bg-sky-600 text-white shadow-sm'
+                                                                    ? 'bg-elvee-blue text-white shadow-sm'
                                                                     : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
                                                                 }
                                                             `}
@@ -3136,9 +3143,9 @@ export default function AdminProductEdit() {
                                                                 }}
                                                                 className={`mr-2 h-4 w-4 rounded border-2 ${
                                                                     isSizeSelected
-                                                                        ? 'border-white bg-white text-sky-600'
+                                                                        ? 'border-white bg-white text-elvee-blue'
                                                                         : 'border-slate-300 bg-white text-slate-700'
-                                                                } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                                } focus:ring-2 focus:ring-feather-gold focus:ring-offset-0`}
                                                             />
                                                             {size.name || size.value}
                                                         </label>
@@ -3165,7 +3172,7 @@ export default function AdminProductEdit() {
                                                 className={`
                                                     inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
                                                     ${isSelected
-                                                        ? 'bg-sky-600 text-white shadow-sm'
+                                                        ? 'bg-elvee-blue text-white shadow-sm'
                                                         : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
                                                     }
                                                 `}
@@ -3201,9 +3208,9 @@ export default function AdminProductEdit() {
                                                     }}
                                                     className={`mr-2 h-4 w-4 rounded border-2 ${
                                                         isSelected
-                                                            ? 'border-white bg-white text-sky-600'
+                                                            ? 'border-white bg-white text-elvee-blue'
                                                             : 'border-slate-300 bg-white text-slate-700'
-                                                    } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                    } focus:ring-2 focus:ring-feather-gold focus:ring-offset-0`}
                                                 />
                                                 {metal.name}
                                             </label>
@@ -3229,7 +3236,7 @@ export default function AdminProductEdit() {
                                                 <div className="mb-4 flex items-center justify-between">
                                                     <h4 className="text-sm font-semibold text-slate-900">Metal: {metal.name}</h4>
                                                     {/* {variantCount > 0 && (
-                                                        <span className="text-xs font-medium text-sky-600">
+                                                        <span className="text-xs font-medium text-elvee-blue">
                                                             {variantCount} variant{variantCount !== 1 ? 's' : ''} for this metal
                                                         </span>
                                                     )} */}
@@ -3248,7 +3255,7 @@ export default function AdminProductEdit() {
                                                                     className={`
                                                                         inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
                                                                         ${isPuritySelected
-                                                                            ? 'bg-sky-600 text-white shadow-sm'
+                                                                            ? 'bg-elvee-blue text-white shadow-sm'
                                                                             : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
                                                                         }
                                                                     `}
@@ -3280,9 +3287,9 @@ export default function AdminProductEdit() {
                                                                         }}
                                                                         className={`mr-2 h-4 w-4 rounded border-2 ${
                                                                             isPuritySelected
-                                                                                ? 'border-white bg-white text-sky-600'
+                                                                                ? 'border-white bg-white text-elvee-blue'
                                                                                 : 'border-slate-300 bg-white text-slate-700'
-                                                                        } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                                        } focus:ring-2 focus:ring-feather-gold focus:ring-offset-0`}
                                                                     />
                                                                     {purity.name}
                                                                 </label>
@@ -3304,7 +3311,7 @@ export default function AdminProductEdit() {
                                                                     className={`
                                                                         inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
                                                                         ${isToneSelected
-                                                                            ? 'bg-sky-600 text-white shadow-sm'
+                                                                            ? 'bg-elvee-blue text-white shadow-sm'
                                                                             : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
                                                                         }
                                                                     `}
@@ -3336,9 +3343,9 @@ export default function AdminProductEdit() {
                                                                         }}
                                                                         className={`mr-2 h-4 w-4 rounded border-2 ${
                                                                             isToneSelected
-                                                                                ? 'border-white bg-white text-sky-600'
+                                                                                ? 'border-white bg-white text-elvee-blue'
                                                                                 : 'border-slate-300 bg-white text-slate-700'
-                                                                        } focus:ring-2 focus:ring-sky-500 focus:ring-offset-0`}
+                                                                        } focus:ring-2 focus:ring-feather-gold focus:ring-offset-0`}
                                                                     />
                                                                     {tone.name}
                                                                 </label>
@@ -3385,7 +3392,7 @@ export default function AdminProductEdit() {
                                     <button
                                         type="button"
                                         onClick={addDiamondSelection}
-                                        className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-sky-400 hover:bg-sky-50"
+                                        className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-feather-gold hover:bg-feather-gold/5"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
@@ -3407,7 +3414,7 @@ export default function AdminProductEdit() {
                                                         <select
                                                             value={selection.diamond_id === '' ? '' : selection.diamond_id}
                                                             onChange={(e) => updateDiamondSelection(index, 'diamond_id', e.target.value === '' ? '' : Number(e.target.value))}
-                                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                                         >
                                                             <option value="">Select diamond</option>
                                                             {diamonds.map((diamond) => (
@@ -3432,7 +3439,7 @@ export default function AdminProductEdit() {
                                                             className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
                                                                 hasError
                                                                     ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-rose-200'
-                                                                    : 'border-slate-200 focus:border-sky-400 focus:ring-sky-200'
+                                                                    : 'border-slate-200 focus:border-feather-gold focus:ring-feather-gold/20'
                                                             }`}
                                                             placeholder={isDiamondSelected ? "Required" : "0"}
                                                         />
@@ -3723,14 +3730,14 @@ export default function AdminProductEdit() {
                                         <>
                                         <tr
                                             key={variant.id ?? `variant-${index}`}
-                                            className={`hover:bg-slate-50 ${variantStatus === 'disabled' ? 'opacity-70' : ''} ${variant.is_default ? 'bg-sky-50/30' : ''}`}
+                                            className={`hover:bg-slate-50 ${variantStatus === 'disabled' ? 'opacity-70' : ''} ${variant.is_default ? 'bg-elvee-blue/5' : ''}`}
                                         >
                                             <td className="px-5 py-3 align-middle min-w-[150px]">
                                                 <input
                                                     type="text"
                                                     value={variant.sku}
                                                     onChange={(event) => updateVariant(index, 'sku', event.target.value)}
-                                                    className="w-full min-w-[120px] rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="w-full min-w-[120px] rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                                     placeholder="Variant SKU"
                                                 />
                                                 {errors[`variants.${index}.sku`] && (
@@ -3742,7 +3749,7 @@ export default function AdminProductEdit() {
                                                     type="text"
                                                     value={variant.label}
                                                     onChange={(event) => updateVariant(index, 'label', event.target.value)}
-                                                    className="w-full min-w-[280px] rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="w-full min-w-[280px] rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                                     placeholder="Display label"
                                                 />
                                                 {errors[`variants.${index}.label`] && (
@@ -3784,8 +3791,8 @@ export default function AdminProductEdit() {
                                                                         className={`w-full rounded-xl border px-3 py-1.5 text-sm text-slate-700 transition-colors ${
                                                                             (!weight || weight === '')
                                                                                 ? 'border-rose-300 bg-rose-50 text-rose-500 focus:border-rose-400 focus:bg-white'
-                                                                                : 'border-slate-200 bg-white focus:border-sky-400'
-                                                                        } focus:outline-none focus:ring-2 focus:ring-sky-200`}
+                                                                                : 'border-slate-200 bg-white focus:border-feather-gold'
+                                                                        } focus:outline-none focus:ring-2 focus:ring-feather-gold/20`}
                                                                         placeholder="0.000"
                                                                     />
                                                                     {(!weight || weight === '') && (
@@ -3802,7 +3809,7 @@ export default function AdminProductEdit() {
                                             <td className="px-5 py-3 align-middle text-slate-700">
                                                 <div className="min-w-[120px]">
                                                     {group && group.length > 1 ? (
-                                                        <span className="text-sm text-slate-500 italic">All sizes</span>
+                                                        <span className="text-sm text-slate-500 italic">All selected sizes</span>
                                                     ) : (
                                                         <span className="text-sm text-slate-700">{sizeDisplay}</span>
                                                     )}
@@ -3830,8 +3837,8 @@ export default function AdminProductEdit() {
                                                         className={`w-full min-w-[100px] rounded-xl border px-3 py-1.5 text-sm text-slate-700 transition-colors ${
                                                             (variant.inventory_quantity === undefined || variant.inventory_quantity === null || variant.inventory_quantity === '')
                                                                 ? 'border-rose-300 bg-rose-50 text-rose-500 focus:border-rose-400 focus:bg-white'
-                                                                : 'border-slate-200 bg-white focus:border-sky-400'
-                                                        } focus:outline-none focus:ring-2 focus:ring-sky-200`}
+                                                                : 'border-slate-200 bg-white focus:border-feather-gold'
+                                                        } focus:outline-none focus:ring-2 focus:ring-feather-gold/20`}
                                                         placeholder="0"
                                                     />
                                                     {(variant.inventory_quantity === undefined || variant.inventory_quantity === null || variant.inventory_quantity === '') && (
@@ -3847,7 +3854,7 @@ export default function AdminProductEdit() {
                                                             status: event.target.value as FormDataConvertible,
                                                         })
                                                     }
-                                                    className={`rounded-xl border px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 ${
+                                                    className={`rounded-xl border px-3 py-1.5 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 ${
                                                         variantStatus === 'enabled'
                                                             ? 'border-emerald-300 bg-emerald-50'
                                                             : 'border-amber-300 bg-amber-50'
@@ -3869,7 +3876,7 @@ export default function AdminProductEdit() {
                                                         name="default-variant-table"
                                                         checked={variant.is_default}
                                                         onChange={() => markDefault(index)}
-                                                        className="h-4 w-4 text-sky-600 focus:ring-sky-500"
+                                                        className="h-4 w-4 text-elvee-blue focus:ring-feather-gold"
                                                     />
                                                     <span>{variant.is_default ? 'Default' : 'Set default'}</span>
                                                 </label>
@@ -3947,8 +3954,8 @@ export default function AdminProductEdit() {
                                                                                         className={`rounded-xl border-2 px-3 py-2 text-sm font-medium transition-colors ${
                                                                                             !metal.metal_weight
                                                                                                 ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:bg-white'
-                                                                                                : 'border-slate-200 bg-white focus:border-sky-400'
-                                                                                        } focus:outline-none focus:ring-2 focus:ring-sky-200`}
+                                                                                                : 'border-slate-200 bg-white focus:border-feather-gold'
+                                                                                        } focus:outline-none focus:ring-2 focus:ring-feather-gold/20`}
                                                                                         placeholder="Enter weight (required)"
                                                                                     />
                                                                                     {!metal.metal_weight && (
@@ -4002,7 +4009,7 @@ export default function AdminProductEdit() {
                                                                                 <select
                                                                                     value={typeof diamond.diamond_id === 'string' || !diamond.diamond_id ? '' : String(diamond.diamond_id)}
                                                                                     onChange={(e) => updateDiamondInVariant(index, diamondIndex, 'diamond_id', e.target.value === '' ? '' : Number(e.target.value))}
-                                                                                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                                                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                                                                 >
                                                                                     <option value="">Select diamond</option>
                                                                                     {(diamonds || []).map((diamondOption) => (
@@ -4020,7 +4027,7 @@ export default function AdminProductEdit() {
                                                                                     min="0"
                                                                                     value={diamond.diamonds_count}
                                                                                     onChange={(e) => updateDiamondInVariant(index, diamondIndex, 'diamonds_count', e.target.value)}
-                                                                                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                                                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                                                                     placeholder="0"
                                                                                 />
                                                                             </label>

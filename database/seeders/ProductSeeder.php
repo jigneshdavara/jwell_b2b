@@ -417,11 +417,7 @@ class ProductSeeder extends Seeder
                 'size_id' => $size ? $size->id : null,
                 'is_default' => $i === 0,
                 'inventory_quantity' => rand(5, 50),
-                'metadata' => [
-                    'size_cm' => $size ? (float) ($size->code ?? 0) : null,
-                    'size_value' => $size ? ($size->code ?? $size->name) : null,
-                    'size_unit' => $size ? 'cm' : null,
-                ],
+                'metadata' => [],
                 // Metals array - required structure for ProductVariantSyncService
                 'metals' => [
                     [

@@ -256,7 +256,7 @@ class CatalogController extends Controller
                     // Note: For percentage-only making charge, this will be 0 if no metal cost
                     $priceTotal = $product->calculateMakingCharge(0);
                 }
-                
+
                 // Ensure price_total is always a valid number
                 $priceTotal = max(0, (float) $priceTotal);
 
@@ -318,7 +318,7 @@ class CatalogController extends Controller
 
         // Manual pagination
         $page = (int) $request->input('page', 1);
-        $perPage = 12;
+        $perPage = $this->validatePerPage((int) $request->input('per_page', 12), [12, 24, 36, 48], 12);
         $total = $products->count();
         $items = $products->forPage($page, $perPage)->values()->all();
         $products = new \Illuminate\Pagination\LengthAwarePaginator(
