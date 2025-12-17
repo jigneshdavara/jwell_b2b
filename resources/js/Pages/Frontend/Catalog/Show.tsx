@@ -169,6 +169,16 @@ export default function CatalogShow() {
         tone?: string;
         size?: string;
     }>({});
+    
+    // Memoize the clear validation error function to prevent infinite loops
+    const clearValidationError = useCallback((field: 'metal' | 'purity' | 'tone' | 'size') => {
+        setValidationErrors((prev) => {
+            const updated = { ...prev };
+            delete updated[field];
+            return updated;
+        });
+    }, []);
+    
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxZoom, setLightboxZoom] = useState(1.5);
     const mediaCount = product.media.length;
@@ -554,13 +564,7 @@ export default function CatalogShow() {
                                         onVariantChange={setSelectedVariantId}
                                         onSelectionStateChange={setSelectionState}
                                         validationErrors={validationErrors}
-                                        onClearValidationError={(field) => {
-                                            setValidationErrors((prev) => {
-                                                const updated = { ...prev };
-                                                delete updated[field];
-                                                return updated;
-                                            });
-                                        }}
+                                        onClearValidationError={clearValidationError}
                                     />
                                 </>
                             )}

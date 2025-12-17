@@ -281,7 +281,8 @@ export default function CustomizationSection({
             return s === size;
         });
 
-        if (match) {
+        if (match && match.variant_id !== selectedVariantId) {
+            // Only update if variant actually changed
             onVariantChange(match.variant_id);
             // Clear all validation errors when variant is successfully matched
             if (onClearValidationError) {
@@ -300,8 +301,11 @@ export default function CustomizationSection({
         size,
         hasSize,
         configurationOptions,
+        selectedVariantId,
         onVariantChange,
-        onClearValidationError,
+        // Note: onClearValidationError intentionally excluded from deps
+        // to prevent infinite loops. It's only used conditionally.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     ]);
 
     /* ---------- UI ---------- */
