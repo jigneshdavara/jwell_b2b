@@ -207,42 +207,23 @@ alwaysApply: true
 
 ## "Don't Do This" Warnings
 
-1. **NEVER update Order.status directly**
-   - Use `OrderWorkflowService::transitionOrder()`
-   - Direct updates skip audit trail and events
+**Note:** Most model-related warnings are covered in detail in other rule files:
+- Order status updates: See `13_BACKEND_WORKFLOWS.mdc` - Order Status Lifecycle
+- Price calculations: See `11_BACKEND_SERVICES.mdc` - PricingService
+- String literals/enums: See `10_BACKEND_CONVENTIONS.mdc` - Code Structure Rules
+- KYC middleware: See `13_BACKEND_WORKFLOWS.mdc` - KYC Enforcement Workflow
+- Transactions: See `10_BACKEND_CONVENTIONS.mdc` - Database Transactions
+- User types: See `10_BACKEND_CONVENTIONS.mdc` - Magic Numbers Rule
+- Eager loading: See `10_BACKEND_CONVENTIONS.mdc` - Performance Rules
 
-2. **NEVER calculate prices manually**
-   - Always use `PricingService::calculateProductPrice()`
-   - Metal rates change, calculations are complex
+**Model-Specific Warnings:**
 
-3. **NEVER use string literals for status values**
-   - Use enum: `OrderStatus::Pending->value`, not `'pending'`
-   - Prevents typos and provides IDE autocomplete
-
-4. **NEVER bypass KYC middleware**
-   - All customer portal routes MUST have `ensure.kyc.approved`
-   - Direct model access bypasses security
-
-5. **NEVER store calculated prices without recalculation**
-   - Price breakdowns in CartItem/Order should be recalculated before use
-   - Rates can change between cart add and checkout
-
-6. **NEVER create orders without transactions**
-   - Order creation involves multiple models (Order, OrderItem, Payment)
-   - Use `DB::transaction()` to ensure consistency
-
-7. **NEVER hardcode user types**
-   - Use `UserType` enum: `UserType::Admin->value`, not `'admin'`
-
-8. **NEVER mix Customer and User models**
+1. **NEVER mix Customer and User models**
    - Customer = `web` guard (customers table)
    - User = `admin` guard (users table)
    - They are separate entities
 
-9. **NEVER store variant configurations as plain arrays without normalization**
+2. **NEVER store variant configurations as plain arrays without normalization**
    - Use `CartService::normalizeConfiguration()` for duplicate detection
    - Only compare relevant fields (notes), ignore variant labels
-
-10. **NEVER access relationships without eager loading**
-    - Use `with()` or `load()` to avoid N+1 queries
-    - Example: `$product->load(['variants.metals.metal', 'variants.diamonds.diamond'])`
+   - **Evidence:** `app/Services/CartService.php::normalizeConfiguration()` (line 192)
