@@ -3852,6 +3852,11 @@ export default function AdminProductEdit() {
                                                             ? 'border-emerald-300 bg-emerald-50'
                                                             : 'border-amber-300 bg-amber-50'
                                                     }`}
+                                                    style={{
+                                                        backgroundImage: 'none',
+                                                        WebkitAppearance: 'none',
+                                                        MozAppearance: 'none',
+                                                    }}
                                                 >
                                                     <option value="enabled">Enabled</option>
                                                     <option value="disabled">Disabled</option>
