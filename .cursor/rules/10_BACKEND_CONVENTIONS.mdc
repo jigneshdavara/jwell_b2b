@@ -86,7 +86,7 @@ Gate::define('manage products', fn (User $user) =>
 ### Middleware Rules
 
 #### EnsureKycApproved
-**Evidence:** `app/Http/Controllers/Middleware/EnsureKycApproved.php`
+**Evidence:** `app/Http/Middleware/EnsureKycApproved.php`
 
 **Rules:**
 1. Must check `$user->kyc_status === KycStatus::Approved->value`
@@ -94,7 +94,7 @@ Gate::define('manage products', fn (User $user) =>
 3. Return 403 JSON response if `expectsJson()`
 
 #### EnsureCustomerPortalAccess
-**Evidence:** `app/Http/Controllers/Middleware/EnsureCustomerPortalAccess.php`
+**Evidence:** `app/Http/Middleware/EnsureCustomerPortalAccess.php`
 
 **Rules:**
 1. Default allowed roles: `retailer`, `wholesaler`, `sales`
@@ -268,6 +268,8 @@ public function store(Request $request) {
 - All validation in `app/Http/Requests/` directory (93 files)
 - Pattern: `Store{Resource}Request`, `Update{Resource}Request`, `Bulk{Action}Request`
 - Example: `app/Http/Requests/Frontend/Cart/AddCartItemRequest.php`, `app/Http/Requests/Admin/StoreProductRequest.php`
+- Authorization pattern: `app/Http/Requests/Admin/StoreOfferRequest.php` line 13 - Uses `$this->user()?->can('manage offers')`
+- Unique validation: `app/Http/Requests/Admin/StoreProductRequest.php` line 42 - Uses `Rule::unique('products', 'sku')->ignore($productId)`
 
 **Rules:**
 1. **NEVER** use `$request->validate()` in controllers
