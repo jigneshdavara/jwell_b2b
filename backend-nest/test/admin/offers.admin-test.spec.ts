@@ -83,6 +83,27 @@ describe('Admin Offers & Discounts (e2e)', () => {
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body.items)).toBe(true);
     });
+
+    it('PUT /api/admin/offers/:id - Should update an offer', async () => {
+      const response = await request(app.getHttpServer())
+        .put(`/api/admin/offers/${offerId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          name: 'Updated Offer',
+          value: 15.0,
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.name).toBe('Updated Offer');
+    });
+
+    it('DELETE /api/admin/offers/:id - Should delete an offer', async () => {
+      const response = await request(app.getHttpServer())
+        .delete(`/api/admin/offers/${offerId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+    });
   });
 
   describe('Making Charge Discounts', () => {
@@ -112,6 +133,27 @@ describe('Admin Offers & Discounts (e2e)', () => {
 
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body.items)).toBe(true);
+    });
+
+    it('PATCH /api/admin/offers/making-charge-discounts/:id - Should update a discount', async () => {
+      const response = await request(app.getHttpServer())
+        .patch(`/api/admin/offers/making-charge-discounts/${discountId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          name: 'Updated Discount',
+          value: 7.5,
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.name).toBe('Updated Discount');
+    });
+
+    it('DELETE /api/admin/offers/making-charge-discounts/:id - Should delete a discount', async () => {
+      const response = await request(app.getHttpServer())
+        .delete(`/api/admin/offers/making-charge-discounts/${discountId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
     });
   });
 });
