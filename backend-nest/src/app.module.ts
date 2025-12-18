@@ -21,6 +21,13 @@ import { DiamondShapeSizesModule } from './admin/diamond/diamond-shape-sizes/dia
 import { DiamondsModule } from './admin/diamond/diamonds/diamonds.module';
 import { StylesModule } from './admin/styles/styles.module';
 import { SizesModule } from './admin/sizes/sizes.module';
+import { BrandsModule } from './admin/brands/brands.module';
+import { CategoriesModule } from './admin/categories/categories.module';
+import { GeneralSettingsModule } from './admin/settings/general/general.module';
+import { TaxGroupsModule } from './admin/settings/tax-groups/tax-groups.module';
+import { TaxesModule } from './admin/settings/taxes/taxes.module';
+import { OffersModule } from './admin/offers/offers.module';
+import { MakingChargeDiscountsModule } from './admin/offers/making-charge-discounts/making-charge-discounts.module';
 
 @Module({
   imports: [
@@ -44,6 +51,13 @@ import { SizesModule } from './admin/sizes/sizes.module';
     DiamondsModule,
     StylesModule,
     SizesModule,
+    BrandsModule,
+    CategoriesModule,
+    GeneralSettingsModule,
+    TaxGroupsModule,
+    TaxesModule,
+    MakingChargeDiscountsModule, // Important: Specific prefix before general prefix
+    OffersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
