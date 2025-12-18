@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { KycService } from './kyc.service';
 import { UpdateKycProfileDto, UpdateKycStatusDto } from './dto/kyc.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../common/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
