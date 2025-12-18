@@ -7,10 +7,11 @@
 import RichTextEditor from '@/Components/RichTextEditor';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PrimaryButton from '@/Components/PrimaryButton';
+import BrandButton from '@/Components/BrandButton';
 import type { PageProps as AppPageProps } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import type { FormDataConvertible } from '@inertiajs/core';
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { generateVariantMatrix as generateVariantMatrixUtil } from '@/utils/variantMatrixGenerator';
 
 type VariantMetalForm = {
@@ -456,13 +457,21 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <span>{subcategory.name}</span>
-                                        <button
-                                            type="button"
+                                        <span
+                                            role="button"
+                                            tabIndex={0}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 removeSubcategory(subcategory.id);
                                             }}
-                                            className="hover:bg-elvee-blue/10 rounded-full p-0.5 transition-colors"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    removeSubcategory(subcategory.id);
+                                                }
+                                            }}
+                                            className="hover:bg-elvee-blue/10 rounded-full p-0.5 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-elvee-blue/50"
                                         >
                                             <svg
                                                 className="h-3 w-3 text-elvee-blue"
@@ -472,7 +481,7 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                                             >
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                             </svg>
-                                        </button>
+                                        </span>
                                     </span>
                                 ))
                             )}
@@ -600,13 +609,21 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <span>{catalog.name}</span>
-                                        <button
-                                            type="button"
+                                        <span
+                                            role="button"
+                                            tabIndex={0}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 removeCatalog(catalog.id);
                                             }}
-                                            className="hover:bg-elvee-blue/10 rounded-full p-0.5 transition-colors"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    removeCatalog(catalog.id);
+                                                }
+                                            }}
+                                            className="hover:bg-elvee-blue/10 rounded-full p-0.5 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-elvee-blue/50"
                                         >
                                             <svg
                                                 className="h-3 w-3 text-elvee-blue"
@@ -616,7 +633,7 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                             >
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                             </svg>
-                                        </button>
+                                        </span>
                                     </span>
                                 ))
                             )}
@@ -814,13 +831,21 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <span>{style.name}</span>
-                                        <button
-                                            type="button"
+                                        <span
+                                            role="button"
+                                            tabIndex={0}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 removeStyle(style.id);
                                             }}
-                                            className="hover:bg-elvee-blue/10 rounded-full p-0.5 transition-colors"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    removeStyle(style.id);
+                                                }
+                                            }}
+                                            className="hover:bg-elvee-blue/10 rounded-full p-0.5 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-elvee-blue/50"
                                         >
                                             <svg
                                                 className="h-3 w-3 text-elvee-blue"
@@ -830,7 +855,7 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                                             >
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                             </svg>
-                                        </button>
+                                        </span>
                                     </span>
                                 ))
                             )}
@@ -2613,13 +2638,12 @@ export default function AdminProductEdit() {
                                 Define product master information and atelier references.
                             </p>
                         </div>
-                        <PrimaryButton
+                        <BrandButton
                             type="submit"
                             disabled={processing}
-                            className="gap-2"
                         >
                             {processing ? 'Saving…' : product?.id ? 'Save changes' : 'Create product'}
-                        </PrimaryButton>
+                        </BrandButton>
                     </div>
 
                     <div className="mt-6 space-y-6">
@@ -3466,16 +3490,15 @@ export default function AdminProductEdit() {
                                 )}
                             </div>
                             <div className="flex justify-end">
-                                <button
+                                <BrandButton
                                     type="button"
                                     onClick={generateVariantMatrix}
-                                    className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
                                     </svg>
                                     Generate Matrix
-                                </button>
+                                </BrandButton>
                             </div>
                         </div>
                     </div>
@@ -3726,10 +3749,10 @@ export default function AdminProductEdit() {
                                             : 'enabled';
                                     const suggestedLabel = meta.autoLabel;
 
+                                    const rowKey = variant.id ?? `variant-${index}`;
                                     return (
-                                        <>
+                                        <React.Fragment key={rowKey}>
                                         <tr
-                                            key={variant.id ?? `variant-${index}`}
                                             className={`hover:bg-slate-50 ${variantStatus === 'disabled' ? 'opacity-70' : ''} ${variant.is_default ? 'bg-elvee-blue/5' : ''}`}
                                         >
                                             <td className="px-5 py-3 align-middle min-w-[150px]">
@@ -3899,7 +3922,7 @@ export default function AdminProductEdit() {
                                             </td>
                                         </tr>
                                         {expandedMetalVariantIndices.has(index) && (
-                                            <tr>
+                                            <tr key={`${rowKey}-expanded`}>
                                                 <td colSpan={13} className="px-5 py-4">
                                                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                                         <div className="mb-4 flex items-center justify-between">
@@ -4040,7 +4063,7 @@ export default function AdminProductEdit() {
                                                 </td>
                                             </tr>
                                         )}
-                                        </>
+                                        </React.Fragment>
                                     );
                                 })}
                                  {(data.variants || []).length === 0 && (
