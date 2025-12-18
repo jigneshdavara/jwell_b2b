@@ -1,0 +1,67 @@
+"use client";
+
+import InputError from "@/components/ui/InputError";
+import InputLabel from "@/components/ui/InputLabel";
+import PrimaryButton from "@/components/ui/PrimaryButton";
+import TextInput from "@/components/ui/TextInput";
+import GuestLayout from "@/components/shared/GuestLayout";
+import { FormEvent, useState } from "react";
+import { authService } from "@/services/authService";
+import { useRouter } from "next/navigation";
+
+export default function ConfirmPasswordPage() {
+  const router = useRouter();
+  const [data, setData] = useState({
+    password: "",
+  });
+  const [processing, setProcessing] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setProcessing(true);
+    setErrors({});
+
+    // Mock confirm password logic
+    setTimeout(() => {
+      router.back();
+      setProcessing(false);
+    }, 1000);
+  };
+
+  return (
+    <GuestLayout>
+      <div className="mx-auto max-w-md space-y-6 rounded-3xl bg-white p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10">
+        <div className="mb-4 text-sm text-gray-600">
+          This is a secure area of the application. Please confirm your password
+          before continuing.
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="mt-4">
+            <InputLabel htmlFor="password" value="Password" />
+
+            <TextInput
+              id="password"
+              type="password"
+              name="password"
+              value={data.password}
+              className="mt-1 block w-full"
+              isFocused={true}
+              onChange={(e) => setData({ ...data, password: e.target.value })}
+            />
+
+            <InputError message={errors.password} className="mt-2" />
+          </div>
+
+          <div className="mt-4 flex items-center justify-end">
+            <PrimaryButton className="ms-4" disabled={processing}>
+              {processing ? "Confirming..." : "Confirm"}
+            </PrimaryButton>
+          </div>
+        </form>
+      </div>
+    </GuestLayout>
+  );
+}
+

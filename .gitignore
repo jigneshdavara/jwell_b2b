@@ -22,3 +22,5 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+/next-frontend/node_modules
+/next-frontend/dist
