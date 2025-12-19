@@ -65,19 +65,6 @@ export class RatesService {
         };
     }
 
-    const latest = rates[0];
-    
-    // Get latest rate per purity
-    const puritiesSeen = new Set();
-    const latestByPurity: typeof rates = [];
-    
-    for (const rate of rates) {
-      if (!puritiesSeen.has(rate.purity)) {
-        puritiesSeen.add(rate.purity);
-        latestByPurity.push(rate);
-      }
-    }
-
     private async buildMetalSummary(metal: string) {
         const rates = await this.prisma.price_rates.findMany({
             where: { metal: { equals: metal, mode: 'insensitive' } },

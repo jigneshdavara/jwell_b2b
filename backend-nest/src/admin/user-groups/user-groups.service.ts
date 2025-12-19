@@ -147,31 +147,6 @@ export class UserGroupsService {
       slug = `${baseSlug}-${counter++}`;
     }
 
-    private async generateUniqueSlug(
-        name: string,
-        ignoreId?: number,
-    ): Promise<string> {
-        const baseSlug = name
-            .toLowerCase()
-            .replace(/[^\w\s-]/g, '')
-            .replace(/[\s_-]+/g, '-')
-            .replace(/^-+|-+$/g, '');
-
-        let slug = baseSlug;
-        let counter = 1;
-
-        while (true) {
-            const existing = await this.prisma.user_groups.findFirst({
-                where: {
-                    slug,
-                    id: ignoreId ? { not: BigInt(ignoreId) } : undefined,
-                },
-            });
-
-            if (!existing) break;
-            slug = `${baseSlug}-${counter++}`;
-        }
-
-        return slug;
-    }
+    return slug;
+  }
 }

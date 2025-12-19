@@ -146,25 +146,6 @@ export class CategoriesService {
 
             return category;
         });
-      }
-
-      return category;
-    });
-  }
-
-  async update(id: number, dto: UpdateCategoryDto, coverImage?: string) {
-    const categoryId = BigInt(id);
-    const category = await this.prisma.categories.findUnique({ where: { id: categoryId } });
-    if (!category) throw new NotFoundException('Category not found');
-
-    let imageToUpdate: string | undefined = coverImage;
-    if (dto.remove_cover_image && category.cover_image) {
-      this.deleteImage(category.cover_image);
-      imageToUpdate = undefined;
-    } else if (coverImage && category.cover_image) {
-      this.deleteImage(category.cover_image);
-    } else if (!coverImage) {
-      imageToUpdate = category.cover_image ?? undefined;
     }
 
     async update(id: number, dto: UpdateCategoryDto, coverImage?: string) {
@@ -314,60 +295,15 @@ export class CategoriesService {
         return result;
     }
 
-    return await this.prisma.categories.deleteMany({
-      where: { id: { in: bigIntIds } },
-    });
-  }
-
-  private buildTree(nodes: any[]): any[] {
-    const map: Record<string, any> = {};
-    const tree: any[] = [];
-
-    nodes.forEach(node => {
-      map[node.id.toString()] = { ...node, children: [] };
-    });
-
-    nodes.forEach(node => {
-      if (node.parent_id !== null) {
-        const parent = map[node.parent_id.toString()];
-        if (parent) {
-          parent.children.push(map[node.id.toString()]);
-        } else {
-          tree.push(map[node.id.toString()]);
+    private deleteImage(imagePath: string) {
+        // Assuming imagePath is relative to the storage root
+        const fullPath = path.join(process.cwd(), 'public', imagePath);
+        if (fs.existsSync(fullPath)) {
+            try {
+                fs.unlinkSync(fullPath);
+            } catch (err) {
+                console.error(`Failed to delete category image: ${fullPath}`, err);
+            }
         }
-      } else {
-        tree.push(map[node.id.toString()]);
-      }
-    });
-
-    return tree;
-  }
-
-  private flattenTree(tree: any[], level = 0): any[] {
-    let result: any[] = [];
-    const prefix = level > 0 ? '  '.repeat(level) + '└─ ' : '';
-
-    tree.forEach(node => {
-      result.push({
-        id: node.id,
-        name: prefix + node.name,
-        level,
-      });
-      if (node.children.length) {
-        result = result.concat(this.flattenTree(node.children, level + 1));
-      }
-    });
-
-    return result;
-  }
-
-  private deleteImage(imagePath: string) {
-    const fullPath = path.join(process.cwd(), 'public', imagePath);
-    if (fs.existsSync(fullPath)) {
-      try {
-        fs.unlinkSync(fullPath);
-      } catch (err) {
-        console.error(`Failed to delete category image: ${fullPath}`, err);
-      }
     }
 }

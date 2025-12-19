@@ -336,42 +336,22 @@ export class QuotationsService {
                 throw new BadRequestException('Insufficient inventory');
             }
         }
-      }
 
-      const groupKey = uuidv4();
-      const quotations: any[] = [];
+        return await this.prisma.$transaction(async (tx) => {
+            const quotation = await tx.quotations.create({
+                data: {
+                    user_id: userId,
+                    product_id: BigInt(dto.product_id),
+                    product_variant_id: dto.product_variant_id
+                        ? BigInt(dto.product_variant_id)
+                        : null,
+                    status: 'pending',
+                    quantity: dto.quantity,
+                    notes: dto.notes,
+                },
+            });
 
-      for (const item of cart.cart_items) {
-        const configuration = (item.configuration as any) || {};
-        const q = await tx.quotations.create({
-          data: {
-            user_id: userId,
-            quotation_group_id: groupKey,
-            product_id: item.product_id,
-            product_variant_id: item.product_variant_id,
-            status: 'pending',
-            quantity: item.quantity,
-            notes: configuration.notes || null,
-            created_at: new Date(),
-            updated_at: new Date(),
-          }
-        });
-
-        if (configuration.notes) {
-          await tx.quotation_messages.create({
-            data: {
-                user_id: userId,
-                quotation_group_id: groupKey,
-                product_id: product.id,
-                product_variant_id: dto.product_variant_id
-                    ? BigInt(dto.product_variant_id)
-                    : null,
-                status: 'pending',
-                quantity: dto.quantity,
-                notes: dto.notes,
-                created_at: new Date(),
-                updated_at: new Date(),
-            },
+            return quotation;
         });
     }
 
@@ -481,17 +461,25 @@ export class QuotationsService {
         ) {
             throw new BadRequestException('No confirmation required');
         }
-        quotations.push(q as any);
-      }
 
-      // Clear cart items
-      await tx.cart_items.deleteMany({ where: { cart_id: cart.id } });
-      
-      return quotations;
-    });
-  }
+        return await this.prisma.$transaction(async (tx) => {
+            const updated = await tx.quotations.updateMany({
+                where: {
+                    quotation_group_id: quotation.quotation_group_id,
+                    user_id: userId,
+                    status: 'pending_customer_confirmation',
+                },
+                data: {
+                    status: 'confirmed',
+                    updated_at: new Date(),
+                },
+            });
 
-  async addMessage(id: number, message: string, userId: bigint, sender: 'customer' | 'admin') {
+            return updated;
+        });
+    }
+
+    async addMessage(id: number, message: string, userId: bigint, sender: 'customer' | 'admin') {
     const quotation = await this.prisma.quotations.findUnique({ where: { id: BigInt(id) } });
     if (!quotation) throw new NotFoundException('Quotation not found');
 
@@ -519,7 +507,24 @@ export class QuotationsService {
       throw new BadRequestException('No confirmation required');
     }
 
-    async decline(id: number, userId: bigint) {
+    return await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.quotations.updateMany({
+        where: {
+          quotation_group_id: quotation.quotation_group_id,
+          user_id: userId,
+          status: 'pending_customer_confirmation',
+        },
+        data: {
+          status: 'confirmed',
+          updated_at: new Date(),
+        },
+      });
+
+      return updated;
+    });
+  }
+
+  async decline(id: number, userId: bigint) {
         const quotation = await this.prisma.quotations.findUnique({
             where: { id: BigInt(id) },
         });
