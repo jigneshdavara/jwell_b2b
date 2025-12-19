@@ -74,10 +74,14 @@ export class CartService {
                     item.products,
                     user,
                     {
-                        variant_id: item.product_variant_id,
+                        variant_id: item.product_variant_id
+                            ? Number(item.product_variant_id)
+                            : null,
                         quantity: item.quantity,
-                        customer_group_id: user?.customer_group_id,
-                        customer_type: user?.type,
+                        customer_group_id: user?.customer_group_id
+                            ? Number(user.customer_group_id)
+                            : undefined,
+                        customer_type: user?.type || undefined,
                     },
                 );
 
@@ -147,5 +151,183 @@ export class CartService {
             where: { id: cart.id },
             data: { status: 'active', updated_at: new Date() },
         });
+    }
+
+    async clear(cart: any) {
+        const metadata = (cart.metadata as Record<string, any>) || {};
+        delete metadata.pending_order_id;
+
+        await this.prisma.carts.update({
+            where: { id: cart.id },
+            data: {
+                status: 'converted',
+                metadata: metadata,
+                updated_at: new Date(),
+            },
+        });
+    }
+
+    async addItem(
+        userId: bigint,
+        productId: bigint,
+        variantId: bigint | null,
+        quantity: number = 1,
+        configuration?: Record<string, any>,
+    ) {
+        const cart = await this.getActiveCart(userId);
+        quantity = Math.max(1, quantity);
+
+        // Get product and user for pricing
+        const product = await this.prisma.products.findUnique({
+            where: { id: productId },
+        });
+
+        if (!product) {
+            throw new NotFoundException('Product not found');
+        }
+
+        const user = await this.prisma.customer.findUnique({
+            where: { id: userId },
+        });
+
+        // Normalize configuration for comparison
+        const normalizedConfig = this.normalizeConfiguration(
+            configuration || {},
+        );
+
+        // Find existing item with same product, variant, and configuration
+        const existingItem = cart.cart_items.find((item) => {
+            if (item.product_id.toString() !== productId.toString()) {
+                return false;
+            }
+
+            const itemVariantId = item.product_variant_id?.toString() || null;
+            const targetVariantId = variantId?.toString() || null;
+            if (itemVariantId !== targetVariantId) {
+                return false;
+            }
+
+            // Compare normalized configurations
+            const itemNormalizedConfig = this.normalizeConfiguration(
+                (item.configuration as Record<string, any>) || {},
+            );
+            return itemNormalizedConfig === normalizedConfig;
+        });
+
+        const targetQuantity = existingItem
+            ? existingItem.quantity + quantity
+            : quantity;
+
+        // Calculate pricing
+        const pricing = await this.pricingService.calculateProductPrice(
+            product,
+            user,
+            {
+                variant_id: variantId ? Number(variantId) : null,
+                quantity: targetQuantity,
+                customer_group_id: user?.customer_group_id
+                    ? Number(user.customer_group_id)
+                    : undefined,
+                customer_type: user?.type || undefined,
+            },
+        );
+
+        // Merge configuration with variant label if variant exists
+        let finalConfiguration = configuration || {};
+        if (variantId) {
+            const variant = await this.prisma.product_variants.findUnique({
+                where: { id: variantId },
+            });
+            if (variant) {
+                finalConfiguration = {
+                    ...finalConfiguration,
+                    variant: variant.label,
+                };
+            }
+        }
+
+        if (existingItem) {
+            // Update existing item
+            await this.prisma.cart_items.update({
+                where: { id: existingItem.id },
+                data: {
+                    quantity: targetQuantity,
+                    price_breakdown: pricing as any,
+                    updated_at: new Date(),
+                },
+            });
+        } else {
+            // Create new item
+            await this.prisma.cart_items.create({
+                data: {
+                    cart_id: cart.id,
+                    product_id: productId,
+                    product_variant_id: variantId,
+                    quantity: quantity,
+                    configuration: finalConfiguration as any,
+                    price_breakdown: pricing as any,
+                    created_at: new Date(),
+                    updated_at: new Date(),
+                },
+            });
+        }
+    }
+
+    async updateItemQuantity(itemId: bigint, quantity: number) {
+        quantity = Math.max(1, quantity);
+        await this.prisma.cart_items.update({
+            where: { id: itemId },
+            data: {
+                quantity: quantity,
+                updated_at: new Date(),
+            },
+        });
+    }
+
+    async updateItemConfiguration(
+        itemId: bigint,
+        configuration: Record<string, any>,
+    ) {
+        // Get existing configuration
+        const item = await this.prisma.cart_items.findUnique({
+            where: { id: itemId },
+        });
+
+        if (!item) {
+            throw new NotFoundException('Cart item not found');
+        }
+
+        const existing = (item.configuration as Record<string, any>) || {};
+        const merged = { ...existing, ...configuration };
+
+        await this.prisma.cart_items.update({
+            where: { id: itemId },
+            data: {
+                configuration: merged as any,
+                updated_at: new Date(),
+            },
+        });
+    }
+
+    async removeItem(itemId: bigint) {
+        await this.prisma.cart_items.delete({
+            where: { id: itemId },
+        });
+    }
+
+    /**
+     * Normalize configuration for comparison by extracting only relevant fields
+     * (notes) and ignoring extra fields like 'variant' label.
+     */
+    private normalizeConfiguration(
+        configuration: Record<string, any>,
+    ): string {
+        // Extract only the fields that matter for matching
+        const relevantFields = {
+            notes: configuration['notes'] || null,
+        };
+
+        // Convert to JSON string for reliable comparison
+        return JSON.stringify(relevantFields);
     }
 }

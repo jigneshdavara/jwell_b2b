@@ -40,6 +40,12 @@ import { DiscountsModule } from './common/discounts/discounts.module';
 import { DashboardModule as FrontendDashboardModule } from './frontend/dashboard/dashboard.module';
 import { CatalogModule } from './frontend/catalog/catalog.module';
 import { WishlistModule } from './frontend/wishlist/wishlist.module';
+import { FrontendCartModule } from './frontend/cart/cart.module';
+import { FrontendQuotationsModule } from './frontend/quotations/quotations.module';
+import { FrontendCheckoutModule } from './frontend/checkout/checkout.module';
+import { FrontendOrdersModule } from './frontend/orders/orders.module';
+import { HomeModule } from './frontend/home/home.module';
+import { ProfileModule } from './frontend/profile/profile.module';
 
 @Module({
     imports: [
@@ -78,11 +84,17 @@ import { WishlistModule } from './frontend/wishlist/wishlist.module';
         CartModule,
         PricingModule,
         TaxModule,
-    DiscountsModule,
-    FrontendDashboardModule,
-    CatalogModule,
-    WishlistModule,
-  ],
+        DiscountsModule,
+        FrontendDashboardModule,
+        CatalogModule,
+        WishlistModule,
+        FrontendCartModule,
+        FrontendQuotationsModule,
+        FrontendCheckoutModule,
+        FrontendOrdersModule,
+        HomeModule,
+        ProfileModule,
+    ],
     controllers: [AppController],
     providers: [AppService],
 })

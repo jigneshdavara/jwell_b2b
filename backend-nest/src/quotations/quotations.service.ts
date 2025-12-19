@@ -16,7 +16,7 @@ import {
     UpdateQuotationProductDto,
     AddQuotationItemDto,
 } from './dto/quotation.dto';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class QuotationsService {
@@ -320,7 +320,7 @@ export class QuotationsService {
             }
         }
 
-        const groupKey = uuidv4();
+        const groupKey = randomUUID();
         return await this.prisma.quotations.create({
             data: {
                 user_id: userId,
@@ -361,7 +361,7 @@ export class QuotationsService {
                 }
             }
 
-            const groupKey = uuidv4();
+            const groupKey = randomUUID();
             const quotations = [];
 
             for (const item of cart.cart_items) {
@@ -930,7 +930,7 @@ export class QuotationsService {
                 data: {
                     user_id: baseQuotation.user_id,
                     quotation_group_id:
-                        baseQuotation.quotation_group_id || uuidv4(),
+                        baseQuotation.quotation_group_id || randomUUID(),
                     product_id: product.id,
                     product_variant_id: dto.product_variant_id
                         ? BigInt(dto.product_variant_id)
