@@ -1,10 +1,10 @@
 import { PaymentGatewayDriver } from '../contracts/payment-gateway-driver.interface';
 
 export class FakeGateway implements PaymentGatewayDriver {
-    constructor(private gateway: any) {}
+    constructor(private gatewayConfig: any) {}
 
     gateway(): any {
-        return this.gateway;
+        return this.gatewayConfig;
     }
 
     async ensurePaymentIntent(
@@ -40,7 +40,7 @@ export class FakeGateway implements PaymentGatewayDriver {
     }
 
     publishableKey(): string {
-        return (this.gateway.config as any)?.publishable_key || 'pk_test_fake';
+        return (this.gatewayConfig.config as any)?.publishable_key || 'pk_test_fake';
     }
 }
 

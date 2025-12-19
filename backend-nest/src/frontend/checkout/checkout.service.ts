@@ -41,7 +41,7 @@ export class FrontendCheckoutService {
             ? BigInt(metadata.pending_order_id)
             : null;
 
-        let order = null;
+        let order: any = null;
 
         if (pendingOrderId) {
             order = await this.prisma.orders.findFirst({
@@ -97,6 +97,10 @@ export class FrontendCheckoutService {
             });
         }
 
+        if (!order) {
+            throw new NotFoundException('Order not found');
+        }
+
         // Delete existing order items
         await this.prisma.order_items.deleteMany({
             where: { order_id: order.id },
@@ -110,7 +114,7 @@ export class FrontendCheckoutService {
                     product_id: BigInt(
                         typeof itemSummary.product_id === 'string'
                             ? itemSummary.product_id
-                            : itemSummary.product_id.toString(),
+                            : (itemSummary.product_id as any).toString(),
                     ),
                     sku: itemSummary.sku,
                     name: itemSummary.name,
@@ -119,10 +123,10 @@ export class FrontendCheckoutService {
                     total_price: itemSummary.line_total,
                     configuration: {
                         variant_label: itemSummary.variant_label || null,
-                        variant_id: itemSummary.variant_id
-                            ? typeof itemSummary.variant_id === 'string'
-                              ? itemSummary.variant_id
-                              : itemSummary.variant_id.toString()
+                        variant_id: itemSummary.product_variant_id
+                            ? typeof itemSummary.product_variant_id === 'string'
+                              ? itemSummary.product_variant_id
+                              : (itemSummary.product_variant_id as any).toString()
                             : null,
                     } as any,
                     created_at: new Date(),

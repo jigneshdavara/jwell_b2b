@@ -123,10 +123,10 @@ describe('Frontend Profile (e2e)', () => {
                     where: { user_id: testCustomer.id },
                 });
                 
-                await prisma.userKycDocuments.deleteMany({
+                await prisma.user_kyc_documents.deleteMany({
                     where: { user_id: testCustomer.id },
                 });
-                await prisma.userKycMessages.deleteMany({
+                await prisma.user_kyc_messages.deleteMany({
                     where: { user_id: testCustomer.id },
                 });
                 await prisma.userKycProfile.deleteMany({
