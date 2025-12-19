@@ -1,7 +1,6 @@
 'use client';
 
-// TODO: Create RichTextEditor component for Next.js
-// import RichTextEditor from '@/components/RichTextEditor';
+import RichTextEditor from '@/components/RichTextEditor';
 import { Head } from '@/components/Head';
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 // TODO: Migrate variantMatrixGenerator to Next.js
@@ -2976,11 +2975,10 @@ export default function AdminProductEdit() {
                     </div>
 
                     <div className="mt-6">
-                        {/* TODO: Implement RichTextEditor component */}
-                        <textarea
+                        <RichTextEditor
                             value={localDescription}
-                            onChange={(e) => handleDescriptionChange(e.target.value)}
-                            className="w-full min-h-[200px] rounded-3xl border border-slate-200 p-4"
+                            onChange={handleDescriptionChange}
+                            className="overflow-hidden rounded-3xl border border-slate-200"
                             placeholder="Detail the design notes, materials, finish, and atelier craftsmanship."
                         />
                         {errors.description && <span className="mt-2 block text-xs text-rose-500">{errors.description}</span>}

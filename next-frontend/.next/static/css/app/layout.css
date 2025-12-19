@@ -991,6 +991,9 @@ input:where([type='file']):focus{
 .ml-4{
   margin-left: 1rem;
 }
+.ml-auto{
+  margin-left: auto;
+}
 .mr-2{
   margin-right: 0.5rem;
 }
@@ -1145,6 +1148,9 @@ input:where([type='file']):focus{
 .h-screen{
   height: 100vh;
 }
+.max-h-60{
+  max-height: 15rem;
+}
 .max-h-64{
   max-height: 16rem;
 }
@@ -1177,6 +1183,9 @@ input:where([type='file']):focus{
 }
 .min-h-\[400px\]{
   min-height: 400px;
+}
+.min-h-\[44px\]{
+  min-height: 44px;
 }
 .min-h-\[75vh\]{
   min-height: 75vh;
@@ -1261,6 +1270,9 @@ input:where([type='file']):focus{
 }
 .w-full{
   width: 100%;
+}
+.w-px{
+  width: 1px;
 }
 .min-w-0{
   min-width: 0px;
@@ -1370,6 +1382,16 @@ input:where([type='file']):focus{
 }
 .rotate-90{
   --tw-rotate: 90deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+.scale-100{
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+.scale-95{
+  --tw-scale-x: .95;
+  --tw-scale-y: .95;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 .transform{
@@ -2230,6 +2252,9 @@ input:where([type='file']):focus{
 .pl-20{
   padding-left: 5rem;
 }
+.pl-3{
+  padding-left: 0.75rem;
+}
 .pl-8{
   padding-left: 2rem;
 }
@@ -2770,6 +2795,10 @@ input:where([type='file']):focus{
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
 }
+.ring-black{
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(0 0 0 / var(--tw-ring-opacity, 1));
+}
 .ring-elvee-blue\/10{
   --tw-ring-color: rgb(14 36 77 / 0.1);
 }
@@ -2793,6 +2822,13 @@ input:where([type='file']):focus{
 }
 .ring-slate-200\/80{
   --tw-ring-color: rgb(226 232 240 / 0.8);
+}
+.ring-opacity-5{
+  --tw-ring-opacity: 0.05;
+}
+.blur{
+  --tw-blur: blur(8px);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 .blur-3xl{
   --tw-blur: blur(64px);
@@ -2830,6 +2866,9 @@ input:where([type='file']):focus{
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
+.duration-100{
+  transition-duration: 100ms;
+}
 .duration-150{
   transition-duration: 150ms;
 }
@@ -2841,6 +2880,9 @@ input:where([type='file']):focus{
 }
 .duration-500{
   transition-duration: 500ms;
+}
+.duration-75{
+  transition-duration: 75ms;
 }
 .ease-in{
   transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
@@ -3026,6 +3068,10 @@ a:hover {
   --tw-border-opacity: 1;
   border-color: rgb(255 255 255 / var(--tw-border-opacity, 1));
 }
+.hover\:border-sky-200:hover{
+  --tw-border-opacity: 1;
+  border-color: rgb(186 230 253 / var(--tw-border-opacity, 1));
+}
 .hover\:bg-amber-700:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(180 83 9 / var(--tw-bg-opacity, 1));
@@ -3082,6 +3128,10 @@ a:hover {
 .hover\:bg-sky-100:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(224 242 254 / var(--tw-bg-opacity, 1));
+}
+.hover\:bg-sky-200:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(186 230 253 / var(--tw-bg-opacity, 1));
 }
 .hover\:bg-sky-50:hover{
   --tw-bg-opacity: 1;
