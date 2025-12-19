@@ -192,30 +192,30 @@ export class OrdersService {
           priceBreakdown = metadata.price_breakdown ?? null;
         }
 
-                // If not in item metadata, try to get from order-level price_breakdown
-                if (
-                    !priceBreakdown &&
-                    order.price_breakdown &&
-                    typeof order.price_breakdown === 'object'
-                ) {
-                    const orderBreakdown = order.price_breakdown as any;
-                    if (Array.isArray(orderBreakdown.items)) {
-                        for (const breakdownItem of orderBreakdown.items) {
-                            if (
-                                breakdownItem.unit &&
-                                typeof breakdownItem.unit === 'object'
-                            ) {
-                                priceBreakdown = breakdownItem.unit;
-                                break;
-                            }
-                        }
-                    } else if (
-                        orderBreakdown.unit &&
-                        typeof orderBreakdown.unit === 'object'
+        // If not in item metadata, try to get from order-level price_breakdown
+        if (
+            !priceBreakdown &&
+            order.price_breakdown &&
+            typeof order.price_breakdown === 'object'
+        ) {
+            const orderBreakdown = order.price_breakdown as any;
+            if (Array.isArray(orderBreakdown.items)) {
+                for (const breakdownItem of orderBreakdown.items) {
+                    if (
+                        breakdownItem.unit &&
+                        typeof breakdownItem.unit === 'object'
                     ) {
-                        priceBreakdown = orderBreakdown.unit;
+                        priceBreakdown = breakdownItem.unit;
+                        break;
                     }
                 }
+            } else if (
+                orderBreakdown.unit &&
+                typeof orderBreakdown.unit === 'object'
+            ) {
+                priceBreakdown = orderBreakdown.unit;
+            }
+        }
 
         // Ensure price_breakdown has all required fields
         if (priceBreakdown && typeof priceBreakdown === 'object') {
@@ -255,6 +255,9 @@ export class OrdersService {
               }
             : null,
         };
+      }),
+      statusOptions,
+    };
     }
 
     async updateStatus(

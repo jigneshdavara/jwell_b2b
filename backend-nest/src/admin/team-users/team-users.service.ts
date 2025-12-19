@@ -79,18 +79,6 @@ export class TeamUsersService {
     };
   }
 
-  async findOne(id: number) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: BigInt(id) },
-      include: {
-        user_groups: true,
-      },
-    });
-
-    if (!user || !this.INTERNAL_TYPES.includes(user.type as UserType)) {
-      throw new NotFoundException('Team user not found');
-    }
-
     async findOne(id: number) {
         const user = await this.prisma.user.findUnique({
             where: { id: BigInt(id) },
@@ -216,7 +204,12 @@ export class TeamUsersService {
       throw new NotFoundException('Team user not found');
     }
 
-    async bulkRemove(ids: number[]) {
+    return await this.prisma.user.delete({
+      where: { id: BigInt(id) },
+    });
+  }
+
+  async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
 
         // Filter out super admins and non-internal users
