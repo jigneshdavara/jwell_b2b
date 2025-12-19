@@ -28,6 +28,15 @@ import { TaxGroupsModule } from './admin/settings/tax-groups/tax-groups.module';
 import { TaxesModule } from './admin/settings/taxes/taxes.module';
 import { OffersModule } from './admin/offers/offers.module';
 import { MakingChargeDiscountsModule } from './admin/offers/making-charge-discounts/making-charge-discounts.module';
+import { ProductsModule } from './admin/products/products.module';
+import { QuotationsModule } from './quotations/quotations.module';
+import { AdminQuotationsModule } from './admin/quotations/quotations.module';
+import { OrdersModule } from './admin/orders/orders.module';
+import { OrderStatusesModule } from './admin/orders/order-statuses/order-statuses.module';
+import { CartModule } from './cart/cart.module';
+import { PricingModule } from './common/pricing/pricing.module';
+import { TaxModule } from './common/tax/tax.module';
+import { DiscountsModule } from './common/discounts/discounts.module';
 
 @Module({
   imports: [
@@ -58,6 +67,15 @@ import { MakingChargeDiscountsModule } from './admin/offers/making-charge-discou
     TaxesModule,
     MakingChargeDiscountsModule, // Important: Specific prefix before general prefix
     OffersModule,
+    ProductsModule,
+    QuotationsModule,
+    AdminQuotationsModule,
+    OrderStatusesModule, // Register before OrdersModule to avoid route conflicts
+    OrdersModule,
+    CartModule,
+    PricingModule,
+    TaxModule,
+    DiscountsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
