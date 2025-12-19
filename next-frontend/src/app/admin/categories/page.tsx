@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { Menu, Transition } from "@headlessui/react";
 import React from "react";
 import { adminService } from "@/services/adminService";
 
@@ -15,6 +16,26 @@ type CategoryRow = {
     description?: string | null;
     is_active: boolean;
     display_order: number;
+    cover_image_url?: string | null;
+    styles?: Array<{ id: number; name: string }>;
+    sizes?: Array<{ id: number; name: string }>;
+};
+
+type CategoryTreeNode = {
+    id: number;
+    name: string;
+    parent_id: number | null;
+    children: CategoryTreeNode[];
+};
+
+type Style = {
+    id: number;
+    name: string;
+};
+
+type Size = {
+    id: number;
+    name: string;
 };
 
 type PaginationMeta = {
@@ -46,11 +67,46 @@ export default function AdminCategoriesPage() {
         description: '',
         is_active: true,
         display_order: 0,
+        style_ids: [] as number[],
+        size_ids: [] as number[],
+        cover_image: null as File | null,
+        remove_cover_image: false,
     });
+
+    const [styles, setStyles] = useState<Style[]>([]);
+    const [sizes, setSizes] = useState<Size[]>([]);
+    const [coverPreview, setCoverPreview] = useState<string | null>(null);
+    const [coverObjectUrl, setCoverObjectUrl] = useState<string | null>(null);
+    const [styleSearchQuery, setStyleSearchQuery] = useState('');
+    const [sizeSearchQuery, setSizeSearchQuery] = useState('');
+    const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         loadCategories();
+        loadStyles();
+        loadSizes();
     }, [currentPage, perPage]);
+
+    const loadStyles = async () => {
+        try {
+            const response = await adminService.getStyles(1, 1000); // Load all styles
+            const items = response.data.items || response.data.data || [];
+            setStyles(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
+        } catch (error: any) {
+            console.error('Failed to load styles:', error);
+        }
+    };
+
+    const loadSizes = async () => {
+        try {
+            const response = await adminService.getSizes(1, 1000); // Load all sizes
+            const items = response.data.items || response.data.data || [];
+            setSizes(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
+        } catch (error: any) {
+            console.error('Failed to load sizes:', error);
+        }
+    };
 
     const loadCategories = async () => {
         setLoading(true);
@@ -97,9 +153,163 @@ export default function AdminCategoriesPage() {
         setSelectedCategories(prev => prev.includes(id) ? prev.filter(catId => catId !== id) : [...prev, id]);
     };
 
+    // Build category tree from flat list
+    const categoryTree = useMemo(() => {
+        const buildTree = (categories: CategoryRow[], parentId: number | null = null): CategoryTreeNode[] => {
+            return categories
+                .filter(cat => cat.parent_id === parentId)
+                .map(cat => ({
+                    id: cat.id,
+                    name: cat.name,
+                    parent_id: cat.parent_id,
+                    children: buildTree(categories, cat.id),
+                }));
+        };
+        return buildTree(data.data);
+    }, [data.data]);
+
+    // Filter tree to exclude editing category and its descendants
+    const availableCategoryTree = useMemo(() => {
+        if (!editingCategory) {
+            return categoryTree;
+        }
+        const getDescendantIds = (node: CategoryTreeNode): number[] => {
+            const ids = [node.id];
+            node.children.forEach(child => {
+                ids.push(...getDescendantIds(child));
+            });
+            return ids;
+        };
+        const findNode = (tree: CategoryTreeNode[], id: number): CategoryTreeNode | null => {
+            for (const node of tree) {
+                if (node.id === id) return node;
+                const found = findNode(node.children, id);
+                if (found) return found;
+            }
+            return null;
+        };
+        const editingNode = findNode(categoryTree, editingCategory.id);
+        const excludeIds = editingNode ? [editingCategory.id, ...getDescendantIds(editingNode)] : [editingCategory.id];
+        const filterTree = (tree: CategoryTreeNode[], excludeIds: number[]): CategoryTreeNode[] => {
+            return tree
+                .filter((node) => !excludeIds.includes(node.id))
+                .map((node) => ({
+                    ...node,
+                    children: filterTree(node.children, excludeIds),
+                }));
+        };
+        return filterTree(categoryTree, excludeIds);
+    }, [categoryTree, editingCategory]);
+
+    // Get selected category name
+    const getSelectedCategoryName = (): string => {
+        if (formState.parent_id === '') {
+            return 'None (Top Level)';
+        }
+        const findCategoryName = (tree: CategoryTreeNode[], id: string | number): string | null => {
+            for (const node of tree) {
+                if (String(node.id) === String(id)) {
+                    return node.name;
+                }
+                const found = findCategoryName(node.children, id);
+                if (found) return found;
+            }
+            return null;
+        };
+        return findCategoryName(availableCategoryTree, formState.parent_id) || 'Select parent category';
+    };
+
+    // Toggle node expansion
+    const toggleNode = (nodeId: number) => {
+        setExpandedNodes((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(nodeId)) {
+                newSet.delete(nodeId);
+            } else {
+                newSet.add(nodeId);
+            }
+            return newSet;
+        });
+    };
+
+    // Render tree node recursively
+    const renderTreeNode = useCallback((node: CategoryTreeNode, level: number = 0, closeMenu?: () => void): React.ReactNode => {
+        const isSelected = String(formState.parent_id) === String(node.id);
+        const hasChildren = node.children.length > 0;
+        const isExpanded = expandedNodes.has(node.id);
+
+        return (
+            <div key={node.id} className="relative">
+                <Menu.Item>
+                    {({ active, close }) => (
+                        <div
+                            className={`flex items-center gap-1 rounded-lg transition-colors pl-3 ${
+                                isSelected
+                                    ? 'bg-sky-50 text-sky-700'
+                                    : active
+                                    ? 'bg-slate-50 text-slate-700'
+                                    : 'text-slate-700'
+                            }`}
+                        >
+                            <div className="flex items-center" style={{ width: `${level * 20}px` }}>
+                                {level > 0 && (
+                                    <div className="w-px h-6 bg-slate-200 mr-2"></div>
+                                )}
+                            </div>
+
+                            {hasChildren ? (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleNode(node.id);
+                                    }}
+                                    className="flex items-center justify-center w-5 h-5 rounded hover:bg-slate-200 transition-colors flex-shrink-0"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className={`h-3 w-3 text-slate-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth={2}
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </button>
+                            ) : (
+                                <div className="w-5 h-5 flex-shrink-0"></div>
+                            )}
+                            <div
+                                className={`flex-1 py-2 cursor-pointer rounded ${
+                                    isSelected ? 'font-medium' : ''
+                                }`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFormState(prev => ({ ...prev, parent_id: String(node.id) }));
+                                    close();
+                                    closeMenu?.();
+                                }}
+                            >
+                                <span className="text-sm">{node.name}</span>
+                            </div>
+                        </div>
+                    )}
+                </Menu.Item>
+
+                {hasChildren && isExpanded && (
+                    <div className="relative">
+                        {node.children.map((child) => renderTreeNode(child, level + 1, closeMenu))}
+                    </div>
+                )}
+            </div>
+        );
+    }, [formState.parent_id, expandedNodes]);
+
     const resetForm = () => {
         setEditingCategory(null);
         setModalOpen(false);
+        setExpandedNodes(new Set());
         setFormState({
             parent_id: '',
             code: '',
@@ -107,7 +317,21 @@ export default function AdminCategoriesPage() {
             description: '',
             is_active: true,
             display_order: 0,
+            style_ids: [],
+            size_ids: [],
+            cover_image: null,
+            remove_cover_image: false,
         });
+        setStyleSearchQuery('');
+        setSizeSearchQuery('');
+        setCoverPreview(null);
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
 
     const openCreateModal = () => {
@@ -115,18 +339,122 @@ export default function AdminCategoriesPage() {
         setModalOpen(true);
     };
 
-    const openEditModal = (category: CategoryRow) => {
-        setEditingCategory(category);
-        setFormState({
-            parent_id: category.parent_id ? String(category.parent_id) : '',
-            code: category.code ?? '',
-            name: category.name,
-            description: category.description ?? '',
-            is_active: category.is_active,
-            display_order: category.display_order,
-        });
-        setModalOpen(true);
+    const expandPathToCategory = (categoryId: number | null, tree: CategoryTreeNode[]): void => {
+        if (!categoryId) return;
+        const nodesToExpand = new Set<number>();
+        const findAndExpand = (nodes: CategoryTreeNode[], targetId: number, path: number[] = []): boolean => {
+            for (const node of nodes) {
+                const currentPath = [...path, node.id];
+                if (node.id === targetId) {
+                    currentPath.forEach((id) => nodesToExpand.add(id));
+                    return true;
+                }
+                if (node.children.length > 0) {
+                    if (findAndExpand(node.children, targetId, currentPath)) {
+                        nodesToExpand.add(node.id);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+        findAndExpand(tree, categoryId);
+        if (nodesToExpand.size > 0) {
+            setExpandedNodes((prev) => {
+                const newSet = new Set(prev);
+                nodesToExpand.forEach((id) => newSet.add(id));
+                return newSet;
+            });
+        }
     };
+
+    const openEditModal = async (category: CategoryRow) => {
+        try {
+            // Fetch full category details with styles and sizes
+            const response = await adminService.getCategory(category.id);
+            const fullCategory = response.data;
+            
+            setEditingCategory({
+                ...category,
+                styles: fullCategory.styles || [],
+                sizes: fullCategory.sizes || [],
+                cover_image_url: fullCategory.cover_image_url || null,
+            });
+            setFormState({
+                parent_id: fullCategory.parent_id ? String(fullCategory.parent_id) : '',
+                code: fullCategory.code ?? '',
+                name: fullCategory.name,
+                description: fullCategory.description ?? '',
+                is_active: fullCategory.is_active,
+                display_order: fullCategory.display_order,
+                style_ids: fullCategory.styles?.map((s: any) => Number(s.id)) ?? [],
+                size_ids: fullCategory.sizes?.map((s: any) => Number(s.id)) ?? [],
+                cover_image: null,
+                remove_cover_image: false,
+            });
+            setCoverPreview(fullCategory.cover_image_url ?? null);
+            setModalOpen(true);
+            if (fullCategory.parent_id && categoryTree.length > 0) {
+                expandPathToCategory(Number(fullCategory.parent_id), categoryTree);
+            }
+        } catch (error: any) {
+            console.error('Failed to load category details:', error);
+            // Fallback to basic category data
+            setEditingCategory(category);
+            setFormState({
+                parent_id: category.parent_id ? String(category.parent_id) : '',
+                code: category.code ?? '',
+                name: category.name,
+                description: category.description ?? '',
+                is_active: category.is_active,
+                display_order: category.display_order,
+                style_ids: [],
+                size_ids: [],
+                cover_image: null,
+                remove_cover_image: false,
+            });
+            setCoverPreview(category.cover_image_url ?? null);
+            setModalOpen(true);
+        }
+    };
+
+    const handleCoverChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0] ?? null;
+        setFormState(prev => ({ ...prev, cover_image: file, remove_cover_image: false }));
+
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+
+        if (file) {
+            const objectUrl = URL.createObjectURL(file);
+            setCoverPreview(objectUrl);
+            setCoverObjectUrl(objectUrl);
+        } else {
+            setCoverPreview(editingCategory?.cover_image_url ?? null);
+        }
+    };
+
+    const removeCoverImage = () => {
+        setFormState(prev => ({ ...prev, cover_image: null, remove_cover_image: true }));
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+        setCoverPreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    useEffect(() => {
+        return () => {
+            if (coverObjectUrl) {
+                URL.revokeObjectURL(coverObjectUrl);
+            }
+        };
+    }, [coverObjectUrl]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -140,6 +468,17 @@ export default function AdminCategoriesPage() {
             if (formState.parent_id) formData.append('parent_id', String(formState.parent_id));
             formData.append('is_active', String(formState.is_active));
             formData.append('display_order', String(formState.display_order));
+            
+            // Append arrays - NestJS expects arrays as multiple entries with same key
+            formState.style_ids.forEach(id => formData.append('style_ids', String(id)));
+            formState.size_ids.forEach(id => formData.append('size_ids', String(id)));
+            
+            if (formState.cover_image instanceof File) {
+                formData.append('cover_image', formState.cover_image);
+            }
+            if (formState.remove_cover_image) {
+                formData.append('remove_cover_image', '1');
+            }
 
             if (editingCategory) {
                 await adminService.updateCategory(editingCategory.id, formData);
@@ -312,47 +651,455 @@ export default function AdminCategoriesPage() {
                             <div className="flex items-center gap-3">
                                 <button onClick={resetForm} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900">Cancel</button>
                                 <button type="submit" form="category-form" disabled={loading} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60">{editingCategory ? 'Update category' : 'Create category'}</button>
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                                    aria-label="Close modal"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
                             </div>
                         </div>
                     </div>
+
                     <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
                         <form onSubmit={handleSubmit} className="space-y-6" id="category-form">
                             <div className="grid gap-6 lg:grid-cols-2">
                                 <div className="space-y-6">
-                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                        <span>Parent Category</span>
-                                        <select
-                                            value={formState.parent_id}
-                                            onChange={e => setFormState(prev => ({ ...prev, parent_id: e.target.value }))}
-                                            className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        >
-                                            <option value="">None (Top Level)</option>
-                                            {data.data.filter(c => !editingCategory || c.id !== editingCategory.id).map(c => (
-                                                <option key={c.id} value={c.id}>{c.name}</option>
-                                            ))}
-                                        </select>
-                                    </label>
-                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                        <span>Code</span>
-                                        <input type="text" value={formState.code} onChange={e => setFormState(prev => ({ ...prev, code: e.target.value }))} className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200" placeholder="e.g., RNG, NKL" />
-                                    </label>
-                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                        <span>Name <span className="text-rose-500">*</span></span>
-                                        <input type="text" value={formState.name} onChange={e => setFormState(prev => ({ ...prev, name: e.target.value }))} className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200" required />
-                                    </label>
-                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                        <span>Display order <span className="text-rose-500">*</span></span>
-                                        <input type="number" value={formState.display_order} onChange={e => setFormState(prev => ({ ...prev, display_order: Number(e.target.value) }))} className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200" min={0} required />
+                                    <div className="grid gap-4">
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Parent Category</span>
+                                            <Menu as="div" className="relative">
+                                                <Menu.Button className="w-full min-h-[44px] rounded-2xl border border-slate-300 bg-white px-4 py-2 text-left text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className={formState.parent_id === '' ? 'text-slate-500' : 'text-slate-900'}>
+                                                            {getSelectedCategoryName()}
+                                                        </span>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </div>
+                                                </Menu.Button>
+                                                <Transition
+                                                    enter="transition ease-out duration-100"
+                                                    enterFrom="transform opacity-0 scale-95"
+                                                    enterTo="transform opacity-100 scale-100"
+                                                    leave="transition ease-in duration-75"
+                                                    leaveFrom="transform opacity-100 scale-100"
+                                                    leaveTo="transform opacity-0 scale-95"
+                                                >
+                                                    <Menu.Items className="absolute z-50 mt-2 w-full max-h-80 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                        <div className="p-2">
+                                                            <Menu.Item>
+                                                                {({ active, close }) => (
+                                                                    <div
+                                                                        className={`flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-colors ${
+                                                                            formState.parent_id === ''
+                                                                                ? 'bg-sky-50 text-sky-700 font-medium'
+                                                                                : active
+                                                                                ? 'bg-slate-50 text-slate-700'
+                                                                                : 'text-slate-700'
+                                                                        }`}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (formState.parent_id !== '') {
+                                                                                setFormState(prev => ({ ...prev, parent_id: '' }));
+                                                                                close();
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <div className="w-5 h-5"></div>
+                                                                        <span className="text-sm">None (Top Level)</span>
+                                                                    </div>
+                                                                )}
+                                                            </Menu.Item>
+                                                            <div className="mt-1 space-y-0.5">
+                                                                {availableCategoryTree.map((node) => renderTreeNode(node, 0))}
+                                                            </div>
+                                                        </div>
+                                                    </Menu.Items>
+                                                </Transition>
+                                            </Menu>
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Code</span>
+                                            <input
+                                                type="text"
+                                                value={formState.code}
+                                                onChange={(e) => setFormState(prev => ({ ...prev, code: e.target.value }))}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                placeholder="e.g., RNG, NKL"
+                                            />
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Name</span>
+                                            <input
+                                                type="text"
+                                                value={formState.name}
+                                                onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                required
+                                            />
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Display order</span>
+                                            <input
+                                                type="number"
+                                                value={formState.display_order === '' || formState.display_order === undefined ? '' : formState.display_order}
+                                                onChange={(e) => setFormState(prev => ({ ...prev, display_order: e.target.value === '' ? '' : Number(e.target.value) }))}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                min={0}
+                                            />
+                                        </label>
+                                        <label className="flex flex-col gap-3 text-sm text-slate-600">
+                                            <span>Cover Image</span>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleCoverChange}
+                                                className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-700"
+                                            />
+                                            {coverPreview && (
+                                                <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
+                                                    <img
+                                                        src={coverPreview}
+                                                        alt="Cover preview"
+                                                        className="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
+                                                    />
+                                                    <div className="flex flex-col gap-2">
+                                                        <span className="text-xs text-slate-500">
+                                                            {coverObjectUrl && editingCategory
+                                                                ? 'This preview will replace the existing category image once saved.'
+                                                                : coverObjectUrl
+                                                                ? 'This image will be used as the category cover image.'
+                                                                : 'Current category image. Upload a new file to replace it.'}
+                                                        </span>
+                                                        {coverObjectUrl && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={removeCoverImage}
+                                                                className="self-start rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                                            >
+                                                                Remove selected image
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {!coverPreview && editingCategory?.cover_image_url && (
+                                                <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
+                                                    <img
+                                                        src={editingCategory.cover_image_url}
+                                                        alt="Current cover"
+                                                        className="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
+                                                    />
+                                                    <div className="flex flex-col gap-2">
+                                                        <span className="text-xs text-slate-500">
+                                                            Current category image. Upload a new file to replace it.
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={removeCoverImage}
+                                                            className="self-start rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                                        >
+                                                            Remove image
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </label>
+                                    </div>
+
+                                    <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                                        <input
+                                            type="checkbox"
+                                            checked={formState.is_active}
+                                            onChange={(e) => setFormState(prev => ({ ...prev, is_active: e.target.checked }))}
+                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        />
+                                        Active for selection
                                     </label>
                                 </div>
+
                                 <div className="space-y-6">
+                                    <div className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <div className="flex items-center justify-between">
+                                            <span>Styles</span>
+                                            {formState.style_ids && formState.style_ids.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormState(prev => ({ ...prev, style_ids: [] }))}
+                                                    className="text-xs font-medium text-rose-600 hover:text-rose-700"
+                                                >
+                                                    Remove all
+                                                </button>
+                                            )}
+                                        </div>
+                                        {styles && styles.length > 0 ? (
+                                            <Menu as="div" className="relative">
+                                                <Menu.Button className="w-full min-h-[44px] rounded-2xl border border-slate-300 bg-white px-4 py-2 text-left text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        {formState.style_ids && formState.style_ids.length > 0 ? (
+                                                            formState.style_ids.map((styleId) => {
+                                                                const style = styles.find((s) => s.id === styleId);
+                                                                if (!style) return null;
+                                                                return (
+                                                                    <span
+                                                                        key={styleId}
+                                                                        className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700"
+                                                                    >
+                                                                        {style.name}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setFormState(prev => ({ ...prev, style_ids: prev.style_ids.filter((id) => id !== styleId) }));
+                                                                            }}
+                                                                            className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                                                        >
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    </span>
+                                                                );
+                                                            })
+                                                        ) : (
+                                                            <span className="text-slate-400">Select styles</span>
+                                                        )}
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="ml-auto h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </div>
+                                                </Menu.Button>
+                                                <Transition
+                                                    enter="transition ease-out duration-100"
+                                                    enterFrom="transform opacity-0 scale-95"
+                                                    enterTo="transform opacity-100 scale-100"
+                                                    leave="transition ease-in duration-75"
+                                                    leaveFrom="transform opacity-100 scale-100"
+                                                    leaveTo="transform opacity-0 scale-95"
+                                                >
+                                                    <Menu.Items className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                        <div className="p-2 border-b border-slate-200">
+                                                            <input
+                                                                type="text"
+                                                                value={styleSearchQuery}
+                                                                onChange={(e) => setStyleSearchQuery(e.target.value)}
+                                                                placeholder="Search styles..."
+                                                                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            />
+                                                        </div>
+                                                        <div className="max-h-60 overflow-auto p-2">
+                                                            {styles
+                                                                .filter((style) =>
+                                                                    style.name.toLowerCase().includes(styleSearchQuery.toLowerCase())
+                                                                )
+                                                                .map((style) => {
+                                                                    const isChecked = formState.style_ids?.includes(style.id) || false;
+                                                                    return (
+                                                                        <Menu.Item key={style.id}>
+                                                                            {({ active }) => (
+                                                                                <div
+                                                                                    className={`flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer ${
+                                                                                        active ? 'bg-slate-50' : ''
+                                                                                    }`}
+                                                                                    onClick={(e) => {
+                                                                                        if ((e.target as HTMLElement).tagName !== 'INPUT') {
+                                                                                            e.stopPropagation();
+                                                                                            e.preventDefault();
+                                                                                            const currentIds = formState.style_ids || [];
+                                                                                            if (isChecked) {
+                                                                                                setFormState(prev => ({ ...prev, style_ids: currentIds.filter((id) => id !== style.id) }));
+                                                                                            } else {
+                                                                                                setFormState(prev => ({ ...prev, style_ids: [...currentIds, style.id] }));
+                                                                                            }
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <input
+                                                                                        type="checkbox"
+                                                                                        checked={isChecked}
+                                                                                        onChange={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            const currentIds = formState.style_ids || [];
+                                                                                            if (e.target.checked) {
+                                                                                                setFormState(prev => ({ ...prev, style_ids: [...currentIds, style.id] }));
+                                                                                            } else {
+                                                                                                setFormState(prev => ({ ...prev, style_ids: currentIds.filter((id) => id !== style.id) }));
+                                                                                            }
+                                                                                        }}
+                                                                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                                                        onClick={(e) => e.stopPropagation()}
+                                                                                    />
+                                                                                    <span className="text-sm text-slate-700">{style.name}</span>
+                                                                                </div>
+                                                                            )}
+                                                                        </Menu.Item>
+                                                                    );
+                                                                })}
+                                                            {styles.filter((style) =>
+                                                                style.name.toLowerCase().includes(styleSearchQuery.toLowerCase())
+                                                            ).length === 0 && (
+                                                                <div className="px-3 py-2 text-sm text-slate-400 text-center">No styles found</div>
+                                                            )}
+                                                        </div>
+                                                    </Menu.Items>
+                                                </Transition>
+                                            </Menu>
+                                        ) : (
+                                            <div className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-400">
+                                                No styles available. Create styles first in the Styles section.
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <div className="flex items-center justify-between">
+                                            <span>Sizes</span>
+                                            {formState.size_ids && formState.size_ids.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormState(prev => ({ ...prev, size_ids: [] }))}
+                                                    className="text-xs font-medium text-rose-600 hover:text-rose-700"
+                                                >
+                                                    Remove all
+                                                </button>
+                                            )}
+                                        </div>
+                                        {sizes && sizes.length > 0 ? (
+                                            <Menu as="div" className="relative">
+                                                <Menu.Button className="w-full min-h-[44px] rounded-2xl border border-slate-300 bg-white px-4 py-2 text-left text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        {formState.size_ids && formState.size_ids.length > 0 ? (
+                                                            formState.size_ids.map((sizeId) => {
+                                                                const size = sizes.find((s) => s.id === sizeId);
+                                                                if (!size) return null;
+                                                                return (
+                                                                    <span
+                                                                        key={sizeId}
+                                                                        className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700"
+                                                                    >
+                                                                        {size.name}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setFormState(prev => ({ ...prev, size_ids: prev.size_ids.filter((id) => id !== sizeId) }));
+                                                                            }}
+                                                                            className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                                                        >
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    </span>
+                                                                );
+                                                            })
+                                                        ) : (
+                                                            <span className="text-slate-400">Select sizes</span>
+                                                        )}
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="ml-auto h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </div>
+                                                </Menu.Button>
+                                                <Transition
+                                                    enter="transition ease-out duration-100"
+                                                    enterFrom="transform opacity-0 scale-95"
+                                                    enterTo="transform opacity-100 scale-100"
+                                                    leave="transition ease-in duration-75"
+                                                    leaveFrom="transform opacity-100 scale-100"
+                                                    leaveTo="transform opacity-0 scale-95"
+                                                >
+                                                    <Menu.Items className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                        <div className="p-2 border-b border-slate-200">
+                                                            <input
+                                                                type="text"
+                                                                value={sizeSearchQuery}
+                                                                onChange={(e) => setSizeSearchQuery(e.target.value)}
+                                                                placeholder="Search sizes..."
+                                                                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            />
+                                                        </div>
+                                                        <div className="max-h-60 overflow-auto p-2">
+                                                            {sizes
+                                                                .filter((size) =>
+                                                                    size.name.toLowerCase().includes(sizeSearchQuery.toLowerCase())
+                                                                )
+                                                                .map((size) => {
+                                                                    const isChecked = formState.size_ids?.includes(size.id) || false;
+                                                                    return (
+                                                                        <Menu.Item key={size.id}>
+                                                                            {({ active }) => (
+                                                                                <div
+                                                                                    className={`flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer ${
+                                                                                        active ? 'bg-slate-50' : ''
+                                                                                    }`}
+                                                                                    onClick={(e) => {
+                                                                                        if ((e.target as HTMLElement).tagName !== 'INPUT') {
+                                                                                            e.stopPropagation();
+                                                                                            e.preventDefault();
+                                                                                            const currentIds = formState.size_ids || [];
+                                                                                            if (isChecked) {
+                                                                                                setFormState(prev => ({ ...prev, size_ids: currentIds.filter((id) => id !== size.id) }));
+                                                                                            } else {
+                                                                                                setFormState(prev => ({ ...prev, size_ids: [...currentIds, size.id] }));
+                                                                                            }
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <input
+                                                                                        type="checkbox"
+                                                                                        checked={isChecked}
+                                                                                        onChange={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            const currentIds = formState.size_ids || [];
+                                                                                            if (e.target.checked) {
+                                                                                                setFormState(prev => ({ ...prev, size_ids: [...currentIds, size.id] }));
+                                                                                            } else {
+                                                                                                setFormState(prev => ({ ...prev, size_ids: currentIds.filter((id) => id !== size.id) }));
+                                                                                            }
+                                                                                        }}
+                                                                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                                                        onClick={(e) => e.stopPropagation()}
+                                                                                    />
+                                                                                    <span className="text-sm text-slate-700">{size.name}</span>
+                                                                                </div>
+                                                                            )}
+                                                                        </Menu.Item>
+                                                                    );
+                                                                })}
+                                                            {sizes.filter((size) =>
+                                                                size.name.toLowerCase().includes(sizeSearchQuery.toLowerCase())
+                                                            ).length === 0 && (
+                                                                <div className="px-3 py-2 text-sm text-slate-400 text-center">No sizes found</div>
+                                                            )}
+                                                        </div>
+                                                    </Menu.Items>
+                                                </Transition>
+                                            </Menu>
+                                        ) : (
+                                            <div className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-400">
+                                                No sizes available. Create sizes first in the Sizes section.
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <label className="flex flex-col gap-2 text-sm text-slate-600">
                                         <span>Description</span>
-                                        <textarea value={formState.description} onChange={e => setFormState(prev => ({ ...prev, description: e.target.value }))} className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200" placeholder="Optional notes for internal reference." />
-                                    </label>
-                                    <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
-                                        <input type="checkbox" checked={formState.is_active} onChange={e => setFormState(prev => ({ ...prev, is_active: e.target.checked }))} className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold" />
-                                        Active for selection
+                                        <textarea
+                                            value={formState.description}
+                                            onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
+                                            className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            placeholder="Optional notes for team (e.g. usage, category)."
+                                        />
                                     </label>
                                 </div>
                             </div>
