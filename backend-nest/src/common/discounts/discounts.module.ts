@@ -3,8 +3,8 @@ import { DiscountsService } from './discounts.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
-  imports: [PrismaModule],
-  providers: [DiscountsService],
-  exports: [DiscountsService],
+    imports: [PrismaModule],
+    providers: [DiscountsService],
+    exports: [DiscountsService],
 })
 export class DiscountsModule {}
