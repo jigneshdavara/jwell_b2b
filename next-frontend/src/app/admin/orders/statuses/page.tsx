@@ -3,6 +3,7 @@
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
 import { useEffect, useMemo, useState } from 'react';
+import { adminService } from '@/services/adminService';
 
 type OrderStatusRow = {
     id: number;
@@ -14,21 +15,9 @@ type OrderStatusRow = {
     position: number;
 };
 
-// Mock data for order statuses
-const mockOrderStatuses: OrderStatusRow[] = [
-    { id: 1, name: 'Pending', slug: 'pending', color: '#f59e0b', is_default: true, is_active: true, position: 1 },
-    { id: 2, name: 'Processing', slug: 'processing', color: '#3b82f6', is_default: false, is_active: true, position: 2 },
-    { id: 3, name: 'Shipped', slug: 'shipped', color: '#22c55e', is_default: false, is_active: true, position: 3 },
-    { id: 4, name: 'Delivered', slug: 'delivered', color: '#10b981', is_default: false, is_active: true, position: 4 },
-    { id: 5, name: 'Cancelled', slug: 'cancelled', color: '#ef4444', is_default: false, is_active: true, position: 5 },
-    { id: 6, name: 'Refunded', slug: 'refunded', color: '#6b7280', is_default: false, is_active: false, position: 6 },
-];
-
-let nextId = mockOrderStatuses.length > 0 ? Math.max(...mockOrderStatuses.map(s => s.id)) + 1 : 1;
-
 export default function AdminOrderStatusesIndex() {
-    // Replace usePage with local state for mock data
-    const [statusesData, setStatusesData] = useState<OrderStatusRow[]>(mockOrderStatuses);
+    const [loading, setLoading] = useState(true);
+    const [statusesData, setStatusesData] = useState<OrderStatusRow[]>([]);
     const [editingStatus, setEditingStatus] = useState<OrderStatusRow | null>(null);
     const [selectedStatuses, setSelectedStatuses] = useState<number[]>([]);
     const [deleteConfirm, setDeleteConfirm] = useState<OrderStatusRow | null>(null);
@@ -43,6 +32,28 @@ export default function AdminOrderStatusesIndex() {
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+
+    // Load data from API
+    useEffect(() => {
+        loadStatuses();
+    }, []);
+
+    const loadStatuses = async () => {
+        try {
+            setLoading(true);
+            const response = await adminService.getOrderStatuses(1, 100);
+            if (response.data?.data) {
+                setStatusesData(response.data.data);
+            } else if (Array.isArray(response.data)) {
+                setStatusesData(response.data);
+            }
+        } catch (error: any) {
+            console.error('Failed to load order statuses:', error);
+            setErrors({ general: error.response?.data?.message || 'Failed to load order statuses' });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const resetForm = () => {
         setEditingStatus(null);
@@ -67,87 +78,97 @@ export default function AdminOrderStatusesIndex() {
         });
     };
 
-    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        setProcessing(true);
+        if (!formData.name.trim()) {
+            setErrors({ name: 'Name is required.' });
+            return;
+        }
 
-        // Simulate API call
-        setTimeout(() => {
+        setProcessing(true);
+        setErrors({});
+
+        try {
             if (editingStatus) {
-                // Update existing status
-                setStatusesData((prev) =>
-                    prev.map((s) =>
-                        s.id === editingStatus.id
-                            ? {
-                                  ...s,
-                                  name: formData.name,
-                                  slug: formData.name.toLowerCase().replace(/\s+/g, '-'),
-                                  color: formData.color,
-                                  is_default: formData.is_default,
-                                  is_active: formData.is_active,
-                                  position: formData.position,
-                              }
-                            : (formData.is_default && s.is_default) // If new status is default, unset old default
-                              ? { ...s, is_default: false }
-                              : s,
-                    ),
-                );
-            } else {
-                // Create new status
-                const newStatus: OrderStatusRow = {
-                    id: nextId++,
+                await adminService.updateOrderStatus(editingStatus.id, {
                     name: formData.name,
-                    slug: formData.name.toLowerCase().replace(/\s+/g, '-'),
                     color: formData.color,
                     is_default: formData.is_default,
                     is_active: formData.is_active,
                     position: formData.position,
-                };
-                setStatusesData((prev) =>
-                    [
-                        ...prev.map((s) =>
-                            formData.is_default && s.is_default ? { ...s, is_default: false } : s,
-                        ),
-                        newStatus,
-                    ].sort((a, b) => a.position - b.position),
-                );
+                });
+            } else {
+                await adminService.createOrderStatus({
+                    name: formData.name,
+                    color: formData.color,
+                    is_default: formData.is_default,
+                    is_active: formData.is_active,
+                    position: formData.position,
+                });
             }
-            setProcessing(false);
             resetForm();
-        }, 500);
+            await loadStatuses();
+        } catch (error: any) {
+            console.error('Failed to save order status:', error);
+            const errorData = error.response?.data;
+            if (errorData?.message) {
+                setErrors({ general: errorData.message });
+            } else if (errorData) {
+                setErrors(errorData);
+            } else {
+                setErrors({ general: 'Failed to save order status' });
+            }
+        } finally {
+            setProcessing(false);
+        }
     };
 
-    const toggleStatus = (status: OrderStatusRow) => {
-        setTimeout(() => {
-            setStatusesData((prev) =>
-                prev.map((s) =>
-                    s.id === status.id ? { ...s, is_active: !s.is_active } : s,
-                ),
-            );
-        }, 300);
+    const toggleStatus = async (status: OrderStatusRow) => {
+        try {
+            await adminService.updateOrderStatus(status.id, {
+                name: status.name,
+                color: status.color,
+                is_default: status.is_default,
+                is_active: !status.is_active,
+                position: status.position,
+            });
+            await loadStatuses();
+        } catch (error: any) {
+            console.error('Failed to toggle status:', error);
+            alert(error.response?.data?.message || 'Failed to update status');
+        }
     };
 
-    const setDefaultStatus = (status: OrderStatusRow) => {
-        setTimeout(() => {
-            setStatusesData((prev) =>
-                prev.map((s) => ({
-                    ...s,
-                    is_default: s.id === status.id,
-                })),
-            );
-        }, 300);
+    const setDefaultStatus = async (status: OrderStatusRow) => {
+        try {
+            await adminService.updateOrderStatus(status.id, {
+                name: status.name,
+                color: status.color,
+                is_default: true,
+                is_active: status.is_active,
+                position: status.position,
+            });
+            await loadStatuses();
+        } catch (error: any) {
+            console.error('Failed to set default status:', error);
+            alert(error.response?.data?.message || 'Failed to set default status');
+        }
     };
 
     const deleteStatus = (status: OrderStatusRow) => {
         setDeleteConfirm(status);
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deleteConfirm) {
-            setTimeout(() => {
-                setStatusesData((prev) => prev.filter((s) => s.id !== deleteConfirm.id));
+            try {
+                await adminService.deleteOrderStatus(deleteConfirm.id);
                 setDeleteConfirm(null);
-            }, 300);
+                await loadStatuses();
+            } catch (error: any) {
+                console.error('Failed to delete status:', error);
+                alert(error.response?.data?.message || 'Failed to delete status');
+            }
         }
     };
 
@@ -179,12 +200,16 @@ export default function AdminOrderStatusesIndex() {
         setBulkDeleteConfirm(true);
     };
 
-    const handleBulkDelete = () => {
-        setTimeout(() => {
-            setStatusesData((prev) => prev.filter((s) => !selectedStatuses.includes(s.id)));
+    const handleBulkDelete = async () => {
+        try {
+            await adminService.bulkDeleteOrderStatuses(selectedStatuses);
             setSelectedStatuses([]);
             setBulkDeleteConfirm(false);
-        }, 300);
+            await loadStatuses();
+        } catch (error: any) {
+            console.error('Failed to delete statuses:', error);
+            alert(error.response?.data?.message || 'Failed to delete statuses');
+        }
     };
 
     useEffect(() => {
@@ -195,11 +220,27 @@ export default function AdminOrderStatusesIndex() {
         data: statusesData,
     };
 
+    if (loading) {
+        return (
+            <>
+                <Head title="Order statuses" />
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <p className="text-slate-500">Loading...</p>
+                </div>
+            </>
+        );
+    }
+
     return (
         <>
             <Head title="Order statuses" />
 
             <div className="space-y-8">
+                {errors.general && (
+                    <div className="rounded-2xl bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">
+                        {errors.general}
+                    </div>
+                )}
                 <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <h1 className="text-2xl font-semibold text-slate-900">Order statuses</h1>
                     <p className="mt-2 text-sm text-slate-500">

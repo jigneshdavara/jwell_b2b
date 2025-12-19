@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import {  useState } from "react";
+import { useEffect, useState } from "react";
+import { adminService } from '@/services/adminService';
 
 const statusColors: Record<string, string> = {
   pending: "bg-amber-100 text-amber-600",
@@ -26,15 +27,35 @@ type Partner = {
 
 export default function AdminDashboardOverview() {
   const [metrics, setMetrics] = useState<Record<string, number>>({
-    pending_kyc: 11,
-    orders_in_production: 2,
+    pending_kyc: 0,
+    orders_in_production: 0,
     active_offers: 0,
   });
-  const [recentPartners, setRecentPartners] = useState<Partner[]>([
-    { id: 1, name: 'Nensi Mavani', email: 'nensi.omeecr@gmail.com', type: 'retailer', kyc_status: 'pending', joined_at: '2025-12-16T10:00:00Z' },
-    { id: 2, name: 'test12', email: 'test12@gmail.com', type: 'retailer', kyc_status: 'approved', joined_at: '2025-12-16T11:00:00Z' },
-  ]);
-  const [loading, setLoading] = useState(false);
+  const [recentPartners, setRecentPartners] = useState<Partner[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      const response = await adminService.getDashboard();
+      if (response.data) {
+        setMetrics({
+          pending_kyc: response.data.pending_kyc || 0,
+          orders_in_production: response.data.orders_in_production || 0,
+          active_offers: response.data.active_offers || 0,
+        });
+        setRecentPartners(response.data.recent_partners || []);
+      }
+    } catch (error: any) {
+      console.error('Failed to load dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
