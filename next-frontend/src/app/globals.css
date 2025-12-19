@@ -130,43 +130,11 @@ a:hover {
     letter-spacing: normal !important;
 }
 
-@layer components {
-    .btn-primary {
-        @apply inline-flex items-center justify-center rounded-lg bg-elvee-blue px-5 py-2.5 font-medium text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy hover:text-white focus:outline-none focus:ring-2 focus:ring-feather-gold focus:ring-offset-2 focus:ring-offset-ivory;
-        letter-spacing: 0.02em;
-    }
-
-    .btn-secondary {
-        @apply inline-flex items-center justify-center rounded-lg border border-feather-gold/30 bg-feather-gold/10 px-5 py-2.5 font-medium text-elvee-blue transition hover:bg-feather-gold/20 hover:text-elvee-blue focus:outline-none focus:ring-2 focus:ring-feather-gold/50;
-        letter-spacing: 0.02em;
-    }
-
-    .glass-card {
-        backdrop-filter: blur(18px);
-        background: rgba(14, 36, 77, 0.72);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 30px 60px -15px rgba(14, 36, 77, 0.45);
-    }
-
-    .metric-card {
-        @apply relative overflow-hidden rounded-2xl bg-white p-6 shadow-xl ring-1 ring-steel/30 transition hover:-translate-y-1 hover:shadow-2xl;
-    }
-
-    .metric-card::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: var(--gradient-card);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    .metric-card:hover::after {
-        opacity: 1;
-    }
-
-    .metric-card > * {
-        position: relative;
-        z-index: 1;
-    }
+/* Scrollbar Hide Utility */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 }

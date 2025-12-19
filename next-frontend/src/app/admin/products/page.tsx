@@ -4,17 +4,6 @@ import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import AlertModal from "@/components/ui/AlertModal";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { adminService } from "@/services/adminService";
-
-type BrandList = Record<string, string>;
-
-type CategoryOption = {
-  id: number;
-  name: string;
-  parent_id: number | null;
-};
-
-type CategoryList = CategoryOption[];
 
 type Product = {
   id: number;
@@ -72,7 +61,7 @@ export default function AdminProductsPage() {
           { id: 2, name: 'Gold Tennis Bracelet', sku: 'ELV-1002', is_active: true, brand: { name: 'Signature' }, category: { name: 'Bracelets' }, variants_count: 1 },
           { id: 3, name: 'Emerald Stud Earrings', sku: 'ELV-1003', is_active: false, brand: { name: 'Elvee Atelier' }, category: { name: 'Earrings' }, variants_count: 2 },
         ],
-        meta: { from: 1, to: 3, total: 3 },
+        meta: { from: 1, to: 3, total: 3, per_page: 20 },
         links: [
           { url: '#', label: '&laquo; Previous', active: false },
           { url: '#', label: '1', active: true },
@@ -348,7 +337,7 @@ export default function AdminProductsPage() {
               <select
                 value={bulkBrand}
                 onChange={(event) => setBulkBrand(event.target.value)}
-                className="rounded-2xl border border-slate-200 px-3 py-1"
+                className="rounded-2xl border border-slate-200 px-3 py-1 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
               >
                 <option value="">Assign brand…</option>
                 {Object.entries(data.brands).map(([id, name]: any) => (
@@ -369,7 +358,7 @@ export default function AdminProductsPage() {
               <select
                 value={bulkCategory}
                 onChange={(event) => setBulkCategory(event.target.value)}
-                className="rounded-2xl border border-slate-200 px-3 py-1"
+                className="rounded-2xl border border-slate-200 px-3 py-1 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
               >
                 <option value="">Assign category…</option>
                 {data.categories.map((category: any) => (
@@ -417,7 +406,7 @@ export default function AdminProductsPage() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
               <tr>
@@ -426,7 +415,7 @@ export default function AdminProductsPage() {
                     type="checkbox"
                     checked={allSelected}
                     onChange={toggleSelectAll}
-                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                     aria-label="Select all products"
                   />
                 </th>
@@ -439,7 +428,7 @@ export default function AdminProductsPage() {
                 <th className="px-6 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 bg-white">
+            <tbody className="divide-y divide-slate-100 bg-white">
               {data.products.data.map((product: any) => (
                 <tr key={product.id} className="hover:bg-slate-50">
                   <td className="px-6 py-4">
@@ -447,7 +436,7 @@ export default function AdminProductsPage() {
                       type="checkbox"
                       checked={selectedProducts.includes(product.id)}
                       onChange={() => toggleSelection(product.id)}
-                      className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                      className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                       aria-label={`Select product ${product.sku}`}
                     />
                   </td>
@@ -647,4 +636,3 @@ export default function AdminProductsPage() {
     </>
   );
 }
-

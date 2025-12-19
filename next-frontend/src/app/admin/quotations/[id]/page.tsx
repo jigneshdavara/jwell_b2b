@@ -1,22 +1,26 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import React, { useState } from 'react';
+import { Head } from '@/components/Head';
 import Link from 'next/link';
-import Modal from '@/components/ui/Modal';
-import { route } from '@/utils/route';
 
-type RelatedQuotation = {
+type QuotationDetails = {
     id: number;
     status: string;
     quantity: number;
     notes?: string | null;
+    admin_notes?: string | null;
+    created_at?: string | null;
     product: {
         id: number;
         name: string;
         sku: string;
         media: Array<{ url: string; alt: string }>;
     };
+    user?: {
+        name?: string | null;
+        email?: string | null;
+    } | null;
     price_breakdown?: {
         metal?: number;
         diamond?: number;
@@ -27,21 +31,26 @@ type RelatedQuotation = {
     };
 };
 
-type QuotationDetails = {
-    id: number;
-    status: string;
-    quantity: number;
-    notes?: string | null;
-    admin_notes?: string | null;
-    created_at?: string | null;
-    user?: { name?: string | null; email?: string | null; } | null;
-    product: { id: number; name: string; sku: string; media: Array<{ url: string; alt: string }>; };
-    price_breakdown?: { metal?: number; diamond?: number; making?: number; subtotal?: number; discount?: number; total?: number; };
-    messages: Array<{ id: number; sender: 'customer' | 'admin'; message: string; created_at?: string | null; author?: string | null; }>;
+const mockQuotation: QuotationDetails = {
+    id: 1001,
+    status: 'pending',
+    quantity: 5,
+    created_at: '2025-12-15T10:30:00Z',
+    product: {
+        id: 1,
+        name: 'Gold Ring',
+        sku: 'GR-001',
+        media: [{ url: '/images/products/ring.jpg', alt: 'Gold Ring' }],
+    },
+    user: { name: 'John Doe', email: 'john@example.com' },
+    price_breakdown: {
+        metal: 15000,
+        diamond: 5000,
+        making: 2000,
+        subtotal: 22000,
+        total: 22000,
+    },
 };
-
-const currencyFormatter = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
-const formatDate = (i?: string | null) => i ? new Date(i).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
 
 const statusBadge: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
@@ -49,109 +58,116 @@ const statusBadge: Record<string, string> = {
     rejected: 'bg-rose-100 text-rose-700',
 };
 
-export default function AdminQuotationShowPage() {
-    const { id } = useParams();
-    const [quotation, setQuotation] = useState<QuotationDetails | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [newMessage, setNewMessage] = useState('');
+const formatDate = (input?: string | null) =>
+    input
+        ? new Date(input).toLocaleString('en-IN', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+          })
+        : 'N/A';
 
-    useEffect(() => {
-        // Mock data
-        setQuotation({
-            id: Number(id),
-            status: 'pending',
-            quantity: 1,
-            notes: 'Customer requested special engraving',
-            admin_notes: '',
-            created_at: new Date().toISOString(),
-            user: { name: 'Diamond Partner', email: 'partner@example.com' },
-            product: { id: 1, name: 'Traditional Gold Choker', sku: 'ELV-1002', media: [] },
-            price_breakdown: { metal: 75000, diamond: 0, making: 10000, subtotal: 85000, discount: 0, total: 85000 },
-            messages: [
-                { id: 1, sender: 'customer', message: 'Is it possible to finish this by next week?', created_at: new Date().toISOString(), author: 'Diamond Partner' }
-            ]
-        });
-        setLoading(false);
-    }, [id]);
-
-    const handleSendMessage = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newMessage.trim()) return;
-        alert(`Message sent: ${newMessage}`);
-        setNewMessage('');
-    };
-
-    const handleAction = (type: string) => {
-        alert(`Action: ${type}`);
-    };
-
-    if (loading || !quotation) return <div className="flex justify-center py-20"><div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" /></div>;
+export default function AdminQuotationShow({ params }: { params: { id: string } }) {
+    const [quotation] = useState<QuotationDetails>(mockQuotation);
 
     return (
-        <div className="space-y-10">
-            <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70 flex justify-between items-center">
-                <div><h1 className="text-3xl font-semibold text-slate-900">Quotation #{quotation.id}</h1><p className="mt-2 text-sm text-slate-500">{quotation.user?.name} · {quotation.user?.email}</p></div>
-                <Link href="/admin/dashboard" className="border px-4 py-2 rounded-full text-sm font-semibold">Back</Link>
-            </header>
+        <>
+            <Head title={`Quotation #${params.id}`} />
 
-            <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                        <div className="flex items-center gap-6">
-                            <div className="h-24 w-24 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400">No Image</div>
-                            <div className="flex-1">
-                                <h2 className="text-xl font-semibold">{quotation.product.name}</h2>
-                                <p className="text-slate-500">SKU: {quotation.product.sku}</p>
-                                <div className="mt-2 flex items-center gap-2">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[quotation.status]}`}>{quotation.status}</span>
-                                    <span className="text-sm font-medium">Qty: {quotation.quantity}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                        <h3 className="text-lg font-semibold mb-4 text-slate-900">Conversation</h3>
-                        <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto">
-                            {quotation.messages.map(msg => (
-                                <div key={msg.id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${msg.sender === 'admin' ? 'bg-elvee-blue text-white' : 'bg-slate-100 text-slate-800'}`}>
-                                        <p className="text-sm">{msg.message}</p>
-                                        <p className="text-[10px] mt-1 opacity-70">{msg.author} · {formatDate(msg.created_at)}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <form onSubmit={handleSendMessage} className="flex gap-2">
-                            <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} className="flex-1 rounded-xl border px-4 py-2" placeholder="Type your message..." />
-                            <button type="submit" className="bg-elvee-blue text-white px-6 py-2 rounded-xl font-semibold">Send</button>
-                        </form>
+            <div className="space-y-8">
+                <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-2xl font-semibold text-slate-900">Quotation #{params.id}</h1>
+                        <Link
+                            href="/admin/quotations"
+                            className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                        >
+                            Back to list
+                        </Link>
                     </div>
                 </div>
 
                 <div className="space-y-6">
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70 space-y-4">
-                        <h3 className="text-lg font-semibold text-slate-900">Pricing Summary</h3>
-                        {quotation.price_breakdown && (
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between"><span>Metal</span><span>{currencyFormatter.format(quotation.price_breakdown.metal || 0)}</span></div>
-                                <div className="flex justify-between"><span>Making</span><span>{currencyFormatter.format(quotation.price_breakdown.making || 0)}</span></div>
-                                <div className="flex justify-between font-bold border-t pt-2"><span>Total</span><span>{currencyFormatter.format(quotation.price_breakdown.total || 0)}</span></div>
+                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
+                        <div className="grid gap-8 md:grid-cols-3">
+                            <div>
+                                <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">From</h3>
+                                <p className="mt-3 text-lg font-semibold text-slate-900">Elvee</p>
+                                <p className="mt-1 text-sm text-slate-600">123 Business Street</p>
+                                <p className="text-sm text-slate-600">Mumbai, Maharashtra 400001</p>
                             </div>
-                        )}
-                        <div className="pt-4 flex flex-col gap-2">
-                            <button onClick={() => handleAction('approve')} className="w-full bg-emerald-600 text-white py-2 rounded-full font-semibold">Approve</button>
-                            <button onClick={() => handleAction('reject')} className="w-full border border-rose-600 text-rose-600 py-2 rounded-full font-semibold">Reject</button>
+                            <div>
+                                <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Bill To</h3>
+                                <p className="mt-3 text-lg font-semibold text-slate-900">{quotation.user?.name ?? 'Unknown'}</p>
+                                <p className="mt-1 text-sm text-slate-600">{quotation.user?.email ?? '—'}</p>
+                            </div>
+                            <div className="text-right">
+                                <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Quotation Details</h3>
+                                <p className="mt-3 text-lg font-semibold text-slate-900">#{params.id}</p>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Date: <span className="font-semibold text-slate-900">{quotation.created_at && formatDate(quotation.created_at)}</span>
+                                </p>
+                                <div className="mt-3 flex justify-end gap-2">
+                                    <span
+                                        className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${
+                                            statusBadge[quotation.status] ?? 'bg-slate-200 text-slate-700'
+                                        }`}
+                                    >
+                                        {quotation.status.replace(/_/g, ' ')}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                        <h3 className="text-lg font-semibold mb-2">Customer Notes</h3>
-                        <p className="text-sm text-slate-600 italic">"{quotation.notes || 'No notes provided'}"</p>
+
+                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h2 className="text-lg font-semibold text-slate-900">Items</h2>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="border-b-2 border-slate-200 bg-slate-50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Item</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Unit Price</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Qty</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    <tr className="hover:bg-slate-50/50 transition">
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-sm font-semibold text-slate-900">{quotation.product.name}</p>
+                                                    <p className="text-xs text-slate-400">SKU {quotation.product.sku}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4 text-right">
+                                            <div className="text-sm font-semibold text-slate-900">₹ {quotation.price_breakdown?.total?.toLocaleString('en-IN')}</div>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <span className="font-semibold text-slate-900">{quotation.quantity}</span>
+                                        </td>
+                                        <td className="px-4 py-4 text-right">
+                                            <div className="text-sm font-semibold text-slate-900">₹ {( (quotation.price_breakdown?.total || 0) * quotation.quantity).toLocaleString('en-IN')}</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot className="border-t-2 border-slate-200 bg-slate-50">
+                                    <tr>
+                                        <td colSpan={3} className="px-4 py-3 text-right font-semibold text-slate-600 text-xs uppercase tracking-wider">Total Amount</td>
+                                        <td className="px-4 py-3 text-right font-bold text-slate-900 text-lg">₹ {( (quotation.price_breakdown?.total || 0) * quotation.quantity).toLocaleString('en-IN')}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }
-

@@ -1,17 +1,21 @@
 import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api",
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
-  withCredentials: true,
 });
 
-// Add request interceptor for tokens if using JWT, or stick with Sanctum cookies
+// Add request interceptor for tokens
 apiClient.interceptors.request.use((config) => {
-  // config.headers.Authorization = `Bearer ${token}`;
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
   return config;
 });
 

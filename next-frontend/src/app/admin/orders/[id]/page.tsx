@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
 import Modal from '@/components/ui/Modal';
-import { route } from '@/utils/route';
+import { Head } from '@/components/Head';
+import Link from 'next/link';
+import { useMemo, useState, use } from 'react';
 
 type OrderItem = {
     id: number;
@@ -28,11 +27,15 @@ type OrderItem = {
         id: number;
         name: string;
         sku: string;
+        base_price?: number | null;
+        making_charge_amount?: number | null;
+        making_charge_percentage?: number | null;
+        making_charge_types?: string[];
         media: Array<{ url: string; alt: string }>;
     } | null;
 };
 
-type OrderDetails = {
+type Order = {
     id: number;
     reference: string;
     status: string;
@@ -41,125 +44,620 @@ type OrderDetails = {
     tax_amount: number;
     discount_amount: number;
     total_amount: number;
+    price_breakdown?: Record<string, unknown>;
     created_at?: string | null;
     updated_at?: string | null;
     items: OrderItem[];
-    user?: { name: string; email: string; };
-    payments: Array<{ id: number; status: string; amount: number; created_at?: string | null; }>;
-    status_history: Array<{ id: number; status: string; created_at?: string | null; meta?: any; }>;
-    quotations?: Array<{ id: number; status: string; quantity: number; product?: any; }>;
+    user?: {
+        name: string;
+        email: string;
+    };
+    payments: Array<{
+        id: number;
+        status: string;
+        amount: number;
+        created_at?: string | null;
+    }>;
+    status_history: Array<{
+        id: number;
+        status: string;
+        created_at?: string | null;
+        meta?: Record<string, unknown>;
+    }>;
+    quotations?: Array<{
+        id: number;
+        status: string;
+        quantity: number;
+        product?: {
+            id: number;
+            name: string;
+            sku: string;
+            media: Array<{ url: string; alt: string }>;
+        } | null;
+    }>;
 };
 
-const currencyFormatter = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
-const formatDate = (i?: string | null) => i ? new Date(i).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+type StatusOption = {
+    value: string;
+    label: string;
+};
+
+// Mock data for a single order
+const mockOrder: Order = {
+    id: 1,
+    reference: 'ORD-2023-001',
+    status: 'pending',
+    status_label: 'Pending',
+    subtotal_amount: 145000,
+    tax_amount: 5000,
+    discount_amount: 0,
+    total_amount: 150000,
+    created_at: '2023-12-01T10:00:00Z',
+    updated_at: '2023-12-01T10:30:00Z',
+    items: [
+        {
+            id: 1,
+            sku: 'RNG-001',
+            name: 'Gold Diamond Ring',
+            quantity: 1,
+            unit_price: 150000,
+            total_price: 150000,
+            product: {
+                id: 1,
+                name: 'Gold Diamond Ring',
+                sku: 'RNG-001',
+                media: [{ url: '/images/products/ring.png', alt: 'Gold Diamond Ring' }],
+            },
+        },
+    ],
+    user: { name: 'John Doe', email: 'john@example.com' },
+    payments: [
+        { id: 1, status: 'succeeded', amount: 150000, created_at: '2023-12-01T10:05:00Z' },
+    ],
+    status_history: [
+        { id: 1, status: 'pending', created_at: '2023-12-01T10:00:00Z', meta: { comment: 'Order placed' } },
+    ],
+};
+
+const mockStatusOptions: StatusOption[] = [
+    { value: 'pending', label: 'Pending' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'in_production', label: 'In Production' },
+    { value: 'shipped', label: 'Shipped' },
+    { value: 'delivered', label: 'Delivered' },
+    { value: 'cancelled', label: 'Cancelled' },
+];
+
+const currencyFormatter = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 2,
+});
 
 const statusColors: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
+    pending_payment: 'bg-amber-100 text-amber-700',
+    payment_failed: 'bg-rose-100 text-rose-700',
+    awaiting_materials: 'bg-indigo-100 text-indigo-700',
+    under_production: 'bg-indigo-100 text-indigo-700',
     approved: 'bg-emerald-100 text-emerald-700',
+    in_production: 'bg-indigo-100 text-indigo-700',
+    quality_check: 'bg-blue-100 text-blue-700',
+    ready_to_dispatch: 'bg-purple-100 text-purple-700',
     dispatched: 'bg-elvee-blue/10 text-elvee-blue',
     delivered: 'bg-emerald-100 text-emerald-700',
     cancelled: 'bg-rose-100 text-rose-700',
+    paid: 'bg-emerald-100 text-emerald-700',
 };
 
-export default function AdminOrderShowPage() {
-    const { id } = useParams();
-    const [order, setOrder] = useState<OrderDetails | null>(null);
-    const [loading, setLoading] = useState(true);
+const formatDate = (input?: string | null) =>
+    input
+        ? new Date(input).toLocaleString('en-IN', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+          })
+        : 'N/A';
+
+export default function AdminOrdersShow({ params }: { params: Promise<{ id: string }> }) {
+    const resolvedParams = use(params);
+    const order = mockOrder; // In real app, fetch based on resolvedParams.id
+    const statusOptions = mockStatusOptions;
     const [productDetailsModalOpen, setProductDetailsModalOpen] = useState<OrderItem | null>(null);
-    const [statusValue, setStatusValue] = useState('');
-    const [comment, setComment] = useState('');
 
-    useEffect(() => {
-        // Mock data
-        setOrder({
-            id: Number(id),
-            reference: `ORD-2025-00${id}`,
-            status: 'approved',
-            status_label: 'Approved',
-            subtotal_amount: 125000,
-            tax_amount: 0,
-            discount_amount: 0,
-            total_amount: 125000,
-            created_at: new Date().toISOString(),
-            items: [
-                { id: 1, sku: 'ELV-1001', name: 'Diamond Solitaire Ring', quantity: 1, unit_price: 125000, total_price: 125000, product: { id: 1, name: 'Diamond Ring', sku: 'ELV-1001', media: [] } }
-            ],
-            user: { name: 'Diamond Partner', email: 'partner@example.com' },
-            payments: [{ id: 1, status: 'succeeded', amount: 125000, created_at: new Date().toISOString() }],
-            status_history: [{ id: 1, status: 'approved', created_at: new Date().toISOString() }]
-        });
-        setStatusValue('approved');
-        setLoading(false);
-    }, [id]);
+    const [statusData, setStatusData] = useState({
+        status: order.status,
+        meta: {
+            comment: '',
+        },
+    });
+    const [processing, setProcessing] = useState(false);
 
-    const handleSubmitStatus = (e: React.FormEvent) => {
-        e.preventDefault();
-        alert(`Status updated to ${statusValue} with comment: ${comment}`);
+    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setProcessing(true);
+        // Simulate API call
+        setTimeout(() => {
+            setProcessing(false);
+            alert('Status updated (mock)');
+        }, 1000);
     };
 
-    if (loading || !order) return <div className="flex justify-center py-20"><div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" /></div>;
+    const paymentStatusLabel = useMemo(() => {
+        if (order.payments.length === 0) {
+            return 'No payments recorded';
+        }
+
+        const latest = order.payments[0];
+        return `${latest.status ?? 'Pending'} · ${currencyFormatter.format(latest.amount)}`;
+    }, [order.payments]);
 
     return (
-        <div className="space-y-10">
-            <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70 flex justify-between items-center">
-                <div><h1 className="text-3xl font-semibold">Order {order.reference}</h1><p className="text-sm text-slate-500">{order.user?.name} · {order.user?.email}</p></div>
-                <Link href="/admin/dashboard" className="border px-4 py-2 rounded-full text-sm font-semibold">Back</Link>
-            </header>
+        <>
+            <Head title={`Order ${order.reference}`} />
 
-            <div className="grid lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70 overflow-x-auto">
-                        <h2 className="text-lg font-semibold mb-4">Items</h2>
-                        <table className="w-full text-sm">
-                            <thead className="bg-slate-50"><tr><th className="px-4 py-3 text-left">Item</th><th className="px-4 py-3 text-right">Unit</th><th className="px-4 py-3 text-center">Qty</th><th className="px-4 py-3 text-right">Total</th></tr></thead>
-                            <tbody className="divide-y">
-                                {order.items.map(item => (
-                                    <tr key={item.id}>
-                                        <td className="px-4 py-4 flex items-center gap-3"><div><p className="font-semibold">{item.name}</p><p className="text-xs text-slate-400">SKU {item.sku}</p></div></td>
-                                        <td className="px-4 py-4 text-right">{currencyFormatter.format(item.unit_price)}</td>
-                                        <td className="px-4 py-4 text-center">{item.quantity}</td>
-                                        <td className="px-4 py-4 text-right font-semibold">{currencyFormatter.format(item.total_price)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <form onSubmit={handleSubmitStatus} className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70 space-y-4">
-                        <h2 className="text-lg font-semibold">Update Status</h2>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <select value={statusValue} onChange={e => setStatusValue(e.target.value)} className="rounded-xl border px-4 py-2">
-                                <option value="pending">Pending</option>
-                                <option value="approved">Approved</option>
-                                <option value="dispatched">Dispatched</option>
-                                <option value="delivered">Delivered</option>
-                            </select>
-                            <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Operator note..." className="rounded-xl border px-4 py-2" />
+            <div className="space-y-10">
+                <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-3xl font-semibold text-slate-900">Order {order.reference}</h1>
+                            <p className="mt-2 text-sm text-slate-500">
+                                {order.user?.name ?? 'Guest'} · {order.user?.email ?? '—'}
+                            </p>
                         </div>
-                        <button type="submit" className="bg-elvee-blue text-white px-6 py-2 rounded-full font-semibold">Save Status</button>
-                    </form>
-                </div>
+                        <Link
+                            href="/admin/orders"
+                            className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                        >
+                            Back to list
+                        </Link>
+                    </div>
+                </header>
 
                 <div className="space-y-6">
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70 space-y-4">
-                        <h2 className="text-lg font-semibold">Order Summary</h2>
-                        <div className="flex justify-between text-sm"><span>Subtotal</span><span>{currencyFormatter.format(order.subtotal_amount)}</span></div>
-                        <div className="flex justify-between font-bold border-t pt-3"><span>Total</span><span>{currencyFormatter.format(order.total_amount)}</span></div>
-                    </div>
+                    {/* Invoice Header */}
                     <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                        <h2 className="text-lg font-semibold mb-4">Status History</h2>
-                        <div className="space-y-3">
-                            {order.status_history.map(h => (
-                                <div key={h.id} className="flex justify-between items-center text-sm border-b pb-2">
-                                    <span className="capitalize font-medium">{h.status.replace(/_/g, ' ')}</span>
-                                    <span className="text-xs text-slate-400">{formatDate(h.created_at)}</span>
+                        <div className="grid gap-8 md:grid-cols-3">
+                            {/* Company Details */}
+                            <div>
+                                <h3 className="text-xs font-semibold text-slate-400">From</h3>
+                                <p className="mt-3 text-lg font-semibold text-slate-900">Elvee</p>
+                                <p className="mt-1 text-sm text-slate-600">123 Business Street</p>
+                                <p className="text-sm text-slate-600">Mumbai, Maharashtra 400001</p>
+                                <p className="mt-2 text-sm text-slate-600">Phone: +91 98765 43210</p>
+                                <p className="text-sm text-slate-600">Email: info@elvee.com</p>
+                                <p className="mt-2 text-sm text-slate-600">GSTIN: 27AAAAA0000A1Z5</p>
+                            </div>
+                            {/* Bill To */}
+                            <div>
+                                <h3 className="text-xs font-semibold text-slate-400">Bill To</h3>
+                                <p className="mt-3 text-lg font-semibold text-slate-900">{order.user?.name ?? 'Unknown'}</p>
+                                <p className="mt-1 text-sm text-slate-600">{order.user?.email ?? '—'}</p>
+                            </div>
+                            {/* Order Details */}
+                            <div className="text-right">
+                                <h3 className="text-xs font-semibold text-slate-400">Order Details</h3>
+                                <p className="mt-3 text-lg font-semibold text-slate-900">{order.reference}</p>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Date: <span className="font-semibold text-slate-900">{formatDate(order.created_at)}</span>
+                                </p>
+                                <div className="mt-3 flex justify-end gap-2">
+                                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusColors[order.status] ?? 'bg-slate-200 text-slate-700'}`}>
+                                        {order.status_label}
+                                    </span>
                                 </div>
-                            ))}
+                                <p className="mt-2 text-xs text-slate-400">Payment: {paymentStatusLabel}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Products Table - Invoice Style */}
+                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                        <h2 className="mb-4 text-lg font-semibold text-slate-900">Items</h2>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="border-b-2 border-slate-200 bg-slate-50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Item</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Unit Price</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Qty</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Total</th>
+                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {order.items.map((item) => (
+                                        <tr key={item.id} className="hover:bg-slate-50/50 transition">
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    {item.product?.media?.[0] && (
+                                                        <img
+                                                            src={item.product.media[0].url}
+                                                            alt={item.product.media[0].alt}
+                                                            className="h-12 w-12 rounded-lg object-cover shadow-sm"
+                                                        />
+                                                    )}
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+                                                        <p className="text-xs text-slate-400">SKU {item.sku}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4 text-right">
+                                                <div className="text-sm font-semibold text-slate-900">{currencyFormatter.format(item.unit_price)}</div>
+                                            </td>
+                                            <td className="px-4 py-4 text-center">
+                                                <span className="font-semibold text-slate-900">{item.quantity}</span>
+                                            </td>
+                                            <td className="px-4 py-4 text-right">
+                                                <div className="text-sm font-semibold text-slate-900">{currencyFormatter.format(item.total_price)}</div>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center justify-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setProductDetailsModalOpen(item)}
+                                                        className="inline-flex items-center gap-1 rounded-full border border-elvee-blue/30 px-2.5 py-1.5 text-[10px] font-semibold text-elvee-blue transition hover:border-elvee-blue hover:bg-elvee-blue/5"
+                                                        title="View product details"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot className="border-t-2 border-slate-200 bg-slate-50">
+                                    <tr>
+                                        <td colSpan={2} className="px-4 py-2 text-right text-sm text-slate-600">
+                                            Subtotal
+                                        </td>
+                                        <td className="px-4 py-2"></td>
+                                        <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
+                                            {currencyFormatter.format(order.subtotal_amount)}
+                                        </td>
+                                    </tr>
+                                    {order.discount_amount > 0 && (
+                                        <tr>
+                                            <td colSpan={2} className="px-4 py-2 text-right text-sm text-slate-600">
+                                                Discount
+                                            </td>
+                                            <td className="px-4 py-2"></td>
+                                            <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
+                                                -{currencyFormatter.format(order.discount_amount)}
+                                            </td>
+                                        </tr>
+                                    )}
+                                    <tr>
+                                        <td colSpan={2} className="px-4 py-2 text-right text-sm text-slate-600">
+                                            Tax (GST)
+                                        </td>
+                                        <td className="px-4 py-2"></td>
+                                        <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
+                                            {currencyFormatter.format(order.tax_amount)}
+                                        </td>
+                                    </tr>
+                                    <tr className="border-t-2 border-slate-300">
+                                        <td colSpan={2} className="px-4 py-3 text-right text-base font-bold text-slate-900">
+                                            Grand Total
+                                        </td>
+                                        <td className="px-4 py-3"></td>
+                                        <td className="px-4 py-3 text-right text-lg font-bold text-slate-900">
+                                            {currencyFormatter.format(order.total_amount)}
+                                        </td>
+                                        <td className="px-4 py-3"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className="grid gap-6 lg:grid-cols-2">
+                        <div className="space-y-6">
+                            {/* Status Update Form */}
+                            <form
+                                onSubmit={submit}
+                                className="space-y-4 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70"
+                            >
+                                <h2 className="text-lg font-semibold text-slate-900">Update Status</h2>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <span className="font-semibold text-slate-800">Workflow stage</span>
+                                        <select
+                                            className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                            value={statusData.status}
+                                            onChange={(event) => setStatusData({ ...statusData, status: event.target.value })}
+                                        >
+                                            {statusOptions.map((option) => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <span className="font-semibold text-slate-800">Operator note</span>
+                                        <textarea
+                                            className="min-h-[100px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                            value={statusData.meta.comment}
+                                            onChange={(event) => setStatusData({ ...statusData, meta: { ...statusData.meta, comment: event.target.value } })}
+                                            placeholder="Optional note shared with production & support"
+                                        />
+                                    </label>
+                                </div>
+                                <div className="flex justify-end gap-3">
+                                    <Link
+                                        href="/admin/orders"
+                                        className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                    >
+                                        Back
+                                    </Link>
+                                    <button
+                                        type="submit"
+                                        disabled={processing}
+                                        className="rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        Save status
+                                    </button>
+                                </div>
+                            </form>
+
+                            {/* Status History */}
+                            <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                                <h2 className="text-lg font-semibold text-slate-900">Status History</h2>
+                                <div className="mt-4 space-y-3 text-sm text-slate-600">
+                                    {order.status_history.length === 0 && (
+                                        <p className="text-xs text-slate-400">No status updates recorded yet.</p>
+                                    )}
+                                    {order.status_history.map((entry) => {
+                                        const comment = entry.meta?.comment;
+                                        const commentText = typeof comment === 'string' ? comment : null;
+                                        return (
+                                            <div key={entry.id} className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3">
+                                                <div>
+                                                    <span className="font-semibold text-slate-800">{entry.status.replace(/_/g, ' ')}</span>
+                                                    {commentText && (
+                                                        <p className="mt-1 text-xs text-slate-500">{commentText}</p>
+                                                    )}
+                                                </div>
+                                                <span className="text-xs text-slate-400">{formatDate(entry.created_at)}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            {/* Order Timeline */}
+                            <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                                <h2 className="text-lg font-semibold text-slate-900">Order Timeline</h2>
+                                <div className="mt-4 space-y-3">
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-xs font-semibold text-slate-400">Created</p>
+                                                <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(order.created_at)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {order.updated_at && order.updated_at !== order.created_at && (
+                                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-xs font-semibold text-slate-400">Last Updated</p>
+                                                    <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(order.updated_at)}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Payments */}
+                            <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                                <h2 className="text-lg font-semibold text-slate-900">Payments</h2>
+                                <div className="mt-4 space-y-2 text-sm text-slate-600">
+                                    {order.payments.length === 0 && <p className="text-xs text-slate-400">No payments captured.</p>}
+                                    {order.payments.map((payment) => (
+                                        <div key={payment.id} className="rounded-2xl border border-slate-200 px-4 py-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="font-semibold text-slate-800">{payment.status}</span>
+                                                <span className="text-xs text-slate-400">{formatDate(payment.created_at)}</span>
+                                            </div>
+                                            <p className="mt-1 text-sm font-semibold text-slate-900">{currencyFormatter.format(payment.amount)}</p>
+                                        </div>
+                                    ))}
+                                    {order.status === 'pending_payment' && (
+                                        <p className="text-xs text-amber-600">Waiting for customer to complete payment.</p>
+                                    )}
+                                    {order.status === 'paid' && <p className="text-xs text-emerald-600">Payment confirmed.</p>}
+                                </div>
+                            </div>
+
+                            {/* Linked Quotations */}
+                            {order.quotations && order.quotations.length > 0 && (
+                                <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                                    <h2 className="text-lg font-semibold text-slate-900">Source Quotations</h2>
+                                    <p className="mt-1 text-xs text-slate-500">This order was created from the following quotations</p>
+                                    <div className="mt-4 space-y-3">
+                                        {order.quotations.map((quotation) => (
+                                            <Link
+                                                key={quotation.id}
+                                                href={`/admin/quotations/${quotation.id}`}
+                                                className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-elvee-blue/50 hover:bg-elvee-blue/5"
+                                            >
+                                                {quotation.product?.media?.[0] && (
+                                                    <img
+                                                        src={quotation.product.media[0].url}
+                                                        alt={quotation.product.media[0].alt}
+                                                        className="h-10 w-10 rounded-lg object-cover"
+                                                    />
+                                                )}
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-semibold text-slate-900">Quotation #{quotation.id}</p>
+                                                    <p className="text-xs text-slate-500">{quotation.product?.name ?? 'Product'}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-xs text-slate-500">Qty: {quotation.quantity}</p>
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Price Breakdown */}
+                            {order.price_breakdown && Object.keys(order.price_breakdown).length > 0 && (
+                                <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                                    <h2 className="text-lg font-semibold text-slate-900">Price Breakdown</h2>
+                                    <pre className="mt-4 max-h-64 overflow-auto rounded-2xl bg-slate-900/95 p-4 text-xs text-slate-100">
+                                        {JSON.stringify(order.price_breakdown, null, 2)}
+                                    </pre>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+
+            {/* Product Details Modal */}
+            {productDetailsModalOpen && (
+                <Modal show={true} onClose={() => setProductDetailsModalOpen(null)} maxWidth="4xl">
+                    <div className="flex min-h-0 flex-col">
+                        <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-slate-900">Product Details</h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setProductDetailsModalOpen(null)}
+                                    className="text-slate-400 hover:text-slate-600"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                            <div className="space-y-6">
+                                {/* Product Image and Basic Info */}
+                                <div className="flex gap-6">
+                                    {productDetailsModalOpen.product?.media?.[0] && (
+                                        <img
+                                            src={productDetailsModalOpen.product.media[0].url}
+                                            alt={productDetailsModalOpen.product.media[0].alt}
+                                            className="h-32 w-32 rounded-lg object-cover shadow-lg"
+                                        />
+                                    )}
+                                    <div className="flex-1">
+                                        <h4 className="text-xl font-semibold text-slate-900">{productDetailsModalOpen.name}</h4>
+                                        <p className="mt-1 text-sm text-slate-500">SKU: {productDetailsModalOpen.sku}</p>
+                                        <div className="mt-3 flex gap-2">
+                                            <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                                                Qty: {productDetailsModalOpen.quantity}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Pricing */}
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                    <h5 className="mb-3 text-sm font-semibold text-slate-700">Pricing</h5>
+                                    <div className="space-y-2 text-sm">
+                                        {(() => {
+                                            // Use stored price breakdown from order if available
+                                            const priceBreakdown = productDetailsModalOpen.price_breakdown;
+                                            const metalCost = priceBreakdown?.metal ?? 0;
+                                            const diamondCost = priceBreakdown?.diamond ?? 0;
+                                            const makingCharge = priceBreakdown?.making ?? productDetailsModalOpen.calculated_making_charge ?? 0;
+                                            const discount = priceBreakdown?.discount ?? 0;
+
+                                            return (
+                                                <>
+                                                    {metalCost > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Metal:</span>
+                                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(metalCost)}</span>
+                                                        </div>
+                                                    )}
+                                                    {diamondCost > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Diamond:</span>
+                                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(diamondCost)}</span>
+                                                        </div>
+                                                    )}
+                                                    {makingCharge > 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Making Charge:</span>
+                                                            <span className="font-semibold text-slate-900">{currencyFormatter.format(makingCharge)}</span>
+                                                        </div>
+                                                    )}
+                                                    {discount > 0 && (
+                                                        <div className="flex justify-between text-rose-600">
+                                                            <span>Discount:</span>
+                                                            <span className="font-semibold">-{currencyFormatter.format(discount)}</span>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
+                                        <div className="border-t border-slate-300 pt-2">
+                                            <div className="flex justify-between">
+                                                <span className="font-semibold text-slate-900">Unit Price:</span>
+                                                <span className="font-semibold text-slate-900">{currencyFormatter.format(productDetailsModalOpen.unit_price)}</span>
+                                            </div>
+                                            <div className="flex justify-between mt-2">
+                                                <span className="font-semibold text-slate-900">Total Price:</span>
+                                                <span className="font-semibold text-slate-900">{currencyFormatter.format(productDetailsModalOpen.total_price)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                {/* Configuration */}
+                                {productDetailsModalOpen.configuration && Object.keys(productDetailsModalOpen.configuration).length > 0 && (
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Configuration</h5>
+                                        <div className="space-y-2 text-sm">
+                                            {Object.entries(productDetailsModalOpen.configuration).map(([key, value]) => (
+                                                <div key={key} className="flex justify-between">
+                                                    <span className="text-slate-600">{key.replace(/_/g, ' ')}:</span>
+                                                    <span className="font-semibold text-slate-900">
+                                                        {value === null || value === undefined || value === '' ? '—' : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Metadata */}
+                                {productDetailsModalOpen.metadata && Object.keys(productDetailsModalOpen.metadata).length > 0 && (
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Additional Information</h5>
+                                        <div className="space-y-2 text-sm">
+                                            {Object.entries(productDetailsModalOpen.metadata).map(([key, value]) => (
+                                                <div key={key} className="flex justify-between">
+                                                    <span className="text-slate-600">{key.replace(/_/g, ' ')}:</span>
+                                                    <span className="font-semibold text-slate-900">
+                                                        {value === null || value === undefined || value === '' ? '—' : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+        </>
     );
 }
-
