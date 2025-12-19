@@ -32,6 +32,7 @@ model Customer {
   phone                  String?                  @db.VarChar(191)
   type                   String                   @default("retailer") @db.VarChar(191)
   customer_group_id      BigInt?
+  customer_groups        customer_groups?         @relation(fields: [customer_group_id], references: [id], onUpdate: NoAction, map: "customers_customer_group_id_foreign")
   kyc_status             String                   @default("pending") @db.VarChar(191)
   kyc_notes              String?
   preferred_language     String?                  @db.VarChar(191)
@@ -237,6 +238,7 @@ model customer_groups {
   created_at              DateTime?                 @db.Timestamptz(0)
   updated_at              DateTime?                 @db.Timestamptz(0)
   making_charge_discounts making_charge_discounts[]
+  customers               Customer[]
 }
 
 model customer_types {
