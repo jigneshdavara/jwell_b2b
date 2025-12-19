@@ -16,12 +16,24 @@ export class RateItemDto {
     @IsNumber()
     @IsNotEmpty()
     price_per_gram: number;
+
+    @IsString()
+    @IsOptional()
+    currency?: string;
 }
 
 export class UpdateMetalRatesDto {
     @IsString()
     @IsOptional()
     currency?: string;
+
+    @IsString()
+    @IsOptional()
+    source?: string;
+
+    @IsString()
+    @IsOptional()
+    effective_at?: string;
 
     @IsArray()
     @ValidateNested({ each: true })

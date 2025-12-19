@@ -10,6 +10,7 @@ import {
     HttpCode,
     HttpStatus,
     BadRequestException,
+    NotFoundException,
 } from '@nestjs/common';
 import { FrontendCheckoutService } from './checkout.service';
 import { ConfirmCheckoutDto } from './dto/checkout.dto';
@@ -120,6 +121,10 @@ export class FrontendCheckoutController {
             // Clear cart
             const cart = await this.cartService.getActiveCart(userId);
             await this.cartService.clear(cart);
+
+            if (!order) {
+                throw new NotFoundException('Order not found');
+            }
 
             return {
                 message: `Order ${order.reference} confirmed. Production planning is underway.`,

@@ -207,9 +207,6 @@ export class FrontendOrdersService {
                               id: item.products.id.toString(),
                               name: item.products.name,
                               sku: item.products.sku,
-                              base_price: item.products.base_price
-                                  ? Number(item.products.base_price)
-                                  : null,
                               making_charge_amount:
                                   item.products.making_charge_amount
                                       ? Number(
@@ -233,7 +230,7 @@ export class FrontendOrdersService {
                                           ((media.metadata as any)?.alt as
                                               | string
                                               | undefined) ||
-                                          item.products.name,
+                                          (item.products?.name || ''),
                                   }),
                               ),
                           }

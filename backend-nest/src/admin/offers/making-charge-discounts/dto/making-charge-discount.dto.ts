@@ -7,7 +7,7 @@ import {
     IsDateString,
     IsInt,
     IsArray,
-    IsJson,
+    IsJSON,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 

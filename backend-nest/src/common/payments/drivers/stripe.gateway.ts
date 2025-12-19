@@ -5,8 +5,8 @@ import Stripe from 'stripe';
 export class StripeGateway implements PaymentGatewayDriver {
     private client: Stripe;
 
-    constructor(private gateway: any) {
-        const secretKey = (this.gateway.config as any)?.secret_key;
+    constructor(private gatewayConfig: any) {
+        const secretKey = (this.gatewayConfig.config as any)?.secret_key;
 
         if (!secretKey) {
             throw new BadRequestException(
@@ -15,12 +15,12 @@ export class StripeGateway implements PaymentGatewayDriver {
         }
 
         this.client = new Stripe(secretKey, {
-            apiVersion: '2024-12-18.acacia',
+            apiVersion: '2025-12-15.clover',
         });
     }
 
     gateway(): any {
-        return this.gateway;
+        return this.gatewayConfig;
     }
 
     async ensurePaymentIntent(
@@ -100,7 +100,7 @@ export class StripeGateway implements PaymentGatewayDriver {
     }
 
     publishableKey(): string {
-        const publishableKey = (this.gateway.config as any)?.publishable_key;
+        const publishableKey = (this.gatewayConfig.config as any)?.publishable_key;
 
         if (!publishableKey) {
             throw new BadRequestException(

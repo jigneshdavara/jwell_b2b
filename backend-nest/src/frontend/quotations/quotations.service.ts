@@ -126,23 +126,24 @@ export class FrontendQuotationsService {
     }
 
     async findOne(quotationId: bigint, userId: bigint) {
-        const quotation = await this.prisma.quotations.findUnique({
+        // First check if quotation exists and user has permission
+        const permissionCheck = await this.prisma.quotations.findUnique({
             where: { id: quotationId },
             select: { user_id: true },
         });
 
-        if (!quotation) {
+        if (!permissionCheck) {
             throw new NotFoundException('Quotation not found');
         }
 
-        if (quotation.user_id !== userId) {
+        if (permissionCheck.user_id !== userId) {
             throw new ForbiddenException(
                 'You do not have permission to view this quotation',
             );
         }
 
         // Now fetch the full quotation with all relations
-        const fullQuotation = await this.prisma.quotations.findUnique({
+        const quotation: any = await this.prisma.quotations.findUnique({
             where: { id: quotationId },
             include: {
                 customers: true,
@@ -192,7 +193,7 @@ export class FrontendQuotationsService {
         }
 
         // Find related quotations in the same group
-        let relatedQuotations = [];
+        let relatedQuotations: any[] = [];
         if (quotation.quotation_group_id) {
             relatedQuotations = await this.prisma.quotations.findMany({
                 where: {
@@ -447,7 +448,7 @@ export class FrontendQuotationsService {
             throw new NotFoundException('Product not found');
         }
 
-        let variant = null;
+        let variant: any = null;
         if (dto.product_variant_id) {
             variant = await this.prisma.product_variants.findUnique({
                 where: { id: BigInt(dto.product_variant_id.toString()) },
@@ -585,7 +586,7 @@ export class FrontendQuotationsService {
 
         // Generate a unique group ID for all quotations in this submission
         const quotationGroupId = randomUUID();
-        const quotations = [];
+        const quotations: any[] = [];
 
         for (const item of cartItems) {
             const product = item.products;
@@ -628,7 +629,7 @@ export class FrontendQuotationsService {
                 });
             }
 
-            quotations.push(quotation);
+            quotations.push(quotation as any);
         }
 
         // Clear cart items
@@ -727,7 +728,7 @@ export class FrontendQuotationsService {
         }
 
         // Find all related quotations in the same group
-        let relatedQuotations = [];
+        let relatedQuotations: any[] = [];
         if (quotation.quotation_group_id) {
             relatedQuotations = await this.prisma.quotations.findMany({
                 where: {
@@ -832,7 +833,7 @@ export class FrontendQuotationsService {
         }
 
         // Find all related quotations in the same group
-        let relatedQuotations = [];
+        let relatedQuotations: any[] = [];
         if (quotation.quotation_group_id) {
             relatedQuotations = await this.prisma.quotations.findMany({
                 where: {
