@@ -7,9 +7,9 @@ import { TaxModule } from '../common/tax/tax.module';
 import { CartModule } from '../cart/cart.module';
 
 @Module({
-  imports: [PrismaModule, PricingModule, TaxModule, CartModule],
-  providers: [QuotationsService],
-  controllers: [QuotationsController],
-  exports: [QuotationsService],
+    imports: [PrismaModule, PricingModule, TaxModule, CartModule],
+    providers: [QuotationsService],
+    controllers: [QuotationsController],
+    exports: [QuotationsService],
 })
 export class QuotationsModule {}

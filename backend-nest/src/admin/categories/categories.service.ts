@@ -6,7 +6,7 @@ import * as path from 'path';
 
 @Injectable()
 export class CategoriesService {
-  constructor(private prisma: PrismaService) {}
+    constructor(private prisma: PrismaService) {}
 
   async findAll(page: number = 1, perPage: number = 10) {
     const skip = (page - 1) * perPage;

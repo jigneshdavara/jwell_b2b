@@ -68,4 +68,3 @@ export class BulkDestroyDto {
   @IsInt({ each: true })
   ids: number[];
 }
-

@@ -3,7 +3,7 @@ import { UserGroupsService } from './user-groups.service';
 import { UserGroupsController } from './user-groups.controller';
 
 @Module({
-  providers: [UserGroupsService],
-  controllers: [UserGroupsController]
+    providers: [UserGroupsService],
+    controllers: [UserGroupsController],
 })
 export class UserGroupsModule {}

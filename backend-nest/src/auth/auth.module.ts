@@ -6,15 +6,15 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from '../common/auth/strategies/jwt.strategy';
 
 @Module({
-  imports: [
-    PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'fallback_secret', // Should use ConfigService in production
-      signOptions: { expiresIn: '1d' },
-    }),
-  ],
-  providers: [AuthService, JwtStrategy],
-  controllers: [AuthController],
-  exports: [AuthService],
+    imports: [
+        PassportModule,
+        JwtModule.register({
+            secret: process.env.JWT_SECRET || 'fallback_secret', // Should use ConfigService in production
+            signOptions: { expiresIn: '1d' },
+        }),
+    ],
+    providers: [AuthService, JwtStrategy],
+    controllers: [AuthController],
+    exports: [AuthService],
 })
 export class AuthModule {}
