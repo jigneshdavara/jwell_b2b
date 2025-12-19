@@ -11,7 +11,7 @@ export class PricingService {
 
   async calculateProductPrice(product: any, user?: any, options: any = {}): Promise<any> {
     const variantId = options.variant_id ?? options.variant?.id ?? null;
-    let variantModel = null;
+    let variantModel: any = null;
 
     if (variantId) {
       variantModel = await this.prisma.product_variants.findUnique({

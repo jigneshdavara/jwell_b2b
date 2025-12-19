@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { adminService } from "@/services/adminService";
 
 type BrandRow = {
     id: number;
@@ -21,18 +22,13 @@ type PaginationMeta = {
     per_page: number;
 };
 
-const mockBrands: BrandRow[] = [
-    { id: 1, code: 'ELV001', name: 'Elvee Atelier', description: 'Our signature collection of handcrafted jewelry.', is_active: true, display_order: 1 },
-    { id: 2, code: 'SIG002', name: 'Signature', description: 'Timeless designs for every occasion.', is_active: true, display_order: 2 },
-    { id: 3, code: 'LGD003', name: 'Legacy', description: 'Vintage-inspired pieces with a modern twist.', is_active: false, display_order: 3 },
-];
-
 export default function AdminBrandsPage() {
     const [loading, setLoading] = useState(true);
     const [brands, setBrands] = useState<{ data: BrandRow[]; meta: PaginationMeta }>({
-        data: mockBrands,
-        meta: { current_page: 1, last_page: 1, total: mockBrands.length, per_page: 10 }
+        data: [],
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }
     });
+    const [currentPage, setCurrentPage] = useState(1);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingBrand, setEditingBrand] = useState<BrandRow | null>(null);
@@ -52,8 +48,39 @@ export default function AdminBrandsPage() {
     });
 
     useEffect(() => {
-        setLoading(false);
-    }, []);
+        loadBrands();
+    }, [currentPage, perPage]);
+
+    const loadBrands = async () => {
+        setLoading(true);
+        try {
+            const response = await adminService.getBrands(currentPage, perPage);
+            const items = response.data.items || response.data.data || [];
+            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+
+            setBrands({
+                data: items.map((item: any) => ({
+                    id: Number(item.id),
+                    code: item.code,
+                    name: item.name,
+                    description: item.description,
+                    is_active: item.is_active,
+                    display_order: item.display_order || 0,
+                    cover_image: item.cover_image,
+                })),
+                meta: {
+                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                    total: responseMeta.total || 0,
+                    per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                },
+            });
+        } catch (error: any) {
+            console.error('Failed to load brands:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const allSelected = useMemo(() => {
         if (brands.data.length === 0) return false;
@@ -109,59 +136,77 @@ export default function AdminBrandsPage() {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
-        setTimeout(() => {
+        try {
+            const formData = new FormData();
+            formData.append('name', formState.name);
+            if (formState.code) formData.append('code', formState.code);
+            if (formState.description) formData.append('description', formState.description);
+            formData.append('is_active', String(formState.is_active));
+            formData.append('display_order', String(formState.display_order));
+            
+            const coverFile = fileInputRef.current?.files?.[0];
+            if (coverFile) {
+                formData.append('cover_image', coverFile);
+            }
+
             if (editingBrand) {
-                setBrands(prev => ({
-                    ...prev,
-                    data: prev.data.map(b => b.id === editingBrand.id ? { ...b, ...formState, cover_image: coverPreview } : b)
-                }));
+                await adminService.updateBrand(editingBrand.id, formData);
             } else {
-                const newBrand: BrandRow = {
-                    id: Date.now(),
-                    ...formState,
-                    cover_image: coverPreview
-                };
-                setBrands(prev => ({
-                    ...prev,
-                    data: [...prev.data, newBrand],
-                    meta: { ...prev.meta, total: prev.meta.total + 1 }
-                }));
+                await adminService.createBrand(formData);
             }
             resetForm();
+            await loadBrands();
+        } catch (error: any) {
+            console.error('Failed to save brand:', error);
+            alert(error.response?.data?.message || 'Failed to save brand. Please try again.');
+        } finally {
             setLoading(false);
-        }, 500);
-    };
-
-    const toggleBrand = (brand: BrandRow) => {
-        setBrands(prev => ({
-            ...prev,
-            data: prev.data.map(b => b.id === brand.id ? { ...b, is_active: !b.is_active } : b)
-        }));
-    };
-
-    const handleDelete = () => {
-        if (deleteConfirm) {
-            setBrands(prev => ({
-                ...prev,
-                data: prev.data.filter(b => b.id !== deleteConfirm.id),
-                meta: { ...prev.meta, total: prev.meta.total - 1 }
-            }));
-            setDeleteConfirm(null);
         }
     };
 
-    const handleBulkDelete = () => {
-        setBrands(prev => ({
-            ...prev,
-            data: prev.data.filter(b => !selectedBrands.includes(b.id)),
-            meta: { ...prev.meta, total: prev.meta.total - selectedBrands.length }
-        }));
-        setSelectedBrands([]);
-        setBulkDeleteConfirm(false);
+    const toggleBrand = async (brand: BrandRow) => {
+        try {
+            const formData = new FormData();
+            formData.append('name', brand.name);
+            if (brand.code) formData.append('code', brand.code);
+            if (brand.description) formData.append('description', brand.description || '');
+            formData.append('is_active', String(!brand.is_active));
+            formData.append('display_order', String(brand.display_order));
+            await adminService.updateBrand(brand.id, formData);
+            await loadBrands();
+        } catch (error: any) {
+            console.error('Failed to toggle brand:', error);
+            alert(error.response?.data?.message || 'Failed to update brand. Please try again.');
+        }
+    };
+
+    const handleDelete = async () => {
+        if (deleteConfirm) {
+            try {
+                await adminService.deleteBrand(deleteConfirm.id);
+                setDeleteConfirm(null);
+                await loadBrands();
+            } catch (error: any) {
+                console.error('Failed to delete brand:', error);
+                alert(error.response?.data?.message || 'Failed to delete brand. Please try again.');
+            }
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        try {
+            await adminService.bulkDeleteBrands(selectedBrands);
+            setSelectedBrands([]);
+            setBulkDeleteConfirm(false);
+            await loadBrands();
+        } catch (error: any) {
+            console.error('Failed to delete brands:', error);
+            alert(error.response?.data?.message || 'Failed to delete brands. Please try again.');
+        }
     };
 
     if (loading && !brands.data.length) return null;
@@ -200,7 +245,10 @@ export default function AdminBrandsPage() {
                         </button>
                         <select
                             value={perPage}
-                            onChange={(e) => setPerPage(Number(e.target.value))}
+                            onChange={(e) => {
+                                setPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
                             className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:ring-0"
                         >
                             <option value={10}>10</option>
@@ -303,12 +351,29 @@ export default function AdminBrandsPage() {
                 </table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                <div>Showing 1 to {brands.data.length} of {brands.meta.total} entries</div>
-                <div className="flex gap-2">
-                    <button className="rounded-full px-3 py-1 text-sm font-semibold bg-sky-600 text-white shadow shadow-sky-600/20">1</button>
+            {brands.meta.last_page > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                    <div>
+                        Showing {brands.meta.total > 0 ? (brands.meta.current_page - 1) * brands.meta.per_page + 1 : 0} to {Math.min(brands.meta.current_page * brands.meta.per_page, brands.meta.total)} of {brands.meta.total} entries
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {Array.from({ length: brands.meta.last_page }, (_, i) => i + 1).map((page) => (
+                            <button
+                                key={page}
+                                type="button"
+                                onClick={() => setCurrentPage(page)}
+                                className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                    page === brands.meta.current_page
+                                        ? 'bg-sky-600 text-white shadow shadow-sky-600/20'
+                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
 
             <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">
                 <div className="flex min-h-0 flex-col">

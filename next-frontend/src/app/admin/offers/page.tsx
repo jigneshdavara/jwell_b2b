@@ -3,7 +3,8 @@
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { adminService } from '@/services/adminService';
 
 type OfferRow = {
     id: number;
@@ -15,14 +16,10 @@ type OfferRow = {
     is_active: boolean;
 };
 
-// Mock data
-const mockOffers: OfferRow[] = [
-    { id: 1, code: 'WELCOME10', name: 'Welcome Offer', type: 'percentage', value: 10, is_active: true },
-    { id: 2, code: 'SAVE500', name: 'Fixed Discount', type: 'fixed', value: 500, is_active: true },
-];
-
 export default function AdminOffersIndex() {
-    const [allOffers, setAllOffers] = useState<OfferRow[]>(mockOffers);
+    const [loading, setLoading] = useState(true);
+    const [allOffers, setAllOffers] = useState<OfferRow[]>([]);
+    const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0, per_page: 10 });
     const [modalOpen, setModalOpen] = useState(false);
     const [editingOffer, setEditingOffer] = useState<OfferRow | null>(null);
     const [perPage, setPerPage] = useState(10);
@@ -39,12 +36,40 @@ export default function AdminOffersIndex() {
     });
     const [processing, setProcessing] = useState(false);
 
-    const paginatedOffers = useMemo(() => {
-        const start = (currentPage - 1) * perPage;
-        return allOffers.slice(start, start + perPage);
-    }, [allOffers, currentPage, perPage]);
+    useEffect(() => {
+        loadOffers();
+    }, [currentPage, perPage]);
 
-    const totalPages = Math.ceil(allOffers.length / perPage);
+    const loadOffers = async () => {
+        setLoading(true);
+        try {
+            const response = await adminService.getOffers(currentPage, perPage);
+            const items = response.data.items || response.data.data || [];
+            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+            
+            setAllOffers(items.map((item: any) => ({
+                id: Number(item.id),
+                code: item.code,
+                name: item.name,
+                type: item.type,
+                value: Number(item.value),
+                description: item.description,
+                is_active: item.is_active,
+            })));
+            setMeta({
+                current_page: responseMeta.current_page || responseMeta.page || 1,
+                last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                total: responseMeta.total || 0,
+                per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+            });
+        } catch (error: any) {
+            console.error('Failed to load offers:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const totalPages = meta.last_page;
 
     const resetFormAndModal = () => {
         setEditingOffer(null);
@@ -65,28 +90,57 @@ export default function AdminOffersIndex() {
         setModalOpen(true);
     };
 
-    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setProcessing(true);
-        setTimeout(() => {
+        try {
+            const payload = {
+                code: formData.code,
+                name: formData.name,
+                type: formData.type,
+                value: formData.value,
+                description: formData.description || null,
+                is_active: formData.is_active,
+            };
+
             if (editingOffer) {
-                setAllOffers(allOffers.map(o => o.id === editingOffer.id ? { ...o, ...formData } : o));
+                await adminService.updateOffer(editingOffer.id, payload);
             } else {
-                setAllOffers([...allOffers, { id: Date.now(), ...formData }]);
+                await adminService.createOffer(payload);
             }
-            setProcessing(false);
             resetFormAndModal();
-        }, 500);
+            await loadOffers();
+        } catch (error: any) {
+            console.error('Failed to save offer:', error);
+            alert(error.response?.data?.message || 'Failed to save offer. Please try again.');
+        } finally {
+            setProcessing(false);
+        }
     };
 
-    const toggleStatus = (offer: OfferRow) => {
-        setAllOffers(allOffers.map(o => o.id === offer.id ? { ...o, is_active: !o.is_active } : o));
+    const toggleStatus = async (offer: OfferRow) => {
+        try {
+            await adminService.updateOffer(offer.id, {
+                ...offer,
+                is_active: !offer.is_active,
+            });
+            await loadOffers();
+        } catch (error: any) {
+            console.error('Failed to toggle offer:', error);
+            alert(error.response?.data?.message || 'Failed to update offer. Please try again.');
+        }
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deleteConfirm) {
-            setAllOffers(allOffers.filter(o => o.id !== deleteConfirm.id));
-            setDeleteConfirm(null);
+            try {
+                await adminService.deleteOffer(deleteConfirm.id);
+                setDeleteConfirm(null);
+                await loadOffers();
+            } catch (error: any) {
+                console.error('Failed to delete offer:', error);
+                alert(error.response?.data?.message || 'Failed to delete offer. Please try again.');
+            }
         }
     };
 
@@ -114,21 +168,41 @@ export default function AdminOffersIndex() {
 
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
-                        <div className="font-semibold text-slate-700">Offers ({allOffers.length})</div>
+                        <div className="font-semibold text-slate-700">Offers ({meta.total})</div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                            <select
+                                value={perPage}
+                                onChange={(e) => {
+                                    setPerPage(Number(e.target.value));
+                                    setCurrentPage(1);
+                                }}
+                                className="rounded-full border border-slate-200 px-3 py-1 text-xs"
+                            >
+                                <option value={10}>10</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                            </select>
+                        </div>
                     </div>
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead className="bg-slate-50 text-xs text-slate-500">
-                            <tr>
-                                <th className="px-5 py-3 text-left">Code</th>
-                                <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Type</th>
-                                <th className="px-5 py-3 text-right">Value</th>
-                                <th className="px-5 py-3 text-left">Status</th>
-                                <th className="px-5 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                            {paginatedOffers.map((offer) => (
+                    {loading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
+                        </div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead className="bg-slate-50 text-xs text-slate-500">
+                                <tr>
+                                    <th className="px-5 py-3 text-left">Code</th>
+                                    <th className="px-5 py-3 text-left">Name</th>
+                                    <th className="px-5 py-3 text-left">Type</th>
+                                    <th className="px-5 py-3 text-right">Value</th>
+                                    <th className="px-5 py-3 text-left">Status</th>
+                                    <th className="px-5 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {allOffers.map((offer) => (
                                 <tr key={offer.id} className="hover:bg-slate-50">
                                     <td className="px-5 py-3 font-semibold text-slate-900">{offer.code}</td>
                                     <td className="px-5 py-3 text-slate-500">{offer.name}</td>
@@ -171,8 +245,38 @@ export default function AdminOffersIndex() {
                                     </td>
                                 </tr>
                             ))}
-                        </tbody>
-                    </table>
+                                {allOffers.length === 0 && (
+                                    <tr>
+                                        <td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-500">
+                                            No offers found.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-600">
+                    <div>
+                        Showing {meta.total > 0 ? (meta.current_page - 1) * meta.per_page + 1 : 0} to {Math.min(meta.current_page * meta.per_page, meta.total)} of {meta.total} entries
+                    </div>
+                    <div className="flex gap-2">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            <button
+                                key={page}
+                                type="button"
+                                onClick={() => setCurrentPage(page)}
+                                className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                    page === meta.current_page
+                                        ? 'bg-sky-600 text-white shadow shadow-sky-600/20'
+                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 

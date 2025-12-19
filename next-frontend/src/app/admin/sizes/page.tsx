@@ -3,7 +3,8 @@
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { adminService } from '@/services/adminService';
 
 type SizeRow = {
     id: number;
@@ -13,15 +14,19 @@ type SizeRow = {
     updated_at?: string | null;
 };
 
-// Mock data
-const mockSizes: SizeRow[] = [
-    { id: 1, name: 'Small', is_active: true },
-    { id: 2, name: 'Medium', is_active: true },
-    { id: 3, name: 'Large', is_active: true },
-];
+type PaginationMeta = {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+};
 
 export default function AdminSizesIndex() {
-    const [allSizes, setAllSizes] = useState<SizeRow[]>(mockSizes);
+    const [loading, setLoading] = useState(true);
+    const [sizes, setSizes] = useState<{ data: SizeRow[]; meta: PaginationMeta }>({
+        data: [],
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }
+    });
     const [modalOpen, setModalOpen] = useState(false);
     const [editingSize, setEditingSize] = useState<SizeRow | null>(null);
     const [perPage, setPerPage] = useState(10);
@@ -34,12 +39,38 @@ export default function AdminSizesIndex() {
     });
     const [processing, setProcessing] = useState(false);
 
-    const paginatedSizes = useMemo(() => {
-        const start = (currentPage - 1) * perPage;
-        return allSizes.slice(start, start + perPage);
-    }, [allSizes, currentPage, perPage]);
+    useEffect(() => {
+        loadSizes();
+    }, [currentPage, perPage]);
 
-    const totalPages = Math.ceil(allSizes.length / perPage);
+    const loadSizes = async () => {
+        setLoading(true);
+        try {
+            const response = await adminService.getSizes(currentPage, perPage);
+            const items = response.data.items || response.data.data || [];
+            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+
+            setSizes({
+                data: items.map((item: any) => ({
+                    id: Number(item.id),
+                    name: item.name,
+                    is_active: item.is_active,
+                    created_at: item.created_at,
+                    updated_at: item.updated_at,
+                })),
+                meta: {
+                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                    total: responseMeta.total || 0,
+                    per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                },
+            });
+        } catch (error: any) {
+            console.error('Failed to load sizes:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const resetFormAndModal = () => {
         setEditingSize(null);
@@ -56,28 +87,45 @@ export default function AdminSizesIndex() {
         setModalOpen(true);
     };
 
-    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setProcessing(true);
-        setTimeout(() => {
+        try {
             if (editingSize) {
-                setAllSizes(allSizes.map(s => s.id === editingSize.id ? { ...s, ...formData } : s));
+                await adminService.updateSize(editingSize.id, formData);
             } else {
-                setAllSizes([...allSizes, { id: Date.now(), ...formData }]);
+                await adminService.createSize(formData);
             }
-            setProcessing(false);
             resetFormAndModal();
-        }, 500);
+            await loadSizes();
+        } catch (error: any) {
+            console.error('Failed to save size:', error);
+            alert(error.response?.data?.message || 'Failed to save size. Please try again.');
+        } finally {
+            setProcessing(false);
+        }
     };
 
-    const toggleStatus = (size: SizeRow) => {
-        setAllSizes(allSizes.map(s => s.id === size.id ? { ...s, is_active: !s.is_active } : s));
+    const toggleStatus = async (size: SizeRow) => {
+        try {
+            await adminService.updateSize(size.id, { ...size, is_active: !size.is_active });
+            await loadSizes();
+        } catch (error: any) {
+            console.error('Failed to toggle size status:', error);
+            alert(error.response?.data?.message || 'Failed to update size. Please try again.');
+        }
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deleteConfirm) {
-            setAllSizes(allSizes.filter(s => s.id !== deleteConfirm.id));
-            setDeleteConfirm(null);
+            try {
+                await adminService.deleteSize(deleteConfirm.id);
+                setDeleteConfirm(null);
+                await loadSizes();
+            } catch (error: any) {
+                console.error('Failed to delete size:', error);
+                alert(error.response?.data?.message || 'Failed to delete size. Please try again.');
+            }
         }
     };
 
@@ -105,18 +153,36 @@ export default function AdminSizesIndex() {
 
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
-                        <div className="font-semibold text-slate-700">Sizes ({allSizes.length})</div>
+                        <div className="font-semibold text-slate-700">Sizes ({sizes.meta.total})</div>
+                        <select
+                            value={perPage}
+                            onChange={(e) => {
+                                setPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                            className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:ring-0"
+                        >
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
                     </div>
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead className="bg-slate-50 text-xs text-slate-500">
-                            <tr>
-                                <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Status</th>
-                                <th className="px-5 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                            {paginatedSizes.map((size) => (
+                    {loading && sizes.data.length === 0 ? (
+                        <div className="flex items-center justify-center py-12">
+                            <p className="text-slate-500">Loading sizes...</p>
+                        </div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead className="bg-slate-50 text-xs text-slate-500">
+                                <tr>
+                                    <th className="px-5 py-3 text-left">Name</th>
+                                    <th className="px-5 py-3 text-left">Status</th>
+                                    <th className="px-5 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {sizes.data.map((size) => (
                                 <tr key={size.id} className="hover:bg-slate-50">
                                     <td className="px-5 py-3 font-semibold text-slate-900">{size.name}</td>
                                     <td className="px-5 py-3">
@@ -154,9 +220,32 @@ export default function AdminSizesIndex() {
                                     </td>
                                 </tr>
                             ))}
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    )}
                 </div>
+
+                {sizes.meta.last_page > 1 && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                        <div>
+                            Showing {sizes.meta.total > 0 ? (sizes.meta.current_page - 1) * sizes.meta.per_page + 1 : 0} to {Math.min(sizes.meta.current_page * sizes.meta.per_page, sizes.meta.total)} of {sizes.meta.total} entries
+                        </div>
+                        <div className="flex gap-2">
+                            {Array.from({ length: sizes.meta.last_page }, (_, i) => i + 1).map((page) => (
+                                <button
+                                    key={page}
+                                    type="button"
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                        page === sizes.meta.current_page ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                    }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             <Modal show={modalOpen} onClose={resetFormAndModal} maxWidth="xl">

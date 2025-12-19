@@ -82,11 +82,26 @@ export const adminService = {
   },
 
   // Customers
-  async getCustomers(filters?: { page?: number; per_page?: number; search?: string; status?: string; type?: string; group_id?: number }) {
+  async getCustomers(filters?: { page?: number; per_page?: number; search?: string; status?: string; type?: string; customer_group_id?: number }) {
     return await apiClient.get('/admin/customers', { params: filters });
   },
-  async updateCustomerKycStatus(id: number, status: string) {
-    return await apiClient.post(`/admin/customers/${id}/kyc-status`, { status });
+  async getCustomer(id: number) {
+    return await apiClient.get(`/admin/customers/${id}`);
+  },
+  async updateCustomerKycStatus(id: number, status: string, notes?: string) {
+    return await apiClient.post(`/admin/customers/${id}/kyc-status`, { 
+      kyc_status: status,
+      kyc_notes: notes || null
+    });
+  },
+  async addKycMessage(id: number, message: string) {
+    return await apiClient.post(`/admin/customers/${id}/kyc-messages`, { message });
+  },
+  async updateKycDocumentStatus(id: number, docId: number, status: string, remarks?: string) {
+    return await apiClient.patch(`/admin/customers/${id}/kyc-documents/${docId}`, { status, remarks });
+  },
+  async toggleKycComments(id: number, allowReplies: boolean) {
+    return await apiClient.post(`/admin/customers/${id}/kyc-comments`, { allow_replies: allowReplies });
   },
   async toggleCustomerStatus(id: number) {
     return await apiClient.post(`/admin/customers/${id}/toggle-status`);
@@ -456,8 +471,8 @@ export const adminService = {
   },
 
   // Rates
-  async getRates() {
-    return await apiClient.get('/admin/rates');
+  async getRates(page = 1, perPage = 20) {
+    return await apiClient.get('/admin/rates', { params: { page, per_page: perPage } });
   },
   async syncRates(metal?: string) {
     return await apiClient.post(`/admin/rates/sync${metal ? `/${metal}` : ''}`);
@@ -542,7 +557,7 @@ export const adminService = {
     return await apiClient.delete('/admin/team-users/bulk', { data: { ids } });
   },
   async updateTeamUserGroup(id: number, groupId: number | null) {
-    return await apiClient.patch(`/admin/team-users/${id}/group`, { group_id: groupId });
+    return await apiClient.patch(`/admin/team-users/${id}/group`, { user_group_id: groupId });
   },
 
   // User Groups
@@ -571,6 +586,9 @@ export const adminService = {
   },
   async getProduct(id: number) {
     return await apiClient.get(`/admin/products/${id}`);
+  },
+  async getProductFormOptions() {
+    return await apiClient.get('/admin/products/options');
   },
   async createProduct(data: FormData) {
     return await apiClient.post('/admin/products', data, {

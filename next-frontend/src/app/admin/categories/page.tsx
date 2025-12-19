@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import React from "react";
+import { adminService } from "@/services/adminService";
 
 type CategoryRow = {
     id: number;
@@ -23,18 +24,13 @@ type PaginationMeta = {
     per_page: number;
 };
 
-const mockCategories: CategoryRow[] = [
-    { id: 1, parent_id: null, parent: null, code: 'RNG', name: 'Rings', description: 'Handcrafted rings.', is_active: true, display_order: 1 },
-    { id: 11, parent_id: 1, parent: { id: 1, name: 'Rings' }, code: 'ENGR', name: 'Engagement Rings', description: 'Diamond engagement rings.', is_active: true, display_order: 1 },
-    { id: 2, parent_id: null, parent: null, code: 'ERN', name: 'Earrings', description: 'Elegant earrings.', is_active: true, display_order: 2 },
-];
-
 export default function AdminCategoriesPage() {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<{ data: CategoryRow[]; meta: PaginationMeta }>({
-        data: mockCategories,
-        meta: { current_page: 1, last_page: 1, total: mockCategories.length, per_page: 10 }
+        data: [],
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }
     });
+    const [currentPage, setCurrentPage] = useState(1);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null);
@@ -53,8 +49,40 @@ export default function AdminCategoriesPage() {
     });
 
     useEffect(() => {
-        setLoading(false);
-    }, []);
+        loadCategories();
+    }, [currentPage, perPage]);
+
+    const loadCategories = async () => {
+        setLoading(true);
+        try {
+            const response = await adminService.getCategories(currentPage, perPage);
+            const items = response.data.items || response.data.data || [];
+            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+
+            setData({
+                data: items.map((item: any) => ({
+                    id: Number(item.id),
+                    parent_id: item.parent_id ? Number(item.parent_id) : null,
+                    parent: item.parent ? { id: Number(item.parent.id), name: item.parent.name } : null,
+                    code: item.code,
+                    name: item.name,
+                    description: item.description,
+                    is_active: item.is_active,
+                    display_order: item.display_order || 0,
+                })),
+                meta: {
+                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                    total: responseMeta.total || 0,
+                    per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                },
+            });
+        } catch (error: any) {
+            console.error('Failed to load categories:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const allSelected = useMemo(() => {
         if (data.data.length === 0) return false;
@@ -100,49 +128,61 @@ export default function AdminCategoriesPage() {
         setModalOpen(true);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
-        setTimeout(() => {
+        try {
+            const formData = new FormData();
+            formData.append('name', formState.name);
+            if (formState.code) formData.append('code', formState.code);
+            if (formState.description) formData.append('description', formState.description);
+            if (formState.parent_id) formData.append('parent_id', String(formState.parent_id));
+            formData.append('is_active', String(formState.is_active));
+            formData.append('display_order', String(formState.display_order));
+
             if (editingCategory) {
-                setData(prev => ({
-                    ...prev,
-                    data: prev.data.map(c => c.id === editingCategory.id ? { ...c, ...formState, parent_id: formState.parent_id === '' ? null : Number(formState.parent_id) } : c)
-                }));
+                await adminService.updateCategory(editingCategory.id, formData);
             } else {
-                const newCat: CategoryRow = {
-                    id: Date.now(),
-                    parent: formState.parent_id ? { id: Number(formState.parent_id), name: 'Parent Category' } : null,
-                    ...formState,
-                    parent_id: formState.parent_id === '' ? null : Number(formState.parent_id)
-                };
-                setData(prev => ({
-                    ...prev,
-                    data: [...prev.data, newCat],
-                    meta: { ...prev.meta, total: prev.meta.total + 1 }
-                }));
+                await adminService.createCategory(formData);
             }
             resetForm();
+            await loadCategories();
+        } catch (error: any) {
+            console.error('Failed to save category:', error);
+            alert(error.response?.data?.message || 'Failed to save category. Please try again.');
+        } finally {
             setLoading(false);
-        }, 500);
+        }
     };
 
-    const toggleActivation = (category: CategoryRow) => {
-        setData(prev => ({
-            ...prev,
-            data: prev.data.map(c => c.id === category.id ? { ...c, is_active: !c.is_active } : c)
-        }));
+    const toggleActivation = async (category: CategoryRow) => {
+        try {
+            const formData = new FormData();
+            formData.append('name', category.name);
+            if (category.code) formData.append('code', category.code);
+            if (category.description) formData.append('description', category.description || '');
+            if (category.parent_id) formData.append('parent_id', String(category.parent_id));
+            formData.append('is_active', String(!category.is_active));
+            formData.append('display_order', String(category.display_order));
+            await adminService.updateCategory(category.id, formData);
+            await loadCategories();
+        } catch (error: any) {
+            console.error('Failed to toggle category:', error);
+            alert(error.response?.data?.message || 'Failed to update category. Please try again.');
+        }
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deleteConfirm) {
-            setData(prev => ({
-                ...prev,
-                data: prev.data.filter(c => c.id !== deleteConfirm.id),
-                meta: { ...prev.meta, total: prev.meta.total - 1 }
-            }));
-            setDeleteConfirm(null);
+            try {
+                await adminService.deleteCategory(deleteConfirm.id);
+                setDeleteConfirm(null);
+                await loadCategories();
+            } catch (error: any) {
+                console.error('Failed to delete category:', error);
+                alert(error.response?.data?.message || 'Failed to delete category. Please try again.');
+            }
         }
     };
 
@@ -180,7 +220,10 @@ export default function AdminCategoriesPage() {
                         >
                             Bulk delete
                         </button>
-                        <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))} className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:ring-0">
+                        <select value={perPage} onChange={(e) => {
+                            setPerPage(Number(e.target.value));
+                            setCurrentPage(1);
+                        }} className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:ring-0">
                             <option value={10}>10</option>
                             <option value={25}>25</option>
                             <option value={50}>50</option>
@@ -237,12 +280,29 @@ export default function AdminCategoriesPage() {
                 </table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                <div>Showing 1 to {data.data.length} of {data.meta.total} entries</div>
-                <div className="flex gap-2">
-                    <button className="rounded-full px-3 py-1 text-sm font-semibold bg-sky-600 text-white shadow shadow-sky-600/20">1</button>
+            {data.meta.last_page > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                    <div>
+                        Showing {data.meta.total > 0 ? (data.meta.current_page - 1) * data.meta.per_page + 1 : 0} to {Math.min(data.meta.current_page * data.meta.per_page, data.meta.total)} of {data.meta.total} entries
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {Array.from({ length: data.meta.last_page }, (_, i) => i + 1).map((page) => (
+                            <button
+                                key={page}
+                                type="button"
+                                onClick={() => setCurrentPage(page)}
+                                className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                    page === data.meta.current_page
+                                        ? 'bg-sky-600 text-white shadow shadow-sky-600/20'
+                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
 
             <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">
                 <div className="flex min-h-0 flex-col">
@@ -302,10 +362,16 @@ export default function AdminCategoriesPage() {
             </Modal>
 
             <ConfirmationModal show={deleteConfirm !== null} onClose={() => setDeleteConfirm(null)} onConfirm={handleDelete} title="Remove Category" message={deleteConfirm ? `Are you sure you want to remove category ${deleteConfirm.name}?` : ''} confirmText="Remove" variant="danger" />
-            <ConfirmationModal show={bulkDeleteConfirm} onClose={() => setBulkDeleteConfirm(false)} onConfirm={() => {
-                setData(prev => ({ ...prev, data: prev.data.filter(c => !selectedCategories.includes(c.id)), meta: { ...prev.meta, total: prev.meta.total - selectedCategories.length } }));
-                setSelectedCategories([]);
-                setBulkDeleteConfirm(false);
+            <ConfirmationModal show={bulkDeleteConfirm} onClose={() => setBulkDeleteConfirm(false)} onConfirm={async () => {
+                try {
+                    await adminService.bulkDeleteCategories(selectedCategories);
+                    setSelectedCategories([]);
+                    setBulkDeleteConfirm(false);
+                    await loadCategories();
+                } catch (error: any) {
+                    console.error('Failed to delete categories:', error);
+                    alert(error.response?.data?.message || 'Failed to delete categories. Please try again.');
+                }
             }} title="Delete Categories" message={`Are you sure you want to delete ${selectedCategories.length} selected category(s)?`} confirmText="Delete" variant="danger" />
         </div>
     );

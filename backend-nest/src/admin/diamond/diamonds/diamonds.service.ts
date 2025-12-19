@@ -19,7 +19,7 @@ export class DiamondsService {
           diamond_colors: { select: { id: true, name: true } },
           diamond_shape_sizes: { select: { id: true, size: true } },
         },
-        orderBy: [{ display_order: 'asc' }, { code: 'asc' }],
+        orderBy: [{ name: 'asc' }],
       }),
       this.prisma.diamonds.count(),
     ]);
@@ -55,16 +55,15 @@ export class DiamondsService {
   async create(dto: CreateDiamondDto) {
     return await this.prisma.diamonds.create({
       data: {
+        name: dto.code, // Using code from DTO as name (schema requires name, not code)
         diamond_type_id: BigInt(dto.diamond_type_id),
         diamond_shape_id: BigInt(dto.diamond_shape_id),
         diamond_clarity_id: BigInt(dto.diamond_clarity_id),
         diamond_color_id: BigInt(dto.diamond_color_id),
         diamond_shape_size_id: BigInt(dto.diamond_shape_size_id),
-        code: dto.code,
         description: dto.description,
         price: dto.price,
         is_active: dto.is_active ?? true,
-        display_order: dto.display_order,
       },
     });
   }
@@ -79,11 +78,9 @@ export class DiamondsService {
         diamond_clarity_id: dto.diamond_clarity_id ? BigInt(dto.diamond_clarity_id) : undefined,
         diamond_color_id: dto.diamond_color_id ? BigInt(dto.diamond_color_id) : undefined,
         diamond_shape_size_id: dto.diamond_shape_size_id ? BigInt(dto.diamond_shape_size_id) : undefined,
-        code: dto.code,
         description: dto.description,
         price: dto.price,
         is_active: dto.is_active,
-        display_order: dto.display_order,
       },
     });
   }

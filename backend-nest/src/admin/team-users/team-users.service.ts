@@ -37,11 +37,28 @@ export class TeamUsersService {
       }),
     ]);
 
+    // Helper to format type label
+    const formatTypeLabel = (type: string) => {
+      return type
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    };
+
     return {
       items: items.map(user => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { password, ...rest } = user;
-        return rest;
+        const { password, user_groups, created_at, ...rest } = user;
+        return {
+          ...rest,
+          id: Number(rest.id),
+          user_group: user_groups ? {
+            id: Number(user_groups.id),
+            name: user_groups.name,
+          } : null,
+          type_label: formatTypeLabel(rest.type),
+          joined_at: created_at,
+        };
       }),
       meta: {
         total,
@@ -140,7 +157,7 @@ export class TeamUsersService {
     return await this.prisma.user.update({
       where: { id: BigInt(id) },
       data: {
-        user_group_id: BigInt(dto.user_group_id),
+        user_group_id: dto.user_group_id ? BigInt(dto.user_group_id) : null,
       },
     });
   }

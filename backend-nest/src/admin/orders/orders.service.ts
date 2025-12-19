@@ -166,7 +166,7 @@ export class OrdersService {
         : null,
       items: order.order_items.map((item) => {
         // Try to get price breakdown from item metadata
-        let priceBreakdown = null;
+        let priceBreakdown: any = null;
         if (item.metadata && typeof item.metadata === 'object') {
           const metadata = item.metadata as any;
           priceBreakdown = metadata.price_breakdown ?? null;
@@ -190,12 +190,12 @@ export class OrdersService {
         // Ensure price_breakdown has all required fields
         if (priceBreakdown && typeof priceBreakdown === 'object') {
           priceBreakdown = {
-            metal: parseFloat(priceBreakdown.metal ?? 0),
-            diamond: parseFloat(priceBreakdown.diamond ?? 0),
-            making: parseFloat(priceBreakdown.making ?? 0),
-            subtotal: parseFloat(priceBreakdown.subtotal ?? 0),
-            discount: parseFloat(priceBreakdown.discount ?? 0),
-            total: parseFloat(priceBreakdown.total ?? parseFloat(item.unit_price.toString())),
+            metal: parseFloat((priceBreakdown as any).metal ?? 0),
+            diamond: parseFloat((priceBreakdown as any).diamond ?? 0),
+            making: parseFloat((priceBreakdown as any).making ?? 0),
+            subtotal: parseFloat((priceBreakdown as any).subtotal ?? 0),
+            discount: parseFloat((priceBreakdown as any).discount ?? 0),
+            total: parseFloat((priceBreakdown as any).total ?? parseFloat(item.unit_price.toString())),
           };
         }
 
@@ -209,19 +209,18 @@ export class OrdersService {
           configuration: item.configuration,
           metadata: item.metadata,
           price_breakdown: priceBreakdown,
-          calculated_making_charge: priceBreakdown ? priceBreakdown.making : null,
+          calculated_making_charge: priceBreakdown ? (priceBreakdown as any).making : null,
           product: item.products
             ? {
                 id: item.products.id.toString(),
                 name: item.products.name,
                 sku: item.products.sku,
-                base_price: item.products.base_price.toString(),
-                making_charge_amount: item.products.making_charge_amount?.toString() ?? null,
-                making_charge_percentage: item.products.making_charge_percentage?.toString() ?? null,
+                making_charge_amount: (item.products as any).making_charge_amount?.toString() ?? null,
+                making_charge_percentage: (item.products as any).making_charge_percentage?.toString() ?? null,
                 making_charge_types: item.products.metadata?.['making_charge_types'] ?? [],
                 media: item.products.product_medias.map((media) => ({
                   url: media.url,
-                  alt: (media.metadata as any)?.['alt'] ?? item.products.name,
+                  alt: (media.metadata as any)?.['alt'] ?? (item.products?.name ?? ''),
                 })),
               }
             : null,

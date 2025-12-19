@@ -60,7 +60,8 @@ export class UpdateTeamUserDto {
 
 export class UpdateUserGroupDto {
   @IsInt()
-  user_group_id: number;
+  @IsOptional()
+  user_group_id?: number | null;
 }
 
 export class BulkDestroyDto {

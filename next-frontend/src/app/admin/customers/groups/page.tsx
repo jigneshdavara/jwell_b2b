@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { adminService } from "@/services/adminService";
 
 type CustomerGroupRow = {
     id: number;
@@ -20,18 +21,13 @@ type PaginationMeta = {
     per_page: number;
 };
 
-const mockGroups: CustomerGroupRow[] = [
-    { id: 1, name: 'Premium Retailers', slug: 'premium-retailers', description: 'High-volume retail partners.', is_active: true, position: 1 },
-    { id: 2, name: 'Bulk Buyers', slug: 'bulk-buyers', description: 'Wholesale partners with bulk ordering.', is_active: true, position: 2 },
-    { id: 3, name: 'Legacy Clients', slug: 'legacy-clients', description: 'Long-term partners with special terms.', is_active: false, position: 3 },
-];
-
 export default function AdminCustomerGroupsPage() {
     const [loading, setLoading] = useState(true);
     const [groups, setGroups] = useState<{ data: CustomerGroupRow[]; meta: PaginationMeta }>({
-        data: mockGroups,
-        meta: { current_page: 1, last_page: 1, total: mockGroups.length, per_page: 20 }
+        data: [],
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 20 }
     });
+    const [currentPage, setCurrentPage] = useState(1);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingGroup, setEditingGroup] = useState<CustomerGroupRow | null>(null);
@@ -48,8 +44,38 @@ export default function AdminCustomerGroupsPage() {
     });
 
     useEffect(() => {
-        setLoading(false);
-    }, []);
+        loadGroups();
+    }, [currentPage, perPage]);
+
+    const loadGroups = async () => {
+        setLoading(true);
+        try {
+            const response = await adminService.getCustomerGroups(currentPage, perPage);
+            const items = response.data.items || response.data.data || [];
+            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+
+            setGroups({
+                data: items.map((item: any) => ({
+                    id: Number(item.id),
+                    name: item.name,
+                    slug: item.slug,
+                    description: item.description,
+                    is_active: item.is_active,
+                    position: item.position || 0,
+                })),
+                meta: {
+                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                    total: responseMeta.total || 0,
+                    per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                },
+            });
+        } catch (error: any) {
+            console.error('Failed to load customer groups:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const allSelected = useMemo(() => {
         if (groups.data.length === 0) return false;
@@ -91,59 +117,71 @@ export default function AdminCustomerGroupsPage() {
         setModalOpen(true);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
-        setTimeout(() => {
+        try {
+            const payload = {
+                name: formState.name,
+                description: formState.description || null,
+                is_active: formState.is_active,
+                position: formState.position,
+            };
+
             if (editingGroup) {
-                setGroups(prev => ({
-                    ...prev,
-                    data: prev.data.map(g => g.id === editingGroup.id ? { ...g, ...formState } : g)
-                }));
+                await adminService.updateCustomerGroup(editingGroup.id, payload);
             } else {
-                const newGroup: CustomerGroupRow = {
-                    id: Date.now(),
-                    slug: formState.name.toLowerCase().replace(/\s+/g, '-'),
-                    ...formState
-                };
-                setGroups(prev => ({
-                    ...prev,
-                    data: [...prev.data, newGroup],
-                    meta: { ...prev.meta, total: prev.meta.total + 1 }
-                }));
+                await adminService.createCustomerGroup(payload);
             }
             resetForm();
+            await loadGroups();
+        } catch (error: any) {
+            console.error('Failed to save customer group:', error);
+            alert(error.response?.data?.message || 'Failed to save customer group. Please try again.');
+        } finally {
             setLoading(false);
-        }, 500);
-    };
-
-    const toggleActivation = (group: CustomerGroupRow) => {
-        setGroups(prev => ({
-            ...prev,
-            data: prev.data.map(g => g.id === group.id ? { ...g, is_active: !g.is_active } : g)
-        }));
-    };
-
-    const handleDelete = () => {
-        if (deleteConfirm) {
-            setGroups(prev => ({
-                ...prev,
-                data: prev.data.filter(g => g.id !== deleteConfirm.id),
-                meta: { ...prev.meta, total: prev.meta.total - 1 }
-            }));
-            setDeleteConfirm(null);
         }
     };
 
-    const handleBulkDelete = () => {
-        setGroups(prev => ({
-            ...prev,
-            data: prev.data.filter(g => !selectedGroups.includes(g.id)),
-            meta: { ...prev.meta, total: prev.meta.total - selectedGroups.length }
-        }));
-        setSelectedGroups([]);
-        setBulkDeleteConfirm(false);
+    const toggleActivation = async (group: CustomerGroupRow) => {
+        try {
+            await adminService.updateCustomerGroup(group.id, {
+                name: group.name,
+                description: group.description,
+                is_active: !group.is_active,
+                position: group.position,
+            });
+            await loadGroups();
+        } catch (error: any) {
+            console.error('Failed to toggle customer group:', error);
+            alert(error.response?.data?.message || 'Failed to update customer group. Please try again.');
+        }
+    };
+
+    const handleDelete = async () => {
+        if (deleteConfirm) {
+            try {
+                await adminService.deleteCustomerGroup(deleteConfirm.id);
+                setDeleteConfirm(null);
+                await loadGroups();
+            } catch (error: any) {
+                console.error('Failed to delete customer group:', error);
+                alert(error.response?.data?.message || 'Failed to delete customer group. Please try again.');
+            }
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        try {
+            await adminService.bulkDeleteCustomerGroups(selectedGroups);
+            setSelectedGroups([]);
+            setBulkDeleteConfirm(false);
+            await loadGroups();
+        } catch (error: any) {
+            console.error('Failed to delete customer groups:', error);
+            alert(error.response?.data?.message || 'Failed to delete customer groups. Please try again.');
+        }
     };
 
     if (loading && !groups.data.length) return null;
@@ -186,7 +224,10 @@ export default function AdminCustomerGroupsPage() {
                         </button>
                         <select
                             value={perPage}
-                            onChange={(e) => setPerPage(Number(e.target.value))}
+                            onChange={(e) => {
+                                setPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
                             className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:ring-0"
                         >
                             <option value={10}>10</option>
@@ -289,12 +330,29 @@ export default function AdminCustomerGroupsPage() {
                 </table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                <div>Showing 1 to {groups.data.length} of {groups.meta.total} entries</div>
-                <div className="flex gap-2">
-                    <button className="rounded-full px-3 py-1 text-sm font-semibold bg-sky-600 text-white shadow shadow-sky-600/20">1</button>
+            {groups.meta.last_page > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                    <div>
+                        Showing {groups.meta.total > 0 ? (groups.meta.current_page - 1) * groups.meta.per_page + 1 : 0} to {Math.min(groups.meta.current_page * groups.meta.per_page, groups.meta.total)} of {groups.meta.total} entries
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {Array.from({ length: groups.meta.last_page }, (_, i) => i + 1).map((page) => (
+                            <button
+                                key={page}
+                                type="button"
+                                onClick={() => setCurrentPage(page)}
+                                className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                    page === groups.meta.current_page
+                                        ? 'bg-sky-600 text-white shadow shadow-sky-600/20'
+                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
 
             <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">
                 <div className="flex min-h-0 flex-col">

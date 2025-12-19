@@ -42,16 +42,41 @@ export default function AdminDashboardOverview() {
     try {
       setLoading(true);
       const response = await adminService.getDashboard();
+      
+      // Debug: Log the response structure
+      console.log('Dashboard API Response:', response.data);
+      
       if (response.data) {
+        // Backend returns: { metrics: {...}, recentPartners: [...] }
+        const metricsData = response.data.metrics || response.data;
+        const partnersData = response.data.recentPartners || response.data.recent_partners || [];
+        
+        console.log('Metrics Data:', metricsData);
+        console.log('Partners Data:', partnersData);
+        
         setMetrics({
-          pending_kyc: response.data.pending_kyc || 0,
-          orders_in_production: response.data.orders_in_production || 0,
-          active_offers: response.data.active_offers || 0,
+          pending_kyc: metricsData.pending_kyc || 0,
+          orders_in_production: metricsData.orders_in_production || 0,
+          active_offers: metricsData.active_offers || 0,
         });
-        setRecentPartners(response.data.recent_partners || []);
+        
+        // Map partners to ensure correct structure
+        const mappedPartners = partnersData.map((partner: any) => ({
+          id: Number(partner.id),
+          name: partner.name || '',
+          email: partner.email || '',
+          type: partner.type || '',
+          kyc_status: partner.kyc_status || 'pending',
+          joined_at: partner.joined_at || partner.created_at || new Date().toISOString(),
+        }));
+        
+        console.log('Mapped Partners:', mappedPartners);
+        setRecentPartners(mappedPartners);
       }
     } catch (error: any) {
       console.error('Failed to load dashboard:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
     } finally {
       setLoading(false);
     }

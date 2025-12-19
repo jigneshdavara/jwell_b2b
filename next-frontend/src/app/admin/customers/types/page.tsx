@@ -3,6 +3,7 @@
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
 import { useEffect, useState } from 'react';
+import { adminService } from '@/services/adminService';
 
 type CustomerTypeRow = {
     id: number;
@@ -13,17 +14,19 @@ type CustomerTypeRow = {
     position: number;
 };
 
-// Mock data for customer types
-const mockCustomerTypes: CustomerTypeRow[] = [
-    { id: 1, name: 'Retailer', slug: 'retailer', description: 'Individual retail customers', is_active: true, position: 1 },
-    { id: 2, name: 'Wholesaler', slug: 'wholesaler', description: 'Bulk purchase customers', is_active: true, position: 2 },
-    { id: 3, name: 'Sales', slug: 'sales', description: 'Sales representatives', is_active: true, position: 3 },
-];
-
-let nextId = mockCustomerTypes.length > 0 ? Math.max(...mockCustomerTypes.map(t => t.id)) + 1 : 1;
+type PaginationMeta = {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+};
 
 export default function AdminCustomerTypesIndex() {
-    const [typesData, setTypesData] = useState<CustomerTypeRow[]>(mockCustomerTypes);
+    const [loading, setLoading] = useState(true);
+    const [typesData, setTypesData] = useState<{ data: CustomerTypeRow[]; meta: PaginationMeta }>({
+        data: [],
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 100 }
+    });
     const [editingType, setEditingType] = useState<CustomerTypeRow | null>(null);
     const [selectedTypes, setSelectedTypes] = useState<number[]>([]);
     const [deleteConfirm, setDeleteConfirm] = useState<CustomerTypeRow | null>(null);
@@ -37,6 +40,40 @@ export default function AdminCustomerTypesIndex() {
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+
+    useEffect(() => {
+        loadTypes();
+    }, []);
+
+    const loadTypes = async () => {
+        setLoading(true);
+        try {
+            const response = await adminService.getCustomerTypes(1, 100);
+            const items = response.data.items || response.data.data || [];
+            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: 100 };
+
+            setTypesData({
+                data: items.map((item: any) => ({
+                    id: Number(item.id),
+                    name: item.name,
+                    slug: item.slug || item.name.toLowerCase().replace(/\s+/g, '-'),
+                    description: item.description,
+                    is_active: item.is_active,
+                    position: Number(item.position || 0),
+                })).sort((a: CustomerTypeRow, b: CustomerTypeRow) => a.position - b.position),
+                meta: {
+                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                    total: responseMeta.total || 0,
+                    per_page: responseMeta.per_page || responseMeta.perPage || 100,
+                },
+            });
+        } catch (error: any) {
+            console.error('Failed to load customer types:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const resetForm = () => {
         setEditingType(null);
@@ -68,63 +105,58 @@ export default function AdminCustomerTypesIndex() {
         return Object.keys(newErrors).length === 0;
     };
 
-    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!validateForm()) return;
 
         setProcessing(true);
-        setTimeout(() => {
+        try {
+            const payload: any = {
+                name: formData.name,
+                description: formData.description || null,
+                is_active: formData.is_active,
+                position: formData.position,
+            };
+
             if (editingType) {
-                setTypesData((prev) =>
-                    prev.map((t) =>
-                        t.id === editingType.id
-                            ? {
-                                  ...t,
-                                  name: formData.name,
-                                  slug: formData.name.toLowerCase().replace(/\s+/g, '-'),
-                                  description: formData.description,
-                                  is_active: formData.is_active,
-                                  position: formData.position,
-                              }
-                            : t,
-                    ),
-                );
+                await adminService.updateCustomerType(editingType.id, payload);
             } else {
-                const newType: CustomerTypeRow = {
-                    id: nextId++,
-                    name: formData.name,
-                    slug: formData.name.toLowerCase().replace(/\s+/g, '-'),
-                    description: formData.description,
-                    is_active: formData.is_active,
-                    position: formData.position,
-                };
-                setTypesData((prev) => [...prev, newType].sort((a, b) => a.position - b.position));
+                await adminService.createCustomerType(payload);
             }
             resetForm();
+            await loadTypes();
+        } catch (error: any) {
+            console.error('Failed to save customer type:', error);
+            alert(error.response?.data?.message || 'Failed to save customer type. Please try again.');
+        } finally {
             setProcessing(false);
-        }, 500);
+        }
     };
 
-    const toggleType = (type: CustomerTypeRow) => {
-        setTimeout(() => {
-            setTypesData((prev) =>
-                prev.map((t) =>
-                    t.id === type.id ? { ...t, is_active: !t.is_active } : t,
-                ),
-            );
-        }, 300);
+    const toggleType = async (type: CustomerTypeRow) => {
+        try {
+            await adminService.updateCustomerType(type.id, { ...type, is_active: !type.is_active });
+            await loadTypes();
+        } catch (error: any) {
+            console.error('Failed to toggle customer type status:', error);
+            alert(error.response?.data?.message || 'Failed to update customer type. Please try again.');
+        }
     };
 
     const deleteType = (type: CustomerTypeRow) => {
         setDeleteConfirm(type);
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deleteConfirm) {
-            setTimeout(() => {
-                setTypesData((prev) => prev.filter((t) => t.id !== deleteConfirm.id));
+            try {
+                await adminService.deleteCustomerType(deleteConfirm.id);
                 setDeleteConfirm(null);
-            }, 300);
+                await loadTypes();
+            } catch (error: any) {
+                console.error('Failed to delete customer type:', error);
+                alert(error.response?.data?.message || 'Failed to delete customer type. Please try again.');
+            }
         }
     };
 
@@ -137,14 +169,14 @@ export default function AdminCustomerTypesIndex() {
         });
     };
 
-    const allSelected = typesData.length > 0 && selectedTypes.length === typesData.length;
+    const allSelected = typesData.data.length > 0 && selectedTypes.length === typesData.data.length;
 
     const toggleSelectAll = () => {
         if (allSelected) {
             setSelectedTypes([]);
             return;
         }
-        setSelectedTypes(typesData.map((type) => type.id));
+        setSelectedTypes(typesData.data.map((type) => type.id));
     };
 
     const bulkDelete = () => {
@@ -154,16 +186,24 @@ export default function AdminCustomerTypesIndex() {
         setBulkDeleteConfirm(true);
     };
 
-    const handleBulkDelete = () => {
-        setTimeout(() => {
-            setTypesData((prev) => prev.filter((t) => !selectedTypes.includes(t.id)));
+    const handleBulkDelete = async () => {
+        if (selectedTypes.length === 0) return;
+        
+        try {
+            for (const id of selectedTypes) {
+                await adminService.deleteCustomerType(id);
+            }
             setSelectedTypes([]);
             setBulkDeleteConfirm(false);
-        }, 300);
+            await loadTypes();
+        } catch (error: any) {
+            console.error('Failed to bulk delete customer types:', error);
+            alert(error.response?.data?.message || 'Failed to delete customer types. Please try again.');
+        }
     };
 
     useEffect(() => {
-        setSelectedTypes((current) => current.filter((id) => typesData.some((type) => type.id === id)));
+        setSelectedTypes((current) => current.filter((id) => typesData.data.some((type) => type.id === id)));
     }, [typesData]);
 
     return (
@@ -265,7 +305,7 @@ export default function AdminCustomerTypesIndex() {
 
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 text-sm md:flex-row md:items-center md:justify-between">
-                        <div className="font-semibold text-slate-700">Results ({typesData.length})</div>
+                        <div className="font-semibold text-slate-700">Results ({typesData.meta.total})</div>
                         <div className="flex items-center gap-3 text-xs text-slate-500">
                             <span>{selectedTypes.length} selected</span>
                             <button
@@ -298,7 +338,14 @@ export default function AdminCustomerTypesIndex() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
-                            {typesData.map((type) => (
+                            {loading && typesData.data.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="px-5 py-6 text-center text-sm text-slate-500">
+                                        Loading customer types...
+                                    </td>
+                                </tr>
+                            ) : (
+                                typesData.data.map((type) => (
                                 <tr key={type.id} className="hover:bg-slate-50">
                                     <td className="px-5 py-3">
                                         <input
@@ -352,8 +399,9 @@ export default function AdminCustomerTypesIndex() {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
-                            {typesData.length === 0 && (
+                                ))
+                            )}
+                            {!loading && typesData.data.length === 0 && (
                                 <tr>
                                     <td colSpan={6} className="px-5 py-6 text-center text-sm text-slate-500">
                                         No customer types defined yet.

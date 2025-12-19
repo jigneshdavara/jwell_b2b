@@ -3,35 +3,39 @@
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { adminService } from '@/services/adminService';
 
 type DiamondShapeSizeRow = {
     id: number;
-    name: string;
+    size: string | null;
+    secondary_size: string | null;
+    ctw: number;
+    label: string;
     diamond_shape: { id: number; name: string } | null;
-    diamond_type: { id: number; name: string } | null;
     created_at?: string | null;
     updated_at?: string | null;
 };
 
-// Mock data
-const mockDiamondShapeSizes: DiamondShapeSizeRow[] = [
-    { id: 1, name: '0.10 ct', diamond_shape: { id: 1, name: 'Round' }, diamond_type: { id: 1, name: 'Natural' }, created_at: '2023-01-15T10:00:00Z', updated_at: '2023-01-15T10:00:00Z' },
-    { id: 2, name: '0.20 ct', diamond_shape: { id: 1, name: 'Round' }, diamond_type: { id: 1, name: 'Natural' }, created_at: '2023-01-15T10:00:00Z', updated_at: '2023-01-15T10:00:00Z' },
-];
+type DiamondShape = {
+    id: number;
+    name: string;
+};
 
-const mockDiamondShapes = [
-    { id: 1, name: 'Round' },
-    { id: 2, name: 'Princess' },
-];
-
-const mockDiamondTypes = [
-    { id: 1, name: 'Natural' },
-    { id: 2, name: 'Lab Grown' },
-];
+type PaginationMeta = {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+};
 
 export default function AdminDiamondShapeSizesIndex() {
-    const [allSizes, setAllSizes] = useState<DiamondShapeSizeRow[]>(mockDiamondShapeSizes);
+    const [loading, setLoading] = useState(true);
+    const [sizes, setSizes] = useState<{ data: DiamondShapeSizeRow[]; meta: PaginationMeta }>({
+        data: [],
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }
+    });
+    const [diamondShapes, setDiamondShapes] = useState<DiamondShape[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingSize, setEditingSize] = useState<DiamondShapeSizeRow | null>(null);
     const [perPage, setPerPage] = useState(10);
@@ -40,51 +44,113 @@ export default function AdminDiamondShapeSizesIndex() {
 
     const [formData, setFormData] = useState({
         diamond_shape_id: '',
-        name: '',
+        size: '',
+        secondary_size: '',
+        ctw: 0,
     });
     const [processing, setProcessing] = useState(false);
 
-    const paginatedSizes = useMemo(() => {
-        const start = (currentPage - 1) * perPage;
-        return allSizes.slice(start, start + perPage);
-    }, [allSizes, currentPage, perPage]);
+    useEffect(() => {
+        loadSizes();
+        loadDiamondShapes();
+    }, [currentPage, perPage]);
 
-    const totalPages = Math.ceil(allSizes.length / perPage);
+    const loadSizes = async () => {
+        setLoading(true);
+        try {
+            // Use the paginated version (page, perPage) not the shapeId version
+            const response = await adminService.getDiamondShapeSizes(currentPage, perPage);
+            const items = response.data.items || response.data.data || [];
+            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+
+            setSizes({
+                data: items.map((item: any) => ({
+                    id: Number(item.id),
+                    size: item.size,
+                    secondary_size: item.secondary_size,
+                    ctw: Number(item.ctw || 0),
+                    label: item.label || `${item.size || ''} (${item.ctw}ct)`,
+                    diamond_shape: item.diamond_shape ? { id: Number(item.diamond_shape.id), name: item.diamond_shape.name } : null,
+                    created_at: item.created_at,
+                    updated_at: item.updated_at,
+                })),
+                meta: {
+                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                    total: responseMeta.total || 0,
+                    per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                },
+            });
+        } catch (error: any) {
+            console.error('Failed to load diamond shape sizes:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadDiamondShapes = async () => {
+        try {
+            const response = await adminService.getDiamondShapes(1, 100);
+            const items = response.data.items || response.data.data || [];
+            setDiamondShapes(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
+        } catch (error: any) {
+            console.error('Failed to load diamond shapes:', error);
+        }
+    };
 
     const resetFormAndModal = () => {
         setEditingSize(null);
         setModalOpen(false);
-        setFormData({ diamond_shape_id: '', name: '' });
+        setFormData({ diamond_shape_id: '', size: '', secondary_size: '', ctw: 0 });
     };
 
     const openEditModal = (size: DiamondShapeSizeRow) => {
         setEditingSize(size);
         setFormData({
             diamond_shape_id: size.diamond_shape?.id.toString() ?? '',
-            name: size.name,
+            size: size.size || '',
+            secondary_size: size.secondary_size || '',
+            ctw: size.ctw,
         });
         setModalOpen(true);
     };
 
-    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setProcessing(true);
-        setTimeout(() => {
-            const selectedShape = mockDiamondShapes.find(s => s.id === Number(formData.diamond_shape_id));
+        try {
+            const payload: any = {
+                diamond_shape_id: formData.diamond_shape_id ? Number(formData.diamond_shape_id) : null,
+                size: formData.size || null,
+                secondary_size: formData.secondary_size || null,
+                ctw: Number(formData.ctw),
+            };
+
             if (editingSize) {
-                setAllSizes(allSizes.map(s => s.id === editingSize.id ? { ...s, ...formData, diamond_shape: selectedShape ?? null } : s));
+                await adminService.updateDiamondShapeSize(editingSize.id, payload);
             } else {
-                setAllSizes([...allSizes, { id: Date.now(), ...formData, diamond_shape: selectedShape ?? null, diamond_type: null }]);
+                await adminService.createDiamondShapeSize(payload);
             }
-            setProcessing(false);
             resetFormAndModal();
-        }, 500);
+            await loadSizes();
+        } catch (error: any) {
+            console.error('Failed to save diamond shape size:', error);
+            alert(error.response?.data?.message || 'Failed to save diamond shape size. Please try again.');
+        } finally {
+            setProcessing(false);
+        }
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deleteConfirm) {
-            setAllSizes(allSizes.filter(s => s.id !== deleteConfirm.id));
-            setDeleteConfirm(null);
+            try {
+                await adminService.deleteDiamondShapeSize(deleteConfirm.id);
+                setDeleteConfirm(null);
+                await loadSizes();
+            } catch (error: any) {
+                console.error('Failed to delete diamond shape size:', error);
+                alert(error.response?.data?.message || 'Failed to delete diamond shape size. Please try again.');
+            }
         }
     };
 
@@ -112,34 +178,43 @@ export default function AdminDiamondShapeSizesIndex() {
 
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
-                        <div className="font-semibold text-slate-700">Sizes ({allSizes.length})</div>
-                        <div className="flex items-center gap-3 text-xs text-slate-500">
-                            <span>Show</span>
-                            <select
-                                value={perPage}
-                                onChange={(e) => setPerPage(Number(e.target.value))}
-                                className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                            >
-                                <option value={10}>10</option>
-                                <option value={25}>25</option>
-                            </select>
-                        </div>
+                        <div className="font-semibold text-slate-700">Sizes ({sizes.meta.total})</div>
+                        <select
+                            value={perPage}
+                            onChange={(e) => {
+                                setPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                            className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:ring-0"
+                        >
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
                     </div>
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead className="bg-slate-50 text-xs text-slate-500">
-                            <tr>
-                                <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Shape</th>
-                                <th className="px-5 py-3 text-left">Type</th>
-                                <th className="px-5 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                            {paginatedSizes.map((size) => (
-                                <tr key={size.id} className="hover:bg-slate-50">
-                                    <td className="px-5 py-3 font-semibold text-slate-900">{size.name}</td>
-                                    <td className="px-5 py-3 text-slate-500">{size.diamond_shape?.name ?? '—'}</td>
-                                    <td className="px-5 py-3 text-slate-500">{size.diamond_type?.name ?? '—'}</td>
+                    {loading && sizes.data.length === 0 ? (
+                        <div className="flex items-center justify-center py-12">
+                            <p className="text-slate-500">Loading diamond shape sizes...</p>
+                        </div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead className="bg-slate-50 text-xs text-slate-500">
+                                <tr>
+                                    <th className="px-5 py-3 text-left">Label</th>
+                                    <th className="px-5 py-3 text-left">Size</th>
+                                    <th className="px-5 py-3 text-left">CTW</th>
+                                    <th className="px-5 py-3 text-left">Shape</th>
+                                    <th className="px-5 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {sizes.data.map((size) => (
+                                    <tr key={size.id} className="hover:bg-slate-50">
+                                        <td className="px-5 py-3 font-semibold text-slate-900">{size.label}</td>
+                                        <td className="px-5 py-3 text-slate-500">{size.size || '—'}</td>
+                                        <td className="px-5 py-3 text-slate-500">{size.ctw} ct</td>
+                                        <td className="px-5 py-3 text-slate-500">{size.diamond_shape?.name ?? '—'}</td>
                                     <td className="px-5 py-3 text-right">
                                         <div className="flex justify-end gap-2">
                                             <button type="button" onClick={() => openEditModal(size)} className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900">
@@ -157,9 +232,32 @@ export default function AdminDiamondShapeSizesIndex() {
                                     </td>
                                 </tr>
                             ))}
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    )}
                 </div>
+
+                {sizes.meta.last_page > 1 && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                        <div>
+                            Showing {sizes.meta.total > 0 ? (sizes.meta.current_page - 1) * sizes.meta.per_page + 1 : 0} to {Math.min(sizes.meta.current_page * sizes.meta.per_page, sizes.meta.total)} of {sizes.meta.total} entries
+                        </div>
+                        <div className="flex gap-2">
+                            {Array.from({ length: sizes.meta.last_page }, (_, i) => i + 1).map((page) => (
+                                <button
+                                    key={page}
+                                    type="button"
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                        page === sizes.meta.current_page ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                    }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             <Modal show={modalOpen} onClose={resetFormAndModal} maxWidth="xl">
@@ -175,18 +273,40 @@ export default function AdminDiamondShapeSizesIndex() {
                                 required
                             >
                                 <option value="">Select a diamond shape</option>
-                                {mockDiamondShapes.map(shape => <option key={shape.id} value={shape.id}>{shape.name}</option>)}
+                                {diamondShapes.map(shape => <option key={shape.id} value={shape.id}>{shape.name}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="mb-2 block text-sm font-semibold text-slate-700">Name (e.g. 0.10 ct)</label>
+                            <label className="mb-2 block text-sm font-semibold text-slate-700">Size (e.g. 6.5mm)</label>
                             <input
                                 type="text"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                value={formData.size}
+                                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
                                 className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 required
-                                placeholder="0.10 ct"
+                                placeholder="6.5mm"
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-2 block text-sm font-semibold text-slate-700">Secondary Size (Optional, e.g. 8x6mm)</label>
+                            <input
+                                type="text"
+                                value={formData.secondary_size}
+                                onChange={(e) => setFormData({ ...formData, secondary_size: e.target.value })}
+                                className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                placeholder="8x6mm"
+                            />
+                        </div>
+                        <div>
+                            <label className="mb-2 block text-sm font-semibold text-slate-700">CTW (Carat Total Weight)</label>
+                            <input
+                                type="number"
+                                step="0.001"
+                                value={formData.ctw}
+                                onChange={(e) => setFormData({ ...formData, ctw: Number(e.target.value) })}
+                                className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                required
+                                placeholder="1.0"
                             />
                         </div>
                     </div>
@@ -202,7 +322,7 @@ export default function AdminDiamondShapeSizesIndex() {
                 onClose={() => setDeleteConfirm(null)}
                 onConfirm={handleDelete}
                 title="Remove Shape Size"
-                message={deleteConfirm ? `Are you sure you want to remove size ${deleteConfirm.name}?` : ''}
+                message={deleteConfirm ? `Are you sure you want to remove size ${deleteConfirm.label}?` : ''}
                 confirmText="Remove"
                 variant="danger"
             />

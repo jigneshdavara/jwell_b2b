@@ -1,7 +1,8 @@
 'use client';
 
 import { Head } from '@/components/Head';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { adminService } from '@/services/adminService';
 
 type MetalPurity = {
     id: number;
@@ -30,62 +31,143 @@ type RateRow = {
     created_at: string;
 };
 
-// Mock data
-const mockMetals = ['gold', 'silver', 'platinum'];
-const mockMetalSummaries: MetalSummary[] = [
-    {
-        metal: 'gold',
-        latest_rate: 6200,
-        effective_at: '2023-12-15T10:00:00Z',
-        purities: [
-            { name: '22K', latest_rate: 6200 },
-            { name: '18K', latest_rate: 5100 },
-        ],
-    },
-];
-const mockRates: RateRow[] = [
-    { id: 1, metal: 'gold', purity: '22K', price_per_gram: 6200, effective_at: '2023-12-15T10:00:00Z', created_at: '2023-12-15T10:00:00Z' },
-];
-const mockPurities: MetalPurity[] = [
-    { id: 1, metal_id: 1, name: '22K', description: null, is_active: true },
-    { id: 2, metal_id: 1, name: '18K', description: null, is_active: true },
-];
-
 export default function AdminRatesIndex() {
-    const metals = mockMetals;
-    const initialSummaries = mockMetalSummaries;
-    const initialRates = mockRates;
-    const purities = mockPurities;
-
-    const [ratesData, setRatesData] = useState<RateRow[]>(initialRates);
-    const [summaries, setSummaries] = useState<MetalSummary[]>(initialSummaries);
-    const [selectedMetal, setSelectedMetal] = useState(metals[0]);
+    const [loading, setLoading] = useState(true);
+    const [ratesData, setRatesData] = useState<RateRow[]>([]);
+    const [summaries, setSummaries] = useState<MetalSummary[]>([]);
+    const [availableMetals, setAvailableMetals] = useState<Array<{ id: number; name: string; value: string }>>([]);
+    const [metalPuritiesMap, setMetalPuritiesMap] = useState<Record<string, Array<{ id: number; name: string }>>>({});
+    const [selectedMetal, setSelectedMetal] = useState<string>('');
     const [formData, setFormData] = useState({
         effective_at: new Date().toISOString().slice(0, 16),
-        rates: purities.map(p => ({ purity_id: p.id, purity_name: p.name, price_per_gram: '' })),
+        rates: [] as Array<{ purity_id: number; purity_name: string; price_per_gram: string }>,
     });
     const [processing, setProcessing] = useState(false);
 
-    const metalPurities = useMemo(() => purities, [purities]);
+    useEffect(() => {
+        loadRates();
+    }, []);
 
-    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    useEffect(() => {
+        if (selectedMetal && metalPuritiesMap[selectedMetal]) {
+            setFormData(prev => ({
+                ...prev,
+                rates: metalPuritiesMap[selectedMetal].map(p => ({
+                    purity_id: p.id,
+                    purity_name: p.name,
+                    price_per_gram: '',
+                })),
+            }));
+        }
+    }, [selectedMetal, metalPuritiesMap]);
+
+    const loadRates = async () => {
+        setLoading(true);
+        try {
+            const response = await adminService.getRates(1, 100);
+            const data = response.data;
+
+            // Set rates history
+            setRatesData((data.items || []).map((item: any) => ({
+                id: Number(item.id),
+                metal: item.metal,
+                purity: item.purity || '',
+                price_per_gram: Number(item.price_per_gram),
+                effective_at: item.effective_at,
+                created_at: item.created_at,
+            })));
+
+            // Set available metals
+            const metals = data.availableMetals || [];
+            setAvailableMetals(metals);
+            if (metals.length > 0 && !selectedMetal) {
+                setSelectedMetal(metals[0].value);
+            }
+
+            // Set metal purities map
+            setMetalPuritiesMap(data.metalPurities || {});
+
+            // Convert metal summaries to array format
+            const summariesArray: MetalSummary[] = Object.entries(data.metalSummaries || {}).map(([metal, summary]: [string, any]) => ({
+                metal,
+                latest_rate: summary.latest_rate,
+                effective_at: summary.effective_at,
+                purities: summary.purities || [],
+            }));
+            setSummaries(summariesArray);
+        } catch (error: any) {
+            console.error('Failed to load rates:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const metalPurities = useMemo(() => {
+        if (!selectedMetal || !metalPuritiesMap[selectedMetal]) return [];
+        return metalPuritiesMap[selectedMetal];
+    }, [selectedMetal, metalPuritiesMap]);
+
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setProcessing(true);
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            const ratesPayload = formData.rates
+                .filter(r => r.price_per_gram && parseFloat(r.price_per_gram) > 0)
+                .map(r => ({
+                    purity_id: r.purity_id,
+                    price_per_gram: parseFloat(r.price_per_gram),
+                }));
+
+            await adminService.storeMetalRate(selectedMetal, {
+                effective_at: formData.effective_at,
+                rates: ratesPayload,
+            });
+
+            // Reset form
+            setFormData({
+                effective_at: new Date().toISOString().slice(0, 16),
+                rates: metalPurities.map(p => ({
+                    purity_id: p.id,
+                    purity_name: p.name,
+                    price_per_gram: '',
+                })),
+            });
+
+            // Reload rates
+            await loadRates();
+            alert('Rates updated successfully');
+        } catch (error: any) {
+            console.error('Failed to update rates:', error);
+            alert(error.response?.data?.message || 'Failed to update rates. Please try again.');
+        } finally {
             setProcessing(false);
-            alert('Rates updated (mock)');
-        }, 1000);
+        }
     };
 
-    const syncRates = () => {
+    const syncRates = async () => {
         setProcessing(true);
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            await adminService.syncRates(selectedMetal || undefined);
+            await loadRates();
+            alert('Rates synced successfully');
+        } catch (error: any) {
+            console.error('Failed to sync rates:', error);
+            alert(error.response?.data?.message || 'Failed to sync rates. Please try again.');
+        } finally {
             setProcessing(false);
-            alert('Rates synced (mock)');
-        }, 1000);
+        }
     };
+
+    if (loading) {
+        return (
+            <>
+                <Head title="Metal Rates" />
+                <div className="flex h-screen items-center justify-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
@@ -181,16 +263,16 @@ export default function AdminRatesIndex() {
 
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2 mb-2">
-                                        {metals.map((m) => (
+                                        {availableMetals.map((m) => (
                                             <button
-                                                key={m}
+                                                key={m.value}
                                                 type="button"
-                                                onClick={() => setSelectedMetal(m)}
+                                                onClick={() => setSelectedMetal(m.value)}
                                                 className={`rounded-full px-4 py-1 text-xs font-semibold uppercase tracking-widest transition ${
-                                                    selectedMetal === m ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                                    selectedMetal === m.value ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                                                 }`}
                                             >
-                                                {m}
+                                                {m.name}
                                             </button>
                                         ))}
                                     </div>

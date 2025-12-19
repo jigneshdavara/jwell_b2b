@@ -56,16 +56,16 @@ export class BrandsService {
   async update(id: number, dto: UpdateBrandDto, coverImage?: string) {
     const brand = await this.findOne(id);
     
-    let imageToUpdate = coverImage;
+    let imageToUpdate: string | undefined = coverImage;
     if (dto.remove_cover_image && brand.cover_image) {
       this.deleteImage(brand.cover_image);
-      imageToUpdate = null;
+      imageToUpdate = undefined;
     } else if (coverImage && brand.cover_image) {
       // New image uploaded, delete old one
       this.deleteImage(brand.cover_image);
     } else if (!coverImage) {
       // No new image, preserve existing unless removed
-      imageToUpdate = brand.cover_image;
+      imageToUpdate = brand.cover_image ?? undefined;
     }
 
     return await this.prisma.brands.update({

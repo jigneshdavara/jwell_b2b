@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { adminService } from "@/services/adminService";
 
 type AdminUserRow = {
     id: number;
@@ -40,56 +41,13 @@ const statusColours: Record<string, string> = {
     rejected: 'bg-rose-100 text-rose-700',
 };
 
-const mockCustomerGroups = [
-    { id: 1, name: "Premium Retailers" },
-    { id: 2, name: "Bulk Buyers" }
-];
-
-const mockCustomers: AdminUserRow[] = [
-    { 
-        id: 1, 
-        name: 'Retail Partner A', 
-        email: 'retailer@example.com', 
-        type: 'retailer', 
-        customer_group: { id: 1, name: 'Premium Retailers' }, 
-        kyc_status: 'approved', 
-        kyc_status_label: 'Approved',
-        kyc_document_count: 3,
-        is_active: true, 
-        joined_at: '2023-03-01T10:00:00Z' 
-    },
-    { 
-        id: 2, 
-        name: 'Wholesale Corp', 
-        email: 'wholesale@example.com', 
-        type: 'wholesaler', 
-        customer_group: { id: 2, name: 'Bulk Buyers' }, 
-        kyc_status: 'review', 
-        kyc_status_label: 'Under Review',
-        kyc_document_count: 1,
-        is_active: true, 
-        joined_at: '2023-03-05T11:30:00Z' 
-    },
-    { 
-        id: 3, 
-        name: 'Independent Seller', 
-        email: 'seller@example.com', 
-        type: 'retailer', 
-        customer_group: null, 
-        kyc_status: 'pending', 
-        kyc_status_label: 'Pending',
-        kyc_document_count: 0,
-        is_active: false, 
-        joined_at: '2023-03-10T09:15:00Z' 
-    },
-];
-
 export default function AdminCustomersPage() {
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState<{ data: AdminUserRow[]; meta: PaginationMeta }>({
-        data: mockCustomers,
-        meta: { current_page: 1, last_page: 1, total: mockCustomers.length, per_page: 20 }
+        data: [],
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 20 }
     });
+    const [customerGroups, setCustomerGroups] = useState<Array<{ id: number; name: string }>>([]);
 
     const [search, setSearch] = useState('');
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -103,8 +61,74 @@ export default function AdminCustomersPage() {
     const statusOptions = ['all', 'pending', 'review', 'approved', 'rejected'];
 
     useEffect(() => {
-        setLoading(false);
+        loadCustomerGroups();
     }, []);
+
+    const [currentPage, setCurrentPage] = useState(1);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, typeFilter, groupFilter, statusFilter]);
+
+    useEffect(() => {
+        loadCustomers();
+    }, [perPage, search, typeFilter, groupFilter, statusFilter, currentPage]);
+
+    const loadCustomers = async () => {
+        setLoading(true);
+        try {
+            const filters: any = {
+                page: currentPage,
+                per_page: perPage,
+            };
+            if (search) filters.search = search;
+            if (typeFilter) filters.type = typeFilter;
+            if (groupFilter) filters.group_id = Number(groupFilter);
+            if (statusFilter !== 'all') filters.status = statusFilter;
+
+            const response = await adminService.getCustomers(filters);
+            const items = response.data.items || response.data.data || [];
+            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+            
+            setUsers({
+                data: items.map((item: any) => ({
+                    id: Number(item.id),
+                    name: item.name,
+                    email: item.email,
+                    type: item.type,
+                    is_active: item.is_active,
+                    customer_group: item.customer_group ? { id: Number(item.customer_group.id), name: item.customer_group.name } : null,
+                    kyc_status: item.kyc_status,
+                    kyc_status_label: item.kyc_status_label || item.kyc_status,
+                    kyc_notes: item.kyc_notes,
+                    kyc_document_count: item.kyc_document_count || 0,
+                    joined_at: item.created_at || item.joined_at,
+                    kyc_profile: item.kyc_profile,
+                })),
+                meta: {
+                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                    total: responseMeta.total || 0,
+                    per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                },
+            });
+        } catch (error: any) {
+            console.error('Failed to load customers:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadCustomerGroups = async () => {
+        try {
+            const response = await adminService.getCustomerGroups(1, 100);
+            const items = response.data.items || response.data.data || [];
+            setCustomerGroups(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
+        } catch (error: any) {
+            console.error('Failed to load customer groups:', error);
+        }
+    };
+
 
     const toggleSelectAll = (checked: boolean) => {
         if (checked) {
@@ -120,42 +144,57 @@ export default function AdminCustomersPage() {
 
     const clearBulkSelection = () => setSelectedIds([]);
 
-    const toggleActive = (user: AdminUserRow) => {
-        setUsers(prev => ({
-            ...prev,
-            data: prev.data.map(u => u.id === user.id ? { ...u, is_active: !u.is_active } : u)
-        }));
-    };
-
-    const handleDelete = () => {
-        if (deleteConfirm) {
-            setUsers(prev => ({
-                ...prev,
-                data: prev.data.filter(u => u.id !== deleteConfirm),
-                meta: { ...prev.meta, total: prev.meta.total - 1 }
-            }));
-            setDeleteConfirm(null);
+    const toggleActive = async (user: AdminUserRow) => {
+        try {
+            await adminService.toggleCustomerStatus(user.id);
+            await loadCustomers();
+        } catch (error: any) {
+            console.error('Failed to toggle customer status:', error);
+            alert(error.response?.data?.message || 'Failed to update customer. Please try again.');
         }
     };
 
-    const handleBulkDelete = () => {
-        setUsers(prev => ({
-            ...prev,
-            data: prev.data.filter(u => !selectedIds.includes(u.id)),
-            meta: { ...prev.meta, total: prev.meta.total - selectedIds.length }
-        }));
-        setSelectedIds([]);
-        setBulkDeleteConfirm(false);
+    const handleDelete = async () => {
+        if (deleteConfirm) {
+            try {
+                await adminService.deleteCustomer(deleteConfirm);
+                setDeleteConfirm(null);
+                await loadCustomers();
+            } catch (error: any) {
+                console.error('Failed to delete customer:', error);
+                alert(error.response?.data?.message || 'Failed to delete customer. Please try again.');
+            }
+        }
     };
 
-    const bulkAssignGroup = (groupId: string) => {
+    const handleBulkDelete = async () => {
+        try {
+            // Note: Bulk delete not available in API yet, delete one by one
+            for (const id of selectedIds) {
+                await adminService.deleteCustomer(id);
+            }
+            setSelectedIds([]);
+            setBulkDeleteConfirm(false);
+            await loadCustomers();
+        } catch (error: any) {
+            console.error('Failed to delete customers:', error);
+            alert(error.response?.data?.message || 'Failed to delete customers. Please try again.');
+        }
+    };
+
+    const bulkAssignGroup = async (groupId: string) => {
         if (selectedIds.length === 0) return;
-        const group = mockCustomerGroups.find(g => String(g.id) === groupId);
-        setUsers(prev => ({
-            ...prev,
-            data: prev.data.map(u => selectedIds.includes(u.id) ? { ...u, customer_group: group || null } : u)
-        }));
-        clearBulkSelection();
+        try {
+            const groupIdNum = groupId ? Number(groupId) : null;
+            for (const id of selectedIds) {
+                await adminService.updateCustomerGroup(id, groupIdNum);
+            }
+            clearBulkSelection();
+            await loadCustomers();
+        } catch (error: any) {
+            console.error('Failed to assign group:', error);
+            alert(error.response?.data?.message || 'Failed to assign group. Please try again.');
+        }
     };
 
     if (loading && !users.data.length) return null;
@@ -176,6 +215,9 @@ export default function AdminCustomersPage() {
                             />
                             <button
                                 type="button"
+                                onClick={() => {
+                                    setUsers(prev => ({ ...prev, meta: { ...prev.meta, current_page: 1 } }));
+                                }}
                                 className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700"
                             >
                                 Apply
@@ -190,7 +232,7 @@ export default function AdminCustomersPage() {
                             className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                         >
                             <option value="">All groups</option>
-                            {mockCustomerGroups.map((group) => (
+                            {customerGroups.map((group) => (
                                 <option key={group.id} value={group.id}>
                                     {group.name}
                                 </option>
@@ -233,7 +275,10 @@ export default function AdminCustomersPage() {
                         <span>Show</span>
                         <select
                             value={perPage}
-                            onChange={(event) => setPerPage(Number(event.target.value))}
+                            onChange={(event) => {
+                                setPerPage(Number(event.target.value));
+                                setUsers(prev => ({ ...prev, meta: { ...prev.meta, current_page: 1, per_page: Number(event.target.value) } }));
+                            }}
                             className="rounded-xl border border-slate-300 px-3 py-1 text-sm"
                         >
                             <option value={10}>10</option>
@@ -264,7 +309,7 @@ export default function AdminCustomersPage() {
                         }}
                     >
                         <option value="">Assign to group…</option>
-                        {mockCustomerGroups.map((group) => (
+                        {customerGroups.map((group) => (
                             <option key={group.id} value={group.id}>
                                 {group.name}
                             </option>
@@ -372,10 +417,25 @@ export default function AdminCustomersPage() {
 
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
                 <div>
-                    Showing {users.data.length} of {users.meta.total} entries
+                    Showing {users.meta.total > 0 ? (users.meta.current_page - 1) * users.meta.per_page + 1 : 0} to {Math.min(users.meta.current_page * users.meta.per_page, users.meta.total)} of {users.meta.total} entries
                 </div>
                 <div className="flex gap-2">
-                    <button className="rounded-full px-3 py-1 text-sm font-semibold bg-elvee-blue text-white shadow shadow-elvee-blue/20">1</button>
+                    {Array.from({ length: users.meta.last_page }, (_, i) => i + 1).map((page) => (
+                        <button
+                            key={page}
+                            type="button"
+                            onClick={() => {
+                                setCurrentPage(page);
+                            }}
+                            className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                page === users.meta.current_page
+                                    ? 'bg-sky-600 text-white shadow shadow-sky-600/20'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                        >
+                            {page}
+                        </button>
+                    ))}
                 </div>
             </div>
 

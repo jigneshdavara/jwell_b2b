@@ -141,14 +141,14 @@ export class CategoriesService {
     const category = await this.prisma.categories.findUnique({ where: { id: categoryId } });
     if (!category) throw new NotFoundException('Category not found');
 
-    let imageToUpdate = coverImage;
+    let imageToUpdate: string | undefined = coverImage;
     if (dto.remove_cover_image && category.cover_image) {
       this.deleteImage(category.cover_image);
-      imageToUpdate = null;
+      imageToUpdate = undefined;
     } else if (coverImage && category.cover_image) {
       this.deleteImage(category.cover_image);
     } else if (!coverImage) {
-      imageToUpdate = category.cover_image;
+      imageToUpdate = category.cover_image ?? undefined;
     }
 
     return await this.prisma.$transaction(async (tx) => {
@@ -225,8 +225,8 @@ export class CategoriesService {
   }
 
   private buildTree(nodes: any[]): any[] {
-    const map = {};
-    const tree = [];
+    const map: Record<string, any> = {};
+    const tree: any[] = [];
 
     nodes.forEach(node => {
       map[node.id.toString()] = { ...node, children: [] };
@@ -249,7 +249,7 @@ export class CategoriesService {
   }
 
   private flattenTree(tree: any[], level = 0): any[] {
-    let result = [];
+    let result: any[] = [];
     const prefix = level > 0 ? '  '.repeat(level) + '└─ ' : '';
 
     tree.forEach(node => {

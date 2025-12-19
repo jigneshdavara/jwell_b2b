@@ -3,7 +3,8 @@
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { adminService } from '@/services/adminService';
 
 type DiamondShapeRow = {
     id: number;
@@ -15,20 +16,25 @@ type DiamondShapeRow = {
     updated_at?: string | null;
 };
 
-// Mock data for diamond shapes
-const mockDiamondShapes: DiamondShapeRow[] = [
-    { id: 1, name: 'Round', slug: 'round', is_active: true, diamond_type: { id: 1, name: 'Natural' }, created_at: '2023-01-15T10:00:00Z', updated_at: '2023-01-15T10:00:00Z' },
-    { id: 2, name: 'Princess', slug: 'princess', is_active: true, diamond_type: { id: 1, name: 'Natural' }, created_at: '2023-01-15T10:00:00Z', updated_at: '2023-01-15T10:00:00Z' },
-    { id: 3, name: 'Oval', slug: 'oval', is_active: true, diamond_type: { id: 1, name: 'Natural' }, created_at: '2023-02-20T11:30:00Z', updated_at: '2023-02-20T11:30:00Z' },
-];
+type DiamondType = {
+    id: number;
+    name: string;
+};
 
-const mockDiamondTypes = [
-    { id: 1, name: 'Natural' },
-    { id: 2, name: 'Lab Grown' },
-];
+type PaginationMeta = {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+};
 
 export default function AdminDiamondShapesIndex() {
-    const [allShapes, setAllShapes] = useState<DiamondShapeRow[]>(mockDiamondShapes);
+    const [loading, setLoading] = useState(true);
+    const [shapes, setShapes] = useState<{ data: DiamondShapeRow[]; meta: PaginationMeta }>({
+        data: [],
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }
+    });
+    const [diamondTypes, setDiamondTypes] = useState<DiamondType[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingShape, setEditingShape] = useState<DiamondShapeRow | null>(null);
     const [perPage, setPerPage] = useState(10);
@@ -42,12 +48,51 @@ export default function AdminDiamondShapesIndex() {
     });
     const [processing, setProcessing] = useState(false);
 
-    const paginatedShapes = useMemo(() => {
-        const start = (currentPage - 1) * perPage;
-        return allShapes.slice(start, start + perPage);
-    }, [allShapes, currentPage, perPage]);
+    useEffect(() => {
+        loadShapes();
+        loadDiamondTypes();
+    }, [currentPage, perPage]);
 
-    const totalPages = Math.ceil(allShapes.length / perPage);
+    const loadShapes = async () => {
+        setLoading(true);
+        try {
+            const response = await adminService.getDiamondShapes(currentPage, perPage);
+            const items = response.data.items || response.data.data || [];
+            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+
+            setShapes({
+                data: items.map((item: any) => ({
+                    id: Number(item.id),
+                    name: item.name,
+                    slug: item.slug || item.code || item.name.toLowerCase().replace(/\s+/g, '-'),
+                    is_active: item.is_active,
+                    diamond_type: item.diamond_type ? { id: Number(item.diamond_type.id), name: item.diamond_type.name } : null,
+                    created_at: item.created_at,
+                    updated_at: item.updated_at,
+                })),
+                meta: {
+                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                    total: responseMeta.total || 0,
+                    per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                },
+            });
+        } catch (error: any) {
+            console.error('Failed to load diamond shapes:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadDiamondTypes = async () => {
+        try {
+            const response = await adminService.getDiamondTypes(1, 100);
+            const items = response.data.items || response.data.data || [];
+            setDiamondTypes(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
+        } catch (error: any) {
+            console.error('Failed to load diamond types:', error);
+        }
+    };
 
     const resetFormAndModal = () => {
         setEditingShape(null);
@@ -65,29 +110,51 @@ export default function AdminDiamondShapesIndex() {
         setModalOpen(true);
     };
 
-    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setProcessing(true);
-        setTimeout(() => {
-            const selectedType = mockDiamondTypes.find(t => t.id === Number(formData.diamond_type_id));
+        try {
+            const payload: any = {
+                name: formData.name,
+                diamond_type_id: formData.diamond_type_id ? Number(formData.diamond_type_id) : null,
+                is_active: formData.is_active,
+            };
+
             if (editingShape) {
-                setAllShapes(allShapes.map(s => s.id === editingShape.id ? { ...s, ...formData, diamond_type: selectedType ?? null, slug: formData.name.toLowerCase().replace(/\s+/g, '-') } : s));
+                await adminService.updateDiamondShape(editingShape.id, payload);
             } else {
-                setAllShapes([...allShapes, { id: Date.now(), ...formData, diamond_type: selectedType ?? null, slug: formData.name.toLowerCase().replace(/\s+/g, '-') }]);
+                await adminService.createDiamondShape(payload);
             }
-            setProcessing(false);
             resetFormAndModal();
-        }, 500);
+            await loadShapes();
+        } catch (error: any) {
+            console.error('Failed to save diamond shape:', error);
+            alert(error.response?.data?.message || 'Failed to save diamond shape. Please try again.');
+        } finally {
+            setProcessing(false);
+        }
     };
 
-    const toggleStatus = (shape: DiamondShapeRow) => {
-        setAllShapes(allShapes.map(s => s.id === shape.id ? { ...s, is_active: !s.is_active } : s));
+    const toggleStatus = async (shape: DiamondShapeRow) => {
+        try {
+            await adminService.updateDiamondShape(shape.id, { ...shape, is_active: !shape.is_active });
+            await loadShapes();
+        } catch (error: any) {
+            console.error('Failed to toggle diamond shape status:', error);
+            alert(error.response?.data?.message || 'Failed to update diamond shape. Please try again.');
+        }
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deleteConfirm) {
-            setAllShapes(allShapes.filter(s => s.id !== deleteConfirm.id));
-            setDeleteConfirm(null);
+            try {
+                await adminService.deleteDiamondShape(deleteConfirm.id);
+                setDeleteConfirm(null);
+                await loadShapes();
+            } catch (error: any) {
+                console.error('Failed to delete diamond shape:', error);
+                alert(error.response?.data?.message || 'Failed to delete diamond shape. Please try again.');
+            }
         }
     };
 
@@ -115,31 +182,38 @@ export default function AdminDiamondShapesIndex() {
 
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
-                        <div className="font-semibold text-slate-700">Shapes ({allShapes.length})</div>
-                        <div className="flex items-center gap-3 text-xs text-slate-500">
-                            <span>Show</span>
-                            <select
-                                value={perPage}
-                                onChange={(e) => setPerPage(Number(e.target.value))}
-                                className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                            >
-                                <option value={10}>10</option>
-                                <option value={25}>25</option>
-                            </select>
-                        </div>
+                        <div className="font-semibold text-slate-700">Shapes ({shapes.meta.total})</div>
+                        <select
+                            value={perPage}
+                            onChange={(e) => {
+                                setPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                            className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:ring-0"
+                        >
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
                     </div>
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead className="bg-slate-50 text-xs text-slate-500">
-                            <tr>
-                                <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Slug</th>
-                                <th className="px-5 py-3 text-left">Type</th>
-                                <th className="px-5 py-3 text-left">Status</th>
-                                <th className="px-5 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                            {paginatedShapes.map((shape) => (
+                    {loading && shapes.data.length === 0 ? (
+                        <div className="flex items-center justify-center py-12">
+                            <p className="text-slate-500">Loading diamond shapes...</p>
+                        </div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead className="bg-slate-50 text-xs text-slate-500">
+                                <tr>
+                                    <th className="px-5 py-3 text-left">Name</th>
+                                    <th className="px-5 py-3 text-left">Slug</th>
+                                    <th className="px-5 py-3 text-left">Type</th>
+                                    <th className="px-5 py-3 text-left">Status</th>
+                                    <th className="px-5 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {shapes.data.map((shape) => (
                                 <tr key={shape.id} className="hover:bg-slate-50">
                                     <td className="px-5 py-3 font-semibold text-slate-900">{shape.name}</td>
                                     <td className="px-5 py-3 text-slate-500">{shape.slug}</td>
@@ -179,9 +253,32 @@ export default function AdminDiamondShapesIndex() {
                                     </td>
                                 </tr>
                             ))}
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    )}
                 </div>
+
+                {shapes.meta.last_page > 1 && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                        <div>
+                            Showing {shapes.meta.total > 0 ? (shapes.meta.current_page - 1) * shapes.meta.per_page + 1 : 0} to {Math.min(shapes.meta.current_page * shapes.meta.per_page, shapes.meta.total)} of {shapes.meta.total} entries
+                        </div>
+                        <div className="flex gap-2">
+                            {Array.from({ length: shapes.meta.last_page }, (_, i) => i + 1).map((page) => (
+                                <button
+                                    key={page}
+                                    type="button"
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                        page === shapes.meta.current_page ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                    }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             <Modal show={modalOpen} onClose={resetFormAndModal} maxWidth="xl">
@@ -197,7 +294,7 @@ export default function AdminDiamondShapesIndex() {
                                 required
                             >
                                 <option value="">Select a diamond type</option>
-                                {mockDiamondTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
+                                {diamondTypes.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
                             </select>
                         </div>
                         <div>

@@ -3,7 +3,8 @@
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { adminService } from '@/services/adminService';
 
 type TaxRow = {
     id: number;
@@ -17,20 +18,11 @@ type TaxRow = {
     updated_at?: string | null;
 };
 
-// Mock data for taxes
-const mockTaxes: TaxRow[] = [
-    { id: 1, name: 'CGST 9%', code: 'CGST', rate: 9, description: 'Central Goods and Services Tax', is_active: true, tax_group: { id: 1, name: 'GST 18%' }, created_at: '2023-01-15T10:00:00Z', updated_at: '2023-01-15T10:00:00Z' },
-    { id: 2, name: 'SGST 9%', code: 'SGST', rate: 9, description: 'State Goods and Services Tax', is_active: true, tax_group: { id: 1, name: 'GST 18%' }, created_at: '2023-01-15T10:00:00Z', updated_at: '2023-01-15T10:00:00Z' },
-    { id: 3, name: 'IGST 5%', code: 'IGST', rate: 5, description: 'Integrated Goods and Services Tax', is_active: true, tax_group: { id: 2, name: 'GST 5%' }, created_at: '2023-02-20T11:30:00Z', updated_at: '2023-02-20T11:30:00Z' },
-];
-
-const mockTaxGroups = [
-    { id: 1, name: 'GST 18%' },
-    { id: 2, name: 'GST 5%' },
-];
-
 export default function AdminTaxesIndex() {
-    const [allTaxes, setAllTaxes] = useState<TaxRow[]>(mockTaxes);
+    const [loading, setLoading] = useState(true);
+    const [allTaxes, setAllTaxes] = useState<TaxRow[]>([]);
+    const [taxGroups, setTaxGroups] = useState<Array<{ id: number; name: string }>>([]);
+    const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0, per_page: 10 });
     const [modalOpen, setModalOpen] = useState(false);
     const [editingTax, setEditingTax] = useState<TaxRow | null>(null);
     const [perPage, setPerPage] = useState(10);
@@ -47,12 +39,53 @@ export default function AdminTaxesIndex() {
     });
     const [processing, setProcessing] = useState(false);
 
-    const paginatedTaxes = useMemo(() => {
-        const start = (currentPage - 1) * perPage;
-        return allTaxes.slice(start, start + perPage);
-    }, [allTaxes, currentPage, perPage]);
+    useEffect(() => {
+        loadTaxes();
+        loadTaxGroups();
+    }, [currentPage, perPage]);
 
-    const totalPages = Math.ceil(allTaxes.length / perPage);
+    const loadTaxes = async () => {
+        setLoading(true);
+        try {
+            const response = await adminService.getTaxes(currentPage, perPage);
+            const items = response.data.items || response.data.data || [];
+            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+            
+            setAllTaxes(items.map((item: any) => ({
+                id: Number(item.id),
+                name: item.name,
+                code: item.code,
+                rate: Number(item.rate),
+                description: item.description,
+                is_active: item.is_active,
+                tax_group: item.tax_group ? { id: Number(item.tax_group.id), name: item.tax_group.name } : null,
+                created_at: item.created_at,
+                updated_at: item.updated_at,
+            })));
+            setMeta({
+                current_page: responseMeta.current_page || responseMeta.page || 1,
+                last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                total: responseMeta.total || 0,
+                per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+            });
+        } catch (error: any) {
+            console.error('Failed to load taxes:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadTaxGroups = async () => {
+        try {
+            const response = await adminService.getTaxGroups(1, 100);
+            const items = response.data.items || response.data.data || [];
+            setTaxGroups(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
+        } catch (error: any) {
+            console.error('Failed to load tax groups:', error);
+        }
+    };
+
+    const totalPages = meta.last_page;
 
     const resetFormAndModal = () => {
         setEditingTax(null);
@@ -73,25 +106,44 @@ export default function AdminTaxesIndex() {
         setModalOpen(true);
     };
 
-    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setProcessing(true);
-        setTimeout(() => {
-            const selectedGroup = mockTaxGroups.find(g => g.id === Number(formData.tax_group_id));
+        try {
+            const payload = {
+                tax_group_id: formData.tax_group_id ? Number(formData.tax_group_id) : null,
+                name: formData.name,
+                code: formData.code,
+                rate: formData.rate,
+                description: formData.description || null,
+                is_active: formData.is_active,
+            };
+
             if (editingTax) {
-                setAllTaxes(allTaxes.map(t => t.id === editingTax.id ? { ...t, ...formData, tax_group: selectedGroup ?? null } : t));
+                await adminService.updateTax(editingTax.id, payload);
             } else {
-                setAllTaxes([...allTaxes, { id: Date.now(), ...formData, tax_group: selectedGroup ?? null }]);
+                await adminService.createTax(payload);
             }
-            setProcessing(false);
             resetFormAndModal();
-        }, 500);
+            await loadTaxes();
+        } catch (error: any) {
+            console.error('Failed to save tax:', error);
+            alert(error.response?.data?.message || 'Failed to save tax. Please try again.');
+        } finally {
+            setProcessing(false);
+        }
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deleteConfirm) {
-            setAllTaxes(allTaxes.filter(t => t.id !== deleteConfirm.id));
-            setDeleteConfirm(null);
+            try {
+                await adminService.deleteTax(deleteConfirm.id);
+                setDeleteConfirm(null);
+                await loadTaxes();
+            } catch (error: any) {
+                console.error('Failed to delete tax:', error);
+                alert(error.response?.data?.message || 'Failed to delete tax. Please try again.');
+            }
         }
     };
 
@@ -121,32 +173,41 @@ export default function AdminTaxesIndex() {
 
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
-                        <div className="font-semibold text-slate-700">Taxes ({allTaxes.length})</div>
+                        <div className="font-semibold text-slate-700">Taxes ({meta.total})</div>
                         <div className="flex items-center gap-3 text-xs text-slate-500">
                             <span>Show</span>
                             <select
                                 value={perPage}
-                                onChange={(e) => setPerPage(Number(e.target.value))}
+                                onChange={(e) => {
+                                    setPerPage(Number(e.target.value));
+                                    setCurrentPage(1);
+                                }}
                                 className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                             >
                                 <option value={10}>10</option>
                                 <option value={25}>25</option>
+                                <option value={50}>50</option>
                             </select>
                         </div>
                     </div>
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead className="bg-slate-50 text-xs text-slate-500">
-                            <tr>
-                                <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Code</th>
-                                <th className="px-5 py-3 text-left">Tax Group</th>
-                                <th className="px-5 py-3 text-right">Rate</th>
-                                <th className="px-5 py-3 text-left">Status</th>
-                                <th className="px-5 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                            {paginatedTaxes.map((tax) => (
+                    {loading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
+                        </div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead className="bg-slate-50 text-xs text-slate-500">
+                                <tr>
+                                    <th className="px-5 py-3 text-left">Name</th>
+                                    <th className="px-5 py-3 text-left">Code</th>
+                                    <th className="px-5 py-3 text-left">Tax Group</th>
+                                    <th className="px-5 py-3 text-right">Rate</th>
+                                    <th className="px-5 py-3 text-left">Status</th>
+                                    <th className="px-5 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {allTaxes.map((tax) => (
                                 <tr key={tax.id} className="hover:bg-slate-50">
                                     <td className="px-5 py-3 font-semibold text-slate-900">{tax.name}</td>
                                     <td className="px-5 py-3 text-slate-500">{tax.code}</td>
@@ -175,9 +236,37 @@ export default function AdminTaxesIndex() {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                ))}
+                                {allTaxes.length === 0 && (
+                                    <tr>
+                                        <td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-500">
+                                            No taxes found.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-600">
+                    <div>
+                        Showing {meta.total > 0 ? (meta.current_page - 1) * meta.per_page + 1 : 0} to {Math.min(meta.current_page * meta.per_page, meta.total)} of {meta.total} entries
+                    </div>
+                    <div className="flex gap-2">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                                key={page}
+                                type="button"
+                                onClick={() => setCurrentPage(page)}
+                                className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                    page === meta.current_page ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -194,7 +283,7 @@ export default function AdminTaxesIndex() {
                                 required
                             >
                                 <option value="">Select a tax group</option>
-                                {mockTaxGroups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}
+                                {taxGroups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}
                             </select>
                         </div>
                         <div className="grid grid-cols-2 gap-4">

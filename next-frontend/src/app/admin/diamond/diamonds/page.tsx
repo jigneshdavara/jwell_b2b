@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { adminService } from "@/services/adminService";
 
 type DiamondType = { id: number; name: string; code: string | null };
 type DiamondClarity = { id: number; name: string; code: string | null };
@@ -31,44 +32,18 @@ type PaginationMeta = {
     per_page: number;
 };
 
-const mockTypes: DiamondType[] = [
-    { id: 1, name: 'Natural', code: 'NAT' },
-    { id: 2, name: 'Lab Grown', code: 'LAB' }
-];
-
-const mockDiamonds: DiamondRow[] = [
-    { 
-        id: 1, 
-        name: 'Round Brilliant', 
-        type: { id: 1, name: 'Natural', code: 'NAT' },
-        clarity: { id: 1, name: 'VVS1', code: 'VVS1' },
-        color: { id: 1, name: 'D', code: 'D' },
-        shape: { id: 1, name: 'Round', code: 'RD' },
-        shape_size: { id: 1, size: '6.5mm', secondary_size: null, ctw: 1.0, label: '6.5mm (1.0ct)' },
-        price: 850000,
-        weight: 1.0,
-        is_active: true 
-    },
-    { 
-        id: 2, 
-        name: 'Oval Cut', 
-        type: { id: 2, name: 'Lab Grown', code: 'LAB' },
-        clarity: { id: 2, name: 'VS2', code: 'VS2' },
-        color: { id: 2, name: 'G', code: 'G' },
-        shape: { id: 2, name: 'Oval', code: 'OV' },
-        shape_size: { id: 2, size: '8x6mm', secondary_size: null, ctw: 1.2, label: '8x6mm (1.2ct)' },
-        price: 120000,
-        weight: 1.2,
-        is_active: true 
-    },
-];
-
 export default function AdminDiamondsPage() {
     const [loading, setLoading] = useState(true);
     const [diamonds, setDiamonds] = useState<{ data: DiamondRow[]; meta: PaginationMeta }>({
-        data: mockDiamonds,
-        meta: { current_page: 1, last_page: 1, total: mockDiamonds.length, per_page: 10 }
+        data: [],
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }
     });
+    const [currentPage, setCurrentPage] = useState(1);
+    const [types, setTypes] = useState<DiamondType[]>([]);
+    const [clarities, setClarities] = useState<DiamondClarity[]>([]);
+    const [colors, setColors] = useState<DiamondColor[]>([]);
+    const [shapes, setShapes] = useState<DiamondShape[]>([]);
+    const [shapeSizes, setShapeSizes] = useState<DiamondShapeSize[]>([]);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingDiamond, setEditingDiamond] = useState<DiamondRow | null>(null);
@@ -91,8 +66,119 @@ export default function AdminDiamondsPage() {
     });
 
     useEffect(() => {
-        setLoading(false);
-    }, []);
+        loadDiamonds();
+        loadTypes();
+    }, [currentPage, perPage]);
+
+    useEffect(() => {
+        if (formState.diamond_type_id) {
+            loadFilteredAttributes(formState.diamond_type_id);
+            // Reset dependent fields when type changes
+            setFormState(prev => ({
+                ...prev,
+                diamond_clarity_id: null,
+                diamond_color_id: null,
+                diamond_shape_id: null,
+                diamond_shape_size_id: null,
+            }));
+            setClarities([]);
+            setColors([]);
+            setShapes([]);
+            setShapeSizes([]);
+        }
+    }, [formState.diamond_type_id]);
+
+    useEffect(() => {
+        if (formState.diamond_shape_id) {
+            loadShapeSizes(formState.diamond_shape_id);
+            setFormState(prev => ({ ...prev, diamond_shape_size_id: null }));
+        } else {
+            setShapeSizes([]);
+        }
+    }, [formState.diamond_shape_id]);
+
+    const loadDiamonds = async () => {
+        setLoading(true);
+        try {
+            const response = await adminService.getDiamonds(currentPage, perPage);
+            const items = response.data.items || response.data.data || [];
+            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+
+            setDiamonds({
+                data: items.map((item: any) => ({
+                    id: Number(item.id),
+                    name: item.name,
+                    type: item.type ? { id: Number(item.type.id), name: item.type.name, code: item.type.code } : null,
+                    clarity: item.clarity ? { id: Number(item.clarity.id), name: item.clarity.name, code: item.clarity.code } : null,
+                    color: item.color ? { id: Number(item.color.id), name: item.color.name, code: item.color.code } : null,
+                    shape: item.shape ? { id: Number(item.shape.id), name: item.shape.name, code: item.shape.code } : null,
+                    shape_size: item.shape_size ? {
+                        id: Number(item.shape_size.id),
+                        size: item.shape_size.size,
+                        secondary_size: item.shape_size.secondary_size,
+                        ctw: Number(item.shape_size.ctw || 0),
+                        label: item.shape_size.label || `${item.shape_size.size} (${item.shape_size.ctw}ct)`
+                    } : null,
+                    price: Number(item.price || 0),
+                    weight: Number(item.weight || 0),
+                    description: item.description,
+                    is_active: item.is_active,
+                })),
+                meta: {
+                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                    total: responseMeta.total || 0,
+                    per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                },
+            });
+        } catch (error: any) {
+            console.error('Failed to load diamonds:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadTypes = async () => {
+        try {
+            const response = await adminService.getDiamondTypes(1, 100);
+            const items = response.data.items || response.data.data || [];
+            setTypes(items.map((item: any) => ({ id: Number(item.id), name: item.name, code: item.code })));
+        } catch (error: any) {
+            console.error('Failed to load diamond types:', error);
+        }
+    };
+
+    const loadFilteredAttributes = async (typeId: number) => {
+        try {
+            const [claritiesRes, colorsRes, shapesRes] = await Promise.all([
+                adminService.getDiamondClaritiesByType(typeId),
+                adminService.getDiamondColorsByType(typeId),
+                adminService.getDiamondShapesByType(typeId),
+            ]);
+
+            setClarities((claritiesRes.data.items || claritiesRes.data.data || []).map((item: any) => ({ id: Number(item.id), name: item.name, code: item.code })));
+            setColors((colorsRes.data.items || colorsRes.data.data || []).map((item: any) => ({ id: Number(item.id), name: item.name, code: item.code })));
+            setShapes((shapesRes.data.items || shapesRes.data.data || []).map((item: any) => ({ id: Number(item.id), name: item.name, code: item.code })));
+        } catch (error: any) {
+            console.error('Failed to load filtered attributes:', error);
+        }
+    };
+
+    const loadShapeSizes = async (shapeId: number) => {
+        try {
+            const response = await adminService.getDiamondShapeSizes(shapeId);
+            const items = response.data.items || response.data.data || [];
+            setShapeSizes(items.map((item: any) => ({
+                id: Number(item.id),
+                size: item.size,
+                secondary_size: item.secondary_size,
+                ctw: Number(item.ctw || 0),
+                label: item.label || `${item.size} (${item.ctw}ct)`
+            })));
+        } catch (error: any) {
+            console.error('Failed to load shape sizes:', error);
+        }
+    };
 
     const allSelected = useMemo(() => {
         if (diamonds.data.length === 0) return false;
@@ -129,7 +215,7 @@ export default function AdminDiamondsPage() {
         setModalOpen(true);
     };
 
-    const openEditModal = (diamond: DiamondRow) => {
+    const openEditModal = async (diamond: DiamondRow) => {
         setEditingDiamond(diamond);
         setFormState({
             name: diamond.name,
@@ -143,60 +229,71 @@ export default function AdminDiamondsPage() {
             description: diamond.description ?? '',
             is_active: diamond.is_active,
         });
+        if (diamond.type?.id) {
+            await loadFilteredAttributes(diamond.type.id);
+        }
+        if (diamond.shape?.id) {
+            await loadShapeSizes(diamond.shape.id);
+        }
         setModalOpen(true);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
-        setTimeout(() => {
+        try {
+            const payload: any = {
+                name: formState.name,
+                diamond_type_id: formState.diamond_type_id,
+                diamond_clarity_id: formState.diamond_clarity_id,
+                diamond_color_id: formState.diamond_color_id,
+                diamond_shape_id: formState.diamond_shape_id,
+                diamond_shape_size_id: formState.diamond_shape_size_id,
+                price: formState.price,
+                weight: formState.weight,
+                description: formState.description || null,
+                is_active: formState.is_active,
+            };
+
             if (editingDiamond) {
-                setDiamonds(prev => ({
-                    ...prev,
-                    data: prev.data.map(d => d.id === editingDiamond.id ? { 
-                        ...d, 
-                        ...formState,
-                        type: mockTypes.find(t => t.id === formState.diamond_type_id) || null
-                    } : d)
-                }));
+                await adminService.updateDiamond(editingDiamond.id, payload);
             } else {
-                const newDiamond: DiamondRow = {
-                    id: Date.now(),
-                    ...formState,
-                    type: mockTypes.find(t => t.id === formState.diamond_type_id) || null,
-                    clarity: null, color: null, shape: null, shape_size: null
-                };
-                setDiamonds(prev => ({
-                    ...prev,
-                    data: [...prev.data, newDiamond],
-                    meta: { ...prev.meta, total: prev.meta.total + 1 }
-                }));
+                await adminService.createDiamond(payload);
             }
             resetForm();
+            await loadDiamonds();
+        } catch (error: any) {
+            console.error('Failed to save diamond:', error);
+            alert(error.response?.data?.message || 'Failed to save diamond. Please try again.');
+        } finally {
             setLoading(false);
-        }, 500);
-    };
-
-    const handleDelete = () => {
-        if (deleteConfirm) {
-            setDiamonds(prev => ({
-                ...prev,
-                data: prev.data.filter(d => d.id !== deleteConfirm.id),
-                meta: { ...prev.meta, total: prev.meta.total - 1 }
-            }));
-            setDeleteConfirm(null);
         }
     };
 
-    const handleBulkDelete = () => {
-        setDiamonds(prev => ({
-            ...prev,
-            data: prev.data.filter(d => !selectedDiamonds.includes(d.id)),
-            meta: { ...prev.meta, total: prev.meta.total - selectedDiamonds.length }
-        }));
-        setSelectedDiamonds([]);
-        setBulkDeleteConfirm(false);
+    const handleDelete = async () => {
+        if (deleteConfirm) {
+            try {
+                await adminService.deleteDiamond(deleteConfirm.id);
+                setDeleteConfirm(null);
+                await loadDiamonds();
+            } catch (error: any) {
+                console.error('Failed to delete diamond:', error);
+                alert(error.response?.data?.message || 'Failed to delete diamond. Please try again.');
+            }
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        try {
+            await adminService.bulkDeleteDiamonds(selectedDiamonds);
+            setSelectedDiamonds([]);
+            setBulkDeleteConfirm(false);
+            await loadDiamonds();
+        } catch (error: any) {
+            console.error('Failed to delete diamonds:', error);
+            alert(error.response?.data?.message || 'Failed to delete diamonds. Please try again.');
+        }
     };
 
     const getDiamondLabel = (diamond: DiamondRow): string => {
@@ -247,7 +344,10 @@ export default function AdminDiamondsPage() {
                         </button>
                         <select
                             value={perPage}
-                            onChange={(e) => setPerPage(Number(e.target.value))}
+                            onChange={(e) => {
+                                setPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
                             className="rounded-full border border-slate-200 px-3 py-1 text-xs"
                         >
                             <option value={10}>10</option>
@@ -336,12 +436,27 @@ export default function AdminDiamondsPage() {
                 </table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                <div>Showing 1 to {diamonds.data.length} of {diamonds.meta.total} entries</div>
-                <div className="flex gap-2">
-                    <button className="rounded-full px-3 py-1 text-sm font-semibold bg-sky-600 text-white shadow shadow-sky-600/20">1</button>
+            {diamonds.meta.last_page > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                    <div>
+                        Showing {diamonds.meta.total > 0 ? (diamonds.meta.current_page - 1) * diamonds.meta.per_page + 1 : 0} to {Math.min(diamonds.meta.current_page * diamonds.meta.per_page, diamonds.meta.total)} of {diamonds.meta.total} entries
+                    </div>
+                    <div className="flex gap-2">
+                        {Array.from({ length: diamonds.meta.last_page }, (_, i) => i + 1).map((page) => (
+                            <button
+                                key={page}
+                                type="button"
+                                onClick={() => setCurrentPage(page)}
+                                className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                    page === diamonds.meta.current_page ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
 
             <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">
                 <div className="flex min-h-0 flex-col">
@@ -385,7 +500,7 @@ export default function AdminDiamondsPage() {
                                                 required
                                             >
                                                 <option value="">Select type</option>
-                                                {mockTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                                {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                                             </select>
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">

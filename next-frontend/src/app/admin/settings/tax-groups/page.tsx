@@ -4,6 +4,7 @@ import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
 import { useEffect, useMemo, useState } from 'react';
+import { adminService } from '@/services/adminService';
 
 type TaxGroupRow = {
     id: number;
@@ -15,15 +16,10 @@ type TaxGroupRow = {
     updated_at?: string | null;
 };
 
-// Mock data for tax groups
-const mockTaxGroups: TaxGroupRow[] = [
-    { id: 1, name: 'GST 18%', description: 'Standard GST rate for most products', is_active: true, taxes_count: 2, created_at: '2023-01-15T10:00:00Z', updated_at: '2023-01-15T10:00:00Z' },
-    { id: 2, name: 'GST 5%', description: 'Lower GST rate for specific items', is_active: true, taxes_count: 1, created_at: '2023-02-20T11:30:00Z', updated_at: '2023-02-20T11:30:00Z' },
-    { id: 3, name: 'Exempt', description: 'Tax exempt products', is_active: false, taxes_count: 0, created_at: '2023-03-01T09:00:00Z', updated_at: '2023-03-01T09:00:00Z' },
-];
-
 export default function AdminTaxGroupsIndex() {
-    const [allTaxGroups, setAllTaxGroups] = useState<TaxGroupRow[]>(mockTaxGroups);
+    const [loading, setLoading] = useState(true);
+    const [allTaxGroups, setAllTaxGroups] = useState<TaxGroupRow[]>([]);
+    const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0, per_page: 10 });
     const [modalOpen, setModalOpen] = useState(false);
     const [editingGroup, setEditingGroup] = useState<TaxGroupRow | null>(null);
     const [perPage, setPerPage] = useState(10);
@@ -38,12 +34,40 @@ export default function AdminTaxGroupsIndex() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
 
-    const paginatedTaxGroups = useMemo(() => {
-        const start = (currentPage - 1) * perPage;
-        return allTaxGroups.slice(start, start + perPage);
-    }, [allTaxGroups, currentPage, perPage]);
+    useEffect(() => {
+        loadTaxGroups();
+    }, [currentPage, perPage]);
 
-    const totalPages = Math.ceil(allTaxGroups.length / perPage);
+    const loadTaxGroups = async () => {
+        setLoading(true);
+        try {
+            const response = await adminService.getTaxGroups(currentPage, perPage);
+            const items = response.data.items || response.data.data || [];
+            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+            
+            setAllTaxGroups(items.map((item: any) => ({
+                id: Number(item.id),
+                name: item.name,
+                description: item.description,
+                is_active: item.is_active,
+                taxes_count: item.taxes_count || item.taxes?.length || 0,
+                created_at: item.created_at,
+                updated_at: item.updated_at,
+            })));
+            setMeta({
+                current_page: responseMeta.current_page || responseMeta.page || 1,
+                last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                total: responseMeta.total || 0,
+                per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+            });
+        } catch (error: any) {
+            console.error('Failed to load tax groups:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const totalPages = meta.last_page;
 
     const resetFormAndModal = () => {
         setEditingGroup(null);
@@ -62,28 +86,54 @@ export default function AdminTaxGroupsIndex() {
         setModalOpen(true);
     };
 
-    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setProcessing(true);
-        setTimeout(() => {
+        try {
+            const payload = {
+                name: formData.name,
+                description: formData.description || null,
+                is_active: formData.is_active,
+            };
+
             if (editingGroup) {
-                setAllTaxGroups(allTaxGroups.map(g => g.id === editingGroup.id ? { ...g, ...formData } : g));
+                await adminService.updateTaxGroup(editingGroup.id, payload);
             } else {
-                setAllTaxGroups([...allTaxGroups, { id: Date.now(), ...formData, taxes_count: 0 }]);
+                await adminService.createTaxGroup(payload);
             }
-            setProcessing(false);
             resetFormAndModal();
-        }, 500);
+            await loadTaxGroups();
+        } catch (error: any) {
+            console.error('Failed to save tax group:', error);
+            setErrors({ general: error.response?.data?.message || 'Failed to save tax group. Please try again.' });
+        } finally {
+            setProcessing(false);
+        }
     };
 
-    const toggleGroup = (group: TaxGroupRow) => {
-        setAllTaxGroups(allTaxGroups.map(g => g.id === group.id ? { ...g, is_active: !g.is_active } : g));
+    const toggleGroup = async (group: TaxGroupRow) => {
+        try {
+            await adminService.updateTaxGroup(group.id, {
+                ...group,
+                is_active: !group.is_active,
+            });
+            await loadTaxGroups();
+        } catch (error: any) {
+            console.error('Failed to toggle tax group:', error);
+            alert(error.response?.data?.message || 'Failed to update tax group. Please try again.');
+        }
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deleteConfirm) {
-            setAllTaxGroups(allTaxGroups.filter(g => g.id !== deleteConfirm.id));
-            setDeleteConfirm(null);
+            try {
+                await adminService.deleteTaxGroup(deleteConfirm.id);
+                setDeleteConfirm(null);
+                await loadTaxGroups();
+            } catch (error: any) {
+                console.error('Failed to delete tax group:', error);
+                alert(error.response?.data?.message || 'Failed to delete tax group. Please try again.');
+            }
         }
     };
 
@@ -114,13 +164,16 @@ export default function AdminTaxGroupsIndex() {
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
                         <div className="font-semibold text-slate-700">
-                            Groups ({allTaxGroups.length})
+                            Groups ({meta.total})
                         </div>
                         <div className="flex items-center gap-3 text-xs text-slate-500">
                             <span>Show</span>
                             <select
                                 value={perPage}
-                                onChange={(e) => setPerPage(Number(e.target.value))}
+                                onChange={(e) => {
+                                    setPerPage(Number(e.target.value));
+                                    setCurrentPage(1);
+                                }}
                                 className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                             >
                                 <option value={10}>10</option>
@@ -129,18 +182,23 @@ export default function AdminTaxGroupsIndex() {
                             </select>
                         </div>
                     </div>
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead className="bg-slate-50 text-xs text-slate-500">
-                            <tr>
-                                <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Description</th>
-                                <th className="px-5 py-3 text-center">Taxes</th>
-                                <th className="px-5 py-3 text-left">Status</th>
-                                <th className="px-5 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                            {paginatedTaxGroups.map((group) => (
+                    {loading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
+                        </div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead className="bg-slate-50 text-xs text-slate-500">
+                                <tr>
+                                    <th className="px-5 py-3 text-left">Name</th>
+                                    <th className="px-5 py-3 text-left">Description</th>
+                                    <th className="px-5 py-3 text-center">Taxes</th>
+                                    <th className="px-5 py-3 text-left">Status</th>
+                                    <th className="px-5 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {allTaxGroups.map((group) => (
                                 <tr key={group.id} className="hover:bg-slate-50">
                                     <td className="px-5 py-3 font-semibold text-slate-900">{group.name}</td>
                                     <td className="px-5 py-3 text-slate-500">{group.description || '—'}</td>
@@ -193,26 +251,38 @@ export default function AdminTaxGroupsIndex() {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                ))}
+                                {allTaxGroups.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-500">
+                                            No tax groups found.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
 
-                {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-600">
+                    <div>
+                        Showing {meta.total > 0 ? (meta.current_page - 1) * meta.per_page + 1 : 0} to {Math.min(meta.current_page * meta.per_page, meta.total)} of {meta.total} entries
+                    </div>
+                    <div className="flex gap-2">
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                             <button
                                 key={page}
+                                type="button"
                                 onClick={() => setCurrentPage(page)}
-                                className={`h-8 w-8 rounded-full text-xs font-semibold ${
-                                    currentPage === page ? 'bg-elvee-blue text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                    page === meta.current_page ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                 }`}
                             >
                                 {page}
                             </button>
                         ))}
                     </div>
-                )}
+                </div>
             </div>
 
             <Modal show={modalOpen} onClose={resetFormAndModal} maxWidth="xl">

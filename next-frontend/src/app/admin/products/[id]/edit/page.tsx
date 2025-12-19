@@ -1,10 +1,13 @@
-import RichTextEditor from '@/Components/RichTextEditor';
-import AdminLayout from '@/Layouts/AdminLayout';
-import type { PageProps as AppPageProps } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/react';
-import type { FormDataConvertible } from '@inertiajs/core';
+'use client';
+
+// TODO: Create RichTextEditor component for Next.js
+// import RichTextEditor from '@/components/RichTextEditor';
+import { Head } from '@/components/Head';
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { generateVariantMatrix as generateVariantMatrixUtil } from '@/utils/variantMatrixGenerator';
+// TODO: Migrate variantMatrixGenerator to Next.js
+// import { generateVariantMatrix as generateVariantMatrixUtil } from '@/utils/variantMatrixGenerator';
+import { useParams, useRouter } from 'next/navigation';
+import { adminService } from '@/services/adminService';
 
 type VariantMetalForm = {
     id?: number;
@@ -30,7 +33,7 @@ type VariantForm = {
     size_id?: number | null;
     is_default: boolean;
     inventory_quantity?: number | string;
-    metadata?: Record<string, FormDataConvertible>;
+    metadata?: Record<string, any>;
     metals?: VariantMetalForm[];
     diamonds?: VariantDiamondForm[];
 };
@@ -124,8 +127,8 @@ type SubcategoryOption = {
     parent_id: number;
 };
 
-type AdminProductEditPageProps = AppPageProps<{
-    product: Product | null;
+type AdminProductEditPageProps = {
+    product?: Product | null;
     brands: OptionList;
     categories: OptionListItem[];
     parentCategories: OptionListItem[];
@@ -138,7 +141,7 @@ type AdminProductEditPageProps = AppPageProps<{
     metalTones: MetalToneOption[];
     sizes: OptionListItem[];
     errors: Record<string, string>;
-}>;
+};
 
 type FormData = {
     sku: string;
@@ -928,20 +931,93 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
 }
 
 export default function AdminProductEdit() {
-    const { props } = usePage<AdminProductEditPageProps>();
-    const {
-        product,
-        brands,
-        parentCategories,
-        subcategories,
-        catalogs,
-        diamonds,
-        metals,
-        metalPurities,
-        metalTones,
-        sizes,
-        errors,
-    } = props;
+    const params = useParams();
+    const router = useRouter();
+    // Handle 'new' as create mode, otherwise parse as number
+    const productId = params?.id && params.id !== 'new' ? Number(params.id) : null;
+    
+    const [loading, setLoading] = useState(true);
+    const [product, setProduct] = useState<Product | null>(null);
+    const [brands, setBrands] = useState<OptionList>({});
+    const [parentCategories, setParentCategories] = useState<OptionListItem[]>([]);
+    const [subcategories, setSubcategories] = useState<SubcategoryOption[]>([]);
+    const [catalogs, setCatalogs] = useState<CatalogOption[]>([]);
+    const [diamonds, setDiamonds] = useState<OptionListItem[]>([]);
+    const [metals, setMetals] = useState<MetalOption[]>([]);
+    const [metalPurities, setMetalPurities] = useState<MetalPurityOption[]>([]);
+    const [metalTones, setMetalTones] = useState<MetalToneOption[]>([]);
+    const [sizes, setSizes] = useState<OptionListItem[]>([]);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [processing, setProcessing] = useState(false);
+
+    // Load form options and product data
+    useEffect(() => {
+        const loadData = async () => {
+            setLoading(true);
+            try {
+                // Load form options
+                const optionsResponse = await adminService.getProductFormOptions();
+                const options = optionsResponse.data;
+                
+                // Convert brands to OptionList format
+                const brandsMap: OptionList = {};
+                (options.brands || []).forEach((brand: any) => {
+                    brandsMap[Number(brand.id)] = brand.name;
+                });
+                setBrands(brandsMap);
+                
+                // Convert categories (parent categories only)
+                const parentCats = (options.categories || []).filter((cat: any) => !cat.parent_id);
+                setParentCategories(parentCats.map((cat: any) => ({ id: Number(cat.id), name: cat.name })));
+                
+                // Subcategories
+                const subcats = (options.categories || []).filter((cat: any) => cat.parent_id);
+                setSubcategories(subcats.map((cat: any) => ({ 
+                    id: Number(cat.id), 
+                    name: cat.name, 
+                    parent_id: Number(cat.parent_id) 
+                })));
+                
+                // Other options
+                setCatalogs((options.catalogs || []).map((cat: any) => ({
+                    id: Number(cat.id),
+                    code: cat.code,
+                    name: cat.name,
+                    products_count: cat.products_count || 0,
+                    display_order: cat.display_order || 0,
+                    is_active: cat.is_active ?? true,
+                })));
+                setDiamonds((options.diamonds || []).map((d: any) => ({ id: Number(d.id), name: d.name })));
+                setMetals((options.metals || []).map((m: any) => ({ id: Number(m.id), name: m.name })));
+                setMetalPurities((options.metalPurities || []).map((mp: any) => ({
+                    id: Number(mp.id),
+                    metal_id: Number(mp.metal_id),
+                    name: mp.name,
+                    metal: mp.metals ? { id: Number(mp.metals.id), name: mp.metals.name } : null,
+                })));
+                setMetalTones((options.metalTones || []).map((mt: any) => ({
+                    id: Number(mt.id),
+                    metal_id: Number(mt.metal_id),
+                    name: mt.name,
+                    metal: mt.metals ? { id: Number(mt.metals.id), name: mt.metals.name } : null,
+                })));
+                setSizes((options.sizes || []).map((s: any) => ({ id: Number(s.id), name: s.name })));
+                
+                // Load product if editing
+                if (productId) {
+                    const productResponse = await adminService.getProduct(productId);
+                    const productData = productResponse.data;
+                    setProduct(productData);
+                }
+            } catch (error: any) {
+                console.error('Failed to load data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        loadData();
+    }, [productId]);
 
     const extractSelectionsFromVariants = useMemo(() => {
         if (!product?.variants?.length) {
@@ -1055,16 +1131,17 @@ export default function AdminProductEdit() {
         };
     }, [product]);
 
-    const form = useForm<Record<string, any>>(() => ({
+    // Initialize form data from product
+    const getInitialFormData = useMemo((): FormData => ({
         sku: product?.sku ?? '',
         name: product?.name ?? '',
         titleline: product?.titleline ?? '',
         description: product?.description ?? '',
         catalog_ids: product?.catalog_ids ?? [],
-        subcategory_ids: (product?.category_ids ?? []).map(id => Number(id)).filter(id => !isNaN(id) && id > 0),
+        subcategory_ids: (product?.category_ids ?? []).map((id: any) => Number(id)).filter((id: any) => !isNaN(id) && id > 0),
         brand_id: String(product?.brand_id ?? ''),
         category_id: String(product?.category_id ?? ''),
-        style_ids: (product?.style_ids || []).map(id => Number(id)).filter(id => !isNaN(id) && id > 0),
+        style_ids: (product?.style_ids || []).map((id: any) => Number(id)).filter((id: any) => !isNaN(id) && id > 0),
         collection: product?.collection ?? '',
         producttype: product?.producttype ?? '',
         gender: product?.gender ?? '',
@@ -1080,7 +1157,7 @@ export default function AdminProductEdit() {
         making_charge_percentage: product?.making_charge_percentage ? String(product.making_charge_percentage) : '',
         is_active: product?.is_active ?? true,
         variants: product?.variants?.length
-            ? product.variants.map((variant: any, index) => {
+            ? product.variants.map((variant: any, index: number) => {
                   const firstMetal = variant.metals && variant.metals.length > 0 ? variant.metals[0] : null;
                   const metalId = firstMetal?.metal_id ?? (variant.metadata?.metal_id ?? '');
                   const metalPurityId = firstMetal?.metal_purity_id ?? (variant.metadata?.metal_purity_id ?? '');
@@ -1114,7 +1191,12 @@ export default function AdminProductEdit() {
             : [emptyVariant(true)],
         uses_diamond: (extractSelectionsFromVariants.diamondSelections?.length ?? 0) > 0,
         diamond_selections: extractSelectionsFromVariants.diamondSelections ?? [],
-        metal_selections: extractSelectionsFromVariants.metalSelections ?? [],
+        metal_selections: (extractSelectionsFromVariants.metalSelections ?? []).map((m: any) => ({
+            metal_id: typeof m.metal_id === 'number' ? m.metal_id : Number(m.metal_id),
+            metal_purity_id: typeof m.metal_purity_id === 'number' ? m.metal_purity_id : Number(m.metal_purity_id),
+            metal_tone_id: typeof m.metal_tone_id === 'number' ? m.metal_tone_id : Number(m.metal_tone_id),
+            weight: String(m.weight ?? ''),
+        })),
         selected_metals: extractSelectionsFromVariants.selectedMetals ?? [],
         metal_configurations: extractSelectionsFromVariants.metalConfigurations ?? {},
         all_sizes_available: (() => {
@@ -1138,7 +1220,7 @@ export default function AdminProductEdit() {
                 }
                 
                 const allSizesMatch = categorySizeIds.length === variantSizeIds.length && 
-                    categorySizeIds.every((categoryId) => variantSizeIds.includes(categoryId));
+                    categorySizeIds.every((categoryId: any) => variantSizeIds.includes(categoryId));
                 
                 if (allSizesMatch) {
                     return true;
@@ -1153,22 +1235,36 @@ export default function AdminProductEdit() {
                 const categorySizeIds = new Set(
                     product.category.sizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id))
                 );
-                const sizeIds = product.variants
+                return product.variants
                     .map((v: any) => {
                         const sizeId = v.size_id;
                         return sizeId !== null && sizeId !== undefined ? (typeof sizeId === 'number' ? sizeId : Number(sizeId)) : null;
                     })
-                    .filter((id: any) => id !== null && !isNaN(id) && categorySizeIds.has(id));
-                return [...new Set(sizeIds)];
+                    .filter((id: number | null): id is number => id !== null && !isNaN(id) && categorySizeIds.has(id));
             }
             return [];
         })(),
         show_all_variants_by_size: product?.metadata?.show_all_variants_by_size ?? true,
         media_uploads: [],
         removed_media_ids: [],
-    }) as Record<string, any>);
-    const { setData, post, put, processing } = form;
-    const data = form.data as FormData;
+    }), [product, extractSelectionsFromVariants]);
+
+    // Initialize data state
+    const [data, setData] = useState<FormData>(getInitialFormData);
+    
+    // Update data when product loads
+    useEffect(() => {
+        if (product !== null || !productId) {
+            setData(getInitialFormData);
+        }
+    }, [product, productId, getInitialFormData]);
+    
+    // Helper function for setData that supports string field name pattern
+    // For functional updates, use setData directly: setData((prev) => ({ ...prev, field: value }))
+    // For string updates, use setDataField: setDataField('field', value)
+    const setDataField = (field: string, value: any) => {
+        setData((prev: FormData) => ({ ...prev, [field]: value }));
+    };
 
     const [localDescription, setLocalDescription] = useState(data.description);
     const descriptionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1182,7 +1278,7 @@ export default function AdminProductEdit() {
                 show_all_variants_by_size: true,
             }));
         }
-    }, [data.selected_sizes, data.show_all_variants_by_size, setData]);
+    }, [data.selected_sizes, data.show_all_variants_by_size]);
 
     useEffect(() => {
         if (data.description !== localDescription) {
@@ -1196,9 +1292,9 @@ export default function AdminProductEdit() {
             clearTimeout(descriptionTimeoutRef.current);
         }
         descriptionTimeoutRef.current = setTimeout(() => {
-            setData('description', value);
+            setDataField('description', value);
         }, 300);
-    }, [setData]);
+    }, []);
 
     useEffect(() => {
         return () => {
@@ -1391,7 +1487,7 @@ export default function AdminProductEdit() {
             // Diamond label removed - only metal details will be in variant label
             // Diamonds are still stored in metadata but not shown in the label
 
-            const rawMetadata = (variant.metadata ?? {}) as Record<string, FormDataConvertible>;
+            const rawMetadata = (variant.metadata ?? {}) as Record<string, any>;
             const sizeLabel = '';
 
             // Only include metal label and size label (no diamond label)
@@ -1407,7 +1503,7 @@ export default function AdminProductEdit() {
                 }));
             }
 
-            const metadata: Record<string, FormDataConvertible> = {
+            const metadata: Record<string, any> = {
                 metal_id: variant.metal_id !== '' && variant.metal_id !== null ? Number(variant.metal_id) : null,
                 metal_purity_id:
                     variant.metal_purity_id !== '' && variant.metal_purity_id !== null ? Number(variant.metal_purity_id) : null,
@@ -1797,7 +1893,7 @@ export default function AdminProductEdit() {
         });
     };
 
-    const updateVariantMetadata = (index: number, changes: Record<string, FormDataConvertible | null>) => {
+    const updateVariantMetadata = (index: number, changes: Record<string, any | null>) => {
         // Update generatedMatrixVariants
         setGeneratedMatrixVariants((prev) => {
             if (prev.length === 0) return prev;
@@ -1806,7 +1902,7 @@ export default function AdminProductEdit() {
                     return variant;
                 }
 
-                const metadata = { ...(variant.metadata ?? {}) } as Record<string, FormDataConvertible>;
+                const metadata = { ...(variant.metadata ?? {}) } as Record<string, any>;
 
                 Object.entries(changes).forEach(([key, value]) => {
                     if (value === null) {
@@ -1830,7 +1926,7 @@ export default function AdminProductEdit() {
                     return variant;
                 }
 
-                const metadata = { ...(variant.metadata ?? {}) } as Record<string, FormDataConvertible>;
+                const metadata = { ...(variant.metadata ?? {}) } as Record<string, any>;
 
                 Object.entries(changes).forEach(([key, value]) => {
                     if (value === null) {
@@ -2104,13 +2200,10 @@ export default function AdminProductEdit() {
     };
 
     const generateVariantMatrixForData = (prev: FormData): FormData => {
-        return generateVariantMatrixUtil({
-            formData: prev,
-            parentCategories,
-            product: product ?? null,
-            emptyVariant,
-            recalculateVariants: recalculateVariants as (draft: FormData) => VariantForm[],
-        });
+        // TODO: Implement generateVariantMatrixUtil or migrate from Laravel
+        // For now, return the form data as-is
+        console.warn('generateVariantMatrixUtil not yet implemented');
+        return prev;
     };
 
     const generateVariantMatrix = () => {
@@ -2176,14 +2269,12 @@ export default function AdminProductEdit() {
         setGeneratedMatrixVariants([...generatedVariants]);
     };
 
-    const submit = (event: FormEvent<HTMLFormElement>) => {
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        const hasMediaUploads = (form.data.media_uploads?.length ?? 0) > 0;
-
-        form.transform((current) => {
-            const formState = current as FormData;
-            const payload: any = { ...formState };
+        const hasMediaUploads = (data.media_uploads?.length ?? 0) > 0;
+        const formState = data as FormData;
+        const payload: any = { ...formState };
             
             // Get the current show_all_variants_by_size value from form state
             // Check both the current formState and the reactive data to ensure we get the latest checkbox value
@@ -2216,10 +2307,9 @@ export default function AdminProductEdit() {
 
             // Validate that at least one valid variant is required
             if (variantsToUse.length === 0) {
-                form.setError('variants', 'At least one product variant is required. Please generate the variant matrix before saving.');
-                // Don't include variants in payload if validation fails
-                payload.variants = [];
-                return payload;
+                setErrors({ variants: 'At least one product variant is required. Please generate the variant matrix before saving.' });
+                setProcessing(false);
+                return;
             }
 
             if (formState.media_uploads && Array.isArray(formState.media_uploads) && formState.media_uploads.length > 0) {
@@ -2357,8 +2447,9 @@ export default function AdminProductEdit() {
                 if (variantsWithoutMetals.length > 0) {
                     const variantList = variantsWithoutMetals.slice(0, 3).join(', ');
                     const moreCount = variantsWithoutMetals.length > 3 ? ` and ${variantsWithoutMetals.length - 3} more` : '';
-                    form.setError('variants', `The following variant${variantsWithoutMetals.length > 1 ? 's' : ''} must have at least one metal: ${variantList}${moreCount}. Metals are required for all variants.`);
-                    return payload;
+                    setErrors({ variants: `The following variant${variantsWithoutMetals.length > 1 ? 's' : ''} must have at least one metal: ${variantList}${moreCount}. Metals are required for all variants.` });
+                    setProcessing(false);
+                    return;
                 }
                 
                 // Create a deep copy of variants to avoid mutating the original
@@ -2521,29 +2612,60 @@ export default function AdminProductEdit() {
                 payload.diamond_selections = formState.diamond_selections;
             }
 
-            if (product?.id && hasMediaUploads) {
-                payload._method = 'PUT';
+            // Remove fields that shouldn't be sent
+            delete payload._method;
+        const formData = new FormData();
+        
+        // Add all payload fields to FormData
+        Object.keys(payload).forEach((key) => {
+            const value = payload[key];
+            if (value === null || value === undefined) {
+                return;
             }
-
-            return payload;
+            
+            if (key === 'media_uploads' && Array.isArray(value)) {
+                // Files are handled separately
+                value.forEach((file) => {
+                    if (file instanceof File) {
+                        formData.append('media_uploads', file);
+                    }
+                });
+            } else if (Array.isArray(value)) {
+                // Arrays need to be JSON stringified for multipart/form-data
+                formData.append(key, JSON.stringify(value));
+            } else if (typeof value === 'object') {
+                // Objects need to be JSON stringified
+                formData.append(key, JSON.stringify(value));
+            } else {
+                formData.append(key, String(value));
+            }
         });
 
-        const submitOptions = {
-            preserveScroll: true,
-            forceFormData: hasMediaUploads,
-            onFinish: () => {
-                form.transform((data) => data);
-            },
-        };
+        setProcessing(true);
+        setErrors({});
 
-        if (product?.id) {
-            if (hasMediaUploads) {
-                post(route('admin.products.update', product.id), submitOptions);
+        try {
+            if (product?.id) {
+                // Update existing product
+                await adminService.updateProduct(product.id, formData);
+                alert('Product updated successfully!');
+                router.push(`/admin/products/${product.id}/edit`);
             } else {
-                put(route('admin.products.update', product.id), submitOptions);
+                // Create new product
+                const response = await adminService.createProduct(formData);
+                const newProductId = response.data.id;
+                alert('Product created successfully!');
+                router.push(`/admin/products/${newProductId}/edit`);
             }
-        } else {
-            post(route('admin.products.store'), submitOptions);
+        } catch (error: any) {
+            console.error('Failed to save product:', error);
+            if (error.response?.data?.errors) {
+                setErrors(error.response.data.errors);
+            } else {
+                alert(error.response?.data?.message || 'Failed to save product. Please try again.');
+            }
+        } finally {
+            setProcessing(false);
         }
     };
 
@@ -2567,7 +2689,7 @@ export default function AdminProductEdit() {
         const current = data.removed_media_ids ?? [];
         const exists = current.includes(id);
         const updated = exists ? current.filter((mediaId) => mediaId !== id) : [...current, id];
-        setData('removed_media_ids', updated);
+        setDataField('removed_media_ids', updated);
     };
 
     const handleMediaSelect = (event: ChangeEvent<HTMLInputElement>) => {
@@ -2576,12 +2698,12 @@ export default function AdminProductEdit() {
             return;
         }
 
-        setData('media_uploads', [...(data.media_uploads ?? []), ...files]);
+        setDataField('media_uploads', [...(data.media_uploads ?? []), ...files]);
         event.target.value = '';
     };
 
     const removePendingUpload = (index: number) => {
-        setData(
+        setDataField(
             'media_uploads',
             (data.media_uploads ?? []).filter((_, uploadIndex) => uploadIndex !== index),
         );
@@ -2592,7 +2714,7 @@ export default function AdminProductEdit() {
     };
 
     return (
-        <AdminLayout>
+        <>
             <Head title={product?.id ? `Edit ${product.name}` : 'New Product'} />
 
             <form onSubmit={submit} className="space-y-10">
@@ -2623,7 +2745,7 @@ export default function AdminProductEdit() {
                                     <input
                                         type="text"
                                         value={data.sku}
-                                        onChange={(event) => setData('sku', event.target.value)}
+                                        onChange={(event) => setDataField('sku', event.target.value)}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                         placeholder="Enter SKU"
                                     />
@@ -2634,7 +2756,7 @@ export default function AdminProductEdit() {
                                     <input
                                         type="text"
                                         value={data.name}
-                                        onChange={(event) => setData('name', event.target.value)}
+                                        onChange={(event) => setDataField('name', event.target.value)}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                         placeholder="Enter product name"
                                     />
@@ -2645,7 +2767,7 @@ export default function AdminProductEdit() {
                                     <input
                                         type="text"
                                         value={data.producttype}
-                                        onChange={(event) => setData('producttype', event.target.value)}
+                                        onChange={(event) => setDataField('producttype', event.target.value)}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                         placeholder="Enter product type"
                                     />
@@ -2656,7 +2778,7 @@ export default function AdminProductEdit() {
                                     <input
                                         type="text"
                                         value={data.titleline}
-                                        onChange={(event) => setData('titleline', event.target.value)}
+                                        onChange={(event) => setDataField('titleline', event.target.value)}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                         placeholder="Enter product title line"
                                     />
@@ -2667,7 +2789,7 @@ export default function AdminProductEdit() {
                                     <input
                                         type="text"
                                         value={data.collection}
-                                        onChange={(event) => setData('collection', event.target.value)}
+                                        onChange={(event) => setDataField('collection', event.target.value)}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                         placeholder="Enter collection name"
                                     />
@@ -2678,7 +2800,7 @@ export default function AdminProductEdit() {
                                     <span>Gender *</span>
                                     <select
                                         value={data.gender}
-                                        onChange={(event) => setData('gender', event.target.value)}
+                                        onChange={(event) => setDataField('gender', event.target.value)}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                     >
                                         <option value="">Select gender</option>
@@ -2696,7 +2818,7 @@ export default function AdminProductEdit() {
                                     <span>Brand *</span>
                                     <select
                                         value={data.brand_id}
-                                        onChange={(event) => setData('brand_id', event.target.value)}
+                                        onChange={(event) => setDataField('brand_id', event.target.value)}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                     >
                                         <option value="">Select brand</option>
@@ -2713,9 +2835,9 @@ export default function AdminProductEdit() {
                                     <select
                                         value={data.category_id}
                                         onChange={(event) => {
-                                            setData('category_id', event.target.value);
+                                            setDataField('category_id', event.target.value);
                                             // Clear style_ids when category changes
-                                            setData('style_ids', []);
+                                            setDataField('style_ids', []);
                                         }}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                     >
@@ -2732,7 +2854,7 @@ export default function AdminProductEdit() {
                                     subcategories={subcategories || []}
                                     selectedIds={Array.isArray(data.subcategory_ids) ? data.subcategory_ids : []}
                                     parentCategoryId={data.category_id === '' || data.category_id === null || data.category_id === undefined ? '' : (isNaN(Number(data.category_id)) ? '' : Number(data.category_id))}
-                                    onChange={(selectedIds) => setData('subcategory_ids', selectedIds)}
+                                    onChange={(selectedIds) => setDataField('subcategory_ids', selectedIds)}
                                     error={errors.subcategory_ids}
                                 />
                                 
@@ -2746,7 +2868,7 @@ export default function AdminProductEdit() {
                                         <StyleMultiSelect
                                             styles={availableStyles}
                                             selectedIds={Array.isArray(data.style_ids) ? data.style_ids : []}
-                                            onChange={(selectedIds) => setData('style_ids', selectedIds)}
+                                            onChange={(selectedIds) => setDataField('style_ids', selectedIds)}
                                             error={errors.style_ids}
                                         />
                                     );
@@ -2755,7 +2877,7 @@ export default function AdminProductEdit() {
                                  <CatalogMultiSelect
                                     catalogs={catalogs}
                                     selectedIds={Array.isArray(data.catalog_ids) ? data.catalog_ids : []}
-                                    onChange={(selectedIds) => setData('catalog_ids', selectedIds)}
+                                    onChange={(selectedIds) => setDataField('catalog_ids', selectedIds)}
                                     error={errors.catalog_ids}
                                 />
 
@@ -2769,9 +2891,9 @@ export default function AdminProductEdit() {
                                                 onChange={(e) => {
                                                     const currentTypes = data.making_charge_types || [];
                                                     if (e.target.checked) {
-                                                        setData('making_charge_types', [...currentTypes, 'fixed']);
+                                                        setDataField('making_charge_types', [...currentTypes, 'fixed']);
                                                     } else {
-                                                        setData('making_charge_types', currentTypes.filter(t => t !== 'fixed'));
+                                                        setDataField('making_charge_types', currentTypes.filter(t => t !== 'fixed'));
                                                     }
                                                 }}
                                                 className="h-5 w-5 rounded border-slate-300 text-elvee-blue focus:ring-2 focus:ring-elvee-blue focus:ring-offset-0"
@@ -2785,9 +2907,9 @@ export default function AdminProductEdit() {
                                                 onChange={(e) => {
                                                     const currentTypes = data.making_charge_types || [];
                                                     if (e.target.checked) {
-                                                        setData('making_charge_types', [...currentTypes, 'percentage']);
+                                                        setDataField('making_charge_types', [...currentTypes, 'percentage']);
                                                     } else {
-                                                        setData('making_charge_types', currentTypes.filter(t => t !== 'percentage'));
+                                                        setDataField('making_charge_types', currentTypes.filter(t => t !== 'percentage'));
                                                     }
                                                 }}
                                                 className="h-5 w-5 rounded border-slate-300 text-elvee-blue focus:ring-2 focus:ring-elvee-blue focus:ring-offset-0"
@@ -2809,7 +2931,7 @@ export default function AdminProductEdit() {
                                             step="0.01"
                                             min="0"
                                             value={data.making_charge_amount}
-                                            onChange={(event) => setData('making_charge_amount', event.target.value)}
+                                            onChange={(event) => setDataField('making_charge_amount', event.target.value)}
                                             className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                             placeholder="Enter fixed making charge"
                                         />
@@ -2825,7 +2947,7 @@ export default function AdminProductEdit() {
                                             min="0"
                                             max="100"
                                             value={data.making_charge_percentage}
-                                            onChange={(event) => setData('making_charge_percentage', event.target.value)}
+                                            onChange={(event) => setDataField('making_charge_percentage', event.target.value)}
                                             className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                             placeholder="Enter percentage (e.g., 10 for 10%)"
                                         />
@@ -2854,10 +2976,11 @@ export default function AdminProductEdit() {
                     </div>
 
                     <div className="mt-6">
-                        <RichTextEditor
+                        {/* TODO: Implement RichTextEditor component */}
+                        <textarea
                             value={localDescription}
-                            onChange={handleDescriptionChange}
-                            className="overflow-hidden rounded-3xl border border-slate-200"
+                            onChange={(e) => handleDescriptionChange(e.target.value)}
+                            className="w-full min-h-[200px] rounded-3xl border border-slate-200 p-4"
                             placeholder="Detail the design notes, materials, finish, and atelier craftsmanship."
                         />
                         {errors.description && <span className="mt-2 block text-xs text-rose-500">{errors.description}</span>}
@@ -3692,7 +3815,7 @@ export default function AdminProductEdit() {
                                     }
 
 
-                                    const variantMetadata = (variant.metadata ?? {}) as Record<string, FormDataConvertible>;
+                                    const variantMetadata = (variant.metadata ?? {}) as Record<string, any>;
                                     
                                     const variantSizeId = (variant as any).size_id;
                                     let sizeDisplay = '—';
@@ -3844,7 +3967,7 @@ export default function AdminProductEdit() {
                                                     value={variantStatus}
                                                     onChange={(event) =>
                                                         updateVariantMetadata(index, {
-                                                            status: event.target.value as FormDataConvertible,
+                                                            status: event.target.value,
                                                         })
                                                     }
                                                     className={`rounded-xl border px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 ${
@@ -4053,7 +4176,7 @@ export default function AdminProductEdit() {
                     </div>
 
             </form>
-        </AdminLayout>
+        </>
     );
 }
 

@@ -3,7 +3,8 @@
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { adminService } from '@/services/adminService';
 
 type StyleRow = {
     id: number;
@@ -11,15 +12,19 @@ type StyleRow = {
     is_active: boolean;
 };
 
-// Mock data
-const mockStyles: StyleRow[] = [
-    { id: 1, name: 'Traditional', is_active: true },
-    { id: 2, name: 'Modern', is_active: true },
-    { id: 3, name: 'Vintage', is_active: true },
-];
+type PaginationMeta = {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+};
 
 export default function AdminStylesIndex() {
-    const [allStyles, setAllStyles] = useState<StyleRow[]>(mockStyles);
+    const [loading, setLoading] = useState(true);
+    const [styles, setStyles] = useState<{ data: StyleRow[]; meta: PaginationMeta }>({
+        data: [],
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }
+    });
     const [modalOpen, setModalOpen] = useState(false);
     const [editingStyle, setEditingStyle] = useState<StyleRow | null>(null);
     const [perPage, setPerPage] = useState(10);
@@ -29,12 +34,36 @@ export default function AdminStylesIndex() {
     const [formData, setFormData] = useState({ name: '', is_active: true });
     const [processing, setProcessing] = useState(false);
 
-    const paginatedStyles = useMemo(() => {
-        const start = (currentPage - 1) * perPage;
-        return allStyles.slice(start, start + perPage);
-    }, [allStyles, currentPage, perPage]);
+    useEffect(() => {
+        loadStyles();
+    }, [currentPage, perPage]);
 
-    const totalPages = Math.ceil(allStyles.length / perPage);
+    const loadStyles = async () => {
+        setLoading(true);
+        try {
+            const response = await adminService.getStyles(currentPage, perPage);
+            const items = response.data.items || response.data.data || [];
+            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+
+            setStyles({
+                data: items.map((item: any) => ({
+                    id: Number(item.id),
+                    name: item.name,
+                    is_active: item.is_active,
+                })),
+                meta: {
+                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                    total: responseMeta.total || 0,
+                    per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                },
+            });
+        } catch (error: any) {
+            console.error('Failed to load styles:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const resetFormAndModal = () => {
         setEditingStyle(null);
@@ -48,28 +77,45 @@ export default function AdminStylesIndex() {
         setModalOpen(true);
     };
 
-    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setProcessing(true);
-        setTimeout(() => {
+        try {
             if (editingStyle) {
-                setAllStyles(allStyles.map(s => s.id === editingStyle.id ? { ...s, ...formData } : s));
+                await adminService.updateStyle(editingStyle.id, formData);
             } else {
-                setAllStyles([...allStyles, { id: Date.now(), ...formData }]);
+                await adminService.createStyle(formData);
             }
-            setProcessing(false);
             resetFormAndModal();
-        }, 500);
+            await loadStyles();
+        } catch (error: any) {
+            console.error('Failed to save style:', error);
+            alert(error.response?.data?.message || 'Failed to save style. Please try again.');
+        } finally {
+            setProcessing(false);
+        }
     };
 
-    const toggleStatus = (style: StyleRow) => {
-        setAllStyles(allStyles.map(s => s.id === style.id ? { ...s, is_active: !s.is_active } : s));
+    const toggleStatus = async (style: StyleRow) => {
+        try {
+            await adminService.updateStyle(style.id, { ...style, is_active: !style.is_active });
+            await loadStyles();
+        } catch (error: any) {
+            console.error('Failed to toggle style status:', error);
+            alert(error.response?.data?.message || 'Failed to update style. Please try again.');
+        }
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (deleteConfirm) {
-            setAllStyles(allStyles.filter(s => s.id !== deleteConfirm.id));
-            setDeleteConfirm(null);
+            try {
+                await adminService.deleteStyle(deleteConfirm.id);
+                setDeleteConfirm(null);
+                await loadStyles();
+            } catch (error: any) {
+                console.error('Failed to delete style:', error);
+                alert(error.response?.data?.message || 'Failed to delete style. Please try again.');
+            }
         }
     };
 
@@ -97,18 +143,36 @@ export default function AdminStylesIndex() {
 
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
-                        <div className="font-semibold text-slate-700">Styles ({allStyles.length})</div>
+                        <div className="font-semibold text-slate-700">Styles ({styles.meta.total})</div>
+                        <select
+                            value={perPage}
+                            onChange={(e) => {
+                                setPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                            className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:ring-0"
+                        >
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
                     </div>
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead className="bg-slate-50 text-xs text-slate-500">
-                            <tr>
-                                <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Status</th>
-                                <th className="px-5 py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                            {paginatedStyles.map((style) => (
+                    {loading && styles.data.length === 0 ? (
+                        <div className="flex items-center justify-center py-12">
+                            <p className="text-slate-500">Loading styles...</p>
+                        </div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-slate-200 text-sm">
+                            <thead className="bg-slate-50 text-xs text-slate-500">
+                                <tr>
+                                    <th className="px-5 py-3 text-left">Name</th>
+                                    <th className="px-5 py-3 text-left">Status</th>
+                                    <th className="px-5 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {styles.data.map((style) => (
                                 <tr key={style.id} className="hover:bg-slate-50">
                                     <td className="px-5 py-3 font-semibold text-slate-900">{style.name}</td>
                                     <td className="px-5 py-3">
@@ -146,9 +210,32 @@ export default function AdminStylesIndex() {
                                     </td>
                                 </tr>
                             ))}
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    )}
                 </div>
+
+                {styles.meta.last_page > 1 && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                        <div>
+                            Showing {styles.meta.total > 0 ? (styles.meta.current_page - 1) * styles.meta.per_page + 1 : 0} to {Math.min(styles.meta.current_page * styles.meta.per_page, styles.meta.total)} of {styles.meta.total} entries
+                        </div>
+                        <div className="flex gap-2">
+                            {Array.from({ length: styles.meta.last_page }, (_, i) => i + 1).map((page) => (
+                                <button
+                                    key={page}
+                                    type="button"
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                        page === styles.meta.current_page ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                    }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             <Modal show={modalOpen} onClose={resetFormAndModal} maxWidth="xl">

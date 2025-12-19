@@ -41,13 +41,20 @@ export class QuotationsService {
       if (!groupKey) {
         // Fallback grouping
         const date = item.created_at;
-        const minute = Math.floor(date.getMinutes() / 5) * 5;
-        groupKey = `${item.user_id}_${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}_${date.getHours()}:${minute}`;
+        if (date) {
+          const minute = Math.floor(date.getMinutes() / 5) * 5;
+          groupKey = `${item.user_id}_${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}_${date.getHours()}:${minute}`;
+        } else {
+          groupKey = `${item.user_id}_no_date`;
+        }
       }
       if (!groups.has(groupKey)) {
         groups.set(groupKey, []);
       }
-      groups.get(groupKey).push(item);
+      const group = groups.get(groupKey);
+      if (group) {
+        group.push(item);
+      }
     }
 
     const formattedGroups = Array.from(groups.values()).map((group) => {
@@ -274,7 +281,7 @@ export class QuotationsService {
       }
 
       const groupKey = uuidv4();
-      const quotations = [];
+      const quotations: any[] = [];
 
       for (const item of cart.cart_items) {
         const configuration = (item.configuration as any) || {};
@@ -304,7 +311,7 @@ export class QuotationsService {
             }
           });
         }
-        quotations.push(q);
+        quotations.push(q as any);
       }
 
       // Clear cart items
@@ -421,13 +428,20 @@ export class QuotationsService {
       let groupKey = item.quotation_group_id;
       if (!groupKey) {
         const date = item.created_at;
-        const minute = Math.floor(date.getMinutes() / 5) * 5;
-        groupKey = `${item.user_id}_${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}_${date.getHours()}:${minute}`;
+        if (date) {
+          const minute = Math.floor(date.getMinutes() / 5) * 5;
+          groupKey = `${item.user_id}_${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}_${date.getHours()}:${minute}`;
+        } else {
+          groupKey = `${item.user_id}_no_date`;
+        }
       }
       if (!groups.has(groupKey)) {
         groups.set(groupKey, []);
       }
-      groups.get(groupKey).push(item);
+      const group = groups.get(groupKey);
+      if (group) {
+        group.push(item);
+      }
     }
 
     const allFormatted = Array.from(groups.values()).map(group => {
@@ -797,7 +811,7 @@ export class QuotationsService {
 
     let totalSubtotal = 0;
     let totalDiscount = 0;
-    const orderItems = [];
+    const orderItems: any[] = [];
 
     for (const q of quotations) {
       const p = await this.pricingService.calculateProductPrice(q.products, user, {
@@ -824,7 +838,7 @@ export class QuotationsService {
         line_discount: unitDiscount * q.quantity,
         pricing: p,
         quotation_id: q.id,
-      });
+      } as any);
     }
 
     const taxableAmount = totalSubtotal - totalDiscount;
@@ -858,7 +872,7 @@ export class QuotationsService {
     });
 
     for (const item of orderItems) {
-      let variantData = null;
+      let variantData: any = null;
       if (item.variant_id) {
         const v = await tx.product_variants.findUnique({ where: { id: item.variant_id } });
         if (v) {
@@ -869,14 +883,14 @@ export class QuotationsService {
       await tx.order_items.create({
         data: {
           order_id: order.id,
-          product_id: item.product.id,
-          sku: item.product.sku,
-          name: item.product.name,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          total_price: item.total_price,
+          product_id: (item as any).product.id,
+          sku: (item as any).product.sku,
+          name: (item as any).product.name,
+          quantity: (item as any).quantity,
+          unit_price: (item as any).unit_price,
+          total_price: (item as any).total_price,
           metadata: {
-            quotation_id: item.quotation_id.toString(),
+            quotation_id: (item as any).quotation_id.toString(),
             variant: variantData,
           },
           created_at: new Date(),
@@ -906,7 +920,6 @@ export class QuotationsService {
       id: product.id.toString(),
       name: product.name,
       sku: product.sku,
-      base_price: product.base_price?.toNumber(),
       making_charge_amount: product.making_charge_amount?.toNumber(),
       media: product.product_medias.map(m => ({ url: m.url })),
       variants: product.product_variants.map(v => ({
@@ -924,5 +937,17 @@ export class QuotationsService {
         })),
       })),
     };
+  }
+
+  async remove(id: number) {
+    const quotation = await this.prisma.quotations.findUnique({
+      where: { id: BigInt(id) },
+    });
+    if (!quotation) {
+      throw new NotFoundException('Quotation not found');
+    }
+    return await this.prisma.quotations.delete({
+      where: { id: BigInt(id) },
+    });
   }
 }

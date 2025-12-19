@@ -157,7 +157,7 @@ export class RatesService {
     
     // Get latest rate per purity
     const puritiesSeen = new Set();
-    const latestByPurity = [];
+    const latestByPurity: typeof rates = [];
     
     for (const rate of rates) {
       if (!puritiesSeen.has(rate.purity)) {

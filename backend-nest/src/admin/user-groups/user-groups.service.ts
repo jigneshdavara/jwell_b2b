@@ -18,7 +18,11 @@ export class UserGroupsService {
     ]);
 
     return {
-      items,
+      items: items.map(group => ({
+        ...group,
+        id: Number(group.id),
+        features: Array.isArray(group.features) ? group.features : [],
+      })),
       meta: {
         total,
         page,
@@ -35,7 +39,11 @@ export class UserGroupsService {
     if (!group) {
       throw new NotFoundException('User group not found');
     }
-    return group;
+    return {
+      ...group,
+      id: Number(group.id),
+      features: Array.isArray(group.features) ? group.features : [],
+    };
   }
 
   async create(dto: CreateUserGroupDto) {
@@ -47,7 +55,7 @@ export class UserGroupsService {
     }
 
     const slug = await this.generateUniqueSlug(dto.name);
-    return await this.prisma.user_groups.create({
+    const group = await this.prisma.user_groups.create({
       data: {
         name: dto.name,
         slug,
@@ -57,12 +65,17 @@ export class UserGroupsService {
         position: dto.position ?? 0,
       },
     });
+    return {
+      ...group,
+      id: Number(group.id),
+      features: Array.isArray(group.features) ? group.features : [],
+    };
   }
 
   async update(id: number, dto: UpdateUserGroupDto) {
-    const group = await this.findOne(id);
+    const existingGroup = await this.findOne(id);
     
-    if (dto.name && dto.name !== group.name) {
+    if (dto.name && dto.name !== existingGroup.name) {
       const existing = await this.prisma.user_groups.findUnique({
         where: { name: dto.name },
       });
@@ -71,12 +84,12 @@ export class UserGroupsService {
       }
     }
 
-    let slug = group.slug;
-    if (dto.name && dto.name !== group.name) {
+    let slug = existingGroup.slug;
+    if (dto.name && dto.name !== existingGroup.name) {
       slug = await this.generateUniqueSlug(dto.name, id);
     }
 
-    return await this.prisma.user_groups.update({
+    const updatedGroup = await this.prisma.user_groups.update({
       where: { id: BigInt(id) },
       data: {
         name: dto.name,
@@ -87,6 +100,11 @@ export class UserGroupsService {
         position: dto.position,
       },
     });
+    return {
+      ...updatedGroup,
+      id: Number(updatedGroup.id),
+      features: Array.isArray(updatedGroup.features) ? updatedGroup.features : [],
+    };
   }
 
   async remove(id: number) {

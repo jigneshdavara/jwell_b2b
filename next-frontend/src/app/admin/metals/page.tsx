@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import { adminService } from "@/services/adminService";
 
 type MetalRow = {
     id: number;
@@ -20,17 +21,11 @@ type PaginationMeta = {
     per_page: number;
 };
 
-const mockMetals: MetalRow[] = [
-    { id: 1, code: 'AU', name: 'Gold', description: '24K, 22K, 18K Yellow and White Gold', is_active: true, display_order: 1 },
-    { id: 2, code: 'AG', name: 'Silver', description: '925 Sterling Silver', is_active: true, display_order: 2 },
-    { id: 3, code: 'PT', name: 'Platinum', description: '950 Platinum', is_active: false, display_order: 3 },
-];
-
 export default function AdminMetalsPage() {
     const [loading, setLoading] = useState(true);
     const [metals, setMetals] = useState<{ data: MetalRow[]; meta: PaginationMeta }>({
-        data: mockMetals,
-        meta: { current_page: 1, last_page: 1, total: mockMetals.length, per_page: 10 }
+        data: [],
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }
     });
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -50,8 +45,38 @@ export default function AdminMetalsPage() {
     });
 
     useEffect(() => {
-        setLoading(false);
-    }, []);
+        loadMetals();
+    }, [perPage]);
+
+    const loadMetals = async () => {
+        setLoading(true);
+        try {
+            const response = await adminService.getMetals(metals.meta.current_page, perPage);
+            const items = response.data.items || response.data.data || [];
+            const meta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+            
+            setMetals({
+                data: items.map((item: any) => ({
+                    id: Number(item.id),
+                    code: item.code,
+                    name: item.name,
+                    description: item.description,
+                    is_active: item.is_active,
+                    display_order: item.display_order,
+                })),
+                meta: {
+                    current_page: meta.current_page || meta.page || 1,
+                    last_page: meta.last_page || meta.lastPage || 1,
+                    total: meta.total || 0,
+                    per_page: meta.per_page || meta.perPage || perPage,
+                },
+            });
+        } catch (error: any) {
+            console.error('Failed to load metals:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const allSelected = useMemo(() => {
         if (metals.data.length === 0) return false;
@@ -97,63 +122,69 @@ export default function AdminMetalsPage() {
         setModalOpen(true);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        try {
+            const payload = {
+                code: formState.code,
+                name: formState.name,
+                description: formState.description || null,
+                is_active: formState.is_active,
+                display_order: Number(formState.display_order),
+            };
 
-        setTimeout(() => {
             if (editingMetal) {
-                setMetals(prev => ({
-                    ...prev,
-                    data: prev.data.map(m => m.id === editingMetal.id ? { 
-                        ...m, 
-                        ...formState,
-                        display_order: Number(formState.display_order)
-                    } : m)
-                }));
+                await adminService.updateMetal(editingMetal.id, payload);
             } else {
-                const newMetal: MetalRow = {
-                    id: Date.now(),
-                    ...formState,
-                    display_order: Number(formState.display_order)
-                };
-                setMetals(prev => ({
-                    ...prev,
-                    data: [...prev.data, newMetal],
-                    meta: { ...prev.meta, total: prev.meta.total + 1 }
-                }));
+                await adminService.createMetal(payload);
             }
             resetForm();
+            await loadMetals();
+        } catch (error: any) {
+            console.error('Failed to save metal:', error);
+            alert(error.response?.data?.message || 'Failed to save metal. Please try again.');
+        } finally {
             setLoading(false);
-        }, 500);
-    };
-
-    const toggleMetal = (metal: MetalRow) => {
-        setMetals(prev => ({
-            ...prev,
-            data: prev.data.map(m => m.id === metal.id ? { ...m, is_active: !m.is_active } : m)
-        }));
-    };
-
-    const handleDelete = () => {
-        if (deleteConfirm) {
-            setMetals(prev => ({
-                ...prev,
-                data: prev.data.filter(m => m.id !== deleteConfirm.id),
-                meta: { ...prev.meta, total: prev.meta.total - 1 }
-            }));
-            setDeleteConfirm(null);
         }
     };
 
-    const handleBulkDelete = () => {
-        setMetals(prev => ({
-            ...prev,
-            data: prev.data.filter(m => !selectedMetals.includes(m.id)),
-            meta: { ...prev.meta, total: prev.meta.total - selectedMetals.length }
-        }));
-        setSelectedMetals([]);
-        setBulkDeleteConfirm(false);
+    const toggleMetal = async (metal: MetalRow) => {
+        try {
+            await adminService.updateMetal(metal.id, {
+                ...metal,
+                is_active: !metal.is_active,
+            });
+            await loadMetals();
+        } catch (error: any) {
+            console.error('Failed to toggle metal:', error);
+            alert(error.response?.data?.message || 'Failed to update metal. Please try again.');
+        }
+    };
+
+    const handleDelete = async () => {
+        if (deleteConfirm) {
+            try {
+                await adminService.deleteMetal(deleteConfirm.id);
+                setDeleteConfirm(null);
+                await loadMetals();
+            } catch (error: any) {
+                console.error('Failed to delete metal:', error);
+                alert(error.response?.data?.message || 'Failed to delete metal. Please try again.');
+            }
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        try {
+            await adminService.bulkDeleteMetals(selectedMetals);
+            setSelectedMetals([]);
+            setBulkDeleteConfirm(false);
+            await loadMetals();
+        } catch (error: any) {
+            console.error('Failed to delete metals:', error);
+            alert(error.response?.data?.message || 'Failed to delete metals. Please try again.');
+        }
     };
 
     if (loading && !metals.data.length) return null;
@@ -194,7 +225,10 @@ export default function AdminMetalsPage() {
                         </button>
                         <select
                             value={perPage}
-                            onChange={(e) => setPerPage(Number(e.target.value))}
+                            onChange={(e) => {
+                                setPerPage(Number(e.target.value));
+                                setMetals(prev => ({ ...prev, meta: { ...prev.meta, current_page: 1, per_page: Number(e.target.value) } }));
+                            }}
                             className="rounded-full border border-slate-200 px-3 py-1 text-xs"
                         >
                             <option value={10}>10</option>
@@ -298,9 +332,27 @@ export default function AdminMetalsPage() {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                <div>Showing 1 to {metals.data.length} of {metals.meta.total} entries</div>
+                <div>
+                    Showing {metals.meta.total > 0 ? (metals.meta.current_page - 1) * metals.meta.per_page + 1 : 0} to {Math.min(metals.meta.current_page * metals.meta.per_page, metals.meta.total)} of {metals.meta.total} entries
+                </div>
                 <div className="flex gap-2">
-                    <button className="rounded-full px-3 py-1 text-sm font-semibold bg-sky-600 text-white shadow shadow-sky-600/20">1</button>
+                    {Array.from({ length: metals.meta.last_page }, (_, i) => i + 1).map((page) => (
+                        <button
+                            key={page}
+                            type="button"
+                            onClick={() => {
+                                setMetals(prev => ({ ...prev, meta: { ...prev.meta, current_page: page } }));
+                                setTimeout(() => loadMetals(), 0);
+                            }}
+                            className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                page === metals.meta.current_page
+                                    ? 'bg-sky-600 text-white shadow shadow-sky-600/20'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                        >
+                            {page}
+                        </button>
+                    ))}
                 </div>
             </div>
 
