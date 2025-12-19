@@ -9,105 +9,109 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 describe('Admin Brands (e2e)', () => {
-  let app: INestApplication;
-  let prisma: PrismaService;
-  let authService: AuthService;
-  let accessToken: string;
+    let app: INestApplication;
+    let prisma: PrismaService;
+    let authService: AuthService;
+    let accessToken: string;
 
-  beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    beforeAll(async () => {
+        const moduleFixture: TestingModule = await Test.createTestingModule({
+            imports: [AppModule],
+        }).compile();
 
-    app = moduleFixture.createNestApplication();
-    
-    (BigInt.prototype as any).toJSON = function () {
-      return this.toString();
-    };
+        app = moduleFixture.createNestApplication();
 
-    app.useGlobalPipes(new ValidationPipe({ transform: true }));
-    app.setGlobalPrefix('api');
-    await app.init();
+        (BigInt.prototype as any).toJSON = function () {
+            return this.toString();
+        };
 
-    prisma = moduleFixture.get<PrismaService>(PrismaService);
-    authService = moduleFixture.get<AuthService>(AuthService);
+        app.useGlobalPipes(new ValidationPipe({ transform: true }));
+        app.setGlobalPrefix('api');
+        await app.init();
 
-    // Ensure upload directory exists
-    const uploadDir = path.join(process.cwd(), 'public', 'brands');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+        prisma = moduleFixture.get<PrismaService>(PrismaService);
+        authService = moduleFixture.get<AuthService>(AuthService);
 
-    // Clean up test data
-    await prisma.brands.deleteMany({ where: { code: 'test-brand' } });
-
-    // Find an admin user
-    let admin = await prisma.user.findFirst({ where: { type: 'admin' } });
-    if (!admin) {
-      admin = await prisma.user.create({
-        data: {
-          name: 'Admin User',
-          email: 'admin.brand@example.com',
-          password: 'hashed_password',
-          type: 'admin',
+        // Ensure upload directory exists
+        const uploadDir = path.join(process.cwd(), 'public', 'brands');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
         }
-      });
-    }
 
-    const loginResult = await authService.login({ ...admin, guard: 'admin' });
-    accessToken = loginResult.access_token;
-  });
+        // Clean up test data
+        await prisma.brands.deleteMany({ where: { code: 'test-brand' } });
 
-  afterAll(async () => {
-    await app.close();
-  });
+        // Find an admin user
+        let admin = await prisma.user.findFirst({ where: { type: 'admin' } });
+        if (!admin) {
+            admin = await prisma.user.create({
+                data: {
+                    name: 'Admin User',
+                    email: 'admin.brand@example.com',
+                    password: 'hashed_password',
+                    type: 'admin',
+                },
+            });
+        }
 
-  describe('Brands', () => {
-    let brandId: string;
-
-    it('POST /api/admin/brands - Should create a brand', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/admin/brands')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .field('code', 'test-brand')
-        .field('name', 'Test Brand')
-        .field('description', 'Used for testing')
-        .field('display_order', 1);
-
-      expect(response.status).toBe(201);
-      expect(response.body.code).toBe('test-brand');
-      brandId = response.body.id;
+        const loginResult = await authService.login({
+            ...admin,
+            guard: 'admin',
+        });
+        accessToken = loginResult.access_token;
     });
 
-    it('GET /api/admin/brands - Should list brands', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/api/admin/brands')
-        .set('Authorization', `Bearer ${accessToken}`);
-
-      expect(response.status).toBe(200);
-      expect(Array.isArray(response.body.items)).toBe(true);
+    afterAll(async () => {
+        await app.close();
     });
 
-    it('PATCH /api/admin/brands/:id - Should update a brand', async () => {
-      const response = await request(app.getHttpServer())
-        .patch(`/api/admin/brands/${brandId}`)
-        .set('Authorization', `Bearer ${accessToken}`)
-        .field('name', 'Updated Brand Name');
+    describe('Brands', () => {
+        let brandId: string;
 
-      expect(response.status).toBe(200);
-      expect(response.body.name).toBe('Updated Brand Name');
+        it('POST /api/admin/brands - Should create a brand', async () => {
+            const response = await request(app.getHttpServer())
+                .post('/api/admin/brands')
+                .set('Authorization', `Bearer ${accessToken}`)
+                .field('code', 'test-brand')
+                .field('name', 'Test Brand')
+                .field('description', 'Used for testing')
+                .field('display_order', 1);
+
+            expect(response.status).toBe(201);
+            expect(response.body.code).toBe('test-brand');
+            brandId = response.body.id;
+        });
+
+        it('GET /api/admin/brands - Should list brands', async () => {
+            const response = await request(app.getHttpServer())
+                .get('/api/admin/brands')
+                .set('Authorization', `Bearer ${accessToken}`);
+
+            expect(response.status).toBe(200);
+            expect(Array.isArray(response.body.items)).toBe(true);
+        });
+
+        it('PATCH /api/admin/brands/:id - Should update a brand', async () => {
+            const response = await request(app.getHttpServer())
+                .patch(`/api/admin/brands/${brandId}`)
+                .set('Authorization', `Bearer ${accessToken}`)
+                .field('name', 'Updated Brand Name');
+
+            expect(response.status).toBe(200);
+            expect(response.body.name).toBe('Updated Brand Name');
+        });
+
+        it('DELETE /api/admin/brands/:id - Should delete a brand', async () => {
+            const response = await request(app.getHttpServer())
+                .delete(`/api/admin/brands/${brandId}`)
+                .set('Authorization', `Bearer ${accessToken}`);
+
+            expect(response.status).toBe(200);
+
+            const check = await prisma.brands.findUnique({
+                where: { id: BigInt(brandId) },
+            });
+            expect(check).toBeNull();
+        });
     });
-
-    it('DELETE /api/admin/brands/:id - Should delete a brand', async () => {
-      const response = await request(app.getHttpServer())
-        .delete(`/api/admin/brands/${brandId}`)
-        .set('Authorization', `Bearer ${accessToken}`);
-
-      expect(response.status).toBe(200);
-      
-      const check = await prisma.brands.findUnique({ where: { id: BigInt(brandId) } });
-      expect(check).toBeNull();
-    });
-  });
 });
-

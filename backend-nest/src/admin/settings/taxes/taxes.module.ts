@@ -3,7 +3,7 @@ import { TaxesService } from './taxes.service';
 import { TaxesController } from './taxes.controller';
 
 @Module({
-  providers: [TaxesService],
-  controllers: [TaxesController]
+    providers: [TaxesService],
+    controllers: [TaxesController],
 })
 export class TaxesModule {}

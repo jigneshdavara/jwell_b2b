@@ -37,47 +37,65 @@ import { CartModule } from './cart/cart.module';
 import { PricingModule } from './common/pricing/pricing.module';
 import { TaxModule } from './common/tax/tax.module';
 import { DiscountsModule } from './common/discounts/discounts.module';
+import { DashboardModule as FrontendDashboardModule } from './frontend/dashboard/dashboard.module';
+import { CatalogModule } from './frontend/catalog/catalog.module';
+import { WishlistModule } from './frontend/wishlist/wishlist.module';
+import { FrontendCartModule } from './frontend/cart/cart.module';
+import { FrontendQuotationsModule } from './frontend/quotations/quotations.module';
+import { FrontendCheckoutModule } from './frontend/checkout/checkout.module';
+import { FrontendOrdersModule } from './frontend/orders/orders.module';
+import { HomeModule } from './frontend/home/home.module';
+import { ProfileModule } from './frontend/profile/profile.module';
 
 @Module({
-  imports: [
-    AuthModule,
-    PrismaModule,
-    KycModule,
-    CustomersModule,
-    CustomerGroupsModule,
-    DashboardModule,
-    UserGroupsModule,
-    TeamUsersModule,
-    MetalsModule,
-    MetalPuritiesModule,
-    MetalTonesModule,
-    RatesModule,
-    DiamondTypesModule,
-    DiamondClaritiesModule,
-    DiamondColorsModule,
-    DiamondShapesModule,
-    DiamondShapeSizesModule,
-    DiamondsModule,
-    StylesModule,
-    SizesModule,
-    BrandsModule,
-    CategoriesModule,
-    GeneralSettingsModule,
-    TaxGroupsModule,
-    TaxesModule,
-    MakingChargeDiscountsModule, // Important: Specific prefix before general prefix
-    OffersModule,
-    ProductsModule,
-    QuotationsModule,
-    AdminQuotationsModule,
-    OrderStatusesModule, // Register before OrdersModule to avoid route conflicts
-    OrdersModule,
-    CartModule,
-    PricingModule,
-    TaxModule,
-    DiscountsModule,
-  ],
-  controllers: [AppController],
-  providers: [AppService],
+    imports: [
+        AuthModule,
+        PrismaModule,
+        KycModule,
+        CustomersModule,
+        CustomerGroupsModule,
+        DashboardModule,
+        UserGroupsModule,
+        TeamUsersModule,
+        MetalsModule,
+        MetalPuritiesModule,
+        MetalTonesModule,
+        RatesModule,
+        DiamondTypesModule,
+        DiamondClaritiesModule,
+        DiamondColorsModule,
+        DiamondShapesModule,
+        DiamondShapeSizesModule,
+        DiamondsModule,
+        StylesModule,
+        SizesModule,
+        BrandsModule,
+        CategoriesModule,
+        GeneralSettingsModule,
+        TaxGroupsModule,
+        TaxesModule,
+        MakingChargeDiscountsModule, // Important: Specific prefix before general prefix
+        OffersModule,
+        ProductsModule,
+        QuotationsModule,
+        AdminQuotationsModule,
+        OrderStatusesModule, // Register before OrdersModule to avoid route conflicts
+        OrdersModule,
+        CartModule,
+        PricingModule,
+        TaxModule,
+        DiscountsModule,
+        FrontendDashboardModule,
+        CatalogModule,
+        WishlistModule,
+        FrontendCartModule,
+        FrontendQuotationsModule,
+        FrontendCheckoutModule,
+        FrontendOrdersModule,
+        HomeModule,
+        ProfileModule,
+    ],
+    controllers: [AppController],
+    providers: [AppService],
 })
 export class AppModule {}

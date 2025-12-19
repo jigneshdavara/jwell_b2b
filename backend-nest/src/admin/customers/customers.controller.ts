@@ -1,17 +1,21 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseIntPipe, Request } from '@nestjs/common';
 import { CustomersService } from './customers.service';
-import { CustomerFilterDto, UpdateCustomerStatusDto, UpdateCustomerGroupDto } from './dto/customer.dto';
+import {
+    CustomerFilterDto,
+    UpdateCustomerStatusDto,
+    UpdateCustomerGroupDto,
+} from './dto/customer.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
 
 @Controller('admin/customers')
 @UseGuards(JwtAuthGuard)
 export class CustomersController {
-  constructor(private readonly customersService: CustomersService) {}
+    constructor(private readonly customersService: CustomersService) {}
 
-  @Get()
-  findAll(@Query() filters: CustomerFilterDto) {
-    return this.customersService.findAll(filters);
-  }
+    @Get()
+    findAll(@Query() filters: CustomerFilterDto) {
+        return this.customersService.findAll(filters);
+    }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -23,15 +27,18 @@ export class CustomersController {
     return this.customersService.updateStatus(id, dto);
   }
 
-  @Post(':id/toggle-status')
-  toggleStatus(@Param('id', ParseIntPipe) id: number) {
-    return this.customersService.toggleStatus(id);
-  }
+    @Post(':id/toggle-status')
+    toggleStatus(@Param('id', ParseIntPipe) id: number) {
+        return this.customersService.toggleStatus(id);
+    }
 
-  @Patch(':id/group')
-  updateGroup(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateCustomerGroupDto) {
-    return this.customersService.updateGroup(id, dto);
-  }
+    @Patch(':id/group')
+    updateGroup(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: UpdateCustomerGroupDto,
+    ) {
+        return this.customersService.updateGroup(id, dto);
+    }
 
   @Post(':id/kyc-messages')
   addKycMessage(@Param('id', ParseIntPipe) id: number, @Body('message') message: string, @Request() req: any) {

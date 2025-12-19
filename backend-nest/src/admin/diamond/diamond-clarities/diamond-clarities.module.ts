@@ -3,7 +3,7 @@ import { DiamondClaritiesService } from './diamond-clarities.service';
 import { DiamondClaritiesController } from './diamond-clarities.controller';
 
 @Module({
-  providers: [DiamondClaritiesService],
-  controllers: [DiamondClaritiesController]
+    providers: [DiamondClaritiesService],
+    controllers: [DiamondClaritiesController],
 })
 export class DiamondClaritiesModule {}

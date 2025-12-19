@@ -6,9 +6,9 @@ import { PricingModule } from '../common/pricing/pricing.module';
 import { TaxModule } from '../common/tax/tax.module';
 
 @Module({
-  imports: [PrismaModule, PricingModule, TaxModule],
-  providers: [CartService],
-  controllers: [CartController],
-  exports: [CartService],
+    imports: [PrismaModule, PricingModule, TaxModule],
+    providers: [CartService],
+    controllers: [CartController],
+    exports: [CartService],
 })
 export class CartModule {}

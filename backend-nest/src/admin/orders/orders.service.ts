@@ -5,146 +5,166 @@ import { OrderStatus } from './dto/order.dto';
 
 @Injectable()
 export class OrdersService {
-  constructor(
-    private prisma: PrismaService,
-    private orderWorkflowService: OrderWorkflowService,
-  ) {}
+    constructor(
+        private prisma: PrismaService,
+        private orderWorkflowService: OrderWorkflowService,
+    ) {}
 
-  async findAll(page: number = 1, perPage: number = 20, filters?: {
-    status?: string;
-    search?: string;
-  }) {
-    const skip = (page - 1) * perPage;
-
-    const where: any = {};
-
-    if (filters?.status) {
-      where.status = filters.status;
-    }
-
-    if (filters?.search) {
-      where.OR = [
-        { reference: { contains: filters.search, mode: 'insensitive' } },
-        { customers: { name: { contains: filters.search, mode: 'insensitive' } } },
-        { customers: { email: { contains: filters.search, mode: 'insensitive' } } },
-      ];
-    }
-
-    const [items, total] = await Promise.all([
-      this.prisma.orders.findMany({
-        where,
-        skip,
-        take: perPage,
-        orderBy: { created_at: 'desc' },
-        include: {
-          customers: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          order_items: {
-            select: {
-              id: true,
-            },
-          },
+    async findAll(
+        page: number = 1,
+        perPage: number = 20,
+        filters?: {
+            status?: string;
+            search?: string;
         },
-      }),
-      this.prisma.orders.count({ where }),
-    ]);
+    ) {
+        const skip = (page - 1) * perPage;
 
-    // Get all order status enum values
-    const statuses = Object.values(OrderStatus);
+        const where: any = {};
 
-    return {
-      items: items.map((order) => ({
-        id: order.id.toString(),
-        reference: order.reference,
-        status: order.status,
-        status_label: this.formatStatusLabel(order.status),
-        total_amount: order.total_amount.toString(),
-        created_at: order.created_at,
-        user: order.customers
-          ? {
-              name: order.customers.name,
-              email: order.customers.email,
-            }
-          : null,
-        items_count: order.order_items.length,
-      })),
-      meta: {
-        total,
-        page,
-        per_page: perPage,
-        total_pages: Math.ceil(total / perPage),
-      },
-      statuses,
-    };
-  }
+        if (filters?.status) {
+            where.status = filters.status;
+        }
 
-  async findOne(id: bigint) {
-    const order = await this.prisma.orders.findUnique({
-      where: { id },
-      include: {
-        customers: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        order_items: {
-          include: {
-            products: {
-              include: {
-                product_medias: {
-                  orderBy: { display_order: 'asc' },
+        if (filters?.search) {
+            where.OR = [
+                {
+                    reference: {
+                        contains: filters.search,
+                        mode: 'insensitive',
+                    },
                 },
-              },
-            },
-          },
-        },
-        payments: {
-          select: {
-            id: true,
-            status: true,
-            amount: true,
-            created_at: true,
-          },
-        },
-        order_status_histories: {
-          orderBy: { created_at: 'desc' },
-          select: {
-            id: true,
-            status: true,
-            created_at: true,
-            meta: true,
-          },
-        },
-        quotations: {
-          include: {
-            products: {
-              include: {
-                product_medias: {
-                  orderBy: { display_order: 'asc' },
+                {
+                    customers: {
+                        name: { contains: filters.search, mode: 'insensitive' },
+                    },
                 },
-              },
-            },
-          },
-        },
-      },
-    });
+                {
+                    customers: {
+                        email: {
+                            contains: filters.search,
+                            mode: 'insensitive',
+                        },
+                    },
+                },
+            ];
+        }
 
-    if (!order) {
-      throw new NotFoundException(`Order with ID ${id} not found`);
+        const [items, total] = await Promise.all([
+            this.prisma.orders.findMany({
+                where,
+                skip,
+                take: perPage,
+                orderBy: { created_at: 'desc' },
+                include: {
+                    customers: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                    order_items: {
+                        select: {
+                            id: true,
+                        },
+                    },
+                },
+            }),
+            this.prisma.orders.count({ where }),
+        ]);
+
+        // Get all order status enum values
+        const statuses = Object.values(OrderStatus);
+
+        return {
+            items: items.map((order) => ({
+                id: order.id.toString(),
+                reference: order.reference,
+                status: order.status,
+                status_label: this.formatStatusLabel(order.status),
+                total_amount: order.total_amount.toString(),
+                created_at: order.created_at,
+                user: order.customers
+                    ? {
+                          name: order.customers.name,
+                          email: order.customers.email,
+                      }
+                    : null,
+                items_count: order.order_items.length,
+            })),
+            meta: {
+                total,
+                page,
+                per_page: perPage,
+                total_pages: Math.ceil(total / perPage),
+            },
+            statuses,
+        };
     }
 
-    // Get all order status enum values with labels
-    const statusOptions = Object.values(OrderStatus).map((status) => ({
-      value: status,
-      label: this.formatStatusLabel(status),
-    }));
+    async findOne(id: bigint) {
+        const order = await this.prisma.orders.findUnique({
+            where: { id },
+            include: {
+                customers: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+                order_items: {
+                    include: {
+                        products: {
+                            include: {
+                                product_medias: {
+                                    orderBy: { display_order: 'asc' },
+                                },
+                            },
+                        },
+                    },
+                },
+                payments: {
+                    select: {
+                        id: true,
+                        status: true,
+                        amount: true,
+                        created_at: true,
+                    },
+                },
+                order_status_histories: {
+                    orderBy: { created_at: 'desc' },
+                    select: {
+                        id: true,
+                        status: true,
+                        created_at: true,
+                        meta: true,
+                    },
+                },
+                quotations: {
+                    include: {
+                        products: {
+                            include: {
+                                product_medias: {
+                                    orderBy: { display_order: 'asc' },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!order) {
+            throw new NotFoundException(`Order with ID ${id} not found`);
+        }
+
+        // Get all order status enum values with labels
+        const statusOptions = Object.values(OrderStatus).map((status) => ({
+            value: status,
+            label: this.formatStatusLabel(status),
+        }));
 
     return {
       id: order.id.toString(),
@@ -172,20 +192,30 @@ export class OrdersService {
           priceBreakdown = metadata.price_breakdown ?? null;
         }
 
-        // If not in item metadata, try to get from order-level price_breakdown
-        if (!priceBreakdown && order.price_breakdown && typeof order.price_breakdown === 'object') {
-          const orderBreakdown = order.price_breakdown as any;
-          if (Array.isArray(orderBreakdown.items)) {
-            for (const breakdownItem of orderBreakdown.items) {
-              if (breakdownItem.unit && typeof breakdownItem.unit === 'object') {
-                priceBreakdown = breakdownItem.unit;
-                break;
-              }
-            }
-          } else if (orderBreakdown.unit && typeof orderBreakdown.unit === 'object') {
-            priceBreakdown = orderBreakdown.unit;
-          }
-        }
+                // If not in item metadata, try to get from order-level price_breakdown
+                if (
+                    !priceBreakdown &&
+                    order.price_breakdown &&
+                    typeof order.price_breakdown === 'object'
+                ) {
+                    const orderBreakdown = order.price_breakdown as any;
+                    if (Array.isArray(orderBreakdown.items)) {
+                        for (const breakdownItem of orderBreakdown.items) {
+                            if (
+                                breakdownItem.unit &&
+                                typeof breakdownItem.unit === 'object'
+                            ) {
+                                priceBreakdown = breakdownItem.unit;
+                                break;
+                            }
+                        }
+                    } else if (
+                        orderBreakdown.unit &&
+                        typeof orderBreakdown.unit === 'object'
+                    ) {
+                        priceBreakdown = orderBreakdown.unit;
+                    }
+                }
 
         // Ensure price_breakdown has all required fields
         if (priceBreakdown && typeof priceBreakdown === 'object') {
@@ -225,54 +255,31 @@ export class OrdersService {
               }
             : null,
         };
-      }),
-      status_history: order.order_status_histories.map((entry) => ({
-        id: entry.id.toString(),
-        status: entry.status,
-        created_at: entry.created_at,
-        meta: entry.meta,
-      })),
-      payments: order.payments.map((payment) => ({
-        id: payment.id.toString(),
-        status: payment.status,
-        amount: payment.amount.toString(),
-        created_at: payment.created_at,
-      })),
-      quotations: order.quotations.map((quotation) => ({
-        id: quotation.id.toString(),
-        status: quotation.status,
-        quantity: quotation.quantity,
-        product: quotation.products
-          ? {
-              id: quotation.products.id.toString(),
-              name: quotation.products.name,
-              sku: quotation.products.sku,
-              media: quotation.products.product_medias.map((media) => ({
-                url: media.url,
-                alt: (media.metadata as any)?.['alt'] ?? quotation.products.name,
-              })),
-            }
-          : null,
-      })),
-      statusOptions,
-    };
-  }
+    }
 
-  async updateStatus(
-    id: bigint,
-    status: OrderStatus,
-    meta: Record<string, any> = {},
-    userId?: bigint,
-    actorGuard: 'customer' | 'admin' = 'admin',
-  ) {
-    await this.orderWorkflowService.transitionOrder(id, status, meta, userId, actorGuard);
-    return { message: `Order status updated to ${this.formatStatusLabel(status)}.` };
-  }
+    async updateStatus(
+        id: bigint,
+        status: OrderStatus,
+        meta: Record<string, any> = {},
+        userId?: bigint,
+        actorGuard: 'customer' | 'admin' = 'admin',
+    ) {
+        await this.orderWorkflowService.transitionOrder(
+            id,
+            status,
+            meta,
+            userId,
+            actorGuard,
+        );
+        return {
+            message: `Order status updated to ${this.formatStatusLabel(status)}.`,
+        };
+    }
 
-  private formatStatusLabel(status: string): string {
-    return status
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
+    private formatStatusLabel(status: string): string {
+        return status
+            .split('_')
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
 }

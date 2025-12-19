@@ -4,26 +4,28 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  
-  // Enable CORS
-  app.enableCors();
+    const app = await NestFactory.create(AppModule);
 
-  // Set global prefix to match frontend expectations
-  app.setGlobalPrefix('api');
-  
-  // Enable validation globally
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+    // Enable CORS
+    app.enableCors();
 
-  // Handle BigInt serialization
-  (BigInt.prototype as any).toJSON = function () {
-    return this.toString();
-  };
+    // Set global prefix to match frontend expectations
+    app.setGlobalPrefix('api');
 
-  await app.listen(process.env.PORT ?? 3001);
+    // Enable validation globally
+    app.useGlobalPipes(
+        new ValidationPipe({
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+        }),
+    );
+
+    // Handle BigInt serialization
+    (BigInt.prototype as any).toJSON = function () {
+        return this.toString();
+    };
+
+    await app.listen(process.env.PORT ?? 3001);
 }
 bootstrap();
