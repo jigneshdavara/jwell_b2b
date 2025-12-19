@@ -38,6 +38,8 @@ import { PricingModule } from './common/pricing/pricing.module';
 import { TaxModule } from './common/tax/tax.module';
 import { DiscountsModule } from './common/discounts/discounts.module';
 import { DashboardModule as FrontendDashboardModule } from './frontend/dashboard/dashboard.module';
+import { CatalogModule } from './frontend/catalog/catalog.module';
+import { WishlistModule } from './frontend/wishlist/wishlist.module';
 
 @Module({
     imports: [
@@ -76,9 +78,11 @@ import { DashboardModule as FrontendDashboardModule } from './frontend/dashboard
         CartModule,
         PricingModule,
         TaxModule,
-        DiscountsModule,
-        FrontendDashboardModule,
-    ],
+    DiscountsModule,
+    FrontendDashboardModule,
+    CatalogModule,
+    WishlistModule,
+  ],
     controllers: [AppController],
     providers: [AppService],
 })
