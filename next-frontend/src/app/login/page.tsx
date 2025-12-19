@@ -13,9 +13,11 @@ import { route } from '@/utils/route';
 
 type LoginMode = 'password' | 'otp';
 
+import { authService } from '@/services/authService';
+
 export default function Login() {
     const router = useRouter();
-    const status = undefined;
+    const [status, setStatus] = useState<string | undefined>(undefined);
     const canResetPassword = true;
 
     const [mode, setMode] = useState<LoginMode>('password');
@@ -47,19 +49,20 @@ export default function Login() {
         setProcessing(true);
         setErrors({});
 
-        // Mock authentication logic
-        setTimeout(() => {
-            if (passwordData.email && passwordData.password) {
-                // Successful mock login
-                router.push(route('dashboard'));
+        try {
+            await authService.login(passwordData);
+            router.push(route('dashboard'));
+        } catch (error: any) {
+            if (error.response?.status === 401) {
+                setErrors({ email: 'Invalid credentials.' });
+            } else if (error.response?.data?.message) {
+                setErrors({ email: error.response.data.message });
             } else {
-                setErrors({
-                    email: !passwordData.email ? 'The email field is required.' : '',
-                    password: !passwordData.password ? 'The password field is required.' : '',
-                });
+                setErrors({ email: 'An error occurred. Please try again.' });
             }
+        } finally {
             setProcessing(false);
-        }, 800);
+        }
     };
 
     const submitOtpRequest: FormEventHandler = async (event) => {
@@ -67,14 +70,15 @@ export default function Login() {
         setProcessing(true);
         setErrors({});
         
-        setTimeout(() => {
-            if (sharedEmail) {
-                setOtpRequested(true);
-            } else {
-                setErrors({ email: 'The email field is required.' });
-            }
+        try {
+            await authService.requestOtp(sharedEmail);
+            setOtpRequested(true);
+            setStatus('A one-time code has been emailed.');
+        } catch (error: any) {
+            setErrors({ email: error.response?.data?.message || 'Failed to send code.' });
+        } finally {
             setProcessing(false);
-        }, 800);
+        }
     };
 
     const submitOtpVerify: FormEventHandler = async (event) => {
@@ -82,14 +86,14 @@ export default function Login() {
         setProcessing(true);
         setErrors({});
         
-        setTimeout(() => {
-            if (otpVerifyData.code === '123456') {
-                router.push(route('dashboard'));
-            } else {
-                setErrors({ code: 'The provided one-time code is invalid.' });
-            }
+        try {
+            await authService.verifyOtp({ email: sharedEmail, code: otpVerifyData.code });
+            router.push(route('dashboard'));
+        } catch (error: any) {
+            setErrors({ code: error.response?.data?.message || 'Invalid code.' });
+        } finally {
             setProcessing(false);
-        }, 800);
+        }
     };
 
     const ArrowRightIcon = () => (

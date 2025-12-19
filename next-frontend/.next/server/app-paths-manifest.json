@@ -1,8 +1,6 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js",
-  "/(customer)/quotations/page": "app/(customer)/quotations/page.js",
-  "/(customer)/orders/page": "app/(customer)/orders/page.js",
-  "/(customer)/profile/page": "app/(customer)/profile/page.js",
-  "/(customer)/cart/page": "app/(customer)/cart/page.js"
+  "/admin/products/create/page": "app/admin/products/create/page.js",
+  "/admin/categories/page": "app/admin/categories/page.js",
+  "/admin/products/page": "app/admin/products/page.js",
+  "/admin/products/[id]/edit/page": "app/admin/products/[id]/edit/page.js"
 }

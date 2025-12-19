@@ -6,16 +6,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { adminService } from "@/services/adminService";
 
-type BrandList = Record<string, string>;
-
-type CategoryOption = {
-  id: number;
-  name: string;
-  parent_id: number | null;
-};
-
-type CategoryList = CategoryOption[];
-
 type Product = {
   id: number;
   name: string;
@@ -64,29 +54,70 @@ export default function AdminProductsPage() {
 
   const fetchProducts = async () => {
     setLoading(true);
-    // Mock data
-    const mockData = {
-      products: {
-        data: [
-          { id: 1, name: 'Diamond Solitaire Ring', sku: 'ELV-1001', is_active: true, brand: { name: 'Elvee Atelier' }, category: { name: 'Rings' }, variants_count: 3 },
-          { id: 2, name: 'Gold Tennis Bracelet', sku: 'ELV-1002', is_active: true, brand: { name: 'Signature' }, category: { name: 'Bracelets' }, variants_count: 1 },
-          { id: 3, name: 'Emerald Stud Earrings', sku: 'ELV-1003', is_active: false, brand: { name: 'Elvee Atelier' }, category: { name: 'Earrings' }, variants_count: 2 },
-        ],
-        meta: { from: 1, to: 3, total: 3 },
-        links: [
-          { url: '#', label: '&laquo; Previous', active: false },
-          { url: '#', label: '1', active: true },
-          { url: '#', label: 'Next &raquo;', active: false },
-        ]
-      },
-      brands: { 1: 'Elvee Atelier', 2: 'Signature' },
-      categories: [{ id: 1, name: 'Rings' }, { id: 2, name: 'Earrings' }, { id: 3, name: 'Bracelets' }],
-      filters: {},
-      perPageOptions: [10, 20, 50, 100],
-      perPage: 20,
-    };
-    setData(mockData);
-    setLoading(false);
+    try {
+      const filters: any = {
+        page: filterState.page,
+        per_page: filterState.per_page,
+      };
+      if (filterState.search) filters.search = filterState.search;
+      if (filterState.brand !== 'all') filters.brand_id = parseInt(filterState.brand);
+      if (filterState.category !== 'all') filters.category_id = parseInt(filterState.category);
+      if (filterState.status !== 'all') filters.status = filterState.status;
+
+      const response = await adminService.getProducts(filters);
+      const productsData = response.data.items || response.data.data || [];
+      const meta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: filterState.per_page };
+
+      // Build pagination links
+      const links = [];
+      if (meta.current_page > 1) {
+        links.push({ url: null, label: '« Previous', active: false });
+      }
+      for (let i = 1; i <= meta.last_page; i++) {
+        links.push({ url: null, label: String(i), active: i === meta.current_page });
+      }
+      if (meta.current_page < meta.last_page) {
+        links.push({ url: null, label: 'Next »', active: false });
+      }
+
+      // Fetch brands and categories for filters
+      const [brandsResponse, categoriesResponse] = await Promise.all([
+        adminService.getBrands(1, 100).catch(() => ({ data: { items: [] } })),
+        adminService.getCategories(1, 100).catch(() => ({ data: { items: [] } })),
+      ]);
+
+      const brandsMap: Record<string, string> = {};
+      (brandsResponse.data.items || []).forEach((brand: any) => {
+        brandsMap[brand.id] = brand.name;
+      });
+
+      setData({
+        products: {
+          data: productsData,
+          meta: {
+            from: meta.current_page > 1 ? (meta.current_page - 1) * meta.per_page + 1 : 1,
+            to: Math.min(meta.current_page * meta.per_page, meta.total),
+            total: meta.total,
+            per_page: meta.per_page,
+          },
+          links,
+        },
+        brands: brandsMap,
+        categories: categoriesResponse.data.items || [],
+        filters: {},
+        perPageOptions: [10, 20, 50, 100],
+        perPage: filterState.per_page,
+      });
+    } catch (error: any) {
+      console.error('Failed to load products:', error);
+      setAlertModal({
+        show: true,
+        title: "Error",
+        message: error.response?.data?.message || "Failed to load products. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -135,20 +166,23 @@ export default function AdminProductsPage() {
         title: "Delete Products",
         message: `Are you sure you want to delete ${selectedProducts.length} product(s)? This action cannot be undone.`,
         onConfirm: async () => {
-          setData((prev: any) => ({
-            ...prev,
-            products: {
-              ...prev.products,
-              data: prev.products.data.filter((p: any) => !selectedProducts.includes(p.id))
-            }
-          }));
-          setSelectedProducts([]);
-          setConfirmModal({
-            show: false,
-            title: "",
-            message: "",
-            onConfirm: () => {},
-          });
+          try {
+            await adminService.bulkDeleteProducts(selectedProducts);
+            setSelectedProducts([]);
+            await fetchProducts();
+            setConfirmModal({
+              show: false,
+              title: "",
+              message: "",
+              onConfirm: () => {},
+            });
+          } catch (error: any) {
+            setAlertModal({
+              show: true,
+              title: "Error",
+              message: error.response?.data?.message || "Failed to delete products. Please try again.",
+            });
+          }
         },
       });
     });
@@ -156,19 +190,21 @@ export default function AdminProductsPage() {
 
   const bulkStatus = (action: "activate" | "deactivate") => {
     ensureSelection(async () => {
-      setData((prev: any) => ({
-        ...prev,
-        products: {
-          ...prev.products,
-          data: prev.products.data.map((p: any) => 
-            selectedProducts.includes(p.id) ? { ...p, is_active: action === 'activate' } : p
-          )
-        }
-      }));
-      setSelectedProducts([]);
+      try {
+        await adminService.bulkUpdateProductStatus(selectedProducts, action === 'activate');
+        setSelectedProducts([]);
+        await fetchProducts();
+      } catch (error: any) {
+        setAlertModal({
+          show: true,
+          title: "Error",
+          message: error.response?.data?.message || "Failed to update product status. Please try again.",
+        });
+      }
     });
   };
 
+  // Note: Bulk assign brand/category not available in API yet
   const bulkAssignBrand = () => {
     ensureSelection(async () => {
       if (!bulkBrand) {
@@ -179,18 +215,11 @@ export default function AdminProductsPage() {
         });
         return;
       }
-      const brandName = data.brands[bulkBrand];
-      setData((prev: any) => ({
-        ...prev,
-        products: {
-          ...prev.products,
-          data: prev.products.data.map((p: any) => 
-            selectedProducts.includes(p.id) ? { ...p, brand: { name: brandName } } : p
-          )
-        }
-      }));
-      setSelectedProducts([]);
-      setBulkBrand("");
+      setAlertModal({
+        show: true,
+        title: "Not Available",
+        message: "Bulk brand assignment is not yet available in the API.",
+      });
     });
   };
 
@@ -204,31 +233,29 @@ export default function AdminProductsPage() {
         });
         return;
       }
-      const categoryName = data.categories.find((c: any) => String(c.id) === bulkCategory)?.name;
-      setData((prev: any) => ({
-        ...prev,
-        products: {
-          ...prev.products,
-          data: prev.products.data.map((p: any) => 
-            selectedProducts.includes(p.id) ? { ...p, category: { name: categoryName } } : p
-          )
-        }
-      }));
-      setSelectedProducts([]);
-      setBulkCategory("");
+      setAlertModal({
+        show: true,
+        title: "Not Available",
+        message: "Bulk category assignment is not yet available in the API.",
+      });
     });
   };
 
   const duplicateProduct = async (id: number) => {
-    const product = data.products.data.find((p: any) => p.id === id);
-    if (product) {
-      setData((prev: any) => ({
-        ...prev,
-        products: {
-          ...prev.products,
-          data: [...prev.products.data, { ...product, id: Date.now(), name: `${product.name} (Copy)` }]
-        }
-      }));
+    try {
+      await adminService.copyProduct(id);
+      await fetchProducts();
+      setAlertModal({
+        show: true,
+        title: "Success",
+        message: "Product duplicated successfully.",
+      });
+    } catch (error: any) {
+      setAlertModal({
+        show: true,
+        title: "Error",
+        message: error.response?.data?.message || "Failed to duplicate product. Please try again.",
+      });
     }
   };
 
@@ -239,25 +266,32 @@ export default function AdminProductsPage() {
       message:
         "Are you sure you want to delete this product? This action cannot be undone.",
       onConfirm: async () => {
-        setData((prev: any) => ({
-          ...prev,
-          products: {
-            ...prev.products,
-            data: prev.products.data.filter((p: any) => p.id !== id)
-          }
-        }));
-        setConfirmModal({
-          show: false,
-          title: "",
-          message: "",
-          onConfirm: () => {},
-        });
+        try {
+          await adminService.deleteProduct(id);
+          await fetchProducts();
+          setConfirmModal({
+            show: false,
+            title: "",
+            message: "",
+            onConfirm: () => {},
+          });
+        } catch (error: any) {
+          setAlertModal({
+            show: true,
+            title: "Error",
+            message: error.response?.data?.message || "Failed to delete product. Please try again.",
+          });
+        }
       },
     });
   };
 
   const changePage = (page: number) => {
     setFilterState((prev) => ({ ...prev, page }));
+  };
+
+  const handlePerPageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setFilterState((prev) => ({ ...prev, per_page: parseInt(event.target.value), page: 1 }));
   };
 
   if (loading && !data.products.data.length) {
@@ -348,7 +382,7 @@ export default function AdminProductsPage() {
               <select
                 value={bulkBrand}
                 onChange={(event) => setBulkBrand(event.target.value)}
-                className="rounded-2xl border border-slate-200 px-3 py-1"
+                className="rounded-2xl border border-slate-200 px-3 py-1 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
               >
                 <option value="">Assign brand…</option>
                 {Object.entries(data.brands).map(([id, name]: any) => (
@@ -369,7 +403,7 @@ export default function AdminProductsPage() {
               <select
                 value={bulkCategory}
                 onChange={(event) => setBulkCategory(event.target.value)}
-                className="rounded-2xl border border-slate-200 px-3 py-1"
+                className="rounded-2xl border border-slate-200 px-3 py-1 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
               >
                 <option value="">Assign category…</option>
                 {data.categories.map((category: any) => (
@@ -417,7 +451,7 @@ export default function AdminProductsPage() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
               <tr>
@@ -426,7 +460,7 @@ export default function AdminProductsPage() {
                     type="checkbox"
                     checked={allSelected}
                     onChange={toggleSelectAll}
-                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                     aria-label="Select all products"
                   />
                 </th>
@@ -439,7 +473,7 @@ export default function AdminProductsPage() {
                 <th className="px-6 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 bg-white">
+            <tbody className="divide-y divide-slate-100 bg-white">
               {data.products.data.map((product: any) => (
                 <tr key={product.id} className="hover:bg-slate-50">
                   <td className="px-6 py-4">
@@ -447,7 +481,7 @@ export default function AdminProductsPage() {
                       type="checkbox"
                       checked={selectedProducts.includes(product.id)}
                       onChange={() => toggleSelection(product.id)}
-                      className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                      className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
                       aria-label={`Select product ${product.sku}`}
                     />
                   </td>
@@ -601,16 +635,27 @@ export default function AdminProductsPage() {
 
               // Extract page number from URL if needed, but here we just use the label if it's a number
               const pageNum = parseInt(cleanLabel);
+              const isPrev = cleanLabel.includes('Previous');
+              const isNext = cleanLabel.includes('Next');
 
               return (
                 <button
                   key={`${link.label}-${index}`}
                   type="button"
-                  onClick={() => !isNaN(pageNum) && changePage(pageNum)}
+                  onClick={() => {
+                    if (isPrev && data.products.meta && data.products.meta.from > 1) {
+                      changePage(filterState.page - 1);
+                    } else if (isNext && data.products.meta && data.products.meta.to < data.products.meta.total) {
+                      changePage(filterState.page + 1);
+                    } else if (!isNaN(pageNum)) {
+                      changePage(pageNum);
+                    }
+                  }}
+                  disabled={!link.url && (isPrev || isNext)}
                   className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
                     link.active
                       ? "bg-sky-600 text-white shadow shadow-sky-600/20"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
                   }`}
                 >
                   {cleanLabel}
@@ -647,4 +692,3 @@ export default function AdminProductsPage() {
     </>
   );
 }
-

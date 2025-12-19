@@ -45,14 +45,14 @@ export default function AuthenticatedLayout({
     useEffect(() => {
         const fetchUser = async () => {
             setLoading(true);
-            // Mock authenticated user
-            setUser({
-                id: 1,
-                name: 'Diamond Partner',
-                email: 'partner@example.com',
-                type: 'retailer', // or 'admin', 'production'
-            });
-            setLoading(false);
+            try {
+                const response = await authService.me();
+                setUser(response.data);
+            } catch (e) {
+                router.push('/login');
+            } finally {
+                setLoading(false);
+            }
         };
         fetchUser();
     }, [router]);
@@ -192,6 +192,7 @@ export default function AuthenticatedLayout({
     };
 
     const handleLogout = async () => {
+        await authService.logout();
         router.push('/login');
     };
 

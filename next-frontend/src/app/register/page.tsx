@@ -96,11 +96,18 @@ export default function RegisterPage() {
     setProcessing(true);
     setErrors({});
 
-    // Mock registration logic
-    setTimeout(() => {
+    try {
+      await authService.register(data);
       router.push("/dashboard");
+    } catch (error: any) {
+      if (error.response?.data?.errors) {
+        setErrors(error.response.data.errors);
+      } else {
+        setErrors({ email: error.response?.data?.message || "Registration failed. Please check your data." });
+      }
+    } finally {
       setProcessing(false);
-    }, 1500);
+    }
   };
 
   const goToStep = (step: number) => {

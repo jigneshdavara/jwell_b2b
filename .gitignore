@@ -1,8 +1,11 @@
+# Laravel
 *.log
 .DS_Store
 .env
 .env.backup
 .env.production
+.env.local
+.env.*.local
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -22,5 +25,78 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
-/next-frontend/node_modules
+
+# Next.js
+/next-frontend/.next/
+/next-frontend/out/
+/next-frontend/build
 /next-frontend/dist
+/next-frontend/.next
+/next-frontend/node_modules
+/next-frontend/.env
+/next-frontend/.env.local
+/next-frontend/.env.*.local
+/next-frontend/.vercel
+/next-frontend/.swc
+
+# NestJS Backend
+/backend-nest/dist/
+/backend-nest/node_modules/
+/backend-nest/.env
+/backend-nest/.env.local
+/backend-nest/.env.*.local
+/backend-nest/uploads/
+/backend-nest/*.log
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Testing
+/coverage/
+/.nyc_output
+/.pytest_cache/
+/.coverage
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Package manager locks (optional - some teams commit these)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml

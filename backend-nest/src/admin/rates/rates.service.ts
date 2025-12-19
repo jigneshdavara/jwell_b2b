@@ -65,78 +65,17 @@ export class RatesService {
         };
     }
 
-    async storeMetalRates(metal: string, dto: UpdateMetalRatesDto) {
-        const normalizedMetal = metal.toLowerCase();
-        const currency = dto.currency?.toUpperCase() || 'INR';
-
-        const updates = dto.rates
-            .filter((r) => r.purity && r.price_per_gram > 0)
-            .map((r) => {
-                return this.prisma.price_rates.upsert({
-                    where: {
-                        // PriceRate doesn't have a unique constraint on metal+purity in schema,
-                        // but Laravel used updateOrCreate. We'll find and update or create.
-                        id: -1n, // Placeholder, we'll use findFirst
-                    },
-                    create: {
-                        metal: normalizedMetal,
-                        purity: r.purity,
-                        price_per_gram: r.price_per_gram,
-                        currency,
-                        source: 'manual',
-                        metadata: { origin: 'manual' },
-                        effective_at: new Date(),
-                    },
-                    update: {
-                        price_per_gram: r.price_per_gram,
-                        currency,
-                        source: 'manual',
-                        metadata: { origin: 'manual' },
-                        effective_at: new Date(),
-                    },
-                });
-            });
-
-        // Actually, upsert needs a unique field. Since we don't have a unique constraint on metal+purity in schema,
-        // we have to do it manually.
-        for (const r of dto.rates) {
-            if (!r.purity || r.price_per_gram <= 0) continue;
-
-            const existing = await this.prisma.price_rates.findFirst({
-                where: {
-                    metal: normalizedMetal,
-                    purity: r.purity,
-                },
-                orderBy: { effective_at: 'desc' },
-            });
-
-            if (existing) {
-                await this.prisma.price_rates.update({
-                    where: { id: existing.id },
-                    data: {
-                        price_per_gram: r.price_per_gram,
-                        currency,
-                        source: 'manual',
-                        metadata: { origin: 'manual' },
-                        effective_at: new Date(),
-                    },
-                });
-            } else {
-                await this.prisma.price_rates.create({
-                    data: {
-                        metal: normalizedMetal,
-                        purity: r.purity,
-                        price_per_gram: r.price_per_gram,
-                        currency,
-                        source: 'manual',
-                        metadata: { origin: 'manual' },
-                        effective_at: new Date(),
-                    },
-                });
-            }
-        }
-
-        return { message: `${metal} rates saved successfully.` };
+    const latest = rates[0];
+    
+    // Get latest rate per purity
+    const puritiesSeen = new Set();
+    const latestByPurity: typeof rates = [];
+    
+    for (const rate of rates) {
+      if (!puritiesSeen.has(rate.purity)) {
+        puritiesSeen.add(rate.purity);
+        latestByPurity.push(rate);
+      }
     }
 
     private async buildMetalSummary(metal: string) {

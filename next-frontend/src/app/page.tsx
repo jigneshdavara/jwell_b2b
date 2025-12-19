@@ -73,8 +73,8 @@ export default function HomeIndex() {
         // Auth check remains to allow testing transitions
         const checkAuth = async () => {
             try {
-                const authCheck = await authService.me();
-                if (authCheck.data) {
+                const response = await authService.me();
+                if (response.data) {
                     router.push(route('dashboard'));
                 }
             } catch (e) {

@@ -15,51 +15,80 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class TeamUsersService {
-    constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {}
 
-    private readonly INTERNAL_TYPES = [
-        UserType.ADMIN,
-        UserType.SUPER_ADMIN,
-        UserType.PRODUCTION,
-        UserType.SALES,
-    ];
+  private readonly INTERNAL_TYPES = [
+    UserType.ADMIN,
+    UserType.SUPER_ADMIN,
+    UserType.PRODUCTION,
+    UserType.SALES,
+  ];
 
-    async findAll(page: number = 1, perPage: number = 20) {
-        const skip = (page - 1) * perPage;
-        const [items, total] = await Promise.all([
-            this.prisma.user.findMany({
-                where: {
-                    type: { in: this.INTERNAL_TYPES },
-                },
-                skip,
-                take: perPage,
-                include: {
-                    user_groups: {
-                        select: { id: true, name: true },
-                    },
-                },
-                orderBy: { name: 'asc' },
-            }),
-            this.prisma.user.count({
-                where: {
-                    type: { in: this.INTERNAL_TYPES },
-                },
-            }),
-        ]);
+  async findAll(page: number = 1, perPage: number = 20) {
+    const skip = (page - 1) * perPage;
+    const [items, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where: {
+          type: { in: this.INTERNAL_TYPES },
+        },
+        skip,
+        take: perPage,
+        include: {
+          user_groups: {
+            select: { id: true, name: true },
+          },
+        },
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.user.count({
+        where: {
+          type: { in: this.INTERNAL_TYPES },
+        },
+      }),
+    ]);
 
+    // Helper to format type label
+    const formatTypeLabel = (type: string) => {
+      return type
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    };
+
+    return {
+      items: items.map(user => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password, user_groups, created_at, ...rest } = user;
         return {
-            items: items.map((user) => {
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const { password, ...rest } = user;
-                return rest;
-            }),
-            meta: {
-                total,
-                page,
-                perPage,
-                lastPage: Math.ceil(total / perPage),
-            },
+          ...rest,
+          id: Number(rest.id),
+          user_group: user_groups ? {
+            id: Number(user_groups.id),
+            name: user_groups.name,
+          } : null,
+          type_label: formatTypeLabel(rest.type),
+          joined_at: created_at,
         };
+      }),
+      meta: {
+        total,
+        page,
+        perPage,
+        lastPage: Math.ceil(total / perPage),
+      },
+    };
+  }
+
+  async findOne(id: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        user_groups: true,
+      },
+    });
+
+    if (!user || !this.INTERNAL_TYPES.includes(user.type as UserType)) {
+      throw new NotFoundException('Team user not found');
     }
 
     async findOne(id: number) {
@@ -170,9 +199,21 @@ export class TeamUsersService {
             throw new ForbiddenException('Cannot delete super-admin user');
         }
 
-        return await this.prisma.user.delete({
-            where: { id: BigInt(id) },
-        });
+    return await this.prisma.user.update({
+      where: { id: BigInt(id) },
+      data: {
+        user_group_id: dto.user_group_id ? BigInt(dto.user_group_id) : null,
+      },
+    });
+  }
+
+  async remove(id: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: BigInt(id) },
+    });
+
+    if (!user || !this.INTERNAL_TYPES.includes(user.type as UserType)) {
+      throw new NotFoundException('Team user not found');
     }
 
     async bulkRemove(ids: number[]) {

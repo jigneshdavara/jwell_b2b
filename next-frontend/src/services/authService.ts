@@ -1,40 +1,51 @@
 import apiClient from "./api";
 
 export const authService = {
-  async csrf() {
-    return await apiClient.get("/csrf-cookie", { baseURL: "http://localhost:8000/sanctum" });
-  },
-
   async login(data: any) {
-    return await apiClient.post("/login", data);
+    const response = await apiClient.post("/auth/login", data);
+    if (response.data.access_token) {
+      localStorage.setItem("auth_token", response.data.access_token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+    }
+    return response;
   },
 
-  async confirmPassword(data: any) {
-    return await apiClient.post("/user/confirm-password", data);
+  async requestOtp(email: string) {
+    return await apiClient.post("/auth/otp/request", { email });
   },
 
-  async resendVerificationEmail() {
-    return await apiClient.post("/email/verification-notification");
-  },
-
-  async resetPassword(data: any) {
-    return await apiClient.post("/reset-password", data);
-  },
-
-  async forgotPassword(data: any) {
-    return await apiClient.post("/forgot-password", data);
+  async verifyOtp(data: { email: string; code: string }) {
+    const response = await apiClient.post("/auth/otp/verify", data);
+    if (response.data.access_token) {
+      localStorage.setItem("auth_token", response.data.access_token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+    }
+    return response;
   },
 
   async register(data: any) {
-    return await apiClient.post("/register", data);
+    const response = await apiClient.post("/auth/register", data);
+    if (response.data.access_token) {
+      localStorage.setItem("auth_token", response.data.access_token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+    }
+    return response;
   },
 
   async logout() {
-    return await apiClient.post("/logout");
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user");
+    // NestJS side usually doesn't need a logout call for JWT unless blacklisting
+    // but we can call it if implemented.
   },
 
   async me() {
-    return await apiClient.get("/user");
+    // If we have a user in local storage, return it, otherwise try to fetch profile
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      return { data: JSON.parse(savedUser) };
+    }
+    return await apiClient.get("/kyc/profile");
   },
 };
 

@@ -40,17 +40,19 @@ export class BrandsService {
         return brand;
     }
 
-    async create(dto: CreateBrandDto, coverImage?: string) {
-        return await this.prisma.brands.create({
-            data: {
-                code: dto.code,
-                name: dto.name,
-                description: dto.description,
-                is_active: dto.is_active ?? true,
-                display_order: dto.display_order,
-                cover_image: coverImage,
-            },
-        });
+  async update(id: number, dto: UpdateBrandDto, coverImage?: string) {
+    const brand = await this.findOne(id);
+    
+    let imageToUpdate: string | undefined = coverImage;
+    if (dto.remove_cover_image && brand.cover_image) {
+      this.deleteImage(brand.cover_image);
+      imageToUpdate = undefined;
+    } else if (coverImage && brand.cover_image) {
+      // New image uploaded, delete old one
+      this.deleteImage(brand.cover_image);
+    } else if (!coverImage) {
+      // No new image, preserve existing unless removed
+      imageToUpdate = brand.cover_image ?? undefined;
     }
 
     async update(id: number, dto: UpdateBrandDto, coverImage?: string) {
