@@ -4,12 +4,14 @@ import {
     Post,
     Body,
     Put,
+    Patch,
     Param,
     Delete,
     Query,
     UseGuards,
     ParseIntPipe,
     UseInterceptors,
+    UsePipes,
     UploadedFiles,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -22,6 +24,8 @@ import {
     BulkStatusDto,
 } from './dto/product.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { TransformMultipartPipe } from '../../common/pipes/transform-multipart.pipe';
+import { TransformMultipartInterceptor } from '../../common/interceptors/transform-multipart.interceptor';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import * as fs from 'fs';
@@ -69,12 +73,13 @@ export class ProductsController {
                 },
             }),
         }),
+        TransformMultipartInterceptor, // Transform AFTER FilesInterceptor parses multipart
     )
     create(
-        @Body() dto: CreateProductDto,
+        @Body(TransformMultipartPipe) dto: CreateProductDto,
         @UploadedFiles() mediaFiles: Express.Multer.File[],
     ) {
-        // Transform stringified fields from multipart/form-data
+        // Pipe handles transformation, but keep manual parsing as fallback
         if (typeof dto.variants === 'string')
             dto.variants = JSON.parse(dto.variants);
         if (typeof dto.catalog_ids === 'string')
@@ -114,13 +119,63 @@ export class ProductsController {
                 },
             }),
         }),
+        TransformMultipartInterceptor, // Transform AFTER FilesInterceptor parses multipart
     )
     update(
         @Param('id', ParseIntPipe) id: number,
-        @Body() dto: UpdateProductDto,
+        @Body(TransformMultipartPipe) dto: UpdateProductDto,
         @UploadedFiles() mediaFiles: Express.Multer.File[],
     ) {
-        // Transform stringified fields from multipart/form-data
+        // Pipe handles transformation, but keep manual parsing as fallback
+        if (typeof dto.variants === 'string')
+            dto.variants = JSON.parse(dto.variants);
+        if (typeof dto.catalog_ids === 'string')
+            dto.catalog_ids = JSON.parse(dto.catalog_ids);
+        if (typeof dto.category_ids === 'string')
+            dto.category_ids = JSON.parse(dto.category_ids);
+        if (typeof dto.style_ids === 'string')
+            dto.style_ids = JSON.parse(dto.style_ids);
+        if (typeof dto.making_charge_types === 'string')
+            dto.making_charge_types = JSON.parse(dto.making_charge_types);
+        if (typeof dto.metadata === 'string')
+            dto.metadata = JSON.parse(dto.metadata);
+        if (typeof dto.removed_media_ids === 'string')
+            dto.removed_media_ids = JSON.parse(dto.removed_media_ids);
+
+        return this.productsService.update(id, dto, mediaFiles);
+    }
+
+    @Patch(':id')
+    @UseInterceptors(
+        FilesInterceptor('media_uploads', 10, {
+            storage: diskStorage({
+                destination: (req, file, cb) => {
+                    const dir = './public/storage/products';
+                    if (!fs.existsSync(dir)) {
+                        fs.mkdirSync(dir, { recursive: true });
+                    }
+                    cb(null, dir);
+                },
+                filename: (req, file, cb) => {
+                    const randomName = Array(32)
+                        .fill(null)
+                        .map(() => Math.round(Math.random() * 16).toString(16))
+                        .join('');
+                    return cb(
+                        null,
+                        `${randomName}${extname(file.originalname)}`,
+                    );
+                },
+            }),
+        }),
+        TransformMultipartInterceptor, // Transform AFTER FilesInterceptor parses multipart
+    )
+    patch(
+        @Param('id', ParseIntPipe) id: number,
+        @Body(TransformMultipartPipe) dto: UpdateProductDto,
+        @UploadedFiles() mediaFiles: Express.Multer.File[],
+    ) {
+        // Pipe handles transformation, but keep manual parsing as fallback
         if (typeof dto.variants === 'string')
             dto.variants = JSON.parse(dto.variants);
         if (typeof dto.catalog_ids === 'string')

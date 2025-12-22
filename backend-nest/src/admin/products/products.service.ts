@@ -406,7 +406,7 @@ export class ProductsService {
     async getFormOptions() {
         const [
             brands,
-            categories,
+            categories, // Now includes sizes and styles
             catalogs,
             diamonds,
             metals,
@@ -421,7 +421,19 @@ export class ProductsService {
             }),
             this.prisma.categories.findMany({
                 where: { is_active: true },
-                orderBy: { name: 'asc' },
+                include: {
+                    category_sizes: {
+                        include: {
+                            sizes: true,
+                        },
+                    },
+                    category_styles: {
+                        include: {
+                            styles: true,
+                        },
+                    },
+                },
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
             this.prisma.catalogs.findMany({
                 where: { is_active: true },
@@ -455,9 +467,135 @@ export class ProductsService {
             }),
         ]);
 
+        // Separate parent categories (for variant matrix generation) with sizes and styles
+        // Filter active sizes/styles and sort them
+        const parentCategories = categories
+            .filter((cat: any) => !cat.parent_id)
+            .map((cat: any) => {
+                // Debug: Log raw category data
+                console.log(`Backend: Processing category "${cat.name}" (ID: ${Number(cat.id)})`);
+                console.log(`  - category_sizes count: ${(cat.category_sizes || []).length}`);
+                console.log(`  - category_styles count: ${(cat.category_styles || []).length}`);
+                
+                // Extract sizes from category_sizes pivot table
+                // category_sizes is an array, each item has a sizes relation
+                const rawSizes = (cat.category_sizes || [])
+                    .map((cs: any) => {
+                        if (Number(cat.id) === 2) {
+                            console.log(`  - category_size entry for cat 2:`, { 
+                                id: cs.id, 
+                                size_id: cs.size_id, 
+                                sizes: cs.sizes,
+                                sizes_is_active: cs.sizes?.is_active,
+                                sizes_name: cs.sizes?.name
+                            });
+                        }
+                        if (!cs.sizes) {
+                            console.warn(`Category ${cat.id}: category_size ${cs.id} has no sizes relation!`);
+                            return null;
+                        }
+                        return cs.sizes;
+                    })
+                    .filter((s: any) => {
+                        if (s === null || s === undefined) {
+                            if (Number(cat.id) === 2) {
+                                console.log(`  - Filtered out null/undefined size`);
+                            }
+                            return false;
+                        }
+                        // Temporarily include all sizes to debug - remove is_active check
+                        const isActive = s.is_active === true;
+                        if (!isActive) {
+                            if (Number(cat.id) === 2) {
+                                console.log(`  - Size is inactive:`, { id: s.id, name: s.name, is_active: s.is_active });
+                            }
+                            // Still include inactive for now to see if that's the issue
+                            // return false;
+                        }
+                        return true; // Include all sizes for debugging
+                    });
+                
+                console.log(`  - Raw sizes after filter: ${rawSizes.length}`);
+                
+                const sizes = rawSizes
+                    .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''))
+                    .map((s: any) => ({
+                        id: Number(s.id),
+                        name: s.name,
+                        value: s.value || s.name,
+                    }));
+                
+                // Extract styles from category_styles pivot table
+                // category_styles is an array, each item has a styles relation
+                const rawStyles = (cat.category_styles || [])
+                    .map((cs: any) => {
+                        if (Number(cat.id) === 2) {
+                            console.log(`  - category_style entry for cat 2:`, { 
+                                id: cs.id, 
+                                style_id: cs.style_id, 
+                                styles: cs.styles,
+                                styles_is_active: cs.styles?.is_active,
+                                styles_name: cs.styles?.name
+                            });
+                        }
+                        if (!cs.styles) {
+                            console.warn(`Category ${cat.id}: category_style ${cs.id} has no styles relation!`);
+                            return null;
+                        }
+                        return cs.styles;
+                    })
+                    .filter((s: any) => {
+                        if (s === null || s === undefined) {
+                            if (Number(cat.id) === 2) {
+                                console.log(`  - Filtered out null/undefined style`);
+                            }
+                            return false;
+                        }
+                        // Temporarily include all styles to debug - remove is_active check
+                        const isActive = s.is_active === true;
+                        if (!isActive) {
+                            if (Number(cat.id) === 2) {
+                                console.log(`  - Style is inactive:`, { id: s.id, name: s.name, is_active: s.is_active });
+                            }
+                            // Still include inactive for now to see if that's the issue
+                            // return false;
+                        }
+                        return true; // Include all styles for debugging
+                    });
+                
+                console.log(`  - Raw styles after filter: ${rawStyles.length}`);
+                
+                const styles = rawStyles
+                    .sort((a: any, b: any) => {
+                        if (a.display_order !== b.display_order) {
+                            return (a.display_order || 0) - (b.display_order || 0);
+                        }
+                        return (a.name || '').localeCompare(b.name || '');
+                    })
+                    .map((s: any) => ({
+                        id: Number(s.id),
+                        name: s.name,
+                    }));
+                
+                // Debug: Log final result
+                console.log(`Backend: Category "${cat.name}" (ID: ${Number(cat.id)}) - Final Sizes: ${sizes.length}, Final Styles: ${styles.length}`);
+                
+                return {
+                    id: Number(cat.id),
+                    name: cat.name,
+                    sizes,
+                    styles,
+                };
+            });
+
         return {
             brands,
-            categories,
+            categories: categories.map((cat: any) => ({
+                id: Number(cat.id),
+                name: cat.name,
+                parent_id: cat.parent_id ? Number(cat.parent_id) : null,
+            })),
+            parentCategories, // Include parent categories with sizes and styles for variant matrix
             catalogs,
             diamonds,
             metals,
@@ -577,13 +715,28 @@ export class ProductsService {
 
     private formatProductForEdit(product: any) {
         const metadata = product.metadata || {};
+        
+        // Format category with sizes
+        const category = product.categories
+            ? {
+                  id: Number(product.categories.id),
+                  name: product.categories.name,
+                  sizes:
+                      product.categories.category_sizes?.map((cs: any) => ({
+                          id: Number(cs.sizes.id),
+                          name: cs.sizes.name,
+                          value: cs.sizes.value || cs.sizes.name,
+                      })) || [],
+              }
+            : null;
+
         return {
-            id: product.id,
+            id: Number(product.id),
             sku: product.sku,
             name: product.name,
             titleline: product.titleline,
-            brand_id: product.brand_id,
-            category_id: product.category_id,
+            brand_id: Number(product.brand_id),
+            category_id: Number(product.category_id),
             description: product.description,
             collection: product.collection,
             producttype: product.producttype,
@@ -593,37 +746,70 @@ export class ProductsService {
             making_charge_types: metadata.making_charge_types || [],
             is_active: product.is_active,
             metadata: metadata,
-            style_ids: product.style_ids || [],
-            category_ids: product.subcategory_ids || [],
-            catalog_ids: product.catalog_products.map((cp) => cp.catalog_id),
-            media: product.product_medias,
-            variants: product.product_variants.map((v) => ({
-                id: v.id,
+            style_ids: (product.style_ids || []).map((id: bigint) => Number(id)),
+            category_ids: (product.subcategory_ids || []).map((id: bigint) => Number(id)),
+            catalog_ids: product.catalog_products.map((cp: any) => Number(cp.catalog_id)),
+            category: category,
+            media: product.product_medias.map((m: any) => ({
+                id: Number(m.id),
+                type: m.type,
+                url: m.url,
+                display_order: m.display_order,
+                metadata: m.metadata || {},
+            })),
+            variants: product.product_variants.map((v: any) => ({
+                id: Number(v.id),
                 sku: v.sku,
                 label: v.label,
-                size_id: v.size_id,
-                inventory_quantity: v.inventory_quantity,
+                size_id: v.size_id ? Number(v.size_id) : null,
+                inventory_quantity: v.inventory_quantity ? Number(v.inventory_quantity) : 0,
                 is_default: v.is_default,
                 metadata: v.metadata || {},
-                metals: v.product_variant_metals.map((m) => ({
-                    id: m.id,
-                    metal_id: m.metal_id,
-                    metal_purity_id: m.metal_purity_id,
-                    metal_tone_id: m.metal_tone_id,
-                    metal_weight: m.metal_weight,
+                metals: v.product_variant_metals.map((m: any) => ({
+                    id: Number(m.id),
+                    metal_id: Number(m.metal_id),
+                    metal_purity_id: m.metal_purity_id ? Number(m.metal_purity_id) : null,
+                    metal_tone_id: m.metal_tone_id ? Number(m.metal_tone_id) : null,
+                    metal_weight: m.metal_weight ? Number(m.metal_weight) : 0,
                     metadata: m.metadata || {},
-                    metal: m.metals,
-                    metal_purity: m.metal_purities,
-                    metal_tone: m.metal_tones,
+                    metal: m.metals
+                        ? {
+                              id: Number(m.metals.id),
+                              name: m.metals.name,
+                          }
+                        : null,
+                    metal_purity: m.metal_purities
+                        ? {
+                              id: Number(m.metal_purities.id),
+                              name: m.metal_purities.name,
+                          }
+                        : null,
+                    metal_tone: m.metal_tones
+                        ? {
+                              id: Number(m.metal_tones.id),
+                              name: m.metal_tones.name,
+                          }
+                        : null,
                 })),
-                diamonds: v.product_variant_diamonds.map((d) => ({
-                    id: d.id,
-                    diamond_id: d.diamond_id,
-                    diamonds_count: d.diamonds_count,
+                diamonds: v.product_variant_diamonds.map((d: any) => ({
+                    id: Number(d.id),
+                    diamond_id: d.diamond_id ? Number(d.diamond_id) : null,
+                    diamonds_count: d.diamonds_count ? Number(d.diamonds_count) : 0,
                     metadata: d.metadata || {},
-                    diamond: d.diamonds,
+                    diamond: d.diamonds
+                        ? {
+                              id: Number(d.diamonds.id),
+                              name: d.diamonds.name,
+                          }
+                        : null,
                 })),
-                size: v.sizes,
+                size: v.sizes
+                    ? {
+                          id: Number(v.sizes.id),
+                          name: v.sizes.name,
+                          value: v.sizes.value || v.sizes.name,
+                      }
+                    : null,
             })),
         };
     }

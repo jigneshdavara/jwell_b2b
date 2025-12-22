@@ -2,9 +2,8 @@
 
 import RichTextEditor from '@/components/RichTextEditor';
 import { Head } from '@/components/Head';
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-// TODO: Migrate variantMatrixGenerator to Next.js
-// import { generateVariantMatrix as generateVariantMatrixUtil } from '@/utils/variantMatrixGenerator';
+import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { generateVariantMatrix as generateVariantMatrixUtil } from '@/utils/variantMatrixGenerator';
 import { useParams, useRouter } from 'next/navigation';
 import { adminService } from '@/services/adminService';
 
@@ -451,13 +450,21 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <span>{subcategory.name}</span>
-                                        <button
-                                            type="button"
+                                        <span
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 removeSubcategory(subcategory.id);
                                             }}
-                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors"
+                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors cursor-pointer"
+                                            role="button"
+                                            tabIndex={0}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    removeSubcategory(subcategory.id);
+                                                }
+                                            }}
                                         >
                                             <svg
                                                 className="h-3 w-3 text-sky-600"
@@ -467,7 +474,7 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                                             >
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                             </svg>
-                                        </button>
+                                        </span>
                                     </span>
                                 ))
                             )}
@@ -595,13 +602,21 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <span>{catalog.name}</span>
-                                        <button
-                                            type="button"
+                                        <span
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 removeCatalog(catalog.id);
                                             }}
-                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors"
+                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors cursor-pointer"
+                                            role="button"
+                                            tabIndex={0}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    removeCatalog(catalog.id);
+                                                }
+                                            }}
                                         >
                                             <svg
                                                 className="h-3 w-3 text-sky-600"
@@ -611,7 +626,7 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                             >
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                             </svg>
-                                        </button>
+                                        </span>
                                     </span>
                                 ))
                             )}
@@ -809,13 +824,21 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <span>{style.name}</span>
-                                        <button
-                                            type="button"
+                                        <span
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 removeStyle(style.id);
                                             }}
-                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors"
+                                            className="hover:bg-sky-100 rounded-full p-0.5 transition-colors cursor-pointer"
+                                            role="button"
+                                            tabIndex={0}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    removeStyle(style.id);
+                                                }
+                                            }}
                                         >
                                             <svg
                                                 className="h-3 w-3 text-sky-600"
@@ -825,7 +848,7 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                                             >
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                             </svg>
-                                        </button>
+                                        </span>
                                     </span>
                                 ))
                             )}
@@ -965,9 +988,47 @@ export default function AdminProductEdit() {
                 });
                 setBrands(brandsMap);
                 
-                // Convert categories (parent categories only)
-                const parentCats = (options.categories || []).filter((cat: any) => !cat.parent_id);
-                setParentCategories(parentCats.map((cat: any) => ({ id: Number(cat.id), name: cat.name })));
+                // Use parentCategories from backend (includes sizes and styles)
+                // Fallback to filtering categories if parentCategories not available
+                const parentCats = options.parentCategories || (options.categories || []).filter((cat: any) => !cat.parent_id);
+                
+                // Debug: Log to verify backend data
+                console.log('Backend parentCategories:', options.parentCategories);
+                console.log('Filtered parentCats:', parentCats);
+                
+                const mappedParentCategories = parentCats.map((cat: any) => {
+                    // Backend already returns sizes and styles as arrays in parentCategories
+                    // But we need to ensure they're properly formatted
+                    const sizes = Array.isArray(cat.sizes) && cat.sizes.length > 0
+                        ? cat.sizes.map((s: any) => ({
+                            id: typeof s.id === 'number' ? s.id : Number(s.id),
+                            name: s.name || s.value || '',
+                            value: s.value || s.name || '',
+                        }))
+                        : [];
+                    
+                    const styles = Array.isArray(cat.styles) && cat.styles.length > 0
+                        ? cat.styles.map((s: any) => ({
+                            id: typeof s.id === 'number' ? s.id : Number(s.id),
+                            name: s.name || '',
+                        }))
+                        : [];
+                    
+                    // Debug: Log each category
+                    if (sizes.length > 0 || styles.length > 0) {
+                        console.log(`Category "${cat.name}" (ID: ${Number(cat.id)}) - Sizes: ${sizes.length}, Styles: ${styles.length}`, { sizes, styles });
+                    }
+                    
+                    return {
+                        id: Number(cat.id),
+                        name: cat.name,
+                        sizes,
+                        styles,
+                    };
+                });
+                
+                console.log('Mapped parentCategories:', mappedParentCategories);
+                setParentCategories(mappedParentCategories);
                 
                 // Subcategories
                 const subcats = (options.categories || []).filter((cat: any) => cat.parent_id);
@@ -1253,7 +1314,10 @@ export default function AdminProductEdit() {
     
     // Update data when product loads
     useEffect(() => {
-        if (product !== null || !productId) {
+        // Update form data when:
+        // 1. Creating new product (productId is null) - use empty form data immediately
+        // 2. Editing existing product (productId exists) - wait until product is loaded (product !== null)
+        if (!productId || (productId && product !== null)) {
             setData(getInitialFormData);
         }
     }, [product, productId, getInitialFormData]);
@@ -2199,10 +2263,13 @@ export default function AdminProductEdit() {
     };
 
     const generateVariantMatrixForData = (prev: FormData): FormData => {
-        // TODO: Implement generateVariantMatrixUtil or migrate from Laravel
-        // For now, return the form data as-is
-        console.warn('generateVariantMatrixUtil not yet implemented');
-        return prev;
+        return generateVariantMatrixUtil({
+            formData: prev,
+            parentCategories: parentCategories,
+            product: product,
+            emptyVariant: emptyVariant,
+            recalculateVariants: recalculateVariants,
+        });
     };
 
     const generateVariantMatrix = () => {
@@ -2323,31 +2390,47 @@ export default function AdminProductEdit() {
             payload.gender = formState.gender || null;
             payload.description = formState.description || '';
 
+            // Validate and set brand_id (required integer)
             const brandIdValue = formState.brand_id;
             if (brandIdValue !== '' && brandIdValue !== null && brandIdValue !== undefined) {
                 const brandIdNum = Number(brandIdValue);
-                payload.brand_id = isNaN(brandIdNum) ? null : brandIdNum;
+                if (!isNaN(brandIdNum) && brandIdNum > 0) {
+                    payload.brand_id = brandIdNum;
+                } else {
+                    setErrors({ brand_id: 'Brand is required' });
+                    setProcessing(false);
+                    return;
+                }
             } else {
-                payload.brand_id = null;
+                setErrors({ brand_id: 'Brand is required' });
+                setProcessing(false);
+                return;
             }
 
+            // Validate and set category_id (required integer)
             const categoryIdValue = formState.category_id;
             if (categoryIdValue !== '' && categoryIdValue !== null && categoryIdValue !== undefined) {
                 const categoryIdNum = Number(categoryIdValue);
-                payload.category_id = isNaN(categoryIdNum) ? null : categoryIdNum;
+                if (!isNaN(categoryIdNum) && categoryIdNum > 0) {
+                    payload.category_id = categoryIdNum;
+                } else {
+                    setErrors({ category_id: 'Category is required' });
+                    setProcessing(false);
+                    return;
+                }
             } else {
-                payload.category_id = null;
+                setErrors({ category_id: 'Category is required' });
+                setProcessing(false);
+                return;
             }
 
-            // Handle style_ids (multi-select)
+            // Handle style_ids (multi-select) - must be array
             const styleIds = formState.style_ids || [];
-            if (Array.isArray(styleIds) && styleIds.length > 0) {
-                payload.style_ids = styleIds;
-            } else {
-                payload.style_ids = [];
-            }
+            payload.style_ids = Array.isArray(styleIds) ? styleIds : [];
 
+            // Handle making_charge_types (must be array)
             const selectedTypes = formState.making_charge_types || [];
+            payload.making_charge_types = Array.isArray(selectedTypes) ? selectedTypes : [];
 
             if (selectedTypes.includes('fixed')) {
                 const makingChargeValue = formState.making_charge_amount;
@@ -2386,14 +2469,14 @@ export default function AdminProductEdit() {
             // Prepare metadata object with show_all_variants_by_size
             // Always set show_all_variants_by_size in metadata, using the current value from form data
             // This ensures the checkbox state is saved even if "Generate Matrix" wasn't clicked
+            // Metadata must always be an object (not null) for backend validation
             const metadata: Record<string, any> = {};
             metadata.show_all_variants_by_size = showAllVariantsBySizeValue;
+            payload.metadata = metadata;
             
-            if (Object.keys(metadata).length > 0) {
-                payload.metadata = metadata;
-            } else {
-                delete payload.metadata;
-            }
+            // Handle catalog_ids (must be array)
+            const catalogIds = formState.catalog_ids || [];
+            payload.catalog_ids = Array.isArray(catalogIds) ? catalogIds : [];
             if (!payload.media_uploads || (Array.isArray(payload.media_uploads) && payload.media_uploads.length === 0)) {
                 delete payload.media_uploads;
             }
@@ -2401,12 +2484,14 @@ export default function AdminProductEdit() {
                 delete payload.removed_media_ids;
             }
 
+            // Ensure required string fields are not empty
             if (!payload.sku) payload.sku = '';
             if (!payload.name) payload.name = '';
-            if (payload.brand_id === undefined) payload.brand_id = null;
-            if (payload.category_id === undefined) payload.category_id = null;
+            
+            // Ensure making_charge_amount is a number (default to 0)
             if (payload.making_charge_amount === undefined) payload.making_charge_amount = 0;
 
+            // Handle category_ids (subcategory_ids) - must be array
             if (formState.subcategory_ids && Array.isArray(formState.subcategory_ids) && formState.subcategory_ids.length > 0) {
                 payload.category_ids = formState.subcategory_ids;
             } else {
@@ -2520,15 +2605,84 @@ export default function AdminProductEdit() {
                 }
                 
                 payload.variants = processedVariants.map((variant: any) => {
-                    const formattedVariant = { ...variant };
+                    const formattedVariant: any = {
+                        label: variant.label || '',
+                        sku: variant.sku || '',
+                        size_id: variant.size_id !== null && variant.size_id !== undefined ? Number(variant.size_id) : undefined,
+                        is_default: variant.is_default ?? false,
+                        inventory_quantity: variant.inventory_quantity !== undefined && variant.inventory_quantity !== null
+                            ? (typeof variant.inventory_quantity === 'number' 
+                                ? variant.inventory_quantity 
+                                : (variant.inventory_quantity === '' ? 0 : parseInt(String(variant.inventory_quantity), 10)))
+                            : 0,
+                        metadata: variant.metadata || {},
+                    };
                     
-                    // Ensure inventory_quantity is explicitly included
-                    if (variant.inventory_quantity !== undefined && variant.inventory_quantity !== null) {
-                        formattedVariant.inventory_quantity = typeof variant.inventory_quantity === 'number' 
-                            ? variant.inventory_quantity 
-                            : (variant.inventory_quantity === '' ? 0 : parseInt(String(variant.inventory_quantity), 10));
-                    } else {
-                        formattedVariant.inventory_quantity = 0;
+                    // Add id if editing existing variant
+                    if (variant.id !== undefined && variant.id !== null) {
+                        formattedVariant.id = Number(variant.id);
+                    }
+                    
+                    // Format metals array with proper types
+                    formattedVariant.metals = (variant.metals || []).map((metal: any) => {
+                        const metalId = metal.metal_id !== '' && metal.metal_id !== null && metal.metal_id !== undefined
+                            ? (typeof metal.metal_id === 'number' ? metal.metal_id : Number(metal.metal_id))
+                            : null;
+                        
+                        if (metalId === null || isNaN(metalId)) {
+                            return null; // Skip invalid metals
+                        }
+                        
+                        const formattedMetal: any = {
+                            metal_id: metalId,
+                        };
+                        
+                        // Add id if editing existing metal
+                        if (metal.id !== undefined && metal.id !== null) {
+                            formattedMetal.id = Number(metal.id);
+                        }
+                        
+                        // Add optional purity
+                        if (metal.metal_purity_id !== '' && metal.metal_purity_id !== null && metal.metal_purity_id !== undefined) {
+                            const purityId = typeof metal.metal_purity_id === 'number' 
+                                ? metal.metal_purity_id 
+                                : Number(metal.metal_purity_id);
+                            if (!isNaN(purityId)) {
+                                formattedMetal.metal_purity_id = purityId;
+                            }
+                        }
+                        
+                        // Add optional tone
+                        if (metal.metal_tone_id !== '' && metal.metal_tone_id !== null && metal.metal_tone_id !== undefined) {
+                            const toneId = typeof metal.metal_tone_id === 'number' 
+                                ? metal.metal_tone_id 
+                                : Number(metal.metal_tone_id);
+                            if (!isNaN(toneId)) {
+                                formattedMetal.metal_tone_id = toneId;
+                            }
+                        }
+                        
+                        // Add weight (required, but can be 0)
+                        if (metal.metal_weight !== undefined && metal.metal_weight !== null && metal.metal_weight !== '') {
+                            const weight = typeof metal.metal_weight === 'number' 
+                                ? metal.metal_weight 
+                                : parseFloat(String(metal.metal_weight));
+                            formattedMetal.metal_weight = isNaN(weight) ? 0 : weight;
+                        } else {
+                            formattedMetal.metal_weight = 0;
+                        }
+                        
+                        // Add metadata if present
+                        if (metal.metadata && Object.keys(metal.metadata).length > 0) {
+                            formattedMetal.metadata = metal.metadata;
+                        }
+                        
+                        return formattedMetal;
+                    }).filter((m: any) => m !== null); // Remove null entries
+                    
+                    // Ensure at least one metal exists
+                    if (formattedVariant.metals.length === 0) {
+                        return null; // Skip variants without metals
                     }
                     
                     let variantDiamonds: any[] = [];
@@ -2599,27 +2753,47 @@ export default function AdminProductEdit() {
                             .filter((d: any) => d !== null);
                     }
                     
+                    // Set diamonds array (can be empty)
                     formattedVariant.diamonds = variantDiamonds;
                     
                     return formattedVariant;
-                });
+                }).filter((v: any) => v !== null); // Remove null entries (variants without metals)
             } else {
                 payload.variants = [];
             }
 
-            if (formState.diamond_selections !== undefined) {
-                payload.diamond_selections = formState.diamond_selections;
-            }
-
-            // Remove fields that shouldn't be sent
+            // Remove fields that shouldn't be sent to backend
+            delete payload.uses_diamond;
+            delete payload.diamond_selections;
+            delete payload.metal_selections;
+            delete payload.selected_metals;
+            delete payload.metal_configurations;
+            delete payload.selected_sizes;
+            delete payload.all_sizes_available;
+            delete payload.show_all_variants_by_size; // This is in metadata, not top-level
+            delete payload.subcategory_ids; // Already converted to category_ids
             delete payload._method;
+
+        // Create FormData with proper type conversion
         const formData = new FormData();
         
-        // Add all payload fields to FormData
-        Object.keys(payload).forEach((key) => {
-            const value = payload[key];
+        // Helper to append values with proper type conversion
+        const appendToFormData = (key: string, value: any) => {
+            // For required fields, we should not skip null/undefined
+            // But for optional fields, we can skip
+            const requiredFields = ['brand_id', 'category_id', 'name', 'sku', 'variants'];
+            const isRequired = requiredFields.includes(key);
+            
             if (value === null || value === undefined) {
-                return;
+                if (isRequired) {
+                    // For required fields, send empty string or default value
+                    if (key === 'variants') {
+                        formData.append(key, JSON.stringify([]));
+                    } else {
+                        formData.append(key, '');
+                    }
+                }
+                return; // Skip null/undefined for optional fields
             }
             
             if (key === 'media_uploads' && Array.isArray(value)) {
@@ -2632,13 +2806,72 @@ export default function AdminProductEdit() {
             } else if (Array.isArray(value)) {
                 // Arrays need to be JSON stringified for multipart/form-data
                 formData.append(key, JSON.stringify(value));
-            } else if (typeof value === 'object') {
+            } else if (typeof value === 'object' && value !== null) {
                 // Objects need to be JSON stringified
                 formData.append(key, JSON.stringify(value));
+            } else if (typeof value === 'boolean') {
+                // Booleans should be sent as strings 'true' or 'false'
+                formData.append(key, value ? 'true' : 'false');
+            } else if (typeof value === 'number') {
+                // Numbers should be sent as strings
+                formData.append(key, String(value));
             } else {
+                // Strings and other primitives
                 formData.append(key, String(value));
             }
-        });
+        };
+        
+        // Add all payload fields to FormData in the correct order
+        // Required fields first
+        appendToFormData('name', payload.name);
+        appendToFormData('sku', payload.sku);
+        appendToFormData('brand_id', payload.brand_id);
+        appendToFormData('category_id', payload.category_id);
+        
+        // Optional string fields
+        if (payload.titleline) appendToFormData('titleline', payload.titleline);
+        if (payload.description) appendToFormData('description', payload.description);
+        if (payload.collection) appendToFormData('collection', payload.collection);
+        if (payload.producttype) appendToFormData('producttype', payload.producttype);
+        if (payload.gender) appendToFormData('gender', payload.gender);
+        
+        // Array fields (must be arrays, even if empty)
+        appendToFormData('category_ids', payload.category_ids || []);
+        appendToFormData('style_ids', payload.style_ids || []);
+        appendToFormData('catalog_ids', payload.catalog_ids || []);
+        appendToFormData('making_charge_types', payload.making_charge_types || []);
+        
+        // Number fields
+        if (payload.making_charge_amount !== undefined) {
+            appendToFormData('making_charge_amount', payload.making_charge_amount);
+        }
+        if (payload.making_charge_percentage !== undefined && payload.making_charge_percentage !== null) {
+            appendToFormData('making_charge_percentage', payload.making_charge_percentage);
+        }
+        
+        // Boolean field
+        appendToFormData('is_active', payload.is_active ?? true);
+        
+        // Object field (metadata) - must always be an object (not null)
+        if (payload.metadata) {
+            appendToFormData('metadata', payload.metadata);
+        } else {
+            // Ensure metadata is always an object
+            appendToFormData('metadata', {});
+        }
+        
+        // Variants array (required)
+        appendToFormData('variants', payload.variants || []);
+        
+        // Optional array fields
+        if (payload.removed_media_ids && Array.isArray(payload.removed_media_ids) && payload.removed_media_ids.length > 0) {
+            appendToFormData('removed_media_ids', payload.removed_media_ids);
+        }
+        
+        // Media uploads (files)
+        if (payload.media_uploads && Array.isArray(payload.media_uploads)) {
+            appendToFormData('media_uploads', payload.media_uploads);
+        }
 
         setProcessing(true);
         setErrors({});
@@ -2683,6 +2916,18 @@ export default function AdminProductEdit() {
 
         return [...product.media].sort((a, b) => a.display_order - b.display_order);
     }, [product?.media]);
+
+    // Helper function to convert relative media URLs to absolute URLs
+    const getMediaUrl = useCallback((url: string): string => {
+        // If URL is already absolute, return as-is
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+        }
+        // Convert relative URL to absolute URL
+        // Remove '/api' from base URL since storage files are served from root
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+        return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+    }, []);
 
     const toggleRemoveMedia = (id: number) => {
         const current = data.removed_media_ids ?? [];
@@ -2835,8 +3080,11 @@ export default function AdminProductEdit() {
                                         value={data.category_id}
                                         onChange={(event) => {
                                             setDataField('category_id', event.target.value);
-                                            // Clear style_ids when category changes
+                                            // Clear style_ids and selected_sizes when category changes
+                                            // User must explicitly select sizes/styles for the new category
                                             setDataField('style_ids', []);
+                                            setDataField('selected_sizes', []);
+                                            setDataField('all_sizes_available', undefined);
                                         }}
                                         className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                     >
@@ -2861,7 +3109,24 @@ export default function AdminProductEdit() {
                                 {data.category_id && data.category_id !== '' && (() => {
                                     const selectedCategoryId = Number(data.category_id);
                                     const selectedCategory = parentCategories.find(cat => cat.id === selectedCategoryId);
-                                    const availableStyles = selectedCategory?.styles || [];
+                                    
+                                    // Debug: Log to verify data
+                                    console.log('Style section - Selected category ID:', selectedCategoryId);
+                                    console.log('Style section - Selected category:', selectedCategory);
+                                    console.log('Style section - All parentCategories:', parentCategories.map(c => ({ id: c.id, name: c.name, stylesCount: c.styles?.length || 0 })));
+                                    
+                                    // Ensure styles array exists and is properly formatted
+                                    const availableStyles = (selectedCategory?.styles && Array.isArray(selectedCategory.styles) && selectedCategory.styles.length > 0)
+                                        ? selectedCategory.styles
+                                        : [];
+                                    
+                                    console.log('Style section - Available styles:', availableStyles);
+                                    
+                                    // Only render if category has styles available
+                                    if (availableStyles.length === 0) {
+                                        console.log('Style section - No styles available, returning null');
+                                        return null;
+                                    }
                                     
                                     return (
                                         <StyleMultiSelect
@@ -3009,7 +3274,7 @@ export default function AdminProductEdit() {
                                         >
                                             {mediaItem.type === 'video' ? (
                                                 <video
-                                                    src={mediaItem.url}
+                                                    src={getMediaUrl(mediaItem.url)}
                                                     className="h-48 w-full rounded-t-3xl bg-black object-cover"
                                                     controls
                                                     onError={(e) => {
@@ -3021,7 +3286,7 @@ export default function AdminProductEdit() {
                                                 </video>
                                             ) : (
                                                 <img
-                                                    src={mediaItem.url}
+                                                    src={getMediaUrl(mediaItem.url)}
                                                     alt="Product media"
                                                     className="h-48 w-full rounded-t-3xl object-cover"
                                                     onError={(e) => {
@@ -3138,10 +3403,29 @@ export default function AdminProductEdit() {
                             {(() => {
                                 const categoryId = data.category_id ? Number(data.category_id) : null;
                                 const selectedCategory = categoryId ? parentCategories.find(cat => cat.id === categoryId) : null;
-                                const categoryHasSizes = (selectedCategory && 'sizes' in selectedCategory && selectedCategory.sizes && selectedCategory.sizes.length > 0) || 
-                                                         (product?.category?.id === categoryId && product.category.sizes && product.category.sizes.length > 0);
-                                const categorySizes = (selectedCategory && 'sizes' in selectedCategory && selectedCategory.sizes) || 
-                                                      (product?.category?.sizes || []);
+                                
+                                // Debug: Log to verify data
+                                console.log('Sizes section - Selected category ID:', categoryId);
+                                console.log('Sizes section - Selected category:', selectedCategory);
+                                console.log('Sizes section - All parentCategories:', parentCategories.map(c => ({ id: c.id, name: c.name, sizesCount: c.sizes?.length || 0 })));
+                                
+                                // Get sizes from selected category (from parentCategories) or from product category
+                                const categorySizes = (() => {
+                                    if (selectedCategory && 'sizes' in selectedCategory && Array.isArray(selectedCategory.sizes) && selectedCategory.sizes.length > 0) {
+                                        console.log('Sizes section - Using sizes from selectedCategory:', selectedCategory.sizes);
+                                        return selectedCategory.sizes;
+                                    }
+                                    if (product?.category?.id === categoryId && product.category.sizes && Array.isArray(product.category.sizes) && product.category.sizes.length > 0) {
+                                        console.log('Sizes section - Using sizes from product.category:', product.category.sizes);
+                                        return product.category.sizes;
+                                    }
+                                    console.log('Sizes section - No sizes found');
+                                    return [];
+                                })();
+                                
+                                const categoryHasSizes = categorySizes.length > 0;
+                                
+                                console.log('Sizes section - categoryHasSizes:', categoryHasSizes, 'categorySizes.length:', categorySizes.length);
                                 
                                 if (!categoryHasSizes) {
                                     return null;
@@ -3693,6 +3977,8 @@ export default function AdminProductEdit() {
                                     // - Or when variants were already generated grouped (one per metal) when "No" was selected
                                     return allVariants.map((variant, index) => ({ variant, index, group: [variant] }));
                                 }, [generatedMatrixVariants, data.variants, generatedShowAllVariantsBySize]).map(({ variant, index, group }) => {
+                                    // Generate unique key for this variant
+                                    const variantKey = variant.id ?? `variant-${index}-${variant.sku ?? ''}-${JSON.stringify(variant.metals?.map(m => `${m.metal_id}-${m.metal_purity_id}-${m.metal_tone_id}`) ?? [])}`;
                                     const meta = buildVariantMeta(variant, data);
                                     const metalLabel = meta.metalTone || '—';
 
@@ -3841,9 +4127,8 @@ export default function AdminProductEdit() {
                                     const suggestedLabel = meta.autoLabel;
 
                                     return (
-                                        <>
+                                        <React.Fragment key={variantKey}>
                                         <tr
-                                            key={variant.id ?? `variant-${index}`}
                                             className={`hover:bg-slate-50 ${variantStatus === 'disabled' ? 'opacity-70' : ''} ${variant.is_default ? 'bg-sky-50/30' : ''}`}
                                         >
                                             <td className="px-5 py-3 align-middle min-w-[150px]">
@@ -4013,7 +4298,7 @@ export default function AdminProductEdit() {
                                             </td>
                                         </tr>
                                         {expandedMetalVariantIndices.has(index) && (
-                                            <tr>
+                                            <tr key={`${variantKey}-expanded`}>
                                                 <td colSpan={13} className="px-5 py-4">
                                                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                                         <div className="mb-4 flex items-center justify-between">
@@ -4154,7 +4439,7 @@ export default function AdminProductEdit() {
                                                 </td>
                                             </tr>
                                         )}
-                                        </>
+                                        </React.Fragment>
                                     );
                                 })}
                                  {(data.variants || []).length === 0 && (
