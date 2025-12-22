@@ -490,8 +490,10 @@ export const adminService = {
   async getGeneralSettings() {
     return await apiClient.get('/admin/settings/general');
   },
-  async updateGeneralSettings(data: any) {
-    return await apiClient.put('/admin/settings/general', data);
+  async updateGeneralSettings(data: FormData) {
+    return await apiClient.put('/admin/settings/general', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
   },
 
   // Settings - Tax Groups
