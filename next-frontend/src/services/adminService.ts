@@ -66,7 +66,7 @@ export const adminService = {
     return await apiClient.post('/admin/catalogs', data);
   },
   async updateCatalog(id: number, data: any) {
-    return await apiClient.patch(`/admin/catalogs/${id}`, data);
+    return await apiClient.put(`/admin/catalogs/${id}`, data);
   },
   async deleteCatalog(id: number) {
     return await apiClient.delete(`/admin/catalogs/${id}`);

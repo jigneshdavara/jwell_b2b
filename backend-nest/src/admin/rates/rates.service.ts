@@ -83,11 +83,11 @@ export class RatesService {
         const latest = rates[0];
 
         // Get latest rate per purity
-        const puritiesSeen = new Set();
-        const latestByPurity = [];
+        const puritiesSeen = new Set<string>();
+        const latestByPurity: typeof rates = [];
 
         for (const rate of rates) {
-            if (!puritiesSeen.has(rate.purity)) {
+            if (rate.purity && !puritiesSeen.has(rate.purity)) {
                 puritiesSeen.add(rate.purity);
                 latestByPurity.push(rate);
             }
@@ -119,5 +119,25 @@ export class RatesService {
                 currency: r.currency,
             })),
         };
+    }
+
+    async storeMetalRates(metal: string, dto: UpdateMetalRatesDto) {
+        return await this.prisma.$transaction(async (tx) => {
+            const rates: any[] = [];
+            for (const rate of dto.rates) {
+                const created = await tx.price_rates.create({
+                    data: {
+                        metal: metal.toLowerCase(),
+                        purity: rate.purity,
+                        price_per_gram: rate.price_per_gram,
+                        currency: rate.currency || dto.currency || 'INR',
+                        source: dto.source || 'manual',
+                        effective_at: dto.effective_at ? new Date(dto.effective_at) : new Date(),
+                    },
+                });
+                rates.push(created);
+            }
+            return rates;
+        });
     }
 }

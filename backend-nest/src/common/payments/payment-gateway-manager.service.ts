@@ -48,11 +48,11 @@ export class PaymentGatewayManager {
 
         // Map driver class names to implementations
         if (driverClass.includes('StripeGateway') || gateway.slug === 'stripe') {
-            return new StripeGateway(gateway);
+            return new StripeGateway(gateway) as PaymentGatewayDriver;
         }
 
         if (driverClass.includes('FakeGateway') || gateway.slug === 'fake') {
-            return new FakeGateway(gateway);
+            return new FakeGateway(gateway) as PaymentGatewayDriver;
         }
 
         throw new NotFoundException(

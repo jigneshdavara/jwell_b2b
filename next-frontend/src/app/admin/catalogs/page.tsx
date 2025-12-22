@@ -9,9 +9,13 @@ import Link from 'next/link';
 
 type CatalogRow = {
     id: number;
+    code: string | null;
     name: string;
     description?: string | null;
     is_active: boolean;
+    display_order: number;
+    products_count: number;
+    product_ids?: number[];
 };
 
 type PaginationMeta = {
@@ -32,10 +36,14 @@ export default function AdminCatalogsIndex() {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCatalog, setEditingCatalog] = useState<CatalogRow | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<CatalogRow | null>(null);
+    const [selectedCatalogs, setSelectedCatalogs] = useState<number[]>([]);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [formState, setFormState] = useState({
+        code: '',
         name: '',
         description: '',
         is_active: true,
+        display_order: 0,
     });
 
     useEffect(() => {
@@ -52,9 +60,13 @@ export default function AdminCatalogsIndex() {
             setCatalogs({
                 data: items.map((item: any) => ({
                     id: Number(item.id),
+                    code: item.code || null,
                     name: item.name,
-                    description: item.description,
+                    description: item.description || null,
                     is_active: item.is_active,
+                    display_order: item.display_order || 0,
+                    products_count: item.products_count || 0,
+                    product_ids: item.product_ids || [],
                 })),
                 meta: {
                     current_page: responseMeta.current_page || responseMeta.page || 1,
@@ -74,9 +86,11 @@ export default function AdminCatalogsIndex() {
         setEditingCatalog(null);
         setModalOpen(false);
         setFormState({
+            code: '',
             name: '',
             description: '',
             is_active: true,
+            display_order: 0,
         });
     };
 
@@ -88,9 +102,11 @@ export default function AdminCatalogsIndex() {
     const openEditModal = (catalog: CatalogRow) => {
         setEditingCatalog(catalog);
         setFormState({
+            code: catalog.code || '',
             name: catalog.name,
             description: catalog.description || '',
             is_active: catalog.is_active,
+            display_order: catalog.display_order || 0,
         });
         setModalOpen(true);
     };
@@ -100,9 +116,11 @@ export default function AdminCatalogsIndex() {
         setLoading(true);
         try {
             const payload = {
+                code: formState.code,
                 name: formState.name,
                 description: formState.description || null,
                 is_active: formState.is_active,
+                display_order: Number(formState.display_order) || 0,
             };
 
             if (editingCatalog) {
@@ -117,6 +135,51 @@ export default function AdminCatalogsIndex() {
             alert(error.response?.data?.message || 'Failed to save catalog. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const toggleCatalog = async (catalog: CatalogRow) => {
+        try {
+            await adminService.updateCatalog(catalog.id, {
+                code: catalog.code || '',
+                name: catalog.name,
+                description: catalog.description || null,
+                is_active: !catalog.is_active,
+                display_order: catalog.display_order,
+            });
+            await loadCatalogs();
+        } catch (error: any) {
+            console.error('Failed to toggle catalog:', error);
+            alert(error.response?.data?.message || 'Failed to toggle catalog. Please try again.');
+        }
+    };
+
+    const toggleSelection = (id: number) => {
+        setSelectedCatalogs((prev) =>
+            prev.includes(id) ? prev.filter((catalogId) => catalogId !== id) : [...prev, id]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedCatalogs.length === catalogs.data.length) {
+            setSelectedCatalogs([]);
+        } else {
+            setSelectedCatalogs(catalogs.data.map((catalog) => catalog.id));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedCatalogs.length === 0) {
+            return;
+        }
+        try {
+            await adminService.bulkDeleteCatalogs(selectedCatalogs);
+            setSelectedCatalogs([]);
+            setBulkDeleteConfirm(false);
+            await loadCatalogs();
+        } catch (error: any) {
+            console.error('Failed to delete catalogs:', error);
+            alert(error.response?.data?.message || 'Failed to delete catalogs. Please try again.');
         }
     };
 
@@ -140,7 +203,7 @@ export default function AdminCatalogsIndex() {
                 <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div>
                         <h1 className="text-2xl font-semibold text-slate-900">Catalogs</h1>
-                        <p className="mt-2 text-sm text-slate-500">Manage product catalogs and collections.</p>
+                        <p className="mt-2 text-sm text-slate-500">Manage product catalogs for organizing products.</p>
                     </div>
                     <button
                         type="button"
@@ -155,20 +218,36 @@ export default function AdminCatalogsIndex() {
                 </div>
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
-                        <div className="font-semibold text-slate-700">Catalogs ({catalogs.meta.total})</div>
-                        <select
-                            value={perPage}
-                            onChange={(e) => {
-                                setPerPage(Number(e.target.value));
-                                setCurrentPage(1);
-                            }}
-                            className="rounded-full border border-slate-200 px-3 py-1 text-xs"
-                        >
-                            <option value={10}>10</option>
-                            <option value={20}>20</option>
-                            <option value={50}>50</option>
-                            <option value={100}>100</option>
-                        </select>
+                        <div className="font-semibold text-slate-700">
+                            Catalogs ({catalogs.meta.total})
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                            <span>{selectedCatalogs.length} selected</span>
+                            <button
+                                type="button"
+                                onClick={() => setBulkDeleteConfirm(true)}
+                                disabled={selectedCatalogs.length === 0}
+                                className="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                Bulk delete
+                            </button>
+                            <div className="flex items-center gap-2">
+                                <span>Per page:</span>
+                                <select
+                                    value={perPage}
+                                    onChange={(e) => {
+                                        setPerPage(Number(e.target.value));
+                                        setCurrentPage(1);
+                                    }}
+                                    className="rounded-full border border-slate-200 px-3 py-1 text-xs"
+                                >
+                                    <option value={10}>10</option>
+                                    <option value={25}>25</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                     {loading ? (
                         <div className="flex items-center justify-center py-16">
@@ -182,69 +261,121 @@ export default function AdminCatalogsIndex() {
                         <table className="min-w-full divide-y divide-slate-200 text-sm">
                             <thead className="bg-slate-50 text-xs text-slate-500">
                                 <tr>
+                                    <th className="px-5 py-3">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedCatalogs.length === catalogs.data.length && catalogs.data.length > 0}
+                                            onChange={toggleSelectAll}
+                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            aria-label="Select all catalogs"
+                                        />
+                                    </th>
+                                    <th className="px-5 py-3 text-left">Code</th>
                                     <th className="px-5 py-3 text-left">Name</th>
-                                    <th className="px-5 py-3 text-left">Description</th>
+                                    <th className="px-5 py-3 text-left">Products</th>
+                                    <th className="px-5 py-3 text-left">Order</th>
                                     <th className="px-5 py-3 text-left">Status</th>
                                     <th className="px-5 py-3 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 bg-white">
-                                {catalogs.data.map((catalog) => (
-                                    <tr key={catalog.id} className="hover:bg-slate-50">
-                                        <td className="px-5 py-3 font-semibold text-slate-900">{catalog.name}</td>
-                                        <td className="px-5 py-3 text-slate-500">{catalog.description || '—'}</td>
-                                        <td className="px-5 py-3">
-                                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                                catalog.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                                            }`}>
-                                                {catalog.is_active ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </td>
-                                        <td className="px-5 py-3 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Link
-                                                    href={`/admin/catalogs/${catalog.id}`}
-                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-                                                    title="Manage products"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                    </svg>
-                                                </Link>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openEditModal(catalog)}
-                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-                                                    title="Edit catalog"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                                                    </svg>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setDeleteConfirm(catalog)}
-                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
-                                                    title="Delete catalog"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
-                                                    </svg>
-                                                </button>
-                                            </div>
+                                {catalogs.data.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
+                                            No catalogs defined yet.
                                         </td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    catalogs.data.map((catalog) => (
+                                        <tr key={catalog.id} className="hover:bg-slate-50">
+                                            <td className="px-5 py-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedCatalogs.includes(catalog.id)}
+                                                    onChange={() => toggleSelection(catalog.id)}
+                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                    aria-label={`Select catalog ${catalog.name}`}
+                                                />
+                                            </td>
+                                            <td className="px-5 py-3 text-slate-700">{catalog.code || '-'}</td>
+                                            <td className="px-5 py-3 font-semibold text-slate-900">
+                                                <div className="flex flex-col gap-1">
+                                                    <span>{catalog.name}</span>
+                                                    {catalog.description && <span className="text-xs text-slate-500">{catalog.description}</span>}
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-3 text-slate-500">{catalog.products_count}</td>
+                                            <td className="px-5 py-3 text-slate-500">{catalog.display_order}</td>
+                                            <td className="px-5 py-3">
+                                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                                    catalog.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                                                }`}>
+                                                    {catalog.is_active ? 'Active' : 'Archived'}
+                                                </span>
+                                            </td>
+                                            <td className="px-5 py-3 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <Link
+                                                        href={`/admin/catalogs/${catalog.id}/assign-products`}
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-sky-200 hover:text-sky-600"
+                                                        title="Assign products"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                                        </svg>
+                                                    </Link>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEditModal(catalog)}
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+                                                        title="Edit catalog"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
+                                                        </svg>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleCatalog(catalog)}
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600"
+                                                        title={catalog.is_active ? 'Pause catalog' : 'Activate catalog'}
+                                                    >
+                                                        {catalog.is_active ? (
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
+                                                            </svg>
+                                                        ) : (
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setDeleteConfirm(catalog)}
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                                                        title="Delete catalog"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     )}
                 </div>
 
-                {catalogs.meta.last_page > 1 && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                        <div>
-                            Showing {catalogs.meta.total > 0 ? (catalogs.meta.current_page - 1) * catalogs.meta.per_page + 1 : 0} to {Math.min(catalogs.meta.current_page * catalogs.meta.per_page, catalogs.meta.total)} of {catalogs.meta.total} entries
-                        </div>
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                    <div>
+                        Showing {catalogs.meta.total > 0 ? (catalogs.meta.current_page - 1) * catalogs.meta.per_page + 1 : 0} to {Math.min(catalogs.meta.current_page * catalogs.meta.per_page, catalogs.meta.total)} of {catalogs.meta.total} entries
+                    </div>
+                    {catalogs.meta.last_page > 1 && (
                         <div className="flex flex-wrap gap-2">
                             {Array.from({ length: catalogs.meta.last_page }, (_, i) => i + 1).map((page) => (
                                 <button
@@ -261,56 +392,129 @@ export default function AdminCatalogsIndex() {
                                 </button>
                             ))}
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
 
-                <Modal show={modalOpen} onClose={resetForm} maxWidth="2xl">
-                    <form onSubmit={handleSubmit} className="p-6">
-                        <h3 className="text-lg font-semibold text-slate-900 mb-6">{editingCatalog ? 'Edit Catalog' : 'Create New Catalog'}</h3>
-                        <div className="space-y-4">
-                            <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                <span>Name <span className="text-rose-500">*</span></span>
-                                <input
-                                    type="text"
-                                    value={formState.name}
-                                    onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                    required
-                                />
-                            </label>
-                            <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                <span>Description</span>
-                                <textarea
-                                    value={formState.description}
-                                    onChange={(e) => setFormState({ ...formState, description: e.target.value })}
-                                    className="min-h-[100px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                />
-                            </label>
-                            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
-                                <input
-                                    type="checkbox"
-                                    checked={formState.is_active}
-                                    onChange={(e) => setFormState({ ...formState, is_active: e.target.checked })}
-                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
-                                />
-                                Active
-                            </label>
+                <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">
+                    <div className="flex min-h-0 flex-col">
+                        <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-semibold text-slate-900">
+                                    {editingCatalog ? `Edit catalog: ${editingCatalog.name}` : 'Create new catalog'}
+                                </h2>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={resetForm}
+                                        className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        form="catalog-form"
+                                        disabled={loading}
+                                        className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {editingCatalog ? 'Update catalog' : 'Create catalog'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={resetForm}
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                                        aria-label="Close modal"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div className="mt-6 flex justify-end gap-3">
-                            <button type="button" onClick={resetForm} className="rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-600">Cancel</button>
-                            <button type="submit" disabled={loading} className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60">
-                                {editingCatalog ? 'Update' : 'Create'}
-                            </button>
+
+                        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                            <form onSubmit={handleSubmit} className="space-y-6" id="catalog-form">
+                                <div className="grid gap-6 lg:grid-cols-2">
+                                    <div className="space-y-6">
+                                        <div className="grid gap-4">
+                                            <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                                <span>Code <span className="text-rose-500">*</span></span>
+                                                <input
+                                                    type="text"
+                                                    value={formState.code}
+                                                    onChange={(e) => setFormState({ ...formState, code: e.target.value })}
+                                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    placeholder="e.g., CAT001"
+                                                    required
+                                                />
+                                            </label>
+                                            <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                                <span>Name <span className="text-rose-500">*</span></span>
+                                                <input
+                                                    type="text"
+                                                    value={formState.name}
+                                                    onChange={(e) => setFormState({ ...formState, name: e.target.value })}
+                                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    required
+                                                />
+                                            </label>
+                                            <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                                <span>Display order <span className="text-rose-500">*</span></span>
+                                                <input
+                                                    type="number"
+                                                    value={formState.display_order}
+                                                    onChange={(e) => setFormState({ ...formState, display_order: e.target.value === '' ? 0 : Number(e.target.value) })}
+                                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    min={0}
+                                                    required
+                                                />
+                                            </label>
+                                        </div>
+
+                                        <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                                            <input
+                                                type="checkbox"
+                                                checked={formState.is_active}
+                                                onChange={(e) => setFormState({ ...formState, is_active: e.target.checked })}
+                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            />
+                                            Active for selection
+                                        </label>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Description</span>
+                                            <textarea
+                                                value={formState.description}
+                                                onChange={(e) => setFormState({ ...formState, description: e.target.value })}
+                                                className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                placeholder="Optional description for this catalog."
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                    </form>
+                    </div>
                 </Modal>
 
                 <ConfirmationModal
                     show={deleteConfirm !== null}
                     onClose={() => setDeleteConfirm(null)}
                     onConfirm={handleDelete}
-                    title="Delete Catalog"
-                    message={deleteConfirm ? `Are you sure you want to delete catalog "${deleteConfirm.name}"?` : ''}
+                    title="Remove Catalog"
+                    message={deleteConfirm ? `Are you sure you want to remove catalog ${deleteConfirm.name}?` : ''}
+                    confirmText="Remove"
+                    variant="danger"
+                />
+
+                <ConfirmationModal
+                    show={bulkDeleteConfirm}
+                    onClose={() => setBulkDeleteConfirm(false)}
+                    onConfirm={handleBulkDelete}
+                    title="Delete Catalogs"
+                    message={`Are you sure you want to delete ${selectedCatalogs.length} selected catalog(s)?`}
                     confirmText="Delete"
                     variant="danger"
                 />

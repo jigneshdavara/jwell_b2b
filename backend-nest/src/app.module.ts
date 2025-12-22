@@ -23,6 +23,7 @@ import { StylesModule } from './admin/styles/styles.module';
 import { SizesModule } from './admin/sizes/sizes.module';
 import { BrandsModule } from './admin/brands/brands.module';
 import { CategoriesModule } from './admin/categories/categories.module';
+import { CatalogsModule } from './admin/catalogs/catalogs.module';
 import { GeneralSettingsModule } from './admin/settings/general/general.module';
 import { TaxGroupsModule } from './admin/settings/tax-groups/tax-groups.module';
 import { TaxesModule } from './admin/settings/taxes/taxes.module';
@@ -71,6 +72,7 @@ import { ProfileModule } from './frontend/profile/profile.module';
         SizesModule,
         BrandsModule,
         CategoriesModule,
+        CatalogsModule,
         GeneralSettingsModule,
         TaxGroupsModule,
         TaxesModule,

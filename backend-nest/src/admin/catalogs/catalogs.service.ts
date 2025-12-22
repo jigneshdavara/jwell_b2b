@@ -26,14 +26,14 @@ export class CatalogsService {
         ]);
 
         const formattedItems = items.map((catalog) => ({
-            id: catalog.id,
+            id: Number(catalog.id),
             code: catalog.code,
             name: catalog.name,
             description: catalog.description,
             is_active: catalog.is_active,
             display_order: catalog.display_order,
             products_count: catalog._count.catalog_products,
-            product_ids: catalog.catalog_products.map((cp) => cp.product_id),
+            product_ids: catalog.catalog_products.map((cp) => Number(cp.product_id)),
         }));
 
         return {
@@ -62,18 +62,18 @@ export class CatalogsService {
         }
 
         return {
-            id: catalog.id,
+            id: Number(catalog.id),
             code: catalog.code,
             name: catalog.name,
             description: catalog.description,
             is_active: catalog.is_active,
             display_order: catalog.display_order,
-            product_ids: catalog.catalog_products.map((cp) => cp.product_id),
+            product_ids: catalog.catalog_products.map((cp) => Number(cp.product_id)),
         };
     }
 
     async create(dto: CreateCatalogDto) {
-        return await this.prisma.catalogs.create({
+        const catalog = await this.prisma.catalogs.create({
             data: {
                 code: dto.code,
                 name: dto.name,
@@ -84,11 +84,15 @@ export class CatalogsService {
                 updated_at: new Date(),
             },
         });
+        return {
+            ...catalog,
+            id: Number(catalog.id),
+        };
     }
 
     async update(id: number, dto: UpdateCatalogDto) {
         await this.findOne(id);
-        return await this.prisma.catalogs.update({
+        const catalog = await this.prisma.catalogs.update({
             where: { id: BigInt(id) },
             data: {
                 code: dto.code,
@@ -99,6 +103,10 @@ export class CatalogsService {
                 updated_at: new Date(),
             },
         });
+        return {
+            ...catalog,
+            id: Number(catalog.id),
+        };
     }
 
     async remove(id: number) {
@@ -136,16 +144,16 @@ export class CatalogsService {
 
         return {
             catalog: {
-                id: catalog.id,
+                id: Number(catalog.id),
                 name: catalog.name,
             },
             products: products.map((product) => ({
-                id: product.id,
+                id: Number(product.id),
                 name: product.name,
                 sku: product.sku,
                 selected: selectedProductIds.includes(product.id.toString()),
             })),
-            selectedProductIds: catalog.product_ids,
+            selectedProductIds: catalog.product_ids.map((id) => Number(id)),
         };
     }
 

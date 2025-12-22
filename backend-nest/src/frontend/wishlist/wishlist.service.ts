@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CartService } from '../../cart/cart.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class WishlistService {
@@ -84,7 +85,7 @@ export class WishlistService {
                 wishlist_id: wishlist.id,
                 product_id: productId,
                 product_variant_id: variantId || null,
-                configuration: configuration || null,
+                configuration: configuration ? configuration : Prisma.JsonNull,
                 created_at: new Date(),
                 updated_at: new Date(),
             },
@@ -191,7 +192,7 @@ export class WishlistService {
                     product_id: item.product_id,
                     product_variant_id: item.product_variant_id || null,
                     quantity: quantity,
-                    configuration: item.configuration || null,
+                    configuration: item.configuration ? item.configuration : Prisma.JsonNull,
                     created_at: new Date(),
                     updated_at: new Date(),
                 },
@@ -232,7 +233,7 @@ export class WishlistService {
                     name: product.name || null,
                     thumbnail,
                     variant_label: variant?.label || null,
-                    configuration: item.configuration || null,
+                    configuration: item.configuration ? item.configuration : Prisma.JsonNull,
                 };
             })
             .filter((item) => item.name !== null);
