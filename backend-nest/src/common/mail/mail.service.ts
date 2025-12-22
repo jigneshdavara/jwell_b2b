@@ -21,13 +21,18 @@ export class MailService {
      */
     async sendMail(options: SendMailOptions): Promise<void> {
         try {
+            const context = {
+                ...options.context,
+                subject: options.subject,
+            };
+
             await this.mailerService.sendMail({
                 to: Array.isArray(options.to)
                     ? options.to.join(', ')
                     : options.to,
                 subject: options.subject,
                 template: options.template,
-                context: options.context,
+                context,
             });
         } catch (error) {
             console.error('Failed to send email:', error);
@@ -35,6 +40,7 @@ export class MailService {
                 to: options.to,
                 subject: options.subject,
                 template: options.template,
+                context: options.context,
             });
 
             // In development with log driver, this should not fail
