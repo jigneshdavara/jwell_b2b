@@ -53,35 +53,69 @@ export class DiamondsService {
   }
 
   async create(dto: CreateDiamondDto) {
-    return await this.prisma.diamonds.create({
-      data: {
-        name: dto.code, // Using code from DTO as name (schema requires name, not code)
-        diamond_type_id: BigInt(dto.diamond_type_id),
-        diamond_shape_id: BigInt(dto.diamond_shape_id),
-        diamond_clarity_id: BigInt(dto.diamond_clarity_id),
-        diamond_color_id: BigInt(dto.diamond_color_id),
-        diamond_shape_size_id: BigInt(dto.diamond_shape_size_id),
-        description: dto.description,
-        price: dto.price,
-        is_active: dto.is_active ?? true,
-      },
+    const now = new Date();
+    const createData = {
+      name: dto.code, // Using code from DTO as name (schema requires name, not code)
+      diamond_type_id: BigInt(dto.diamond_type_id),
+      diamond_shape_id: BigInt(dto.diamond_shape_id),
+      diamond_clarity_id: BigInt(dto.diamond_clarity_id),
+      diamond_color_id: BigInt(dto.diamond_color_id),
+      diamond_shape_size_id: BigInt(dto.diamond_shape_size_id),
+      description: dto.description || null,
+      price: dto.price,
+      weight: dto.weight,
+      is_active: dto.is_active ?? true,
+      created_at: now,
+      updated_at: now,
+    };
+
+    const result = await this.prisma.diamonds.create({
+      data: createData,
     });
+
+    return result;
   }
 
   async update(id: number, dto: UpdateDiamondDto) {
     await this.findOne(id);
+    const updateData: any = {
+      updated_at: new Date(),
+    };
+    
+    if (dto.diamond_type_id !== undefined) {
+      updateData.diamond_type_id = BigInt(dto.diamond_type_id);
+    }
+    if (dto.diamond_shape_id !== undefined) {
+      updateData.diamond_shape_id = BigInt(dto.diamond_shape_id);
+    }
+    if (dto.diamond_clarity_id !== undefined) {
+      updateData.diamond_clarity_id = BigInt(dto.diamond_clarity_id);
+    }
+    if (dto.diamond_color_id !== undefined) {
+      updateData.diamond_color_id = BigInt(dto.diamond_color_id);
+    }
+    if (dto.diamond_shape_size_id !== undefined) {
+      updateData.diamond_shape_size_id = BigInt(dto.diamond_shape_size_id);
+    }
+    if (dto.code !== undefined) {
+      updateData.name = dto.code; // Using code from DTO as name
+    }
+    if (dto.description !== undefined) {
+      updateData.description = dto.description;
+    }
+    if (dto.price !== undefined) {
+      updateData.price = dto.price;
+    }
+    if (dto.weight !== undefined) {
+      updateData.weight = dto.weight;
+    }
+    if (dto.is_active !== undefined) {
+      updateData.is_active = dto.is_active;
+    }
+    
     return await this.prisma.diamonds.update({
       where: { id: BigInt(id) },
-      data: {
-        diamond_type_id: dto.diamond_type_id ? BigInt(dto.diamond_type_id) : undefined,
-        diamond_shape_id: dto.diamond_shape_id ? BigInt(dto.diamond_shape_id) : undefined,
-        diamond_clarity_id: dto.diamond_clarity_id ? BigInt(dto.diamond_clarity_id) : undefined,
-        diamond_color_id: dto.diamond_color_id ? BigInt(dto.diamond_color_id) : undefined,
-        diamond_shape_size_id: dto.diamond_shape_size_id ? BigInt(dto.diamond_shape_size_id) : undefined,
-        description: dto.description,
-        price: dto.price,
-        is_active: dto.is_active,
-      },
+      data: updateData,
     });
   }
 

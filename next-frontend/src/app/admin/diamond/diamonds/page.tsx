@@ -25,111 +25,187 @@ type DiamondRow = {
     is_active: boolean;
 };
 
-type PaginationMeta = {
+type PaginationLink = { url: string | null; label: string; active: boolean };
+
+type Pagination<T> = {
+    data: T[];
     current_page: number;
     last_page: number;
     total: number;
     per_page: number;
+    from: number | null;
+    to: number | null;
+    links: PaginationLink[];
 };
 
 export default function AdminDiamondsPage() {
     const [loading, setLoading] = useState(true);
-    const [diamonds, setDiamonds] = useState<{ data: DiamondRow[]; meta: PaginationMeta }>({
+    const [diamonds, setDiamonds] = useState<Pagination<DiamondRow>>({
         data: [],
-        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }
+        current_page: 1,
+        last_page: 1,
+        total: 0,
+        per_page: 10,
+        from: null,
+        to: null,
+        links: []
     });
-    const [currentPage, setCurrentPage] = useState(1);
     const [types, setTypes] = useState<DiamondType[]>([]);
-    const [clarities, setClarities] = useState<DiamondClarity[]>([]);
-    const [colors, setColors] = useState<DiamondColor[]>([]);
-    const [shapes, setShapes] = useState<DiamondShape[]>([]);
-    const [shapeSizes, setShapeSizes] = useState<DiamondShapeSize[]>([]);
-
     const [modalOpen, setModalOpen] = useState(false);
     const [editingDiamond, setEditingDiamond] = useState<DiamondRow | null>(null);
     const [selectedDiamonds, setSelectedDiamonds] = useState<number[]>([]);
     const [perPage, setPerPage] = useState(10);
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+    const [shapeSizes, setShapeSizes] = useState<DiamondShapeSize[]>([]);
+    const [loadingShapeSizes, setLoadingShapeSizes] = useState(false);
+    const [filteredClarities, setFilteredClarities] = useState<DiamondClarity[]>([]);
+    const [filteredColors, setFilteredColors] = useState<DiamondColor[]>([]);
+    const [filteredShapes, setFilteredShapes] = useState<DiamondShape[]>([]);
+    const [loadingFilters, setLoadingFilters] = useState(false);
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [processing, setProcessing] = useState(false);
 
     const [formState, setFormState] = useState({
-        name: '',
+        code: '',
         diamond_type_id: null as number | null,
         diamond_clarity_id: null as number | null,
         diamond_color_id: null as number | null,
         diamond_shape_id: null as number | null,
         diamond_shape_size_id: null as number | null,
-        price: 0,
-        weight: 0,
+        price: '' as string | number,
+        weight: '' as string | number,
         description: '',
         is_active: true,
     });
 
+    // Helper function to generate pagination links
+    const generatePaginationLinks = (currentPage: number, lastPage: number): PaginationLink[] => {
+        const links: PaginationLink[] = [];
+        
+        // Previous link
+        links.push({
+            url: currentPage > 1 ? `?page=${currentPage - 1}` : null,
+            label: '« Previous',
+            active: false,
+        });
+        
+        // Page number links: Show 1-10, then ellipsis, then last 2 pages
+        if (lastPage <= 10) {
+            // If 10 or fewer pages, show all
+            for (let i = 1; i <= lastPage; i++) {
+                links.push({
+                    url: `?page=${i}`,
+                    label: String(i),
+                    active: i === currentPage,
+                });
+            }
+        } else {
+            // Show pages 1-10
+            for (let i = 1; i <= 10; i++) {
+                links.push({
+                    url: `?page=${i}`,
+                    label: String(i),
+                    active: i === currentPage,
+                });
+            }
+            
+            // Add ellipsis
+            links.push({
+                url: null,
+                label: '...',
+                active: false,
+            });
+            
+            // Show last 2 pages
+            for (let i = lastPage - 1; i <= lastPage; i++) {
+                links.push({
+                    url: `?page=${i}`,
+                    label: String(i),
+                    active: i === currentPage,
+                });
+            }
+        }
+        
+        // Next link
+        links.push({
+            url: currentPage < lastPage ? `?page=${currentPage + 1}` : null,
+            label: 'Next »',
+            active: false,
+        });
+        
+        return links;
+    };
+
     useEffect(() => {
         loadDiamonds();
         loadTypes();
-    }, [currentPage, perPage]);
+    }, [perPage]);
 
     useEffect(() => {
-        if (formState.diamond_type_id) {
-            loadFilteredAttributes(formState.diamond_type_id);
-            // Reset dependent fields when type changes
-            setFormState(prev => ({
-                ...prev,
-                diamond_clarity_id: null,
-                diamond_color_id: null,
-                diamond_shape_id: null,
-                diamond_shape_size_id: null,
-            }));
-            setClarities([]);
-            setColors([]);
-            setShapes([]);
-            setShapeSizes([]);
-        }
-    }, [formState.diamond_type_id]);
+        const existingIds = new Set(diamonds.data.map((diamond) => diamond.id));
+        setSelectedDiamonds((prev) => prev.filter((id) => existingIds.has(id)));
+    }, [diamonds.data]);
 
-    useEffect(() => {
-        if (formState.diamond_shape_id) {
-            loadShapeSizes(formState.diamond_shape_id);
-            setFormState(prev => ({ ...prev, diamond_shape_size_id: null }));
-        } else {
-            setShapeSizes([]);
-        }
-    }, [formState.diamond_shape_id]);
-
-    const loadDiamonds = async () => {
+    const loadDiamonds = async (page: number = diamonds.current_page) => {
         setLoading(true);
         try {
-            const response = await adminService.getDiamonds(currentPage, perPage);
-            const items = response.data.items || response.data.data || [];
-            const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
-
+            const response = await adminService.getDiamonds(page, perPage);
+            const responseData = response.data;
+            const items = responseData.items || responseData.data || [];
+            const meta = responseData.meta || {};
             setDiamonds({
-                data: items.map((item: any) => ({
-                    id: Number(item.id),
-                    name: item.name,
-                    type: item.type ? { id: Number(item.type.id), name: item.type.name, code: item.type.code } : null,
-                    clarity: item.clarity ? { id: Number(item.clarity.id), name: item.clarity.name, code: item.clarity.code } : null,
-                    color: item.color ? { id: Number(item.color.id), name: item.color.name, code: item.color.code } : null,
-                    shape: item.shape ? { id: Number(item.shape.id), name: item.shape.name, code: item.shape.code } : null,
-                    shape_size: item.shape_size ? {
-                        id: Number(item.shape_size.id),
-                        size: item.shape_size.size,
-                        secondary_size: item.shape_size.secondary_size,
-                        ctw: Number(item.shape_size.ctw || 0),
-                        label: item.shape_size.label || `${item.shape_size.size} (${item.shape_size.ctw}ct)`
-                    } : null,
-                    price: Number(item.price || 0),
-                    weight: Number(item.weight || 0),
-                    description: item.description,
-                    is_active: item.is_active,
-                })),
-                meta: {
-                    current_page: responseMeta.current_page || responseMeta.page || 1,
-                    last_page: responseMeta.last_page || responseMeta.lastPage || 1,
-                    total: responseMeta.total || 0,
-                    per_page: responseMeta.per_page || responseMeta.perPage || perPage,
-                },
+                data: items.map((item: any) => {
+                    // NestJS uses different relationship names: diamond_types, diamond_shapes, etc.
+                    const type = item.diamond_types || item.type;
+                    const clarity = item.diamond_clarities || item.clarity;
+                    const color = item.diamond_colors || item.color;
+                    const shape = item.diamond_shapes || item.shape;
+                    const shapeSize = item.diamond_shape_sizes || item.shape_size;
+                    
+                    return {
+                        id: Number(item.id),
+                        name: item.name || item.code || '', 
+                        type: type ? { 
+                            id: Number(type.id), 
+                            name: type.name, 
+                            code: type.code || null 
+                        } : null,
+                        clarity: clarity ? { 
+                            id: Number(clarity.id), 
+                            name: clarity.name, 
+                            code: clarity.code || null 
+                        } : null,
+                        color: color ? { 
+                            id: Number(color.id), 
+                            name: color.name, 
+                            code: color.code || null 
+                        } : null,
+                        shape: shape ? { 
+                            id: Number(shape.id), 
+                            name: shape.name, 
+                            code: shape.code || null 
+                        } : null,
+                        shape_size: shapeSize ? {
+                            id: Number(shapeSize.id),
+                            size: shapeSize.size,
+                            secondary_size: shapeSize.secondary_size || null,
+                            ctw: Number(shapeSize.ctw || 0),
+                            label: shapeSize.label || `${shapeSize.size || ''} ${shapeSize.secondary_size || ''} (CTW: ${Number(shapeSize.ctw || 0).toFixed(3)})`.trim()
+                        } : null,
+                        price: Number(item.price || 0),
+                        weight: Number(item.weight || 0), 
+                        description: item.description || null,
+                        is_active: item.is_active ?? true,
+                    };
+                }),
+                current_page: meta.page || meta.current_page || 1,
+                last_page: meta.lastPage || meta.last_page || 1,
+                total: meta.total || 0,
+                per_page: meta.perPage || meta.per_page || perPage,
+                from: meta.from ?? ((meta.page || 1) - 1) * (meta.perPage || perPage) + 1,
+                to: meta.to ?? Math.min((meta.page || 1) * (meta.perPage || perPage), meta.total || 0),
+                links: meta.links || generatePaginationLinks(meta.page || 1, meta.lastPage || 1), 
             });
         } catch (error: any) {
             console.error('Failed to load diamonds:', error);
@@ -149,6 +225,14 @@ export default function AdminDiamondsPage() {
     };
 
     const loadFilteredAttributes = async (typeId: number) => {
+        if (!typeId) {
+            setFilteredClarities([]);
+            setFilteredColors([]);
+            setFilteredShapes([]);
+            return;
+        }
+
+        setLoadingFilters(true);
         try {
             const [claritiesRes, colorsRes, shapesRes] = await Promise.all([
                 adminService.getDiamondClaritiesByType(typeId),
@@ -156,27 +240,60 @@ export default function AdminDiamondsPage() {
                 adminService.getDiamondShapesByType(typeId),
             ]);
 
-            setClarities((claritiesRes.data.items || claritiesRes.data.data || []).map((item: any) => ({ id: Number(item.id), name: item.name, code: item.code })));
-            setColors((colorsRes.data.items || colorsRes.data.data || []).map((item: any) => ({ id: Number(item.id), name: item.name, code: item.code })));
-            setShapes((shapesRes.data.items || shapesRes.data.data || []).map((item: any) => ({ id: Number(item.id), name: item.name, code: item.code })));
+            setFilteredClarities((claritiesRes.data || []).map((item: any) => ({ id: Number(item.id), name: item.name, code: item.code })));
+            setFilteredColors((colorsRes.data || []).map((item: any) => ({ id: Number(item.id), name: item.name, code: item.code })));
+            setFilteredShapes((shapesRes.data || []).map((item: any) => ({ id: Number(item.id), name: item.name, code: item.code })));
         } catch (error: any) {
-            console.error('Failed to load filtered attributes:', error);
+            console.error('Failed to load filtered data:', error);
+            setFilteredClarities([]);
+            setFilteredColors([]);
+            setFilteredShapes([]);
+        } finally {
+            setLoadingFilters(false);
         }
     };
 
-    const loadShapeSizes = async (shapeId: number) => {
+    const loadShapeSizes = async (shapeId: number | null, typeId: number | null = null) => {
+        if (!shapeId) {
+            setShapeSizes([]);
+            setFormState(prev => ({ ...prev, diamond_shape_size_id: null }));
+            return;
+        }
+
+        setLoadingShapeSizes(true);
         try {
-            const response = await adminService.getDiamondShapeSizes(shapeId);
-            const items = response.data.items || response.data.data || [];
+            const response = await adminService.getDiamondShapeSizesByShape(shapeId, typeId || undefined);
+            // Laravel returns JSON array directly, axios wraps it in response.data
+            let items: any[] = [];
+            
+            if (Array.isArray(response.data)) {
+                items = response.data;
+            } else if (response.data && Array.isArray(response.data.data)) {
+                items = response.data.data;
+            } else if (response.data && Array.isArray(response.data.items)) {
+                items = response.data.items;
+            } else {
+                console.warn('Unexpected shape sizes response structure:', response);
+                items = [];
+            }
+            
+            if (!Array.isArray(items)) {
+                console.error('Shape sizes response is not an array:', items);
+                items = [];
+            }
+            
             setShapeSizes(items.map((item: any) => ({
                 id: Number(item.id),
                 size: item.size,
                 secondary_size: item.secondary_size,
                 ctw: Number(item.ctw || 0),
-                label: item.label || `${item.size} (${item.ctw}ct)`
+                label: item.label || `${item.size || ''} ${item.secondary_size || ''} (CTW: ${Number(item.ctw || 0).toFixed(3)})`.trim()
             })));
         } catch (error: any) {
             console.error('Failed to load shape sizes:', error);
+            setShapeSizes([]);
+        } finally {
+            setLoadingShapeSizes(false);
         }
     };
 
@@ -196,15 +313,20 @@ export default function AdminDiamondsPage() {
     const resetForm = () => {
         setEditingDiamond(null);
         setModalOpen(false);
+        setShapeSizes([]);
+        setFilteredClarities([]);
+        setFilteredColors([]);
+        setFilteredShapes([]);
+        setFormErrors({});
         setFormState({
-            name: '',
+            code: '',
             diamond_type_id: null,
             diamond_clarity_id: null,
             diamond_color_id: null,
             diamond_shape_id: null,
             diamond_shape_size_id: null,
-            price: 0,
-            weight: 0,
+            price: '',
+            weight: '',
             description: '',
             is_active: true,
         });
@@ -217,41 +339,77 @@ export default function AdminDiamondsPage() {
 
     const openEditModal = async (diamond: DiamondRow) => {
         setEditingDiamond(diamond);
+        setFormErrors({});
         setFormState({
-            name: diamond.name,
+            code: diamond.name || '', // Use name as code for now, or get from API
             diamond_type_id: diamond.type?.id ?? null,
             diamond_clarity_id: diamond.clarity?.id ?? null,
             diamond_color_id: diamond.color?.id ?? null,
             diamond_shape_id: diamond.shape?.id ?? null,
             diamond_shape_size_id: diamond.shape_size?.id ?? null,
             price: diamond.price,
-            weight: diamond.weight,
+            weight: diamond.weight !== undefined && diamond.weight !== null ? Number(diamond.weight) : '',
             description: diamond.description ?? '',
             is_active: diamond.is_active,
         });
+        
+        // Load filtered data based on type
         if (diamond.type?.id) {
             await loadFilteredAttributes(diamond.type.id);
         }
-        if (diamond.shape?.id) {
-            await loadShapeSizes(diamond.shape.id);
+        
+        // Load shape sizes if shape is selected
+        if (diamond.shape?.id && diamond.type?.id) {
+            await loadShapeSizes(diamond.shape.id, diamond.type.id);
         }
+        
         setModalOpen(true);
+    };
+
+    const handleTypeChange = (typeId: number | null) => {
+        setFormState(prev => ({
+            ...prev,
+            diamond_type_id: typeId,
+            diamond_clarity_id: null,
+            diamond_color_id: null,
+            diamond_shape_id: null,
+            diamond_shape_size_id: null,
+        }));
+        setShapeSizes([]);
+        
+        if (typeId) {
+            loadFilteredAttributes(typeId);
+        } else {
+            setFilteredClarities([]);
+            setFilteredColors([]);
+            setFilteredShapes([]);
+        }
+    };
+
+    const handleShapeChange = (shapeId: number | null) => {
+        setFormState(prev => ({
+            ...prev,
+            diamond_shape_id: shapeId,
+            diamond_shape_size_id: null,
+        }));
+        loadShapeSizes(shapeId, formState.diamond_type_id);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
+        setProcessing(true);
+        setFormErrors({});
 
         try {
             const payload: any = {
-                name: formState.name,
+                code: formState.code,
                 diamond_type_id: formState.diamond_type_id,
                 diamond_clarity_id: formState.diamond_clarity_id,
                 diamond_color_id: formState.diamond_color_id,
                 diamond_shape_id: formState.diamond_shape_id,
                 diamond_shape_size_id: formState.diamond_shape_size_id,
-                price: formState.price,
-                weight: formState.weight,
+                price: formState.price === '' ? 0 : Number(formState.price),
+                weight: formState.weight === '' ? 0 : Number(formState.weight),
                 description: formState.description || null,
                 is_active: formState.is_active,
             };
@@ -265,10 +423,18 @@ export default function AdminDiamondsPage() {
             await loadDiamonds();
         } catch (error: any) {
             console.error('Failed to save diamond:', error);
-            alert(error.response?.data?.message || 'Failed to save diamond. Please try again.');
+            if (error.response?.data?.errors) {
+                setFormErrors(error.response.data.errors);
+            } else {
+                alert(error.response?.data?.message || 'Failed to save diamond. Please try again.');
+            }
         } finally {
-            setLoading(false);
+            setProcessing(false);
         }
+    };
+
+    const deleteDiamond = (diamond: DiamondRow) => {
+        setDeleteConfirm(diamond);
     };
 
     const handleDelete = async () => {
@@ -284,6 +450,13 @@ export default function AdminDiamondsPage() {
         }
     };
 
+    const bulkDelete = () => {
+        if (selectedDiamonds.length === 0) {
+            return;
+        }
+        setBulkDeleteConfirm(true);
+    };
+
     const handleBulkDelete = async () => {
         try {
             await adminService.bulkDeleteDiamonds(selectedDiamonds);
@@ -296,13 +469,46 @@ export default function AdminDiamondsPage() {
         }
     };
 
+    const changePage = async (url: string | null) => {
+        if (!url) {
+            return;
+        }
+
+        // Extract page number from URL (handle both full URLs and query strings)
+        let page = 1;
+        try {
+            if (url.startsWith('http')) {
+                const urlObj = new URL(url);
+                page = Number(urlObj.searchParams.get('page') || '1');
+            } else {
+                // Handle query string like "?page=2"
+                const match = url.match(/[?&]page=(\d+)/);
+                page = match ? Number(match[1]) : 1;
+            }
+        } catch (e) {
+            console.error('Error parsing page URL:', e);
+        }
+        await loadDiamonds(page);
+    };
+
+    const handlePerPageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        const newPerPage = Number(event.target.value);
+        setPerPage(newPerPage);
+        loadDiamonds(1);
+    };
+
     const getDiamondLabel = (diamond: DiamondRow): string => {
         const parts: string[] = [];
         if (diamond.type) parts.push(diamond.type.name);
         if (diamond.clarity) parts.push(diamond.clarity.name);
         if (diamond.color) parts.push(diamond.color.name);
         if (diamond.shape) parts.push(diamond.shape.name);
-        if (diamond.shape_size?.label) parts.push(diamond.shape_size.label);
+        if (diamond.shape_size?.size) {
+            parts.push(diamond.shape_size.size);
+            if (diamond.shape_size.secondary_size) {
+                parts.push(`(${diamond.shape_size.secondary_size})`);
+            }
+        }
         return parts.join(' - ') || 'Diamond';
     };
 
@@ -330,13 +536,13 @@ export default function AdminDiamondsPage() {
             <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                 <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
                     <div className="font-semibold text-slate-700">
-                        Diamonds ({diamonds.meta.total})
+                        Diamonds ({diamonds.total})
                     </div>
                     <div className="flex items-center gap-3 text-xs text-slate-500">
                         <span>{selectedDiamonds.length} selected</span>
                         <button
                             type="button"
-                            onClick={() => setBulkDeleteConfirm(true)}
+                            onClick={bulkDelete}
                             disabled={selectedDiamonds.length === 0}
                             className="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
                         >
@@ -344,10 +550,7 @@ export default function AdminDiamondsPage() {
                         </button>
                         <select
                             value={perPage}
-                            onChange={(e) => {
-                                setPerPage(Number(e.target.value));
-                                setCurrentPage(1);
-                            }}
+                            onChange={handlePerPageChange}
                             className="rounded-full border border-slate-200 px-3 py-1 text-xs"
                         >
                             <option value={10}>10</option>
@@ -358,7 +561,7 @@ export default function AdminDiamondsPage() {
                     </div>
                 </div>
                 <table className="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
+                    <thead className="bg-slate-50 text-xs text-slate-500">
                         <tr>
                             <th className="px-5 py-3">
                                 <input
@@ -366,6 +569,7 @@ export default function AdminDiamondsPage() {
                                     checked={allSelected}
                                     onChange={toggleSelectAll}
                                     className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                    aria-label="Select all diamonds"
                                 />
                             </th>
                             <th className="px-5 py-3 text-left">Name</th>
@@ -378,24 +582,33 @@ export default function AdminDiamondsPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
                         {diamonds.data.map((diamond) => (
-                            <tr key={diamond.id} className="hover:bg-slate-50 transition-colors">
+                            <tr key={diamond.id} className="hover:bg-slate-50">
                                 <td className="px-5 py-3">
                                     <input
                                         type="checkbox"
                                         checked={selectedDiamonds.includes(diamond.id)}
                                         onChange={() => toggleSelection(diamond.id)}
                                         className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        aria-label={`Select diamond ${diamond.id}`}
                                     />
                                 </td>
-                                <td className="px-5 py-3 font-semibold text-slate-900">{diamond.name}</td>
+                                <td className="px-5 py-3 font-semibold text-slate-900">
+                                    {diamond.name}
+                                </td>
                                 <td className="px-5 py-3">
                                     <div className="flex flex-col gap-1">
                                         <span className="text-slate-700">{getDiamondLabel(diamond)}</span>
-                                        {diamond.description && <span className="text-xs font-normal text-slate-500">{diamond.description}</span>}
+                                        {diamond.description && (
+                                            <span className="text-xs text-slate-500">{diamond.description}</span>
+                                        )}
                                     </div>
                                 </td>
-                                <td className="px-5 py-3 text-slate-700">{diamond.weight.toFixed(3)} ct</td>
-                                <td className="px-5 py-3 font-semibold text-slate-900">₹{diamond.price.toLocaleString('en-IN')}</td>
+                                <td className="px-5 py-3 text-slate-700">
+                                    {diamond.weight.toFixed(3)} ct
+                                </td>
+                                <td className="px-5 py-3 font-semibold text-slate-900">
+                                    ₹{typeof diamond.price === 'number' ? diamond.price.toFixed(2) : (parseFloat(String(diamond.price)) || 0).toFixed(2)}
+                                </td>
                                 <td className="px-5 py-3">
                                     <span
                                         className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -420,7 +633,7 @@ export default function AdminDiamondsPage() {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => setDeleteConfirm(diamond)}
+                                            onClick={() => deleteDiamond(diamond)}
                                             className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
                                             title="Delete diamond"
                                         >
@@ -432,31 +645,52 @@ export default function AdminDiamondsPage() {
                                 </td>
                             </tr>
                         ))}
+                        {diamonds.data.length === 0 && (
+                            <tr>
+                                <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
+                                    No diamonds defined yet.
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
 
-            {diamonds.meta.last_page > 1 && (
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                    <div>
-                        Showing {diamonds.meta.total > 0 ? (diamonds.meta.current_page - 1) * diamonds.meta.per_page + 1 : 0} to {Math.min(diamonds.meta.current_page * diamonds.meta.per_page, diamonds.meta.total)} of {diamonds.meta.total} entries
-                    </div>
-                    <div className="flex gap-2">
-                        {Array.from({ length: diamonds.meta.last_page }, (_, i) => i + 1).map((page) => (
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                <div>
+                    Showing {diamonds.from ?? 0} to {diamonds.to ?? 0} of {diamonds.total} entries
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {diamonds.links.map((link, index) => {
+                        const cleanLabel = link.label
+                            .replace('&laquo;', '«')
+                            .replace('&raquo;', '»')
+                            .replace(/&nbsp;/g, ' ')
+                            .trim();
+
+                        if (!link.url) {
+                            return (
+                                <span key={`${link.label}-${index}`} className="rounded-full px-3 py-1 text-sm text-slate-400">
+                                    {cleanLabel}
+                                </span>
+                            );
+                        }
+
+                        return (
                             <button
-                                key={page}
+                                key={`${link.label}-${index}`}
                                 type="button"
-                                onClick={() => setCurrentPage(page)}
+                                onClick={() => changePage(link.url)}
                                 className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                    page === diamonds.meta.current_page ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                    link.active ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                 }`}
                             >
-                                {page}
+                                {cleanLabel}
                             </button>
-                        ))}
-                    </div>
+                        );
+                    })}
                 </div>
-            )}
+            </div>
 
             <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">
                 <div className="flex min-h-0 flex-col">
@@ -466,11 +700,30 @@ export default function AdminDiamondsPage() {
                                 {editingDiamond ? 'Edit diamond' : 'Create new diamond'}
                             </h2>
                             <div className="flex items-center gap-3">
-                                <button type="button" onClick={resetForm} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900">
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                >
                                     Cancel
                                 </button>
-                                <button type="submit" form="diamond-form" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700">
+                                <button
+                                    type="submit"
+                                    form="diamond-form"
+                                    disabled={processing}
+                                    className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
                                     {editingDiamond ? 'Update diamond' : 'Create diamond'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                                    aria-label="Close modal"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
                                 </button>
                             </div>
                         </div>
@@ -482,47 +735,133 @@ export default function AdminDiamondsPage() {
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Name <span className="text-rose-500">*</span></span>
+                                            <span>Code <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="text"
-                                                value={formState.name}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
+                                                value={formState.code}
+                                                onChange={(e) => setFormState(prev => ({ ...prev, code: e.target.value }))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 required
+                                                maxLength={191}
+                                                placeholder="e.g., DIAMOND-001"
                                             />
+                                            {formErrors.code && <span className="text-xs text-rose-500">{formErrors.code}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
                                             <span>Type <span className="text-rose-500">*</span></span>
                                             <select
                                                 value={formState.diamond_type_id || ''}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, diamond_type_id: e.target.value ? Number(e.target.value) : null }))}
+                                                onChange={(e) => handleTypeChange(e.target.value ? Number(e.target.value) : null)}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 required
                                             >
                                                 <option value="">Select type</option>
-                                                {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                                {types.map((type) => (
+                                                    <option key={type.id} value={type.id}>
+                                                        {type.name} {type.code ? `(${type.code})` : ''}
+                                                    </option>
+                                                ))}
                                             </select>
+                                            {formErrors.diamond_type_id && <span className="text-xs text-rose-500">{formErrors.diamond_type_id}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Clarity <span className="text-rose-500">*</span></span>
+                                            <select
+                                                value={formState.diamond_clarity_id || ''}
+                                                onChange={(e) => setFormState(prev => ({ ...prev, diamond_clarity_id: e.target.value ? Number(e.target.value) : null }))}
+                                                disabled={!formState.diamond_type_id || loadingFilters}
+                                                required
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                                            >
+                                                <option value="">{loadingFilters ? 'Loading...' : formState.diamond_type_id ? 'Select clarity' : 'Select type first'}</option>
+                                                {filteredClarities.map((clarity) => (
+                                                    <option key={clarity.id} value={clarity.id}>
+                                                        {clarity.name} {clarity.code ? `(${clarity.code})` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {formErrors.diamond_clarity_id && <span className="text-xs text-rose-500">{formErrors.diamond_clarity_id}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Color <span className="text-rose-500">*</span></span>
+                                            <select
+                                                value={formState.diamond_color_id || ''}
+                                                onChange={(e) => setFormState(prev => ({ ...prev, diamond_color_id: e.target.value ? Number(e.target.value) : null }))}
+                                                disabled={!formState.diamond_type_id || loadingFilters}
+                                                required
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                                            >
+                                                <option value="">{loadingFilters ? 'Loading...' : formState.diamond_type_id ? 'Select color' : 'Select type first'}</option>
+                                                {filteredColors.map((color) => (
+                                                    <option key={color.id} value={color.id}>
+                                                        {color.name} {color.code ? `(${color.code})` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {formErrors.diamond_color_id && <span className="text-xs text-rose-500">{formErrors.diamond_color_id}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Shape <span className="text-rose-500">*</span></span>
+                                            <select
+                                                value={formState.diamond_shape_id || ''}
+                                                onChange={(e) => handleShapeChange(e.target.value ? Number(e.target.value) : null)}
+                                                disabled={!formState.diamond_type_id || loadingFilters}
+                                                required
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                                            >
+                                                <option value="">{loadingFilters ? 'Loading...' : formState.diamond_type_id ? 'Select shape' : 'Select type first'}</option>
+                                                {filteredShapes.map((shape) => (
+                                                    <option key={shape.id} value={shape.id}>
+                                                        {shape.name} {shape.code ? `(${shape.code})` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {formErrors.diamond_shape_id && <span className="text-xs text-rose-500">{formErrors.diamond_shape_id}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Shape Size <span className="text-rose-500">*</span></span>
+                                            <select
+                                                value={formState.diamond_shape_size_id || ''}
+                                                onChange={(e) => setFormState(prev => ({ ...prev, diamond_shape_size_id: e.target.value ? Number(e.target.value) : null }))}
+                                                disabled={!formState.diamond_shape_id || loadingShapeSizes}
+                                                required
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                                            >
+                                                <option value="">{loadingShapeSizes ? 'Loading...' : formState.diamond_shape_id ? 'Select size' : 'Select shape first'}</option>
+                                                {shapeSizes.map((size) => (
+                                                    <option key={size.id} value={size.id}>
+                                                        {size.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {formErrors.diamond_shape_size_id && <span className="text-xs text-rose-500">{formErrors.diamond_shape_size_id}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Price <span className="text-rose-500">*</span></span>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={formState.price === '' ? '' : formState.price}
+                                                onChange={(e) => setFormState(prev => ({ ...prev, price: e.target.value === '' ? '' : Number(e.target.value) }))}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                min={0}
+                                                required
+                                            />
+                                            {formErrors.price && <span className="text-xs text-rose-500">{formErrors.price}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
                                             <span>Weight (Carats) <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="number"
                                                 step="0.001"
-                                                value={formState.weight}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, weight: Number(e.target.value) }))}
+                                                value={formState.weight === '' || formState.weight === null || formState.weight === undefined ? '' : String(formState.weight)}
+                                                onChange={(e) => setFormState(prev => ({ ...prev, weight: e.target.value === '' ? '' : Number(e.target.value) }))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                min={0}
                                                 required
+                                                placeholder="e.g., 1.500"
                                             />
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Price <span className="text-rose-500">*</span></span>
-                                            <input
-                                                type="number"
-                                                value={formState.price}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, price: Number(e.target.value) }))}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                required
-                                            />
+                                            {formErrors.weight && <span className="text-xs text-rose-500">{formErrors.weight}</span>}
                                         </label>
                                     </div>
                                     <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
@@ -535,6 +874,7 @@ export default function AdminDiamondsPage() {
                                         Active for selection
                                     </label>
                                 </div>
+
                                 <div className="space-y-6">
                                     <label className="flex flex-col gap-2 text-sm text-slate-600">
                                         <span>Description</span>
@@ -544,6 +884,7 @@ export default function AdminDiamondsPage() {
                                             className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                             placeholder="Optional notes for team."
                                         />
+                                        {formErrors.description && <span className="text-xs text-rose-500">{formErrors.description}</span>}
                                     </label>
                                 </div>
                             </div>
