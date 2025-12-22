@@ -204,7 +204,7 @@ export const adminService = {
     return await apiClient.post('/admin/metal-purities', data);
   },
   async updateMetalPurity(id: number, data: any) {
-    return await apiClient.patch(`/admin/metal-purities/${id}`, data);
+    return await apiClient.put(`/admin/metal-purities/${id}`, data);
   },
   async deleteMetalPurity(id: number) {
     return await apiClient.delete(`/admin/metal-purities/${id}`);

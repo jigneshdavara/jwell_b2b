@@ -26,7 +26,15 @@ export class MetalPuritiesService {
         ]);
 
         return {
-            items,
+            items: items.map((item) => ({
+                ...item,
+                id: Number(item.id),
+                metal_id: Number(item.metal_id),
+                metal: item.metals ? {
+                    id: Number(item.metals.id),
+                    name: item.metals.name,
+                } : null,
+            })),
             meta: {
                 total,
                 page,
@@ -46,11 +54,19 @@ export class MetalPuritiesService {
         if (!purity) {
             throw new NotFoundException('Metal purity not found');
         }
-        return purity;
+        return {
+            ...purity,
+            id: Number(purity.id),
+            metal_id: Number(purity.metal_id),
+            metal: purity.metals ? {
+                id: Number(purity.metals.id),
+                name: purity.metals.name,
+            } : null,
+        };
     }
 
     async create(dto: CreateMetalPurityDto) {
-        return await this.prisma.metal_purities.create({
+        const purity = await this.prisma.metal_purities.create({
             data: {
                 metal_id: BigInt(dto.metal_id),
                 code: dto.code,
@@ -59,12 +75,31 @@ export class MetalPuritiesService {
                 is_active: dto.is_active ?? true,
                 display_order: dto.display_order,
             },
+            include: {
+                metals: {
+                    select: { id: true, name: true },
+                },
+            },
         });
+        return {
+            ...purity,
+            id: Number(purity.id),
+            metal_id: Number(purity.metal_id),
+            metal: purity.metals ? {
+                id: Number(purity.metals.id),
+                name: purity.metals.name,
+            } : null,
+        };
     }
 
     async update(id: number, dto: UpdateMetalPurityDto) {
-        await this.findOne(id);
-        return await this.prisma.metal_purities.update({
+        const existing = await this.prisma.metal_purities.findUnique({
+            where: { id: BigInt(id) },
+        });
+        if (!existing) {
+            throw new NotFoundException('Metal purity not found');
+        }
+        const purity = await this.prisma.metal_purities.update({
             where: { id: BigInt(id) },
             data: {
                 metal_id: dto.metal_id ? BigInt(dto.metal_id) : undefined,
@@ -74,7 +109,21 @@ export class MetalPuritiesService {
                 is_active: dto.is_active,
                 display_order: dto.display_order,
             },
+            include: {
+                metals: {
+                    select: { id: true, name: true },
+                },
+            },
         });
+        return {
+            ...purity,
+            id: Number(purity.id),
+            metal_id: Number(purity.metal_id),
+            metal: purity.metals ? {
+                id: Number(purity.metals.id),
+                name: purity.metals.name,
+            } : null,
+        };
     }
 
     async remove(id: number) {

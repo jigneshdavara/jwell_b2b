@@ -1,7 +1,0 @@
-{
-  "/page": "app/page.js",
-  "/admin/metal-tones/page": "app/admin/metal-tones/page.js",
-  "/admin/products/page": "app/admin/products/page.js",
-  "/admin/catalogs/page": "app/admin/catalogs/page.js",
-  "/(customer)/dashboard/page": "app/(customer)/dashboard/page.js"
-}
