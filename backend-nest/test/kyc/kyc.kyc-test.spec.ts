@@ -50,7 +50,7 @@ describe('KYC Module (e2e)', () => {
 
         const loginResult = await authService.login({
             ...testUser,
-            guard: 'web',
+            guard: 'user',
         });
         accessToken = loginResult.access_token;
     });
