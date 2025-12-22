@@ -406,8 +406,8 @@ export const adminService = {
   async createOrderStatus(data: any) {
     return await apiClient.post('/admin/orders/statuses', data);
   },
-  async updateOrderStatus(id: number, data: any) {
-    return await apiClient.patch(`/admin/orders/statuses/${id}`, data);
+  async updateOrderStatusConfig(id: number, data: any) {
+    return await apiClient.put(`/admin/orders/statuses/${id}`, data);
   },
   async deleteOrderStatus(id: number) {
     return await apiClient.delete(`/admin/orders/statuses/${id}`);
