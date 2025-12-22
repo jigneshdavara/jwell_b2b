@@ -376,7 +376,7 @@ export const adminService = {
     return await apiClient.post('/admin/styles', data);
   },
   async updateStyle(id: number, data: any) {
-    return await apiClient.patch(`/admin/styles/${id}`, data);
+    return await apiClient.put(`/admin/styles/${id}`, data);
   },
   async deleteStyle(id: number) {
     return await apiClient.delete(`/admin/styles/${id}`);

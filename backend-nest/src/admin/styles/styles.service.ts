@@ -22,7 +22,10 @@ export class StylesService {
         ]);
 
         return {
-            items,
+            items: items.map((item) => ({
+                ...item,
+                id: Number(item.id),
+            })),
             meta: {
                 total,
                 page,
@@ -39,11 +42,14 @@ export class StylesService {
         if (!style) {
             throw new NotFoundException('Style not found');
         }
-        return style;
+        return {
+            ...style,
+            id: Number(style.id),
+        };
     }
 
     async create(dto: CreateStyleDto) {
-        return await this.prisma.styles.create({
+        const style = await this.prisma.styles.create({
             data: {
                 code: dto.code,
                 name: dto.name,
@@ -52,11 +58,20 @@ export class StylesService {
                 display_order: dto.display_order ?? 0,
             },
         });
+        return {
+            ...style,
+            id: Number(style.id),
+        };
     }
 
     async update(id: number, dto: UpdateStyleDto) {
-        await this.findOne(id);
-        return await this.prisma.styles.update({
+        const existing = await this.prisma.styles.findUnique({
+            where: { id: BigInt(id) },
+        });
+        if (!existing) {
+            throw new NotFoundException('Style not found');
+        }
+        const style = await this.prisma.styles.update({
             where: { id: BigInt(id) },
             data: {
                 code: dto.code,
@@ -66,6 +81,10 @@ export class StylesService {
                 display_order: dto.display_order,
             },
         });
+        return {
+            ...style,
+            id: Number(style.id),
+        };
     }
 
     async remove(id: number) {
