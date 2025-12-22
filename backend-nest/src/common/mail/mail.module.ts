@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { join } from 'path';
-import { existsSync } from 'fs';
+import { createTransport, Transporter } from 'nodemailer';
 import { MailService } from './mail.service';
 import { MailController } from './mail.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
@@ -10,119 +10,150 @@ import { PrismaModule } from '../../prisma/prisma.module';
 @Module({
     imports: [
         PrismaModule,
-        MailerModule.forRoot({
-            transport: (() => {
+        MailerModule.forRootAsync({
+            useFactory: () => {
                 const mailDriver = process.env.MAIL_MAILER || 'log';
+                console.log(
+                    `[MailModule] Initializing with mail driver: ${mailDriver}`,
+                );
 
-                // For development, use log transport if MAIL_MAILER is 'log'
+                // For development, use a custom transport that logs emails
                 if (mailDriver === 'log') {
+                    console.log(
+                        '[MailModule] Using log transport (streamTransport)',
+                    );
+                    // Use streamTransport which logs emails to console without SMTP
+                    const logTransport: Transporter = createTransport({
+                        streamTransport: true,
+                    }) as Transporter;
+
+                    // Create a verify method that never attempts connection
+                    const verifyMethod = function verify(
+                        callback?: (
+                            err: Error | null,
+                            success?: boolean,
+                        ) => void,
+                    ): Promise<boolean> {
+                        console.log(
+                            '[MailModule] verify() intercepted - returning success without connection',
+                        );
+                        // Return immediately resolved promise - no connection attempt
+                        const promise = Promise.resolve(true);
+                        if (callback) {
+                            // Execute callback asynchronously to match nodemailer pattern
+                            setImmediate(() => callback(null, true));
+                        }
+                        return promise;
+                    };
+
+                    // Wrap the entire transport in a Proxy to intercept ALL property access
+                    // This ensures verify() is always intercepted, no matter how MailerService accesses it
+                    const proxiedTransport = new Proxy(logTransport, {
+                        get(target, prop, receiver) {
+                            // Intercept verify() calls
+                            if (prop === 'verify') {
+                                console.log(
+                                    '[MailModule] verify property accessed via Proxy',
+                                );
+                                return verifyMethod;
+                            }
+
+                            // For all other properties, return the original value
+                            const value = Reflect.get(target, prop, receiver) as
+                                | unknown
+                                | undefined;
+
+                            // Bind methods to maintain 'this' context
+                            if (typeof value === 'function') {
+                                return (value as (...args: unknown[]) => unknown).bind(
+                                    target,
+                                );
+                            }
+
+                            return value;
+                        },
+                        // Also intercept property definition to ensure verify is always available
+                        defineProperty(
+                            target: Transporter,
+                            prop: string | symbol,
+                            descriptor: PropertyDescriptor,
+                        ) {
+                            // If trying to define verify, use our version
+                            if (prop === 'verify') {
+                                return Reflect.defineProperty(
+                                    target as object,
+                                    prop,
+                                    {
+                                        ...descriptor,
+                                        value: verifyMethod,
+                                    },
+                                );
+                            }
+                            return Reflect.defineProperty(
+                                target as object,
+                                prop,
+                                descriptor,
+                            );
+                        },
+                    }) as Transporter;
+
+                    // Also directly add verify to the original transport as backup
+                    Object.defineProperty(logTransport, 'verify', {
+                        value: verifyMethod,
+                        writable: true,
+                        enumerable: true,
+                        configurable: true,
+                    });
+
+                    console.log(
+                        '[MailModule] Transport wrapped in Proxy with verify() method',
+                    );
+
                     return {
-                        jsonTransport: true, // Log emails as JSON instead of sending
+                        transport: proxiedTransport,
+                        defaults: {
+                            from: `"${process.env.MAIL_FROM_NAME || 'Elvee'}" <${process.env.MAIL_FROM_ADDRESS || 'hello@example.com'}>`,
+                        },
+                        template: {
+                            dir: join(__dirname, 'templates'),
+                            adapter: new HandlebarsAdapter(),
+                            options: {
+                                strict: true,
+                            },
+                        },
                     };
                 }
 
                 const mailHost = process.env.MAIL_HOST || '127.0.0.1';
                 const mailPort = parseInt(process.env.MAIL_PORT || '2525', 10);
-                const mailEncryption =
-                    process.env.MAIL_ENCRYPTION?.toLowerCase();
-                const mailScheme = process.env.MAIL_SCHEME?.toLowerCase();
+                const mailScheme = process.env.MAIL_SCHEME;
                 const mailUsername = process.env.MAIL_USERNAME;
                 const mailPassword = process.env.MAIL_PASSWORD;
 
-                // Determine secure connection:
-                // - Port 465 always uses SSL (secure: true)
-                // - MAIL_ENCRYPTION=ssl means secure: true
-                // - MAIL_ENCRYPTION=tls means secure: false, requireTLS: true
-                // - MAIL_SCHEME=https means secure: true (backward compatibility)
-                const isSecure =
-                    mailPort === 465 ||
-                    mailEncryption === 'ssl' ||
-                    mailScheme === 'https';
-
-                interface TransportConfig {
-                    host: string;
-                    port: number;
-                    secure: boolean;
-                    auth?: {
-                        user: string;
-                        pass: string;
-                    };
-                    requireTLS?: boolean;
-                }
-
-                const transportConfig: TransportConfig = {
-                    host: mailHost,
-                    port: mailPort,
-                    secure: isSecure,
-                    auth:
-                        mailUsername && mailPassword
-                            ? {
-                                  user: mailUsername,
-                                  pass: mailPassword,
-                              }
-                            : undefined,
+                return {
+                    transport: {
+                        host: mailHost,
+                        port: mailPort,
+                        secure: mailScheme === 'https',
+                        auth:
+                            mailUsername && mailPassword
+                                ? {
+                                      user: mailUsername,
+                                      pass: mailPassword,
+                                  }
+                                : undefined,
+                    },
+                    defaults: {
+                        from: `"${process.env.MAIL_FROM_NAME || 'Elvee'}" <${process.env.MAIL_FROM_ADDRESS || 'hello@example.com'}>`,
+                    },
+                    template: {
+                        dir: join(__dirname, 'templates'),
+                        adapter: new HandlebarsAdapter(),
+                        options: {
+                            strict: true,
+                        },
+                    },
                 };
-
-                // For TLS on port 587, require TLS
-                if (
-                    mailEncryption === 'tls' ||
-                    (!isSecure && mailPort === 587)
-                ) {
-                    transportConfig.requireTLS = true;
-                }
-
-                return transportConfig;
-            })(),
-            defaults: {
-                from: `"${process.env.MAIL_FROM_NAME || 'Elvee'}" <${process.env.MAIL_FROM_ADDRESS || 'hello@example.com'}>`,
-            },
-            template: {
-                dir: (() => {
-                    // Templates are copied to dist/common/mail/templates by nest-cli.json
-                    // In development: use src/common/mail/templates
-                    // In production: use dist/common/mail/templates
-
-                    // Check if we're in production (dist directory exists)
-                    const distTemplateDir = join(
-                        process.cwd(),
-                        'dist',
-                        'common',
-                        'mail',
-                        'templates',
-                    );
-
-                    // Check if we're in development (src directory)
-                    const srcTemplateDir = join(
-                        process.cwd(),
-                        'src',
-                        'common',
-                        'mail',
-                        'templates',
-                    );
-
-                    // In production, templates are in dist/common/mail/templates
-                    if (existsSync(distTemplateDir)) {
-                        return distTemplateDir;
-                    }
-
-                    // In development, use src directory
-                    if (existsSync(srcTemplateDir)) {
-                        return srcTemplateDir;
-                    }
-
-                    // Fallback: try __dirname (for compiled code)
-                    const templateDir = join(__dirname, 'templates');
-                    if (existsSync(templateDir)) {
-                        return templateDir;
-                    }
-
-                    // Last resort: return dist path (will error if templates don't exist)
-                    return distTemplateDir;
-                })(),
-                adapter: new HandlebarsAdapter(),
-                options: {
-                    strict: true,
-                },
             },
         }),
     ],
