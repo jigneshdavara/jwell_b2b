@@ -2,6 +2,7 @@
 
 import { Head } from '@/components/Head';
 import { useEffect, useState } from 'react';
+import { adminService } from '@/services/adminService';
 
 export default function AdminPaymentSettings() {
     const [loading, setLoading] = useState(true);
@@ -15,10 +16,28 @@ export default function AdminPaymentSettings() {
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
-        // TODO: Load payment gateway settings from API when backend endpoint is available
-        // For now, using mock/empty data
-        setLoading(false);
+        loadSettings();
     }, []);
+
+    const loadSettings = async () => {
+        try {
+            setLoading(true);
+            const response = await adminService.getPaymentSettings();
+            if (response.data?.gateway) {
+                const gateway = response.data.gateway;
+                setFormData({
+                    publishable_key: gateway.config?.publishable_key || '',
+                    secret_key: gateway.config?.secret_key || '',
+                    webhook_secret: gateway.config?.webhook_secret || '',
+                    is_active: gateway.is_active ?? true,
+                });
+            }
+        } catch (error: any) {
+            console.error('Failed to load payment settings:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -26,9 +45,10 @@ export default function AdminPaymentSettings() {
         setErrors({});
         
         try {
-            // TODO: Call API when backend endpoint is available
-            // await adminService.updatePaymentGateway(formData);
-            alert('Payment settings saved (mock - backend endpoint not yet implemented)');
+            await adminService.updatePaymentSettings(formData);
+            // Show success message
+            const flashEvent = new CustomEvent('flash-message', { detail: { success: 'Payment settings saved successfully.' } });
+            window.dispatchEvent(flashEvent);
         } catch (error: any) {
             console.error('Failed to save payment settings:', error);
             if (error.response?.data?.errors) {

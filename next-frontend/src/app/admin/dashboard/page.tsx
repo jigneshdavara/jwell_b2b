@@ -5,9 +5,12 @@ import { useEffect, useState } from "react";
 import { adminService } from '@/services/adminService';
 
 const statusColors: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-600",
-  approved: "bg-emerald-100 text-emerald-600",
-  rejected: "bg-rose-100 text-rose-600",
+  pending: "bg-amber-100 text-amber-700",
+  approved: "bg-emerald-100 text-emerald-700",
+  rejected: "bg-rose-100 text-rose-700",
+  submitted: "bg-slate-100 text-slate-700",
+  in_progress: "bg-sky-100 text-sky-700",
+  completed: "bg-emerald-100 text-emerald-700",
 };
 
 const labels: Record<string, string> = {
@@ -35,6 +38,8 @@ export default function AdminDashboardOverview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Set page title (like Laravel's Head component)
+    document.title = 'Admin Command Centre';
     loadDashboard();
   }, []);
 
@@ -43,16 +48,10 @@ export default function AdminDashboardOverview() {
       setLoading(true);
       const response = await adminService.getDashboard();
       
-      // Debug: Log the response structure
-      console.log('Dashboard API Response:', response.data);
-      
       if (response.data) {
         // Backend returns: { metrics: {...}, recentPartners: [...] }
         const metricsData = response.data.metrics || response.data;
         const partnersData = response.data.recentPartners || response.data.recent_partners || [];
-        
-        console.log('Metrics Data:', metricsData);
-        console.log('Partners Data:', partnersData);
         
         setMetrics({
           pending_kyc: metricsData.pending_kyc || 0,
@@ -70,13 +69,10 @@ export default function AdminDashboardOverview() {
           joined_at: partner.joined_at || partner.created_at || new Date().toISOString(),
         }));
         
-        console.log('Mapped Partners:', mappedPartners);
         setRecentPartners(mappedPartners);
       }
     } catch (error: any) {
       console.error('Failed to load dashboard:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
     } finally {
       setLoading(false);
     }

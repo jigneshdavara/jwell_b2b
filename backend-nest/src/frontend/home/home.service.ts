@@ -21,6 +21,7 @@ export class HomeService {
             take: 3,
             orderBy: { created_at: 'desc' },
             include: {
+                brands: true,
                 product_medias: {
                     orderBy: { display_order: 'asc' },
                     take: 1,
@@ -71,6 +72,7 @@ export class HomeService {
             return {
                 id: product.id.toString(),
                 name: product.name,
+                brand: product.brands?.name || null,
                 price: productAny.base_price
                     ? parseFloat(productAny.base_price.toString())
                     : null,
@@ -119,6 +121,7 @@ export class HomeService {
             stats: {
                 products: productsCount,
                 orders: ordersCount,
+                jobworks: 0, // Placeholder - jobworks feature not yet implemented
                 active_offers: activeOffersCount,
             },
             spotlight,
