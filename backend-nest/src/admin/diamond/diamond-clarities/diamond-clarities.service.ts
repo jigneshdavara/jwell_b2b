@@ -50,6 +50,7 @@ export class DiamondClaritiesService {
     }
 
     async create(dto: CreateDiamondClarityDto) {
+        const now = new Date();
         return await this.prisma.diamond_clarities.create({
             data: {
                 diamond_type_id: BigInt(dto.diamond_type_id),
@@ -58,6 +59,8 @@ export class DiamondClaritiesService {
                 description: dto.description,
                 is_active: dto.is_active ?? true,
                 display_order: dto.display_order,
+                created_at: now,
+                updated_at: now,
             },
         });
     }
@@ -72,9 +75,10 @@ export class DiamondClaritiesService {
                     : undefined,
                 code: dto.code,
                 name: dto.name,
-                description: dto.description,
+                description: dto.description || null,
                 is_active: dto.is_active,
                 display_order: dto.display_order,
+                updated_at: new Date(),
             },
         });
     }

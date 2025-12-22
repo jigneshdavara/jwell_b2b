@@ -17,7 +17,7 @@ export class DiamondColorsService {
                 take: perPage,
                 include: {
                     diamond_types: {
-                        select: { id: true, name: true },
+                        select: { id: true, name: true, code: true },
                     },
                 },
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
@@ -25,8 +25,16 @@ export class DiamondColorsService {
             this.prisma.diamond_colors.count(),
         ]);
 
+        const mappedItems = items.map((item) => {
+            const { diamond_types, ...rest } = item;
+            return {
+                ...rest,
+                type: diamond_types || null,
+            };
+        });
+
         return {
-            items,
+            items: mappedItems,
             meta: {
                 total,
                 page,
@@ -50,14 +58,17 @@ export class DiamondColorsService {
     }
 
     async create(dto: CreateDiamondColorDto) {
+        const now = new Date();
         return await this.prisma.diamond_colors.create({
             data: {
                 diamond_type_id: BigInt(dto.diamond_type_id),
                 code: dto.code,
                 name: dto.name,
-                description: dto.description,
+                description: dto.description || null,
                 is_active: dto.is_active ?? true,
                 display_order: dto.display_order,
+                created_at: now,
+                updated_at: now,
             },
         });
     }
@@ -75,6 +86,7 @@ export class DiamondColorsService {
                 description: dto.description,
                 is_active: dto.is_active,
                 display_order: dto.display_order,
+                updated_at: new Date(),
             },
         });
     }

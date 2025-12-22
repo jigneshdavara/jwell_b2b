@@ -106,7 +106,7 @@ export const adminService = {
   async toggleCustomerStatus(id: number) {
     return await apiClient.post(`/admin/customers/${id}/toggle-status`);
   },
-  async updateCustomerGroup(id: number, groupId: number | null) {
+  async updateCustomerGroupAssignment(id: number, groupId: number | null) {
     return await apiClient.patch(`/admin/customers/${id}/group`, { group_id: groupId });
   },
   async deleteCustomer(id: number) {
@@ -232,8 +232,9 @@ export const adminService = {
   async bulkDeleteDiamonds(ids: number[]) {
     return await apiClient.delete('/admin/diamond/diamonds/bulk', { data: { ids } });
   },
-  async getDiamondShapeSizes(shapeId: number) {
-    return await apiClient.get(`/admin/diamond/diamonds/shape-sizes/${shapeId}`);
+  async getDiamondShapeSizesByShape(shapeId: number, typeId?: number) {
+    const params = typeId ? { type_id: typeId } : {};
+    return await apiClient.get(`/admin/diamond/diamonds/shape-sizes/${shapeId}`, { params });
   },
   async getDiamondClaritiesByType(typeId: number) {
     return await apiClient.get(`/admin/diamond/diamonds/clarities-by-type/${typeId}`);
@@ -286,8 +287,12 @@ export const adminService = {
   },
 
   // Diamond Shape Sizes
-  async getDiamondShapeSizes(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/diamond/shape-sizes', { params: { page, per_page: perPage } });
+  async getDiamondShapeSizes(page = 1, perPage = 20, shapeId?: number) {
+    const params: any = { page, per_page: perPage };
+    if (shapeId) {
+      params.shape_id = shapeId;
+    }
+    return await apiClient.get('/admin/diamond/shape-sizes', { params });
   },
   async getDiamondShapeSize(id: number) {
     return await apiClient.get(`/admin/diamond/shape-sizes/${id}`);

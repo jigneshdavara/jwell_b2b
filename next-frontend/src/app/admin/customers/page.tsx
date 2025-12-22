@@ -187,7 +187,7 @@ export default function AdminCustomersPage() {
         try {
             const groupIdNum = groupId ? Number(groupId) : null;
             for (const id of selectedIds) {
-                await adminService.updateCustomerGroup(id, groupIdNum);
+                await adminService.updateCustomerGroupAssignment(id, groupIdNum);
             }
             clearBulkSelection();
             await loadCustomers();
