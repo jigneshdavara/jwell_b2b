@@ -10,6 +10,8 @@ import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/otp.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterAdminDto } from './dto/register-admin.dto';
+import { UserType } from '../admin/team-users/dto/team-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -69,6 +71,54 @@ export class AuthService {
             const { password: _, ...result } = customer;
             return { ...result, guard: 'web' } as any;
         });
+    }
+
+    async registerAdmin(registerAdminDto: RegisterAdminDto) {
+        const {
+            password,
+            password_confirmation,
+            email,
+            name,
+            type,
+            user_group_id,
+        } = registerAdminDto;
+
+        if (password !== password_confirmation) {
+            throw new BadRequestException('Passwords do not match');
+        }
+
+        // Check if email exists in users table
+        const existingUser = await this.prisma.user.findUnique({
+            where: { email },
+        });
+        if (existingUser) {
+            throw new ConflictException('Email already registered');
+        }
+
+        // Check if email exists in customers table
+        const existingCustomer = await this.prisma.customer.findUnique({
+            where: { email },
+        });
+        if (existingCustomer) {
+            throw new ConflictException('Email already registered');
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = await this.prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                type: type || UserType.ADMIN,
+                user_group_id: user_group_id ? BigInt(user_group_id) : null,
+                email_verified_at: new Date(),
+            },
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password: _, ...result } = user;
+        return { ...result, guard: 'admin' } as any;
     }
 
     async validateUser(

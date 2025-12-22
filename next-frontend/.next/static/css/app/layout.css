@@ -3048,6 +3048,10 @@ a:hover {
   --tw-border-opacity: 1;
   border-color: rgb(251 113 133 / var(--tw-border-opacity, 1));
 }
+.hover\:border-sky-200:hover{
+  --tw-border-opacity: 1;
+  border-color: rgb(186 230 253 / var(--tw-border-opacity, 1));
+}
 .hover\:border-sky-400:hover{
   --tw-border-opacity: 1;
   border-color: rgb(56 189 248 / var(--tw-border-opacity, 1));
@@ -3067,10 +3071,6 @@ a:hover {
 .hover\:border-white:hover{
   --tw-border-opacity: 1;
   border-color: rgb(255 255 255 / var(--tw-border-opacity, 1));
-}
-.hover\:border-sky-200:hover{
-  --tw-border-opacity: 1;
-  border-color: rgb(186 230 253 / var(--tw-border-opacity, 1));
 }
 .hover\:bg-amber-700:hover{
   --tw-bg-opacity: 1;

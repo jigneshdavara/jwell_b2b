@@ -10,6 +10,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RequestOtpDto, VerifyOtpDto } from './dto/otp.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterAdminDto } from './dto/register-admin.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -18,6 +19,13 @@ export class AuthController {
     @Post('register')
     async register(@Body() registerDto: RegisterDto) {
         const user = await this.authService.register(registerDto);
+        return this.authService.login(user);
+    }
+
+    @Post('register/admin')
+    @HttpCode(HttpStatus.CREATED)
+    async registerAdmin(@Body() registerAdminDto: RegisterAdminDto) {
+        const user = await this.authService.registerAdmin(registerAdminDto);
         return this.authService.login(user);
     }
 
