@@ -42,6 +42,7 @@ export class DiamondTypesService {
     }
 
     async create(dto: CreateDiamondTypeDto) {
+        const now = new Date();
         return await this.prisma.diamond_types.create({
             data: {
                 code: dto.code,
@@ -49,6 +50,8 @@ export class DiamondTypesService {
                 description: dto.description,
                 is_active: dto.is_active ?? true,
                 display_order: dto.display_order,
+                created_at: now,
+                updated_at: now,
             },
         });
     }
@@ -63,6 +66,7 @@ export class DiamondTypesService {
                 description: dto.description,
                 is_active: dto.is_active,
                 display_order: dto.display_order,
+                updated_at: new Date(),
             },
         });
     }
