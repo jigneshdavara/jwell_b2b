@@ -853,18 +853,27 @@ export default function AdminCategoriesPage() {
                                                                         className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700"
                                                                     >
                                                                         {style.name}
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={(e) => {
+                                                                        <span
+                                                                            role="button"
+                                                                            tabIndex={0}
+                                                                            onMouseDown={(e) => {
+                                                                                e.preventDefault();
                                                                                 e.stopPropagation();
                                                                                 setFormState(prev => ({ ...prev, style_ids: prev.style_ids.filter((id) => id !== styleId) }));
                                                                             }}
-                                                                            className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                                                    e.preventDefault();
+                                                                                    e.stopPropagation();
+                                                                                    setFormState(prev => ({ ...prev, style_ids: prev.style_ids.filter((id) => id !== styleId) }));
+                                                                                }
+                                                                            }}
+                                                                            className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
                                                                         >
                                                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                                                             </svg>
-                                                                        </button>
+                                                                        </span>
                                                                     </span>
                                                                 );
                                                             })
@@ -986,18 +995,27 @@ export default function AdminCategoriesPage() {
                                                                         className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700"
                                                                     >
                                                                         {size.name}
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={(e) => {
+                                                                        <span
+                                                                            role="button"
+                                                                            tabIndex={0}
+                                                                            onMouseDown={(e) => {
+                                                                                e.preventDefault();
                                                                                 e.stopPropagation();
                                                                                 setFormState(prev => ({ ...prev, size_ids: prev.size_ids.filter((id) => id !== sizeId) }));
                                                                             }}
-                                                                            className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                                                    e.preventDefault();
+                                                                                    e.stopPropagation();
+                                                                                    setFormState(prev => ({ ...prev, size_ids: prev.size_ids.filter((id) => id !== sizeId) }));
+                                                                                }
+                                                                            }}
+                                                                            className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
                                                                         >
                                                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                                                             </svg>
-                                                                        </button>
+                                                                        </span>
                                                                     </span>
                                                                 );
                                                             })
@@ -1123,3 +1141,5 @@ export default function AdminCategoriesPage() {
         </div>
     );
 }
+
+
