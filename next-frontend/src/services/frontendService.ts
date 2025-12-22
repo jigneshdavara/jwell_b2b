@@ -23,26 +23,34 @@ export const frontendService = {
     ready_made?: string;
     page?: number;
   }) {
-    // Convert filters to query params
+    // Build query params
+    // Axios automatically handles arrays by repeating the parameter name
+    // e.g., catalog: ['1'] becomes catalog=1, catalog: ['1', '2'] becomes catalog=1&catalog=2
+    // Backend DTO uses @Transform(toArray) which converts single values to arrays
     const params: Record<string, any> = {};
     
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
+          // Convert all values to strings for query params
           if (Array.isArray(value)) {
-            // For arrays, append each value
-            value.forEach(v => {
-              if (!params[key]) params[key] = [];
-              params[key].push(v);
-            });
+            // Array: axios will serialize as repeated params (catalog=1&catalog=2)
+            params[key] = value.map(v => String(v));
           } else {
-            params[key] = value;
+            // Single value: convert to string
+            // Backend @Transform(toArray) will convert to array if needed
+            params[key] = String(value);
           }
         }
       });
     }
 
     return await apiClient.get('/catalog', { params });
+  },
+
+  // Navigation
+  async getNavigation() {
+    return await apiClient.get('/navigation');
   },
 };
 

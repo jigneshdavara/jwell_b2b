@@ -163,10 +163,13 @@ export default function CatalogPage() {
                 };
                 
                 // Extract array params
+                // For single values, pass as single value (backend @Transform(toArray) will handle it)
+                // For multiple values, pass as array
                 ['brand', 'metal', 'metal_purity', 'metal_tone', 'diamond', 'category', 'catalog'].forEach(key => {
                     const values = searchParams.getAll(key);
                     if (values.length > 0) {
-                        filters[key] = values;
+                        // If single value, pass as string; if multiple, pass as array
+                        filters[key] = values.length === 1 ? values[0] : values;
                     }
                 });
                 
