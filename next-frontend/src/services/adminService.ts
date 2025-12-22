@@ -204,7 +204,7 @@ export const adminService = {
     return await apiClient.post('/admin/metal-purities', data);
   },
   async updateMetalPurity(id: number, data: any) {
-    return await apiClient.patch(`/admin/metal-purities/${id}`, data);
+    return await apiClient.put(`/admin/metal-purities/${id}`, data);
   },
   async deleteMetalPurity(id: number) {
     return await apiClient.delete(`/admin/metal-purities/${id}`);
@@ -356,7 +356,7 @@ export const adminService = {
     return await apiClient.post('/admin/sizes', data);
   },
   async updateSize(id: number, data: any) {
-    return await apiClient.patch(`/admin/sizes/${id}`, data);
+    return await apiClient.put(`/admin/sizes/${id}`, data);
   },
   async deleteSize(id: number) {
     return await apiClient.delete(`/admin/sizes/${id}`);
@@ -376,7 +376,7 @@ export const adminService = {
     return await apiClient.post('/admin/styles', data);
   },
   async updateStyle(id: number, data: any) {
-    return await apiClient.patch(`/admin/styles/${id}`, data);
+    return await apiClient.put(`/admin/styles/${id}`, data);
   },
   async deleteStyle(id: number) {
     return await apiClient.delete(`/admin/styles/${id}`);
@@ -406,8 +406,8 @@ export const adminService = {
   async createOrderStatus(data: any) {
     return await apiClient.post('/admin/orders/statuses', data);
   },
-  async updateOrderStatus(id: number, data: any) {
-    return await apiClient.patch(`/admin/orders/statuses/${id}`, data);
+  async updateOrderStatusConfig(id: number, data: any) {
+    return await apiClient.put(`/admin/orders/statuses/${id}`, data);
   },
   async deleteOrderStatus(id: number) {
     return await apiClient.delete(`/admin/orders/statuses/${id}`);
@@ -417,8 +417,13 @@ export const adminService = {
   },
 
   // Quotations
-  async getQuotations(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/quotations', { params: { page, per_page: perPage } });
+  async getQuotations(filters?: { page?: number; order_reference?: string; customer_name?: string; customer_email?: string }) {
+    const params: any = {};
+    if (filters?.page) params.page = String(filters.page);
+    if (filters?.order_reference) params.order_reference = filters.order_reference;
+    if (filters?.customer_name) params.customer_name = filters.customer_name;
+    if (filters?.customer_email) params.customer_email = filters.customer_email;
+    return await apiClient.get('/admin/quotations', { params });
   },
   async getQuotation(id: number) {
     return await apiClient.get(`/admin/quotations/${id}`);
@@ -485,8 +490,10 @@ export const adminService = {
   async getGeneralSettings() {
     return await apiClient.get('/admin/settings/general');
   },
-  async updateGeneralSettings(data: any) {
-    return await apiClient.put('/admin/settings/general', data);
+  async updateGeneralSettings(data: FormData) {
+    return await apiClient.put('/admin/settings/general', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
   },
 
   // Settings - Tax Groups

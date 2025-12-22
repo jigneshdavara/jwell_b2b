@@ -193,7 +193,7 @@ export default function AuthenticatedLayout({
 
     const handleLogout = async () => {
         await authService.logout();
-        router.push('/login');
+        router.push('/');
     };
 
     if (loading) {

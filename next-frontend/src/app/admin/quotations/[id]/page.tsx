@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head } from '@/components/Head';
 import Link from 'next/link';
+import { adminService } from '@/services/adminService';
 
 type QuotationDetails = {
     id: number;
@@ -31,27 +32,6 @@ type QuotationDetails = {
     };
 };
 
-const mockQuotation: QuotationDetails = {
-    id: 1001,
-    status: 'pending',
-    quantity: 5,
-    created_at: '2025-12-15T10:30:00Z',
-    product: {
-        id: 1,
-        name: 'Gold Ring',
-        sku: 'GR-001',
-        media: [{ url: '/images/products/ring.jpg', alt: 'Gold Ring' }],
-    },
-    user: { name: 'John Doe', email: 'john@example.com' },
-    price_breakdown: {
-        metal: 15000,
-        diamond: 5000,
-        making: 2000,
-        subtotal: 22000,
-        total: 22000,
-    },
-};
-
 const statusBadge: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
     approved: 'bg-emerald-100 text-emerald-700',
@@ -70,7 +50,51 @@ const formatDate = (input?: string | null) =>
         : 'N/A';
 
 export default function AdminQuotationShow({ params }: { params: { id: string } }) {
-    const [quotation] = useState<QuotationDetails>(mockQuotation);
+    const [quotation, setQuotation] = useState<QuotationDetails | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadQuotation();
+    }, [params.id]);
+
+    const loadQuotation = async () => {
+        try {
+            setLoading(true);
+            const response = await adminService.getQuotation(Number(params.id));
+            if (response.data) {
+                setQuotation(response.data);
+            }
+        } catch (error: any) {
+            console.error('Failed to load quotation:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <>
+                <Head title={`Quotation #${params.id}`} />
+                <div className="flex items-center justify-center p-8">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
+                </div>
+            </>
+        );
+    }
+
+    if (!quotation) {
+        return (
+            <>
+                <Head title={`Quotation #${params.id}`} />
+                <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
+                    <p className="text-slate-600">Quotation not found.</p>
+                    <Link href="/admin/quotations" className="mt-4 inline-block text-sm font-semibold text-elvee-blue hover:text-elvee-blue/80">
+                        Back to list
+                    </Link>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>

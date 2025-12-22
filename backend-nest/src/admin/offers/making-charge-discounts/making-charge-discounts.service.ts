@@ -28,9 +28,10 @@ export class MakingChargeDiscountsService {
         // Format items to match Laravel response structure
         const formattedItems = items.map((item) => ({
             ...item,
-            brand: item.brands,
-            category: item.categories,
-            customer_group: item.customer_groups,
+            id: Number(item.id),
+            brand: item.brands ? { id: Number(item.brands.id), name: item.brands.name } : null,
+            category: item.categories ? { id: Number(item.categories.id), name: item.categories.name } : null,
+            customer_group: item.customer_groups ? { id: Number(item.customer_groups.id), name: item.customer_groups.name } : null,
             brands: undefined,
             categories: undefined,
             customer_groups: undefined,
@@ -63,9 +64,10 @@ export class MakingChargeDiscountsService {
 
         return {
             ...discount,
-            brand: discount.brands,
-            category: discount.categories,
-            customer_group: discount.customer_groups,
+            id: Number(discount.id),
+            brand: discount.brands ? { id: Number(discount.brands.id), name: discount.brands.name } : null,
+            category: discount.categories ? { id: Number(discount.categories.id), name: discount.categories.name } : null,
+            customer_group: discount.customer_groups ? { id: Number(discount.customer_groups.id), name: discount.customer_groups.name } : null,
             brands: undefined,
             categories: undefined,
             customer_groups: undefined,
@@ -73,7 +75,7 @@ export class MakingChargeDiscountsService {
     }
 
     async create(dto: CreateMakingChargeDiscountDto) {
-        return await this.prisma.making_charge_discounts.create({
+        const discount = await this.prisma.making_charge_discounts.create({
             data: {
                 name: dto.name,
                 description: dto.description,
@@ -91,12 +93,27 @@ export class MakingChargeDiscountsService {
                 ends_at: dto.ends_at ? new Date(dto.ends_at) : null,
                 customer_types: dto.customer_types as any,
             },
+            include: {
+                brands: { select: { id: true, name: true } },
+                categories: { select: { id: true, name: true } },
+                customer_groups: { select: { id: true, name: true } },
+            },
         });
+        return {
+            ...discount,
+            id: Number(discount.id),
+            brand: discount.brands ? { id: Number(discount.brands.id), name: discount.brands.name } : null,
+            category: discount.categories ? { id: Number(discount.categories.id), name: discount.categories.name } : null,
+            customer_group: discount.customer_groups ? { id: Number(discount.customer_groups.id), name: discount.customer_groups.name } : null,
+            brands: undefined,
+            categories: undefined,
+            customer_groups: undefined,
+        };
     }
 
     async update(id: number, dto: UpdateMakingChargeDiscountDto) {
         await this.findOne(id);
-        return await this.prisma.making_charge_discounts.update({
+        const discount = await this.prisma.making_charge_discounts.update({
             where: { id: BigInt(id) },
             data: {
                 name: dto.name,
@@ -117,7 +134,22 @@ export class MakingChargeDiscountsService {
                 ends_at: dto.ends_at ? new Date(dto.ends_at) : undefined,
                 customer_types: dto.customer_types as any,
             },
+            include: {
+                brands: { select: { id: true, name: true } },
+                categories: { select: { id: true, name: true } },
+                customer_groups: { select: { id: true, name: true } },
+            },
         });
+        return {
+            ...discount,
+            id: Number(discount.id),
+            brand: discount.brands ? { id: Number(discount.brands.id), name: discount.brands.name } : null,
+            category: discount.categories ? { id: Number(discount.categories.id), name: discount.categories.name } : null,
+            customer_group: discount.customer_groups ? { id: Number(discount.customer_groups.id), name: discount.customer_groups.name } : null,
+            brands: undefined,
+            categories: undefined,
+            customer_groups: undefined,
+        };
     }
 
     async remove(id: number) {

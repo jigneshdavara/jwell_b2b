@@ -18,7 +18,10 @@ export class OffersService {
         ]);
 
         return {
-            items,
+            items: items.map((item) => ({
+                ...item,
+                id: Number(item.id),
+            })),
             meta: {
                 total,
                 page,
@@ -35,11 +38,14 @@ export class OffersService {
         if (!offer) {
             throw new NotFoundException('Offer not found');
         }
-        return offer;
+        return {
+            ...offer,
+            id: Number(offer.id),
+        };
     }
 
     async create(dto: CreateOfferDto) {
-        return await this.prisma.offers.create({
+        const offer = await this.prisma.offers.create({
             data: {
                 code: dto.code,
                 name: dto.name,
@@ -52,11 +58,15 @@ export class OffersService {
                 is_active: dto.is_active ?? true,
             },
         });
+        return {
+            ...offer,
+            id: Number(offer.id),
+        };
     }
 
     async update(id: number, dto: UpdateOfferDto) {
         await this.findOne(id);
-        return await this.prisma.offers.update({
+        const offer = await this.prisma.offers.update({
             where: { id: BigInt(id) },
             data: {
                 code: dto.code,
@@ -70,6 +80,10 @@ export class OffersService {
                 is_active: dto.is_active,
             },
         });
+        return {
+            ...offer,
+            id: Number(offer.id),
+        };
     }
 
     async remove(id: number) {

@@ -3,7 +3,7 @@ import {
     Get,
     Post,
     Body,
-    Patch,
+    Put,
     Param,
     Delete,
     Query,
@@ -37,7 +37,7 @@ export class SizesController {
         return this.sizesService.create(dto);
     }
 
-    @Patch(':id')
+    @Put(':id')
     update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateSizeDto) {
         return this.sizesService.update(id, dto);
     }

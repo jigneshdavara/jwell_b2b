@@ -3,7 +3,9 @@
 import Modal from '@/components/ui/Modal';
 import { Head } from '@/components/Head';
 import Link from 'next/link';
-import { useMemo, useState, use } from 'react';
+import { useMemo, useState, use, useEffect } from 'react';
+import { adminService } from '@/services/adminService';
+import { useRouter } from 'next/navigation';
 
 type OrderItem = {
     id: number;
@@ -82,51 +84,6 @@ type StatusOption = {
     label: string;
 };
 
-// Mock data for a single order
-const mockOrder: Order = {
-    id: 1,
-    reference: 'ORD-2023-001',
-    status: 'pending',
-    status_label: 'Pending',
-    subtotal_amount: 145000,
-    tax_amount: 5000,
-    discount_amount: 0,
-    total_amount: 150000,
-    created_at: '2023-12-01T10:00:00Z',
-    updated_at: '2023-12-01T10:30:00Z',
-    items: [
-        {
-            id: 1,
-            sku: 'RNG-001',
-            name: 'Gold Diamond Ring',
-            quantity: 1,
-            unit_price: 150000,
-            total_price: 150000,
-            product: {
-                id: 1,
-                name: 'Gold Diamond Ring',
-                sku: 'RNG-001',
-                media: [{ url: '/images/products/ring.png', alt: 'Gold Diamond Ring' }],
-            },
-        },
-    ],
-    user: { name: 'John Doe', email: 'john@example.com' },
-    payments: [
-        { id: 1, status: 'succeeded', amount: 150000, created_at: '2023-12-01T10:05:00Z' },
-    ],
-    status_history: [
-        { id: 1, status: 'pending', created_at: '2023-12-01T10:00:00Z', meta: { comment: 'Order placed' } },
-    ],
-};
-
-const mockStatusOptions: StatusOption[] = [
-    { value: 'pending', label: 'Pending' },
-    { value: 'approved', label: 'Approved' },
-    { value: 'in_production', label: 'In Production' },
-    { value: 'shipped', label: 'Shipped' },
-    { value: 'delivered', label: 'Delivered' },
-    { value: 'cancelled', label: 'Cancelled' },
-];
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -163,36 +120,152 @@ const formatDate = (input?: string | null) =>
 
 export default function AdminOrdersShow({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
-    const order = mockOrder; // In real app, fetch based on resolvedParams.id
-    const statusOptions = mockStatusOptions;
+    const router = useRouter();
+    const [loading, setLoading] = useState(true);
+    const [order, setOrder] = useState<Order | null>(null);
+    const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
     const [productDetailsModalOpen, setProductDetailsModalOpen] = useState<OrderItem | null>(null);
 
     const [statusData, setStatusData] = useState({
-        status: order.status,
+        status: '',
         meta: {
             comment: '',
         },
     });
     const [processing, setProcessing] = useState(false);
 
-    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    useEffect(() => {
+        loadOrder();
+    }, [resolvedParams.id]);
+
+    const loadOrder = async () => {
+        try {
+            setLoading(true);
+            const response = await adminService.getOrder(Number(resolvedParams.id));
+            const orderData = response.data;
+
+            const formattedOrder: Order = {
+                id: Number(orderData.id),
+                reference: orderData.reference,
+                status: orderData.status,
+                status_label: orderData.status_label,
+                subtotal_amount: Number(orderData.subtotal_amount || 0),
+                tax_amount: Number(orderData.tax_amount || 0),
+                discount_amount: Number(orderData.discount_amount || 0),
+                total_amount: Number(orderData.total_amount || 0),
+                price_breakdown: orderData.price_breakdown,
+                created_at: orderData.created_at,
+                updated_at: orderData.updated_at,
+                items: (orderData.items || []).map((item: any) => ({
+                    id: Number(item.id),
+                    sku: item.sku,
+                    name: item.name,
+                    quantity: item.quantity,
+                    unit_price: Number(item.unit_price || 0),
+                    total_price: Number(item.total_price || 0),
+                    configuration: item.configuration,
+                    metadata: item.metadata,
+                    price_breakdown: item.price_breakdown,
+                    calculated_making_charge: item.calculated_making_charge ? Number(item.calculated_making_charge) : null,
+                    product: item.product ? {
+                        id: Number(item.product.id),
+                        name: item.product.name,
+                        sku: item.product.sku,
+                        base_price: item.product.base_price ? Number(item.product.base_price) : null,
+                        making_charge_amount: item.product.making_charge_amount ? Number(item.product.making_charge_amount) : null,
+                        making_charge_percentage: item.product.making_charge_percentage ? Number(item.product.making_charge_percentage) : null,
+                        making_charge_types: item.product.making_charge_types || [],
+                        media: item.product.media || [],
+                    } : null,
+                })),
+                user: orderData.user || null,
+                payments: (orderData.payments || []).map((payment: any) => ({
+                    id: Number(payment.id),
+                    status: payment.status,
+                    amount: Number(payment.amount || 0),
+                    created_at: payment.created_at,
+                })),
+                status_history: (orderData.status_history || []).map((entry: any) => ({
+                    id: Number(entry.id),
+                    status: entry.status,
+                    created_at: entry.created_at,
+                    meta: entry.meta,
+                })),
+                quotations: (orderData.quotations || []).map((quotation: any) => ({
+                    id: Number(quotation.id),
+                    status: quotation.status,
+                    quantity: quotation.quantity,
+                    product: quotation.product ? {
+                        id: Number(quotation.product.id),
+                        name: quotation.product.name,
+                        sku: quotation.product.sku,
+                        media: quotation.product.media || [],
+                    } : null,
+                })),
+            };
+
+            setOrder(formattedOrder);
+            setStatusData({
+                status: formattedOrder.status,
+                meta: { comment: '' },
+            });
+            setStatusOptions(orderData.statusOptions || []);
+        } catch (error: any) {
+            console.error('Failed to load order:', error);
+            if (error.response?.status === 404) {
+                router.push('/admin/orders');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        if (!order) return;
+
         setProcessing(true);
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            await adminService.updateOrderStatus(order.id, statusData.status, statusData.meta);
+            await loadOrder();
+        } catch (error: any) {
+            console.error('Failed to update order status:', error);
+            alert(error.response?.data?.message || 'Failed to update order status');
+        } finally {
             setProcessing(false);
-            alert('Status updated (mock)');
-        }, 1000);
+        }
     };
 
     const paymentStatusLabel = useMemo(() => {
-        if (order.payments.length === 0) {
+        if (!order || order.payments.length === 0) {
             return 'No payments recorded';
         }
 
         const latest = order.payments[0];
         return `${latest.status ?? 'Pending'} · ${currencyFormatter.format(latest.amount)}`;
-    }, [order.payments]);
+    }, [order]);
+
+    if (loading) {
+        return (
+            <>
+                <Head title="Loading Order..." />
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <p className="text-slate-500">Loading order details...</p>
+                </div>
+            </>
+        );
+    }
+
+    if (!order) {
+        return (
+            <>
+                <Head title="Order Not Found" />
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <p className="text-slate-500">Order not found</p>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>

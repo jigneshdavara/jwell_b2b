@@ -79,7 +79,7 @@ export default function VerifyEmailPage() {
 
   const handleLogout = async () => {
     await authService.logout();
-    router.push("/login");
+    router.push("/");
   };
 
   return (

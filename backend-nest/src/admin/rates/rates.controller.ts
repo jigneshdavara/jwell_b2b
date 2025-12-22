@@ -24,6 +24,16 @@ export class RatesController {
         return this.ratesService.findAll(+page, +perPage);
     }
 
+    @Post('sync/:metal')
+    syncWithMetal(@Param('metal') metal: string) {
+        return this.ratesService.sync(metal);
+    }
+
+    @Post('sync')
+    syncAll() {
+        return this.ratesService.sync();
+    }
+
     @Post(':metal/store')
     storeMetalRates(
         @Param('metal') metal: string,

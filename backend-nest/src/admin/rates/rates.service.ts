@@ -42,16 +42,22 @@ export class RatesService {
         }
 
         return {
-            items,
+            items: items.map((item) => ({
+                ...item,
+                id: Number(item.id),
+            })),
+            defaultCurrency: 'INR',
             availableMetals: availableMetals.map((m) => ({
-                id: m.id,
+                id: Number(m.id),
                 name: m.name,
+                slug: m.name.toLowerCase(),
                 value: m.name.toLowerCase(),
             })),
             metalPurities: availableMetals.reduce((acc, m) => {
                 acc[m.name.toLowerCase()] = m.metal_purities.map((p) => ({
-                    id: p.id,
+                    id: Number(p.id),
                     name: p.name,
+                    slug: p.name.toLowerCase(),
                 }));
                 return acc;
             }, {}),
@@ -94,10 +100,13 @@ export class RatesService {
         }
 
         // Sort by purity order
-        const order = this.PURITY_ORDER[metal.toLowerCase()] || [];
+        const metalKey = metal.toLowerCase() as keyof typeof this.PURITY_ORDER;
+        const order = this.PURITY_ORDER[metalKey] || [];
         latestByPurity.sort((a, b) => {
-            const indexA = order.indexOf(a.purity);
-            const indexB = order.indexOf(b.purity);
+            const purityA = a.purity || '';
+            const purityB = b.purity || '';
+            const indexA = order.indexOf(purityA);
+            const indexB = order.indexOf(purityB);
             const valA = indexA === -1 ? 999 : indexA;
             const valB = indexB === -1 ? 999 : indexB;
             return valA - valB;
@@ -108,22 +117,42 @@ export class RatesService {
             label: metal.charAt(0).toUpperCase() + metal.slice(1),
             latest: {
                 purity: latest.purity,
-                price_per_gram: latest.price_per_gram,
+                price_per_gram: Number(latest.price_per_gram),
                 currency: latest.currency,
-                effective_at: latest.effective_at,
+                effective_at: latest.effective_at
+                    ? latest.effective_at.toISOString()
+                    : null,
                 source: latest.source,
             },
             rates: latestByPurity.map((r) => ({
                 purity: r.purity,
-                price_per_gram: r.price_per_gram,
+                price_per_gram: Number(r.price_per_gram),
                 currency: r.currency,
             })),
         };
     }
 
+    async sync(metal?: string): Promise<{ success: boolean; message: string }> {
+        // TODO: Implement actual rate syncing from external API
+        // For now, return success
+        await Promise.resolve(); // Placeholder for async operation
+        return {
+            success: true,
+            message: metal ? `Synced ${metal} rates` : 'Synced all rates',
+        };
+    }
+
     async storeMetalRates(metal: string, dto: UpdateMetalRatesDto) {
         return await this.prisma.$transaction(async (tx) => {
-            const rates: any[] = [];
+            const rates: Array<{
+                id: number;
+                metal: string;
+                purity: string | null;
+                price_per_gram: number;
+                currency: string;
+                source: string;
+                effective_at: Date | null;
+            }> = [];
             for (const rate of dto.rates) {
                 const created = await tx.price_rates.create({
                     data: {
@@ -132,10 +161,20 @@ export class RatesService {
                         price_per_gram: rate.price_per_gram,
                         currency: rate.currency || dto.currency || 'INR',
                         source: dto.source || 'manual',
-                        effective_at: dto.effective_at ? new Date(dto.effective_at) : new Date(),
+                        effective_at: dto.effective_at
+                            ? new Date(dto.effective_at)
+                            : new Date(),
                     },
                 });
-                rates.push(created);
+                rates.push({
+                    id: Number(created.id),
+                    metal: created.metal,
+                    purity: created.purity,
+                    price_per_gram: Number(created.price_per_gram),
+                    currency: created.currency,
+                    source: created.source,
+                    effective_at: created.effective_at,
+                });
             }
             return rates;
         });

@@ -37,14 +37,14 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen bg-slate-100">
-      <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-slate-200 bg-white/95 px-4 py-6 shadow-lg shadow-slate-900/5 lg:flex sticky top-0 h-screen overflow-y-auto scrollbar-hide">
+      <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-slate-200 bg-white/95 px-4 py-6 shadow-lg shadow-slate-900/5 lg:flex">
         <div className="flex items-center gap-3 px-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white font-medium text-lg shadow-lg">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
             EL
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-900 leading-none">Elvee Admin</p>
-            <p className="text-[10px] text-slate-400 mt-1 font-medium uppercase tracking-widest">Production & Retail Ops</p>
+            <p className="text-sm font-semibold text-slate-900">Elvee Admin</p>
+            <p className="text-xs text-slate-400">Production & Retail Ops</p>
           </div>
         </div>
 

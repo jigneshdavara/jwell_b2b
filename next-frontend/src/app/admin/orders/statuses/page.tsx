@@ -42,11 +42,16 @@ export default function AdminOrderStatusesIndex() {
         try {
             setLoading(true);
             const response = await adminService.getOrderStatuses(1, 100);
-            if (response.data?.data) {
-                setStatusesData(response.data.data);
-            } else if (Array.isArray(response.data)) {
-                setStatusesData(response.data);
-            }
+            const items = response.data?.items || response.data?.data || [];
+            setStatusesData(items.map((item: any) => ({
+                id: Number(item.id),
+                name: item.name,
+                slug: item.slug,
+                color: item.color,
+                is_default: item.is_default,
+                is_active: item.is_active,
+                position: item.position,
+            })));
         } catch (error: any) {
             console.error('Failed to load order statuses:', error);
             setErrors({ general: error.response?.data?.message || 'Failed to load order statuses' });
@@ -90,7 +95,7 @@ export default function AdminOrderStatusesIndex() {
 
         try {
             if (editingStatus) {
-                await adminService.updateOrderStatus(editingStatus.id, {
+                await adminService.updateOrderStatusConfig(editingStatus.id, {
                     name: formData.name,
                     color: formData.color,
                     is_default: formData.is_default,
@@ -125,7 +130,7 @@ export default function AdminOrderStatusesIndex() {
 
     const toggleStatus = async (status: OrderStatusRow) => {
         try {
-            await adminService.updateOrderStatus(status.id, {
+            await adminService.updateOrderStatusConfig(status.id, {
                 name: status.name,
                 color: status.color,
                 is_default: status.is_default,
@@ -141,7 +146,7 @@ export default function AdminOrderStatusesIndex() {
 
     const setDefaultStatus = async (status: OrderStatusRow) => {
         try {
-            await adminService.updateOrderStatus(status.id, {
+            await adminService.updateOrderStatusConfig(status.id, {
                 name: status.name,
                 color: status.color,
                 is_default: true,

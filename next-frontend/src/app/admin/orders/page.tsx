@@ -62,25 +62,19 @@ export default function AdminOrdersIndex() {
     const [ordersData, setOrdersData] = useState<OrderRow[]>([]);
     const [meta, setMeta] = useState<PaginationMeta>({ current_page: 1, last_page: 1, total: 0, per_page: 20 });
     const [currentPage, setCurrentPage] = useState(1);
-    const [perPage, setPerPage] = useState(20);
-    const [statusFilter, setStatusFilter] = useState('');
-    const [search, setSearch] = useState('');
+    const [perPage] = useState(20);
 
     useEffect(() => {
         loadOrders();
-    }, [currentPage, perPage, statusFilter, search]);
+    }, [currentPage]);
 
     const loadOrders = async () => {
         setLoading(true);
         try {
-            const filters: any = {
+            const response = await adminService.getOrders({
                 page: currentPage,
                 per_page: perPage,
-            };
-            if (statusFilter) filters.status = statusFilter;
-            if (search) filters.search = search;
-
-            const response = await adminService.getOrders(filters);
+            });
             const items = response.data.items || response.data.data || [];
             const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
 
@@ -88,7 +82,7 @@ export default function AdminOrdersIndex() {
                 id: Number(item.id),
                 reference: item.reference || `ORD-${item.id}`,
                 status: item.status,
-                status_label: item.status_label || item.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                status_label: item.status_label || item.status.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
                 total_amount: Number(item.total_amount || 0),
                 created_at: item.created_at,
                 user: item.user ? { name: item.user.name, email: item.user.email } : null,
@@ -96,7 +90,7 @@ export default function AdminOrdersIndex() {
             })));
             setMeta({
                 current_page: responseMeta.current_page || responseMeta.page || 1,
-                last_page: responseMeta.last_page || responseMeta.lastPage || 1,
+                last_page: responseMeta.last_page || responseMeta.total_pages || responseMeta.lastPage || 1,
                 total: responseMeta.total || 0,
                 per_page: responseMeta.per_page || responseMeta.perPage || perPage,
             });
@@ -128,64 +122,16 @@ export default function AdminOrdersIndex() {
                             <p className="mt-2 text-sm text-slate-500">Track commercial orders, statuses, and fulfilment readiness.</p>
                         </div>
                     </div>
-                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                        <input
-                            type="text"
-                            placeholder="Search by reference or customer..."
-                            value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                            className="flex-1 rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                        />
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => {
-                                setStatusFilter(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                            className="rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                        >
-                            <option value="">All Statuses</option>
-                            <option value="pending_payment">Pending Payment</option>
-                            <option value="pending">Pending</option>
-                            <option value="approved">Approved</option>
-                            <option value="in_production">In Production</option>
-                            <option value="quality_check">Quality Check</option>
-                            <option value="ready_to_dispatch">Ready to Dispatch</option>
-                            <option value="dispatched">Dispatched</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancelled</option>
-                            <option value="payment_failed">Payment Failed</option>
-                        </select>
-                    </div>
                 </header>
 
                 <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                    <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-4 py-3 text-sm">
-                        <div className="font-semibold text-slate-700">Results ({meta.total})</div>
-                        <select
-                            value={perPage}
-                            onChange={(e) => {
-                                setPerPage(Number(e.target.value));
-                                setCurrentPage(1);
-                            }}
-                            className="rounded-full border border-slate-200 px-3 py-1 text-xs"
-                        >
-                            <option value={10}>10</option>
-                            <option value={20}>20</option>
-                            <option value={50}>50</option>
-                            <option value={100}>100</option>
-                        </select>
-                    </div>
                     {loading ? (
                         <div className="flex items-center justify-center py-16">
                             <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
                         </div>
                     ) : ordersData.length === 0 ? (
                         <div className="flex flex-col items-center justify-center space-y-4 py-16 text-sm text-slate-500">
-                            <p>No orders found.</p>
+                            <p>No orders captured yet.</p>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
@@ -257,26 +203,21 @@ export default function AdminOrdersIndex() {
                 </section>
 
                 {meta.last_page > 1 && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                        <div>
-                            Showing {meta.total > 0 ? (meta.current_page - 1) * meta.per_page + 1 : 0} to {Math.min(meta.current_page * meta.per_page, meta.total)} of {meta.total} entries
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            {Array.from({ length: meta.last_page }, (_, i) => i + 1).map((page) => (
-                                <button
-                                    key={page}
-                                    type="button"
-                                    onClick={() => setCurrentPage(page)}
-                                    className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                        page === meta.current_page
-                                            ? 'bg-sky-600 text-white shadow shadow-sky-600/20'
-                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                    }`}
-                                >
-                                    {page}
-                                </button>
-                            ))}
-                        </div>
+                    <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+                        {Array.from({ length: meta.last_page }, (_, i) => i + 1).map((page) => (
+                            <button
+                                key={page}
+                                type="button"
+                                onClick={() => setCurrentPage(page)}
+                                className={`rounded-full px-4 py-2 transition ${
+                                    page === meta.current_page
+                                        ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
+                                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
                     </div>
                 )}
             </div>

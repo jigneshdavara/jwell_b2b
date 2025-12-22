@@ -50,8 +50,18 @@ export default function Login() {
         setErrors({});
 
         try {
-            await authService.login(passwordData);
-            router.push(route('dashboard'));
+            const response = await authService.login(passwordData);
+            // Check user type and redirect accordingly
+            const user = response.data?.user || JSON.parse(localStorage.getItem('user') || '{}');
+            const userType = (user.type || '').toLowerCase();
+            
+            if (['admin', 'super-admin'].includes(userType)) {
+                router.push(route('admin.dashboard'));
+            } else if (userType === 'production') {
+                router.push(route('production.dashboard'));
+            } else {
+                router.push(route('dashboard'));
+            }
         } catch (error: any) {
             if (error.response?.status === 401) {
                 setErrors({ email: 'Invalid credentials.' });
@@ -87,8 +97,18 @@ export default function Login() {
         setErrors({});
         
         try {
-            await authService.verifyOtp({ email: sharedEmail, code: otpVerifyData.code });
-            router.push(route('dashboard'));
+            const response = await authService.verifyOtp({ email: sharedEmail, code: otpVerifyData.code });
+            // Check user type and redirect accordingly
+            const user = response.data?.user || JSON.parse(localStorage.getItem('user') || '{}');
+            const userType = (user.type || '').toLowerCase();
+            
+            if (['admin', 'super-admin'].includes(userType)) {
+                router.push(route('admin.dashboard'));
+            } else if (userType === 'production') {
+                router.push(route('production.dashboard'));
+            } else {
+                router.push(route('dashboard'));
+            }
         } catch (error: any) {
             setErrors({ code: error.response?.data?.message || 'Invalid code.' });
         } finally {

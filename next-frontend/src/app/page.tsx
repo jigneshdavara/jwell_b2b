@@ -7,6 +7,7 @@ import CustomerHeader from '@/components/shared/CustomerHeader';
 import CustomerFooter from '@/components/shared/CustomerFooter';
 import { route } from '@/utils/route';
 import { authService } from '@/services/authService';
+import { homeService } from '@/services/homeService';
 
 type HomePageProps = {
     stats: {
@@ -17,11 +18,11 @@ type HomePageProps = {
     };
     brands: string[];
     spotlight: Array<{
-        id: number;
+        id: number | string;
         name: string;
         brand?: string | null;
-        price: number;
-        making_charge_amount: number;
+        price: number | null;
+        making_charge_amount: number | null;
         making_charge_percentage?: number | null;
         making_charge_types?: string[];
     }>;
@@ -42,46 +43,96 @@ const prettifyKey = (key: string) =>
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
 
+// Default features (always available, matching Laravel)
+const defaultFeatures = [
+    {
+        title: 'Live Bullion & Diamond Pricing',
+        description: 'Lock rates in seconds with automated hedging notifications and daily market snapshots.',
+    },
+    {
+        title: 'Collaborative Jobwork',
+        description: 'Track incoming material, production stages, QC, and dispatch in one shared workflow.',
+    },
+    {
+        title: 'Personalised Offers',
+        description: 'Segment retailers vs wholesalers, push promotions, and monitor ROI on every campaign.',
+    },
+];
+
 export default function HomeIndex() {
     const [data, setData] = useState<HomePageProps | null>({
-        stats: { products: 1250, orders: 450, jobworks: 85, active_offers: 12 },
-        brands: ['Tanishq', 'Kalyan Jewellers', 'Jos Alukkas', 'Malabar Gold & Diamonds', 'PC Jeweller', 'Reliance Jewels', 'CaratLane', 'Bluestone', 'GIVA', 'Orra', 'Titan', 'Senco Gold', 'Thangamayil', 'Joyalukkas', 'GRT Jewellers', 'Sunny Diamonds', 'Damiani', 'Bulgari', 'Cartier', 'Tiffany & Co.'],
-        spotlight: [
-            { id: 1, name: 'Traditional Gold Choker', price: 85000, making_charge_amount: 5000, making_charge_types: ['fixed'] },
-            { id: 2, name: 'Diamond Stud Earrings', price: 45000, making_charge_amount: 3000, making_charge_types: ['fixed'] },
-            { id: 3, name: 'Antique Bridal Necklace', price: 250000, making_charge_amount: 15000, making_charge_types: ['fixed'] }
-        ],
-        features: [
-            {
-                title: 'Live Bullion & Diamond Pricing',
-                description: 'Lock rates in seconds with automated hedging notifications and daily market snapshots.',
-            },
-            {
-                title: 'Collaborative Jobwork',
-                description: 'Track incoming material, production stages, QC, and dispatch in one shared workflow.',
-            },
-            {
-                title: 'Personalised Offers',
-                description: 'Segment retailers vs wholesalers, push promotions, and monitor ROI on every campaign.',
-            },
-        ]
+        stats: { products: 0, orders: 0, jobworks: 0, active_offers: 0 },
+        brands: [],
+        spotlight: [],
+        features: defaultFeatures,
     });
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [redirecting, setRedirecting] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
-        // Auth check remains to allow testing transitions
-        const checkAuth = async () => {
-            try {
-                const response = await authService.me();
-                if (response.data) {
-                    router.push(route('dashboard'));
+        // Set page title (like Laravel's Head component)
+        document.title = 'Elvee B2B Jewellery OS';
+    }, []);
+
+    useEffect(() => {
+        // Check authentication synchronously (like Laravel's Auth::check())
+        const checkAuth = () => {
+            if (typeof window === 'undefined') return false;
+            
+            const token = localStorage.getItem('auth_token');
+            const savedUser = localStorage.getItem('user');
+            
+            if (token && savedUser) {
+                try {
+                    const user = JSON.parse(savedUser);
+                    if (user && user.id) {
+                        return true;
+                    }
+                } catch (e) {
+                    // Invalid user data
                 }
-            } catch (e) {
-                // Not authenticated
+            }
+            return false;
+        };
+
+        // If authenticated, redirect immediately (like Laravel)
+        if (checkAuth()) {
+            setRedirecting(true);
+            router.push(route('dashboard'));
+            return;
+        }
+
+        // Load home page data for unauthenticated users
+        const loadData = async () => {
+            try {
+                const response = await homeService.getHomeData();
+                if (response.data) {
+                    // Convert spotlight IDs from string to number for consistency
+                    const spotlight = response.data.spotlight.map((item) => ({
+                        ...item,
+                        id: typeof item.id === 'string' ? parseInt(item.id, 10) : item.id,
+                    }));
+                    setData({
+                        ...response.data,
+                        spotlight,
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load home page data:', error);
+                // Keep default data, just update with empty stats/brands/spotlight
+                setData((prev) => ({
+                    ...prev!,
+                    stats: { products: 0, orders: 0, jobworks: 0, active_offers: 0 },
+                    brands: [],
+                    spotlight: [],
+                }));
+            } finally {
+                setLoading(false);
             }
         };
-        checkAuth();
+
+        loadData();
     }, [router]);
 
     const headerLinks = [
@@ -148,6 +199,14 @@ export default function HomeIndex() {
         </svg>
     );
 
+    if (redirecting) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-ivory">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />
+            </div>
+        );
+    }
+
     if (loading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-ivory">
@@ -165,7 +224,7 @@ export default function HomeIndex() {
         <div className="min-h-screen bg-ivory text-ink">
             <CustomerHeader
                 navLinks={headerLinks}
-                primaryCta={{ label: 'Request access', href: route('auth.register') }}
+                primaryCta={{ label: 'Request access', href: route('register') }}
                 secondaryCta={{ label: 'Sign in', href: route('login') }}
                 tagline=""
             />
@@ -194,7 +253,7 @@ export default function HomeIndex() {
                                 <span>Sign in to your workspace</span>
                                 <ArrowRightIcon />
                             </Link>
-                            <Link href={route('auth.register')} className="btn-secondary gap-2">
+                            <Link href={route('register')} className="btn-secondary gap-2">
                                 <SparkIcon />
                                 <span>Request partner access</span>
                             </Link>
@@ -223,7 +282,7 @@ export default function HomeIndex() {
                                             </p>
                                         </div>
                                         <div className="text-right text-sm text-ink/80">
-                                            <p>{currencyFormatter.format(product.price)}</p>
+                                            <p>{currencyFormatter.format(product.price ?? 0)}</p>
                                             <p className="text-xs text-ink/60">
                                                 {(() => {
                                                     const types = product.making_charge_types || [];

@@ -1,10 +1,21 @@
+"use client";
+
 import React from "react";
+import { useRouter } from "next/navigation";
+import { authService } from "@/services/authService";
 
 export default function ProductionLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await authService.logout();
+    router.push('/');
+  };
+
   return (
     <div className="production-portal min-h-screen bg-slate-100 flex flex-col">
       <header className="bg-slate-900 text-white p-4">
@@ -12,7 +23,12 @@ export default function ProductionLayout({
           <h1 className="text-xl font-bold">Elvee Production</h1>
           <nav className="flex gap-4">
             <span className="text-sm">Work Orders</span>
-            <span className="text-sm">Logout</span>
+            <button
+              onClick={handleLogout}
+              className="text-sm hover:text-feather-gold transition cursor-pointer"
+            >
+              Logout
+            </button>
           </nav>
         </div>
       </header>
