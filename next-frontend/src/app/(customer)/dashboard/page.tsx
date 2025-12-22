@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { route } from '@/utils/route';
+import { frontendService } from '@/services/frontendService';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -16,8 +17,15 @@ const titleMap: Record<string, string> = {
     active_offers: 'Active offers',
 };
 
-type DashboardProps = {
+type DashboardData = {
     stats: Record<string, number>;
+    recentOrders?: Array<{
+        reference: string;
+        status: string;
+        total: number;
+        items: number;
+        placed_on: string;
+    }>;
     recentProducts: Array<{
         id: number;
         name: string;
@@ -37,19 +45,36 @@ type DashboardProps = {
 };
 
 export default function DashboardPage() {
-    const [data] = useState<DashboardProps | null>({
-        stats: { open_orders: 12, active_offers: 5 },
-        recentProducts: [
-            { id: 1, name: 'Diamond Solitaire Ring', sku: 'ELV-1001', brand: 'Elvee Atelier', catalog: 'Bridal 2025', price_total: 125000 },
-            { id: 2, name: 'Gold Tennis Bracelet', sku: 'ELV-1002', brand: 'Signature', price_total: 85000 },
-            { id: 3, name: 'Emerald Stud Earrings', sku: 'ELV-1003', brand: 'Elvee Atelier', catalog: 'Gemstone Edits', price_total: 45000 },
-        ],
-        featuredCatalogs: [
-            { id: 1, name: 'Bridal Collection 2025', slug: 'bridal-2025', description: 'Curated sets for the modern bride.', products_count: 24 },
-            { id: 2, name: 'Daily Wear Essentials', slug: 'daily-wear', products_count: 45 },
-        ]
-    });
-    const [loading] = useState(false);
+    const router = useRouter();
+    const [data, setData] = useState<DashboardData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        loadDashboard();
+    }, []);
+
+    const loadDashboard = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await frontendService.getDashboard();
+            
+            if (response.data) {
+                setData({
+                    stats: response.data.stats || {},
+                    recentOrders: response.data.recentOrders || [],
+                    recentProducts: response.data.recentProducts || [],
+                    featuredCatalogs: response.data.featuredCatalogs || [],
+                });
+            }
+        } catch (err: any) {
+            console.error('Failed to load dashboard:', err);
+            setError(err.response?.data?.message || 'Failed to load dashboard data');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -59,10 +84,42 @@ export default function DashboardPage() {
         );
     }
 
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20">
+                <p className="text-red-600 mb-4">{error}</p>
+                <button
+                    onClick={loadDashboard}
+                    className="rounded-full bg-elvee-blue px-6 py-2 text-sm font-semibold text-white transition hover:bg-navy"
+                >
+                    Retry
+                </button>
+            </div>
+        );
+    }
+
     const stats = data?.stats ?? {};
     const recentProducts = data?.recentProducts ?? [];
     const featuredCatalogs = data?.featuredCatalogs ?? [];
     const statEntries = Object.entries(stats);
+
+    // Helper function to get media URL
+    const getMediaUrl = (url: string | null | undefined): string | null => {
+        if (!url) return null;
+        
+        // If already absolute, return as-is
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+        }
+        
+        // Convert relative URL to absolute
+        // Backend returns URLs like: /storage/products/filename.jpg
+        // Need to prepend API base URL (without /api prefix)
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+        const absoluteUrl = `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+        
+        return absoluteUrl;
+    };
 
     return (
         <div className="space-y-10">
@@ -149,6 +206,7 @@ export default function DashboardPage() {
                         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                             {recentProducts.map((product) => {
                                 const productLink = route('frontend.catalog.show', { product: product.id });
+                                const thumbnailUrl = getMediaUrl(product.thumbnail);
                                 return (
                                     <article
                                         key={product.id}
@@ -156,12 +214,17 @@ export default function DashboardPage() {
                                     >
                                         <Link href={productLink} className="block">
                                             <div className="relative h-44 w-full overflow-hidden">
-                                                {product.thumbnail ? (
+                                                {thumbnailUrl ? (
                                                     <>
                                                         <img
-                                                            src={product.thumbnail}
+                                                            src={thumbnailUrl}
                                                             alt={product.name}
                                                             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                                                            onError={(e) => {
+                                                                // If image fails to load, hide it and show placeholder
+                                                                console.error('Failed to load image:', thumbnailUrl);
+                                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                            }}
                                                         />
                                                         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent" />
                                                     </>
