@@ -27,11 +27,10 @@ Homestead.yaml
 Thumbs.db
 
 # Next.js
-/next-frontend/.next/
+/next-frontend/.next
 /next-frontend/out/
 /next-frontend/build
 /next-frontend/dist
-/next-frontend/.next
 /next-frontend/node_modules
 /next-frontend/.env
 /next-frontend/.env.local
