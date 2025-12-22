@@ -30,11 +30,22 @@ export default function ResetPasswordPage() {
     setProcessing(true);
     setErrors({});
 
-    // Mock reset password logic
-    setTimeout(() => {
-      router.push("/login");
+    try {
+      await authService.resetPassword(data);
+      router.push("/login?status=password-reset");
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        setErrors({ email: error.response.data.message });
+      } else if (error.response?.data?.errors) {
+        setErrors(error.response.data.errors);
+      } else {
+        setErrors({
+          password: "Failed to reset password. Please try again.",
+        });
+      }
+    } finally {
       setProcessing(false);
-    }, 1000);
+    }
   };
 
   return (

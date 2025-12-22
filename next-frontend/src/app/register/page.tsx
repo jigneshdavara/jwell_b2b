@@ -98,7 +98,8 @@ export default function RegisterPage() {
 
     try {
       await authService.register(data);
-      router.push("/dashboard");
+      // Redirect to KYC onboarding after registration (matching Laravel behavior)
+      router.push("/onboarding/kyc");
     } catch (error: any) {
       if (error.response?.data?.errors) {
         setErrors(error.response.data.errors);
