@@ -4,7 +4,7 @@ import { ChangeEvent, Dispatch, FormEvent, SetStateAction, useEffect, useMemo, u
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { route } from '@/utils/route';
-import api from '@/services/api';
+import { frontendService } from '@/services/frontendService';
 
 const FILTER_LABELS: Record<string, string> = {
     brand: 'Brand',
@@ -141,39 +141,180 @@ export default function CatalogPage() {
 
     const loaderRef = useRef<HTMLDivElement | null>(null);
 
+    // Helper function to get media URL
+    const getMediaUrl = (url: string | null | undefined): string | null => {
+        if (!url) return null;
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+        }
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+        return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+    };
+
     // Initial data fetch
     useEffect(() => {
         const fetchData = async () => {
-            setLoading(true);
-            // Mock data
-            const mockProps: CatalogProps & { wishlist?: { product_ids: number[] } } = {
-                filters: {},
-                products: {
-                    data: [
-                        { id: 1, name: 'Diamond Solitaire Ring', sku: 'ELV-1001', price_total: 125000, making_charge_amount: 5000, uses_gold: true, uses_silver: false, uses_diamond: true, variants: [{ id: 1, label: '18K Yellow Gold', is_default: true }] },
-                        { id: 2, name: 'Gold Tennis Bracelet', sku: 'ELV-1002', price_total: 85000, making_charge_amount: 3000, uses_gold: true, uses_silver: false, uses_diamond: false, variants: [{ id: 2, label: '22K Gold', is_default: true }] },
-                        { id: 3, name: 'Emerald Stud Earrings', sku: 'ELV-1003', price_total: 45000, making_charge_amount: 2000, uses_gold: true, uses_silver: false, uses_diamond: true, variants: [{ id: 3, label: '18K White Gold', is_default: true }] },
-                    ],
-                    links: [],
-                    next_page_url: null,
-                    prev_page_url: null,
-                },
-                facets: {
-                    brands: ['Elvee Atelier', 'Signature'],
-                    categories: [{ id: 1, name: 'Rings', slug: 'rings' }, { id: 2, name: 'Earrings', slug: 'earrings' }],
-                    catalogs: [{ id: 1, name: 'Bridal 2025' }],
-                    metals: [{ id: 1, name: 'Gold' }],
-                    metalPurities: [{ id: 1, name: '18K', metal_id: 1, metal: { id: 1, name: 'Gold' } }],
-                    metalTones: [{ id: 1, name: 'Yellow', metal_id: 1, metal: { id: 1, name: 'Gold' } }],
-                    diamondOptions: { types: [], shapes: [], colors: [], clarities: [] }
-                },
-                wishlist: { product_ids: [1] }
-            };
-            
-            setData(mockProps);
-            setCatalogItems(mockProps.products.data);
-            setWishlistProductIds(mockProps.wishlist?.product_ids ?? []);
-            setLoading(false);
+            try {
+                setLoading(true);
+                
+                // Build filters from search params
+                const filters: any = {
+                    page: parseInt(searchParams.get('page') || '1'),
+                };
+                
+                // Extract array params
+                ['brand', 'metal', 'metal_purity', 'metal_tone', 'diamond', 'category', 'catalog'].forEach(key => {
+                    const values = searchParams.getAll(key);
+                    if (values.length > 0) {
+                        filters[key] = values;
+                    }
+                });
+                
+                // Extract single params
+                ['search', 'sort', 'ready_made'].forEach(key => {
+                    const value = searchParams.get(key);
+                    if (value) filters[key] = value;
+                });
+                
+                // Extract price range
+                const priceMin = searchParams.get('price_min');
+                const priceMax = searchParams.get('price_max');
+                if (priceMin) filters.price_min = parseInt(priceMin);
+                if (priceMax) filters.price_max = parseInt(priceMax);
+                
+                // Call API
+                const response = await frontendService.getCatalog(filters);
+                
+                if (response.data) {
+                    // Map response to expected structure
+                    const apiData = response.data;
+                    
+                    // Convert products - ensure BigInt IDs are numbers
+                    const products = (apiData.products?.data || []).map((product: any) => ({
+                        ...product,
+                        id: Number(product.id),
+                        price_total: Number(product.price_total || 0),
+                        making_charge_amount: Number(product.making_charge_amount || 0),
+                        thumbnail: product.thumbnail ? getMediaUrl(product.thumbnail) : null,
+                        media: (product.media || []).map((m: any) => ({
+                            ...m,
+                            url: getMediaUrl(m.url) || m.url,
+                        })),
+                        variants: (product.variants || []).map((v: any) => ({
+                            ...v,
+                            id: Number(v.id),
+                        })),
+                    }));
+                    
+                    // Build pagination links
+                    const currentPage = apiData.products?.current_page || 1;
+                    const lastPage = apiData.products?.last_page || 1;
+                    const links: Array<{ url: string | null; label: string; active: boolean }> = [];
+                    
+                    // Add previous link
+                    if (currentPage > 1) {
+                        const prevParams = new URLSearchParams(searchParams.toString());
+                        prevParams.set('page', String(currentPage - 1));
+                        links.push({ url: `?${prevParams.toString()}`, label: 'Previous', active: false });
+                    }
+                    
+                    // Add page number links
+                    for (let i = 1; i <= lastPage; i++) {
+                        const pageParams = new URLSearchParams(searchParams.toString());
+                        pageParams.set('page', String(i));
+                        links.push({ 
+                            url: `?${pageParams.toString()}`, 
+                            label: String(i), 
+                            active: i === currentPage 
+                        });
+                    }
+                    
+                    // Add next link
+                    if (currentPage < lastPage) {
+                        const nextParams = new URLSearchParams(searchParams.toString());
+                        nextParams.set('page', String(currentPage + 1));
+                        links.push({ url: `?${nextParams.toString()}`, label: 'Next', active: false });
+                    }
+                    
+                    const mappedData: CatalogProps = {
+                        filters: apiData.filters || {},
+                        products: {
+                            data: products,
+                            links,
+                            next_page_url: currentPage < lastPage ? `?${new URLSearchParams({ ...Object.fromEntries(searchParams), page: String(currentPage + 1) }).toString()}` : null,
+                            prev_page_url: currentPage > 1 ? `?${new URLSearchParams({ ...Object.fromEntries(searchParams), page: String(currentPage - 1) }).toString()}` : null,
+                        },
+                        facets: {
+                            ...apiData.facets,
+                            categories: (apiData.facets?.categories || []).map((c: any) => ({
+                                id: Number(c.id),
+                                name: c.name,
+                                slug: c.slug || null,
+                            })),
+                            metals: (apiData.facets?.metals || []).map((m: any) => ({
+                                id: Number(m.id),
+                                name: m.name,
+                            })),
+                            metalPurities: (apiData.facets?.metalPurities || []).map((p: any) => ({
+                                id: Number(p.id),
+                                name: p.name,
+                                metal_id: Number(p.metal_id),
+                                metal: p.metal ? { id: Number(p.metal.id), name: p.metal.name } : null,
+                            })),
+                            metalTones: (apiData.facets?.metalTones || []).map((t: any) => ({
+                                id: Number(t.id),
+                                name: t.name,
+                                metal_id: Number(t.metal_id),
+                                metal: t.metal ? { id: Number(t.metal.id), name: t.metal.name } : null,
+                            })),
+                            catalogs: (apiData.facets?.catalogs || []).map((c: any) => ({
+                                id: Number(c.id),
+                                name: c.name,
+                                slug: c.slug || null,
+                            })),
+                            diamondOptions: {
+                                types: apiData.facets?.diamondOptions?.types || [],
+                                shapes: (apiData.facets?.diamondOptions?.shapes || []).map((s: any) => ({
+                                    id: Number(s.id),
+                                    name: s.name,
+                                })),
+                                colors: (apiData.facets?.diamondOptions?.colors || []).map((c: any) => ({
+                                    id: Number(c.id),
+                                    name: c.name,
+                                })),
+                                clarities: (apiData.facets?.diamondOptions?.clarities || []).map((c: any) => ({
+                                    id: Number(c.id),
+                                    name: c.name,
+                                })),
+                            },
+                        },
+                    };
+                    
+                    setData(mappedData);
+                    setCatalogItems(products);
+                    // TODO: Fetch wishlist separately if needed
+                    setWishlistProductIds([]);
+                }
+            } catch (error: any) {
+                console.error('Failed to load catalog:', error);
+                // Set empty data on error
+                setData({
+                    filters: {},
+                    products: { data: [], links: [], next_page_url: null, prev_page_url: null },
+                    facets: {
+                        brands: [],
+                        categories: [],
+                        catalogs: [],
+                        metals: [],
+                        metalPurities: [],
+                        metalTones: [],
+                        diamondOptions: { types: [], shapes: [], colors: [], clarities: [] },
+                    },
+                });
+                setCatalogItems([]);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchData();
     }, [searchParams]);
@@ -225,13 +366,32 @@ export default function CatalogPage() {
         max: filters.price_max ? Number(filters.price_max) : DEFAULT_PRICE_MAX,
     }));
 
+    // Use refs to track previous values and prevent unnecessary updates
+    const prevSearchRef = useRef<string | undefined>(filters.search);
+    const prevPriceMinRef = useRef<string | undefined>(filters.price_min);
+    const prevPriceMaxRef = useRef<string | undefined>(filters.price_max);
+
     useEffect(() => {
-        setSearch(filters.search ?? '');
-        setPriceRange({
-            min: filters.price_min ? Number(filters.price_min) : DEFAULT_PRICE_MIN,
-            max: filters.price_max ? Number(filters.price_max) : DEFAULT_PRICE_MAX,
-        });
-    }, [filters]);
+        // Only update search if it actually changed
+        const newSearch = filters.search ?? '';
+        if (prevSearchRef.current !== filters.search) {
+            setSearch(newSearch);
+            prevSearchRef.current = filters.search;
+        }
+
+        // Only update price range if it actually changed
+        const newMin = filters.price_min ? Number(filters.price_min) : DEFAULT_PRICE_MIN;
+        const newMax = filters.price_max ? Number(filters.price_max) : DEFAULT_PRICE_MAX;
+        
+        if (prevPriceMinRef.current !== filters.price_min || prevPriceMaxRef.current !== filters.price_max) {
+            setPriceRange({
+                min: newMin,
+                max: newMax,
+            });
+            prevPriceMinRef.current = filters.price_min;
+            prevPriceMaxRef.current = filters.price_max;
+        }
+    }, [filters.search, filters.price_min, filters.price_max]);
 
     const wishlistLookup = useMemo(() => new Set(wishlistProductIds), [wishlistProductIds]);
 
@@ -681,7 +841,8 @@ export default function CatalogPage() {
                             <div className={viewMode === 'grid' ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3' : 'flex flex-col gap-3'}>
                                 {catalogItems.map((product) => {
                                     const productLink = route('frontend.catalog.show', { product: product.id });
-                                    const imageUrl = product.thumbnail ?? product.media?.[0]?.url ?? null;
+                                    const thumbnailUrl = product.thumbnail || null;
+                                    const imageUrl = thumbnailUrl ?? product.media?.[0]?.url ?? null;
                                     const defaultVariant = product.variants.find((variant) => variant.is_default) ?? product.variants[0] ?? null;
                                     const isWishlisted = wishlistLookup.has(product.id);
 
@@ -823,7 +984,19 @@ function ProductCard({
             <article className="group relative flex gap-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
                 <Link href={productLink} className="block w-48 flex-shrink-0 overflow-hidden rounded-2xl">
                     <div className="relative h-48 w-full overflow-hidden rounded-2xl bg-slate-100">
-                        {imageUrl ? <img src={imageUrl} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">No image</div>}
+                        {imageUrl ? (
+                            <img 
+                                src={imageUrl} 
+                                alt={product.name} 
+                                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                                onError={(e) => {
+                                    console.error('Failed to load image:', imageUrl);
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                            />
+                        ) : (
+                            <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">No image</div>
+                        )}
                     </div>
                 </Link>
                 <div className="flex flex-1 flex-col justify-between">
@@ -847,7 +1020,19 @@ function ProductCard({
             <div className="absolute right-5 top-5 z-20">{WishlistButton}</div>
             <Link href={productLink} className="block">
                 <div className="relative h-56 w-full overflow-hidden rounded-t-3xl bg-slate-100">
-                    {imageUrl ? <img src={imageUrl} alt={product.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">No image</div>}
+                    {imageUrl ? (
+                        <img 
+                            src={imageUrl} 
+                            alt={product.name} 
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                            onError={(e) => {
+                                console.error('Failed to load image:', imageUrl);
+                                (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">No image</div>
+                    )}
                 </div>
             </Link>
             <div className="space-y-3 p-6">
