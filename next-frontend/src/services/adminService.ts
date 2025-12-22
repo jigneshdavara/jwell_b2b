@@ -356,7 +356,7 @@ export const adminService = {
     return await apiClient.post('/admin/sizes', data);
   },
   async updateSize(id: number, data: any) {
-    return await apiClient.patch(`/admin/sizes/${id}`, data);
+    return await apiClient.put(`/admin/sizes/${id}`, data);
   },
   async deleteSize(id: number) {
     return await apiClient.delete(`/admin/sizes/${id}`);
