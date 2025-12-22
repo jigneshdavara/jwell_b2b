@@ -2,8 +2,10 @@
 
 import { Head } from '@/components/Head';
 import Link from 'next/link';
+import Pagination from '@/components/ui/Pagination';
 import { useEffect, useState } from 'react';
 import { adminService } from '@/services/adminService';
+import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type QuotationRow = {
     id: number;
@@ -28,14 +30,6 @@ type QuotationRow = {
     order_reference?: string | null;
 };
 
-type Pagination<T> = {
-    data: T[];
-    links: Array<{ url: string | null; label: string; active: boolean }>;
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-};
 
 const statusBadge: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
@@ -49,9 +43,7 @@ const statusBadge: Record<string, string> = {
 export default function AdminQuotationsIndex() {
     const [loading, setLoading] = useState(true);
     const [quotationsData, setQuotationsData] = useState<QuotationRow[]>([]);
-    const [pagination, setPagination] = useState<Pagination<QuotationRow>>({
-        data: [],
-        links: [],
+    const [pagination, setPagination] = useState<PaginationMeta>({
         current_page: 1,
         last_page: 1,
         per_page: 20,
@@ -103,43 +95,24 @@ export default function AdminQuotationsIndex() {
                 order_reference: item.order_reference || null,
             }));
 
-            // Generate pagination links
-            const links: Array<{ url: string | null; label: string; active: boolean }> = [];
             const lastPage = responseMeta.lastPage || responseMeta.last_page || 1;
-            const current = responseMeta.page || responseMeta.current_page || 1;
-
-            // Previous link
-            if (current > 1) {
-                links.push({ url: `?page=${current - 1}`, label: '« Previous', active: false });
-            } else {
-                links.push({ url: null, label: '« Previous', active: false });
-            }
-
-            // Page numbers
-            for (let i = 1; i <= lastPage; i++) {
-                links.push({
-                    url: `?page=${i}`,
-                    label: String(i),
-                    active: i === current,
-                });
-            }
-
-            // Next link
-            if (current < lastPage) {
-                links.push({ url: `?page=${current + 1}`, label: 'Next »', active: false });
-            } else {
-                links.push({ url: null, label: 'Next »', active: false });
-            }
+            const current = responseMeta.page || responseMeta.current_page || currentPage;
 
             setQuotationsData(formattedItems);
             setPagination({
-                data: formattedItems,
-                links,
                 current_page: current,
                 last_page: lastPage,
                 per_page: responseMeta.per_page || responseMeta.perPage || 20,
                 total: responseMeta.total || 0,
+                from: responseMeta.from,
+                to: responseMeta.to,
+                links: responseMeta.links || generatePaginationLinks(current, lastPage),
             });
+            
+            // Sync current page state with API response
+            if (current !== currentPage) {
+                setCurrentPage(current);
+            }
         } catch (error: any) {
             console.error('Failed to load quotations:', error);
         } finally {
@@ -161,13 +134,6 @@ export default function AdminQuotationsIndex() {
         setCurrentPage(1);
     };
 
-    const changePage = (url: string | null) => {
-        if (!url) return;
-        const match = url.match(/page=(\d+)/);
-        if (match) {
-            setCurrentPage(Number(match[1]));
-        }
-    };
 
     return (
         <>
@@ -333,40 +299,10 @@ export default function AdminQuotationsIndex() {
                                 </tbody>
                             </table>
 
-                            {pagination.links.length > 1 && (
-                                <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm">
-                                    {pagination.links.map((link, index) => {
-                                        const cleanLabel = link.label
-                                            .replace('&laquo;', '«')
-                                            .replace('&raquo;', '»')
-                                            .replace(/&nbsp;/g, ' ')
-                                            .trim();
-
-                                        if (!link.url) {
-                                            return (
-                                                <span key={`${link.label}-${index}`} className="rounded-full px-4 py-2 text-sm text-slate-400">
-                                                    {cleanLabel}
-                                                </span>
-                                            );
-                                        }
-
-                                        return (
-                                            <button
-                                                key={`${link.label}-${index}`}
-                                                type="button"
-                                                onClick={() => changePage(link.url)}
-                                                className={`rounded-full px-4 py-2 transition ${
-                                                    link.active
-                                                        ? 'bg-sky-600 text-white shadow-lg'
-                                                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                                                }`}
-                                            >
-                                                {cleanLabel}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                            <Pagination 
+                                meta={pagination} 
+                                onPageChange={setCurrentPage} 
+                            />
                         </>
                     )}
                 </div>

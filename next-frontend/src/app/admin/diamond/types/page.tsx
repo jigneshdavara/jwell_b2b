@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { adminService } from '@/services/adminService';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import Pagination from '@/components/ui/Pagination';
+import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type DiamondTypeRow = {
     id: number;
@@ -15,27 +17,12 @@ type DiamondTypeRow = {
     is_active: boolean;
 };
 
-type PaginationLink = {
-    url: string | null;
-    label: string;
-    active: boolean;
-};
-
-type PaginationMeta = {
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
-    from: number | null;
-    to: number | null;
-    links?: PaginationLink[];
-};
 
 export default function AdminDiamondTypesIndex() {
     const [loading, setLoading] = useState(true);
     const [types, setTypes] = useState<{ data: DiamondTypeRow[]; meta: PaginationMeta }>({
         data: [],
-        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10, from: null, to: null }
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }
     });
     const [modalOpen, setModalOpen] = useState(false);
     const [editingType, setEditingType] = useState<DiamondTypeRow | null>(null);
@@ -71,62 +58,6 @@ export default function AdminDiamondTypesIndex() {
         return selectedTypes.length === types.data.length;
     }, [types.data, selectedTypes]);
 
-    const generatePaginationLinks = (currentPage: number, lastPage: number): PaginationLink[] => {
-        const links: PaginationLink[] = [];
-        
-        // Previous link
-        links.push({
-            url: currentPage > 1 ? `?page=${currentPage - 1}` : null,
-            label: '« Previous',
-            active: false,
-        });
-        
-        // Page number links: Show 1-10, then ellipsis, then last 2 pages
-        if (lastPage <= 10) {
-            // If 10 or fewer pages, show all
-            for (let i = 1; i <= lastPage; i++) {
-                links.push({
-                    url: `?page=${i}`,
-                    label: String(i),
-                    active: i === currentPage,
-                });
-            }
-        } else {
-            // Show pages 1-10
-            for (let i = 1; i <= 10; i++) {
-                links.push({
-                    url: `?page=${i}`,
-                    label: String(i),
-                    active: i === currentPage,
-                });
-            }
-            
-            // Add ellipsis
-            links.push({
-                url: null,
-                label: '...',
-                active: false,
-            });
-            
-            // Show last 2 pages
-            for (let i = lastPage - 1; i <= lastPage; i++) {
-                links.push({
-                    url: `?page=${i}`,
-                    label: String(i),
-                    active: i === currentPage,
-                });
-            }
-        }
-        
-        // Next link
-        links.push({
-            url: currentPage < lastPage ? `?page=${currentPage + 1}` : null,
-            label: 'Next »',
-            active: false,
-        });
-        
-        return links;
-    };
 
     const loadTypes = async () => {
         setLoading(true);
@@ -145,13 +76,13 @@ export default function AdminDiamondTypesIndex() {
                     is_active: item.is_active ?? true,
                 })),
                 meta: {
-                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    current_page: responseMeta.current_page || responseMeta.page || currentPage,
                     last_page: responseMeta.last_page || responseMeta.lastPage || 1,
                     total: responseMeta.total || 0,
                     per_page: responseMeta.per_page || responseMeta.perPage || perPage,
-                    from: responseMeta.from ?? ((responseMeta.current_page || 1) - 1) * (responseMeta.per_page || perPage) + 1,
-                    to: responseMeta.to ?? Math.min((responseMeta.current_page || 1) * (responseMeta.per_page || perPage), responseMeta.total || 0),
-                    links: responseMeta.links || generatePaginationLinks(responseMeta.current_page || 1, responseMeta.last_page || 1),
+                    from: responseMeta.from,
+                    to: responseMeta.to,
+                    links: responseMeta.links || generatePaginationLinks(responseMeta.current_page || responseMeta.page || currentPage, responseMeta.last_page || responseMeta.lastPage || 1),
                 },
             });
         } catch (error: any) {
@@ -291,16 +222,6 @@ export default function AdminDiamondTypesIndex() {
         }
     };
 
-    const changePage = (url: string | null) => {
-        if (!url) {
-            return;
-        }
-        const urlObj = new URL(url, window.location.origin);
-        const page = urlObj.searchParams.get('page');
-        if (page) {
-            setCurrentPage(Number(page));
-        }
-    };
 
     const handlePerPageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const newPerPage = Number(event.target.value);
@@ -458,41 +379,10 @@ export default function AdminDiamondTypesIndex() {
                     </table>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                    <div>
-                        Showing {types.meta.from ?? 0} to {types.meta.to ?? 0} of {types.meta.total} entries
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {types.meta.links?.map((link, index) => {
-                            const cleanLabel = link.label
-                                .replace('&laquo;', '«')
-                                .replace('&raquo;', '»')
-                                .replace(/&nbsp;/g, ' ')
-                                .trim();
-
-                            if (!link.url) {
-                                return (
-                                    <span key={`${link.label}-${index}`} className="rounded-full px-3 py-1 text-sm text-slate-400">
-                                        {cleanLabel}
-                                    </span>
-                                );
-                            }
-
-                            return (
-                                <button
-                                    key={`${link.label}-${index}`}
-                                    type="button"
-                                    onClick={() => changePage(link.url)}
-                                    className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                        link.active ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                    }`}
-                                >
-                                    {cleanLabel}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
+                <Pagination 
+                    meta={types.meta} 
+                    onPageChange={setCurrentPage} 
+                />
             </div>
 
             <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">

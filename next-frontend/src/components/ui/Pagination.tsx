@@ -1,83 +1,70 @@
-'use client';
+"use client";
 
-interface PaginationProps {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
+import { PaginationMeta, extractPageFromUrl } from "@/utils/pagination";
+
+type PaginationProps = {
+    meta: PaginationMeta;
     onPageChange: (page: number) => void;
-    onItemsPerPageChange: (itemsPerPage: number) => void;
-    startIndex: number;
-    endIndex: number;
-}
+    className?: string;
+};
 
-export default function Pagination({
-    currentPage,
-    totalPages,
-    totalItems,
-    itemsPerPage,
-    onPageChange,
-    onItemsPerPageChange,
-    startIndex,
-    endIndex,
-}: PaginationProps) {
-    if (totalItems === 0) return null;
+export default function Pagination({ meta, onPageChange, className = "" }: PaginationProps) {
+    if (meta.last_page <= 1) {
+        return null;
+    }
 
-    const getPageNumbers = () => {
-        const pages: (number | string)[] = [];
-        const maxVisible = 5;
-        if (totalPages <= maxVisible) {
-            for (let i = 1; i <= totalPages; i++) pages.push(i);
-        } else {
-            pages.push(1);
-            if (currentPage > 3) pages.push('...');
-            const start = Math.max(2, currentPage - 1);
-            const end = Math.min(totalPages - 1, currentPage + 1);
-            for (let i = start; i <= end; i++) pages.push(i);
-            if (currentPage < totalPages - 2) pages.push('...');
-            pages.push(totalPages);
+    const links = meta.links || [];
+
+    const handleLinkClick = (url: string | null) => {
+        if (!url) {
+            return;
         }
-        return pages;
+        const page = extractPageFromUrl(url);
+        if (page) {
+            onPageChange(page);
+        }
     };
 
+    const from = meta.from ?? (meta.total > 0 ? (meta.current_page - 1) * meta.per_page + 1 : 0);
+    const to = meta.to ?? Math.min(meta.current_page * meta.per_page, meta.total);
+
     return (
-        <div className="flex flex-col gap-4 border-t border-slate-200 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-                <span className="text-sm text-slate-600">
-                    Showing <span className="font-semibold text-slate-900">{startIndex + 1}</span> to{' '}
-                    <span className="font-semibold text-slate-900">{Math.min(endIndex, totalItems)}</span> of{' '}
-                    <span className="font-semibold text-slate-900">{totalItems}</span> items
-                </span>
-                <div className="flex items-center gap-2">
-                    <label htmlFor="items-per-page" className="text-sm text-slate-600">Show:</label>
-                    <select
-                        id="items-per-page" value={itemsPerPage}
-                        onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-                        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 focus:border-elvee-blue focus:outline-none focus:ring-2 focus:ring-elvee-blue/20"
-                    >
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                        <option value={50}>50</option>
-                    </select>
-                </div>
+        <div className={`flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600 ${className}`}>
+            <div>
+                Showing {from} to {to} of {meta.total} entries
             </div>
-            {totalPages > 1 && (
-                <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5"><path d="M15 19l-7-7 7-7" /></svg>
-                    </button>
-                    <div className="flex items-center gap-1">
-                        {getPageNumbers().map((page, index) => (
-                            page === '...' ? <span key={`ellipsis-${index}`} className="px-2 text-sm text-slate-400">...</span> :
-                            <button key={page} type="button" onClick={() => onPageChange(page as number)} className={`inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border px-3 text-sm font-medium ${page === currentPage ? 'border-elvee-blue bg-elvee-blue text-white shadow-sm' : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}>{page}</button>
-                        ))}
-                    </div>
-                    <button type="button" onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5"><path d="M9 5l7 7-7 7" /></svg>
-                    </button>
-                </div>
-            )}
+            <div className="flex flex-wrap gap-2">
+                {links.map((link, index) => {
+                    const cleanLabel = link.label
+                        .replace('&laquo;', '«')
+                        .replace('&raquo;', '»')
+                        .replace(/&nbsp;/g, ' ')
+                        .trim();
+
+                    if (!link.url) {
+                        return (
+                            <span key={`${link.label}-${index}`} className="rounded-full px-3 py-1 text-sm text-slate-400">
+                                {cleanLabel}
+                            </span>
+                        );
+                    }
+
+                    return (
+                        <button
+                            key={`${link.label}-${index}`}
+                            type="button"
+                            onClick={() => handleLinkClick(link.url)}
+                            className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                link.active 
+                                    ? 'bg-sky-600 text-white shadow shadow-sky-600/20' 
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                        >
+                            {cleanLabel}
+                        </button>
+                    );
+                })}
+            </div>
         </div>
     );
 }
-

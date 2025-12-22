@@ -2,8 +2,10 @@
 
 import { Head } from '@/components/Head';
 import Link from 'next/link';
+import Pagination from '@/components/ui/Pagination';
 import { useEffect, useState } from 'react';
 import { adminService } from '@/services/adminService';
+import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type OrderRow = {
     id: number;
@@ -19,21 +21,6 @@ type OrderRow = {
     items_count: number;
 };
 
-type Pagination<T> = {
-    data: T[];
-    links: Array<{ url: string | null; label: string; active: boolean }>;
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-};
-
-type PaginationMeta = {
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
-};
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -89,10 +76,13 @@ export default function AdminOrdersIndex() {
                 items_count: item.items_count || item.items?.length || 0,
             })));
             setMeta({
-                current_page: responseMeta.current_page || responseMeta.page || 1,
+                current_page: responseMeta.current_page || responseMeta.page || currentPage,
                 last_page: responseMeta.last_page || responseMeta.total_pages || responseMeta.lastPage || 1,
                 total: responseMeta.total || 0,
                 per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                from: responseMeta.from,
+                to: responseMeta.to,
+                links: responseMeta.links || generatePaginationLinks(responseMeta.current_page || responseMeta.page || currentPage, responseMeta.last_page || responseMeta.total_pages || responseMeta.lastPage || 1),
             });
         } catch (error: any) {
             console.error('Failed to load orders:', error);
@@ -202,24 +192,10 @@ export default function AdminOrdersIndex() {
                     )}
                 </section>
 
-                {meta.last_page > 1 && (
-                    <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
-                        {Array.from({ length: meta.last_page }, (_, i) => i + 1).map((page) => (
-                            <button
-                                key={page}
-                                type="button"
-                                onClick={() => setCurrentPage(page)}
-                                className={`rounded-full px-4 py-2 transition ${
-                                    page === meta.current_page
-                                        ? 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30'
-                                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                                }`}
-                            >
-                                {page}
-                            </button>
-                        ))}
-                    </div>
-                )}
+                <Pagination 
+                    meta={meta} 
+                    onPageChange={setCurrentPage} 
+                />
             </div>
         </>
     );

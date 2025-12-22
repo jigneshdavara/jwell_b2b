@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { adminService } from '@/services/adminService';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import Pagination from '@/components/ui/Pagination';
+import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type MetalToneRow = {
     id: number;
@@ -22,12 +24,6 @@ type MetalOption = {
     name: string;
 };
 
-type PaginationMeta = {
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
-};
 
 export default function AdminMetalTonesIndex() {
     const [loading, setLoading] = useState(true);
@@ -91,10 +87,13 @@ export default function AdminMetalTonesIndex() {
                     display_order: item.display_order || 0,
                 })),
                 meta: {
-                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    current_page: responseMeta.current_page || responseMeta.page || currentPage,
                     last_page: responseMeta.last_page || responseMeta.lastPage || 1,
                     total: responseMeta.total || 0,
                     per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                    from: responseMeta.from,
+                    to: responseMeta.to,
+                    links: responseMeta.links || generatePaginationLinks(responseMeta.current_page || responseMeta.page || currentPage, responseMeta.last_page || responseMeta.lastPage || 1),
                 },
             });
         } catch (error: any) {
@@ -383,29 +382,10 @@ export default function AdminMetalTonesIndex() {
                     )}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                    <div>
-                        Showing {tones.meta.total > 0 ? (tones.meta.current_page - 1) * tones.meta.per_page + 1 : 0} to {Math.min(tones.meta.current_page * tones.meta.per_page, tones.meta.total)} of {tones.meta.total} entries
-                    </div>
-                    {tones.meta.last_page > 1 && (
-                        <div className="flex flex-wrap gap-2">
-                            {Array.from({ length: tones.meta.last_page }, (_, i) => i + 1).map((page) => (
-                                <button
-                                    key={page}
-                                    type="button"
-                                    onClick={() => setCurrentPage(page)}
-                                    className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                        page === tones.meta.current_page
-                                            ? 'bg-sky-600 text-white shadow shadow-sky-600/20'
-                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                    }`}
-                                >
-                                    {page}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                <Pagination 
+                    meta={tones.meta} 
+                    onPageChange={setCurrentPage} 
+                />
 
                 <Modal show={modalOpen} onClose={resetFormAndModal} maxWidth="5xl">
                     <div className="flex min-h-0 flex-col">
