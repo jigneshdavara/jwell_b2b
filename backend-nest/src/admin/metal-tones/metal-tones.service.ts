@@ -23,7 +23,15 @@ export class MetalTonesService {
         ]);
 
         return {
-            items,
+            items: items.map((item) => ({
+                ...item,
+                id: Number(item.id),
+                metal_id: Number(item.metal_id),
+                metal: item.metals ? {
+                    id: Number(item.metals.id),
+                    name: item.metals.name,
+                } : null,
+            })),
             meta: {
                 total,
                 page,
@@ -43,11 +51,19 @@ export class MetalTonesService {
         if (!tone) {
             throw new NotFoundException('Metal tone not found');
         }
-        return tone;
+        return {
+            ...tone,
+            id: Number(tone.id),
+            metal_id: Number(tone.metal_id),
+            metal: tone.metals ? {
+                id: Number(tone.metals.id),
+                name: tone.metals.name,
+            } : null,
+        };
     }
 
     async create(dto: CreateMetalToneDto) {
-        return await this.prisma.metal_tones.create({
+        const tone = await this.prisma.metal_tones.create({
             data: {
                 metal_id: BigInt(dto.metal_id),
                 code: dto.code,
@@ -56,12 +72,31 @@ export class MetalTonesService {
                 is_active: dto.is_active ?? true,
                 display_order: dto.display_order,
             },
+            include: {
+                metals: {
+                    select: { id: true, name: true },
+                },
+            },
         });
+        return {
+            ...tone,
+            id: Number(tone.id),
+            metal_id: Number(tone.metal_id),
+            metal: tone.metals ? {
+                id: Number(tone.metals.id),
+                name: tone.metals.name,
+            } : null,
+        };
     }
 
     async update(id: number, dto: UpdateMetalToneDto) {
-        await this.findOne(id);
-        return await this.prisma.metal_tones.update({
+        const existing = await this.prisma.metal_tones.findUnique({
+            where: { id: BigInt(id) },
+        });
+        if (!existing) {
+            throw new NotFoundException('Metal tone not found');
+        }
+        const tone = await this.prisma.metal_tones.update({
             where: { id: BigInt(id) },
             data: {
                 metal_id: dto.metal_id ? BigInt(dto.metal_id) : undefined,
@@ -71,7 +106,21 @@ export class MetalTonesService {
                 is_active: dto.is_active,
                 display_order: dto.display_order,
             },
+            include: {
+                metals: {
+                    select: { id: true, name: true },
+                },
+            },
         });
+        return {
+            ...tone,
+            id: Number(tone.id),
+            metal_id: Number(tone.metal_id),
+            metal: tone.metals ? {
+                id: Number(tone.metals.id),
+                name: tone.metals.name,
+            } : null,
+        };
     }
 
     async remove(id: number) {

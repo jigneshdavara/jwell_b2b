@@ -3,7 +3,7 @@ import {
     Get,
     Post,
     Body,
-    Patch,
+    Put,
     Param,
     Delete,
     Query,
@@ -41,7 +41,7 @@ export class MetalPuritiesController {
         return this.metalPuritiesService.create(dto);
     }
 
-    @Patch(':id')
+    @Put(':id')
     update(
         @Param('id', ParseIntPipe) id: number,
         @Body() dto: UpdateMetalPurityDto,

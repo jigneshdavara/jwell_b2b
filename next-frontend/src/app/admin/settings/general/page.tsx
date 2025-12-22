@@ -2,24 +2,7 @@
 
 import { Head } from '@/components/Head';
 import React, { useEffect, useState } from 'react';
-
-// Mock data for settings
-const mockSettings = {
-    admin_email: 'admin@example.com',
-    company_name: 'Elvee Jewels',
-    company_address: '123 Business Street',
-    company_city: 'Mumbai',
-    company_state: 'Maharashtra',
-    company_pincode: '400001',
-    company_phone: '+91 98765 43210',
-    company_email: 'info@elvee.com',
-    company_gstin: '27AAAAA0000A1Z5',
-    logo_url: '/images/logo.png',
-    favicon_url: '/images/favicon.ico',
-    app_name: 'Elvee B2B',
-    app_timezone: 'Asia/Kolkata',
-    app_currency: 'INR',
-};
+import { adminService } from '@/services/adminService';
 
 const timezones = [
     'Asia/Kolkata',
@@ -34,40 +17,105 @@ const timezones = [
 const currencies = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD'];
 
 export default function AdminGeneralSettingsIndex() {
-    const settings = mockSettings;
-    const [logoPreview, setLogoPreview] = useState<string | null>(settings.logo_url ?? null);
-    const [faviconPreview, setFaviconPreview] = useState<string | null>(settings.favicon_url ?? null);
+    const [loading, setLoading] = useState(true);
+    const [settings, setSettings] = useState({
+        admin_email: '',
+        company_name: '',
+        company_address: '',
+        company_city: '',
+        company_state: '',
+        company_pincode: '',
+        company_phone: '',
+        company_email: '',
+        company_gstin: '',
+        logo_url: null as string | null,
+        favicon_url: null as string | null,
+        app_name: '',
+        app_timezone: '',
+        app_currency: '',
+    });
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+    const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
     const [logoInputKey, setLogoInputKey] = useState(0);
     const [faviconInputKey, setFaviconInputKey] = useState(0);
 
     const [formData, setFormData] = useState({
-        admin_email: settings.admin_email || '',
-        company_name: settings.company_name || '',
-        company_address: settings.company_address || '',
-        company_city: settings.company_city || '',
-        company_state: settings.company_state || '',
-        company_pincode: settings.company_pincode || '',
-        company_phone: settings.company_phone || '',
-        company_email: settings.company_email || '',
-        company_gstin: settings.company_gstin || '',
+        admin_email: '',
+        company_name: '',
+        company_address: '',
+        company_city: '',
+        company_state: '',
+        company_pincode: '',
+        company_phone: '',
+        company_email: '',
+        company_gstin: '',
         logo: null as File | null,
         favicon: null as File | null,
         remove_logo: false,
         remove_favicon: false,
-        app_name: settings.app_name || '',
-        app_timezone: settings.app_timezone || '',
-        app_currency: settings.app_currency || '',
+        app_name: '',
+        app_timezone: '',
+        app_currency: '',
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+
+    useEffect(() => {
+        loadSettings();
+    }, []);
+
+    const loadSettings = async () => {
+        try {
+            const response = await adminService.getGeneralSettings();
+            const data = response.data;
+            setSettings(data);
+            setFormData({
+                admin_email: data.admin_email || '',
+                company_name: data.company_name || '',
+                company_address: data.company_address || '',
+                company_city: data.company_city || '',
+                company_state: data.company_state || '',
+                company_pincode: data.company_pincode || '',
+                company_phone: data.company_phone || '',
+                company_email: data.company_email || '',
+                company_gstin: data.company_gstin || '',
+                logo: null,
+                favicon: null,
+                remove_logo: false,
+                remove_favicon: false,
+                app_name: data.app_name || '',
+                app_timezone: data.app_timezone || '',
+                app_currency: data.app_currency || '',
+            });
+            setLogoPreview(data.logo_url ?? null);
+            setFaviconPreview(data.favicon_url ?? null);
+        } catch (error: any) {
+            console.error('Failed to load settings:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Initialize and sync previews with settings
+    useEffect(() => {
+        if (!formData.logo && !formData.remove_logo) {
+            setLogoPreview(settings.logo_url ?? null);
+        }
+        if (!formData.favicon && !formData.remove_favicon) {
+            setFaviconPreview(settings.favicon_url ?? null);
+        }
+    }, [settings.logo_url, settings.favicon_url, formData.logo, formData.favicon, formData.remove_logo, formData.remove_favicon]);
 
     const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] ?? null;
         setFormData({ ...formData, logo: file, remove_logo: false });
         if (file) {
             const reader = new FileReader();
-            reader.onload = (e) => setLogoPreview(e.target?.result as string);
+            reader.onload = (e) => {
+                setLogoPreview(e.target?.result as string);
+            };
             reader.readAsDataURL(file);
         } else {
             setLogoPreview(settings.logo_url ?? null);
@@ -79,22 +127,116 @@ export default function AdminGeneralSettingsIndex() {
         setFormData({ ...formData, favicon: file, remove_favicon: false });
         if (file) {
             const reader = new FileReader();
-            reader.onload = (e) => setFaviconPreview(e.target?.result as string);
+            reader.onload = (e) => {
+                setFaviconPreview(e.target?.result as string);
+            };
             reader.readAsDataURL(file);
         } else {
             setFaviconPreview(settings.favicon_url ?? null);
         }
     };
 
-    const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        setHasSubmitted(true);
         setProcessing(true);
-        // Simulate API call
-        setTimeout(() => {
+        setErrors({});
+
+        const trimmedAdminEmail = formData.admin_email?.trim() || '';
+        const trimmedCompanyName = formData.company_name?.trim() || '';
+        const trimmedAppName = formData.app_name?.trim() || '';
+        const logo = formData.logo;
+        const favicon = formData.favicon;
+        const hasFile = logo instanceof File || favicon instanceof File;
+
+        // Frontend validation
+        if (!trimmedAdminEmail) {
+            setErrors({ admin_email: 'The admin email field is required.' });
+            setHasSubmitted(false);
             setProcessing(false);
-            alert('Settings saved (mock)');
-        }, 1000);
+            return;
+        }
+        if (!trimmedCompanyName) {
+            setErrors({ company_name: 'The company name field is required.' });
+            setHasSubmitted(false);
+            setProcessing(false);
+            return;
+        }
+        if (!trimmedAppName) {
+            setErrors({ app_name: 'The app name field is required.' });
+            setHasSubmitted(false);
+            setProcessing(false);
+            return;
+        }
+
+        try {
+            const formDataToSend = new FormData();
+            formDataToSend.append('admin_email', trimmedAdminEmail);
+            formDataToSend.append('company_name', trimmedCompanyName);
+            formDataToSend.append('company_address', formData.company_address?.trim() || '');
+            formDataToSend.append('company_city', formData.company_city?.trim() || '');
+            formDataToSend.append('company_state', formData.company_state?.trim() || '');
+            formDataToSend.append('company_pincode', formData.company_pincode?.trim() || '');
+            formDataToSend.append('company_phone', formData.company_phone?.trim() || '');
+            formDataToSend.append('company_email', formData.company_email?.trim() || '');
+            formDataToSend.append('company_gstin', formData.company_gstin?.trim() || '');
+            formDataToSend.append('app_name', trimmedAppName);
+            formDataToSend.append('app_timezone', formData.app_timezone);
+            formDataToSend.append('app_currency', formData.app_currency);
+
+            if (formData.remove_logo) {
+                formDataToSend.append('remove_logo', 'true');
+            }
+            if (formData.remove_favicon) {
+                formDataToSend.append('remove_favicon', 'true');
+            }
+
+            if (logo instanceof File) {
+                formDataToSend.append('logo', logo);
+            }
+            if (favicon instanceof File) {
+                formDataToSend.append('favicon', favicon);
+            }
+
+            await adminService.updateGeneralSettings(formDataToSend);
+            
+            // Clear file inputs and remove flags after successful save
+            setFormData({
+                ...formData,
+                logo: null,
+                favicon: null,
+                remove_logo: false,
+                remove_favicon: false,
+            });
+            setLogoInputKey(prev => prev + 1);
+            setFaviconInputKey(prev => prev + 1);
+            
+            // Reload settings to get updated URLs
+            await loadSettings();
+            setHasSubmitted(false);
+        } catch (error: any) {
+            console.error('Failed to save settings:', error);
+            if (error.response?.data?.errors) {
+                setErrors(error.response.data.errors);
+            } else {
+                setErrors({ general: 'Failed to save settings. Please try again.' });
+            }
+            setHasSubmitted(false);
+        } finally {
+            setProcessing(false);
+        }
     };
+
+    if (loading) {
+        return (
+            <>
+                <Head title="General Settings" />
+                <div className="flex items-center justify-center p-8">
+                    <div className="text-sm text-slate-500">Loading settings...</div>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
@@ -155,6 +297,7 @@ export default function AdminGeneralSettingsIndex() {
                                     onChange={(e) => setFormData({ ...formData, company_gstin: e.target.value })}
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 />
+                                {errors.company_gstin && <p className="mt-1 text-xs text-rose-500">{errors.company_gstin}</p>}
                             </div>
 
                             <div className="lg:col-span-2">
@@ -165,6 +308,7 @@ export default function AdminGeneralSettingsIndex() {
                                     rows={2}
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 />
+                                {errors.company_address && <p className="mt-1 text-xs text-rose-500">{errors.company_address}</p>}
                             </div>
 
                             <div>
@@ -175,6 +319,7 @@ export default function AdminGeneralSettingsIndex() {
                                     onChange={(e) => setFormData({ ...formData, company_city: e.target.value })}
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 />
+                                {errors.company_city && <p className="mt-1 text-xs text-rose-500">{errors.company_city}</p>}
                             </div>
 
                             <div>
@@ -185,6 +330,7 @@ export default function AdminGeneralSettingsIndex() {
                                     onChange={(e) => setFormData({ ...formData, company_state: e.target.value })}
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 />
+                                {errors.company_state && <p className="mt-1 text-xs text-rose-500">{errors.company_state}</p>}
                             </div>
 
                             <div>
@@ -195,6 +341,7 @@ export default function AdminGeneralSettingsIndex() {
                                     onChange={(e) => setFormData({ ...formData, company_pincode: e.target.value })}
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 />
+                                {errors.company_pincode && <p className="mt-1 text-xs text-rose-500">{errors.company_pincode}</p>}
                             </div>
 
                             <div>
@@ -205,6 +352,7 @@ export default function AdminGeneralSettingsIndex() {
                                     onChange={(e) => setFormData({ ...formData, company_phone: e.target.value })}
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 />
+                                {errors.company_phone && <p className="mt-1 text-xs text-rose-500">{errors.company_phone}</p>}
                             </div>
 
                             <div>
@@ -215,6 +363,7 @@ export default function AdminGeneralSettingsIndex() {
                                     onChange={(e) => setFormData({ ...formData, company_email: e.target.value })}
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 />
+                                {errors.company_email && <p className="mt-1 text-xs text-rose-500">{errors.company_email}</p>}
                             </div>
                         </div>
                     </div>
@@ -248,6 +397,7 @@ export default function AdminGeneralSettingsIndex() {
                                         onChange={handleLogoChange}
                                         className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                     />
+                                    {errors.logo && <p className="mt-1 text-xs text-rose-500">{errors.logo}</p>}
                                 </div>
                             </div>
 
@@ -276,6 +426,7 @@ export default function AdminGeneralSettingsIndex() {
                                         onChange={handleFaviconChange}
                                         className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                     />
+                                    {errors.favicon && <p className="mt-1 text-xs text-rose-500">{errors.favicon}</p>}
                                 </div>
                             </div>
                         </div>
@@ -296,6 +447,7 @@ export default function AdminGeneralSettingsIndex() {
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                     required
                                 />
+                                {errors.app_name && <p className="mt-1 text-xs text-rose-500">{errors.app_name}</p>}
                             </div>
 
                             <div>
@@ -314,6 +466,7 @@ export default function AdminGeneralSettingsIndex() {
                                         </option>
                                     ))}
                                 </select>
+                                {errors.app_timezone && <p className="mt-1 text-xs text-rose-500">{errors.app_timezone}</p>}
                             </div>
 
                             <div>
@@ -332,6 +485,7 @@ export default function AdminGeneralSettingsIndex() {
                                         </option>
                                     ))}
                                 </select>
+                                {errors.app_currency && <p className="mt-1 text-xs text-rose-500">{errors.app_currency}</p>}
                             </div>
                         </div>
                     </div>

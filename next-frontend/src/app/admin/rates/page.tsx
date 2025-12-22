@@ -1,100 +1,166 @@
 'use client';
 
 import { Head } from '@/components/Head';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { adminService } from '@/services/adminService';
-
-type MetalPurity = {
-    id: number;
-    metal_id: number;
-    name: string;
-    description: string | null;
-    is_active: boolean;
-};
-
-type MetalSummary = {
-    metal: string;
-    latest_rate: number | null;
-    effective_at: string | null;
-    purities: Array<{
-        name: string;
-        latest_rate: number | null;
-    }>;
-};
 
 type RateRow = {
     id: number;
     metal: string;
+    purity?: string | null;
+    price_per_gram: number;
+    currency: string;
+    source: string;
+    effective_at?: string | null;
+    metadata?: Record<string, unknown> | null;
+};
+
+type MetalRate = {
     purity: string;
     price_per_gram: number;
-    effective_at: string;
-    created_at: string;
+    currency: string;
+};
+
+type MetalSummary = {
+    metal: string;
+    label: string;
+    latest: {
+        purity: string | null;
+        price_per_gram: number;
+        currency: string;
+        effective_at?: string | null;
+        source?: string | null;
+    } | null;
+    rates: MetalRate[];
+};
+
+type MetalOption = {
+    id: number;
+    name: string;
+    slug: string;
+    value: string;
+};
+
+type PurityOption = {
+    id: number;
+    name: string;
+    slug: string;
+};
+
+type EditableRate = {
+    purity: string;
+    price_per_gram: string;
 };
 
 export default function AdminRatesIndex() {
     const [loading, setLoading] = useState(true);
-    const [ratesData, setRatesData] = useState<RateRow[]>([]);
-    const [summaries, setSummaries] = useState<MetalSummary[]>([]);
-    const [availableMetals, setAvailableMetals] = useState<Array<{ id: number; name: string; value: string }>>([]);
-    const [metalPuritiesMap, setMetalPuritiesMap] = useState<Record<string, Array<{ id: number; name: string }>>>({});
-    const [selectedMetal, setSelectedMetal] = useState<string>('');
-    const [formData, setFormData] = useState({
-        effective_at: new Date().toISOString().slice(0, 16),
-        rates: [] as Array<{ purity_id: number; purity_name: string; price_per_gram: string }>,
+    const [rates, setRates] = useState<RateRow[]>([]);
+    const [defaultCurrency, setDefaultCurrency] = useState('INR');
+    const [availableMetals, setAvailableMetals] = useState<MetalOption[]>([]);
+    const [metalSummaries, setMetalSummaries] = useState<Record<string, MetalSummary>>({});
+    const [metalPurities, setMetalPurities] = useState<Record<string, PurityOption[]>>({});
+    const [selectedMetal, setSelectedMetal] = useState<string>('all');
+    const [syncingMetal, setSyncingMetal] = useState<string | null>(null);
+    const [formUpdateKey, setFormUpdateKey] = useState<number>(0);
+
+    // Forms for gold and silver
+    const [goldFormData, setGoldFormData] = useState<{ currency: string; rates: EditableRate[] }>({
+        currency: 'INR',
+        rates: [],
     });
-    const [processing, setProcessing] = useState(false);
+    const [silverFormData, setSilverFormData] = useState<{ currency: string; rates: EditableRate[] }>({
+        currency: 'INR',
+        rates: [],
+    });
+
+    // Dynamic metal form data
+    const [dynamicMetalFormData, setDynamicMetalFormData] = useState<Record<string, { currency: string; rates: EditableRate[] }>>({});
+
+    // Track initialization
+    const goldFormInitializedRef = useRef<boolean>(false);
+    const silverFormInitializedRef = useRef<boolean>(false);
+    const lastSelectedMetalRef = useRef<string>('');
 
     useEffect(() => {
         loadRates();
     }, []);
 
-    useEffect(() => {
-        if (selectedMetal && metalPuritiesMap[selectedMetal]) {
-            setFormData(prev => ({
-                ...prev,
-                rates: metalPuritiesMap[selectedMetal].map(p => ({
-                    purity_id: p.id,
-                    purity_name: p.name,
-                    price_per_gram: '',
-                })),
-            }));
-        }
-    }, [selectedMetal, metalPuritiesMap]);
-
     const loadRates = async () => {
         setLoading(true);
         try {
-            const response = await adminService.getRates(1, 100);
+            const response = await adminService.getRates(1, 1000);
             const data = response.data;
 
-            // Set rates history
-            setRatesData((data.items || []).map((item: any) => ({
+            setRates((data.items || []).map((item: any) => ({
                 id: Number(item.id),
                 metal: item.metal,
-                purity: item.purity || '',
+                purity: item.purity || null,
                 price_per_gram: Number(item.price_per_gram),
+                currency: item.currency || 'INR',
+                source: item.source || 'manual',
                 effective_at: item.effective_at,
-                created_at: item.created_at,
+                metadata: item.metadata || null,
             })));
 
-            // Set available metals
-            const metals = data.availableMetals || [];
-            setAvailableMetals(metals);
-            if (metals.length > 0 && !selectedMetal) {
-                setSelectedMetal(metals[0].value);
+            setDefaultCurrency(data.defaultCurrency || 'INR');
+            setAvailableMetals(data.availableMetals || []);
+            setMetalPurities(data.metalPurities || {});
+            setMetalSummaries(data.metalSummaries || {});
+
+            // Initialize gold form
+            if (!goldFormInitializedRef.current && (data.metalSummaries?.gold || (data.metalPurities?.gold && data.metalPurities.gold.length > 0))) {
+                const availablePurities = data.metalPurities?.gold ?? [];
+                if (data.metalSummaries?.gold) {
+                    setGoldFormData({
+                        currency: data.metalSummaries.gold.latest?.currency || data.defaultCurrency || 'INR',
+                        rates: mapRatesToForm(data.metalSummaries.gold.rates, 'gold', availablePurities),
+                    });
+                } else if (availablePurities.length > 0) {
+                    setGoldFormData({
+                        currency: data.defaultCurrency || 'INR',
+                        rates: mapRatesToForm([], 'gold', availablePurities),
+                    });
+                }
+                goldFormInitializedRef.current = true;
             }
 
-            // Set metal purities map
-            setMetalPuritiesMap(data.metalPurities || {});
+            // Initialize silver form
+            if (!silverFormInitializedRef.current && (data.metalSummaries?.silver || (data.metalPurities?.silver && data.metalPurities.silver.length > 0))) {
+                const availablePurities = data.metalPurities?.silver ?? [];
+                if (data.metalSummaries?.silver) {
+                    setSilverFormData({
+                        currency: data.metalSummaries.silver.latest?.currency || data.defaultCurrency || 'INR',
+                        rates: mapRatesToForm(data.metalSummaries.silver.rates, 'silver', availablePurities),
+                    });
+                } else if (availablePurities.length > 0) {
+                    setSilverFormData({
+                        currency: data.defaultCurrency || 'INR',
+                        rates: mapRatesToForm([], 'silver', availablePurities),
+                    });
+                }
+                silverFormInitializedRef.current = true;
+            }
 
-            // Convert metal summaries to array format
-            const summariesArray: MetalSummary[] = Object.entries(data.metalSummaries || {}).map(([metal, summary]: [string, any]) => ({
-                metal,
-                latest_rate: summary.latest_rate,
-                effective_at: summary.effective_at,
-                purities: summary.purities || [],
-            }));
-            setSummaries(summariesArray);
+            // Initialize dynamic metal forms
+            const newData: Record<string, { currency: string; rates: EditableRate[] }> = {};
+            Object.keys(data.metalSummaries || {}).forEach((metalKey) => {
+                if (metalKey !== 'gold' && metalKey !== 'silver') {
+                    const summary = data.metalSummaries[metalKey];
+                    const availablePurities = data.metalPurities[metalKey] ?? [];
+                    if (summary) {
+                        newData[metalKey] = {
+                            currency: summary.latest?.currency || data.defaultCurrency || 'INR',
+                            rates: mapRatesToForm(summary.rates, metalKey, availablePurities),
+                        };
+                    } else if (availablePurities.length > 0) {
+                        newData[metalKey] = {
+                            currency: data.defaultCurrency || 'INR',
+                            rates: mapRatesToForm([], metalKey, availablePurities),
+                        };
+                    }
+                }
+            });
+            setDynamicMetalFormData((prev) => ({ ...prev, ...newData }));
         } catch (error: any) {
             console.error('Failed to load rates:', error);
         } finally {
@@ -102,66 +168,486 @@ export default function AdminRatesIndex() {
         }
     };
 
-    const metalPurities = useMemo(() => {
-        if (!selectedMetal || !metalPuritiesMap[selectedMetal]) return [];
-        return metalPuritiesMap[selectedMetal];
-    }, [selectedMetal, metalPuritiesMap]);
-
-    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        setProcessing(true);
-        try {
-            const ratesPayload = formData.rates
-                .filter(r => r.price_per_gram && parseFloat(r.price_per_gram) > 0)
-                .map(r => ({
-                    purity_id: r.purity_id,
-                    price_per_gram: parseFloat(r.price_per_gram),
+    const mapRatesToForm = useCallback((rates: MetalRate[], metal: string, availablePurities: PurityOption[]): EditableRate[] => {
+        if (availablePurities.length === 0) {
+            if (rates.length > 0) {
+                return rates.map((rate) => ({
+                    purity: rate.purity ?? '',
+                    price_per_gram: typeof rate.price_per_gram === 'number' && !Number.isNaN(rate.price_per_gram) ? String(rate.price_per_gram) : '',
                 }));
-
-            await adminService.storeMetalRate(selectedMetal, {
-                effective_at: formData.effective_at,
-                rates: ratesPayload,
-            });
-
-            // Reset form
-            setFormData({
-                effective_at: new Date().toISOString().slice(0, 16),
-                rates: metalPurities.map(p => ({
-                    purity_id: p.id,
-                    purity_name: p.name,
-                    price_per_gram: '',
-                })),
-            });
-
-            // Reload rates
-            await loadRates();
-            alert('Rates updated successfully');
-        } catch (error: any) {
-            console.error('Failed to update rates:', error);
-            alert(error.response?.data?.message || 'Failed to update rates. Please try again.');
-        } finally {
-            setProcessing(false);
+            }
+            return [{ purity: '', price_per_gram: '' }];
         }
-    };
 
-    const syncRates = async () => {
-        setProcessing(true);
+        return availablePurities.map((purity) => {
+            const existingRate = rates.find((r) => r.purity === purity.name);
+            return {
+                purity: purity.name,
+                price_per_gram:
+                    existingRate && typeof existingRate.price_per_gram === 'number' && !Number.isNaN(existingRate.price_per_gram)
+                        ? String(existingRate.price_per_gram)
+                        : '',
+            };
+        });
+    }, []);
+
+    // Update dynamic form when selected metal changes
+    useEffect(() => {
+        if (selectedMetal !== 'all' && selectedMetal !== 'gold' && selectedMetal !== 'silver') {
+            const metalChanged = lastSelectedMetalRef.current !== selectedMetal;
+
+            if (metalChanged) {
+                const availablePurities = metalPurities[selectedMetal] ?? [];
+                const formData = dynamicMetalFormData[selectedMetal];
+
+                if (formData && formData.rates.length > 0) {
+                    const ratesForAllPurities = mapRatesToForm(
+                        formData.rates.map((r) => ({
+                            purity: r.purity,
+                            price_per_gram: parseFloat(r.price_per_gram) || 0,
+                            currency: formData.currency,
+                        })),
+                        selectedMetal,
+                        availablePurities,
+                    );
+                    setDynamicMetalFormData((prev) => ({
+                        ...prev,
+                        [selectedMetal]: {
+                            currency: formData.currency,
+                            rates: ratesForAllPurities,
+                        },
+                    }));
+                } else if (availablePurities.length > 0) {
+                    setDynamicMetalFormData((prev) => ({
+                        ...prev,
+                        [selectedMetal]: {
+                            currency: defaultCurrency,
+                            rates: mapRatesToForm([], selectedMetal, availablePurities),
+                        },
+                    }));
+                }
+                lastSelectedMetalRef.current = selectedMetal;
+            }
+        } else {
+            lastSelectedMetalRef.current = '';
+        }
+    }, [selectedMetal, metalPurities, dynamicMetalFormData, defaultCurrency, mapRatesToForm]);
+
+    const formatCurrency = useCallback((value: number, currency: string) => {
         try {
-            await adminService.syncRates(selectedMetal || undefined);
-            await loadRates();
-            alert('Rates synced successfully');
-        } catch (error: any) {
-            console.error('Failed to sync rates:', error);
-            alert(error.response?.data?.message || 'Failed to sync rates. Please try again.');
-        } finally {
-            setProcessing(false);
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency,
+                maximumFractionDigits: 2,
+            }).format(value);
+        } catch (error) {
+            return `${value.toLocaleString('en-IN')} ${currency}`;
         }
-    };
+    }, []);
+
+    const formatSourceLabel = useCallback((source?: string | null) => {
+        if (!source) {
+            return null;
+        }
+        return source
+            .split(/[-_]/)
+            .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+            .join(' ');
+    }, []);
+
+    const getFormForMetal = useCallback(
+        (metal: string): { currency: string; rates: EditableRate[] } => {
+            if (metal === 'gold') return goldFormData;
+            if (metal === 'silver') return silverFormData;
+            return dynamicMetalFormData[metal] || { currency: defaultCurrency, rates: [] };
+        },
+        [goldFormData, silverFormData, dynamicMetalFormData, defaultCurrency],
+    );
+
+    const setRateField = useCallback(
+        (metal: string, index: number, field: keyof EditableRate, value: string) => {
+            if (metal === 'gold') {
+                const updatedRates = [...goldFormData.rates];
+                updatedRates[index] = { ...updatedRates[index], [field]: value };
+                setGoldFormData({ ...goldFormData, rates: updatedRates });
+            } else if (metal === 'silver') {
+                const updatedRates = [...silverFormData.rates];
+                updatedRates[index] = { ...silverFormData.rates[index], [field]: value };
+                setSilverFormData({ ...silverFormData, rates: updatedRates });
+            } else {
+                setDynamicMetalFormData((prev) => {
+                    const metalData = prev[metal] || { currency: defaultCurrency, rates: [] };
+                    const updatedRates = [...metalData.rates];
+                    updatedRates[index] = { ...updatedRates[index], [field]: value };
+                    return {
+                        ...prev,
+                        [metal]: {
+                            ...metalData,
+                            rates: updatedRates,
+                        },
+                    };
+                });
+            }
+            setFormUpdateKey((prev) => prev + 1);
+        },
+        [goldFormData, silverFormData, defaultCurrency],
+    );
+
+    const addRateRow = useCallback(
+        (metal: string) => {
+            const purities = metalPurities[metal] ?? [];
+
+            if (metal === 'gold') {
+                const usedPurities = new Set(goldFormData.rates.map((r) => r.purity).filter(Boolean));
+                const unusedPurity = purities.find((p) => !usedPurities.has(p.name));
+                setGoldFormData({
+                    ...goldFormData,
+                    rates: [...goldFormData.rates, { purity: unusedPurity?.name || '', price_per_gram: '' }],
+                });
+            } else if (metal === 'silver') {
+                const usedPurities = new Set(silverFormData.rates.map((r) => r.purity).filter(Boolean));
+                const unusedPurity = purities.find((p) => !usedPurities.has(p.name));
+                setSilverFormData({
+                    ...silverFormData,
+                    rates: [...silverFormData.rates, { purity: unusedPurity?.name || '', price_per_gram: '' }],
+                });
+            } else {
+                setDynamicMetalFormData((prev) => {
+                    const metalData = prev[metal] || { currency: defaultCurrency, rates: [] };
+                    const usedPurities = new Set(metalData.rates.map((r) => r.purity).filter(Boolean));
+                    const unusedPurity = purities.find((p) => !usedPurities.has(p.name));
+                    const newRate = unusedPurity ? { purity: unusedPurity.name, price_per_gram: '' } : { purity: '', price_per_gram: '' };
+                    return {
+                        ...prev,
+                        [metal]: {
+                            ...metalData,
+                            rates: [...metalData.rates, newRate],
+                        },
+                    };
+                });
+            }
+            setFormUpdateKey((prev) => prev + 1);
+        },
+        [goldFormData, silverFormData, metalPurities, defaultCurrency],
+    );
+
+    const removeRateRow = useCallback(
+        (metal: string, index: number) => {
+            const purities = metalPurities[metal] ?? [];
+
+            if (metal === 'gold') {
+                if (purities.length > 0 && goldFormData.rates.length <= purities.length) {
+                    const usedPurities = new Set(goldFormData.rates.map((r) => r.purity).filter(Boolean));
+                    if (usedPurities.size === purities.length && goldFormData.rates.length === purities.length) {
+                        return;
+                    }
+                }
+                if (goldFormData.rates.length === 1) {
+                    setGoldFormData({ ...goldFormData, rates: [{ purity: '', price_per_gram: '' }] });
+                    return;
+                }
+                setGoldFormData({ ...goldFormData, rates: goldFormData.rates.filter((_, rateIndex) => rateIndex !== index) });
+            } else if (metal === 'silver') {
+                if (purities.length > 0 && silverFormData.rates.length <= purities.length) {
+                    const usedPurities = new Set(silverFormData.rates.map((r) => r.purity).filter(Boolean));
+                    if (usedPurities.size === purities.length && silverFormData.rates.length === purities.length) {
+                        return;
+                    }
+                }
+                if (silverFormData.rates.length === 1) {
+                    setSilverFormData({ ...silverFormData, rates: [{ purity: '', price_per_gram: '' }] });
+                    return;
+                }
+                setSilverFormData({ ...silverFormData, rates: silverFormData.rates.filter((_, rateIndex) => rateIndex !== index) });
+            } else {
+                setDynamicMetalFormData((prev) => {
+                    const metalData = prev[metal] || { currency: defaultCurrency, rates: [] };
+                    if (purities.length > 0 && metalData.rates.length <= purities.length) {
+                        const usedPurities = new Set(metalData.rates.map((r) => r.purity).filter(Boolean));
+                        if (usedPurities.size === purities.length && metalData.rates.length === purities.length) {
+                            return prev;
+                        }
+                    }
+                    if (metalData.rates.length === 1) {
+                        return {
+                            ...prev,
+                            [metal]: {
+                                ...metalData,
+                                rates: [{ purity: '', price_per_gram: '' }],
+                            },
+                        };
+                    }
+                    return {
+                        ...prev,
+                        [metal]: {
+                            ...metalData,
+                            rates: metalData.rates.filter((_, rateIndex) => rateIndex !== index),
+                        },
+                    };
+                });
+            }
+            setFormUpdateKey((prev) => prev + 1);
+        },
+        [goldFormData, silverFormData, metalPurities, defaultCurrency],
+    );
+
+    const saveMetalRates = useCallback(
+        async (metal: string) => {
+            try {
+                const formData = getFormForMetal(metal);
+                const ratesPayload = formData.rates
+                    .filter((r) => r.purity && r.price_per_gram && parseFloat(r.price_per_gram) > 0)
+                    .map((r) => ({
+                        purity: r.purity,
+                        price_per_gram: parseFloat(r.price_per_gram),
+                        currency: formData.currency,
+                    }));
+
+                await adminService.storeMetalRate(metal, {
+                    currency: formData.currency,
+                    rates: ratesPayload,
+                });
+
+                await loadRates();
+                alert('Rates saved successfully');
+            } catch (error: any) {
+                console.error('Failed to save rates:', error);
+                alert(error.response?.data?.message || 'Failed to save rates. Please try again.');
+            }
+        },
+        [getFormForMetal],
+    );
+
+    const syncMetal = useCallback(
+        async (metal: string) => {
+            setSyncingMetal(metal);
+            try {
+                await adminService.syncRates(metal);
+                await loadRates();
+            } catch (error: any) {
+                console.error('Failed to sync rates:', error);
+                alert(error.response?.data?.message || 'Failed to sync rates. Please try again.');
+            } finally {
+                setSyncingMetal(null);
+            }
+        },
+        [],
+    );
+
+    const renderMetalCard = useCallback(
+        (metal: string) => {
+            const summary = metalSummaries[metal];
+            if (!summary) {
+                return null;
+            }
+
+            const formData = getFormForMetal(metal);
+            const latest = summary.latest;
+            const ratesArray = formData.rates || [];
+            const currency = formData.currency || defaultCurrency;
+
+            return (
+                <section key={metal} className="space-y-5 rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                    <header className="flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-xl font-semibold text-slate-900">{summary.label} reference rates</h2>
+                                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Live reference & manual control</p>
+                            </div>
+                            <button
+                                type="button"
+                                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                onClick={() => syncMetal(metal)}
+                                disabled={syncingMetal === metal}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M3.172 7a4 4 0 015.656-5.656l1.172 1.172a.75.75 0 101.06-1.06L9.89.516a5.5 5.5 0 00-7.778 7.778l.354.353a.75.75 0 001.06-1.06L3.172 7zm13.657 6a4 4 0 01-5.657 5.657l-1.172-1.172a.75.75 0 10-1.06 1.06l1.17 1.172a5.5 5.5 0 007.778-7.778l-.353-.354a.75.75 0 10-1.06 1.06l.354.355z"
+                                        clipRule="evenodd"
+                                    />
+                                    <path d="M6.75 6.5a.75.75 0 000 1.5h3.5a.75.75 0 000-1.5h-3.5zM9.25 12a.75.75 0 01.75-.75h3a.75.75 0 010 1.5h-3a.75.75 0 01-.75-.75z" />
+                                </svg>
+                                {syncingMetal === metal ? 'Syncing…' : `Sync ${summary.label}`}
+                            </button>
+                        </div>
+                        {latest ? (
+                            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                                <p className="text-sm font-medium text-slate-600">Latest live feed</p>
+                                <p className="mt-2 text-2xl font-semibold text-slate-900">
+                                    {formatCurrency(latest.price_per_gram, latest.currency)}{' '}
+                                    <span className="text-base font-normal text-slate-500">/ gram · {latest.purity ?? '—'}</span>
+                                </p>
+                                {latest.source && (
+                                    <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">{formatSourceLabel(latest.source)}</p>
+                                )}
+                                {latest.effective_at && (
+                                    <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">
+                                        Updated {new Date(latest.effective_at).toLocaleString('en-IN')}
+                                    </p>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
+                                No live feed synced yet. Use the sync button to fetch reference rates.
+                            </div>
+                        )}
+                    </header>
+
+                    <div className="space-y-4">
+                        {ratesArray.map((rate, index) => {
+                            const availablePurities = metalPurities[metal] ?? [];
+
+                            return (
+                                <div key={`${rate.purity}-${index}-${formUpdateKey}`} className="rounded-2xl border border-slate-200 p-4">
+                                    <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+                                        <div className="flex flex-col gap-3">
+                                            <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+                                                Purity
+                                                <input
+                                                    type="text"
+                                                    value={rate.purity}
+                                                    readOnly
+                                                    className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 cursor-not-allowed"
+                                                />
+                                            </label>
+                                            {availablePurities.length === 0 && (
+                                                <span className="text-xs text-amber-600">
+                                                    No purities available for this metal. Please add purities in Metal Purities section.
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col gap-3">
+                                            <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+                                                Rate / gram
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={rate.price_per_gram}
+                                                    onChange={(event) => setRateField(metal, index, 'price_per_gram', event.target.value)}
+                                                    className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-800 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    placeholder="0.00"
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div className="mt-3 flex justify-between text-xs text-slate-500">
+                                        <span>{currency?.toUpperCase() || defaultCurrency}</span>
+                                        {(() => {
+                                            const purities = metalPurities[metal] ?? [];
+                                            if (purities.length === 0) {
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        className="text-rose-500 transition hover:text-rose-600"
+                                                        onClick={() => removeRateRow(metal, index)}
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                );
+                                            }
+                                            const usedPurities = new Set(ratesArray.map((r) => r.purity).filter(Boolean));
+                                            const allPuritiesShown = purities.every((p) => usedPurities.has(p.name));
+                                            if (!allPuritiesShown || ratesArray.length > purities.length) {
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        className="text-rose-500 transition hover:text-rose-600"
+                                                        onClick={() => removeRateRow(metal, index)}
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {(() => {
+                            const purities = metalPurities[metal] ?? [];
+                            const usedPurities = new Set(ratesArray.map((r) => r.purity).filter(Boolean));
+                            const unusedPurities = purities.filter((p) => !usedPurities.has(p.name));
+                            if (unusedPurities.length > 0) {
+                                return (
+                                    <button
+                                        type="button"
+                                        onClick={() => addRateRow(metal)}
+                                        className="inline-flex items-center gap-2 rounded-full border border-dashed border-slate-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600 transition hover:border-slate-400 hover:text-slate-700"
+                                    >
+                                        <span className="text-lg leading-none">+</span> Add purity ({unusedPurities.length} available)
+                                    </button>
+                                );
+                            }
+                            return null;
+                        })()}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+                            Currency
+                            <input
+                                type="text"
+                                value={currency}
+                                onChange={(event) => {
+                                    const newCurrency = event.target.value.toUpperCase();
+                                    if (metal === 'gold') {
+                                        setGoldFormData({ ...goldFormData, currency: newCurrency });
+                                    } else if (metal === 'silver') {
+                                        setSilverFormData({ ...silverFormData, currency: newCurrency });
+                                    } else {
+                                        setDynamicMetalFormData((prev) => ({
+                                            ...prev,
+                                            [metal]: {
+                                                ...prev[metal],
+                                                currency: newCurrency,
+                                                rates: prev[metal]?.rates || ratesArray,
+                                            },
+                                        }));
+                                    }
+                                    setFormUpdateKey((prev) => prev + 1);
+                                }}
+                                className="w-28 rounded-2xl border border-slate-200 px-3 py-2 text-sm font-medium uppercase text-slate-800 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                maxLength={10}
+                            />
+                        </label>
+
+                        <button
+                            type="button"
+                            onClick={() => saveMetalRates(metal)}
+                            className="ml-auto inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow shadow-slate-900/30 transition hover:bg-slate-700"
+                        >
+                            Save rates
+                        </button>
+                    </div>
+                </section>
+            );
+        },
+        [
+            metalSummaries,
+            getFormForMetal,
+            defaultCurrency,
+            formatCurrency,
+            formatSourceLabel,
+            metalPurities,
+            formUpdateKey,
+            setRateField,
+            removeRateRow,
+            addRateRow,
+            saveMetalRates,
+            syncMetal,
+            syncingMetal,
+            goldFormData,
+            silverFormData,
+        ],
+    );
 
     if (loading) {
         return (
             <>
-                <Head title="Metal Rates" />
+                <Head title="Live Rates" />
                 <div className="flex h-screen items-center justify-center">
                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
                 </div>
@@ -171,146 +657,105 @@ export default function AdminRatesIndex() {
 
     return (
         <>
-            <Head title="Metal Rates" />
+            <Head title="Live Rates" />
 
             <div className="space-y-8">
-                <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                    <div>
-                        <h1 className="text-2xl font-semibold text-slate-900">Reference Rates</h1>
-                        <p className="mt-2 text-sm text-slate-500">Manage daily metal prices used for dynamic catalogue pricing.</p>
+                <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <h1 className="text-2xl font-semibold text-slate-900">Reference rates</h1>
+                            <p className="text-sm text-slate-500">Sync live values for metals and lock in your internal calculation rates.</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => syncMetal('gold')}
+                                disabled={syncingMetal === 'gold'}
+                                className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-5 py-2 text-sm font-semibold text-white shadow transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {syncingMetal === 'gold' ? 'Syncing…' : 'Sync gold rate'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => syncMetal('silver')}
+                                disabled={syncingMetal === 'silver'}
+                                className="inline-flex items-center gap-2 rounded-full bg-slate-600 px-5 py-2 text-sm font-semibold text-white shadow transition hover:bg-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {syncingMetal === 'silver' ? 'Syncing…' : 'Sync silver rate'}
+                            </button>
+                        </div>
                     </div>
-                    <button
-                        type="button"
-                        onClick={syncRates}
-                        disabled={processing}
-                        className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 disabled:opacity-50"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${processing ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                        </svg>
-                        Sync live feeds
-                    </button>
                 </div>
 
-                <div className="grid gap-8 lg:grid-cols-3">
-                    <div className="lg:col-span-2 space-y-8">
-                        <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                            <h2 className="text-lg font-semibold text-slate-900 mb-6">Latest Reference Rates</h2>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                {summaries.map((summary) => (
-                                    <div key={summary.metal} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <span className="text-xs font-bold uppercase tracking-widest text-slate-400">{summary.metal}</span>
-                                            <span className="text-[10px] text-slate-400">
-                                                {summary.effective_at ? new Date(summary.effective_at).toLocaleString() : 'N/A'}
-                                            </span>
-                                        </div>
-                                        <div className="space-y-3">
-                                            {summary.purities.map((p) => (
-                                                <div key={p.name} className="flex items-center justify-between">
-                                                    <span className="text-sm text-slate-600">{p.name}</span>
-                                                    <span className="font-semibold text-slate-900">₹ {p.latest_rate?.toLocaleString('en-IN') ?? '—'}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                    <div className="mb-6">
+                        <label className="flex flex-col gap-2 text-sm font-semibold text-slate-700">
+                            <span>Select Metal</span>
+                            <select
+                                value={selectedMetal}
+                                onChange={(e) => setSelectedMetal(e.target.value)}
+                                className="w-full max-w-xs rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                            >
+                                <option value="all">All Metals</option>
+                                {availableMetals.map((metal) => (
+                                    <option key={metal.id} value={metal.value}>
+                                        {metal.name}
+                                    </option>
                                 ))}
-                            </div>
-                        </div>
-
-                        <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                            <div className="px-5 py-4 border-b border-slate-200">
-                                <h3 className="font-semibold text-slate-700">Rate History</h3>
-                            </div>
-                            <table className="min-w-full divide-y divide-slate-200 text-sm">
-                                <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
-                                    <tr>
-                                        <th className="px-5 py-3 text-left">Metal</th>
-                                        <th className="px-5 py-3 text-left">Purity</th>
-                                        <th className="px-5 py-3 text-right">Price/g</th>
-                                        <th className="px-5 py-3 text-right">Effective At</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
-                                    {ratesData.map((rate) => (
-                                        <tr key={rate.id} className="hover:bg-slate-50">
-                                            <td className="px-5 py-3 text-slate-900 font-semibold uppercase tracking-wider">{rate.metal}</td>
-                                            <td className="px-5 py-3 text-slate-600">{rate.purity}</td>
-                                            <td className="px-5 py-3 text-right font-bold text-slate-900">₹ {rate.price_per_gram.toLocaleString('en-IN')}</td>
-                                            <td className="px-5 py-3 text-right text-slate-500">{new Date(rate.effective_at).toLocaleString()}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                            </select>
+                        </label>
                     </div>
 
-                    <div className="space-y-8">
-                        <form onSubmit={submit} className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80 sticky top-8">
-                            <h2 className="text-lg font-semibold text-slate-900 mb-6">Manual Rate Input</h2>
-                            
-                            <div className="space-y-6">
-                                <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                    <span>Effective from</span>
-                                    <input
-                                        type="datetime-local"
-                                        value={formData.effective_at}
-                                        onChange={(e) => setFormData({ ...formData, effective_at: e.target.value })}
-                                        className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        required
-                                    />
-                                </label>
+                    {selectedMetal === 'all' ? (
+                        <div className="grid gap-6 xl:grid-cols-2">
+                            {Object.keys(metalSummaries).map((metalKey) => {
+                                const card = renderMetalCard(metalKey);
+                                return card ? <div key={metalKey}>{card}</div> : null;
+                            })}
+                        </div>
+                    ) : (
+                        <div>{renderMetalCard(selectedMetal)}</div>
+                    )}
+                </div>
 
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        {availableMetals.map((m) => (
-                                            <button
-                                                key={m.value}
-                                                type="button"
-                                                onClick={() => setSelectedMetal(m.value)}
-                                                className={`rounded-full px-4 py-1 text-xs font-semibold uppercase tracking-widest transition ${
-                                                    selectedMetal === m.value ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                                                }`}
-                                            >
-                                                {m.name}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    <div className="space-y-3 pt-4 border-t border-slate-100">
-                                        {formData.rates.map((rate, index) => (
-                                            <label key={rate.purity_id} className="flex items-center justify-between gap-4 text-sm">
-                                                <span className="text-slate-600 font-semibold">{rate.purity_name}</span>
-                                                <div className="relative flex-1 max-w-[160px]">
-                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">₹</span>
-                                                    <input
-                                                        type="number"
-                                                        value={rate.price_per_gram}
-                                                        onChange={(e) => {
-                                                            const newRates = [...formData.rates];
-                                                            newRates[index].price_per_gram = e.target.value;
-                                                            setFormData({ ...formData, rates: newRates });
-                                                        }}
-                                                        className="w-full rounded-2xl border border-slate-300 pl-8 pr-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                        placeholder="0.00"
-                                                        required
-                                                    />
-                                                </div>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="w-full rounded-full bg-slate-900 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:opacity-60"
-                                >
-                                    Publish Reference Rates
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
+                            <tr>
+                                <th className="px-5 py-3 text-left">Metal</th>
+                                <th className="px-5 py-3 text-left">Purity</th>
+                                <th className="px-5 py-3 text-right">Price / g</th>
+                                <th className="px-5 py-3 text-left">Source</th>
+                                <th className="px-5 py-3 text-left">Effective at</th>
+                                <th className="px-5 py-3 text-left">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                            {rates.map((rate) => (
+                                <tr key={rate.id} className="hover:bg-slate-50">
+                                    <td className="px-5 py-3 font-semibold text-slate-900">{rate.metal}</td>
+                                    <td className="px-5 py-3 text-slate-500">{rate.purity ?? '—'}</td>
+                                    <td className="px-5 py-3 text-right text-slate-900">
+                                        {rate.price_per_gram.toLocaleString('en-IN')} {rate.currency}
+                                    </td>
+                                    <td className="px-5 py-3 text-slate-600">{rate.source}</td>
+                                    <td className="px-5 py-3 text-slate-500">
+                                        {rate.effective_at ? new Date(rate.effective_at).toLocaleString('en-IN') : '—'}
+                                    </td>
+                                    <td className="px-5 py-3 text-slate-500">
+                                        {typeof rate.metadata?.notes === 'string' && rate.metadata.notes.trim().length ? rate.metadata.notes : '—'}
+                                    </td>
+                                </tr>
+                            ))}
+                            {rates.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="px-5 py-6 text-center text-sm text-slate-500">
+                                        No rate records found.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </>

@@ -22,7 +22,10 @@ export class SizesService {
         ]);
 
         return {
-            items,
+            items: items.map((item) => ({
+                ...item,
+                id: Number(item.id),
+            })),
             meta: {
                 total,
                 page,
@@ -39,11 +42,14 @@ export class SizesService {
         if (!size) {
             throw new NotFoundException('Size not found');
         }
-        return size;
+        return {
+            ...size,
+            id: Number(size.id),
+        };
     }
 
     async create(dto: CreateSizeDto) {
-        return await this.prisma.sizes.create({
+        const size = await this.prisma.sizes.create({
             data: {
                 code: dto.code,
                 name: dto.name,
@@ -52,11 +58,20 @@ export class SizesService {
                 display_order: dto.display_order ?? 0,
             },
         });
+        return {
+            ...size,
+            id: Number(size.id),
+        };
     }
 
     async update(id: number, dto: UpdateSizeDto) {
-        await this.findOne(id);
-        return await this.prisma.sizes.update({
+        const existing = await this.prisma.sizes.findUnique({
+            where: { id: BigInt(id) },
+        });
+        if (!existing) {
+            throw new NotFoundException('Size not found');
+        }
+        const size = await this.prisma.sizes.update({
             where: { id: BigInt(id) },
             data: {
                 code: dto.code,
@@ -66,6 +81,10 @@ export class SizesService {
                 display_order: dto.display_order,
             },
         });
+        return {
+            ...size,
+            id: Number(size.id),
+        };
     }
 
     async remove(id: number) {

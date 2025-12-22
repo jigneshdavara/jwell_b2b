@@ -113,15 +113,23 @@ export default function ForgotPasswordPage() {
     setErrors({});
     setStatus(null);
 
-    // Mock forgot password logic
-    setTimeout(() => {
-      if (data.email) {
-        setStatus("We have emailed your password reset link!");
+    try {
+      const response = await authService.forgotPassword(data.email);
+      setStatus(
+        response.data?.message ||
+          "If that email address exists, we will send a password reset link."
+      );
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        setStatus(error.response.data.message);
       } else {
-        setErrors({ email: "The email field is required." });
+        setErrors({
+          email: error.response?.data?.message || "Failed to send reset link.",
+        });
       }
+    } finally {
       setProcessing(false);
-    }, 1000);
+    }
   };
 
   return (
