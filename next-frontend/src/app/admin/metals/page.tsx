@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import Pagination from "@/components/ui/Pagination";
 import { adminService } from "@/services/adminService";
+import { PaginationMeta, PaginationLink, generatePaginationLinks } from "@/utils/pagination";
 
 type MetalRow = {
     id: number;
@@ -14,12 +16,6 @@ type MetalRow = {
     display_order: number;
 };
 
-type PaginationMeta = {
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
-};
 
 export default function AdminMetalsPage() {
     const [loading, setLoading] = useState(true);
@@ -32,6 +28,7 @@ export default function AdminMetalsPage() {
     const [editingMetal, setEditingMetal] = useState<MetalRow | null>(null);
     const [selectedMetals, setSelectedMetals] = useState<number[]>([]);
     const [perPage, setPerPage] = useState(10);
+    const [currentPage, setCurrentPage] = useState(1);
     const [deleteConfirm, setDeleteConfirm] = useState<MetalRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
@@ -46,12 +43,12 @@ export default function AdminMetalsPage() {
 
     useEffect(() => {
         loadMetals();
-    }, [perPage]);
+    }, [perPage, currentPage]);
 
     const loadMetals = async () => {
         setLoading(true);
         try {
-            const response = await adminService.getMetals(metals.meta.current_page, perPage);
+            const response = await adminService.getMetals(currentPage, perPage);
             const items = response.data.items || response.data.data || [];
             const meta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
             
@@ -65,12 +62,21 @@ export default function AdminMetalsPage() {
                     display_order: item.display_order,
                 })),
                 meta: {
-                    current_page: meta.current_page || meta.page || 1,
+                    current_page: meta.current_page || meta.page || currentPage,
                     last_page: meta.last_page || meta.lastPage || 1,
                     total: meta.total || 0,
                     per_page: meta.per_page || meta.perPage || perPage,
+                    from: meta.from,
+                    to: meta.to,
+                    links: meta.links || generatePaginationLinks(meta.current_page || meta.page || currentPage, meta.last_page || meta.lastPage || 1),
                 },
             });
+            
+            // Sync current page state with API response
+            const apiPage = meta.current_page || meta.page || currentPage;
+            if (apiPage !== currentPage) {
+                setCurrentPage(apiPage);
+            }
         } catch (error: any) {
             console.error('Failed to load metals:', error);
         } finally {
@@ -227,7 +233,7 @@ export default function AdminMetalsPage() {
                             value={perPage}
                             onChange={(e) => {
                                 setPerPage(Number(e.target.value));
-                                setMetals(prev => ({ ...prev, meta: { ...prev.meta, current_page: 1, per_page: Number(e.target.value) } }));
+                                setCurrentPage(1);
                             }}
                             className="rounded-full border border-slate-200 px-3 py-1 text-xs"
                         >
@@ -331,30 +337,10 @@ export default function AdminMetalsPage() {
                 </table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                <div>
-                    Showing {metals.meta.total > 0 ? (metals.meta.current_page - 1) * metals.meta.per_page + 1 : 0} to {Math.min(metals.meta.current_page * metals.meta.per_page, metals.meta.total)} of {metals.meta.total} entries
-                </div>
-                <div className="flex gap-2">
-                    {Array.from({ length: metals.meta.last_page }, (_, i) => i + 1).map((page) => (
-                        <button
-                            key={page}
-                            type="button"
-                            onClick={() => {
-                                setMetals(prev => ({ ...prev, meta: { ...prev.meta, current_page: page } }));
-                                setTimeout(() => loadMetals(), 0);
-                            }}
-                            className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                page === metals.meta.current_page
-                                    ? 'bg-sky-600 text-white shadow shadow-sky-600/20'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                        >
-                            {page}
-                        </button>
-                    ))}
-                </div>
-            </div>
+            <Pagination 
+                meta={metals.meta} 
+                onPageChange={setCurrentPage} 
+            />
 
             <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">
                 <div className="flex min-h-0 flex-col">

@@ -5,7 +5,9 @@ import { useEffect, useState } from 'react';
 import { adminService } from '@/services/adminService';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import Pagination from '@/components/ui/Pagination';
 import Link from 'next/link';
+import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type CatalogRow = {
     id: number;
@@ -18,21 +20,15 @@ type CatalogRow = {
     product_ids?: number[];
 };
 
-type PaginationMeta = {
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
-};
 
 export default function AdminCatalogsIndex() {
     const [loading, setLoading] = useState(true);
     const [catalogs, setCatalogs] = useState<{ data: CatalogRow[]; meta: PaginationMeta }>({
         data: [],
-        meta: { current_page: 1, last_page: 1, total: 0, per_page: 20 }
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }
     });
     const [currentPage, setCurrentPage] = useState(1);
-    const [perPage, setPerPage] = useState(20);
+    const [perPage, setPerPage] = useState(10);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCatalog, setEditingCatalog] = useState<CatalogRow | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<CatalogRow | null>(null);
@@ -69,10 +65,13 @@ export default function AdminCatalogsIndex() {
                     product_ids: item.product_ids || [],
                 })),
                 meta: {
-                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    current_page: responseMeta.current_page || responseMeta.page || currentPage,
                     last_page: responseMeta.last_page || responseMeta.lastPage || 1,
                     total: responseMeta.total || 0,
                     per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                    from: responseMeta.from,
+                    to: responseMeta.to,
+                    links: responseMeta.links || generatePaginationLinks(responseMeta.current_page || responseMeta.page || currentPage, responseMeta.last_page || responseMeta.lastPage || 1),
                 },
             });
         } catch (error: any) {
@@ -371,29 +370,10 @@ export default function AdminCatalogsIndex() {
                     )}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                    <div>
-                        Showing {catalogs.meta.total > 0 ? (catalogs.meta.current_page - 1) * catalogs.meta.per_page + 1 : 0} to {Math.min(catalogs.meta.current_page * catalogs.meta.per_page, catalogs.meta.total)} of {catalogs.meta.total} entries
-                    </div>
-                    {catalogs.meta.last_page > 1 && (
-                        <div className="flex flex-wrap gap-2">
-                            {Array.from({ length: catalogs.meta.last_page }, (_, i) => i + 1).map((page) => (
-                                <button
-                                    key={page}
-                                    type="button"
-                                    onClick={() => setCurrentPage(page)}
-                                    className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                        page === catalogs.meta.current_page
-                                            ? 'bg-sky-600 text-white shadow shadow-sky-600/20'
-                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                    }`}
-                                >
-                                    {page}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                <Pagination 
+                    meta={catalogs.meta} 
+                    onPageChange={setCurrentPage} 
+                />
 
                 <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">
                     <div className="flex min-h-0 flex-col">

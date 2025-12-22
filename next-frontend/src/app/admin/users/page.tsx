@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState, FormEvent } from 'react';
 import { Head } from '@/components/Head';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import Pagination from '@/components/ui/Pagination';
 import { adminService } from '@/services/adminService';
+import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type TeamUser = {
     id: number;
@@ -18,12 +20,6 @@ type TeamUser = {
     joined_at?: string | null;
 };
 
-type PaginationMeta = {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-};
 
 const availableTypes = [
     { value: 'admin', label: 'Admin' },
@@ -53,16 +49,17 @@ export default function AdminTeamUsersIndex() {
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         loadUsers();
         loadUserGroups();
-    }, []);
+    }, [currentPage]);
 
     const loadUsers = async () => {
         setLoading(true);
         try {
-            const response = await adminService.getTeamUsers(1, 100); // Load all users for now
+            const response = await adminService.getTeamUsers(currentPage, 20);
             const items = response.data.items || response.data.data || [];
             const responseMeta = response.data.meta || { page: 1, lastPage: 1, total: 0, perPage: 20 };
             
@@ -77,10 +74,13 @@ export default function AdminTeamUsersIndex() {
                     joined_at: item.joined_at || item.created_at,
                 })),
                 meta: {
-                    current_page: responseMeta.page || responseMeta.current_page || 1,
+                    current_page: responseMeta.page || responseMeta.current_page || currentPage,
                     last_page: responseMeta.lastPage || responseMeta.last_page || 1,
                     per_page: responseMeta.perPage || responseMeta.per_page || 20,
                     total: responseMeta.total || 0,
+                    from: responseMeta.from,
+                    to: responseMeta.to,
+                    links: responseMeta.links || generatePaginationLinks(responseMeta.page || responseMeta.current_page || currentPage, responseMeta.lastPage || responseMeta.last_page || 1),
                 },
             });
         } catch (error: any) {
@@ -511,6 +511,12 @@ export default function AdminTeamUsersIndex() {
                         </tbody>
                     </table>
                 </div>
+
+                {users.meta.last_page > 1 && (
+                    <div className="mt-6">
+                        <Pagination meta={users.meta} onPageChange={setCurrentPage} />
+                    </div>
+                )}
             </div>
 
             <ConfirmationModal

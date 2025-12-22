@@ -2,9 +2,11 @@
 
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import AlertModal from "@/components/ui/AlertModal";
+import Pagination from "@/components/ui/Pagination";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { adminService } from "@/services/adminService";
+import { PaginationMeta, generatePaginationLinks } from "@/utils/pagination";
 
 type Product = {
   id: number;
@@ -24,7 +26,7 @@ export default function AdminProductsPage() {
     categories: [],
     filters: {},
     perPageOptions: [10, 20, 50, 100],
-    perPage: 20,
+    perPage: 10,
   });
 
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
@@ -34,7 +36,7 @@ export default function AdminProductsPage() {
     category: "all",
     status: "all",
     page: 1,
-    per_page: 20,
+    per_page: 10,
   });
 
   const [bulkBrand, setBulkBrand] = useState("");
@@ -68,17 +70,8 @@ export default function AdminProductsPage() {
       const productsData = response.data.items || response.data.data || [];
       const meta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: filterState.per_page };
 
-      // Build pagination links
-      const links = [];
-      if (meta.current_page > 1) {
-        links.push({ url: null, label: '« Previous', active: false });
-      }
-      for (let i = 1; i <= meta.last_page; i++) {
-        links.push({ url: null, label: String(i), active: i === meta.current_page });
-      }
-      if (meta.current_page < meta.last_page) {
-        links.push({ url: null, label: 'Next »', active: false });
-      }
+      // Generate pagination links using common utility
+      const links = generatePaginationLinks(meta.current_page || 1, meta.last_page || 1);
 
       // Fetch brands and categories for filters
       const [brandsResponse, categoriesResponse] = await Promise.all([
@@ -95,12 +88,14 @@ export default function AdminProductsPage() {
         products: {
           data: productsData,
           meta: {
-            from: meta.current_page > 1 ? (meta.current_page - 1) * meta.per_page + 1 : 1,
-            to: Math.min(meta.current_page * meta.per_page, meta.total),
-            total: meta.total,
-            per_page: meta.per_page,
+            current_page: meta.current_page || 1,
+            last_page: meta.last_page || 1,
+            total: meta.total || 0,
+            per_page: meta.per_page || filterState.per_page,
+            from: meta.from ?? (meta.current_page > 1 ? (meta.current_page - 1) * meta.per_page + 1 : 1),
+            to: meta.to ?? Math.min(meta.current_page * meta.per_page, meta.total),
+            links: meta.links || links,
           },
-          links,
         },
         brands: brandsMap,
         categories: categoriesResponse.data.items || [],
@@ -608,62 +603,15 @@ export default function AdminProductsPage() {
           </table>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-          <div>
-            Showing {data.products.meta?.from ?? 0} to{" "}
-            {data.products.meta?.to ?? 0} of {data.products.meta?.total ?? 0}{" "}
-            entries
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {data.products.links.map((link: any, index: number) => {
-              const cleanLabel = link.label
-                .replace("&laquo;", "«")
-                .replace("&raquo;", "»")
-                .replace(/&nbsp;/g, " ")
-                .trim();
-
-              if (!link.url) {
-                return (
-                  <span
-                    key={`${link.label}-${index}`}
-                    className="rounded-full px-3 py-1 text-sm text-slate-400"
-                  >
-                    {cleanLabel}
-                  </span>
-                );
-              }
-
-              // Extract page number from URL if needed, but here we just use the label if it's a number
-              const pageNum = parseInt(cleanLabel);
-              const isPrev = cleanLabel.includes('Previous');
-              const isNext = cleanLabel.includes('Next');
-
-              return (
-                <button
-                  key={`${link.label}-${index}`}
-                  type="button"
-                  onClick={() => {
-                    if (isPrev && data.products.meta && data.products.meta.from > 1) {
-                      changePage(filterState.page - 1);
-                    } else if (isNext && data.products.meta && data.products.meta.to < data.products.meta.total) {
-                      changePage(filterState.page + 1);
-                    } else if (!isNaN(pageNum)) {
-                      changePage(pageNum);
-                    }
-                  }}
-                  disabled={!link.url && (isPrev || isNext)}
-                  className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                    link.active
-                      ? "bg-sky-600 text-white shadow shadow-sky-600/20"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                  }`}
-                >
-                  {cleanLabel}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <Pagination 
+          meta={data.products.meta as PaginationMeta} 
+          onPageChange={(page) => {
+            setFilterState((prev) => ({
+              ...prev,
+              page,
+            }));
+          }} 
+        />
       </div>
 
       <AlertModal
