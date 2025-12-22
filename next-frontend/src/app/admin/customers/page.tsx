@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import Pagination from "@/components/ui/Pagination";
 import { adminService } from "@/services/adminService";
+import { PaginationMeta, PaginationLink, generatePaginationLinks, extractPageFromUrl } from "@/utils/pagination";
 
 type AdminUserRow = {
     id: number;
@@ -27,12 +29,6 @@ type AdminUserRow = {
     } | null;
 };
 
-type PaginationMeta = {
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
-};
 
 const statusColours: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
@@ -45,13 +41,13 @@ export default function AdminCustomersPage() {
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState<{ data: AdminUserRow[]; meta: PaginationMeta }>({
         data: [],
-        meta: { current_page: 1, last_page: 1, total: 0, per_page: 20 }
+        meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }
     });
     const [customerGroups, setCustomerGroups] = useState<Array<{ id: number; name: string }>>([]);
 
     const [search, setSearch] = useState('');
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [perPage, setPerPage] = useState(20);
+    const [perPage, setPerPage] = useState(10);
     const [typeFilter, setTypeFilter] = useState('');
     const [groupFilter, setGroupFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -110,6 +106,9 @@ export default function AdminCustomersPage() {
                     last_page: responseMeta.last_page || responseMeta.lastPage || 1,
                     total: responseMeta.total || 0,
                     per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                    from: responseMeta.from,
+                    to: responseMeta.to,
+                    links: responseMeta.links || generatePaginationLinks(responseMeta.current_page || responseMeta.page || 1, responseMeta.last_page || responseMeta.lastPage || 1),
                 },
             });
         } catch (error: any) {
@@ -282,7 +281,7 @@ export default function AdminCustomersPage() {
                             className="rounded-xl border border-slate-300 px-3 py-1 text-sm"
                         >
                             <option value={10}>10</option>
-                            <option value={20}>20</option>
+                            <option value={25}>25</option>
                             <option value={50}>50</option>
                             <option value={100}>100</option>
                         </select>
@@ -415,29 +414,10 @@ export default function AdminCustomersPage() {
                 </table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                <div>
-                    Showing {users.meta.total > 0 ? (users.meta.current_page - 1) * users.meta.per_page + 1 : 0} to {Math.min(users.meta.current_page * users.meta.per_page, users.meta.total)} of {users.meta.total} entries
-                </div>
-                <div className="flex gap-2">
-                    {Array.from({ length: users.meta.last_page }, (_, i) => i + 1).map((page) => (
-                        <button
-                            key={page}
-                            type="button"
-                            onClick={() => {
-                                setCurrentPage(page);
-                            }}
-                            className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                page === users.meta.current_page
-                                    ? 'bg-sky-600 text-white shadow shadow-sky-600/20'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                        >
-                            {page}
-                        </button>
-                    ))}
-                </div>
-            </div>
+            <Pagination 
+                meta={users.meta} 
+                onPageChange={setCurrentPage} 
+            />
 
             <ConfirmationModal
                 show={bulkDeleteConfirm}

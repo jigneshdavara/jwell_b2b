@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import Pagination from "@/components/ui/Pagination";
 import { Menu, Transition } from "@headlessui/react";
 import React from "react";
 import { adminService } from "@/services/adminService";
+import { PaginationMeta, generatePaginationLinks } from "@/utils/pagination";
 
 type CategoryRow = {
     id: number;
@@ -38,12 +40,6 @@ type Size = {
     name: string;
 };
 
-type PaginationMeta = {
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
-};
 
 export default function AdminCategoriesPage() {
     const [loading, setLoading] = useState(true);
@@ -127,10 +123,13 @@ export default function AdminCategoriesPage() {
                     display_order: item.display_order || 0,
                 })),
                 meta: {
-                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    current_page: responseMeta.current_page || responseMeta.page || currentPage,
                     last_page: responseMeta.last_page || responseMeta.lastPage || 1,
                     total: responseMeta.total || 0,
                     per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                    from: responseMeta.from,
+                    to: responseMeta.to,
+                    links: responseMeta.links || generatePaginationLinks(responseMeta.current_page || responseMeta.page || currentPage, responseMeta.last_page || responseMeta.lastPage || 1),
                 },
             });
         } catch (error: any) {
@@ -619,29 +618,10 @@ export default function AdminCategoriesPage() {
                 </table>
             </div>
 
-            {data.meta.last_page > 1 && (
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                    <div>
-                        Showing {data.meta.total > 0 ? (data.meta.current_page - 1) * data.meta.per_page + 1 : 0} to {Math.min(data.meta.current_page * data.meta.per_page, data.meta.total)} of {data.meta.total} entries
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {Array.from({ length: data.meta.last_page }, (_, i) => i + 1).map((page) => (
-                            <button
-                                key={page}
-                                type="button"
-                                onClick={() => setCurrentPage(page)}
-                                className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                    page === data.meta.current_page
-                                        ? 'bg-sky-600 text-white shadow shadow-sky-600/20'
-                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                }`}
-                            >
-                                {page}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
+            <Pagination 
+                meta={data.meta} 
+                onPageChange={setCurrentPage} 
+            />
 
             <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">
                 <div className="flex min-h-0 flex-col">
@@ -748,8 +728,8 @@ export default function AdminCategoriesPage() {
                                             <span>Display order</span>
                                             <input
                                                 type="number"
-                                                value={formState.display_order === '' || formState.display_order === undefined ? '' : formState.display_order}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, display_order: e.target.value === '' ? '' : Number(e.target.value) }))}
+                                                value={formState.display_order}
+                                                onChange={(e) => setFormState(prev => ({ ...prev, display_order: Number(e.target.value) }))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                             />

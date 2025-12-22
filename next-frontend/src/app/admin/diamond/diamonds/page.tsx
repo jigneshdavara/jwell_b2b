@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import Pagination from "@/components/ui/Pagination";
 import { adminService } from "@/services/adminService";
+import { PaginationMeta, generatePaginationLinks } from "@/utils/pagination";
 
 type DiamondType = { id: number; name: string; code: string | null };
 type DiamondClarity = { id: number; name: string; code: string | null };
@@ -25,36 +27,27 @@ type DiamondRow = {
     is_active: boolean;
 };
 
-type PaginationLink = { url: string | null; label: string; active: boolean };
-
-type Pagination<T> = {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
-    from: number | null;
-    to: number | null;
-    links: PaginationLink[];
-};
 
 export default function AdminDiamondsPage() {
     const [loading, setLoading] = useState(true);
-    const [diamonds, setDiamonds] = useState<Pagination<DiamondRow>>({
+    const [diamonds, setDiamonds] = useState<{ data: DiamondRow[]; meta: PaginationMeta }>({
         data: [],
-        current_page: 1,
-        last_page: 1,
-        total: 0,
-        per_page: 10,
-        from: null,
-        to: null,
-        links: []
+        meta: {
+            current_page: 1,
+            last_page: 1,
+            total: 0,
+            per_page: 10,
+            from: undefined,
+            to: undefined,
+            links: []
+        }
     });
     const [types, setTypes] = useState<DiamondType[]>([]);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingDiamond, setEditingDiamond] = useState<DiamondRow | null>(null);
     const [selectedDiamonds, setSelectedDiamonds] = useState<number[]>([]);
     const [perPage, setPerPage] = useState(10);
+    const [currentPage, setCurrentPage] = useState(1);
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [shapeSizes, setShapeSizes] = useState<DiamondShapeSize[]>([]);
@@ -79,78 +72,21 @@ export default function AdminDiamondsPage() {
         is_active: true,
     });
 
-    // Helper function to generate pagination links
-    const generatePaginationLinks = (currentPage: number, lastPage: number): PaginationLink[] => {
-        const links: PaginationLink[] = [];
-        
-        // Previous link
-        links.push({
-            url: currentPage > 1 ? `?page=${currentPage - 1}` : null,
-            label: '« Previous',
-            active: false,
-        });
-        
-        // Page number links: Show 1-10, then ellipsis, then last 2 pages
-        if (lastPage <= 10) {
-            // If 10 or fewer pages, show all
-            for (let i = 1; i <= lastPage; i++) {
-                links.push({
-                    url: `?page=${i}`,
-                    label: String(i),
-                    active: i === currentPage,
-                });
-            }
-        } else {
-            // Show pages 1-10
-            for (let i = 1; i <= 10; i++) {
-                links.push({
-                    url: `?page=${i}`,
-                    label: String(i),
-                    active: i === currentPage,
-                });
-            }
-            
-            // Add ellipsis
-            links.push({
-                url: null,
-                label: '...',
-                active: false,
-            });
-            
-            // Show last 2 pages
-            for (let i = lastPage - 1; i <= lastPage; i++) {
-                links.push({
-                    url: `?page=${i}`,
-                    label: String(i),
-                    active: i === currentPage,
-                });
-            }
-        }
-        
-        // Next link
-        links.push({
-            url: currentPage < lastPage ? `?page=${currentPage + 1}` : null,
-            label: 'Next »',
-            active: false,
-        });
-        
-        return links;
-    };
 
     useEffect(() => {
         loadDiamonds();
         loadTypes();
-    }, [perPage]);
+    }, [currentPage, perPage]);
 
     useEffect(() => {
-        const existingIds = new Set(diamonds.data.map((diamond) => diamond.id));
+        const existingIds = new Set(diamonds.data.map((diamond: DiamondRow) => diamond.id));
         setSelectedDiamonds((prev) => prev.filter((id) => existingIds.has(id)));
     }, [diamonds.data]);
 
-    const loadDiamonds = async (page: number = diamonds.current_page) => {
+    const loadDiamonds = async () => {
         setLoading(true);
         try {
-            const response = await adminService.getDiamonds(page, perPage);
+            const response = await adminService.getDiamonds(currentPage, perPage);
             const responseData = response.data;
             const items = responseData.items || responseData.data || [];
             const meta = responseData.meta || {};
@@ -199,13 +135,15 @@ export default function AdminDiamondsPage() {
                         is_active: item.is_active ?? true,
                     };
                 }),
-                current_page: meta.page || meta.current_page || 1,
-                last_page: meta.lastPage || meta.last_page || 1,
-                total: meta.total || 0,
-                per_page: meta.perPage || meta.per_page || perPage,
-                from: meta.from ?? ((meta.page || 1) - 1) * (meta.perPage || perPage) + 1,
-                to: meta.to ?? Math.min((meta.page || 1) * (meta.perPage || perPage), meta.total || 0),
-                links: meta.links || generatePaginationLinks(meta.page || 1, meta.lastPage || 1), 
+                meta: {
+                    current_page: meta.page || meta.current_page || currentPage,
+                    last_page: meta.lastPage || meta.last_page || 1,
+                    total: meta.total || 0,
+                    per_page: meta.perPage || meta.per_page || perPage,
+                    from: meta.from ?? ((meta.page || currentPage) - 1) * (meta.perPage || perPage) + 1,
+                    to: meta.to ?? Math.min((meta.page || currentPage) * (meta.perPage || perPage), meta.total || 0),
+                    links: meta.links || generatePaginationLinks(meta.page || meta.current_page || currentPage, meta.lastPage || meta.last_page || 1), 
+                }
             });
         } catch (error: any) {
             console.error('Failed to load diamonds:', error);
@@ -303,7 +241,7 @@ export default function AdminDiamondsPage() {
     }, [diamonds.data, selectedDiamonds]);
 
     const toggleSelectAll = () => {
-        setSelectedDiamonds(allSelected ? [] : diamonds.data.map(d => d.id));
+        setSelectedDiamonds(allSelected ? [] : diamonds.data.map((d: DiamondRow) => d.id));
     };
 
     const toggleSelection = (id: number) => {
@@ -469,32 +407,10 @@ export default function AdminDiamondsPage() {
         }
     };
 
-    const changePage = async (url: string | null) => {
-        if (!url) {
-            return;
-        }
-
-        // Extract page number from URL (handle both full URLs and query strings)
-        let page = 1;
-        try {
-            if (url.startsWith('http')) {
-                const urlObj = new URL(url);
-                page = Number(urlObj.searchParams.get('page') || '1');
-            } else {
-                // Handle query string like "?page=2"
-                const match = url.match(/[?&]page=(\d+)/);
-                page = match ? Number(match[1]) : 1;
-            }
-        } catch (e) {
-            console.error('Error parsing page URL:', e);
-        }
-        await loadDiamonds(page);
-    };
-
     const handlePerPageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const newPerPage = Number(event.target.value);
         setPerPage(newPerPage);
-        loadDiamonds(1);
+        setCurrentPage(1);
     };
 
     const getDiamondLabel = (diamond: DiamondRow): string => {
@@ -536,7 +452,7 @@ export default function AdminDiamondsPage() {
             <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                 <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
                     <div className="font-semibold text-slate-700">
-                        Diamonds ({diamonds.total})
+                        Diamonds ({diamonds.meta.total})
                     </div>
                     <div className="flex items-center gap-3 text-xs text-slate-500">
                         <span>{selectedDiamonds.length} selected</span>
@@ -656,41 +572,10 @@ export default function AdminDiamondsPage() {
                 </table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                <div>
-                    Showing {diamonds.from ?? 0} to {diamonds.to ?? 0} of {diamonds.total} entries
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    {diamonds.links.map((link, index) => {
-                        const cleanLabel = link.label
-                            .replace('&laquo;', '«')
-                            .replace('&raquo;', '»')
-                            .replace(/&nbsp;/g, ' ')
-                            .trim();
-
-                        if (!link.url) {
-                            return (
-                                <span key={`${link.label}-${index}`} className="rounded-full px-3 py-1 text-sm text-slate-400">
-                                    {cleanLabel}
-                                </span>
-                            );
-                        }
-
-                        return (
-                            <button
-                                key={`${link.label}-${index}`}
-                                type="button"
-                                onClick={() => changePage(link.url)}
-                                className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                    link.active ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                }`}
-                            >
-                                {cleanLabel}
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
+            <Pagination 
+                meta={diamonds.meta} 
+                onPageChange={setCurrentPage} 
+            />
 
             <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">
                 <div className="flex min-h-0 flex-col">

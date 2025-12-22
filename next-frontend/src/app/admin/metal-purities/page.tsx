@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { adminService } from '@/services/adminService';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import Pagination from '@/components/ui/Pagination';
+import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type MetalPurityRow = {
     id: number;
@@ -22,12 +24,6 @@ type MetalOption = {
     name: string;
 };
 
-type PaginationMeta = {
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
-};
 
 export default function AdminMetalPuritiesIndex() {
     const [loading, setLoading] = useState(true);
@@ -91,10 +87,13 @@ export default function AdminMetalPuritiesIndex() {
                     display_order: item.display_order || 0,
                 })),
                 meta: {
-                    current_page: responseMeta.current_page || responseMeta.page || 1,
+                    current_page: responseMeta.current_page || responseMeta.page || currentPage,
                     last_page: responseMeta.last_page || responseMeta.lastPage || 1,
                     total: responseMeta.total || 0,
                     per_page: responseMeta.per_page || responseMeta.perPage || perPage,
+                    from: responseMeta.from,
+                    to: responseMeta.to,
+                    links: responseMeta.links || generatePaginationLinks(responseMeta.current_page || responseMeta.page || currentPage, responseMeta.last_page || responseMeta.lastPage || 1),
                 },
             });
         } catch (error: any) {
@@ -383,29 +382,10 @@ export default function AdminMetalPuritiesIndex() {
                     )}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                    <div>
-                        Showing {purities.meta.total > 0 ? (purities.meta.current_page - 1) * purities.meta.per_page + 1 : 0} to {Math.min(purities.meta.current_page * purities.meta.per_page, purities.meta.total)} of {purities.meta.total} entries
-                    </div>
-                    {purities.meta.last_page > 1 && (
-                        <div className="flex flex-wrap gap-2">
-                            {Array.from({ length: purities.meta.last_page }, (_, i) => i + 1).map((page) => (
-                                <button
-                                    key={page}
-                                    type="button"
-                                    onClick={() => setCurrentPage(page)}
-                                    className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                        page === purities.meta.current_page
-                                            ? 'bg-sky-600 text-white shadow shadow-sky-600/20'
-                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                    }`}
-                                >
-                                    {page}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                <Pagination 
+                    meta={purities.meta} 
+                    onPageChange={setCurrentPage} 
+                />
 
                 <Modal show={modalOpen} onClose={resetFormAndModal} maxWidth="5xl">
                     <div className="flex min-h-0 flex-col">

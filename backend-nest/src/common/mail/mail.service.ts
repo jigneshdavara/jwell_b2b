@@ -21,11 +21,18 @@ export class MailService {
      */
     async sendMail(options: SendMailOptions): Promise<void> {
         try {
+            const context = {
+                ...options.context,
+                subject: options.subject,
+            };
+
             await this.mailerService.sendMail({
-                to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
+                to: Array.isArray(options.to)
+                    ? options.to.join(', ')
+                    : options.to,
                 subject: options.subject,
                 template: options.template,
-                context: options.context,
+                context,
             });
         } catch (error) {
             console.error('Failed to send email:', error);
@@ -33,16 +40,19 @@ export class MailService {
                 to: options.to,
                 subject: options.subject,
                 template: options.template,
+                context: options.context,
             });
-            
+
             // In development with log driver, this should not fail
             // If it does, there might be a configuration issue
             if (process.env.MAIL_MAILER === 'log') {
                 // Log driver should not throw errors, but if it does, log and continue
-                console.warn('Email sending failed even with log driver. Check mail configuration.');
+                console.warn(
+                    'Email sending failed even with log driver. Check mail configuration.',
+                );
                 return; // Don't throw for log driver
             }
-            
+
             // Re-throw error for production email failures
             throw error;
         }
@@ -51,9 +61,12 @@ export class MailService {
     /**
      * Send order confirmation email to customer
      */
-    async sendOrderConfirmation(orderId: number, paymentId: number): Promise<void> {
+    async sendOrderConfirmation(
+        orderId: number,
+        paymentId: number,
+    ): Promise<void> {
         const order = await this.prisma.orders.findUnique({
-            where: { id: orderId },
+            where: { id: BigInt(orderId) },
             include: {
                 customers: true,
                 order_items: true,
@@ -61,7 +74,7 @@ export class MailService {
         });
 
         const payment = await this.prisma.payments.findUnique({
-            where: { id: paymentId },
+            where: { id: BigInt(paymentId) },
         });
 
         if (!order?.customers?.email || !payment) {
@@ -84,7 +97,9 @@ export class MailService {
             context: {
                 order: {
                     ...order,
-                    total_amount: this.formatCurrency(order.total_amount.toString()),
+                    total_amount: this.formatCurrency(
+                        order.total_amount.toString(),
+                    ),
                     items: formattedItems,
                 },
                 payment,
@@ -98,7 +113,10 @@ export class MailService {
     /**
      * Send admin notification for new order
      */
-    async sendAdminOrderNotification(orderId: number, paymentId: number): Promise<void> {
+    async sendAdminOrderNotification(
+        orderId: number,
+        paymentId: number,
+    ): Promise<void> {
         const adminEmail = process.env.ADMIN_EMAIL;
 
         if (!adminEmail) {
@@ -106,7 +124,7 @@ export class MailService {
         }
 
         const order = await this.prisma.orders.findUnique({
-            where: { id: orderId },
+            where: { id: BigInt(orderId) },
             include: {
                 customers: true,
                 order_items: true,
@@ -114,7 +132,7 @@ export class MailService {
         });
 
         const payment = await this.prisma.payments.findUnique({
-            where: { id: paymentId },
+            where: { id: BigInt(paymentId) },
         });
 
         if (!order || !payment) {
@@ -131,7 +149,9 @@ export class MailService {
             context: {
                 order: {
                     ...order,
-                    total_amount: this.formatCurrency(order.total_amount.toString()),
+                    total_amount: this.formatCurrency(
+                        order.total_amount.toString(),
+                    ),
                 },
                 payment,
                 subject,
@@ -144,8 +164,9 @@ export class MailService {
      * Send welcome email to new customer
      */
     async sendWelcomeEmail(userId: number): Promise<void> {
+        // Convert number to BigInt for Prisma query
         const user = await this.prisma.customer.findUnique({
-            where: { id: userId },
+            where: { id: BigInt(userId) },
         });
 
         if (!user?.email) {
@@ -177,8 +198,9 @@ export class MailService {
             return;
         }
 
+        // Convert number to BigInt for Prisma query
         const user = await this.prisma.customer.findUnique({
-            where: { id: userId },
+            where: { id: BigInt(userId) },
         });
 
         if (!user) {
@@ -203,7 +225,11 @@ export class MailService {
     /**
      * Send login OTP email
      */
-    async sendLoginOtp(email: string, code: string, expiresIn: string): Promise<void> {
+    async sendLoginOtp(
+        email: string,
+        code: string,
+        expiresIn: string,
+    ): Promise<void> {
         const brandName = process.env.BRAND_NAME || 'Elvee';
         const subject = 'Your Elvee login code';
 
@@ -222,7 +248,11 @@ export class MailService {
     /**
      * Send password reset link email
      */
-    async sendPasswordResetLinkEmail(email: string, resetUrl: string, userName: string): Promise<void> {
+    async sendPasswordResetLinkEmail(
+        email: string,
+        resetUrl: string,
+        userName: string,
+    ): Promise<void> {
         const brandName = process.env.BRAND_NAME || 'Elvee';
         const subject = 'Reset Your Password';
 
@@ -234,6 +264,31 @@ export class MailService {
                 resetUrl,
                 user: { name: userName },
                 brandName,
+                subject,
+            },
+        });
+    }
+
+    /**
+     * Send email verification link
+     */
+    async sendEmailVerification(
+        email: string,
+        verificationUrl: string,
+        userName: string,
+    ): Promise<void> {
+        const brandName = process.env.BRAND_NAME || 'Elvee';
+        const subject = 'Verify Your Email Address';
+
+        await this.sendMail({
+            to: email,
+            subject,
+            template: 'email-verification',
+            context: {
+                verificationUrl,
+                user: { name: userName },
+                brandName,
+                subject,
             },
         });
     }
@@ -243,7 +298,7 @@ export class MailService {
      */
     async sendQuotationApproved(quotationId: number): Promise<void> {
         const quotation = await this.prisma.quotations.findUnique({
-            where: { id: quotationId },
+            where: { id: BigInt(quotationId) },
             include: {
                 customers: true,
             },
@@ -254,7 +309,8 @@ export class MailService {
         }
 
         const brandName = process.env.BRAND_NAME || 'Elvee';
-        const quotationRef = quotation.quotation_group_id || `#${quotation.id.toString()}`;
+        const quotationRef =
+            quotation.quotation_group_id || `#${quotation.id.toString()}`;
         const subject = `Quotation ${quotationRef} approved`;
 
         await this.sendMail({
@@ -276,9 +332,12 @@ export class MailService {
     /**
      * Send quotation rejected email
      */
-    async sendQuotationRejected(quotationId: number, reason?: string): Promise<void> {
+    async sendQuotationRejected(
+        quotationId: number,
+        reason?: string,
+    ): Promise<void> {
         const quotation = await this.prisma.quotations.findUnique({
-            where: { id: quotationId },
+            where: { id: BigInt(quotationId) },
             include: {
                 customers: true,
             },
@@ -289,7 +348,8 @@ export class MailService {
         }
 
         const brandName = process.env.BRAND_NAME || 'Elvee';
-        const quotationRef = quotation.quotation_group_id || `#${quotation.id.toString()}`;
+        const quotationRef =
+            quotation.quotation_group_id || `#${quotation.id.toString()}`;
         const subject = `Quotation ${quotationRef} update`;
 
         await this.sendMail({
@@ -314,7 +374,7 @@ export class MailService {
      */
     async sendQuotationSubmittedCustomer(quotationId: number): Promise<void> {
         const quotation = await this.prisma.quotations.findUnique({
-            where: { id: quotationId },
+            where: { id: BigInt(quotationId) },
             include: {
                 customers: true,
             },
@@ -325,7 +385,8 @@ export class MailService {
         }
 
         const brandName = process.env.BRAND_NAME || 'Elvee';
-        const quotationRef = quotation.quotation_group_id || `#${quotation.id.toString()}`;
+        const quotationRef =
+            quotation.quotation_group_id || `#${quotation.id.toString()}`;
         const subject = `Quotation ${quotationRef} submitted`;
 
         await this.sendMail({
@@ -355,7 +416,7 @@ export class MailService {
         }
 
         const quotation = await this.prisma.quotations.findUnique({
-            where: { id: quotationId },
+            where: { id: BigInt(quotationId) },
             include: {
                 customers: true,
             },
@@ -366,7 +427,8 @@ export class MailService {
         }
 
         const brandName = process.env.BRAND_NAME || 'Elvee';
-        const quotationRef = quotation.quotation_group_id || `#${quotation.id.toString()}`;
+        const quotationRef =
+            quotation.quotation_group_id || `#${quotation.id.toString()}`;
         const subject = `New quotation submitted: ${quotationRef}`;
 
         await this.sendMail({
@@ -387,9 +449,12 @@ export class MailService {
     /**
      * Send quotation confirmation request email
      */
-    async sendQuotationConfirmationRequest(quotationId: number, message?: string): Promise<void> {
+    async sendQuotationConfirmationRequest(
+        quotationId: number,
+        message?: string,
+    ): Promise<void> {
         const quotation = await this.prisma.quotations.findUnique({
-            where: { id: quotationId },
+            where: { id: BigInt(quotationId) },
             include: {
                 customers: true,
             },
@@ -400,7 +465,8 @@ export class MailService {
         }
 
         const brandName = process.env.BRAND_NAME || 'Elvee';
-        const quotationRef = quotation.quotation_group_id || `#${quotation.id.toString()}`;
+        const quotationRef =
+            quotation.quotation_group_id || `#${quotation.id.toString()}`;
         const subject = `Action required: Quotation ${quotationRef}`;
 
         await this.sendMail({
@@ -424,7 +490,8 @@ export class MailService {
      * Format currency for display
      */
     private formatCurrency(amount: number | string): string {
-        const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+        const numAmount =
+            typeof amount === 'string' ? parseFloat(amount) : amount;
         return new Intl.NumberFormat('en-IN', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -436,7 +503,7 @@ export class MailService {
      */
     async sendQuotationStatusUpdated(quotationId: number): Promise<void> {
         const quotation = await this.prisma.quotations.findUnique({
-            where: { id: quotationId },
+            where: { id: BigInt(quotationId) },
             include: {
                 customers: true,
             },
@@ -447,7 +514,8 @@ export class MailService {
         }
 
         const brandName = process.env.BRAND_NAME || 'Elvee';
-        const quotationRef = quotation.quotation_group_id || `#${quotation.id.toString()}`;
+        const quotationRef =
+            quotation.quotation_group_id || `#${quotation.id.toString()}`;
         const subject = `Quotation ${quotationRef} status updated`;
 
         await this.sendMail({

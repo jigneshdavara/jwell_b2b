@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState, FormEvent } from 'react';
 import { Head } from '@/components/Head';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import Pagination from '@/components/ui/Pagination';
 import { adminService } from '@/services/adminService';
+import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type UserGroupRow = {
     id: number;
@@ -21,12 +23,6 @@ type FeatureOption = {
     label: string;
 };
 
-type PaginationMeta = {
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
-};
 
 const featureOptions: FeatureOption[] = [
     { value: 'dashboard.view', label: 'Dashboard access' },
@@ -101,10 +97,13 @@ export default function AdminUserGroupsPage() {
                     features: Array.isArray(item.features) ? item.features : [],
                 })),
                 meta: {
-                    current_page: responseMeta.page || responseMeta.current_page || 1,
+                    current_page: responseMeta.page || responseMeta.current_page || currentPage,
                     last_page: responseMeta.lastPage || responseMeta.last_page || 1,
                     total: responseMeta.total || 0,
                     per_page: responseMeta.perPage || responseMeta.per_page || perPage,
+                    from: responseMeta.from,
+                    to: responseMeta.to,
+                    links: responseMeta.links || generatePaginationLinks(responseMeta.page || responseMeta.current_page || currentPage, responseMeta.lastPage || responseMeta.last_page || 1),
                 },
             });
         } catch (error: any) {
@@ -435,31 +434,10 @@ export default function AdminUserGroupsPage() {
                     </table>
                 </div>
 
-                {groups.meta.last_page > 1 && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                        <div>
-                            Showing {groups.meta.total > 0 ? (groups.meta.current_page - 1) * groups.meta.per_page + 1 : 0} to{' '}
-                            {Math.min(groups.meta.current_page * groups.meta.per_page, groups.meta.total)} of {groups.meta.total} entries
-                        </div>
-                        <div className="flex gap-2">
-                            {Array.from({ length: groups.meta.last_page }, (_, i) => i + 1).map((page) => {
-                                const active = page === groups.meta.current_page;
-                                return (
-                                    <button
-                                        key={page}
-                                        type="button"
-                                        onClick={() => setCurrentPage(page)}
-                                        className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                            active ? 'bg-elvee-blue text-white shadow shadow-elvee-blue/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                        }`}
-                                    >
-                                        {page}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
+                <Pagination 
+                    meta={groups.meta} 
+                    onPageChange={setCurrentPage} 
+                />
 
                 <Modal show={modalOpen} onClose={resetForm} maxWidth="6xl">
                     <div className="flex min-h-0 flex-col">
