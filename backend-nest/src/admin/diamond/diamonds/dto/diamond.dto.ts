@@ -43,14 +43,14 @@ export class CreateDiamondDto {
     @IsNotEmpty()
     price: number;
 
+    @IsNumber()
+    @IsNotEmpty()
+    @Min(0)
+    weight: number;
+
     @IsBoolean()
     @IsOptional()
     is_active?: boolean;
-
-    @IsInt()
-    @IsNotEmpty()
-    @Min(0)
-    display_order: number;
 }
 
 export class UpdateDiamondDto {
@@ -87,14 +87,14 @@ export class UpdateDiamondDto {
     @IsOptional()
     price?: number;
 
+    @IsNumber()
+    @IsOptional()
+    @Min(0)
+    weight?: number;
+
     @IsBoolean()
     @IsOptional()
     is_active?: boolean;
-
-    @IsInt()
-    @IsOptional()
-    @Min(0)
-    display_order?: number;
 }
 
 export class BulkDestroyDto {

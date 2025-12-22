@@ -17,7 +17,7 @@ export class DiamondShapesService {
                 take: perPage,
                 include: {
                     diamond_types: {
-                        select: { id: true, name: true },
+                        select: { id: true, name: true, code: true },
                     },
                 },
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
@@ -25,8 +25,17 @@ export class DiamondShapesService {
             this.prisma.diamond_shapes.count(),
         ]);
 
+        // Map items to match frontend expectations (diamond_types -> type)
+        const mappedItems = items.map((item) => {
+            const { diamond_types, ...rest } = item;
+            return {
+                ...rest,
+                type: diamond_types || null,
+            };
+        });
+
         return {
-            items,
+            items: mappedItems,
             meta: {
                 total,
                 page,
@@ -50,14 +59,17 @@ export class DiamondShapesService {
     }
 
     async create(dto: CreateDiamondShapeDto) {
+        const now = new Date();
         return await this.prisma.diamond_shapes.create({
             data: {
                 diamond_type_id: BigInt(dto.diamond_type_id),
                 code: dto.code,
                 name: dto.name,
-                description: dto.description,
+                description: dto.description || null,
                 is_active: dto.is_active ?? true,
                 display_order: dto.display_order,
+                created_at: now,
+                updated_at: now,
             },
         });
     }
@@ -75,6 +87,7 @@ export class DiamondShapesService {
                 description: dto.description,
                 is_active: dto.is_active,
                 display_order: dto.display_order,
+                updated_at: new Date(),
             },
         });
     }
