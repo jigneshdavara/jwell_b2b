@@ -77,6 +77,17 @@ export class AuthService {
                 },
             });
 
+            // Send welcome email and admin notification
+            try {
+                await this.mailService.sendWelcomeEmail(Number(customer.id));
+                await this.mailService.sendAdminNewUserNotification(
+                    Number(customer.id),
+                );
+            } catch (error) {
+                // Log error but don't fail registration
+                console.error('Failed to send registration emails:', error);
+            }
+
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { password: _, ...result } = customer;
             return { ...result, guard: 'user' } as any;
@@ -503,16 +514,11 @@ export class AuthService {
         const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email/${user.id.toString()}/${hash}`;
 
         // Send verification email
-        await this.mailService.sendMail({
-            to: email,
-            subject: 'Verify Your Email Address',
-            template: 'email-verification',
-            context: {
-                verificationUrl,
-                user: { name: user.name },
-                brandName: process.env.BRAND_NAME || 'Elvee',
-            },
-        });
+        await this.mailService.sendEmailVerification(
+            email,
+            verificationUrl,
+            user.name,
+        );
 
         return {
             message:

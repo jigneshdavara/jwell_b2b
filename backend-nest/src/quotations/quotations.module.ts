@@ -5,9 +5,16 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { PricingModule } from '../common/pricing/pricing.module';
 import { TaxModule } from '../common/tax/tax.module';
 import { CartModule } from '../cart/cart.module';
+import { MailModule } from '../common/mail/mail.module';
 
 @Module({
-    imports: [PrismaModule, PricingModule, TaxModule, CartModule],
+    imports: [
+        PrismaModule,
+        PricingModule,
+        TaxModule,
+        CartModule,
+        MailModule,
+    ],
     providers: [QuotationsService],
     controllers: [QuotationsController],
     exports: [QuotationsService],

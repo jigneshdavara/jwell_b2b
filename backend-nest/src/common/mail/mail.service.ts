@@ -239,6 +239,29 @@ export class MailService {
     }
 
     /**
+     * Send email verification link
+     */
+    async sendEmailVerification(
+        email: string,
+        verificationUrl: string,
+        userName: string,
+    ): Promise<void> {
+        const brandName = process.env.BRAND_NAME || 'Elvee';
+        const subject = 'Verify Your Email Address';
+
+        await this.sendMail({
+            to: email,
+            subject,
+            template: 'email-verification',
+            context: {
+                verificationUrl,
+                user: { name: userName },
+                brandName,
+            },
+        });
+    }
+
+    /**
      * Send quotation approved email
      */
     async sendQuotationApproved(quotationId: number): Promise<void> {
