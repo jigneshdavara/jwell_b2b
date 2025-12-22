@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{subject}}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f7fb;font-family:'Helvetica Neue',Arial,sans-serif;color:#0f172a;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f7fb;padding:32px 0;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 24px 60px rgba(15,23,42,0.12);">
+                <tr>
+                    <td style="background:linear-gradient(135deg,#0f172a,#1e3a8a);padding:32px 40px;">
+                        <table width="100%">
+                            <tr>
+                                <td align="left" style="font-size:20px;font-weight:600;color:#ffffff;letter-spacing:0.08em;text-transform:uppercase;">
+                                    {{brandName}}
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:40px 48px;">
+                        <p style="margin:0 0 18px;font-size:14px;color:#64748b;">Hi {{user.name}},</p>
+                        <h1 style="margin:0 0 16px;font-size:24px;line-height:1.4;color:#0f172a;">Quotation {{quotation.reference}} Update</h1>
+                        <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#475569;">
+                            We regret to inform you that your quotation request has been declined.
+                        </p>
+                        {{#if reason}}
+                        <div style="background-color:#fef2f2;border-left:4px solid #ef4444;padding:20px;margin:24px 0;border-radius:8px;">
+                            <p style="margin:0;font-size:14px;color:#991b1b;font-weight:600;">Reason:</p>
+                            <p style="margin:8px 0 0;font-size:13px;color:#7f1d1d;line-height:1.6;">{{reason}}</p>
+                        </div>
+                        {{/if}}
+                        <p style="margin:24px 0 0;font-size:14px;color:#0f172a;font-weight:600;">Best regards,<br>The {{brandName}} Team</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:24px 48px;background-color:#0f172a;color:#e2e8f0;font-size:13px;">
+                        <p style="margin:0 0 8px;font-weight:600;color:#f8fafc;">Need assistance?</p>
+                        <p style="margin:0;color:#cbd5f5;">Reach our concierge desk at <a href="mailto:support@elvee.in" style="color:#38bdf8;text-decoration:none;">support@elvee.in</a> or call +91 22 4000 1234.</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>
+

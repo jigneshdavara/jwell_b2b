@@ -35,7 +35,7 @@ describe('Auth Local Debugger', () => {
         const adminResult = await service.validateUser(loginDto, 'admin');
 
         // 2. Test Web Guard
-        const webResult = await service.validateUser(loginDto, 'web');
+        const webResult = await service.validateUser(loginDto, 'user');
 
         console.log('--- FINAL RESULTS ---');
         console.log('Admin Guard Result:', adminResult ? 'SUCCESS' : 'FAILED');

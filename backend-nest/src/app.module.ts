@@ -47,11 +47,13 @@ import { FrontendCheckoutModule } from './frontend/checkout/checkout.module';
 import { FrontendOrdersModule } from './frontend/orders/orders.module';
 import { HomeModule } from './frontend/home/home.module';
 import { ProfileModule } from './frontend/profile/profile.module';
+import { MailModule } from './common/mail/mail.module';
 
 @Module({
     imports: [
         AuthModule,
         PrismaModule,
+        MailModule,
         KycModule,
         CustomersModule,
         CustomerGroupsModule,

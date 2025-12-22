@@ -22,11 +22,20 @@ export default function ConfirmPasswordPage() {
     setProcessing(true);
     setErrors({});
 
-    // Mock confirm password logic
-    setTimeout(() => {
+    try {
+      await authService.confirmPassword(data.password);
       router.back();
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        setErrors({ password: error.response.data.message });
+      } else {
+        setErrors({
+          password: "Invalid password. Please try again.",
+        });
+      }
+    } finally {
       setProcessing(false);
-    }, 1000);
+    }
   };
 
   return (

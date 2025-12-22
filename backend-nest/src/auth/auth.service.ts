@@ -3,19 +3,31 @@ import {
     UnauthorizedException,
     BadRequestException,
     ConflictException,
+    NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
+import { MailService } from '../common/mail/mail.service';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyOtpDto } from './dto/otp.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterAdminDto } from './dto/register-admin.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/password-reset.dto';
+import {
+    VerifyEmailDto,
+    ResendVerificationDto,
+} from './dto/email-verification.dto';
+import { ConfirmPasswordDto } from './dto/password-confirm.dto';
+import { UserType } from '../admin/team-users/dto/team-user.dto';
 
 @Injectable()
 export class AuthService {
     constructor(
         private prisma: PrismaService,
         private jwtService: JwtService,
+        private mailService: MailService,
     ) {}
 
     async register(registerDto: RegisterDto) {
@@ -67,13 +79,61 @@ export class AuthService {
 
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { password: _, ...result } = customer;
-            return { ...result, guard: 'web' } as any;
+            return { ...result, guard: 'user' } as any;
         });
+    }
+
+    async registerAdmin(registerAdminDto: RegisterAdminDto) {
+        const {
+            password,
+            password_confirmation,
+            email,
+            name,
+            type,
+            user_group_id,
+        } = registerAdminDto;
+
+        if (password !== password_confirmation) {
+            throw new BadRequestException('Passwords do not match');
+        }
+
+        // Check if email exists in users table
+        const existingUser = await this.prisma.user.findUnique({
+            where: { email },
+        });
+        if (existingUser) {
+            throw new ConflictException('Email already registered');
+        }
+
+        // Check if email exists in customers table
+        const existingCustomer = await this.prisma.customer.findUnique({
+            where: { email },
+        });
+        if (existingCustomer) {
+            throw new ConflictException('Email already registered');
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = await this.prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                type: type || UserType.ADMIN,
+                user_group_id: user_group_id ? BigInt(user_group_id) : null,
+                email_verified_at: new Date(),
+            },
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password: _, ...result } = user;
+        return { ...result, guard: 'admin' } as any;
     }
 
     async validateUser(
         loginDto: LoginDto,
-        guard: 'admin' | 'web',
+        guard: 'admin' | 'user',
     ): Promise<any> {
         const { email, password } = loginDto;
 
@@ -147,8 +207,22 @@ export class AuthService {
             },
         });
 
-        // In a real app, send the email here.
-        console.log(`OTP for ${email}: ${code}`);
+        // Send OTP email
+        try {
+            await this.mailService.sendLoginOtp(email, code, '10 minutes');
+        } catch (error) {
+            // Log the error for debugging
+            console.error('Failed to send OTP email:', error);
+            
+            // In development, log the code to console
+            if (process.env.NODE_ENV !== 'production' || process.env.MAIL_MAILER === 'log') {
+                console.log(`OTP for ${email}: ${code}`);
+            }
+            
+            // If email sending fails, still return success but log the error
+            // The OTP is created and can be used even if email fails
+            // In production, you might want to throw an error or queue for retry
+        }
 
         return { message: 'A one-time code has been emailed.' };
     }
@@ -184,6 +258,304 @@ export class AuthService {
             data: { consumed_at: new Date() },
         });
 
-        return { ...customer, guard: 'web' };
+        return { ...customer, guard: 'user' };
+    }
+
+    /**
+     * Send password reset link
+     */
+    async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+        const { email } = forgotPasswordDto;
+
+        // Try customer first, then admin user
+        let user: any = await this.prisma.customer.findUnique({
+            where: { email },
+        });
+
+        if (!user) {
+            user = await this.prisma.user.findUnique({
+                where: { email },
+            });
+        }
+
+        // Always return success to prevent email enumeration
+        if (!user) {
+            return {
+                message:
+                    'If that email address exists, we will send a password reset link.',
+            };
+        }
+
+        // Generate reset token
+        const token = crypto.randomBytes(32).toString('hex');
+        const hashedToken = await bcrypt.hash(token, 10);
+
+        // Store or update reset token
+        await this.prisma.password_reset_tokens.upsert({
+            where: { email },
+            update: {
+                token: hashedToken,
+                created_at: new Date(),
+            },
+            create: {
+                email,
+                token: hashedToken,
+                created_at: new Date(),
+            },
+        });
+
+        // Send password reset email
+        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${token}?email=${encodeURIComponent(email)}`;
+
+        try {
+            await this.mailService.sendPasswordResetLinkEmail(email, resetUrl, user.name);
+        } catch (error) {
+            console.error('Failed to send password reset email:', error);
+            // In development, log the reset URL
+            if (process.env.NODE_ENV !== 'production' || process.env.MAIL_MAILER === 'log') {
+                console.log(`Password reset link for ${email}: ${resetUrl}`);
+            }
+            // Don't throw - always return success to prevent email enumeration
+        }
+
+        return {
+            message:
+                'If that email address exists, we will send a password reset link.',
+        };
+    }
+
+    /**
+     * Reset password using token
+     */
+    async resetPassword(resetPasswordDto: ResetPasswordDto) {
+        const { token, email, password, password_confirmation } =
+            resetPasswordDto;
+
+        if (password !== password_confirmation) {
+            throw new BadRequestException('Passwords do not match');
+        }
+
+        // Find reset token
+        const resetToken = await this.prisma.password_reset_tokens.findUnique({
+            where: { email },
+        });
+
+        if (!resetToken) {
+            throw new UnauthorizedException('Invalid or expired reset token');
+        }
+
+        // Check if token is valid (60 minutes expiry)
+        if (!resetToken.created_at) {
+            throw new UnauthorizedException('Invalid reset token');
+        }
+        const tokenAge = Date.now() - resetToken.created_at.getTime();
+        const tokenExpiry = 60 * 60 * 1000; // 60 minutes
+
+        if (tokenAge > tokenExpiry) {
+            await this.prisma.password_reset_tokens.delete({
+                where: { email },
+            });
+            throw new UnauthorizedException('Reset token has expired');
+        }
+
+        // Verify token
+        const dbHash = resetToken.token.replace(/^\$2y\$/, '$2a$');
+        const isTokenValid = await bcrypt.compare(token, dbHash);
+
+        if (!isTokenValid) {
+            throw new UnauthorizedException('Invalid reset token');
+        }
+
+        // Find user (customer or admin)
+        let user: any = await this.prisma.customer.findUnique({
+            where: { email },
+        });
+
+        if (!user) {
+            user = await this.prisma.user.findUnique({
+                where: { email },
+            });
+        }
+
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        // Update password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        if ('kyc_status' in user) {
+            // Customer
+            await this.prisma.customer.update({
+                where: { email },
+                data: { password: hashedPassword },
+            });
+        } else {
+            // Admin user
+            await this.prisma.user.update({
+                where: { email },
+                data: { password: hashedPassword },
+            });
+        }
+
+        // Delete reset token
+        await this.prisma.password_reset_tokens.delete({
+            where: { email },
+        });
+
+        return {
+            message: 'Password has been reset successfully',
+        };
+    }
+
+    /**
+     * Verify email address
+     */
+    async verifyEmail(verifyEmailDto: VerifyEmailDto) {
+        const { id, hash } = verifyEmailDto;
+
+        // Find user by ID
+        let user: any = await this.prisma.customer.findUnique({
+            where: { id: BigInt(id) },
+        });
+
+        if (!user) {
+            user = await this.prisma.user.findUnique({
+                where: { id: BigInt(id) },
+            });
+        }
+
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        // Verify hash (Laravel uses SHA256 of email)
+        const expectedHash = crypto
+            .createHash('sha256')
+            .update(user.email)
+            .digest('hex');
+
+        if (hash !== expectedHash) {
+            throw new UnauthorizedException('Invalid verification link');
+        }
+
+        // Check if already verified
+        if (user.email_verified_at) {
+            return {
+                message: 'Email already verified',
+            };
+        }
+
+        // Mark email as verified
+        if ('kyc_status' in user) {
+            // Customer
+            await this.prisma.customer.update({
+                where: { id: BigInt(id) },
+                data: { email_verified_at: new Date() },
+            });
+        } else {
+            // Admin user
+            await this.prisma.user.update({
+                where: { id: BigInt(id) },
+                data: { email_verified_at: new Date() },
+            });
+        }
+
+        return {
+            message: 'Email verified successfully',
+        };
+    }
+
+    /**
+     * Resend email verification
+     */
+    async resendVerification(resendVerificationDto: ResendVerificationDto) {
+        const { email } = resendVerificationDto;
+
+        // Find user
+        let user: any = await this.prisma.customer.findUnique({
+            where: { email },
+        });
+
+        if (!user) {
+            user = await this.prisma.user.findUnique({
+                where: { email },
+            });
+        }
+
+        if (!user) {
+            // Don't reveal if email exists
+            return {
+                message:
+                    'If that email address exists and is not verified, we will send a verification link.',
+            };
+        }
+
+        // Check if already verified
+        if (user.email_verified_at) {
+            return {
+                message: 'Email is already verified',
+            };
+        }
+
+        // Generate verification link
+        const hash = crypto.createHash('sha256').update(email).digest('hex');
+        const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email/${user.id.toString()}/${hash}`;
+
+        // Send verification email
+        await this.mailService.sendMail({
+            to: email,
+            subject: 'Verify Your Email Address',
+            template: 'email-verification',
+            context: {
+                verificationUrl,
+                user: { name: user.name },
+                brandName: process.env.BRAND_NAME || 'Elvee',
+            },
+        });
+
+        return {
+            message:
+                'If that email address exists and is not verified, we will send a verification link.',
+        };
+    }
+
+    /**
+     * Confirm password (for sensitive operations)
+     */
+    async confirmPassword(
+        userId: string,
+        guard: 'admin' | 'user',
+        confirmPasswordDto: ConfirmPasswordDto,
+    ) {
+        const { password } = confirmPasswordDto;
+
+        // Find user
+        let user: any;
+        if (guard === 'admin') {
+            user = await this.prisma.user.findUnique({
+                where: { id: BigInt(userId) },
+            });
+        } else {
+            user = await this.prisma.customer.findUnique({
+                where: { id: BigInt(userId) },
+            });
+        }
+
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        // Verify password
+        const dbHash = user.password.replace(/^\$2y\$/, '$2a$');
+        const isPasswordValid = await bcrypt.compare(password, dbHash);
+
+        if (!isPasswordValid) {
+            throw new UnauthorizedException('Invalid password');
+        }
+
+        return {
+            message: 'Password confirmed',
+        };
     }
 }

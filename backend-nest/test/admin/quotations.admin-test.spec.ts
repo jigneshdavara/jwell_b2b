@@ -128,7 +128,7 @@ describe('Admin Quotations (e2e)', () => {
             // Need customer token
             const customerLogin = await authService.login({
                 ...testCustomer,
-                guard: 'web',
+                guard: 'user',
             });
             const customerToken = customerLogin.access_token;
 
@@ -199,7 +199,7 @@ describe('Admin Quotations (e2e)', () => {
             // First, customer must confirm (since status was changed to pending_customer_confirmation)
             const customerLogin = await authService.login({
                 ...testCustomer,
-                guard: 'web',
+                guard: 'user',
             });
             const customerToken = customerLogin.access_token;
 
