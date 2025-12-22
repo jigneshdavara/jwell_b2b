@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PricingService } from '../common/pricing/pricing.service';
 import { TaxService } from '../common/tax/tax.service';
 import { CartService } from '../cart/cart.service';
+import { MailService } from '../common/mail/mail.service';
 import { CreateQuotationDto, QuotationFilterDto, ApproveQuotationDto, RequestConfirmationDto, UpdateQuotationProductDto, AddQuotationItemDto } from './dto/quotation.dto';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,6 +14,7 @@ export class QuotationsService {
     private pricingService: PricingService,
     private taxService: TaxService,
     private cartService: CartService,
+    private mailService: MailService,
   ) {}
 
   async findAllFrontend(userId: bigint) {
@@ -640,18 +642,37 @@ export class QuotationsService {
         }
       }
 
+      // Send approval email (send for first quotation in group)
+      if (related.length > 0) {
+        try {
+          await this.mailService.sendQuotationApproved(Number(related[0].id));
+        } catch (error) {
+          console.error('Failed to send quotation approval email:', error);
+        }
+      }
+
       return { order_id: order.id.toString(), message: 'Quotations approved' };
     });
   }
 
   async reject(id: number, adminNotes?: string) {
-    const quotation = await this.prisma.quotations.findUnique({ where: { id: BigInt(id) } });
+    const quotation = await this.prisma.quotations.findUnique({ 
+      where: { id: BigInt(id) },
+      include: { customers: true }
+    });
     if (!quotation) throw new NotFoundException('Quotation not found');
 
     await this.prisma.quotations.updateMany({
       where: { quotation_group_id: quotation.quotation_group_id, status: { not: 'rejected' } },
       data: { status: 'rejected', admin_notes: adminNotes, updated_at: new Date() }
     });
+
+    // Send rejection email
+    try {
+      await this.mailService.sendQuotationRejected(Number(id), adminNotes);
+    } catch (error) {
+      console.error('Failed to send quotation rejection email:', error);
+    }
 
     return { message: 'Quotations rejected' };
   }
@@ -689,6 +710,17 @@ export class QuotationsService {
           }
         });
       }
+
+      // Send confirmation request email (send for main quotation)
+      try {
+        await this.mailService.sendQuotationConfirmationRequest(
+          Number(id),
+          dto.notes,
+        );
+      } catch (error) {
+        console.error('Failed to send quotation confirmation request email:', error);
+      }
+
       return { message: 'Confirmation requested' };
     });
   }
@@ -730,6 +762,16 @@ export class QuotationsService {
           updated_at: new Date(),
         }
       });
+
+      // Send confirmation request email after transaction
+      try {
+        await this.mailService.sendQuotationConfirmationRequest(
+          Number(baseQuotation.id),
+          message,
+        );
+      } catch (error) {
+        console.error('Failed to send quotation confirmation request email:', error);
+      }
 
       return newQ;
     });
@@ -778,6 +820,16 @@ export class QuotationsService {
           updated_at: new Date(),
         }
       });
+
+      // Send confirmation request email after transaction
+      try {
+        await this.mailService.sendQuotationConfirmationRequest(
+          Number(id),
+          message,
+        );
+      } catch (error) {
+        console.error('Failed to send quotation confirmation request email:', error);
+      }
 
       return { message: 'Product updated' };
     });

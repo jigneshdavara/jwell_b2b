@@ -8,6 +8,7 @@ import { CartService } from '../../cart/cart.service';
 import { PaymentGatewayManager } from '../../common/payments/payment-gateway-manager.service';
 import { OrderWorkflowService } from '../../admin/orders/order-workflow.service';
 import { OrderStatus } from '../../admin/orders/dto/order.dto';
+import { MailService } from '../../common/mail/mail.service';
 import { Inject } from '@nestjs/common';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class FrontendCheckoutService {
         private cartService: CartService,
         private gatewayManager: PaymentGatewayManager,
         private orderWorkflowService: OrderWorkflowService,
+        private mailService: MailService,
     ) {}
 
     async initialize(userId: bigint) {
@@ -297,7 +299,20 @@ export class FrontendCheckoutService {
             },
         });
 
-        // TODO: Dispatch OrderConfirmed event if needed
+        // Send order confirmation emails
+        try {
+            await this.mailService.sendOrderConfirmation(
+                Number(payment.order_id),
+                Number(payment.id),
+            );
+            await this.mailService.sendAdminOrderNotification(
+                Number(payment.order_id),
+                Number(payment.id),
+            );
+        } catch (error) {
+            // Log error but don't fail order finalization
+            console.error('Failed to send order confirmation emails:', error);
+        }
 
         return updatedOrder;
     }

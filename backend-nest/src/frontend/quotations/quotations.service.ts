@@ -8,6 +8,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { PricingService } from '../../common/pricing/pricing.service';
 import { TaxService } from '../../common/tax/tax.service';
 import { CartService } from '../../cart/cart.service';
+import { MailService } from '../../common/mail/mail.service';
 import {
     CreateQuotationDto,
     StoreQuotationMessageDto,
@@ -21,6 +22,7 @@ export class FrontendQuotationsService {
         private pricingService: PricingService,
         private taxService: TaxService,
         private cartService: CartService,
+        private mailService: MailService,
     ) {}
 
     async findAll(userId: bigint) {
@@ -502,7 +504,17 @@ export class FrontendQuotationsService {
             },
         });
 
-        // TODO: Send email notifications
+        // Send email notifications
+        try {
+            await this.mailService.sendQuotationSubmittedCustomer(
+                Number(quotation.id),
+            );
+            await this.mailService.sendQuotationSubmittedAdmin(
+                Number(quotation.id),
+            );
+        } catch (error) {
+            console.error('Failed to send quotation emails:', error);
+        }
 
         return {
             message: 'Quotation submitted successfully. Our team will get back to you shortly.',
@@ -635,7 +647,19 @@ export class FrontendQuotationsService {
         // Clear cart items
         await this.cartService.clearItems(userId);
 
-        // TODO: Send email notifications
+        // Send email notifications (send for first quotation in group)
+        if (quotations.length > 0) {
+            try {
+                await this.mailService.sendQuotationSubmittedCustomer(
+                    Number(quotations[0].id),
+                );
+                await this.mailService.sendQuotationSubmittedAdmin(
+                    Number(quotations[0].id),
+                );
+            } catch (error) {
+                console.error('Failed to send quotation emails:', error);
+            }
+        }
 
         return {
             message:

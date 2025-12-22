@@ -46,41 +46,71 @@ export class AuthService {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        return await this.prisma.$transaction(async (tx) => {
-            const customer = await tx.customer.create({
-                data: {
-                    name: rest.name,
-                    email,
-                    phone: rest.phone,
-                    password: hashedPassword,
-                    type: rest.account_type,
-                    kyc_status: 'pending',
-                },
-            });
+        return await this.prisma
+            .$transaction(async (tx) => {
+                const customer = await tx.customer.create({
+                    data: {
+                        name: rest.name,
+                        email,
+                        phone: rest.phone,
+                        password: hashedPassword,
+                        type: rest.account_type,
+                        kyc_status: 'pending',
+                    },
+                });
 
-            await tx.userKycProfile.create({
-                data: {
-                    user_id: customer.id,
-                    business_name: rest.business_name,
-                    business_website: rest.website,
-                    gst_number: rest.gst_number,
-                    pan_number: rest.pan_number,
-                    registration_number: rest.registration_number,
-                    address_line1: rest.address_line1,
-                    address_line2: rest.address_line2,
-                    city: rest.city,
-                    state: rest.state,
-                    postal_code: rest.postal_code,
-                    country: rest.country || 'India',
-                    contact_name: rest.contact_name || rest.name,
-                    contact_phone: rest.contact_phone || rest.phone,
-                },
-            });
+                await tx.userKycProfile.create({
+                    data: {
+                        user_id: customer.id,
+                        business_name: rest.business_name,
+                        business_website: rest.website,
+                        gst_number: rest.gst_number,
+                        pan_number: rest.pan_number,
+                        registration_number: rest.registration_number,
+                        address_line1: rest.address_line1,
+                        address_line2: rest.address_line2,
+                        city: rest.city,
+                        state: rest.state,
+                        postal_code: rest.postal_code,
+                        country: rest.country || 'India',
+                        contact_name: rest.contact_name || rest.name,
+                        contact_phone: rest.contact_phone || rest.phone,
+                    },
+                });
 
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { password: _, ...result } = customer;
-            return { ...result, guard: 'user' } as any;
-        });
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { password: _, ...result } = customer;
+                const customerId = Number(customer.id);
+
+                // Return result - emails will be sent after transaction commits
+                return {
+                    ...result,
+                    guard: 'user',
+                    _customerIdForEmail: customerId,
+                } as any;
+            })
+            .then((result) => {
+                // Send emails AFTER transaction commits (outside transaction)
+                // This ensures the customer is visible to the main Prisma client
+                // Fire-and-forget: don't await emails to avoid blocking the response
+                const customerId = (result as any)._customerIdForEmail;
+                if (customerId) {
+                    // Send emails asynchronously without blocking
+                    this.mailService.sendWelcomeEmail(customerId).catch(() => {
+                        // Silently fail - emails are non-critical
+                    });
+
+                    this.mailService
+                        .sendAdminNewUserNotification(customerId)
+                        .catch(() => {
+                            // Silently fail - emails are non-critical
+                        });
+                }
+
+                // Remove the internal field before returning
+                const { _customerIdForEmail, ...finalResult } = result as any;
+                return finalResult;
+            });
     }
 
     async registerAdmin(registerAdminDto: RegisterAdminDto) {
@@ -213,12 +243,15 @@ export class AuthService {
         } catch (error) {
             // Log the error for debugging
             console.error('Failed to send OTP email:', error);
-            
+
             // In development, log the code to console
-            if (process.env.NODE_ENV !== 'production' || process.env.MAIL_MAILER === 'log') {
+            if (
+                process.env.NODE_ENV !== 'production' ||
+                process.env.MAIL_MAILER === 'log'
+            ) {
                 console.log(`OTP for ${email}: ${code}`);
             }
-            
+
             // If email sending fails, still return success but log the error
             // The OTP is created and can be used even if email fails
             // In production, you might want to throw an error or queue for retry
@@ -308,11 +341,18 @@ export class AuthService {
         const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${token}?email=${encodeURIComponent(email)}`;
 
         try {
-            await this.mailService.sendPasswordResetLinkEmail(email, resetUrl, user.name);
+            await this.mailService.sendPasswordResetLinkEmail(
+                email,
+                resetUrl,
+                user.name,
+            );
         } catch (error) {
             console.error('Failed to send password reset email:', error);
             // In development, log the reset URL
-            if (process.env.NODE_ENV !== 'production' || process.env.MAIL_MAILER === 'log') {
+            if (
+                process.env.NODE_ENV !== 'production' ||
+                process.env.MAIL_MAILER === 'log'
+            ) {
                 console.log(`Password reset link for ${email}: ${resetUrl}`);
             }
             // Don't throw - always return success to prevent email enumeration
@@ -503,16 +543,11 @@ export class AuthService {
         const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email/${user.id.toString()}/${hash}`;
 
         // Send verification email
-        await this.mailService.sendMail({
-            to: email,
-            subject: 'Verify Your Email Address',
-            template: 'email-verification',
-            context: {
-                verificationUrl,
-                user: { name: user.name },
-                brandName: process.env.BRAND_NAME || 'Elvee',
-            },
-        });
+        await this.mailService.sendEmailVerification(
+            email,
+            verificationUrl,
+            user.name,
+        );
 
         return {
             message:
