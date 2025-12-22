@@ -154,8 +154,11 @@ export class DashboardService {
                         firstMedia.url.startsWith('https://')
                     ) {
                         thumbnail = firstMedia.url;
+                    } else if (firstMedia.url.startsWith('/storage/')) {
+                        // URL already has /storage/ prefix, use as-is
+                        thumbnail = firstMedia.url;
                     } else {
-                        // Construct relative path (assumes files are in public directory)
+                        // URL is relative, add /storage/ prefix
                         thumbnail = `/storage/${firstMedia.url}`;
                     }
                 }
