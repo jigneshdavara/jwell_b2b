@@ -417,8 +417,13 @@ export const adminService = {
   },
 
   // Quotations
-  async getQuotations(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/quotations', { params: { page, per_page: perPage } });
+  async getQuotations(filters?: { page?: number; order_reference?: string; customer_name?: string; customer_email?: string }) {
+    const params: any = {};
+    if (filters?.page) params.page = String(filters.page);
+    if (filters?.order_reference) params.order_reference = filters.order_reference;
+    if (filters?.customer_name) params.customer_name = filters.customer_name;
+    if (filters?.customer_email) params.customer_email = filters.customer_email;
+    return await apiClient.get('/admin/quotations', { params });
   },
   async getQuotation(id: number) {
     return await apiClient.get(`/admin/quotations/${id}`);
