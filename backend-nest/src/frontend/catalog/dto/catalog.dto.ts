@@ -94,10 +94,10 @@ export class CalculatePriceDto {
 
     @IsOptional()
     @Type(() => Number)
-    customer_group_id?: number;
+    user_group_id?: number;
 
     @IsOptional()
     @IsString()
-    customer_type?: string;
+    user_type?: string;
 }
 

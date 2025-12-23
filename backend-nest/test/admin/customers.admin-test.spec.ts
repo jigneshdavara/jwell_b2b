@@ -39,9 +39,9 @@ describe('Admin Customers & Groups (e2e)', () => {
         });
 
         // Find an admin user or create one for testing
-        let admin = await prisma.user.findFirst();
+        let admin = await prisma.admin.findFirst();
         if (!admin) {
-            admin = await prisma.user.create({
+            admin = await prisma.admin.create({
                 data: {
                     name: 'Admin User',
                     email: 'admin@example.com',

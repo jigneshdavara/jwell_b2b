@@ -5,23 +5,23 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
-    CreateCustomerTypeDto,
-    UpdateCustomerTypeDto,
-} from './dto/customer-type.dto';
+    CreateUserTypeDto,
+    UpdateUserTypeDto,
+} from './dto/user-type.dto';
 
 @Injectable()
-export class CustomerTypesService {
+export class UserTypesService {
     constructor(private prisma: PrismaService) {}
 
     async findAll(page: number = 1, perPage: number = 20) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
-            this.prisma.customer_types.findMany({
+            this.prisma.user_types.findMany({
                 skip,
                 take: perPage,
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
-            this.prisma.customer_types.count(),
+            this.prisma.user_types.count(),
         ]);
 
         return {
@@ -36,38 +36,38 @@ export class CustomerTypesService {
     }
 
     async findOne(id: number) {
-        const type = await this.prisma.customer_types.findUnique({
+        const type = await this.prisma.user_types.findUnique({
             where: { id: BigInt(id) },
         });
         if (!type) {
-            throw new NotFoundException('Customer type not found');
+            throw new NotFoundException('User? type not found');
         }
         return type;
     }
 
-    async create(dto: CreateCustomerTypeDto) {
+    async create(dto: CreateUserTypeDto) {
         const [existingByName, existingByCode] = await Promise.all([
-            this.prisma.customer_types.findUnique({
+            this.prisma.user_types.findUnique({
                 where: { name: dto.name },
             }),
-            this.prisma.customer_types.findUnique({
+            this.prisma.user_types.findUnique({
                 where: { code: dto.code },
             }),
         ]);
 
         if (existingByName) {
             throw new ConflictException(
-                'Customer type with this name already exists',
+                'User? type with this name already exists',
             );
         }
 
         if (existingByCode) {
             throw new ConflictException(
-                'Customer type with this code already exists',
+                'User? type with this code already exists',
             );
         }
 
-        return await this.prisma.customer_types.create({
+        return await this.prisma.user_types.create({
             data: {
                 name: dto.name,
                 code: dto.code,
@@ -78,32 +78,32 @@ export class CustomerTypesService {
         });
     }
 
-    async update(id: number, dto: UpdateCustomerTypeDto) {
+    async update(id: number, dto: UpdateUserTypeDto) {
         const type = await this.findOne(id);
 
         if (dto.name && dto.name !== type.name) {
-            const existing = await this.prisma.customer_types.findUnique({
+            const existing = await this.prisma.user_types.findUnique({
                 where: { name: dto.name },
             });
             if (existing) {
                 throw new ConflictException(
-                    'Customer type with this name already exists',
+                    'User? type with this name already exists',
                 );
             }
         }
 
         if (dto.code && dto.code !== type.code) {
-            const existing = await this.prisma.customer_types.findUnique({
+            const existing = await this.prisma.user_types.findUnique({
                 where: { code: dto.code },
             });
             if (existing) {
                 throw new ConflictException(
-                    'Customer type with this code already exists',
+                    'User? type with this code already exists',
                 );
             }
         }
 
-        return await this.prisma.customer_types.update({
+        return await this.prisma.user_types.update({
             where: { id: BigInt(id) },
             data: {
                 name: dto.name,
@@ -117,14 +117,14 @@ export class CustomerTypesService {
 
     async remove(id: number) {
         await this.findOne(id);
-        return await this.prisma.customer_types.delete({
+        return await this.prisma.user_types.delete({
             where: { id: BigInt(id) },
         });
     }
 
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.customer_types.deleteMany({
+        return await this.prisma.user_types.deleteMany({
             where: { id: { in: bigIntIds } },
         });
     }

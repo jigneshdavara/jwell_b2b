@@ -55,7 +55,7 @@ export const frontendService = {
   async calculatePrice(productId: number, options: {
     variant_id?: number | null;
     quantity?: number;
-    customer_group_id?: number;
+    user_group_id?: number;
     customer_type?: string;
   }) {
     return await apiClient.post(`/catalog/${productId}/calculate-price`, options);

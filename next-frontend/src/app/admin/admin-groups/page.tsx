@@ -7,7 +7,7 @@ import Pagination from "@/components/ui/Pagination";
 import { adminService } from "@/services/adminService";
 import { PaginationMeta, generatePaginationLinks } from "@/utils/pagination";
 
-type CustomerGroupRow = {
+type AdminGroupRow = {
     id: number;
     name: string;
     code: string;
@@ -17,19 +17,19 @@ type CustomerGroupRow = {
 };
 
 
-export default function AdminCustomerGroupsPage() {
+export default function AdminAdminGroupsPage() {
     const [loading, setLoading] = useState(true);
-    const [groups, setGroups] = useState<{ data: CustomerGroupRow[]; meta: PaginationMeta }>({
+    const [groups, setGroups] = useState<{ data: AdminGroupRow[]; meta: PaginationMeta }>({
         data: [],
         meta: { current_page: 1, last_page: 1, total: 0, per_page: 20 }
     });
     const [currentPage, setCurrentPage] = useState(1);
 
     const [modalOpen, setModalOpen] = useState(false);
-    const [editingGroup, setEditingGroup] = useState<CustomerGroupRow | null>(null);
+    const [editingGroup, setEditingGroup] = useState<AdminGroupRow | null>(null);
     const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
     const [perPage, setPerPage] = useState(20);
-    const [deleteConfirm, setDeleteConfirm] = useState<CustomerGroupRow | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<AdminGroupRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
     const [formState, setFormState] = useState({
@@ -47,7 +47,7 @@ export default function AdminCustomerGroupsPage() {
     const loadGroups = async () => {
         setLoading(true);
         try {
-            const response = await adminService.getCustomerGroups(currentPage, perPage);
+            const response = await adminService.getAdminGroups(currentPage, perPage);
             const items = response.data.items || response.data.data || [];
             const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
 
@@ -71,7 +71,7 @@ export default function AdminCustomerGroupsPage() {
                 },
             });
         } catch (error: any) {
-            console.error('Failed to load customer groups:', error);
+            console.error('Failed to load admin groups:', error);
         } finally {
             setLoading(false);
         }
@@ -107,7 +107,7 @@ export default function AdminCustomerGroupsPage() {
         setModalOpen(true);
     };
 
-    const openEditModal = (group: CustomerGroupRow) => {
+    const openEditModal = (group: AdminGroupRow) => {
         setEditingGroup(group);
         setFormState({
             name: group.name,
@@ -133,23 +133,23 @@ export default function AdminCustomerGroupsPage() {
             };
 
             if (editingGroup) {
-                await adminService.updateCustomerGroup(editingGroup.id, payload);
+                await adminService.updateAdminGroup(editingGroup.id, payload);
             } else {
-                await adminService.createCustomerGroup(payload);
+                await adminService.createAdminGroup(payload);
             }
             resetForm();
             await loadGroups();
         } catch (error: any) {
-            console.error('Failed to save customer group:', error);
-            alert(error.response?.data?.message || 'Failed to save customer group. Please try again.');
+            console.error('Failed to save admin group:', error);
+            alert(error.response?.data?.message || 'Failed to save admin group. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
-    const toggleActivation = async (group: CustomerGroupRow) => {
+    const toggleActivation = async (group: AdminGroupRow) => {
         try {
-            await adminService.updateCustomerGroup(group.id, {
+            await adminService.updateAdminGroup(group.id, {
                 name: group.name,
                 code: group.code,
                 description: group.description,
@@ -158,33 +158,33 @@ export default function AdminCustomerGroupsPage() {
             });
             await loadGroups();
         } catch (error: any) {
-            console.error('Failed to toggle customer group:', error);
-            alert(error.response?.data?.message || 'Failed to update customer group. Please try again.');
+            console.error('Failed to toggle admin group:', error);
+            alert(error.response?.data?.message || 'Failed to update admin group. Please try again.');
         }
     };
 
     const handleDelete = async () => {
         if (deleteConfirm) {
             try {
-                await adminService.deleteCustomerGroup(deleteConfirm.id);
+                await adminService.deleteAdminGroup(deleteConfirm.id);
                 setDeleteConfirm(null);
                 await loadGroups();
             } catch (error: any) {
-                console.error('Failed to delete customer group:', error);
-                alert(error.response?.data?.message || 'Failed to delete customer group. Please try again.');
+                console.error('Failed to delete admin group:', error);
+                alert(error.response?.data?.message || 'Failed to delete admin group. Please try again.');
             }
         }
     };
 
     const handleBulkDelete = async () => {
         try {
-            await adminService.bulkDeleteCustomerGroups(selectedGroups);
+            await adminService.bulkDeleteAdminGroups(selectedGroups);
             setSelectedGroups([]);
             setBulkDeleteConfirm(false);
             await loadGroups();
         } catch (error: any) {
-            console.error('Failed to delete customer groups:', error);
-            alert(error.response?.data?.message || 'Failed to delete customer groups. Please try again.');
+            console.error('Failed to delete admin groups:', error);
+            alert(error.response?.data?.message || 'Failed to delete admin groups. Please try again.');
         }
     };
 
@@ -194,7 +194,7 @@ export default function AdminCustomerGroupsPage() {
         <div className="space-y-8">
             <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                 <div>
-                    <h1 className="text-2xl font-semibold text-slate-900">Customer groups</h1>
+                    <h1 className="text-2xl font-semibold text-slate-900">admin groups</h1>
                     <p className="mt-2 text-sm text-slate-500">
                         Organise customers by engagement plans (e.g. VIP, Dormant) to target messaging and benefits.
                     </p>
@@ -344,7 +344,7 @@ export default function AdminCustomerGroupsPage() {
                     <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-semibold text-slate-900">
-                                {editingGroup ? `Edit customer group: ${editingGroup.name}` : 'Create new customer group'}
+                                {editingGroup ? `Edit admin group: ${editingGroup.name}` : 'Create new admin group'}
                             </h2>
                             <div className="flex items-center gap-3">
                                 <button type="button" onClick={resetForm} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900">
@@ -427,7 +427,7 @@ export default function AdminCustomerGroupsPage() {
                 onClose={() => setDeleteConfirm(null)}
                 onConfirm={handleDelete}
                 title="Remove Group"
-                message={deleteConfirm ? `Are you sure you want to remove customer group ${deleteConfirm.name}?` : ''}
+                message={deleteConfirm ? `Are you sure you want to remove admin group ${deleteConfirm.name}?` : ''}
                 confirmText="Remove"
                 variant="danger"
             />
@@ -437,7 +437,7 @@ export default function AdminCustomerGroupsPage() {
                 onClose={() => setBulkDeleteConfirm(false)}
                 onConfirm={handleBulkDelete}
                 title="Delete Groups"
-                message={`Are you sure you want to delete ${selectedGroups.length} selected customer group(s)?`}
+                message={`Are you sure you want to delete ${selectedGroups.length} selected admin group(s)?`}
                 confirmText="Delete"
                 variant="danger"
             />

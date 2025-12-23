@@ -7,13 +7,13 @@ import Pagination from '@/components/ui/Pagination';
 import { adminService } from '@/services/adminService';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
-type User = {
+type AdminUser = {
     id: number;
     name: string;
     email: string;
     type: string;
     type_label: string;
-    user_group: {
+    admin_group: {
         id: number;
         name: string;
     } | null;
@@ -28,24 +28,24 @@ const availableTypes = [
     { value: 'sales', label: 'Sales' },
 ];
 
-export default function UsersIndex() {
+export default function AdminAdminsIndex() {
     const [loading, setLoading] = useState(true);
-    const [users, setUsers] = useState<{ data: User[]; meta: PaginationMeta }>({
+    const [users, setUsers] = useState<{ data: AdminUser[]; meta: PaginationMeta }>({
         data: [],
         meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 }
     });
-    const [userGroups, setUserGroups] = useState<Array<{ id: number; name: string }>>([]);
+    const [adminGroups, setAdminGroups] = useState<Array<{ id: number; name: string }>>([]);
     const [newUser, setNewUser] = useState({
         name: '',
         email: '',
         password: '',
         password_confirmation: '',
-        user_group_id: '',
+        admin_group_id: '',
         type: 'admin',
     });
-    const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [deleteConfirm, setDeleteConfirm] = useState<User | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<AdminUser | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -53,13 +53,13 @@ export default function UsersIndex() {
 
     useEffect(() => {
         loadUsers();
-        loadUserGroups();
+        loadAdminGroups();
     }, [currentPage]);
 
     const loadUsers = async () => {
         setLoading(true);
         try {
-            const response = await adminService.getUsers(currentPage, 20);
+            const response = await adminService.getAdmins(currentPage, 20);
             const items = response.data.items || response.data.data || [];
             const responseMeta = response.data.meta || { page: 1, lastPage: 1, total: 0, perPage: 20 };
             
@@ -70,7 +70,7 @@ export default function UsersIndex() {
                     email: item.email,
                     type: item.type,
                     type_label: item.type_label || item.type.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-                    user_group: item.user_group ? { id: Number(item.user_group.id), name: item.user_group.name } : null,
+                    admin_group: item.admin_group ? { id: Number(item.admin_group.id), name: item.admin_group.name } : null,
                     joined_at: item.joined_at || item.created_at,
                 })),
                 meta: {
@@ -90,17 +90,17 @@ export default function UsersIndex() {
         }
     };
 
-    const loadUserGroups = async () => {
+    const loadAdminGroups = async () => {
         try {
-            const response = await adminService.getUserGroups(1, 100);
+            const response = await adminService.getAdminGroups(1, 100);
             const items = response.data.items || response.data.data || [];
-            setUserGroups(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
+            setAdminGroups(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
         } catch (error: any) {
-            console.error('Failed to load user groups:', error);
+            console.error('Failed to load admin groups:', error);
         }
     };
 
-    const isProtected = (user: User) => user.type === 'super-admin';
+    const isProtected = (user: AdminUser) => user.type === 'super-admin';
 
     const selectableIds = useMemo(
         () => users.data.filter((user) => !isProtected(user)).map((user) => user.id),
@@ -112,7 +112,7 @@ export default function UsersIndex() {
         setSelectedIds((current) => current.filter((id) => selectableIds.includes(id)));
     }, [selectableIds]);
 
-    const toggleSelection = (user: User) => {
+    const toggleSelection = (user: AdminUser) => {
         if (isProtected(user)) {
             return;
         }
@@ -125,17 +125,17 @@ export default function UsersIndex() {
         setSelectedIds(allSelected ? [] : selectableIds);
     };
 
-    const updateUserGroup = async (user: User, groupId: string) => {
+    const updateAdminGroup = async (user: AdminUser, groupId: string) => {
         if (isProtected(user)) {
             return;
         }
         try {
             const groupIdNum = groupId ? Number(groupId) : null;
-            await adminService.updateUserGroup(user.id, groupIdNum);
+            await adminService.updateAdminGroup(user.id, groupIdNum);
             await loadUsers();
         } catch (error: any) {
-            console.error('Failed to update user group:', error);
-            alert(error.response?.data?.message || 'Failed to update user group. Please try again.');
+            console.error('Failed to update admin group:', error);
+            alert(error.response?.data?.message || 'Failed to update admin group. Please try again.');
         }
     };
 
@@ -149,7 +149,7 @@ export default function UsersIndex() {
                 name: newUser.name,
                 email: newUser.email,
                 type: newUser.type,
-                user_group_id: newUser.user_group_id ? Number(newUser.user_group_id) : null,
+                admin_group_id: newUser.admin_group_id ? Number(newUser.admin_group_id) : null,
             };
 
             if (editingUser) {
@@ -157,11 +157,11 @@ export default function UsersIndex() {
                     payload.password = newUser.password;
                     payload.password_confirmation = newUser.password_confirmation;
                 }
-                await adminService.updateUser(editingUser.id, payload);
+                await adminService.updateAdmin(editingUser.id, payload);
             } else {
                 payload.password = newUser.password;
                 payload.password_confirmation = newUser.password_confirmation;
-                await adminService.createUser(payload);
+                await adminService.createAdmin(payload);
             }
 
             // Reset form
@@ -170,31 +170,31 @@ export default function UsersIndex() {
                 email: '',
                 password: '',
                 password_confirmation: '',
-                user_group_id: '',
+                admin_group_id: '',
                 type: 'admin',
             });
             setEditingUser(null);
             await loadUsers();
         } catch (error: any) {
-            console.error('Failed to save user:', error);
+            console.error('Failed to save admin:', error);
             if (error.response?.data?.errors) {
                 setErrors(error.response.data.errors);
             } else {
-                alert(error.response?.data?.message || 'Failed to save user. Please try again.');
+                alert(error.response?.data?.message || 'Failed to save admin. Please try again.');
             }
         } finally {
             setProcessing(false);
         }
     };
 
-    const editUser = (user: User) => {
+    const editUser = (user: AdminUser) => {
         setEditingUser(user);
         setNewUser({
             name: user.name,
             email: user.email,
             password: '',
             password_confirmation: '',
-            user_group_id: user.user_group?.id ? String(user.user_group.id) : '',
+            admin_group_id: user.admin_group?.id ? String(user.admin_group.id) : '',
             type: user.type,
         });
     };
@@ -206,13 +206,13 @@ export default function UsersIndex() {
             email: '',
             password: '',
             password_confirmation: '',
-            user_group_id: '',
+            admin_group_id: '',
             type: 'admin',
         });
         setErrors({});
     };
 
-    const deleteUser = (user: User) => {
+    const deleteUser = (user: AdminUser) => {
         if (isProtected(user)) {
             return;
         }
@@ -222,7 +222,7 @@ export default function UsersIndex() {
     const handleDelete = async () => {
         if (deleteConfirm) {
             try {
-                await adminService.deleteUser(deleteConfirm.id);
+                await adminService.deleteAdmin(deleteConfirm.id);
                 setSelectedIds((current) => current.filter((id) => id !== deleteConfirm.id));
                 if (editingUser?.id === deleteConfirm.id) {
                     cancelEdit();
@@ -230,8 +230,8 @@ export default function UsersIndex() {
                 setDeleteConfirm(null);
                 await loadUsers();
             } catch (error: any) {
-            console.error('Failed to delete user:', error);
-            alert(error.response?.data?.message || 'Failed to delete user. Please try again.');
+            console.error('Failed to delete admin:', error);
+            alert(error.response?.data?.message || 'Failed to delete admin. Please try again.');
             }
         }
     };
@@ -245,29 +245,29 @@ export default function UsersIndex() {
 
     const handleBulkDelete = async () => {
         try {
-            await adminService.bulkDeleteUsers(selectedIds);
+            await adminService.bulkDeleteAdmins(selectedIds);
             setSelectedIds([]);
             setBulkDeleteConfirm(false);
             await loadUsers();
         } catch (error: any) {
-            console.error('Failed to delete users:', error);
-            alert(error.response?.data?.message || 'Failed to delete users. Please try again.');
+            console.error('Failed to delete admins:', error);
+            alert(error.response?.data?.message || 'Failed to delete admins. Please try again.');
         }
     };
 
-    const formTitle = editingUser ? `Edit ${editingUser.name}` : 'Create user';
+    const formTitle = editingUser ? `Edit ${editingUser.name}` : 'Create admin';
 
     return (
         <>
-            <Head title="Users" />
+            <Head title="Admins" />
 
             <div className="space-y-8">
                 <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                            <h1 className="text-2xl font-semibold text-slate-900">User directory</h1>
+                            <h1 className="text-2xl font-semibold text-slate-900">Admin directory</h1>
                             <p className="mt-1 text-sm text-slate-500">
-                                Manage customer accounts (users) and organize them into user groups.
+                                Create admin accounts and limit what they see by assigning admin groups.
                             </p>
                         </div>
                         <div className="flex items-center gap-3 text-sm">
@@ -298,7 +298,7 @@ export default function UsersIndex() {
                 <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <h2 className="text-lg font-semibold text-slate-900">{formTitle}</h2>
                     <p className="mt-1 text-sm text-slate-500">
-                        New user accounts default to admin-level access and can be restricted by assigning an user group.
+                        New admin accounts default to admin-level access and can be restricted by assigning an admin group.
                     </p>
 
                     <form onSubmit={submitNewUser} className="mt-6 grid gap-4 md:grid-cols-2">
@@ -363,7 +363,7 @@ export default function UsersIndex() {
                                     setNewUser((prev) => ({
                                         ...prev,
                                         type: event.target.value,
-                                        user_group_id: event.target.value === 'super-admin' ? '' : prev.user_group_id,
+                                        admin_group_id: event.target.value === 'super-admin' ? '' : prev.admin_group_id,
                                     }))
                                 }
                                 className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
@@ -378,28 +378,28 @@ export default function UsersIndex() {
                             {errors?.type && <span className="text-xs text-rose-500">{errors.type}</span>}
                         </label>
                         <label className="flex flex-col gap-2 text-sm text-slate-600 md:col-span-2 md:max-w-xs">
-                            <span>User group (optional)</span>
+                            <span>Admin group (optional)</span>
                             {newUser.type === 'super-admin' || editingUser?.type === 'super-admin' ? (
                                 <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-2 text-sm text-slate-400">
                                     Super administrators bypass group restrictions.
                                 </div>
                             ) : (
                                 <select
-                                    value={newUser.user_group_id}
+                                    value={newUser.admin_group_id}
                                     onChange={(event) =>
-                                        setNewUser((prev) => ({ ...prev, user_group_id: event.target.value }))
+                                        setNewUser((prev) => ({ ...prev, admin_group_id: event.target.value }))
                                     }
                                     className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                 >
                                     <option value="">Admin (no restrictions)</option>
-                                    {userGroups.map((group) => (
+                                    {adminGroups.map((group) => (
                                         <option key={group.id} value={group.id}>
                                             {group.name}
                                         </option>
                                     ))}
                                 </select>
                             )}
-                            {errors?.user_group_id && <span className="text-xs text-rose-500">{errors.user_group_id}</span>}
+                            {errors?.admin_group_id && <span className="text-xs text-rose-500">{errors.admin_group_id}</span>}
                         </label>
                         <div className="md:col-span-2">
                             <button
@@ -407,7 +407,7 @@ export default function UsersIndex() {
                                 disabled={processing}
                                 className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:opacity-50"
                             >
-                                {editingUser ? 'Save changes' : 'Create user'}
+                                {editingUser ? 'Save changes' : 'Create admin'}
                             </button>
                         </div>
                     </form>
@@ -429,7 +429,7 @@ export default function UsersIndex() {
                                 <th className="px-5 py-3 text-left">Name</th>
                                 <th className="px-5 py-3 text-left">Email</th>
                                 <th className="px-5 py-3 text-left">Role</th>
-                                <th className="px-5 py-3 text-left">User group</th>
+                                <th className="px-5 py-3 text-left">Admin group</th>
                                 <th className="px-5 py-3 text-left">Joined</th>
                                 <th className="px-5 py-3 text-right">Actions</th>
                             </tr>
@@ -444,7 +444,7 @@ export default function UsersIndex() {
                             ) : users.data.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
-                                        No users found.
+                                        No admins found.
                                     </td>
                                 </tr>
                             ) : (
@@ -470,12 +470,12 @@ export default function UsersIndex() {
                                                 </span>
                                             ) : (
                                                 <select
-                                                    value={user.user_group?.id ?? ''}
-                                                    onChange={(event) => updateUserGroup(user, event.target.value)}
+                                                    value={user.admin_group?.id ?? ''}
+                                                    onChange={(event) => updateAdminGroup(user, event.target.value)}
                                                     className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 >
                                                     <option value="">No group assigned</option>
-                                                    {userGroups.map((groupOption) => (
+                                                    {adminGroups.map((groupOption) => (
                                                         <option key={groupOption.id} value={groupOption.id}>
                                                             {groupOption.name}
                                                         </option>
@@ -523,8 +523,8 @@ export default function UsersIndex() {
                 show={deleteConfirm !== null}
                 onClose={() => setDeleteConfirm(null)}
                 onConfirm={handleDelete}
-                title="Delete User Account"
-                message="Are you sure you want to delete this user account? This action cannot be undone."
+                title="Delete Admin Account"
+                message="Are you sure you want to delete this admin account? This action cannot be undone."
                 confirmText="Delete"
                 variant="danger"
             />
@@ -533,8 +533,8 @@ export default function UsersIndex() {
                 show={bulkDeleteConfirm}
                 onClose={() => setBulkDeleteConfirm(false)}
                 onConfirm={handleBulkDelete}
-                title="Delete Users"
-                message={`Are you sure you want to delete ${selectedIds.length} selected user(s)? This action cannot be undone.`}
+                title="Delete Admins"
+                message={`Are you sure you want to delete ${selectedIds.length} selected admin(s)? This action cannot be undone.`}
                 confirmText="Delete"
                 variant="danger"
             />

@@ -34,9 +34,9 @@ describe('Admin Metals & Rates (e2e)', () => {
         await prisma.metals.deleteMany({ where: { code: 'test-metal' } });
 
         // Find an admin user or create one for testing
-        let admin = await prisma.user.findFirst({ where: { type: 'admin' } });
+        let admin = await prisma.admin.findFirst({ where: { type: 'admin' } });
         if (!admin) {
-            admin = await prisma.user.create({
+            admin = await prisma.admin.create({
                 data: {
                     name: 'Admin User',
                     email: 'admin.metal@example.com',

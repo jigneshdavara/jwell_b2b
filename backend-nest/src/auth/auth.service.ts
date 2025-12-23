@@ -20,7 +20,7 @@ import {
     ResendVerificationDto,
 } from './dto/email-verification.dto';
 import { ConfirmPasswordDto } from './dto/password-confirm.dto';
-import { UserType } from '../admin/team-users/dto/team-user.dto';
+import { UserType } from '../admin/admins/dto/admin.dto';
 
 @Injectable()
 export class AuthService {
@@ -37,10 +37,10 @@ export class AuthService {
             throw new BadRequestException('Passwords do not match');
         }
 
-        const existingCustomer = await this.prisma.customer.findUnique({
+        const existingUser = await this.prisma.user.findUnique({
             where: { email },
         });
-        if (existingCustomer) {
+        if (existingUser) {
             throw new ConflictException('Email already registered');
         }
 
@@ -48,7 +48,7 @@ export class AuthService {
 
         return await this.prisma
             .$transaction(async (tx) => {
-                const customer = await tx.customer.create({
+                const user = await tx.user.create({
                     data: {
                         name: rest.name,
                         email,
@@ -56,12 +56,6 @@ export class AuthService {
                         password: hashedPassword,
                         type: rest.account_type,
                         kyc_status: 'pending',
-                    },
-                });
-
-                await tx.userKycProfile.create({
-                    data: {
-                        user_id: customer.id,
                         business_name: rest.business_name,
                         business_website: rest.website,
                         gst_number: rest.gst_number,
@@ -79,36 +73,36 @@ export class AuthService {
                 });
 
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const { password: _, ...result } = customer;
-                const customerId = Number(customer.id);
+                const { password: _, ...result } = user;
+                const userId = Number(user.id);
 
                 // Return result - emails will be sent after transaction commits
                 return {
                     ...result,
                     guard: 'user',
-                    _customerIdForEmail: customerId,
+                    _userIdForEmail: userId,
                 } as any;
             })
             .then((result) => {
                 // Send emails AFTER transaction commits (outside transaction)
-                // This ensures the customer is visible to the main Prisma client
+                // This ensures the user is visible to the main Prisma client
                 // Fire-and-forget: don't await emails to avoid blocking the response
-                const customerId = (result as any)._customerIdForEmail;
-                if (customerId) {
+                const userId = (result as any)._userIdForEmail;
+                if (userId) {
                     // Send emails asynchronously without blocking
-                    this.mailService.sendWelcomeEmail(customerId).catch(() => {
+                    this.mailService.sendWelcomeEmail(userId).catch(() => {
                         // Silently fail - emails are non-critical
                     });
 
                     this.mailService
-                        .sendAdminNewUserNotification(customerId)
+                        .sendAdminNewUserNotification(userId)
                         .catch(() => {
                             // Silently fail - emails are non-critical
                         });
                 }
 
                 // Remove the internal field before returning
-                const { _customerIdForEmail, ...finalResult } = result as any;
+                const { _userIdForEmail, ...finalResult } = result as any;
                 return finalResult;
             });
     }
@@ -120,11 +114,19 @@ export class AuthService {
             email,
             name,
             type,
-            user_group_id,
+            admin_group_id,
         } = registerAdminDto;
 
         if (password !== password_confirmation) {
             throw new BadRequestException('Passwords do not match');
+        }
+
+        // Check if email exists in admins table
+        const existingAdmin = await this.prisma.admin.findUnique({
+            where: { email },
+        });
+        if (existingAdmin) {
+            throw new ConflictException('Email already registered');
         }
 
         // Check if email exists in users table
@@ -135,23 +137,15 @@ export class AuthService {
             throw new ConflictException('Email already registered');
         }
 
-        // Check if email exists in customers table
-        const existingCustomer = await this.prisma.customer.findUnique({
-            where: { email },
-        });
-        if (existingCustomer) {
-            throw new ConflictException('Email already registered');
-        }
-
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const user = await this.prisma.user.create({
+        const user = await this.prisma.admin.create({
             data: {
                 name,
                 email,
                 password: hashedPassword,
                 type: type || UserType.ADMIN,
-                user_group_id: user_group_id ? BigInt(user_group_id) : null,
+                admin_group_id: admin_group_id ? BigInt(admin_group_id) : null,
                 email_verified_at: new Date(),
             },
         });
@@ -169,9 +163,9 @@ export class AuthService {
 
         let user: any;
         if (guard === 'admin') {
-            user = await this.prisma.user.findUnique({ where: { email } });
+            user = await this.prisma.admin.findUnique({ where: { email } });
         } else {
-            user = await this.prisma.customer.findUnique({ where: { email } });
+            user = await this.prisma.user.findUnique({ where: { email } });
         }
 
         if (!user) {
@@ -214,7 +208,7 @@ export class AuthService {
     }
 
     async requestOtp(email: string) {
-        const customer = await this.prisma.customer.findUnique({
+        const customer = await this.prisma.user.findUnique({
             where: { email },
         });
         if (!customer) {
@@ -262,7 +256,7 @@ export class AuthService {
 
     async verifyOtp(verifyOtpDto: VerifyOtpDto) {
         const { email, code } = verifyOtpDto;
-        const customer = await this.prisma.customer.findUnique({
+        const customer = await this.prisma.user.findUnique({
             where: { email },
         });
 
@@ -301,7 +295,7 @@ export class AuthService {
         const { email } = forgotPasswordDto;
 
         // Try customer first, then admin user
-        let user: any = await this.prisma.customer.findUnique({
+        let user: any = await this.prisma.user.findUnique({
             where: { email },
         });
 
@@ -407,7 +401,7 @@ export class AuthService {
         }
 
         // Find user (customer or admin)
-        let user: any = await this.prisma.customer.findUnique({
+        let user: any = await this.prisma.user.findUnique({
             where: { email },
         });
 
@@ -425,8 +419,8 @@ export class AuthService {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         if ('kyc_status' in user) {
-            // Customer
-            await this.prisma.customer.update({
+            // User?
+            await this.prisma.user.update({
                 where: { email },
                 data: { password: hashedPassword },
             });
@@ -455,7 +449,7 @@ export class AuthService {
         const { id, hash } = verifyEmailDto;
 
         // Find user by ID
-        let user: any = await this.prisma.customer.findUnique({
+        let user: any = await this.prisma.user.findUnique({
             where: { id: BigInt(id) },
         });
 
@@ -488,8 +482,8 @@ export class AuthService {
 
         // Mark email as verified
         if ('kyc_status' in user) {
-            // Customer
-            await this.prisma.customer.update({
+            // User?
+            await this.prisma.user.update({
                 where: { id: BigInt(id) },
                 data: { email_verified_at: new Date() },
             });
@@ -513,7 +507,7 @@ export class AuthService {
         const { email } = resendVerificationDto;
 
         // Find user
-        let user: any = await this.prisma.customer.findUnique({
+        let user: any = await this.prisma.user.findUnique({
             where: { email },
         });
 
@@ -572,7 +566,7 @@ export class AuthService {
                 where: { id: BigInt(userId) },
             });
         } else {
-            user = await this.prisma.customer.findUnique({
+            user = await this.prisma.user.findUnique({
                 where: { id: BigInt(userId) },
             });
         }

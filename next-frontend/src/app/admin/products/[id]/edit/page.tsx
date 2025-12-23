@@ -133,7 +133,7 @@ type AdminProductEditPageProps = {
     subcategories: SubcategoryOption[];
     catalogs: CatalogOption[];
     diamonds: OptionListItem[];
-    customerGroups: OptionListItem[];
+    userGroups: OptionListItem[];
     metals: MetalOption[];
     metalPurities: MetalPurityOption[];
     metalTones: MetalToneOption[];

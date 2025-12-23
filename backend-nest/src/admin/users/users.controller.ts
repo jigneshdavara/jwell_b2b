@@ -1,42 +1,42 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseIntPipe, Request } from '@nestjs/common';
-import { CustomersService } from './customers.service';
-import { CustomerFilterDto, UpdateCustomerStatusDto, UpdateCustomerGroupDto } from './dto/customer.dto';
+import { UsersService } from './users.service';
+import { UserFilterDto, UpdateUserStatusDto, UpdateUserGroupDto } from './dto/user.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
 
-@Controller('admin/customers')
+@Controller('admin/users')
 @UseGuards(JwtAuthGuard)
-export class CustomersController {
-  constructor(private readonly customersService: CustomersService) {}
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  findAll(@Query() filters: CustomerFilterDto) {
-    return this.customersService.findAll(filters);
+  findAll(@Query() filters: UserFilterDto) {
+    return this.usersService.findAll(filters);
   }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.customersService.findOne(id);
+    return this.usersService.findOne(id);
   }
 
   @Post(':id/kyc-status')
-  updateStatus(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateCustomerStatusDto) {
-    return this.customersService.updateStatus(id, dto);
+  updateStatus(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserStatusDto) {
+    return this.usersService.updateStatus(id, dto);
   }
 
   @Post(':id/toggle-status')
   toggleStatus(@Param('id', ParseIntPipe) id: number) {
-    return this.customersService.toggleStatus(id);
+    return this.usersService.toggleStatus(id);
   }
 
   @Patch(':id/group')
-  updateGroup(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateCustomerGroupDto) {
-    return this.customersService.updateGroup(id, dto);
+  updateGroup(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserGroupDto) {
+    return this.usersService.updateGroup(id, dto);
   }
 
   @Post(':id/kyc-messages')
   addKycMessage(@Param('id', ParseIntPipe) id: number, @Body('message') message: string, @Request() req: any) {
     const adminId = req.user?.userId ? BigInt(req.user.userId) : null;
-    return this.customersService.addKycMessage(id, message, adminId);
+    return this.usersService.addKycMessage(id, message, adminId);
   }
 
   @Patch(':id/kyc-documents/:docId')
@@ -45,16 +45,16 @@ export class CustomersController {
     @Param('docId', ParseIntPipe) docId: number,
     @Body() body: { status: string; remarks?: string }
   ) {
-    return this.customersService.updateDocumentStatus(id, docId, body.status, body.remarks);
+    return this.usersService.updateDocumentStatus(id, docId, body.status, body.remarks);
   }
 
   @Post(':id/kyc-comments')
   toggleKycComments(@Param('id', ParseIntPipe) id: number, @Body('allow_replies') allowReplies: boolean) {
-    return this.customersService.toggleKycComments(id, allowReplies);
+    return this.usersService.toggleKycComments(id, allowReplies);
   }
 
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
-    return this.customersService.remove(id);
+    return this.usersService.remove(id);
   }
 }

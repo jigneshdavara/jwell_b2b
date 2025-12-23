@@ -8,7 +8,7 @@ export enum UserType {
   SALES = 'sales',
 }
 
-export class CreateTeamUserDto {
+export class CreateAdminDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(191)
@@ -30,10 +30,10 @@ export class CreateTeamUserDto {
 
   @IsInt()
   @IsOptional()
-  user_group_id?: number;
+  admin_group_id?: number;
 }
 
-export class UpdateTeamUserDto {
+export class UpdateAdminDto {
   @IsString()
   @IsOptional()
   @MaxLength(191)
@@ -55,13 +55,13 @@ export class UpdateTeamUserDto {
 
   @IsInt()
   @IsOptional()
-  user_group_id?: number;
+  admin_group_id?: number;
 }
 
-export class UpdateUserGroupDto {
+export class UpdateAdminGroupDto {
   @IsInt()
   @IsOptional()
-  user_group_id?: number | null;
+  admin_group_id?: number | null;
 }
 
 export class BulkDestroyDto {

@@ -61,26 +61,7 @@ describe('Customer Registration (e2e)', () => {
             },
         });
 
-        // Delete KYC profiles
-        const customers = await prisma.customer.findMany({
-            where: {
-                email: {
-                    in: testEmails,
-                },
-            },
-            select: { id: true },
-        });
-
-        if (customers.length > 0) {
-            const customerIds = customers.map((c) => c.id);
-            await prisma.userKycProfile.deleteMany({
-                where: {
-                    user_id: {
-                        in: customerIds,
-                    },
-                },
-            });
-        }
+        // KYC profile fields are now in customers table, no separate deletion needed
     });
 
     describe('POST /api/auth/register', () => {
@@ -143,15 +124,10 @@ describe('Customer Registration (e2e)', () => {
             expect(customer?.password).not.toBe('password123');
             expect(customer?.password).toMatch(/^\$2[aby]\$/); // bcrypt hash format
 
-            // Verify KYC profile was created
-            const kycProfile = await prisma.userKycProfile.findFirst({
-                where: { user_id: customer?.id },
-            });
-
-            expect(kycProfile).toBeTruthy();
-            expect(kycProfile?.business_name).toBe('Test Business');
-            expect(kycProfile?.gst_number).toBe('27ABCDE1234F1Z5');
-            expect(kycProfile?.pan_number).toBe('ABCDE1234F');
+            // Verify KYC profile fields were created in customer record
+            expect(customer?.business_name).toBe('Test Business');
+            expect(customer?.gst_number).toBe('27ABCDE1234F1Z5');
+            expect(customer?.pan_number).toBe('ABCDE1234F');
         }, 10000); // 10 second timeout
 
         it.skip('should successfully register a new customer (wholesaler)', async () => {
@@ -328,25 +304,21 @@ describe('Customer Registration (e2e)', () => {
                 where: { email: 'register.test1@example.com' },
             });
 
-            const kycProfile = await prisma.userKycProfile.findFirst({
-                where: { user_id: customer?.id },
-            });
-
-            expect(kycProfile).toBeTruthy();
-            expect(kycProfile?.business_website).toBe(
+            // Verify KYC profile fields in customer record
+            expect(customer?.business_website).toBe(
                 'https://completebusiness.com',
             );
-            expect(kycProfile?.gst_number).toBe('27ABCDE1234F1Z5');
-            expect(kycProfile?.pan_number).toBe('ABCDE1234F');
-            expect(kycProfile?.registration_number).toBe('REG789012');
-            expect(kycProfile?.address_line1).toBe('456 Complete Street');
-            expect(kycProfile?.address_line2).toBe('Suite 100');
-            expect(kycProfile?.city).toBe('Delhi');
-            expect(kycProfile?.state).toBe('Delhi');
-            expect(kycProfile?.postal_code).toBe('110001');
-            expect(kycProfile?.country).toBe('India');
-            expect(kycProfile?.contact_name).toBe('Contact Person');
-            expect(kycProfile?.contact_phone).toBe('+919876543299');
+            expect(customer?.gst_number).toBe('27ABCDE1234F1Z5');
+            expect(customer?.pan_number).toBe('ABCDE1234F');
+            expect(customer?.registration_number).toBe('REG789012');
+            expect(customer?.address_line1).toBe('456 Complete Street');
+            expect(customer?.address_line2).toBe('Suite 100');
+            expect(customer?.city).toBe('Delhi');
+            expect(customer?.state).toBe('Delhi');
+            expect(customer?.postal_code).toBe('110001');
+            expect(customer?.country).toBe('India');
+            expect(customer?.contact_name).toBe('Contact Person');
+            expect(customer?.contact_phone).toBe('+919876543299');
         });
 
         it.skip('should use name and phone as defaults for contact_name and contact_phone', async () => {
@@ -370,12 +342,9 @@ describe('Customer Registration (e2e)', () => {
                 where: { email: 'register.test2@example.com' },
             });
 
-            const kycProfile = await prisma.userKycProfile.findFirst({
-                where: { user_id: customer?.id },
-            });
-
-            expect(kycProfile?.contact_name).toBe('Test User');
-            expect(kycProfile?.contact_phone).toBe('+919876543212');
+            // Verify contact defaults in customer record
+            expect(customer?.contact_name).toBe('Test User');
+            expect(customer?.contact_phone).toBe('+919876543212');
         });
 
         it.skip('should set default country to India when not provided', async () => {
@@ -399,11 +368,8 @@ describe('Customer Registration (e2e)', () => {
                 where: { email: 'register.test3@example.com' },
             });
 
-            const kycProfile = await prisma.userKycProfile.findFirst({
-                where: { user_id: customer?.id },
-            });
-
-            expect(kycProfile?.country).toBe('India');
+            // Verify default country in customer record
+            expect(customer?.country).toBe('India');
         });
 
         it.skip('should send welcome email and admin notification on registration', async () => {
@@ -493,10 +459,8 @@ describe('Customer Registration (e2e)', () => {
             });
             expect(customer).toBeTruthy();
 
-            const kycProfile = await prisma.userKycProfile.findFirst({
-                where: { user_id: customer?.id },
-            });
-            expect(kycProfile).toBeTruthy();
+            // Verify customer was created (KYC fields are now in customer table)
+            expect(customer).toBeTruthy();
         });
     });
 });

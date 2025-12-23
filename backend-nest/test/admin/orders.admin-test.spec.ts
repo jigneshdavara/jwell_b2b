@@ -40,12 +40,12 @@ describe('Admin Orders (e2e)', () => {
         await prisma.order_statuses.deleteMany({});
 
         // Create test admin user and login
-        let admin = await prisma.user.findFirst({
+        let admin = await prisma.admin.findFirst({
             where: { email: 'admin@test.com' },
         });
 
         if (!admin) {
-            admin = await prisma.user.create({
+            admin = await prisma.admin.create({
                 data: {
                     email: 'admin@test.com',
                     password:
@@ -249,12 +249,12 @@ describe('Admin Order Statuses (e2e)', () => {
         await prisma.order_statuses.deleteMany({});
 
         // Create test admin user and login
-        let admin = await prisma.user.findFirst({
+        let admin = await prisma.admin.findFirst({
             where: { email: 'admin@test.com' },
         });
 
         if (!admin) {
-            admin = await prisma.user.create({
+            admin = await prisma.admin.create({
                 data: {
                     email: 'admin@test.com',
                     password:

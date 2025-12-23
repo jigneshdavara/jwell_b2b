@@ -89,8 +89,8 @@ export class MailController {
 
     @Post('quotation-submitted-customer')
     @HttpCode(HttpStatus.OK)
-    async sendQuotationSubmittedCustomer(@Body() dto: SendQuotationSubmittedDto): Promise<{ success: boolean }> {
-        await this.mailService.sendQuotationSubmittedCustomer(dto.quotationId);
+    async sendQuotationSubmittedUser(@Body() dto: SendQuotationSubmittedDto): Promise<{ success: boolean }> {
+        await this.mailService.sendQuotationSubmittedUser(dto.quotationId);
         return { success: true };
     }
 

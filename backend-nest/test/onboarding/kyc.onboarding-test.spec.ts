@@ -37,7 +37,7 @@ describe('Onboarding KYC (e2e)', () => {
         // Cleanup
         await prisma.user_kyc_messages.deleteMany({});
         await prisma.user_kyc_documents.deleteMany({});
-        await prisma.userKycProfile.deleteMany({});
+        // KYC profile fields are now in customers table, no separate cleanup needed
         await prisma.customer.deleteMany({
             where: { email: 'kyc-customer@test.com' },
         });

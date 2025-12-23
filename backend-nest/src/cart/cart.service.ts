@@ -64,7 +64,7 @@ export class CartService {
 
     async summarize(userId: bigint) {
         const cart = await this.getActiveCart(userId);
-        const user = await this.prisma.customer.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: userId },
         });
 
@@ -78,10 +78,10 @@ export class CartService {
                             ? Number(item.product_variant_id)
                             : null,
                         quantity: item.quantity,
-                        customer_group_id: user?.customer_group_id
-                            ? Number(user.customer_group_id)
+                        user_group_id: user?.user_group_id
+                            ? Number(user.user_group_id)
                             : undefined,
-                        customer_type: user?.type || undefined,
+                        user_type: user?.type || undefined,
                     },
                 );
 
@@ -186,7 +186,7 @@ export class CartService {
             throw new NotFoundException('Product not found');
         }
 
-        const user = await this.prisma.customer.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: userId },
         });
 
@@ -225,10 +225,10 @@ export class CartService {
             {
                 variant_id: variantId ? Number(variantId) : null,
                 quantity: targetQuantity,
-                customer_group_id: user?.customer_group_id
-                    ? Number(user.customer_group_id)
+                user_group_id: user?.user_group_id
+                    ? Number(user.user_group_id)
                     : undefined,
-                customer_type: user?.type || undefined,
+                user_type: user?.type || undefined,
             },
         );
 

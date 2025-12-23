@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-export class CustomerFilterDto {
+export class UserFilterDto {
     @IsOptional()
     @IsString()
     status?: string;
@@ -20,7 +20,7 @@ export class CustomerFilterDto {
     @IsOptional()
     @IsInt()
     @Transform(({ value }) => parseInt(value))
-    customer_group_id?: number;
+    user_group_id?: number;
 
     @IsOptional()
     @IsString()
@@ -44,7 +44,7 @@ export class CustomerFilterDto {
     per_page?: number = 20;
 }
 
-export class UpdateCustomerStatusDto {
+export class UpdateUserStatusDto {
     @IsString()
     kyc_status: string;
 
@@ -53,7 +53,7 @@ export class UpdateCustomerStatusDto {
     kyc_notes?: string;
 }
 
-export class UpdateCustomerGroupDto {
+export class UpdateUserGroupDto {
     @IsInt()
-    customer_group_id: number;
+    user_group_id: number;
 }

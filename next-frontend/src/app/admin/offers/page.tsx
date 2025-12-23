@@ -7,8 +7,8 @@ import { adminService } from '@/services/adminService';
 
 type OfferConstraints = {
     min_order_total?: number | null;
-    customer_types?: string[] | null;
-    customer_group_ids?: number[] | null;
+    user_types?: string[] | null;
+    user_group_ids?: number[] | null;
 };
 
 type OfferRow = {
@@ -26,17 +26,17 @@ type OfferRow = {
     updated_at?: string | null;
 };
 
-type CustomerTypeOption = {
+type UserTypeOption = {
     value: string;
     label: string;
 };
 
-type CustomerGroupOption = {
+type UserGroupOption = {
     id: number;
     name: string;
 };
 
-const customerTypes: CustomerTypeOption[] = [
+const userTypes: UserTypeOption[] = [
     { value: 'retailer', label: 'Retailer' },
     { value: 'wholesaler', label: 'Wholesaler' },
 ];
@@ -46,28 +46,28 @@ const offerTypes = ['percentage', 'fixed', 'free_shipping', 'buy_x_get_y'];
 export default function AdminOffersIndex() {
     const [loading, setLoading] = useState(true);
     const [offers, setOffers] = useState<OfferRow[]>([]);
-    const [customerGroups, setCustomerGroups] = useState<CustomerGroupOption[]>([]);
+    const [userGroups, setUserGroups] = useState<UserGroupOption[]>([]);
     const [editingOffer, setEditingOffer] = useState<OfferRow | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<OfferRow | null>(null);
 
     const defaultType = useMemo(() => offerTypes[0] ?? 'percentage', []);
 
-    const customerTypeLabels = useMemo(
+    const userTypeLabels = useMemo(
         () =>
-            customerTypes.reduce<Record<string, string>>((carry, option) => {
+            userTypes.reduce<Record<string, string>>((carry, option) => {
                 carry[option.value] = option.label;
                 return carry;
             }, {}),
         [],
     );
 
-    const customerGroupLabels = useMemo(
+    const userGroupLabels = useMemo(
         () =>
-            customerGroups.reduce<Record<number, string>>((carry, group) => {
+            userGroups.reduce<Record<number, string>>((carry, group) => {
                 carry[group.id] = group.name;
                 return carry;
             }, {}),
-        [customerGroups],
+        [userGroups],
     );
 
     const [formData, setFormData] = useState({
@@ -80,8 +80,8 @@ export default function AdminOffersIndex() {
         ends_at: '',
         is_active: true,
         min_order_total: '',
-        customer_types: [] as string[],
-        customer_group_ids: [] as string[],
+        user_types: [] as string[],
+        user_group_ids: [] as string[],
     });
     const [processing, setProcessing] = useState(false);
 
@@ -92,8 +92,8 @@ export default function AdminOffersIndex() {
 
     const loadFormOptions = async () => {
         try {
-            const customerGroupsRes = await adminService.getCustomerGroups(1, 100);
-            setCustomerGroups((customerGroupsRes.data.items || customerGroupsRes.data.data || []).map((g: any) => ({ id: Number(g.id), name: g.name })));
+            const userGroupsRes = await adminService.getUserGroups(1, 100);
+            setUserGroups((userGroupsRes.data.items || userGroupsRes.data.data || []).map((g: any) => ({ id: Number(g.id), name: g.name })));
         } catch (error) {
             console.error('Failed to load form options:', error);
         }
@@ -115,9 +115,9 @@ export default function AdminOffersIndex() {
                 value: Number(item.value || 0),
                 constraints: item.constraints ? {
                     min_order_total: item.constraints.min_order_total ? Number(item.constraints.min_order_total) : null,
-                    customer_types: Array.isArray(item.constraints.customer_types) ? item.constraints.customer_types : null,
-                    customer_group_ids: Array.isArray(item.constraints.customer_group_ids) 
-                        ? item.constraints.customer_group_ids.map((id: any) => Number(id))
+                    user_types: Array.isArray(item.constraints.user_types) ? item.constraints.user_types : null,
+                    user_group_ids: Array.isArray(item.constraints.user_group_ids) 
+                        ? item.constraints.user_group_ids.map((id: any) => Number(id))
                         : null,
                 } : null,
                 starts_at: item.starts_at,
@@ -145,8 +145,8 @@ export default function AdminOffersIndex() {
             ends_at: '',
             is_active: true,
             min_order_total: '',
-            customer_types: [],
-            customer_group_ids: [],
+            user_types: [],
+            user_group_ids: [],
         });
         setEditingOffer(null);
     };
@@ -163,9 +163,9 @@ export default function AdminOffersIndex() {
             ends_at: offer.ends_at ? offer.ends_at.split('T')[0] : '',
             is_active: offer.is_active,
             min_order_total: offer.constraints?.min_order_total != null ? String(offer.constraints.min_order_total) : '',
-            customer_types: offer.constraints?.customer_types?.filter(Boolean) ?? [],
-            customer_group_ids:
-                offer.constraints?.customer_group_ids
+            user_types: offer.constraints?.user_types?.filter(Boolean) ?? [],
+            user_group_ids:
+                offer.constraints?.user_group_ids
                     ?.filter((groupId): groupId is number => typeof groupId === 'number')
                     .map((groupId) => String(groupId)) ?? [],
         });
@@ -175,12 +175,12 @@ export default function AdminOffersIndex() {
         event.preventDefault();
         setProcessing(true);
         try {
-            const normalizedCustomerTypes = Array.from(
-                new Set(formData.customer_types.filter((type) => Boolean(customerTypeLabels[type]))),
+            const normalizedUserTypes = Array.from(
+                new Set(formData.user_types.filter((type) => Boolean(userTypeLabels[type]))),
             );
-            const customerGroupIds = Array.from(
+            const userGroupIds = Array.from(
                 new Set(
-                    formData.customer_group_ids
+                    formData.user_group_ids
                         .map((value) => Number(value))
                         .filter((value) => Number.isInteger(value) && value > 0),
                 ),
@@ -194,8 +194,8 @@ export default function AdminOffersIndex() {
                 value: Number(formData.value || 0),
                 constraints: {
                     min_order_total: formData.min_order_total ? Number(formData.min_order_total) : null,
-                    customer_types: normalizedCustomerTypes.length ? normalizedCustomerTypes : null,
-                    customer_group_ids: customerGroupIds.length ? customerGroupIds : null,
+                    user_types: normalizedUserTypes.length ? normalizedUserTypes : null,
+                    user_group_ids: userGroupIds.length ? userGroupIds : null,
                 },
                 starts_at: formData.starts_at || null,
                 ends_at: formData.ends_at || null,
@@ -378,8 +378,8 @@ export default function AdminOffersIndex() {
                             Eligible customer types
                         </legend>
                         <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600">
-                            {customerTypes.map((type) => {
-                                const checked = formData.customer_types.includes(type.value);
+                            {userTypes.map((type) => {
+                                const checked = formData.user_types.includes(type.value);
                                 return (
                                     <label key={type.value} className="inline-flex items-center gap-2">
                                         <input
@@ -387,11 +387,11 @@ export default function AdminOffersIndex() {
                                             checked={checked}
                                             onChange={(event) => {
                                                 if (event.target.checked) {
-                                                    setFormData({ ...formData, customer_types: [...formData.customer_types, type.value] });
+                                                    setFormData({ ...formData, user_types: [...formData.user_types, type.value] });
                                                 } else {
                                                     setFormData({
                                                         ...formData,
-                                                        customer_types: formData.customer_types.filter((value) => value !== type.value),
+                                                        user_types: formData.user_types.filter((value) => value !== type.value),
                                                     });
                                                 }
                                             }}
@@ -409,14 +409,14 @@ export default function AdminOffersIndex() {
                             Eligible customer groups
                         </legend>
                         <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600">
-                            {customerGroups.length === 0 ? (
+                            {userGroups.length === 0 ? (
                                 <p className="text-xs uppercase tracking-widest text-slate-400">
                                     No customer groups configured. All groups will be eligible.
                                 </p>
                             ) : (
-                                customerGroups.map((group) => {
+                                userGroups.map((group) => {
                                     const value = String(group.id);
-                                    const checked = formData.customer_group_ids.includes(value);
+                                    const checked = formData.user_group_ids.includes(value);
                                     return (
                                         <label key={group.id} className="inline-flex items-center gap-2">
                                             <input
@@ -424,11 +424,11 @@ export default function AdminOffersIndex() {
                                                 checked={checked}
                                                 onChange={(event) => {
                                                     if (event.target.checked) {
-                                                        setFormData({ ...formData, customer_group_ids: [...formData.customer_group_ids, value] });
+                                                        setFormData({ ...formData, user_group_ids: [...formData.user_group_ids, value] });
                                                     } else {
                                                         setFormData({
                                                             ...formData,
-                                                            customer_group_ids: formData.customer_group_ids.filter((id) => id !== value),
+                                                            user_group_ids: formData.user_group_ids.filter((id) => id !== value),
                                                         });
                                                     }
                                                 }}
@@ -501,16 +501,16 @@ export default function AdminOffersIndex() {
                                                 )}
                                                 <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.25em] text-slate-400">
                                                     <span>
-                                                        {offer.constraints?.customer_types?.length
-                                                            ? `Customers: ${offer.constraints.customer_types
-                                                                  .map((type) => customerTypeLabels[type] ?? type)
+                                                        {offer.constraints?.user_types?.length
+                                                            ? `Customers: ${offer.constraints.user_types
+                                                                  .map((type) => userTypeLabels[type] ?? type)
                                                                   .join(', ')}`
                                                             : 'Customers: All'}
                                                     </span>
                                                     <span>
-                                                        {offer.constraints?.customer_group_ids?.length
-                                                            ? `Groups: ${offer.constraints.customer_group_ids
-                                                                  .map((id) => customerGroupLabels[id] ?? `#${id}`)
+                                                        {offer.constraints?.user_group_ids?.length
+                                                            ? `Groups: ${offer.constraints.user_group_ids
+                                                                  .map((id) => userGroupLabels[id] ?? `#${id}`)
                                                                   .join(', ')}`
                                                             : 'Groups: All'}
                                                     </span>

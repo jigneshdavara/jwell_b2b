@@ -130,7 +130,7 @@ export default function AdminDashboardOverview() {
                         <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500/70">Approvals awaiting action</p>
                     </div>
                     <Link
-                        href="/admin/customers"
+                        href="/admin/users"
                         className="text-xs font-semibold text-sky-600 hover:text-sky-500"
                     >
                         View all

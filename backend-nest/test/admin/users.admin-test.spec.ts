@@ -32,7 +32,7 @@ describe('Admin Users & Groups (e2e)', () => {
         authService = moduleFixture.get<AuthService>(AuthService);
 
         // Clean up test data
-        await prisma.user.deleteMany({
+        await prisma.admin.deleteMany({
             where: { email: 'team.test@example.com' },
         });
         await prisma.user_groups.deleteMany({
@@ -40,17 +40,17 @@ describe('Admin Users & Groups (e2e)', () => {
         });
 
         // Find an admin user or create one for testing
-        let admin = await prisma.user.findFirst({
+        let admin = await prisma.admin.findFirst({
             where: { type: 'super-admin' },
         });
         if (!admin) {
-            admin = await prisma.user.findFirst({
+            admin = await prisma.admin.findFirst({
                 where: { type: 'admin' },
             });
         }
 
         if (!admin) {
-            admin = await prisma.user.create({
+            admin = await prisma.admin.create({
                 data: {
                     name: 'Admin User',
                     email: 'admin.test@example.com',

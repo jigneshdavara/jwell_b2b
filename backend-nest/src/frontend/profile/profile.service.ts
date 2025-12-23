@@ -13,7 +13,7 @@ export class ProfileService {
     constructor(private prisma: PrismaService) {}
 
     async getProfile(userId: bigint): Promise<ProfileResponseDto> {
-        const user = await this.prisma.customer.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: userId },
         });
 
@@ -40,7 +40,7 @@ export class ProfileService {
         userId: bigint,
         dto: UpdateProfileDto,
     ): Promise<ProfileResponseDto> {
-        const user = await this.prisma.customer.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: userId },
         });
 
@@ -53,7 +53,7 @@ export class ProfileService {
 
         // Check email uniqueness if email is being changed
         if (emailChanged) {
-            const existingUser = await this.prisma.customer.findFirst({
+            const existingUser = await this.prisma.user.findFirst({
                 where: {
                     email: dto.email.toLowerCase(),
                     id: { not: userId },
@@ -79,7 +79,7 @@ export class ProfileService {
             updateData.email_verified_at = null;
         }
 
-        const updatedUser = await this.prisma.customer.update({
+        const updatedUser = await this.prisma.user.update({
             where: { id: userId },
             data: updateData,
         });
@@ -103,7 +103,7 @@ export class ProfileService {
         userId: bigint,
         password: string,
     ): Promise<{ message: string }> {
-        const user = await this.prisma.customer.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: userId },
         });
 
@@ -122,7 +122,7 @@ export class ProfileService {
         }
 
         // Delete user account
-        await this.prisma.customer.delete({
+        await this.prisma.user.delete({
             where: { id: userId },
         });
 

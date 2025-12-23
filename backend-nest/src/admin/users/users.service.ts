@@ -1,18 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CustomerFilterDto, UpdateCustomerStatusDto, UpdateCustomerGroupDto } from './dto/customer.dto';
+import { UserFilterDto, UpdateUserStatusDto, UpdateUserGroupDto } from './dto/user.dto';
 
 @Injectable()
-export class CustomersService {
+export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(filters: CustomerFilterDto) {
+  async findAll(filters: UserFilterDto) {
     const { 
       page = 1, 
       per_page = 20, 
       search, 
       status, 
-      customer_group_id, 
+      user_group_id, 
       type, 
       only_active 
     } = filters;
@@ -36,8 +36,8 @@ export class CustomersService {
       where.AND.push({ kyc_status: status });
     }
 
-    if (customer_group_id) {
-      where.AND.push({ customer_group_id: BigInt(customer_group_id) });
+    if (user_group_id) {
+      where.AND.push({ user_group_id: BigInt(user_group_id) });
     }
 
     if (type) {
@@ -49,16 +49,13 @@ export class CustomersService {
     }
 
     const [items, total] = await Promise.all([
-      this.prisma.customer.findMany({
+      this.prisma.user.findMany({
         where,
         skip,
         take: per_page,
         include: {
-          customer_groups: {
+          user_groups: {
             select: { id: true, name: true }
-          },
-          kycProfile: {
-            select: { business_name: true, city: true, state: true }
           },
           _count: {
             select: { user_kyc_documents: true }
@@ -66,7 +63,7 @@ export class CustomersService {
         },
         orderBy: { created_at: 'desc' },
       }),
-      this.prisma.customer.count({ where }),
+      this.prisma.user.count({ where }),
     ]);
 
     // Map to match Laravel response structure
@@ -79,15 +76,15 @@ export class CustomersService {
       kyc_status: user.kyc_status,
       kyc_notes: user.kyc_notes,
       kyc_document_count: user._count.user_kyc_documents,
-      customer_group: user.customer_groups ? {
-        id: Number(user.customer_groups.id),
-        name: user.customer_groups.name,
+      customer_group: user.user_groups ? {
+        id: Number(user.user_groups.id),
+        name: user.user_groups.name,
       } : null,
-      kyc_profile: user.kycProfile && user.kycProfile.length > 0 ? {
-        business_name: user.kycProfile[0].business_name,
-        city: user.kycProfile[0].city,
-        state: user.kycProfile[0].state,
-      } : null,
+      kyc_profile: {
+        business_name: user.business_name,
+        city: user.city,
+        state: user.state,
+      },
       joined_at: user.created_at,
     }));
 
@@ -107,11 +104,11 @@ export class CustomersService {
 
   async getStats() {
     const [total, pending, review, approved, rejected] = await Promise.all([
-      this.prisma.customer.count(),
-      this.prisma.customer.count({ where: { kyc_status: 'pending' } }),
-      this.prisma.customer.count({ where: { kyc_status: 'review' } }),
-      this.prisma.customer.count({ where: { kyc_status: 'approved' } }),
-      this.prisma.customer.count({ where: { kyc_status: 'rejected' } }),
+      this.prisma.user.count(),
+      this.prisma.user.count({ where: { kyc_status: 'pending' } }),
+      this.prisma.user.count({ where: { kyc_status: 'review' } }),
+      this.prisma.user.count({ where: { kyc_status: 'approved' } }),
+      this.prisma.user.count({ where: { kyc_status: 'rejected' } }),
     ]);
 
     return {
@@ -123,11 +120,11 @@ export class CustomersService {
     };
   }
 
-  async updateStatus(id: number, dto: UpdateCustomerStatusDto) {
-    const customer = await this.prisma.customer.findUnique({ where: { id: BigInt(id) } });
-    if (!customer) throw new NotFoundException('Customer not found');
+  async updateStatus(id: number, dto: UpdateUserStatusDto) {
+    const customer = await this.prisma.user.findUnique({ where: { id: BigInt(id) } });
+    if (!customer) throw new NotFoundException('User? not found');
 
-    return await this.prisma.customer.update({
+    return await this.prisma.user.update({
       where: { id: BigInt(id) },
       data: {
         kyc_status: dto.kyc_status,
@@ -136,23 +133,23 @@ export class CustomersService {
     });
   }
 
-  async updateGroup(id: number, dto: UpdateCustomerGroupDto) {
-    const customer = await this.prisma.customer.findUnique({ where: { id: BigInt(id) } });
-    if (!customer) throw new NotFoundException('Customer not found');
+  async updateGroup(id: number, dto: UpdateUserGroupDto) {
+    const customer = await this.prisma.user.findUnique({ where: { id: BigInt(id) } });
+    if (!customer) throw new NotFoundException('User? not found');
 
-    return await this.prisma.customer.update({
+    return await this.prisma.user.update({
       where: { id: BigInt(id) },
       data: {
-        customer_group_id: BigInt(dto.customer_group_id),
+        user_group_id: BigInt(dto.user_group_id),
       },
     });
   }
 
   async toggleStatus(id: number) {
-    const customer = await this.prisma.customer.findUnique({ where: { id: BigInt(id) } });
-    if (!customer) throw new NotFoundException('Customer not found');
+    const customer = await this.prisma.user.findUnique({ where: { id: BigInt(id) } });
+    if (!customer) throw new NotFoundException('User? not found');
 
-    return await this.prisma.customer.update({
+    return await this.prisma.user.update({
       where: { id: BigInt(id) },
       data: {
         is_active: !customer.is_active,
@@ -161,32 +158,11 @@ export class CustomersService {
   }
 
   async findOne(id: number) {
-    const customer = await this.prisma.customer.findUnique({
+    const customer = await this.prisma.user.findUnique({
       where: { id: BigInt(id) },
       include: {
-        customer_groups: {
+        user_groups: {
           select: { id: true, name: true }
-        },
-        kycProfile: {
-          select: {
-            id: true,
-            business_name: true,
-            business_website: true,
-            gst_number: true,
-            pan_number: true,
-            registration_number: true,
-            address_line1: true,
-            address_line2: true,
-            city: true,
-            state: true,
-            postal_code: true,
-            country: true,
-            contact_name: true,
-            contact_phone: true,
-            metadata: true,
-            created_at: true,
-            updated_at: true,
-          }
         },
         user_kyc_documents: {
           orderBy: { created_at: 'desc' }
@@ -209,7 +185,7 @@ export class CustomersService {
     });
 
     if (!customer) {
-      throw new NotFoundException('Customer not found');
+      throw new NotFoundException('User? not found');
     }
 
     // Type assertion to handle Prisma include types - Prisma types may not include all relations
@@ -225,29 +201,26 @@ export class CustomersService {
       kyc_status: cust.kyc_status,
       kyc_notes: cust.kyc_notes,
       kyc_comments_enabled: cust.kyc_comments_enabled,
-      customer_group: cust.customer_groups ? {
-        id: Number(cust.customer_groups.id),
-        name: cust.customer_groups.name,
+      customer_group: cust.user_groups ? {
+        id: Number(cust.user_groups.id),
+        name: cust.user_groups.name,
       } : null,
-      kyc_profile: cust.kycProfile && cust.kycProfile.length > 0 ? {
-        id: Number(cust.kycProfile[0].id),
-        business_name: cust.kycProfile[0].business_name,
-        business_website: cust.kycProfile[0].business_website,
-        gst_number: cust.kycProfile[0].gst_number,
-        pan_number: cust.kycProfile[0].pan_number,
-        registration_number: cust.kycProfile[0].registration_number,
-        address_line1: cust.kycProfile[0].address_line1,
-        address_line2: cust.kycProfile[0].address_line2,
-        city: cust.kycProfile[0].city,
-        state: cust.kycProfile[0].state,
-        postal_code: cust.kycProfile[0].postal_code,
-        country: cust.kycProfile[0].country,
-        contact_name: cust.kycProfile[0].contact_name,
-        contact_phone: cust.kycProfile[0].contact_phone,
-        metadata: cust.kycProfile[0].metadata,
-        created_at: cust.kycProfile[0].created_at,
-        updated_at: cust.kycProfile[0].updated_at,
-      } : null,
+      kyc_profile: {
+        business_name: cust.business_name,
+        business_website: cust.business_website,
+        gst_number: cust.gst_number,
+        pan_number: cust.pan_number,
+        registration_number: cust.registration_number,
+        address_line1: cust.address_line1,
+        address_line2: cust.address_line2,
+        city: cust.city,
+        state: cust.state,
+        postal_code: cust.postal_code,
+        country: cust.country,
+        contact_name: cust.contact_name,
+        contact_phone: cust.contact_phone,
+        metadata: cust.kyc_metadata,
+      },
       kyc_documents: (cust.user_kyc_documents || []).map((doc: any) => ({
         id: Number(doc.id),
         type: doc.type,
@@ -277,8 +250,8 @@ export class CustomersService {
   }
 
   async addKycMessage(id: number, message: string, adminId: bigint | null = null) {
-    const customer = await this.prisma.customer.findUnique({ where: { id: BigInt(id) } });
-    if (!customer) throw new NotFoundException('Customer not found');
+    const customer = await this.prisma.user.findUnique({ where: { id: BigInt(id) } });
+    if (!customer) throw new NotFoundException('User? not found');
 
     return await this.prisma.user_kyc_messages.create({
       data: {
@@ -291,8 +264,8 @@ export class CustomersService {
   }
 
   async updateDocumentStatus(id: number, docId: number, status: string, remarks?: string) {
-    const customer = await this.prisma.customer.findUnique({ where: { id: BigInt(id) } });
-    if (!customer) throw new NotFoundException('Customer not found');
+    const customer = await this.prisma.user.findUnique({ where: { id: BigInt(id) } });
+    if (!customer) throw new NotFoundException('User? not found');
 
     const document = await this.prisma.user_kyc_documents.findUnique({
       where: { id: BigInt(docId) },
@@ -311,10 +284,10 @@ export class CustomersService {
   }
 
   async toggleKycComments(id: number, allowReplies: boolean) {
-    const customer = await this.prisma.customer.findUnique({ where: { id: BigInt(id) } });
-    if (!customer) throw new NotFoundException('Customer not found');
+    const customer = await this.prisma.user.findUnique({ where: { id: BigInt(id) } });
+    if (!customer) throw new NotFoundException('User? not found');
 
-    return await this.prisma.customer.update({
+    return await this.prisma.user.update({
       where: { id: BigInt(id) },
       data: {
         kyc_comments_enabled: allowReplies,
@@ -323,10 +296,10 @@ export class CustomersService {
   }
 
   async remove(id: number) {
-    const customer = await this.prisma.customer.findUnique({ where: { id: BigInt(id) } });
-    if (!customer) throw new NotFoundException('Customer not found');
+    const customer = await this.prisma.user.findUnique({ where: { id: BigInt(id) } });
+    if (!customer) throw new NotFoundException('User? not found');
 
-    return await this.prisma.customer.delete({
+    return await this.prisma.user.delete({
       where: { id: BigInt(id) },
     });
   }

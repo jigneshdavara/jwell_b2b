@@ -107,7 +107,7 @@ describe('KYC Module (e2e)', () => {
 
     it('PATCH /kyc/:id/status (Admin) - Should simulate admin approval', async () => {
         // Find a real admin user to avoid FK constraint error
-        const admin = await prisma.user.findFirst();
+        const admin = await prisma.admin.findFirst();
 
         // If no admin exists, we skip the status update message by not passing adminId
         // or we create a temp admin. But here we'll just fix the service to handle null adminId better.

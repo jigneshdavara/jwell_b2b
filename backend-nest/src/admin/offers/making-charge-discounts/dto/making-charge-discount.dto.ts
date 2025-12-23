@@ -38,7 +38,7 @@ export class CreateMakingChargeDiscountDto {
 
     @IsInt()
     @IsOptional()
-    customer_group_id?: number;
+    user_group_id?: number;
 
     @IsNumber()
     @IsOptional()
@@ -62,7 +62,7 @@ export class CreateMakingChargeDiscountDto {
 
     @IsArray()
     @IsOptional()
-    customer_types?: string[];
+    user_types?: string[];
 }
 
 export class UpdateMakingChargeDiscountDto {
@@ -92,7 +92,7 @@ export class UpdateMakingChargeDiscountDto {
 
     @IsInt()
     @IsOptional()
-    customer_group_id?: number;
+    user_group_id?: number;
 
     @IsNumber()
     @IsOptional()
@@ -116,7 +116,7 @@ export class UpdateMakingChargeDiscountDto {
 
     @IsArray()
     @IsOptional()
-    customer_types?: string[];
+    user_types?: string[];
 }
 
 export class BulkDestroyDto {

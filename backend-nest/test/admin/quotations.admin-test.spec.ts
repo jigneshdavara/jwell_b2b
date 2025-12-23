@@ -33,9 +33,9 @@ describe('Admin Quotations (e2e)', () => {
         authService = moduleFixture.get<AuthService>(AuthService);
 
         // Setup Admin
-        let admin = await prisma.user.findFirst({ where: { type: 'admin' } });
+        let admin = await prisma.admin.findFirst({ where: { type: 'admin' } });
         if (!admin) {
-            admin = await prisma.user.create({
+            admin = await prisma.admin.create({
                 data: {
                     name: 'Admin User',
                     email: 'admin.quotations@example.com',

@@ -39,9 +39,9 @@ describe('Admin Diamonds (e2e)', () => {
         });
 
         // Find an admin user
-        let admin = await prisma.user.findFirst({ where: { type: 'admin' } });
+        let admin = await prisma.admin.findFirst({ where: { type: 'admin' } });
         if (!admin) {
-            admin = await prisma.user.create({
+            admin = await prisma.admin.create({
                 data: {
                     name: 'Admin User',
                     email: 'admin.diamond@example.com',

@@ -14,10 +14,10 @@ export class DiscountsService {
         }
 
         const now = context.now ? new Date(context.now) : new Date();
-        const customerGroupId =
-            context.customer_group_id ?? user?.customer_group_id ?? null;
-        const customerType = (
-            context.customer_type ||
+        const userGroupId =
+            context.user_group_id ?? user?.user_group_id ?? null;
+        const userType = (
+            context.user_type ||
             user?.type ||
             ''
         ).toLowerCase();
@@ -56,14 +56,14 @@ export class DiscountsService {
                 (discount.customer_types as string[]) || []
             ).map((t) => t.toLowerCase());
             if (allowedTypes.length > 0) {
-                if (!customerType || !allowedTypes.includes(customerType))
+                if (!userType || !allowedTypes.includes(userType))
                     return false;
             }
 
-            if (discount.customer_group_id) {
+            if (discount.user_group_id) {
                 if (
-                    !customerGroupId ||
-                    discount.customer_group_id !== BigInt(customerGroupId)
+                    !userGroupId ||
+                    discount.user_group_id !== BigInt(userGroupId)
                 )
                     return false;
             }
@@ -83,12 +83,12 @@ export class DiscountsService {
 
         const formattedCandidates = candidates.map((discount) => {
             let priority = 200;
-            const hasCustomerTypes =
+            const hasUserTypes =
                 ((discount.customer_types as string[]) || []).length > 0;
 
-            if (hasCustomerTypes) {
+            if (hasUserTypes) {
                 priority = 280;
-            } else if (discount.customer_group_id) {
+            } else if (discount.user_group_id) {
                 priority = 260;
             } else if (discount.brand_id || discount.category_id) {
                 priority = 220;
@@ -102,14 +102,14 @@ export class DiscountsService {
                     source: 'global',
                     name: discount.name,
                     priority,
-                    customer_types: discount.customer_types,
+                    user_types: discount.customer_types,
                     meta: {
                         discount_id: discount.id.toString(),
                         brand_id: discount.brand_id?.toString(),
                         category_id: discount.category_id?.toString(),
-                        customer_group_id:
-                            discount.customer_group_id?.toString(),
-                        customer_types: discount.customer_types,
+                        user_group_id:
+                            discount.user_group_id?.toString(),
+                        user_types: discount.customer_types,
                         min_cart_total: discount.min_cart_total?.toNumber(),
                     },
                 },
@@ -203,9 +203,9 @@ export class DiscountsService {
             source: attributes.source || null,
             name: attributes.name || null,
             meta: attributes.meta || {},
-            customer_types:
-                attributes.customer_types ||
-                attributes.meta?.customer_types ||
+            user_types:
+                attributes.user_types ||
+                attributes.meta?.user_types ||
                 null,
         };
     }

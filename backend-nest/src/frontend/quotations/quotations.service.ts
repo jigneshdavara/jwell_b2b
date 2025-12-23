@@ -43,7 +43,7 @@ export class FrontendQuotationsService {
                     },
                 },
                 quotation_messages: {
-                    include: { customers: true },
+                    include: { users: true },
                     orderBy: { created_at: 'desc' },
                 },
             },
@@ -148,7 +148,7 @@ export class FrontendQuotationsService {
         const quotation: any = await this.prisma.quotations.findUnique({
             where: { id: quotationId },
             include: {
-                customers: true,
+                users: true,
                 products: {
                     include: {
                         product_medias: { orderBy: { display_order: 'asc' } },
@@ -178,7 +178,7 @@ export class FrontendQuotationsService {
                     },
                 },
                 quotation_messages: {
-                    include: { customers: true },
+                    include: { users: true },
                     orderBy: { created_at: 'asc' },
                 },
             },
@@ -275,12 +275,12 @@ export class FrontendQuotationsService {
             }
         }
 
-        const customer = quotation.customers;
+        const customer = quotation.users;
         const product = quotation.products;
         const variant = quotation.product_variants;
 
         if (!customer) {
-            throw new NotFoundException('Customer not found for quotation');
+            throw new NotFoundException('User? not found for quotation');
         }
         if (!product) {
             throw new NotFoundException('Product not found for quotation');
@@ -293,10 +293,10 @@ export class FrontendQuotationsService {
             {
                 variant_id: variant ? Number(variant.id) : null,
                 quantity: quotation.quantity,
-                customer_group_id: customer.customer_group_id
-                    ? Number(customer.customer_group_id)
+                user_group_id: customer.user_group_id
+                    ? Number(customer.user_group_id)
                     : undefined,
-                customer_type: customer.type || undefined,
+                user_type: customer.type || undefined,
             },
         );
 
@@ -314,10 +314,10 @@ export class FrontendQuotationsService {
                             ? Number(rq.product_variants.id)
                             : null,
                         quantity: rq.quantity,
-                        customer_group_id: customer.customer_group_id
-                            ? Number(customer.customer_group_id)
+                        user_group_id: customer.user_group_id
+                            ? Number(customer.user_group_id)
                             : undefined,
-                        customer_type: customer.type || undefined,
+                        user_type: customer.type || undefined,
                     },
                 );
 
@@ -436,7 +436,7 @@ export class FrontendQuotationsService {
                 sender: m.sender,
                 message: m.message,
                 created_at: m.created_at?.toISOString() || null,
-                author: m.customers?.name || null,
+                author: m.users?.name || null,
             })),
         };
     }
@@ -499,14 +499,14 @@ export class FrontendQuotationsService {
                 updated_at: new Date(),
             },
             include: {
-                customers: true,
+                users: true,
                 products: true,
             },
         });
 
         // Send email notifications
         try {
-            await this.mailService.sendQuotationSubmittedCustomer(
+            await this.mailService.sendQuotationSubmittedUser(
                 Number(quotation.id),
             );
             await this.mailService.sendQuotationSubmittedAdmin(
@@ -622,7 +622,7 @@ export class FrontendQuotationsService {
                     updated_at: new Date(),
                 },
                 include: {
-                    customers: true,
+                    users: true,
                     products: true,
                 },
             });
@@ -650,7 +650,7 @@ export class FrontendQuotationsService {
         // Send email notifications (send for first quotation in group)
         if (quotations.length > 0) {
             try {
-                await this.mailService.sendQuotationSubmittedCustomer(
+                await this.mailService.sendQuotationSubmittedUser(
                     Number(quotations[0].id),
                 );
                 await this.mailService.sendQuotationSubmittedAdmin(
@@ -830,7 +830,7 @@ export class FrontendQuotationsService {
                 quotation_id: quotationId,
                 user_id: userId,
                 sender: 'customer',
-                message: 'Customer approved the updated quotation.',
+                message: 'User? approved the updated quotation.',
                 created_at: new Date(),
                 updated_at: new Date(),
             },
@@ -934,7 +934,7 @@ export class FrontendQuotationsService {
                 quotation_id: quotationId,
                 user_id: userId,
                 sender: 'customer',
-                message: 'Customer declined the updated quotation.',
+                message: 'User? declined the updated quotation.',
                 created_at: new Date(),
                 updated_at: new Date(),
             },
@@ -965,10 +965,10 @@ export class FrontendQuotationsService {
                         ? Number(q.product_variants.id)
                         : null,
                     quantity: q.quantity,
-                    customer_group_id: user?.customer_group_id
-                        ? Number(user.customer_group_id)
+                    user_group_id: user?.user_group_id
+                        ? Number(user.user_group_id)
                         : undefined,
-                    customer_type: user?.type || undefined,
+                    user_type: user?.type || undefined,
                 },
             );
 
