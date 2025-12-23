@@ -48,6 +48,19 @@ export const frontendService = {
     return await apiClient.get('/catalog', { params });
   },
 
+  async getProduct(productId: number) {
+    return await apiClient.get(`/catalog/${productId}`);
+  },
+
+  async calculatePrice(productId: number, options: {
+    variant_id?: number | null;
+    quantity?: number;
+    customer_group_id?: number;
+    customer_type?: string;
+  }) {
+    return await apiClient.post(`/catalog/${productId}/calculate-price`, options);
+  },
+
   // Navigation
   async getNavigation() {
     return await apiClient.get('/navigation');
@@ -103,8 +116,85 @@ export const frontendService = {
   async removeCartItem(itemId: number) {
     return await apiClient.delete(`/cart/items/${itemId}`);
   },
-  async submitQuotationsFromCart() {
-    return await apiClient.post('/quotations/from-cart');
+  async submitQuotationsFromCart(cartComment?: string | null) {
+    return await apiClient.post('/quotations/from-cart', { cart_comment: cartComment || null });
+  },
+
+  // Checkout
+  async getCheckout() {
+    return await apiClient.get('/checkout');
+  },
+
+  async confirmCheckout(paymentIntentId: string) {
+    return await apiClient.post('/checkout/confirm', { payment_intent_id: paymentIntentId });
+  },
+
+  async getOrderPayment(orderId: number) {
+    return await apiClient.get(`/checkout/orders/${orderId}/pay`);
+  },
+
+  // Orders
+  async getOrders(page?: number, perPage?: number) {
+    const params: Record<string, string> = {};
+    if (page) params.page = String(page);
+    if (perPage) params.per_page = String(perPage);
+    return await apiClient.get('/orders', { params });
+  },
+
+  async getOrder(orderId: number) {
+    return await apiClient.get(`/orders/${orderId}`);
+  },
+
+  // Quotations
+  async getQuotations() {
+    return await apiClient.get('/quotations');
+  },
+
+  async getQuotation(quotationId: number) {
+    return await apiClient.get(`/quotations/${quotationId}`);
+  },
+
+  async createQuotation(data: {
+    product_id: number;
+    product_variant_id?: number | null;
+    quantity: number;
+    notes?: string;
+  }) {
+    return await apiClient.post('/quotations', data);
+  },
+
+  async deleteQuotation(quotationId: number) {
+    return await apiClient.delete(`/quotations/${quotationId}`);
+  },
+
+  async sendQuotationMessage(quotationId: number, message: string) {
+    return await apiClient.post(`/quotations/${quotationId}/messages`, { message });
+  },
+
+  async confirmQuotation(quotationId: number) {
+    return await apiClient.post(`/quotations/${quotationId}/confirm`);
+  },
+
+  async declineQuotation(quotationId: number) {
+    return await apiClient.post(`/quotations/${quotationId}/decline`);
+  },
+
+  // Profile
+  async getProfile() {
+    return await apiClient.get('/profile');
+  },
+
+  async updateProfile(data: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    preferred_language?: string;
+  }) {
+    return await apiClient.patch('/profile', data);
+  },
+
+  async deleteProfile(password: string) {
+    return await apiClient.delete('/profile', { data: { password } });
   },
 };
 
