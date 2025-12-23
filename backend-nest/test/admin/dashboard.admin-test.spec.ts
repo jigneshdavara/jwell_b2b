@@ -32,9 +32,9 @@ describe('Admin Dashboard (e2e)', () => {
         authService = moduleFixture.get<AuthService>(AuthService);
 
         // Find an admin user or create one for testing
-        let admin = await prisma.user.findFirst();
+        let admin = await prisma.admin.findFirst();
         if (!admin) {
-            admin = await prisma.user.create({
+            admin = await prisma.admin.create({
                 data: {
                     name: 'Admin User',
                     email: 'admin@example.com',

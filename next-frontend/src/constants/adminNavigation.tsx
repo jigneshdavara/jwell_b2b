@@ -26,19 +26,20 @@ export type NavItem =
 export const adminNavigation: NavItem[] = [
     { label: 'Overview', href: '/admin/dashboard', match: '/admin/dashboard', icon: 'grid' },
     {
-        label: 'Customers',
-        icon: 'users',
-        children: [
-            { label: 'Customer list', href: '/admin/customers', match: '/admin/customers*' },
-            { label: 'Customer groups', href: '/admin/customers/groups', match: '/admin/customers/groups*' },
-        ],
-    },
-    {
         label: 'Users',
         icon: 'users',
         children: [
-            { label: 'Users', href: '/admin/users', match: '/admin/users' },
-            { label: 'User groups', href: '/admin/users/groups', match: '/admin/users/groups*' },
+            { label: 'User list', href: '/admin/users', match: '/admin/users*' },
+            { label: 'User groups', href: '/admin/user-groups', match: '/admin/user-groups*' },
+            { label: 'User types', href: '/admin/user-types', match: '/admin/user-types*' },
+        ],
+    },
+    {
+        label: 'Admins',
+        icon: 'users',
+        children: [
+            { label: 'Admin list', href: '/admin/admins', match: '/admin/admins*' },
+            { label: 'Admin groups', href: '/admin/admin-groups', match: '/admin/admin-groups*' },
         ],
     },
     { label: 'Products', href: '/admin/products', match: '/admin/products*', icon: 'diamond' },

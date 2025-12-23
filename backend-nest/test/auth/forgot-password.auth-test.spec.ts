@@ -96,7 +96,7 @@ describe('Forgot Password (e2e)', () => {
             const testEmail = 'forgot.password.admin@example.com';
             const testPassword = await bcrypt.hash('password123', 10);
 
-            const adminUser = await prisma.user.create({
+            const adminUser = await prisma.admin.create({
                 data: {
                     name: 'Test Admin',
                     email: testEmail,
@@ -125,7 +125,7 @@ describe('Forgot Password (e2e)', () => {
             expect(resetToken?.email).toBe(testEmail);
 
             // Clean up
-            await prisma.user.delete({
+            await prisma.admin.delete({
                 where: { id: adminUser.id },
             });
             await prisma.password_reset_tokens.delete({

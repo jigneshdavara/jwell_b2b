@@ -1,21 +1,21 @@
 -- CreateTable
-CREATE TABLE "users" (
+CREATE TABLE "admins" (
     "id" BIGSERIAL NOT NULL,
     "name" VARCHAR(191) NOT NULL,
     "email" VARCHAR(191) NOT NULL,
     "email_verified_at" TIMESTAMPTZ(0),
     "password" VARCHAR(191) NOT NULL,
     "type" VARCHAR(191) NOT NULL DEFAULT 'admin',
-    "user_group_id" BIGINT,
+    "admin_group_id" BIGINT,
     "remember_token" VARCHAR(100),
     "created_at" TIMESTAMPTZ(0) DEFAULT now(),
     "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
-    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "admins_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "customers" (
+CREATE TABLE "users" (
     "id" BIGSERIAL NOT NULL,
     "name" VARCHAR(191) NOT NULL,
     "email" VARCHAR(191) NOT NULL,
@@ -23,7 +23,7 @@ CREATE TABLE "customers" (
     "password" VARCHAR(191) NOT NULL,
     "phone" VARCHAR(191),
     "type" VARCHAR(191) NOT NULL DEFAULT 'retailer',
-    "customer_group_id" BIGINT,
+    "user_group_id" BIGINT,
     "kyc_status" VARCHAR(191) NOT NULL DEFAULT 'pending',
     "kyc_notes" TEXT,
     "preferred_language" VARCHAR(191),
@@ -33,14 +33,6 @@ CREATE TABLE "customers" (
     "created_at" TIMESTAMPTZ(0) DEFAULT now(),
     "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
     "kyc_comments_enabled" BOOLEAN NOT NULL DEFAULT true,
-
-    CONSTRAINT "customers_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "user_kyc_profiles" (
-    "id" BIGSERIAL NOT NULL,
-    "user_id" BIGINT NOT NULL,
     "business_name" VARCHAR(191) NOT NULL,
     "business_website" VARCHAR(191),
     "gst_number" VARCHAR(191),
@@ -54,11 +46,9 @@ CREATE TABLE "user_kyc_profiles" (
     "country" VARCHAR(191) NOT NULL DEFAULT 'India',
     "contact_name" VARCHAR(191),
     "contact_phone" VARCHAR(191),
-    "metadata" JSONB,
-    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
-    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "kyc_metadata" JSONB,
 
-    CONSTRAINT "user_kyc_profiles_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -199,7 +189,7 @@ CREATE TABLE "category_styles" (
 );
 
 -- CreateTable
-CREATE TABLE "customer_groups" (
+CREATE TABLE "user_groups" (
     "id" BIGSERIAL NOT NULL,
     "name" VARCHAR(191) NOT NULL,
     "code" VARCHAR(191) NOT NULL,
@@ -209,11 +199,11 @@ CREATE TABLE "customer_groups" (
     "created_at" TIMESTAMPTZ(0) DEFAULT now(),
     "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
-    CONSTRAINT "customer_groups_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "user_groups_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "customer_types" (
+CREATE TABLE "user_types" (
     "id" BIGSERIAL NOT NULL,
     "name" VARCHAR(191) NOT NULL,
     "code" VARCHAR(191) NOT NULL,
@@ -223,7 +213,7 @@ CREATE TABLE "customer_types" (
     "created_at" TIMESTAMPTZ(0) DEFAULT now(),
     "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
-    CONSTRAINT "customer_types_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "user_types_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -371,13 +361,13 @@ CREATE TABLE "making_charge_discounts" (
     "value" DECIMAL(10,2) NOT NULL,
     "brand_id" BIGINT,
     "category_id" BIGINT,
-    "customer_group_id" BIGINT,
+    "user_group_id" BIGINT,
     "min_cart_total" DECIMAL(12,2),
     "is_auto" BOOLEAN NOT NULL DEFAULT true,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "starts_at" TIMESTAMPTZ(0),
     "ends_at" TIMESTAMPTZ(0),
-    "customer_types" JSONB,
+    "user_types" JSONB,
     "created_at" TIMESTAMPTZ(0) DEFAULT now(),
     "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
@@ -783,18 +773,18 @@ CREATE TABLE "taxes" (
 );
 
 -- CreateTable
-CREATE TABLE "user_groups" (
+CREATE TABLE "admin_groups" (
     "id" BIGSERIAL NOT NULL,
     "name" VARCHAR(191) NOT NULL,
-    "slug" VARCHAR(191) NOT NULL,
+    "code" VARCHAR(191) NOT NULL,
     "description" TEXT,
     "features" JSONB,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "position" INTEGER NOT NULL DEFAULT 0,
+    "display_order" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ(0) DEFAULT now(),
     "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
-    CONSTRAINT "user_groups_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "admin_groups_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -851,10 +841,10 @@ CREATE TABLE "wishlists" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "users_email_unique" ON "users"("email");
+CREATE UNIQUE INDEX "admins_email_unique" ON "admins"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "customers_email_unique" ON "customers"("email");
+CREATE UNIQUE INDEX "users_email_unique" ON "users"("email");
 
 -- CreateIndex
 CREATE INDEX "brands_code_index" ON "brands"("code");
@@ -899,17 +889,17 @@ CREATE INDEX "category_styles_style_id_index" ON "category_styles"("style_id");
 CREATE UNIQUE INDEX "category_styles_category_id_style_id_unique" ON "category_styles"("category_id", "style_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "customer_groups_name_unique" ON "customer_groups"("name");
+CREATE UNIQUE INDEX "user_groups_name_unique" ON "user_groups"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "customer_groups_code_unique" ON "customer_groups"("code");
+CREATE UNIQUE INDEX "user_groups_code_unique" ON "user_groups"("code");
 
 
 -- CreateIndex
-CREATE UNIQUE INDEX "customer_types_name_unique" ON "customer_types"("name");
+CREATE UNIQUE INDEX "user_types_name_unique" ON "user_types"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "customer_types_code_unique" ON "customer_types"("code");
+CREATE UNIQUE INDEX "user_types_code_unique" ON "user_types"("code");
 
 -- CreateIndex
 CREATE INDEX "diamond_clarities_code_index" ON "diamond_clarities"("code");
@@ -1035,13 +1025,13 @@ CREATE INDEX "styles_display_order_index" ON "styles"("display_order");
 CREATE UNIQUE INDEX "taxes_code_unique" ON "taxes"("code");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "user_groups_name_unique" ON "user_groups"("name");
+CREATE UNIQUE INDEX "admin_groups_name_unique" ON "admin_groups"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "user_groups_slug_unique" ON "user_groups"("slug");
+CREATE UNIQUE INDEX "admin_groups_code_unique" ON "admin_groups"("code");
 
 -- CreateIndex
-CREATE INDEX "user_groups_is_active_position_index" ON "user_groups"("is_active", "position");
+CREATE INDEX "admin_groups_is_active_display_order_index" ON "admin_groups"("is_active", "display_order");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "wishlist_item_unique" ON "wishlist_items"("wishlist_id", "product_id", "product_variant_id");
@@ -1050,16 +1040,13 @@ CREATE UNIQUE INDEX "wishlist_item_unique" ON "wishlist_items"("wishlist_id", "p
 CREATE UNIQUE INDEX "wishlists_customer_id_unique" ON "wishlists"("customer_id");
 
 -- AddForeignKey
+ALTER TABLE "admins" ADD CONSTRAINT "admins_admin_group_id_foreign" FOREIGN KEY ("admin_group_id") REFERENCES "admin_groups"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
+
+-- AddForeignKey
 ALTER TABLE "users" ADD CONSTRAINT "users_user_group_id_foreign" FOREIGN KEY ("user_group_id") REFERENCES "user_groups"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "customers" ADD CONSTRAINT "customers_customer_group_id_foreign" FOREIGN KEY ("customer_group_id") REFERENCES "customer_groups"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
-
--- AddForeignKey
-ALTER TABLE "user_kyc_profiles" ADD CONSTRAINT "user_kyc_profiles_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
-
--- AddForeignKey
-ALTER TABLE "user_login_otps" ADD CONSTRAINT "user_login_otps_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "user_login_otps" ADD CONSTRAINT "user_login_otps_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_cart_id_foreign" FOREIGN KEY ("cart_id") REFERENCES "carts"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -1071,7 +1058,7 @@ ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_product_id_foreign" FOREIGN 
 ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_product_variant_id_foreign" FOREIGN KEY ("product_variant_id") REFERENCES "product_variants"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "carts" ADD CONSTRAINT "carts_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "carts" ADD CONSTRAINT "carts_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "catalog_products" ADD CONSTRAINT "catalog_products_catalog_id_foreign" FOREIGN KEY ("catalog_id") REFERENCES "catalogs"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -1131,7 +1118,7 @@ ALTER TABLE "making_charge_discounts" ADD CONSTRAINT "making_charge_discounts_br
 ALTER TABLE "making_charge_discounts" ADD CONSTRAINT "making_charge_discounts_category_id_foreign" FOREIGN KEY ("category_id") REFERENCES "categories"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "making_charge_discounts" ADD CONSTRAINT "making_charge_discounts_customer_group_id_foreign" FOREIGN KEY ("customer_group_id") REFERENCES "customer_groups"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE "making_charge_discounts" ADD CONSTRAINT "making_charge_discounts_user_group_id_foreign" FOREIGN KEY ("user_group_id") REFERENCES "user_groups"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "metal_purities" ADD CONSTRAINT "metal_purities_metal_id_foreign" FOREIGN KEY ("metal_id") REFERENCES "metals"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -1140,7 +1127,7 @@ ALTER TABLE "metal_purities" ADD CONSTRAINT "metal_purities_metal_id_foreign" FO
 ALTER TABLE "metal_tones" ADD CONSTRAINT "metal_tones_metal_id_foreign" FOREIGN KEY ("metal_id") REFERENCES "metals"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "notification_logs" ADD CONSTRAINT "notification_logs_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "customers"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE "notification_logs" ADD CONSTRAINT "notification_logs_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "order_items" ADD CONSTRAINT "order_items_order_id_foreign" FOREIGN KEY ("order_id") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -1152,10 +1139,10 @@ ALTER TABLE "order_items" ADD CONSTRAINT "order_items_product_id_foreign" FOREIG
 ALTER TABLE "order_status_histories" ADD CONSTRAINT "order_status_histories_order_id_foreign" FOREIGN KEY ("order_id") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "order_status_histories" ADD CONSTRAINT "order_status_histories_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "customers"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE "order_status_histories" ADD CONSTRAINT "order_status_histories_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "orders" ADD CONSTRAINT "orders_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "orders" ADD CONSTRAINT "orders_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "payments" ADD CONSTRAINT "payments_order_id_foreign" FOREIGN KEY ("order_id") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -1200,7 +1187,7 @@ ALTER TABLE "products" ADD CONSTRAINT "products_category_id_foreign" FOREIGN KEY
 ALTER TABLE "quotation_messages" ADD CONSTRAINT "quotation_messages_quotation_id_foreign" FOREIGN KEY ("quotation_id") REFERENCES "quotations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "quotation_messages" ADD CONSTRAINT "quotation_messages_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "quotation_messages" ADD CONSTRAINT "quotation_messages_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "quotations" ADD CONSTRAINT "quotations_order_id_foreign" FOREIGN KEY ("order_id") REFERENCES "orders"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
@@ -1212,19 +1199,19 @@ ALTER TABLE "quotations" ADD CONSTRAINT "quotations_product_id_foreign" FOREIGN 
 ALTER TABLE "quotations" ADD CONSTRAINT "quotations_product_variant_id_foreign" FOREIGN KEY ("product_variant_id") REFERENCES "product_variants"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "quotations" ADD CONSTRAINT "quotations_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "quotations" ADD CONSTRAINT "quotations_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "taxes" ADD CONSTRAINT "taxes_tax_group_id_foreign" FOREIGN KEY ("tax_group_id") REFERENCES "tax_groups"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "user_kyc_documents" ADD CONSTRAINT "user_kyc_documents_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "user_kyc_documents" ADD CONSTRAINT "user_kyc_documents_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "user_kyc_messages" ADD CONSTRAINT "user_kyc_messages_admin_id_foreign" FOREIGN KEY ("admin_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE "user_kyc_messages" ADD CONSTRAINT "user_kyc_messages_admin_id_foreign" FOREIGN KEY ("admin_id") REFERENCES "admins"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "user_kyc_messages" ADD CONSTRAINT "user_kyc_messages_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "user_kyc_messages" ADD CONSTRAINT "user_kyc_messages_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "wishlist_items" ADD CONSTRAINT "wishlist_items_product_id_foreign" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
@@ -1236,4 +1223,4 @@ ALTER TABLE "wishlist_items" ADD CONSTRAINT "wishlist_items_product_variant_id_f
 ALTER TABLE "wishlist_items" ADD CONSTRAINT "wishlist_items_wishlist_id_foreign" FOREIGN KEY ("wishlist_id") REFERENCES "wishlists"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
-ALTER TABLE "wishlists" ADD CONSTRAINT "wishlists_customer_id_foreign" FOREIGN KEY ("customer_id") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE "wishlists" ADD CONSTRAINT "wishlists_customer_id_foreign" FOREIGN KEY ("customer_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;

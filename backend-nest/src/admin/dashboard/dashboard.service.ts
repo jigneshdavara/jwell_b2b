@@ -8,7 +8,7 @@ export class DashboardService {
     async getMetrics() {
         const [pendingKyc, ordersInProduction, activeOffers] =
             await Promise.all([
-                this.prisma.customer.count({
+                this.prisma.user.count({
                     where: { kyc_status: 'pending' },
                 }),
                 this.prisma.orders.count({
@@ -35,7 +35,7 @@ export class DashboardService {
     }
 
     async getRecentPartners() {
-        const customers = await this.prisma.customer.findMany({
+        const customers = await this.prisma.user.findMany({
             orderBy: { created_at: 'desc' },
             take: 6,
             select: {

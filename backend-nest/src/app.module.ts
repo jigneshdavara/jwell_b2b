@@ -4,12 +4,12 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { KycModule } from './kyc/kyc.module';
-import { CustomersModule } from './admin/customers/customers.module';
-import { CustomerGroupsModule } from './admin/customer-groups/customer-groups.module';
-import { CustomerTypesModule } from './admin/customer-types/customer-types.module';
-import { DashboardModule } from './admin/dashboard/dashboard.module';
+import { UsersModule } from './admin/users/users.module';
 import { UserGroupsModule } from './admin/user-groups/user-groups.module';
-import { TeamUsersModule } from './admin/team-users/team-users.module';
+import { UserTypesModule } from './admin/user-types/user-types.module';
+import { DashboardModule } from './admin/dashboard/dashboard.module';
+import { AdminGroupsModule } from './admin/admin-groups/admin-groups.module';
+import { AdminsModule } from './admin/admins/admins.module';
 import { MetalsModule } from './admin/metals/metals.module';
 import { MetalPuritiesModule } from './admin/metal-purities/metal-purities.module';
 import { MetalTonesModule } from './admin/metal-tones/metal-tones.module';
@@ -57,12 +57,12 @@ import { MailModule } from './common/mail/mail.module';
         PrismaModule,
         MailModule,
         KycModule,
-        CustomersModule,
-        CustomerGroupsModule,
-        CustomerTypesModule,
-        DashboardModule,
+        UsersModule,
         UserGroupsModule,
-        TeamUsersModule,
+        UserTypesModule,
+        DashboardModule,
+        AdminGroupsModule,
+        AdminsModule,
         MetalsModule,
         MetalPuritiesModule,
         MetalTonesModule,

@@ -36,7 +36,7 @@ describe('Admin Registration (e2e)', () => {
     });
 
     beforeEach(async () => {
-        // Clean up test data before each test from both users and customers tables
+        // Clean up test data before each test from admins and users tables
         const testEmails = [
             'admin@gmail.com',
             'admin.register.test2@example.com',
@@ -44,7 +44,7 @@ describe('Admin Registration (e2e)', () => {
             'admin.register.test4@example.com',
         ];
 
-        await prisma.user.deleteMany({
+        await prisma.admin.deleteMany({
             where: {
                 email: {
                     in: testEmails,
@@ -52,7 +52,7 @@ describe('Admin Registration (e2e)', () => {
             },
         });
 
-        await prisma.customer.deleteMany({
+        await prisma.user.deleteMany({
             where: {
                 email: {
                     in: testEmails,
@@ -70,7 +70,7 @@ describe('Admin Registration (e2e)', () => {
     //         'admin.register.test4@example.com',
     //     ];
 
-    //     await prisma.user.deleteMany({
+    //     await prisma.admin.deleteMany({
     //         where: {
     //             email: {
     //                 in: testEmails,
@@ -78,7 +78,7 @@ describe('Admin Registration (e2e)', () => {
     //         },
     //     });
 
-    //     await prisma.customer.deleteMany({
+    //     await prisma.user.deleteMany({
     //         where: {
     //             email: {
     //                 in: testEmails,
@@ -108,13 +108,13 @@ describe('Admin Registration (e2e)', () => {
             expect(response.body.user.guard).toBe('admin');
             expect(response.body.user).not.toHaveProperty('password');
 
-            // Verify user was created in database
-            const user = await prisma.user.findUnique({
+            // Verify admin was created in database
+            const admin = await prisma.admin.findUnique({
                 where: { email: 'admin@gmail.com' },
             });
-            expect(user).toBeTruthy();
-            expect(user?.name).toBe('Test Admin');
-            expect(user?.type).toBe('admin');
+            expect(admin).toBeTruthy();
+            expect(admin?.name).toBe('Test Admin');
+            expect(admin?.type).toBe('admin');
         });
 
         it.skip('should register admin with default type when type is not provided', async () => {
@@ -130,10 +130,10 @@ describe('Admin Registration (e2e)', () => {
             expect(response.status).toBe(201);
             expect(response.body.user.type).toBe('admin'); // Default type
 
-            const user = await prisma.user.findUnique({
+            const admin = await prisma.admin.findUnique({
                 where: { email: 'admin.register.test2@example.com' },
             });
-            expect(user?.type).toBe('admin');
+            expect(admin?.type).toBe('admin');
         });
 
         it.skip('should register admin with different user types', async () => {
@@ -141,7 +141,7 @@ describe('Admin Registration (e2e)', () => {
 
             for (const type of types) {
                 const email = `admin.register.test.${type}@example.com`;
-                await prisma.user.deleteMany({ where: { email } });
+                await prisma.admin.deleteMany({ where: { email } });
 
                 const response = await request(app.getHttpServer())
                     .post('/api/auth/register/admin')
@@ -156,20 +156,21 @@ describe('Admin Registration (e2e)', () => {
                 expect(response.status).toBe(201);
                 expect(response.body.user.type).toBe(type);
 
-                const user = await prisma.user.findUnique({
+                const admin = await prisma.admin.findUnique({
                     where: { email },
                 });
-                expect(user?.type).toBe(type);
+                expect(admin?.type).toBe(type);
             }
         });
 
-        it.skip('should register admin with user_group_id', async () => {
-            // Create a test user group first
-            const userGroup = await prisma.user_groups.create({
+        it.skip('should register admin with admin_group_id', async () => {
+            // Create a test admin group first
+            const adminGroup = await prisma.admin_groups.create({
                 data: {
                     name: 'Test Group',
-                    slug: 'test-group',
+                    code: 'test-group',
                     is_active: true,
+                    display_order: 0,
                 },
             });
 
@@ -181,16 +182,16 @@ describe('Admin Registration (e2e)', () => {
                     password: 'admin123',
                     password_confirmation: 'admin123',
                     type: 'admin',
-                    user_group_id: Number(userGroup.id),
+                    admin_group_id: Number(adminGroup.id),
                 });
 
             expect(response.status).toBe(201);
-            expect(response.body.user.user_group_id).toBe(
-                userGroup.id.toString(),
+            expect(response.body.user.admin_group_id).toBe(
+                adminGroup.id.toString(),
             );
 
             // Clean up
-            await prisma.user_groups.delete({ where: { id: userGroup.id } });
+            await prisma.admin_groups.delete({ where: { id: adminGroup.id } });
         });
 
         it.skip('should return 400 when passwords do not match', async () => {
@@ -208,11 +209,11 @@ describe('Admin Registration (e2e)', () => {
             expect(response.body.message).toContain('Passwords do not match');
         });
 
-        it.skip('should return 409 when email already exists in users table', async () => {
-            // Create a user first
-            await prisma.user.create({
+        it.skip('should return 409 when email already exists in admins table', async () => {
+            // Create an admin first
+            await prisma.admin.create({
                 data: {
-                    name: 'Existing User',
+                    name: 'Existing Admin',
                     email: 'admin@gmail.com',
                     password: 'hashedpassword',
                     type: 'admin',
@@ -233,14 +234,15 @@ describe('Admin Registration (e2e)', () => {
             expect(response.body.message).toContain('Email already registered');
         });
 
-        it.skip('should return 409 when email already exists in customers table', async () => {
-            // Create a customer first
-            await prisma.customer.create({
+        it.skip('should return 409 when email already exists in users table (as customer user)', async () => {
+            // Create a user (customer user) first
+            await prisma.user.create({
                 data: {
-                    name: 'Existing Customer',
+                    name: 'Existing Customer User',
                     email: 'admin@gmail.com',
                     password: 'hashedpassword',
                     type: 'retailer',
+                    business_name: 'Test Business',
                 },
             });
 
@@ -324,12 +326,12 @@ describe('Admin Registration (e2e)', () => {
 
             expect(response.status).toBe(201);
 
-            const user = await prisma.user.findUnique({
+            const admin = await prisma.admin.findUnique({
                 where: { email: 'admin@gmail.com' },
             });
 
-            expect(user?.password).not.toBe('admin123');
-            expect(user?.password).toMatch(/^\$2[aby]\$/); // bcrypt hash format
+            expect(admin?.password).not.toBe('admin123');
+            expect(admin?.password).toMatch(/^\$2[aby]\$/); // bcrypt hash format
         });
 
         it.skip('should set email_verified_at on registration', async () => {
@@ -345,11 +347,11 @@ describe('Admin Registration (e2e)', () => {
 
             expect(response.status).toBe(201);
 
-            const user = await prisma.user.findUnique({
+            const admin = await prisma.admin.findUnique({
                 where: { email: 'admin@gmail.com' },
             });
 
-            expect(user?.email_verified_at).toBeTruthy();
+            expect(admin?.email_verified_at).toBeTruthy();
         });
 
         it.skip('should allow login after registration', async () => {

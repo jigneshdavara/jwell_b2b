@@ -200,8 +200,8 @@ export default function AdminKycReviewPage() {
                 <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
                     <h1 className="text-2xl font-semibold text-rose-600">Error Loading KYC Details</h1>
                     <p className="mt-2 text-sm text-slate-500">{error || 'Customer not found'}</p>
-                    <Link href="/admin/customers" className="mt-4 inline-block rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600">
-                        Back to Customers
+                    <Link href="/admin/users" className="mt-4 inline-block rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600">
+                        Back to Users
                     </Link>
                 </div>
             </div>
@@ -235,9 +235,8 @@ export default function AdminKycReviewPage() {
             </div>
 
             {/* Business Information */}
-            {user.kyc_profile && (
-                <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                    <h2 className="mb-4 text-lg font-semibold text-slate-900">Business Information</h2>
+            <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
+                <h2 className="mb-4 text-lg font-semibold text-slate-900">Business Information</h2>
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-4">
                             <div>
@@ -316,34 +315,6 @@ export default function AdminKycReviewPage() {
                                     {user.kyc_profile.country ? `, ${user.kyc_profile.country}` : ''}
                                 </dd>
                             </div>
-                            {user.kyc_profile.created_at && (
-                                <div>
-                                    <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Profile Created</dt>
-                                    <dd className="mt-1.5 text-sm text-slate-700">
-                                        {new Date(user.kyc_profile.created_at).toLocaleString('en-IN', {
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                        })}
-                                    </dd>
-                                </div>
-                            )}
-                            {user.kyc_profile.updated_at && (
-                                <div>
-                                    <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Profile Updated</dt>
-                                    <dd className="mt-1.5 text-sm text-slate-700">
-                                        {new Date(user.kyc_profile.updated_at).toLocaleString('en-IN', {
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                        })}
-                                    </dd>
-                                </div>
-                            )}
                             {user.created_at && (
                                 <div>
                                     <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Account Created</dt>
@@ -374,8 +345,7 @@ export default function AdminKycReviewPage() {
                             )}
                         </div>
                     </div>
-                </div>
-            )}
+            </div>
 
             {/* Documents Table */}
             <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">

@@ -129,9 +129,7 @@ describe('Frontend Profile (e2e)', () => {
                 await prisma.user_kyc_messages.deleteMany({
                     where: { user_id: testCustomer.id },
                 });
-                await prisma.userKycProfile.deleteMany({
-                    where: { user_id: testCustomer.id },
-                });
+                // KYC profile fields are now in customers table, no separate deletion needed
                 await prisma.customer.delete({
                     where: { id: testCustomer.id },
                 });

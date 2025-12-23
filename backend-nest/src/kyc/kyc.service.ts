@@ -15,43 +15,64 @@ export class KycService {
     constructor(private prisma: PrismaService) {}
 
     async getProfile(userId: bigint) {
-        const profile = await this.prisma.userKycProfile.findFirst({
-            where: { user_id: userId },
-            include: {
-                customer: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        kyc_status: true,
-                    },
-                },
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                kyc_status: true,
+                business_name: true,
+                business_website: true,
+                gst_number: true,
+                pan_number: true,
+                registration_number: true,
+                address_line1: true,
+                address_line2: true,
+                city: true,
+                state: true,
+                postal_code: true,
+                country: true,
+                contact_name: true,
+                contact_phone: true,
+                kyc_metadata: true,
+                created_at: true,
+                updated_at: true,
             },
         });
 
-        if (!profile) {
-            throw new NotFoundException('KYC profile not found');
+        if (!user) {
+            throw new NotFoundException('User not found');
         }
 
-        return profile;
+        return user;
     }
 
     async updateProfile(userId: bigint, dto: UpdateKycProfileDto) {
-        // Since user_id is not marked as @unique in Prisma but is logically unique,
-        // we use updateMany or find first then update by id.
-        const profile = await this.prisma.userKycProfile.findFirst({
-            where: { user_id: userId },
+        const customer = await this.prisma.user.findUnique({
+            where: { id: userId },
         });
 
-        if (!profile) {
-            throw new NotFoundException('KYC profile not found');
+        if (!customer) {
+            throw new NotFoundException('User? not found');
         }
 
-        return await this.prisma.userKycProfile.update({
-            where: { id: profile.id },
+        return await this.prisma.user.update({
+            where: { id: userId },
             data: {
-                ...dto,
-                updated_at: new Date(),
+                business_name: dto.business_name,
+                business_website: dto.business_website,
+                gst_number: dto.gst_number,
+                pan_number: dto.pan_number,
+                registration_number: dto.registration_number,
+                address_line1: dto.address_line1,
+                address_line2: dto.address_line2,
+                city: dto.city,
+                state: dto.state,
+                postal_code: dto.postal_code,
+                country: dto.country,
+                contact_name: dto.contact_name,
+                contact_phone: dto.contact_phone,
             },
         });
     }
@@ -81,7 +102,7 @@ export class KycService {
     ) {
         return await this.prisma.$transaction(async (tx) => {
             // Update customer status
-            await tx.customer.update({
+            await tx.user.update({
                 where: { id: userId },
                 data: { kyc_status: dto.status },
             });
@@ -138,16 +159,15 @@ export class KycService {
 
     // Onboarding-specific methods
     async getOnboardingData(userId: bigint) {
-        const customer = await this.prisma.customer.findUnique({
+        const customer = await this.prisma.user.findUnique({
             where: { id: userId },
             include: {
-                kycProfile: true,
                 user_kyc_documents: {
                     orderBy: { created_at: 'desc' },
                 },
                 user_kyc_messages: {
                     include: {
-                        users: {
+                        admins: {
                             select: {
                                 id: true,
                                 name: true,
@@ -160,22 +180,7 @@ export class KycService {
         });
 
         if (!customer) {
-            throw new NotFoundException('Customer not found');
-        }
-
-        // Auto-create profile if it doesn't exist
-        // kycProfile is an array in Prisma schema, but should only have one item
-        let profile = customer.kycProfile?.[0] || null;
-        if (!profile) {
-            profile = await this.prisma.userKycProfile.create({
-                data: {
-                    user_id: userId,
-                    business_name: `${customer.name} Enterprises`,
-                    country: 'India',
-                    contact_name: customer.name,
-                    contact_phone: customer.phone || null,
-                },
-            });
+            throw new NotFoundException('User? not found');
         }
 
         return {
@@ -187,23 +192,21 @@ export class KycService {
                 kyc_status: customer.kyc_status,
                 kyc_notes: customer.kyc_notes,
             },
-            profile: profile
-                ? {
-                      business_name: profile.business_name,
-                      business_website: profile.business_website,
-                      gst_number: profile.gst_number,
-                      pan_number: profile.pan_number,
-                      registration_number: profile.registration_number,
-                      address_line1: profile.address_line1,
-                      address_line2: profile.address_line2,
-                      city: profile.city,
-                      state: profile.state,
-                      postal_code: profile.postal_code,
-                      country: profile.country,
-                      contact_name: profile.contact_name,
-                      contact_phone: profile.contact_phone,
-                  }
-                : null,
+            profile: {
+                business_name: customer.business_name,
+                business_website: customer.business_website,
+                gst_number: customer.gst_number,
+                pan_number: customer.pan_number,
+                registration_number: customer.registration_number,
+                address_line1: customer.address_line1,
+                address_line2: customer.address_line2,
+                city: customer.city,
+                state: customer.state,
+                postal_code: customer.postal_code,
+                country: customer.country,
+                contact_name: customer.contact_name,
+                contact_phone: customer.contact_phone,
+            },
             documents: customer.user_kyc_documents.map((doc) => ({
                 id: doc.id.toString(),
                 type: doc.type,
@@ -226,10 +229,10 @@ export class KycService {
                 sender_type: msg.sender_type,
                 message: msg.message,
                 created_at: msg.created_at?.toISOString(),
-                admin: msg.users
+                admin: msg.admins
                     ? {
-                          id: msg.users.id.toString(),
-                          name: msg.users.name,
+                          id: msg.admins.id.toString(),
+                          name: msg.admins.name,
                       }
                     : null,
             })),
@@ -242,43 +245,38 @@ export class KycService {
         dto: UpdateOnboardingKycProfileDto,
     ) {
         return await this.prisma.$transaction(async (tx) => {
-            let profile = await tx.userKycProfile.findFirst({
-                where: { user_id: userId },
-            });
-
-            if (!profile) {
-                profile = await tx.userKycProfile.create({
-                    data: {
-                        user_id: userId,
-                        ...dto,
-                    },
-                });
-            } else {
-                profile = await tx.userKycProfile.update({
-                    where: { id: profile.id },
-                    data: {
-                        ...dto,
-                        updated_at: new Date(),
-                    },
-                });
-            }
-
-            // Mark user as pending if not already approved
-            const customer = await tx.customer.findUnique({
+            const customer = await tx.user.findUnique({
                 where: { id: userId },
             });
 
-            if (customer && customer.kyc_status !== 'approved') {
-                await tx.customer.update({
-                    where: { id: userId },
-                    data: {
-                        kyc_status: 'pending',
-                        kyc_notes: null,
-                    },
-                });
+            if (!customer) {
+                throw new NotFoundException('User? not found');
             }
 
-            return profile;
+            const updated = await tx.user.update({
+                where: { id: userId },
+                data: {
+                    business_name: dto.business_name,
+                    business_website: dto.business_website,
+                    gst_number: dto.gst_number,
+                    pan_number: dto.pan_number,
+                    registration_number: dto.registration_number,
+                    address_line1: dto.address_line1,
+                    address_line2: dto.address_line2,
+                    city: dto.city,
+                    state: dto.state,
+                    postal_code: dto.postal_code,
+                    country: dto.country,
+                    contact_name: dto.contact_name,
+                    contact_phone: dto.contact_phone,
+                    kyc_status:
+                        customer.kyc_status !== 'approved' ? 'pending' : customer.kyc_status,
+                    kyc_notes:
+                        customer.kyc_status !== 'approved' ? null : customer.kyc_notes,
+                },
+            });
+
+            return updated;
         });
     }
 
@@ -298,12 +296,12 @@ export class KycService {
             });
 
             // Mark user as pending if not already approved
-            const customer = await tx.customer.findUnique({
+            const customer = await tx.user.findUnique({
                 where: { id: userId },
             });
 
             if (customer && customer.kyc_status !== 'approved') {
-                await tx.customer.update({
+                await tx.user.update({
                     where: { id: userId },
                     data: {
                         kyc_status: 'pending',
@@ -339,12 +337,12 @@ export class KycService {
             });
 
             // Mark user as pending if not already approved
-            const customer = await tx.customer.findUnique({
+            const customer = await tx.user.findUnique({
                 where: { id: userId },
             });
 
             if (customer && customer.kyc_status !== 'approved') {
-                await tx.customer.update({
+                await tx.user.update({
                     where: { id: userId },
                     data: {
                         kyc_status: 'pending',
@@ -359,12 +357,12 @@ export class KycService {
 
     async sendOnboardingMessage(userId: bigint, message: string) {
         return await this.prisma.$transaction(async (tx) => {
-            const customer = await tx.customer.findUnique({
+            const customer = await tx.user.findUnique({
                 where: { id: userId },
             });
 
             if (!customer) {
-                throw new NotFoundException('Customer not found');
+                throw new NotFoundException('User? not found');
             }
 
             if (!customer.kyc_comments_enabled) {
@@ -386,7 +384,7 @@ export class KycService {
                 customer.kyc_status !== 'approved' &&
                 customer.kyc_status !== 'review'
             ) {
-                await tx.customer.update({
+                await tx.user.update({
                     where: { id: userId },
                     data: {
                         kyc_status: 'review',

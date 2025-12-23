@@ -1,10 +1,10 @@
 import { Injectable, ConflictException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateTeamUserDto, UpdateTeamUserDto, UpdateUserGroupDto, UserType } from './dto/team-user.dto';
+import { CreateAdminDto, UpdateAdminDto, UpdateAdminGroupDto, UserType } from './dto/admin.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
-export class TeamUsersService {
+export class AdminsService {
   constructor(private prisma: PrismaService) {}
 
   private readonly INTERNAL_TYPES = [
@@ -17,20 +17,20 @@ export class TeamUsersService {
   async findAll(page: number = 1, perPage: number = 20) {
     const skip = (page - 1) * perPage;
     const [items, total] = await Promise.all([
-      this.prisma.user.findMany({
+      this.prisma.admin.findMany({
         where: {
           type: { in: this.INTERNAL_TYPES },
         },
         skip,
         take: perPage,
         include: {
-          user_groups: {
+          admin_groups: {
             select: { id: true, name: true },
           },
         },
         orderBy: { name: 'asc' },
       }),
-      this.prisma.user.count({
+      this.prisma.admin.count({
         where: {
           type: { in: this.INTERNAL_TYPES },
         },
@@ -48,13 +48,13 @@ export class TeamUsersService {
     return {
       items: items.map(user => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { password, user_groups, created_at, ...rest } = user;
+        const { password, admin_groups, created_at, ...rest } = user;
         return {
           ...rest,
           id: Number(rest.id),
-          user_group: user_groups ? {
-            id: Number(user_groups.id),
-            name: user_groups.name,
+          admin_group: admin_groups ? {
+            id: Number(admin_groups.id),
+            name: admin_groups.name,
           } : null,
           type_label: formatTypeLabel(rest.type),
           joined_at: created_at,
@@ -70,15 +70,15 @@ export class TeamUsersService {
   }
 
   async findOne(id: number) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.admin.findUnique({
       where: { id: BigInt(id) },
       include: {
-        user_groups: true,
+        admin_groups: true,
       },
     });
 
     if (!user || !this.INTERNAL_TYPES.includes(user.type as UserType)) {
-      throw new NotFoundException('Team user not found');
+      throw new NotFoundException('Admin not found');
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -86,7 +86,7 @@ export class TeamUsersService {
     return rest;
   }
 
-  async create(dto: CreateTeamUserDto) {
+  async create(dto: CreateAdminDto) {
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -96,24 +96,24 @@ export class TeamUsersService {
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    return await this.prisma.user.create({
+    return await this.prisma.admin.create({
       data: {
         name: dto.name,
         email: dto.email,
         password: hashedPassword,
         type: dto.type || UserType.ADMIN,
-        user_group_id: dto.user_group_id ? BigInt(dto.user_group_id) : null,
+        admin_group_id: dto.admin_group_id ? BigInt(dto.admin_group_id) : null,
       },
     });
   }
 
-  async update(id: number, dto: UpdateTeamUserDto) {
-    const user = await this.prisma.user.findUnique({
+  async update(id: number, dto: UpdateAdminDto) {
+    const user = await this.prisma.admin.findUnique({
       where: { id: BigInt(id) },
     });
 
     if (!user || !this.INTERNAL_TYPES.includes(user.type as UserType)) {
-      throw new NotFoundException('Team user not found');
+      throw new NotFoundException('Admin not found');
     }
 
     if (dto.email && dto.email !== user.email) {
@@ -128,7 +128,7 @@ export class TeamUsersService {
     const data: any = {
       name: dto.name,
       email: dto.email,
-      user_group_id: dto.user_group_id ? BigInt(dto.user_group_id) : null,
+      admin_group_id: dto.admin_group_id ? BigInt(dto.admin_group_id) : null,
     };
 
     if (dto.type && user.type !== UserType.SUPER_ADMIN) {
@@ -139,43 +139,43 @@ export class TeamUsersService {
       data.password = await bcrypt.hash(dto.password, 10);
     }
 
-    return await this.prisma.user.update({
+    return await this.prisma.admin.update({
       where: { id: BigInt(id) },
       data,
     });
   }
 
-  async updateGroup(id: number, dto: UpdateUserGroupDto) {
-    const user = await this.prisma.user.findUnique({
+  async updateGroup(id: number, dto: UpdateAdminGroupDto) {
+    const user = await this.prisma.admin.findUnique({
       where: { id: BigInt(id) },
     });
 
     if (!user || !this.INTERNAL_TYPES.includes(user.type as UserType)) {
-      throw new NotFoundException('Team user not found');
+      throw new NotFoundException('Admin not found');
     }
 
-    return await this.prisma.user.update({
+    return await this.prisma.admin.update({
       where: { id: BigInt(id) },
       data: {
-        user_group_id: dto.user_group_id ? BigInt(dto.user_group_id) : null,
+        admin_group_id: dto.admin_group_id ? BigInt(dto.admin_group_id) : null,
       },
     });
   }
 
   async remove(id: number) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.admin.findUnique({
       where: { id: BigInt(id) },
     });
 
     if (!user || !this.INTERNAL_TYPES.includes(user.type as UserType)) {
-      throw new NotFoundException('Team user not found');
+      throw new NotFoundException('Admin not found');
     }
 
     if (user.type === UserType.SUPER_ADMIN) {
       throw new ForbiddenException('Cannot delete super-admin user');
     }
 
-    return await this.prisma.user.delete({
+    return await this.prisma.admin.delete({
       where: { id: BigInt(id) },
     });
   }
@@ -184,7 +184,7 @@ export class TeamUsersService {
     const bigIntIds = ids.map(id => BigInt(id));
     
     // Filter out super admins and non-internal users
-    const users = await this.prisma.user.findMany({
+    const users = await this.prisma.admin.findMany({
       where: {
         id: { in: bigIntIds },
       },
@@ -196,7 +196,7 @@ export class TeamUsersService {
 
     if (validIds.length === 0) return { count: 0 };
 
-    return await this.prisma.user.deleteMany({
+    return await this.prisma.admin.deleteMany({
       where: { id: { in: validIds } },
     });
   }

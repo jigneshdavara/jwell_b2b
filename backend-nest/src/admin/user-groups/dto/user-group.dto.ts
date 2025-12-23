@@ -6,7 +6,6 @@ import {
     Min,
     MaxLength,
     IsNotEmpty,
-    IsArray,
 } from 'class-validator';
 
 export class CreateUserGroupDto {
@@ -16,12 +15,13 @@ export class CreateUserGroupDto {
     name: string;
 
     @IsString()
+    @IsNotEmpty()
+    @MaxLength(50)
+    code: string;
+
+    @IsString()
     @IsOptional()
     description?: string;
-
-    @IsArray()
-    @IsOptional()
-    features?: string[];
 
     @IsBoolean()
     @IsOptional()
@@ -30,7 +30,7 @@ export class CreateUserGroupDto {
     @IsInt()
     @IsOptional()
     @Min(0)
-    position?: number;
+    display_order?: number;
 }
 
 export class UpdateUserGroupDto {
@@ -41,11 +41,12 @@ export class UpdateUserGroupDto {
 
     @IsString()
     @IsOptional()
-    description?: string;
+    @MaxLength(50)
+    code?: string;
 
-    @IsArray()
+    @IsString()
     @IsOptional()
-    features?: string[];
+    description?: string;
 
     @IsBoolean()
     @IsOptional()
@@ -54,7 +55,7 @@ export class UpdateUserGroupDto {
     @IsInt()
     @IsOptional()
     @Min(0)
-    position?: number;
+    display_order?: number;
 }
 
 export class BulkDestroyDto {

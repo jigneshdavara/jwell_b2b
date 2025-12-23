@@ -7,6 +7,19 @@ import { MailService } from './mail.service';
 import { MailController } from './mail.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 
+// Get template directory - use source directory in dev, dist in production
+function getTemplateDir(): string {
+    // In production/compiled code, __dirname points to dist/src/common/mail
+    // In development with ts-node, we need to check if we're in dist or src
+    const isProduction = __dirname.includes('dist');
+    if (isProduction) {
+        // In production, templates should be in dist/src/common/mail/templates
+        return join(__dirname, 'templates');
+    }
+    // In development, use source directory
+    return join(process.cwd(), 'src', 'common', 'mail', 'templates');
+}
+
 @Module({
     imports: [
         PrismaModule,
@@ -115,7 +128,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
                             from: `"${process.env.MAIL_FROM_NAME || 'Elvee'}" <${process.env.MAIL_FROM_ADDRESS || 'hello@example.com'}>`,
                         },
                         template: {
-                            dir: join(__dirname, 'templates'),
+                            dir: getTemplateDir(),
                             adapter: new HandlebarsAdapter(),
                             options: {
                                 strict: true,

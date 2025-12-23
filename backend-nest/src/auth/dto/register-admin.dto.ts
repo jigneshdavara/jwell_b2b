@@ -8,7 +8,7 @@ import {
     IsEnum,
     IsInt,
 } from 'class-validator';
-import { UserType } from '../../admin/team-users/dto/team-user.dto';
+import { UserType } from '../../admin/admins/dto/admin.dto';
 
 export class RegisterAdminDto {
     @IsString()
@@ -36,5 +36,5 @@ export class RegisterAdminDto {
 
     @IsInt()
     @IsOptional()
-    user_group_id?: number;
+    admin_group_id?: number;
 }

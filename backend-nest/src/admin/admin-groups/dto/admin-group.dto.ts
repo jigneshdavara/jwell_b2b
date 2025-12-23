@@ -6,26 +6,31 @@ import {
     Min,
     MaxLength,
     IsNotEmpty,
+    IsArray,
 } from 'class-validator';
 
-export class CreateCustomerGroupDto {
+export class CreateAdminGroupDto {
     @IsString()
     @IsNotEmpty()
     @MaxLength(191)
     name: string;
 
     @IsString()
-    @IsNotEmpty()
-    @MaxLength(50)
-    code: string;
-
-    @IsString()
     @IsOptional()
     description?: string;
+
+    @IsArray()
+    @IsOptional()
+    features?: string[];
 
     @IsBoolean()
     @IsOptional()
     is_active?: boolean;
+
+    @IsString()
+    @IsNotEmpty()
+    @MaxLength(191)
+    code: string;
 
     @IsInt()
     @IsOptional()
@@ -33,7 +38,7 @@ export class CreateCustomerGroupDto {
     display_order?: number;
 }
 
-export class UpdateCustomerGroupDto {
+export class UpdateAdminGroupDto {
     @IsString()
     @IsOptional()
     @MaxLength(191)
@@ -41,16 +46,20 @@ export class UpdateCustomerGroupDto {
 
     @IsString()
     @IsOptional()
-    @MaxLength(50)
-    code?: string;
-
-    @IsString()
-    @IsOptional()
     description?: string;
+
+    @IsArray()
+    @IsOptional()
+    features?: string[];
 
     @IsBoolean()
     @IsOptional()
     is_active?: boolean;
+
+    @IsString()
+    @IsOptional()
+    @MaxLength(191)
+    code?: string;
 
     @IsInt()
     @IsOptional()

@@ -29,7 +29,7 @@ export class QuotationsService {
           include: { order_status_histories: { orderBy: { created_at: 'desc' } } },
         },
         quotation_messages: {
-          include: { customers: true },
+          include: { users: true },
           orderBy: { created_at: 'desc' },
         },
       },
@@ -112,12 +112,12 @@ export class QuotationsService {
           },
         },
         product_variants: true,
-        customers: true,
+        users: true,
         orders: {
           include: { order_status_histories: { orderBy: { created_at: 'desc' } } },
         },
         quotation_messages: {
-          include: { customers: true },
+          include: { users: true },
           orderBy: { created_at: 'asc' },
         },
       },
@@ -151,15 +151,15 @@ export class QuotationsService {
       },
     });
 
-    const user = quotation.customers;
+    const user = quotation.users;
     const priceBreakdown = await this.pricingService.calculateProductPrice(
       quotation.products,
       user,
       {
         variant_id: quotation.product_variant_id,
         quantity: quotation.quantity,
-        customer_group_id: user?.customer_group_id,
-        customer_type: user?.type,
+        user_group_id: user?.user_group_id,
+        user_type: user?.type,
       },
     );
 
@@ -170,8 +170,8 @@ export class QuotationsService {
         {
           variant_id: q.product_variant_id,
           quantity: q.quantity,
-          customer_group_id: user?.customer_group_id,
-          customer_type: user?.type,
+          user_group_id: user?.user_group_id,
+          user_type: user?.type,
         },
       );
 
@@ -219,7 +219,7 @@ export class QuotationsService {
         sender: m.sender,
         message: m.message,
         created_at: m.created_at,
-        author: m.customers?.name || 'Admin',
+        author: m.users?.name || 'Admin',
       })),
       order: quotation.orders ? {
         id: quotation.orders.id.toString(),
@@ -362,7 +362,7 @@ export class QuotationsService {
           quotation_id: quotation.id,
           user_id: userId,
           sender: 'customer',
-          message: 'Customer approved the updated quotation.',
+          message: 'User? approved the updated quotation.',
           created_at: new Date(),
           updated_at: new Date(),
         }
@@ -387,7 +387,7 @@ export class QuotationsService {
           quotation_id: quotation.id,
           user_id: userId,
           sender: 'customer',
-          message: 'Customer declined the updated quotation.',
+          message: 'User? declined the updated quotation.',
           created_at: new Date(),
           updated_at: new Date(),
         }
@@ -408,16 +408,16 @@ export class QuotationsService {
       where.orders = { reference: { contains: filters.order_reference, mode: 'insensitive' } };
     }
     if (filters.customer_name) {
-      where.customers = { name: { contains: filters.customer_name, mode: 'insensitive' } };
+      where.users = { name: { contains: filters.customer_name, mode: 'insensitive' } };
     }
     if (filters.customer_email) {
-      where.customers = { email: { contains: filters.customer_email, mode: 'insensitive' } };
+      where.users = { email: { contains: filters.customer_email, mode: 'insensitive' } };
     }
 
     const items = await this.prisma.quotations.findMany({
       where,
       include: {
-        customers: true,
+        users: true,
         products: true,
         orders: true,
       },
@@ -456,7 +456,7 @@ export class QuotationsService {
         created_at: first.created_at,
         product: { id: first.products.id.toString(), name: first.products.name },
         products: group.map(q => ({ id: q.products.id.toString(), name: q.products.name })),
-        user: { name: first.customers.name, email: first.customers.email },
+        user: { name: first.users.name, email: first.users.email },
         order_reference: first.orders?.reference || null,
       };
     });
@@ -479,7 +479,7 @@ export class QuotationsService {
     const quotation = await this.prisma.quotations.findUnique({
       where: { id: BigInt(id) },
       include: {
-        customers: true,
+        users: true,
         products: {
           include: { 
             product_medias: { orderBy: { display_order: 'asc' } },
@@ -497,7 +497,7 @@ export class QuotationsService {
           include: { order_status_histories: { orderBy: { created_at: 'desc' } } }
         },
         quotation_messages: {
-          include: { customers: true },
+          include: { users: true },
           orderBy: { created_at: 'asc' }
         }
       }
@@ -527,20 +527,20 @@ export class QuotationsService {
       }
     });
 
-    const user = quotation.customers;
+    const user = quotation.users;
     const priceBreakdown = await this.pricingService.calculateProductPrice(quotation.products, user, {
       variant_id: quotation.product_variant_id,
       quantity: quotation.quantity,
-      customer_group_id: user.customer_group_id,
-      customer_type: user.type,
+      user_group_id: user.user_group_id,
+      user_type: user.type,
     });
 
     const relatedFormatted = await Promise.all(related.map(async (q) => {
       const p = await this.pricingService.calculateProductPrice(q.products, user, {
         variant_id: q.product_variant_id,
         quantity: q.quantity,
-        customer_group_id: user.customer_group_id,
-        customer_type: user.type,
+        user_group_id: user.user_group_id,
+        user_type: user.type,
       });
       return {
         id: q.id.toString(),
@@ -575,7 +575,7 @@ export class QuotationsService {
         sender: m.sender,
         message: m.message,
         created_at: m.created_at,
-        author: m.customers?.name || 'Admin',
+        author: m.users?.name || 'Admin',
       })),
       order: quotation.orders ? {
         id: quotation.orders.id.toString(),
@@ -595,7 +595,7 @@ export class QuotationsService {
   async approve(id: number, adminNotes?: string) {
     const quotation = await this.prisma.quotations.findUnique({ 
       where: { id: BigInt(id) },
-      include: { customers: true }
+      include: { users: true }
     });
     if (!quotation) throw new NotFoundException('Quotation not found');
 
@@ -609,7 +609,7 @@ export class QuotationsService {
         quotation_group_id: quotation.quotation_group_id,
         status: { in: ['pending', 'customer_confirmed'] }
       },
-      include: { products: true, customers: true }
+      include: { products: true, users: true }
     });
 
     if (related.length === 0) throw new BadRequestException('No quotations found to approve');
@@ -658,7 +658,7 @@ export class QuotationsService {
   async reject(id: number, adminNotes?: string) {
     const quotation = await this.prisma.quotations.findUnique({ 
       where: { id: BigInt(id) },
-      include: { customers: true }
+      include: { users: true }
     });
     if (!quotation) throw new NotFoundException('Quotation not found');
 
@@ -841,8 +841,8 @@ export class QuotationsService {
       const p = await this.pricingService.calculateProductPrice(q.products, user, {
         variant_id: q.product_variant_id,
         quantity: q.quantity,
-        customer_group_id: user?.customer_group_id,
-        customer_type: user?.type,
+        user_group_id: user?.user_group_id,
+        user_type: user?.type,
       });
       const unitSubtotal = p.subtotal || ((p.metal || 0) + (p.diamond || 0) + (p.making || 0));
       const unitDiscount = p.discount || 0;
@@ -859,7 +859,7 @@ export class QuotationsService {
 
   private async createOrderFromQuotations(quotations: any[], tx: any): Promise<any> {
     const first = quotations[0];
-    const user = first.customers;
+    const user = first.users;
 
     let totalSubtotal = 0;
     let totalDiscount = 0;
@@ -869,8 +869,8 @@ export class QuotationsService {
       const p = await this.pricingService.calculateProductPrice(q.products, user, {
         variant_id: q.product_variant_id,
         quantity: q.quantity,
-        customer_group_id: user.customer_group_id,
-        customer_type: user.type,
+        user_group_id: user.user_group_id,
+        user_type: user.type,
       });
 
       const unitSubtotal = p.subtotal || ((p.metal || 0) + (p.diamond || 0) + (p.making || 0));

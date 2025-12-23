@@ -68,7 +68,7 @@ export class MailService {
         const order = await this.prisma.orders.findUnique({
             where: { id: BigInt(orderId) },
             include: {
-                customers: true,
+                users: true,
                 order_items: true,
             },
         });
@@ -77,7 +77,7 @@ export class MailService {
             where: { id: BigInt(paymentId) },
         });
 
-        if (!order?.customers?.email || !payment) {
+        if (!order?.users?.email || !payment) {
             return;
         }
 
@@ -91,7 +91,7 @@ export class MailService {
         }));
 
         await this.sendMail({
-            to: order.customers.email,
+            to: order.users.email,
             subject,
             template: 'order-confirmation',
             context: {
@@ -105,7 +105,7 @@ export class MailService {
                 payment,
                 subject,
                 brandName,
-                user: order.customers,
+                user: order.users,
             },
         });
     }
@@ -126,7 +126,7 @@ export class MailService {
         const order = await this.prisma.orders.findUnique({
             where: { id: BigInt(orderId) },
             include: {
-                customers: true,
+                users: true,
                 order_items: true,
             },
         });
@@ -165,7 +165,7 @@ export class MailService {
      */
     async sendWelcomeEmail(userId: number): Promise<void> {
         // Convert number to BigInt for Prisma query
-        const user = await this.prisma.customer.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: BigInt(userId) },
         });
 
@@ -199,7 +199,7 @@ export class MailService {
         }
 
         // Convert number to BigInt for Prisma query
-        const user = await this.prisma.customer.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: BigInt(userId) },
         });
 
@@ -300,11 +300,11 @@ export class MailService {
         const quotation = await this.prisma.quotations.findUnique({
             where: { id: BigInt(quotationId) },
             include: {
-                customers: true,
+                users: true,
             },
         });
 
-        if (!quotation?.customers?.email) {
+        if (!quotation?.users?.email) {
             return;
         }
 
@@ -314,7 +314,7 @@ export class MailService {
         const subject = `Quotation ${quotationRef} approved`;
 
         await this.sendMail({
-            to: quotation.customers.email,
+            to: quotation.users.email,
             subject,
             template: 'quotation-approved',
             context: {
@@ -324,7 +324,7 @@ export class MailService {
                 },
                 subject,
                 brandName,
-                user: quotation.customers,
+                user: quotation.users,
             },
         });
     }
@@ -339,11 +339,11 @@ export class MailService {
         const quotation = await this.prisma.quotations.findUnique({
             where: { id: BigInt(quotationId) },
             include: {
-                customers: true,
+                users: true,
             },
         });
 
-        if (!quotation?.customers?.email) {
+        if (!quotation?.users?.email) {
             return;
         }
 
@@ -353,7 +353,7 @@ export class MailService {
         const subject = `Quotation ${quotationRef} update`;
 
         await this.sendMail({
-            to: quotation.customers.email,
+            to: quotation.users.email,
             subject,
             template: 'quotation-rejected',
             context: {
@@ -364,7 +364,7 @@ export class MailService {
                 reason,
                 subject,
                 brandName,
-                user: quotation.customers,
+                user: quotation.users,
             },
         });
     }
@@ -372,15 +372,15 @@ export class MailService {
     /**
      * Send quotation submitted email to customer
      */
-    async sendQuotationSubmittedCustomer(quotationId: number): Promise<void> {
+    async sendQuotationSubmittedUser(quotationId: number): Promise<void> {
         const quotation = await this.prisma.quotations.findUnique({
             where: { id: BigInt(quotationId) },
             include: {
-                customers: true,
+                users: true,
             },
         });
 
-        if (!quotation?.customers?.email) {
+        if (!quotation?.users?.email) {
             return;
         }
 
@@ -390,7 +390,7 @@ export class MailService {
         const subject = `Quotation ${quotationRef} submitted`;
 
         await this.sendMail({
-            to: quotation.customers.email,
+            to: quotation.users.email,
             subject,
             template: 'quotation-submitted-customer',
             context: {
@@ -400,7 +400,7 @@ export class MailService {
                 },
                 subject,
                 brandName,
-                user: quotation.customers,
+                user: quotation.users,
             },
         });
     }
@@ -418,7 +418,7 @@ export class MailService {
         const quotation = await this.prisma.quotations.findUnique({
             where: { id: BigInt(quotationId) },
             include: {
-                customers: true,
+                users: true,
             },
         });
 
@@ -456,11 +456,11 @@ export class MailService {
         const quotation = await this.prisma.quotations.findUnique({
             where: { id: BigInt(quotationId) },
             include: {
-                customers: true,
+                users: true,
             },
         });
 
-        if (!quotation?.customers?.email) {
+        if (!quotation?.users?.email) {
             return;
         }
 
@@ -470,7 +470,7 @@ export class MailService {
         const subject = `Action required: Quotation ${quotationRef}`;
 
         await this.sendMail({
-            to: quotation.customers.email,
+            to: quotation.users.email,
             subject,
             template: 'quotation-confirmation-request',
             context: {
@@ -481,7 +481,7 @@ export class MailService {
                 message,
                 subject,
                 brandName,
-                user: quotation.customers,
+                user: quotation.users,
             },
         });
     }
@@ -505,11 +505,11 @@ export class MailService {
         const quotation = await this.prisma.quotations.findUnique({
             where: { id: BigInt(quotationId) },
             include: {
-                customers: true,
+                users: true,
             },
         });
 
-        if (!quotation?.customers?.email) {
+        if (!quotation?.users?.email) {
             return;
         }
 
@@ -519,7 +519,7 @@ export class MailService {
         const subject = `Quotation ${quotationRef} status updated`;
 
         await this.sendMail({
-            to: quotation.customers.email,
+            to: quotation.users.email,
             subject,
             template: 'quotation-status-updated',
             context: {
@@ -529,7 +529,7 @@ export class MailService {
                 },
                 subject,
                 brandName,
-                user: quotation.customers,
+                user: quotation.users,
             },
         });
     }

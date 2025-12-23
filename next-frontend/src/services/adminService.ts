@@ -81,76 +81,76 @@ export const adminService = {
     return await apiClient.post(`/admin/catalogs/${catalogId}/assign-products`, { product_ids: productIds });
   },
 
-  // Customers
-  async getCustomers(filters?: { page?: number; per_page?: number; search?: string; status?: string; type?: string; customer_group_id?: number }) {
-    return await apiClient.get('/admin/customers', { params: filters });
+  // Users (formerly Customers)
+  async getCustomers(filters?: { page?: number; per_page?: number; search?: string; status?: string; type?: string; user_group_id?: number }) {
+    return await apiClient.get('/admin/users', { params: filters });
   },
   async getCustomer(id: number) {
-    return await apiClient.get(`/admin/customers/${id}`);
+    return await apiClient.get(`/admin/users/${id}`);
   },
   async updateCustomerKycStatus(id: number, status: string, notes?: string) {
-    return await apiClient.post(`/admin/customers/${id}/kyc-status`, { 
+    return await apiClient.post(`/admin/users/${id}/kyc-status`, { 
       kyc_status: status,
       kyc_notes: notes || null
     });
   },
   async addKycMessage(id: number, message: string) {
-    return await apiClient.post(`/admin/customers/${id}/kyc-messages`, { message });
+    return await apiClient.post(`/admin/users/${id}/kyc-messages`, { message });
   },
   async updateKycDocumentStatus(id: number, docId: number, status: string, remarks?: string) {
-    return await apiClient.patch(`/admin/customers/${id}/kyc-documents/${docId}`, { status, remarks });
+    return await apiClient.patch(`/admin/users/${id}/kyc-documents/${docId}`, { status, remarks });
   },
   async toggleKycComments(id: number, allowReplies: boolean) {
-    return await apiClient.post(`/admin/customers/${id}/kyc-comments`, { allow_replies: allowReplies });
+    return await apiClient.post(`/admin/users/${id}/kyc-comments`, { allow_replies: allowReplies });
   },
   async toggleCustomerStatus(id: number) {
-    return await apiClient.post(`/admin/customers/${id}/toggle-status`);
+    return await apiClient.post(`/admin/users/${id}/toggle-status`);
   },
-  async updateCustomerGroupAssignment(id: number, groupId: number | null) {
-    return await apiClient.patch(`/admin/customers/${id}/group`, { group_id: groupId });
+  async updateUserGroupAssignment(id: number, groupId: number | null) {
+    return await apiClient.patch(`/admin/users/${id}/group`, { group_id: groupId });
   },
   async deleteCustomer(id: number) {
-    return await apiClient.delete(`/admin/customers/${id}`);
+    return await apiClient.delete(`/admin/users/${id}`);
   },
 
-  // Customer Groups
-  async getCustomerGroups(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/customer-groups', { params: { page, per_page: perPage } });
+  // User Groups (formerly Customer Groups)
+  async getUserGroups(page = 1, perPage = 20) {
+    return await apiClient.get('/admin/user-groups', { params: { page, per_page: perPage } });
   },
-  async getCustomerGroup(id: number) {
-    return await apiClient.get(`/admin/customer-groups/${id}`);
+  async getUserGroup(id: number) {
+    return await apiClient.get(`/admin/user-groups/${id}`);
   },
-  async createCustomerGroup(data: any) {
-    return await apiClient.post('/admin/customer-groups', data);
+  async createUserGroup(data: any) {
+    return await apiClient.post('/admin/user-groups', data);
   },
-  async updateCustomerGroup(id: number, data: any) {
-    return await apiClient.patch(`/admin/customer-groups/${id}`, data);
+  async updateUserGroup(id: number, data: any) {
+    return await apiClient.patch(`/admin/user-groups/${id}`, data);
   },
-  async deleteCustomerGroup(id: number) {
-    return await apiClient.delete(`/admin/customer-groups/${id}`);
+  async deleteUserGroup(id: number) {
+    return await apiClient.delete(`/admin/user-groups/${id}`);
   },
-  async bulkDeleteCustomerGroups(ids: number[]) {
-    return await apiClient.delete('/admin/customer-groups/bulk', { data: { ids } });
+  async bulkDeleteUserGroups(ids: number[]) {
+    return await apiClient.delete('/admin/user-groups/bulk', { data: { ids } });
   },
 
-  // Customer Types
-  async getCustomerTypes(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/customer-types', { params: { page, per_page: perPage } });
+  // User Types (formerly Customer Types)
+  async getUserTypes(page = 1, perPage = 20) {
+    return await apiClient.get('/admin/user-types', { params: { page, per_page: perPage } });
   },
-  async getCustomerType(id: number) {
-    return await apiClient.get(`/admin/customer-types/${id}`);
+  async getUserType(id: number) {
+    return await apiClient.get(`/admin/user-types/${id}`);
   },
-  async createCustomerType(data: any) {
-    return await apiClient.post('/admin/customer-types', data);
+  async createUserType(data: any) {
+    return await apiClient.post('/admin/user-types', data);
   },
-  async updateCustomerType(id: number, data: any) {
-    return await apiClient.patch(`/admin/customer-types/${id}`, data);
+  async updateUserType(id: number, data: any) {
+    return await apiClient.patch(`/admin/user-types/${id}`, data);
   },
-  async deleteCustomerType(id: number) {
-    return await apiClient.delete(`/admin/customer-types/${id}`);
+  async deleteUserType(id: number) {
+    return await apiClient.delete(`/admin/user-types/${id}`);
   },
-  async bulkDeleteCustomerTypes(ids: number[]) {
-    return await apiClient.delete('/admin/customer-types/bulk', { data: { ids } });
+  async bulkDeleteUserTypes(ids: number[]) {
+    return await apiClient.delete('/admin/user-types/bulk', { data: { ids } });
   },
 
   // Metals
@@ -550,46 +550,46 @@ export const adminService = {
   },
 
   // Team Users
-  async getTeamUsers(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/team-users', { params: { page, per_page: perPage } });
+  async getAdmins(page = 1, perPage = 20) {
+    return await apiClient.get('/admin/admins', { params: { page, per_page: perPage } });
   },
-  async getTeamUser(id: number) {
-    return await apiClient.get(`/admin/team-users/${id}`);
+  async getAdmin(id: number) {
+    return await apiClient.get(`/admin/admins/${id}`);
   },
-  async createTeamUser(data: any) {
-    return await apiClient.post('/admin/team-users', data);
+  async createAdmin(data: any) {
+    return await apiClient.post('/admin/admins', data);
   },
-  async updateTeamUser(id: number, data: any) {
-    return await apiClient.patch(`/admin/team-users/${id}`, data);
+  async updateAdmin(id: number, data: any) {
+    return await apiClient.patch(`/admin/admins/${id}`, data);
   },
-  async deleteTeamUser(id: number) {
-    return await apiClient.delete(`/admin/team-users/${id}`);
+  async deleteAdmin(id: number) {
+    return await apiClient.delete(`/admin/admins/${id}`);
   },
-  async bulkDeleteTeamUsers(ids: number[]) {
-    return await apiClient.delete('/admin/team-users/bulk', { data: { ids } });
+  async bulkDeleteAdmins(ids: number[]) {
+    return await apiClient.delete('/admin/admins/bulk', { data: { ids } });
   },
-  async updateTeamUserGroup(id: number, groupId: number | null) {
-    return await apiClient.patch(`/admin/team-users/${id}/group`, { user_group_id: groupId });
+  async updateAdminGroup(id: number, groupId: number | null) {
+    return await apiClient.patch(`/admin/admins/${id}/group`, { admin_group_id: groupId });
   },
 
-  // User Groups
-  async getUserGroups(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/user-groups', { params: { page, per_page: perPage } });
+  // Admin Groups
+  async getAdminGroups(page = 1, perPage = 20) {
+    return await apiClient.get('/admin/admin-groups', { params: { page, per_page: perPage } });
   },
-  async getUserGroup(id: number) {
-    return await apiClient.get(`/admin/user-groups/${id}`);
+  async getAdminGroup(id: number) {
+    return await apiClient.get(`/admin/admin-groups/${id}`);
   },
-  async createUserGroup(data: any) {
-    return await apiClient.post('/admin/user-groups', data);
+  async createAdminGroup(data: any) {
+    return await apiClient.post('/admin/admin-groups', data);
   },
-  async updateUserGroup(id: number, data: any) {
-    return await apiClient.patch(`/admin/user-groups/${id}`, data);
+  async updateAdminGroup(id: number, data: any) {
+    return await apiClient.patch(`/admin/admin-groups/${id}`, data);
   },
-  async deleteUserGroup(id: number) {
-    return await apiClient.delete(`/admin/user-groups/${id}`);
+  async deleteAdminGroup(id: number) {
+    return await apiClient.delete(`/admin/admin-groups/${id}`);
   },
-  async bulkDeleteUserGroups(ids: number[]) {
-    return await apiClient.delete('/admin/user-groups/bulk', { data: { ids } });
+  async bulkDeleteAdminGroups(ids: number[]) {
+    return await apiClient.delete('/admin/admin-groups/bulk', { data: { ids } });
   },
 
   // Products

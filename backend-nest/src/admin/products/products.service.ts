@@ -413,7 +413,7 @@ export class ProductsService {
             metalPurities,
             metalTones,
             sizes,
-            customerGroups,
+            userGroups,
         ] = await Promise.all([
             this.prisma.brands.findMany({
                 where: { is_active: true },
@@ -461,7 +461,7 @@ export class ProductsService {
                 where: { is_active: true },
                 orderBy: { name: 'asc' },
             }),
-            this.prisma.customer_groups.findMany({
+            this.prisma.user_groups.findMany({
                 where: { is_active: true },
                 orderBy: { name: 'asc' },
             }),
@@ -602,7 +602,7 @@ export class ProductsService {
             metalPurities,
             metalTones,
             sizes,
-            customerGroups,
+            userGroups,
         };
     }
 

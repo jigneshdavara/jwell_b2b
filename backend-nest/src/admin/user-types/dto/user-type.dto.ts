@@ -8,7 +8,7 @@ import {
     IsNotEmpty,
 } from 'class-validator';
 
-export class CreateCustomerTypeDto {
+export class CreateUserTypeDto {
     @IsString()
     @IsNotEmpty()
     @MaxLength(191)
@@ -33,7 +33,7 @@ export class CreateCustomerTypeDto {
     display_order?: number;
 }
 
-export class UpdateCustomerTypeDto {
+export class UpdateUserTypeDto {
     @IsString()
     @IsOptional()
     @MaxLength(191)

@@ -25,8 +25,8 @@ export class OrdersService {
     if (filters?.search) {
       where.OR = [
         { reference: { contains: filters.search, mode: 'insensitive' } },
-        { customers: { name: { contains: filters.search, mode: 'insensitive' } } },
-        { customers: { email: { contains: filters.search, mode: 'insensitive' } } },
+        { users: { name: { contains: filters.search, mode: 'insensitive' } } },
+        { users: { email: { contains: filters.search, mode: 'insensitive' } } },
       ];
     }
 
@@ -37,7 +37,7 @@ export class OrdersService {
         take: perPage,
         orderBy: { created_at: 'desc' },
         include: {
-          customers: {
+          users: {
             select: {
               id: true,
               name: true,
@@ -65,10 +65,10 @@ export class OrdersService {
         status_label: this.formatStatusLabel(order.status),
         total_amount: order.total_amount.toString(),
         created_at: order.created_at,
-        user: order.customers
+        user: order.users
           ? {
-              name: order.customers.name,
-              email: order.customers.email,
+              name: order.users.name,
+              email: order.users.email,
             }
           : null,
         items_count: order.order_items.length,
@@ -87,7 +87,7 @@ export class OrdersService {
     const order = await this.prisma.orders.findUnique({
       where: { id },
       include: {
-        customers: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -158,10 +158,10 @@ export class OrdersService {
       price_breakdown: order.price_breakdown,
       created_at: order.created_at,
       updated_at: order.updated_at,
-      user: order.customers
+      user: order.users
         ? {
-            name: order.customers.name,
-            email: order.customers.email,
+            name: order.users.name,
+            email: order.users.email,
           }
         : null,
       items: order.order_items.map((item) => {

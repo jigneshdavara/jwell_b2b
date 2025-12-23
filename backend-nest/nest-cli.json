@@ -7,9 +7,9 @@
     "assets": [
       {
         "include": "common/mail/templates/**/*",
-        "outDir": "dist"
+        "outDir": "dist/src",
+        "watchAssets": true
       }
-    ],
-    "watchAssets": true
+    ]
   }
 }

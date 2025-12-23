@@ -18,7 +18,7 @@ export class MakingChargeDiscountsService {
                 include: {
                     brands: { select: { id: true, name: true } },
                     categories: { select: { id: true, name: true } },
-                    customer_groups: { select: { id: true, name: true } },
+                    user_groups: { select: { id: true, name: true } },
                 },
                 orderBy: { created_at: 'desc' },
             }),
@@ -31,10 +31,10 @@ export class MakingChargeDiscountsService {
             id: Number(item.id),
             brand: item.brands ? { id: Number(item.brands.id), name: item.brands.name } : null,
             category: item.categories ? { id: Number(item.categories.id), name: item.categories.name } : null,
-            customer_group: item.customer_groups ? { id: Number(item.customer_groups.id), name: item.customer_groups.name } : null,
+            customer_group: item.user_groups ? { id: Number(item.user_groups.id), name: item.user_groups.name } : null,
             brands: undefined,
             categories: undefined,
-            customer_groups: undefined,
+            user_groups: undefined,
         }));
 
         return {
@@ -54,7 +54,7 @@ export class MakingChargeDiscountsService {
             include: {
                 brands: { select: { id: true, name: true } },
                 categories: { select: { id: true, name: true } },
-                customer_groups: { select: { id: true, name: true } },
+                user_groups: { select: { id: true, name: true } },
             },
         });
 
@@ -67,10 +67,10 @@ export class MakingChargeDiscountsService {
             id: Number(discount.id),
             brand: discount.brands ? { id: Number(discount.brands.id), name: discount.brands.name } : null,
             category: discount.categories ? { id: Number(discount.categories.id), name: discount.categories.name } : null,
-            customer_group: discount.customer_groups ? { id: Number(discount.customer_groups.id), name: discount.customer_groups.name } : null,
+            customer_group: discount.user_groups ? { id: Number(discount.user_groups.id), name: discount.user_groups.name } : null,
             brands: undefined,
             categories: undefined,
-            customer_groups: undefined,
+            user_groups: undefined,
         };
     }
 
@@ -83,20 +83,20 @@ export class MakingChargeDiscountsService {
                 value: dto.value,
                 brand_id: dto.brand_id ? BigInt(dto.brand_id) : null,
                 category_id: dto.category_id ? BigInt(dto.category_id) : null,
-                customer_group_id: dto.customer_group_id
-                    ? BigInt(dto.customer_group_id)
+                user_group_id: dto.user_group_id
+                    ? BigInt(dto.user_group_id)
                     : null,
                 min_cart_total: dto.min_cart_total,
                 is_auto: dto.is_auto ?? true,
                 is_active: dto.is_active ?? true,
                 starts_at: dto.starts_at ? new Date(dto.starts_at) : null,
                 ends_at: dto.ends_at ? new Date(dto.ends_at) : null,
-                customer_types: dto.customer_types as any,
+                customer_types: dto.user_types as any,
             },
             include: {
                 brands: { select: { id: true, name: true } },
                 categories: { select: { id: true, name: true } },
-                customer_groups: { select: { id: true, name: true } },
+                user_groups: { select: { id: true, name: true } },
             },
         });
         return {
@@ -104,10 +104,10 @@ export class MakingChargeDiscountsService {
             id: Number(discount.id),
             brand: discount.brands ? { id: Number(discount.brands.id), name: discount.brands.name } : null,
             category: discount.categories ? { id: Number(discount.categories.id), name: discount.categories.name } : null,
-            customer_group: discount.customer_groups ? { id: Number(discount.customer_groups.id), name: discount.customer_groups.name } : null,
+            customer_group: discount.user_groups ? { id: Number(discount.user_groups.id), name: discount.user_groups.name } : null,
             brands: undefined,
             categories: undefined,
-            customer_groups: undefined,
+            user_groups: undefined,
         };
     }
 
@@ -124,20 +124,20 @@ export class MakingChargeDiscountsService {
                 category_id: dto.category_id
                     ? BigInt(dto.category_id)
                     : undefined,
-                customer_group_id: dto.customer_group_id
-                    ? BigInt(dto.customer_group_id)
+                user_group_id: dto.user_group_id
+                    ? BigInt(dto.user_group_id)
                     : undefined,
                 min_cart_total: dto.min_cart_total,
                 is_auto: dto.is_auto,
                 is_active: dto.is_active,
                 starts_at: dto.starts_at ? new Date(dto.starts_at) : undefined,
                 ends_at: dto.ends_at ? new Date(dto.ends_at) : undefined,
-                customer_types: dto.customer_types as any,
+                user_types: dto.user_types as any,
             },
             include: {
                 brands: { select: { id: true, name: true } },
                 categories: { select: { id: true, name: true } },
-                customer_groups: { select: { id: true, name: true } },
+                user_groups: { select: { id: true, name: true } },
             },
         });
         return {
@@ -145,10 +145,10 @@ export class MakingChargeDiscountsService {
             id: Number(discount.id),
             brand: discount.brands ? { id: Number(discount.brands.id), name: discount.brands.name } : null,
             category: discount.categories ? { id: Number(discount.categories.id), name: discount.categories.name } : null,
-            customer_group: discount.customer_groups ? { id: Number(discount.customer_groups.id), name: discount.customer_groups.name } : null,
+            customer_group: discount.user_groups ? { id: Number(discount.user_groups.id), name: discount.user_groups.name } : null,
             brands: undefined,
             categories: undefined,
-            customer_groups: undefined,
+            user_groups: undefined,
         };
     }
 
