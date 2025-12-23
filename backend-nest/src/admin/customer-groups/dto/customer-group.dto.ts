@@ -15,6 +15,11 @@ export class CreateCustomerGroupDto {
     name: string;
 
     @IsString()
+    @IsNotEmpty()
+    @MaxLength(50)
+    code: string;
+
+    @IsString()
     @IsOptional()
     description?: string;
 
@@ -25,7 +30,7 @@ export class CreateCustomerGroupDto {
     @IsInt()
     @IsOptional()
     @Min(0)
-    position?: number;
+    display_order?: number;
 }
 
 export class UpdateCustomerGroupDto {
@@ -36,6 +41,11 @@ export class UpdateCustomerGroupDto {
 
     @IsString()
     @IsOptional()
+    @MaxLength(50)
+    code?: string;
+
+    @IsString()
+    @IsOptional()
     description?: string;
 
     @IsBoolean()
@@ -45,7 +55,7 @@ export class UpdateCustomerGroupDto {
     @IsInt()
     @IsOptional()
     @Min(0)
-    position?: number;
+    display_order?: number;
 }
 
 export class BulkDestroyDto {

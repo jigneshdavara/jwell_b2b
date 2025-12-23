@@ -202,10 +202,10 @@ CREATE TABLE "category_styles" (
 CREATE TABLE "customer_groups" (
     "id" BIGSERIAL NOT NULL,
     "name" VARCHAR(191) NOT NULL,
-    "slug" VARCHAR(191) NOT NULL,
+    "code" VARCHAR(191) NOT NULL,
     "description" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "position" INTEGER NOT NULL DEFAULT 0,
+    "display_order" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ(0),
     "updated_at" TIMESTAMPTZ(0),
 
@@ -910,7 +910,8 @@ CREATE UNIQUE INDEX "category_styles_category_id_style_id_unique" ON "category_s
 CREATE UNIQUE INDEX "customer_groups_name_unique" ON "customer_groups"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "customer_groups_slug_unique" ON "customer_groups"("slug");
+CREATE UNIQUE INDEX "customer_groups_code_unique" ON "customer_groups"("code");
+
 
 -- CreateIndex
 CREATE UNIQUE INDEX "customer_types_name_unique" ON "customer_types"("name");

@@ -19,7 +19,7 @@ export class CustomerGroupsService {
             this.prisma.customer_groups.findMany({
                 skip,
                 take: perPage,
-                orderBy: [{ position: 'asc' }, { name: 'asc' }],
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
             this.prisma.customer_groups.count(),
         ]);
@@ -46,23 +46,34 @@ export class CustomerGroupsService {
     }
 
     async create(dto: CreateCustomerGroupDto) {
-        const existing = await this.prisma.customer_groups.findUnique({
-            where: { name: dto.name },
-        });
-        if (existing) {
+        const [existingByName, existingByCode] = await Promise.all([
+            this.prisma.customer_groups.findUnique({
+                where: { name: dto.name },
+            }),
+            this.prisma.customer_groups.findUnique({
+                where: { code: dto.code },
+            }),
+        ]);
+
+        if (existingByName) {
             throw new ConflictException(
                 'Customer group with this name already exists',
             );
         }
 
-        const slug = await this.generateUniqueSlug(dto.name);
+        if (existingByCode) {
+            throw new ConflictException(
+                'Customer group with this code already exists',
+            );
+        }
+
         return await this.prisma.customer_groups.create({
             data: {
                 name: dto.name,
-                slug,
+                code: dto.code,
                 description: dto.description,
                 is_active: dto.is_active ?? true,
-                position: dto.position ?? 0,
+                display_order: dto.display_order ?? 0,
             },
         });
     }
@@ -81,19 +92,25 @@ export class CustomerGroupsService {
             }
         }
 
-        let slug = group.slug;
-        if (dto.name && dto.name !== group.name) {
-            slug = await this.generateUniqueSlug(dto.name, id);
+        if (dto.code && dto.code !== group.code) {
+            const existing = await this.prisma.customer_groups.findUnique({
+                where: { code: dto.code },
+            });
+            if (existing) {
+                throw new ConflictException(
+                    'Customer group with this code already exists',
+                );
+            }
         }
 
         return await this.prisma.customer_groups.update({
             where: { id: BigInt(id) },
             data: {
                 name: dto.name,
-                slug,
+                code: dto.code,
                 description: dto.description,
                 is_active: dto.is_active,
-                position: dto.position,
+                display_order: dto.display_order,
             },
         });
     }
@@ -110,33 +127,5 @@ export class CustomerGroupsService {
         return await this.prisma.customer_groups.deleteMany({
             where: { id: { in: bigIntIds } },
         });
-    }
-
-    private async generateUniqueSlug(
-        name: string,
-        ignoreId?: number,
-    ): Promise<string> {
-        const baseSlug = name
-            .toLowerCase()
-            .replace(/[^\w\s-]/g, '')
-            .replace(/[\s_-]+/g, '-')
-            .replace(/^-+|-+$/g, '');
-
-        let slug = baseSlug;
-        let counter = 1;
-
-        while (true) {
-            const existing = await this.prisma.customer_groups.findFirst({
-                where: {
-                    slug,
-                    id: ignoreId ? { not: BigInt(ignoreId) } : undefined,
-                },
-            });
-
-            if (!existing) break;
-            slug = `${baseSlug}-${counter++}`;
-        }
-
-        return slug;
     }
 }
