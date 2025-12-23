@@ -3,9 +3,8 @@
 import { useEffect, useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { kycService } from '@/services/kycService';
-import { authService } from '@/services/authService';
-import InputError from '@/components/ui/InputError';
 import { route } from '@/utils/route';
+import InputError from '@/components/ui/InputError';
 
 const statusLabels: Record<string, { title: string; description: string; badge: string }> = {
     pending: {
@@ -30,15 +29,67 @@ const statusLabels: Record<string, { title: string; description: string; badge: 
     },
 };
 
+type KycDocument = {
+    id: number | string;
+    type: string;
+    status: string;
+    remarks?: string | null;
+    file_path?: string | null;
+    url?: string | null;
+    download_url?: string | null;
+    created_at?: string | null;
+    uploaded_at?: string | null;
+};
+
+type KycProfile = {
+    business_name?: string;
+    business_website?: string | null;
+    gst_number?: string | null;
+    pan_number?: string | null;
+    registration_number?: string | null;
+    address_line1?: string | null;
+    address_line2?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postal_code?: string | null;
+    country?: string | null;
+    contact_name?: string | null;
+    contact_phone?: string | null;
+};
+
+type ConversationMessage = {
+    id: number | string;
+    sender_type: 'admin' | 'customer';
+    message: string;
+    created_at?: string | null;
+    users?: {
+        id: number;
+        name: string;
+    } | null;
+};
+
+type User = {
+    id: number | string;
+    name: string;
+    email: string;
+    phone?: string | null;
+    type?: string | null;
+    kyc_status: string;
+    kyc_notes?: string | null;
+    kyc_comments_enabled?: boolean;
+};
+
 export default function KycOnboardingPage() {
     const router = useRouter();
-    const [user, setUser] = useState<any>(null);
-    const [profile, setProfile] = useState<any>({});
-    const [documents, setDocuments] = useState<any[]>([]);
-    const [messages, setMessages] = useState<any[]>([]);
+    const [user, setUser] = useState<User | null>(null);
+    const [profile, setProfile] = useState<KycProfile>({});
+    const [documents, setDocuments] = useState<KycDocument[]>([]);
+    const [messages, setMessages] = useState<ConversationMessage[]>([]);
+    const [documentTypes, setDocumentTypes] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
+    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     
-    const [profileData, setProfileData] = useState<any>({});
+    const [profileData, setProfileData] = useState<KycProfile>({});
     const [documentType, setDocumentType] = useState('gst_certificate');
     const [documentFile, setDocumentFile] = useState<File | null>(null);
     const [newMessage, setNewMessage] = useState('');
@@ -47,19 +98,68 @@ export default function KycOnboardingPage() {
 
     const fetchData = async () => {
         try {
-            const [userRes, profileRes, docsRes, msgsRes] = await Promise.all([
-                authService.me(),
-                kycService.getProfile(),
-                kycService.getDocuments(),
-                kycService.getMessages(),
+            const [onboardingRes, documentTypesRes] = await Promise.all([
+                kycService.getOnboardingData(),
+                kycService.getDocumentTypes(),
             ]);
-            setUser(userRes.data);
-            setProfile(profileRes.data);
-            setDocuments(docsRes.data);
-            setMessages(msgsRes.data);
-            setProfileData(profileRes.data);
-        } catch (e) {
-            console.error(e);
+            
+            const data = onboardingRes.data;
+            setUser({
+                id: data.id || data.user?.id || 0,
+                name: data.name || data.user?.name || '',
+                email: data.email || data.user?.email || '',
+                phone: data.phone || data.user?.phone || null,
+                type: data.type || data.user?.type || null,
+                kyc_status: data.kyc_status || 'pending',
+                kyc_notes: data.kyc_notes || null,
+                kyc_comments_enabled: data.kyc_comments_enabled !== false,
+            });
+            
+            const profileData = data.kycProfile?.[0] || data.profile || {};
+            setProfile(profileData);
+            setProfileData({
+                business_name: profileData.business_name || '',
+                business_website: profileData.business_website || '',
+                gst_number: profileData.gst_number || '',
+                pan_number: profileData.pan_number || '',
+                registration_number: profileData.registration_number || '',
+                address_line1: profileData.address_line1 || '',
+                address_line2: profileData.address_line2 || '',
+                city: profileData.city || '',
+                state: profileData.state || '',
+                postal_code: profileData.postal_code || '',
+                country: profileData.country || 'India',
+                contact_name: profileData.contact_name || data.name || '',
+                contact_phone: profileData.contact_phone || data.phone || '',
+            });
+            
+            const docs = data.user_kyc_documents || data.documents || [];
+            setDocuments(docs.map((doc: any) => ({
+                id: doc.id,
+                type: doc.type,
+                status: doc.status || 'pending',
+                remarks: doc.remarks || null,
+                file_path: doc.file_path || null,
+                url: doc.url || (doc.file_path ? `/api/onboarding/kyc/documents/${doc.id}/download` : null),
+                download_url: doc.download_url || (doc.file_path ? `/api/onboarding/kyc/documents/${doc.id}/download` : null),
+                created_at: doc.created_at || null,
+                uploaded_at: doc.created_at || null,
+            })));
+            
+            const msgs = data.user_kyc_messages || data.messages || [];
+            setMessages(msgs.map((msg: any) => ({
+                id: msg.id,
+                sender_type: msg.sender_type || 'customer',
+                message: msg.message,
+                created_at: msg.created_at || null,
+                users: msg.users || msg.admin || null,
+            })));
+            
+            setDocumentTypes(documentTypesRes.data?.documentTypes || []);
+        } catch (e: any) {
+            console.error('Failed to fetch KYC data:', e);
+            setFlashMessage({ type: 'error', message: e.response?.data?.message || 'Failed to load KYC data' });
+            setTimeout(() => setFlashMessage(null), 5000);
         } finally {
             setLoading(false);
         }
@@ -72,11 +172,20 @@ export default function KycOnboardingPage() {
     const handleProfileSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setProcessing(true);
+        setErrors({});
         try {
             await kycService.updateProfile(profileData);
-            alert('Profile updated successfully');
+            setFlashMessage({ type: 'success', message: 'Profile updated successfully' });
+            setTimeout(() => setFlashMessage(null), 3000);
+            await fetchData();
         } catch (error: any) {
-            setErrors(error.response?.data?.errors || {});
+            const errorData = error.response?.data;
+            if (errorData?.errors) {
+                setErrors(errorData.errors);
+            } else {
+                setFlashMessage({ type: 'error', message: errorData?.message || 'Failed to update profile' });
+                setTimeout(() => setFlashMessage(null), 5000);
+            }
         } finally {
             setProcessing(false);
         }
@@ -86,14 +195,23 @@ export default function KycOnboardingPage() {
         e.preventDefault();
         if (!documentFile) return;
         setProcessing(true);
+        setErrors({});
         try {
             await kycService.uploadDocument(documentType, documentFile);
             setDocumentFile(null);
             const input = document.getElementById('document_file') as HTMLInputElement;
             if (input) input.value = '';
-            fetchData();
+            setFlashMessage({ type: 'success', message: 'Document uploaded successfully' });
+            setTimeout(() => setFlashMessage(null), 3000);
+            await fetchData();
         } catch (error: any) {
-            alert('Upload failed');
+            const errorData = error.response?.data;
+            if (errorData?.errors) {
+                setErrors(errorData.errors);
+            } else {
+                setFlashMessage({ type: 'error', message: errorData?.message || 'Failed to upload document' });
+                setTimeout(() => setFlashMessage(null), 5000);
+            }
         } finally {
             setProcessing(false);
         }
@@ -101,84 +219,479 @@ export default function KycOnboardingPage() {
 
     const handleSendMessage = async (e: FormEvent) => {
         e.preventDefault();
-        if (!newMessage.trim()) return;
+        if (!newMessage.trim() || !user?.kyc_comments_enabled) return;
         setProcessing(true);
         try {
             await kycService.addMessage(newMessage);
             setNewMessage('');
-            fetchData();
-        } catch (e) {
-            console.error(e);
+            setFlashMessage({ type: 'success', message: 'Message sent successfully' });
+            setTimeout(() => setFlashMessage(null), 3000);
+            await fetchData();
+        } catch (e: any) {
+            console.error('Failed to send message:', e);
+            setFlashMessage({ type: 'error', message: e.response?.data?.message || 'Failed to send message' });
+            setTimeout(() => setFlashMessage(null), 5000);
         } finally {
             setProcessing(false);
         }
     };
 
-    if (loading || !user) return <div className="flex justify-center py-20"><div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" /></div>;
+    const handleDeleteDocument = async (documentId: number | string) => {
+        if (!confirm('Are you sure you want to delete this document?')) return;
+        try {
+            await kycService.deleteDocument(Number(documentId));
+            setFlashMessage({ type: 'success', message: 'Document deleted successfully' });
+            setTimeout(() => setFlashMessage(null), 3000);
+            await fetchData();
+        } catch (e: any) {
+            console.error('Failed to delete document:', e);
+            setFlashMessage({ type: 'error', message: e.response?.data?.message || 'Failed to delete document' });
+            setTimeout(() => setFlashMessage(null), 5000);
+        }
+    };
+
+    const formatTimestamp = (value?: string | null) => {
+        if (!value) return '';
+        return new Date(value).toLocaleString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
+    if (loading || !user) {
+        return (
+            <div className="flex justify-center py-20">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />
+            </div>
+        );
+    }
 
     const statusInfo = statusLabels[user.kyc_status] ?? statusLabels.pending;
+    const documentStatusTheme: Record<string, string> = {
+        approved: 'bg-emerald-100 text-emerald-700',
+        rejected: 'bg-rose-100 text-rose-700',
+        needs_revision: 'bg-amber-100 text-amber-700',
+        pending: 'bg-slate-100 text-slate-700',
+    };
+    const isApproved = user.kyc_status === 'approved';
 
     return (
         <div className="space-y-8">
+            {flashMessage && (
+                <div
+                    className={`rounded-2xl border px-4 py-3 text-sm shadow-sm transition ${
+                        flashMessage.type === 'success'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                            : 'bg-rose-50 border-rose-200 text-rose-900'
+                    }`}
+                >
+                    <div className="flex items-center justify-between">
+                        <p className="font-medium">{flashMessage.message}</p>
+                        <button
+                            onClick={() => setFlashMessage(null)}
+                            className="ml-4 text-current opacity-70 hover:opacity-100"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                                className="h-4 w-4"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 p-8 text-white shadow-2xl">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.25),_transparent_40%),_radial-gradient(circle_at_bottom_right,_rgba(249,115,22,0.25),_transparent_45%)]" />
                 <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                        <h1 className="text-3xl font-semibold">KYC verification status</h1>
+                        <p className="text-xs text-white/70">Elvee onboarding</p>
+                        <h1 className="mt-2 text-3xl font-semibold">KYC verification status</h1>
                         <p className="mt-3 max-w-2xl text-sm text-white/80">{statusInfo.description}</p>
+                        {user.kyc_notes && (
+                            <div className="mt-4 rounded-2xl bg-white/10 p-4 text-sm text-amber-200">
+                                <p className="font-semibold text-amber-300">Reviewer notes</p>
+                                <p className="mt-2 whitespace-pre-line">{user.kyc_notes}</p>
+                            </div>
+                        )}
                     </div>
                     <div className="flex flex-col items-start gap-3 lg:items-end">
                         <span className={`rounded-full px-4 py-1 text-xs font-semibold ${statusInfo.badge}`}>
-                            {user.kyc_status}
+                            {user.kyc_status === 'review' ? 'needs attention' : user.kyc_status}
                         </span>
-                        {user.kyc_status === 'approved' && (
-                            <button onClick={() => router.push(route('dashboard'))} className="bg-white text-slate-900 px-4 py-2 rounded-full font-semibold text-sm">Go to dashboard</button>
+                        {isApproved ? (
+                            <button
+                                onClick={() => router.push(route('frontend.dashboard'))}
+                                className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-slate-900/20"
+                            >
+                                Go to dashboard
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        ) : (
+                            <span className="text-xs text-white/70">Access unlocks after approval</span>
                         )}
                     </div>
                 </div>
             </section>
 
-            <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
+            <section className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
                 <div className="space-y-8">
-                    <form onSubmit={handleProfileSubmit} className="space-y-5 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                        <h2 className="text-lg font-semibold">Business profile</h2>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <input type="text" value={profileData.business_name || ''} onChange={e => setProfileData({...profileData, business_name: e.target.value})} className="rounded-xl border px-4 py-2" placeholder="Business Name" required />
-                            <input type="text" value={profileData.business_website || ''} onChange={e => setProfileData({...profileData, business_website: e.target.value})} className="rounded-xl border px-4 py-2" placeholder="Website" />
+                    <form
+                        onSubmit={handleProfileSubmit}
+                        className="space-y-5 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70"
+                    >
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-semibold text-slate-900">Business profile</h2>
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {processing ? 'Saving…' : 'Save changes'}
+                            </button>
                         </div>
-                        <button type="submit" disabled={processing} className="bg-elvee-blue text-white px-6 py-2 rounded-full font-semibold">Save changes</button>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>Business / store name</span>
+                                <input
+                                    type="text"
+                                    value={profileData.business_name || ''}
+                                    onChange={(e) => setProfileData({...profileData, business_name: e.target.value})}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    required
+                                />
+                                <InputError message={errors.business_name} />
+                            </label>
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>Website</span>
+                                <input
+                                    type="text"
+                                    value={profileData.business_website || ''}
+                                    onChange={(e) => setProfileData({...profileData, business_website: e.target.value})}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    placeholder="https://example.com"
+                                />
+                                <InputError message={errors.business_website} />
+                            </label>
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>GST number</span>
+                                <input
+                                    type="text"
+                                    value={profileData.gst_number || ''}
+                                    onChange={(e) => setProfileData({...profileData, gst_number: e.target.value.toUpperCase()})}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    placeholder="Optional"
+                                />
+                                <InputError message={errors.gst_number} />
+                            </label>
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>PAN</span>
+                                <input
+                                    type="text"
+                                    value={profileData.pan_number || ''}
+                                    onChange={(e) => setProfileData({...profileData, pan_number: e.target.value.toUpperCase()})}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    placeholder="Optional"
+                                />
+                                <InputError message={errors.pan_number} />
+                            </label>
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>Registration number</span>
+                                <input
+                                    type="text"
+                                    value={profileData.registration_number || ''}
+                                    onChange={(e) => setProfileData({...profileData, registration_number: e.target.value})}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    placeholder="MSME / CIN"
+                                />
+                                <InputError message={errors.registration_number} />
+                            </label>
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>Contact person</span>
+                                <input
+                                    type="text"
+                                    value={profileData.contact_name || ''}
+                                    onChange={(e) => setProfileData({...profileData, contact_name: e.target.value})}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                />
+                                <InputError message={errors.contact_name} />
+                            </label>
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>Contact phone</span>
+                                <input
+                                    type="text"
+                                    value={profileData.contact_phone || ''}
+                                    onChange={(e) => setProfileData({...profileData, contact_phone: e.target.value})}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                />
+                                <InputError message={errors.contact_phone} />
+                            </label>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>Address line 1</span>
+                                <input
+                                    type="text"
+                                    value={profileData.address_line1 || ''}
+                                    onChange={(e) => setProfileData({...profileData, address_line1: e.target.value})}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                />
+                                <InputError message={errors.address_line1} />
+                            </label>
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>Address line 2</span>
+                                <input
+                                    type="text"
+                                    value={profileData.address_line2 || ''}
+                                    onChange={(e) => setProfileData({...profileData, address_line2: e.target.value})}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                />
+                                <InputError message={errors.address_line2} />
+                            </label>
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>City</span>
+                                <input
+                                    type="text"
+                                    value={profileData.city || ''}
+                                    onChange={(e) => setProfileData({...profileData, city: e.target.value})}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                />
+                                <InputError message={errors.city} />
+                            </label>
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>State</span>
+                                <input
+                                    type="text"
+                                    value={profileData.state || ''}
+                                    onChange={(e) => setProfileData({...profileData, state: e.target.value})}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                />
+                                <InputError message={errors.state} />
+                            </label>
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>Postal code</span>
+                                <input
+                                    type="text"
+                                    value={profileData.postal_code || ''}
+                                    onChange={(e) => setProfileData({...profileData, postal_code: e.target.value})}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                />
+                                <InputError message={errors.postal_code} />
+                            </label>
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>Country</span>
+                                <input
+                                    type="text"
+                                    value={profileData.country || 'India'}
+                                    onChange={(e) => setProfileData({...profileData, country: e.target.value})}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                />
+                                <InputError message={errors.country} />
+                            </label>
+                        </div>
                     </form>
 
-                    <form onSubmit={handleFileUpload} className="space-y-5 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                        <h2 className="text-lg font-semibold">Upload documents</h2>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <select value={documentType} onChange={e => setDocumentType(e.target.value)} className="rounded-xl border px-4 py-2">
-                                <option value="gst_certificate">GST Certificate</option>
-                                <option value="pan_card">PAN Card</option>
-                            </select>
-                            <input id="document_file" type="file" onChange={e => setDocumentFile(e.target.files?.[0] || null)} className="rounded-xl border px-4 py-2" required />
+                    <form
+                        onSubmit={handleFileUpload}
+                        className="space-y-5 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70"
+                    >
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-semibold text-slate-900">Upload supporting documents</h2>
+                            <button
+                                type="submit"
+                                disabled={processing || !documentFile}
+                                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {processing ? 'Uploading…' : 'Upload'}
+                            </button>
                         </div>
-                        <button type="submit" disabled={processing} className="bg-elvee-blue text-white px-6 py-2 rounded-full font-semibold">Upload</button>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>Document type</span>
+                                <select
+                                    value={documentType}
+                                    onChange={(e) => setDocumentType(e.target.value)}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 capitalize focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                >
+                                    {documentTypes.map((type) => (
+                                        <option key={type} value={type}>
+                                            {type.replace(/_/g, ' ')}
+                                        </option>
+                                    ))}
+                                </select>
+                                <InputError message={errors.document_type} />
+                            </label>
+                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                                <span>Attachment (PDF/JPG/PNG, max 8MB)</span>
+                                <input
+                                    id="document_file"
+                                    type="file"
+                                    accept="application/pdf,image/jpeg,image/png"
+                                    onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
+                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    required
+                                />
+                                <InputError message={errors.document_file} />
+                            </label>
+                        </div>
                     </form>
                 </div>
 
                 <aside className="space-y-6">
                     <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                        <h3 className="font-semibold mb-4">Messages from compliance</h3>
-                        <div className="space-y-3 max-h-64 overflow-y-auto mb-4 bg-slate-50 p-4 rounded-xl">
-                            {messages.map(m => (
-                                <div key={m.id} className={`p-3 rounded-xl ${m.sender_type === 'admin' ? 'bg-sky-100' : 'bg-slate-900 text-white'}`}>
-                                    <p className="text-sm">{m.message}</p>
+                        <h3 className="text-sm font-semibold text-slate-900">Messages from compliance</h3>
+                        <p className="mt-2 text-xs text-slate-500">
+                            Track clarifications sent by the compliance desk. Respond when you have the requested information.
+                        </p>
+                        <div className="mt-4 space-y-3 max-h-64 overflow-y-auto rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
+                            {messages.length === 0 ? (
+                                <p className="text-xs text-slate-500">No messages yet. Compliance will reach out if anything is pending.</p>
+                            ) : (
+                                messages.map((message) => {
+                                    const isAdmin = message.sender_type === 'admin';
+                                    return (
+                                        <div
+                                            key={String(message.id)}
+                                            className={`flex flex-col gap-1 ${isAdmin ? 'items-start text-left' : 'items-end text-right'}`}
+                                        >
+                                            <span className="text-[11px] text-slate-400">
+                                                {isAdmin ? (message.users?.name || 'Compliance team') : 'You'}
+                                                {message.created_at ? ` · ${formatTimestamp(message.created_at)}` : ''}
+                                            </span>
+                                            <div
+                                                className={`max-w-full rounded-2xl px-4 py-3 text-sm ${
+                                                    isAdmin
+                                                        ? 'bg-sky-100 text-sky-900 ring-1 ring-sky-200'
+                                                        : 'bg-slate-900 text-white'
+                                                }`}
+                                            >
+                                                <p className="whitespace-pre-line">{message.message}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                        {!user.kyc_comments_enabled && (
+                            <p className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
+                                Replies are disabled by the compliance team. You can still review their updates above.
+                            </p>
+                        )}
+                        {user.kyc_comments_enabled && (
+                            <form onSubmit={handleSendMessage} className="mt-4 space-y-2">
+                                <label className="flex flex-col gap-2 text-xs text-slate-600">
+                                    <span className="font-semibold text-slate-700">Send a reply</span>
+                                    <textarea
+                                        value={newMessage}
+                                        onChange={(e) => setNewMessage(e.target.value)}
+                                        className="min-h-[90px] rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        placeholder="Share the update or clarification you have for the compliance team."
+                                        disabled={processing}
+                                    />
+                                    <InputError message={errors.message} />
+                                </label>
+                                <div className="flex justify-end">
+                                    <button
+                                        type="submit"
+                                        disabled={processing || !newMessage.trim()}
+                                        className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {processing ? 'Sending…' : 'Send message'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                    </div>
+
+                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                        <h3 className="text-sm font-semibold text-slate-700">Submitted documents</h3>
+                        <div className="mt-4 space-y-3 text-sm">
+                            {documents.length === 0 && (
+                                <p className="rounded-2xl bg-slate-50 p-4 text-slate-500">
+                                    Upload your GST, PAN, trade license or store photos to speed up verification.
+                                </p>
+                            )}
+                            {documents.map((document) => (
+                                <div
+                                    key={String(document.id)}
+                                    className="rounded-2xl border border-slate-200 p-4 shadow-sm"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-semibold text-slate-800">
+                                                {document.type.replace(/_/g, ' ')}
+                                            </p>
+                                            <p className="text-xs text-slate-500">
+                                                Uploaded {document.uploaded_at ? formatTimestamp(document.uploaded_at) : 'recently'}
+                                            </p>
+                                        </div>
+                                        <span
+                                            className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                                                documentStatusTheme[document.status] ?? documentStatusTheme.pending
+                                            }`}
+                                        >
+                                            {document.status}
+                                        </span>
+                                    </div>
+                                    {document.remarks && (
+                                        <p className="mt-2 text-xs text-rose-500">Remarks: {document.remarks}</p>
+                                    )}
+                                    <div className="mt-3 flex items-center gap-3 text-xs font-semibold">
+                                        {document.download_url && (
+                                            <>
+                                                <a
+                                                    href={document.download_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-sky-600 hover:text-sky-500"
+                                                >
+                                                    View file
+                                                </a>
+                                                <a
+                                                    href={document.download_url}
+                                                    download
+                                                    className="text-slate-500 hover:text-slate-700"
+                                                >
+                                                    Download
+                                                </a>
+                                            </>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteDocument(document.id)}
+                                            className="text-rose-500 hover:text-rose-600"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
-                        <form onSubmit={handleSendMessage} className="flex gap-2">
-                            <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} className="flex-1 border rounded-xl px-4 py-2" placeholder="Reply..." />
-                            <button type="submit" disabled={processing} className="bg-elvee-blue text-white px-4 py-2 rounded-xl">Send</button>
-                        </form>
+                    </div>
+
+                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                        <h3 className="text-sm font-semibold text-slate-500">Need help?</h3>
+                        <p className="mt-3 text-sm text-slate-600">
+                            Write to <a href="mailto:compliance@elvee.in" className="font-semibold text-sky-600">compliance@elvee.in</a>{' '}
+                            for expedited verification or assistance with additional paperwork.
+                        </p>
                     </div>
                 </aside>
-            </div>
+            </section>
         </div>
     );
 }
-
