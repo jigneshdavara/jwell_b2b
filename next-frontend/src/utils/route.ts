@@ -19,6 +19,8 @@ const routes: Record<string, string> = {
     'frontend.cart.index': '/cart',
     'admin.dashboard': '/admin/dashboard',
     'admin.products.index': '/admin/products',
+    'admin.customers.index': '/admin/users',
+    'admin.customers.kyc.show': '/admin/users/{id}/kyc',
     'production.dashboard': '/production/dashboard',
 };
 

@@ -1,88 +1,131 @@
 'use client';
 
-import { useEffect, useMemo, useState, FormEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Head } from '@/components/Head';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
-import Pagination from '@/components/ui/Pagination';
 import { adminService } from '@/services/adminService';
-import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
+import Link from 'next/link';
+import { route } from '@/utils/route';
 
-type User = {
+type AdminUserRow = {
     id: number;
     name: string;
     email: string;
     type: string;
-    type_label: string;
-    user_group: {
+    is_active: boolean;
+    customer_group?: {
         id: number;
         name: string;
     } | null;
+    kyc_status: string;
+    kyc_notes?: string | null;
+    kyc_document_count: number;
     joined_at?: string | null;
+    kyc_profile?: {
+        business_name?: string | null;
+        city?: string | null;
+        state?: string | null;
+    } | null;
 };
 
+type PaginationMeta = {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+};
 
-const availableTypes = [
-    { value: 'admin', label: 'Admin' },
-    { value: 'super-admin', label: 'Super Admin' },
-    { value: 'production', label: 'Production' },
-    { value: 'sales', label: 'Sales' },
-];
+type Option = {
+    id: number;
+    name: string;
+};
 
-export default function UsersIndex() {
+const statusColours: Record<string, string> = {
+    pending: 'bg-amber-100 text-amber-700',
+    review: 'bg-amber-100 text-amber-700',
+    approved: 'bg-emerald-100 text-emerald-700',
+    rejected: 'bg-rose-100 text-rose-700',
+};
+
+const kycStatuses = ['pending', 'review', 'approved', 'rejected'];
+const perPageOptions = [10, 25, 50, 100];
+
+export default function AdminUsersIndex() {
     const [loading, setLoading] = useState(true);
-    const [users, setUsers] = useState<{ data: User[]; meta: PaginationMeta }>({
+    const [users, setUsers] = useState<{ data: AdminUserRow[]; meta: PaginationMeta }>({
         data: [],
-        meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 }
+        meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 },
     });
-    const [userGroups, setUserGroups] = useState<Array<{ id: number; name: string }>>([]);
-    const [newUser, setNewUser] = useState({
-        name: '',
-        email: '',
-        password: '',
-        password_confirmation: '',
-        user_group_id: '',
-        type: 'admin',
+    const [customerGroups, setCustomerGroups] = useState<Option[]>([]);
+    const [stats, setStats] = useState({
+        total: 0,
+        pending: 0,
+        review: 0,
+        approved: 0,
+        rejected: 0,
     });
-    const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [search, setSearch] = useState('');
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [deleteConfirm, setDeleteConfirm] = useState<User | null>(null);
+    const [perPage, setPerPage] = useState(20);
+    const [groupFilter, setGroupFilter] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<string>('');
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
     const [processing, setProcessing] = useState(false);
-    const [errors, setErrors] = useState<Record<string, string>>({});
-    const [currentPage, setCurrentPage] = useState(1);
+
+    const statusOptions = useMemo(() => ['all', ...kycStatuses], []);
+
+    useEffect(() => {
+        loadData();
+    }, []);
 
     useEffect(() => {
         loadUsers();
-        loadUserGroups();
-    }, [currentPage]);
+    }, [perPage, statusFilter, groupFilter]);
+
+    const loadData = async () => {
+        await Promise.all([loadUsers(), loadCustomerGroups()]);
+    };
 
     const loadUsers = async () => {
         setLoading(true);
         try {
-            const response = await adminService.getUsers(currentPage, 20);
-            const items = response.data.items || response.data.data || [];
-            const responseMeta = response.data.meta || { page: 1, lastPage: 1, total: 0, perPage: 20 };
-            
+            const filters: any = {
+                page: 1,
+                per_page: perPage,
+            };
+            if (search) filters.search = search;
+            if (statusFilter && statusFilter !== 'all') filters.status = statusFilter;
+            if (groupFilter) filters.user_group_id = Number(groupFilter);
+
+            const response = await adminService.getCustomers(filters);
+            const data = response.data;
+
             setUsers({
-                data: items.map((item: any) => ({
+                data: (data.items || []).map((item: any) => ({
                     id: Number(item.id),
                     name: item.name,
                     email: item.email,
                     type: item.type,
-                    type_label: item.type_label || item.type.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-                    user_group: item.user_group ? { id: Number(item.user_group.id), name: item.user_group.name } : null,
+                    is_active: item.is_active,
+                    kyc_status: item.kyc_status,
+                    kyc_notes: item.kyc_notes,
+                    kyc_document_count: item.kyc_document_count || 0,
+                    customer_group: item.customer_group || null,
+                    kyc_profile: item.kyc_profile || null,
                     joined_at: item.joined_at || item.created_at,
                 })),
                 meta: {
-                    current_page: responseMeta.page || responseMeta.current_page || currentPage,
-                    last_page: responseMeta.lastPage || responseMeta.last_page || 1,
-                    per_page: responseMeta.perPage || responseMeta.per_page || 20,
-                    total: responseMeta.total || 0,
-                    from: responseMeta.from,
-                    to: responseMeta.to,
-                    links: responseMeta.links || generatePaginationLinks(responseMeta.page || responseMeta.current_page || currentPage, responseMeta.lastPage || responseMeta.last_page || 1),
+                    current_page: data.meta?.page || 1,
+                    last_page: data.meta?.lastPage || data.meta?.last_page || 1,
+                    per_page: data.meta?.perPage || data.meta?.per_page || perPage,
+                    total: data.meta?.total || 0,
                 },
             });
+
+            if (data.stats) {
+                setStats(data.stats);
+            }
         } catch (error: any) {
             console.error('Failed to load users:', error);
         } finally {
@@ -90,346 +133,269 @@ export default function UsersIndex() {
         }
     };
 
-    const loadUserGroups = async () => {
+    const loadCustomerGroups = async () => {
         try {
             const response = await adminService.getUserGroups(1, 100);
             const items = response.data.items || response.data.data || [];
-            setUserGroups(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
+            setCustomerGroups(
+                items
+                    .filter((item: any) => item.is_active !== false)
+                    .map((item: any) => ({ id: Number(item.id), name: item.name })),
+            );
         } catch (error: any) {
-            console.error('Failed to load user groups:', error);
+            console.error('Failed to load customer groups:', error);
         }
     };
 
-    const isProtected = (user: User) => user.type === 'super-admin';
-
-    const selectableIds = useMemo(
-        () => users.data.filter((user) => !isProtected(user)).map((user) => user.id),
-        [users.data],
-    );
-    const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.includes(id));
-
-    useEffect(() => {
-        setSelectedIds((current) => current.filter((id) => selectableIds.includes(id)));
-    }, [selectableIds]);
-
-    const toggleSelection = (user: User) => {
-        if (isProtected(user)) {
-            return;
-        }
-        setSelectedIds((current) =>
-            current.includes(user.id) ? current.filter((id) => id !== user.id) : [...current, user.id],
-        );
+    const changeStatus = (status: string) => {
+        setStatusFilter(status === 'all' ? '' : status);
     };
 
-    const toggleSelectAll = () => {
-        setSelectedIds(allSelected ? [] : selectableIds);
+    const performFilter = () => {
+        loadUsers();
     };
 
-    const updateUserGroup = async (user: User, groupId: string) => {
-        if (isProtected(user)) {
-            return;
-        }
-        try {
-            const groupIdNum = groupId ? Number(groupId) : null;
-            await adminService.updateUserGroup(user.id, groupIdNum);
-            await loadUsers();
-        } catch (error: any) {
-            console.error('Failed to update user group:', error);
-            alert(error.response?.data?.message || 'Failed to update user group. Please try again.');
+    const toggleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedIds(users.data.map((user) => user.id));
+        } else {
+            setSelectedIds([]);
         }
     };
 
-    const submitNewUser = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        setProcessing(true);
-        setErrors({});
-        
-        try {
-            const payload: any = {
-                name: newUser.name,
-                email: newUser.email,
-                type: newUser.type,
-                user_group_id: newUser.user_group_id ? Number(newUser.user_group_id) : null,
-            };
-
-            if (editingUser) {
-                if (newUser.password) {
-                    payload.password = newUser.password;
-                    payload.password_confirmation = newUser.password_confirmation;
-                }
-                await adminService.updateUser(editingUser.id, payload);
-            } else {
-                payload.password = newUser.password;
-                payload.password_confirmation = newUser.password_confirmation;
-                await adminService.createUser(payload);
-            }
-
-            // Reset form
-            setNewUser({
-                name: '',
-                email: '',
-                password: '',
-                password_confirmation: '',
-                user_group_id: '',
-                type: 'admin',
-            });
-            setEditingUser(null);
-            await loadUsers();
-        } catch (error: any) {
-            console.error('Failed to save user:', error);
-            if (error.response?.data?.errors) {
-                setErrors(error.response.data.errors);
-            } else {
-                alert(error.response?.data?.message || 'Failed to save user. Please try again.');
-            }
-        } finally {
-            setProcessing(false);
-        }
+    const toggleSelect = (id: number, checked: boolean) => {
+        setSelectedIds((prev) => (checked ? [...prev, id] : prev.filter((value) => value !== id)));
     };
 
-    const editUser = (user: User) => {
-        setEditingUser(user);
-        setNewUser({
-            name: user.name,
-            email: user.email,
-            password: '',
-            password_confirmation: '',
-            user_group_id: user.user_group?.id ? String(user.user_group.id) : '',
-            type: user.type,
-        });
-    };
-
-    const cancelEdit = () => {
-        setEditingUser(null);
-        setNewUser({
-            name: '',
-            email: '',
-            password: '',
-            password_confirmation: '',
-            user_group_id: '',
-            type: 'admin',
-        });
-        setErrors({});
-    };
-
-    const deleteUser = (user: User) => {
-        if (isProtected(user)) {
-            return;
-        }
-        setDeleteConfirm(user);
-    };
-
-    const handleDelete = async () => {
-        if (deleteConfirm) {
-            try {
-                await adminService.deleteUser(deleteConfirm.id);
-                setSelectedIds((current) => current.filter((id) => id !== deleteConfirm.id));
-                if (editingUser?.id === deleteConfirm.id) {
-                    cancelEdit();
-                }
-                setDeleteConfirm(null);
-                await loadUsers();
-            } catch (error: any) {
-            console.error('Failed to delete user:', error);
-            alert(error.response?.data?.message || 'Failed to delete user. Please try again.');
-            }
-        }
-    };
+    const clearBulkSelection = () => setSelectedIds([]);
 
     const bulkDelete = () => {
-        if (selectedIds.length === 0) {
-            return;
-        }
+        if (selectedIds.length === 0) return;
         setBulkDeleteConfirm(true);
     };
 
     const handleBulkDelete = async () => {
         try {
-            await adminService.bulkDeleteUsers(selectedIds);
-            setSelectedIds([]);
+            setProcessing(true);
+            await adminService.bulkDeleteCustomers(selectedIds);
+            clearBulkSelection();
             setBulkDeleteConfirm(false);
             await loadUsers();
         } catch (error: any) {
-            console.error('Failed to delete users:', error);
-            alert(error.response?.data?.message || 'Failed to delete users. Please try again.');
+            console.error('Failed to delete customers:', error);
+            alert(error.response?.data?.message || 'Failed to delete customers. Please try again.');
+        } finally {
+            setProcessing(false);
         }
     };
 
-    const formTitle = editingUser ? `Edit ${editingUser.name}` : 'Create user';
+    const bulkAssignGroup = async (groupId: string) => {
+        if (selectedIds.length === 0) return;
+        try {
+            setProcessing(true);
+            const groupIdNum = groupId ? Number(groupId) : null;
+            await adminService.bulkUpdateCustomerGroup(selectedIds, groupIdNum);
+            clearBulkSelection();
+            await loadUsers();
+        } catch (error: any) {
+            console.error('Failed to update customer group:', error);
+            alert(error.response?.data?.message || 'Failed to update customer group. Please try again.');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const deleteCustomer = (id: number) => {
+        setDeleteConfirm(id);
+    };
+
+    const handleDelete = async () => {
+        if (deleteConfirm) {
+            try {
+                setProcessing(true);
+                await adminService.deleteCustomer(deleteConfirm);
+                setDeleteConfirm(null);
+                await loadUsers();
+            } catch (error: any) {
+                console.error('Failed to delete customer:', error);
+                alert(error.response?.data?.message || 'Failed to delete customer. Please try again.');
+            } finally {
+                setProcessing(false);
+            }
+        }
+    };
+
+    const toggleActive = async (user: AdminUserRow) => {
+        try {
+            await adminService.toggleCustomerStatus(user.id);
+            await loadUsers();
+        } catch (error: any) {
+            console.error('Failed to toggle status:', error);
+            alert(error.response?.data?.message || 'Failed to toggle status. Please try again.');
+        }
+    };
+
+    const getKycStatusLabel = (status: string) => {
+        return status.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    };
 
     return (
         <>
-            <Head title="Users" />
+            <Head title="Customers & KYC" />
 
             <div className="space-y-8">
-                <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold text-slate-900">User directory</h1>
-                            <p className="mt-1 text-sm text-slate-500">
-                                Manage customer accounts (users) and organize them into user groups.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3 text-sm">
-                            <button
-                                type="button"
-                                onClick={bulkDelete}
-                                disabled={selectedIds.length === 0}
-                                className="rounded-full border border-rose-200 px-4 py-2 font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                                Bulk delete ({selectedIds.length})
-                            </button>
-                            {editingUser && (
+                <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
+                    <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-500">Search name or email</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={search}
+                                    onChange={(event) => setSearch(event.target.value)}
+                                    placeholder="Jane Doe or jane@studio.com"
+                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                />
                                 <button
                                     type="button"
-                                    onClick={cancelEdit}
-                                    className="rounded-full border border-slate-300 px-4 py-2 font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                    onClick={performFilter}
+                                    className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700"
                                 >
-                                    Cancel edit
+                                    Apply
                                 </button>
-                            )}
+                            </div>
                         </div>
-                    </div>
-                    <p className="mt-1 text-sm text-slate-500">
-                        Only accounts with admin access should live here. Keep at least one Super Admin active at all times.
-                    </p>
-                </div>
-
-                <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                    <h2 className="text-lg font-semibold text-slate-900">{formTitle}</h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                        New user accounts default to admin-level access and can be restricted by assigning an user group.
-                    </p>
-
-                    <form onSubmit={submitNewUser} className="mt-6 grid gap-4 md:grid-cols-2">
-                        <label className="flex flex-col gap-2 text-sm text-slate-600">
-                            <span>Name</span>
-                            <input
-                                type="text"
-                                value={newUser.name}
-                                onChange={(event) => setNewUser((prev) => ({ ...prev, name: event.target.value }))}
-                                required
-                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                            />
-                            {errors?.name && <span className="text-xs text-rose-500">{errors.name}</span>}
-                        </label>
-                        <label className="flex flex-col gap-2 text-sm text-slate-600">
-                            <span>Email</span>
-                            <input
-                                type="email"
-                                value={newUser.email}
-                                onChange={(event) => setNewUser((prev) => ({ ...prev, email: event.target.value }))}
-                                required
-                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                            />
-                            {errors?.email && <span className="text-xs text-rose-500">{errors.email}</span>}
-                        </label>
-                        <label className="flex flex-col gap-2 text-sm text-slate-600">
-                            <span>Password</span>
-                            <input
-                                type="password"
-                                value={newUser.password}
-                                onChange={(event) => setNewUser((prev) => ({ ...prev, password: event.target.value }))}
-                                required={!editingUser}
-                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                minLength={8}
-                            />
-                            {errors?.password && <span className="text-xs text-rose-500">{errors.password}</span>}
-                            {editingUser && (
-                                <span className="text-xs text-slate-400">Leave blank to keep the existing password.</span>
-                            )}
-                            {errors?.password_confirmation && (
-                                <span className="text-xs text-rose-500">{errors.password_confirmation}</span>
-                            )}
-                        </label>
-                        <label className="flex flex-col gap-2 text-sm text-slate-600">
-                            <span>Confirm password</span>
-                            <input
-                                type="password"
-                                value={newUser.password_confirmation}
-                                onChange={(event) =>
-                                    setNewUser((prev) => ({ ...prev, password_confirmation: event.target.value }))
-                                }
-                                required={!editingUser}
-                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                minLength={8}
-                            />
-                        </label>
-                        <label className="flex flex-col gap-2 text-sm text-slate-600">
-                            <span>User role</span>
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-500">Customer group</label>
                             <select
-                                value={newUser.type}
-                                onChange={(event) =>
-                                    setNewUser((prev) => ({
-                                        ...prev,
-                                        type: event.target.value,
-                                        user_group_id: event.target.value === 'super-admin' ? '' : prev.user_group_id,
-                                    }))
-                                }
-                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                disabled={editingUser?.type === 'super-admin'}
+                                value={groupFilter}
+                                onChange={(event) => setGroupFilter(event.target.value)}
+                                className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                             >
-                                {availableTypes.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
+                                <option value="">All groups</option>
+                                {customerGroups.map((group) => (
+                                    <option key={group.id} value={group.id}>
+                                        {group.name}
                                     </option>
                                 ))}
                             </select>
-                            {errors?.type && <span className="text-xs text-rose-500">{errors.type}</span>}
-                        </label>
-                        <label className="flex flex-col gap-2 text-sm text-slate-600 md:col-span-2 md:max-w-xs">
-                            <span>User group (optional)</span>
-                            {newUser.type === 'super-admin' || editingUser?.type === 'super-admin' ? (
-                                <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-2 text-sm text-slate-400">
-                                    Super administrators bypass group restrictions.
-                                </div>
-                            ) : (
-                                <select
-                                    value={newUser.user_group_id}
-                                    onChange={(event) =>
-                                        setNewUser((prev) => ({ ...prev, user_group_id: event.target.value }))
-                                    }
-                                    className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                >
-                                    <option value="">Admin (no restrictions)</option>
-                                    {userGroups.map((group) => (
-                                        <option key={group.id} value={group.id}>
-                                            {group.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
-                            {errors?.user_group_id && <span className="text-xs text-rose-500">{errors.user_group_id}</span>}
-                        </label>
-                        <div className="md:col-span-2">
-                            <button
-                                type="submit"
-                                disabled={processing}
-                                className="rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:opacity-50"
-                            >
-                                {editingUser ? 'Save changes' : 'Create user'}
-                            </button>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+                        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
+                            <span>Status:</span>
+                            {statusOptions.map((status) => {
+                                const active = (statusFilter || 'all') === status;
+                                return (
+                                    <button
+                                        key={status}
+                                        type="button"
+                                        onClick={() => changeStatus(status)}
+                                        className={`rounded-full px-3 py-1 transition ${
+                                            active
+                                                ? 'bg-slate-900 text-white shadow shadow-slate-900/20'
+                                                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                        }`}
+                                    >
+                                        {status === 'all' ? 'All' : status.replace(/_/g, ' ')}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                            <span>Show</span>
+                            <select
+                                value={perPage}
+                                onChange={(event) => setPerPage(Number(event.target.value))}
+                                className="rounded-xl border border-slate-300 px-3 py-1 text-sm"
+                            >
+                                {perPageOptions.map((size) => (
+                                    <option key={size} value={size}>
+                                        {size}
+                                    </option>
+                                ))}
+                            </select>
+                            <span>entries</span>
+                        </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
+                        <button
+                            type="button"
+                            onClick={performFilter}
+                            className="rounded-full border border-slate-200 px-4 py-1.5 font-semibold text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                        >
+                            Apply filters
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSearch('');
+                                setGroupFilter('');
+                                setStatusFilter('');
+                                setPerPage(20);
+                                loadUsers();
+                            }}
+                            className="rounded-full border border-slate-200 px-4 py-1.5 font-semibold text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                        >
+                            Reset
+                        </button>
+                    </div>
+                </section>
+
+                {selectedIds.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-3 rounded-3xl bg-slate-900 px-6 py-4 text-sm text-white shadow-lg shadow-slate-900/20">
+                        <span>{selectedIds.length} selected</span>
+                        <button
+                            type="button"
+                            onClick={bulkDelete}
+                            className="inline-flex items-center gap-2 rounded-full bg-rose-500 px-4 py-1.5 text-xs font-semibold text-white shadow shadow-rose-500/20 transition hover:bg-rose-400"
+                        >
+                            Delete selected
+                        </button>
+                        <select
+                            className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white focus:border-white focus:outline-none"
+                            value=""
+                            onChange={(event) => {
+                                bulkAssignGroup(event.target.value);
+                            }}
+                        >
+                            <option value="">Assign to group…</option>
+                            {customerGroups.map((group) => (
+                                <option key={group.id} value={group.id}>
+                                    {group.name}
+                                </option>
+                            ))}
+                        </select>
+                        <button
+                            type="button"
+                            onClick={clearBulkSelection}
+                            className="text-xs text-white/80 transition hover:text-white"
+                        >
+                            Clear selection
+                        </button>
+                    </div>
+                )}
 
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <table className="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
+                        <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
                             <tr>
                                 <th className="px-5 py-3">
                                     <input
                                         type="checkbox"
-                                        checked={allSelected}
-                                        onChange={toggleSelectAll}
-                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                        aria-label="Select all users"
+                                        checked={selectedIds.length > 0 && selectedIds.length === users.data.length}
+                                        onChange={(event) => toggleSelectAll(event.target.checked)}
+                                        className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                        aria-label="Select all customers"
                                     />
                                 </th>
                                 <th className="px-5 py-3 text-left">Name</th>
                                 <th className="px-5 py-3 text-left">Email</th>
-                                <th className="px-5 py-3 text-left">Role</th>
-                                <th className="px-5 py-3 text-left">User group</th>
+                                <th className="px-5 py-3 text-left">Type</th>
+                                <th className="px-5 py-3 text-left">Customer group</th>
+                                <th className="px-5 py-3 text-left">KYC Status</th>
+                                <th className="px-5 py-3 text-left">Status</th>
+                                <th className="px-5 py-3 text-left">Docs</th>
                                 <th className="px-5 py-3 text-left">Joined</th>
                                 <th className="px-5 py-3 text-right">Actions</th>
                             </tr>
@@ -437,106 +403,204 @@ export default function UsersIndex() {
                         <tbody className="divide-y divide-slate-100 bg-white">
                             {loading && users.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
+                                    <td colSpan={10} className="px-5 py-6 text-center text-sm text-slate-500">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : users.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-5 py-6 text-center text-sm text-slate-500">
-                                        No users found.
+                                    <td colSpan={10} className="px-5 py-6 text-center text-sm text-slate-500">
+                                        No customers found.
                                     </td>
                                 </tr>
                             ) : (
-                                users.data.map((user) => (
-                                    <tr key={user.id} className="hover:bg-slate-50">
-                                        <td className="px-5 py-3">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedIds.includes(user.id)}
-                                                onChange={() => toggleSelection(user)}
-                                                disabled={isProtected(user)}
-                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-40"
-                                                aria-label={`Select ${user.name}`}
-                                            />
-                                        </td>
-                                        <td className="px-5 py-3 font-medium text-slate-900">{user.name}</td>
-                                        <td className="px-5 py-3 text-slate-600">{user.email}</td>
-                                        <td className="px-5 py-3 text-slate-500">{user.type_label || 'Admin'}</td>
-                                        <td className="px-5 py-3 text-slate-600">
-                                            {isProtected(user) ? (
-                                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                                    Super admin
+                                users.data.map((user) => {
+                                    const badgeClass = statusColours[user.kyc_status] ?? 'bg-slate-100 text-slate-600';
+                                    const checked = selectedIds.includes(user.id);
+
+                                    return (
+                                        <tr key={user.id} className="hover:bg-slate-50">
+                                            <td className="px-5 py-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={(event) => toggleSelect(user.id, event.target.checked)}
+                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                                    aria-label={`Select ${user.name}`}
+                                                />
+                                            </td>
+                                            <td className="px-5 py-3 font-medium text-slate-900">{user.name}</td>
+                                            <td className="px-5 py-3 text-slate-600">{user.email}</td>
+                                            <td className="px-5 py-3 text-slate-500">{user.type}</td>
+                                            <td className="px-5 py-3 text-slate-500">{user.customer_group?.name ?? '—'}</td>
+                                            <td className="px-5 py-3">
+                                                <span
+                                                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${badgeClass}`}
+                                                >
+                                                    {getKycStatusLabel(user.kyc_status)}
                                                 </span>
-                                            ) : (
-                                                <select
-                                                    value={user.user_group?.id ?? ''}
-                                                    onChange={(event) => updateUserGroup(user, event.target.value)}
-                                                    className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                >
-                                                    <option value="">No group assigned</option>
-                                                    {userGroups.map((groupOption) => (
-                                                        <option key={groupOption.id} value={groupOption.id}>
-                                                            {groupOption.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            )}
-                                        </td>
-                                        <td className="px-5 py-3 text-slate-500">
-                                            {user.joined_at ? new Date(user.joined_at).toLocaleDateString('en-IN') : '—'}
-                                        </td>
-                                        <td className="px-5 py-3 text-right">
-                                            <div className="flex justify-end gap-2">
+                                            </td>
+                                            <td className="px-5 py-3">
                                                 <button
                                                     type="button"
-                                                    onClick={() => editUser(user)}
-                                                    className="rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                                    onClick={() => toggleActive(user)}
+                                                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition ${
+                                                        user.is_active
+                                                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                    }`}
                                                 >
-                                                    Edit
+                                                    {user.is_active ? 'Enabled' : 'Disabled'}
                                                 </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => deleteUser(user)}
-                                                    disabled={isProtected(user)}
-                                                    className="rounded-full border border-rose-200 px-4 py-1 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
+                                            </td>
+                                            <td className="px-5 py-3 text-slate-500">{user.kyc_document_count}</td>
+                                            <td className="px-5 py-3 text-slate-500">
+                                                {user.joined_at ? new Date(user.joined_at).toLocaleDateString('en-IN') : '—'}
+                                            </td>
+                                            <td className="px-5 py-3 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Link
+                                                        href={`/admin/users/${user.id}/kyc`}
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+                                                        title="Review KYC"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-4 w-4"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth={1.5}
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                d="M12 4.5l7.5 7.5-7.5 7.5m-7.5-7.5h15"
+                                                            />
+                                                        </svg>
+                                                    </Link>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => deleteCustomer(user.id)}
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                                                        title="Delete customer"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-4 w-4"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth={1.5}
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z"
+                                                            />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
                 </div>
 
                 {users.meta.last_page > 1 && (
-                    <div className="mt-6">
-                        <Pagination meta={users.meta} onPageChange={setCurrentPage} />
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                        <div>
+                            Showing {(users.meta.current_page - 1) * users.meta.per_page + 1} to{' '}
+                            {Math.min(users.meta.current_page * users.meta.per_page, users.meta.total)} of {users.meta.total}{' '}
+                            entries
+                        </div>
+                        <div className="flex gap-2">
+                            {Array.from({ length: users.meta.last_page }).map((_, index) => {
+                                const page = index + 1;
+                                const active = page === users.meta.current_page;
+                                return (
+                                    <button
+                                        key={page}
+                                        type="button"
+                                        onClick={async () => {
+                                            // Update page in filters and reload
+                                            const filters: any = {
+                                                page,
+                                                per_page: perPage,
+                                            };
+                                            if (search) filters.search = search;
+                                            if (statusFilter && statusFilter !== 'all') filters.status = statusFilter;
+                                            if (groupFilter) filters.user_group_id = Number(groupFilter);
+
+                                            setLoading(true);
+                                            try {
+                                                const response = await adminService.getCustomers(filters);
+                                                const data = response.data;
+                                                setUsers({
+                                                    data: (data.items || []).map((item: any) => ({
+                                                        id: Number(item.id),
+                                                        name: item.name,
+                                                        email: item.email,
+                                                        type: item.type,
+                                                        is_active: item.is_active,
+                                                        kyc_status: item.kyc_status,
+                                                        kyc_notes: item.kyc_notes,
+                                                        kyc_document_count: item.kyc_document_count || 0,
+                                                        customer_group: item.customer_group || null,
+                                                        kyc_profile: item.kyc_profile || null,
+                                                        joined_at: item.joined_at || item.created_at,
+                                                    })),
+                                                    meta: {
+                                                        current_page: data.meta?.page || page,
+                                                        last_page: data.meta?.lastPage || data.meta?.last_page || 1,
+                                                        per_page: data.meta?.perPage || data.meta?.per_page || perPage,
+                                                        total: data.meta?.total || 0,
+                                                    },
+                                                });
+                                            } catch (error: any) {
+                                                console.error('Failed to load users:', error);
+                                            } finally {
+                                                setLoading(false);
+                                            }
+                                        }}
+                                        className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
+                                            active
+                                                ? 'bg-elvee-blue text-white shadow shadow-elvee-blue/20'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
             </div>
 
             <ConfirmationModal
-                show={deleteConfirm !== null}
-                onClose={() => setDeleteConfirm(null)}
-                onConfirm={handleDelete}
-                title="Delete User Account"
-                message="Are you sure you want to delete this user account? This action cannot be undone."
-                confirmText="Delete"
-                variant="danger"
-            />
-
-            <ConfirmationModal
                 show={bulkDeleteConfirm}
                 onClose={() => setBulkDeleteConfirm(false)}
                 onConfirm={handleBulkDelete}
-                title="Delete Users"
-                message={`Are you sure you want to delete ${selectedIds.length} selected user(s)? This action cannot be undone.`}
+                title="Delete Customers"
+                message={`Are you sure you want to delete ${selectedIds.length} selected customer(s)? This cannot be undone.`}
                 confirmText="Delete"
                 variant="danger"
+                processing={processing}
+            />
+
+            <ConfirmationModal
+                show={deleteConfirm !== null}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={handleDelete}
+                title="Delete Customer"
+                message="Are you sure you want to delete this customer? This action is irreversible."
+                confirmText="Delete"
+                variant="danger"
+                processing={processing}
             />
         </>
     );

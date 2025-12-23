@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UserFilterDto, UpdateUserStatusDto, UpdateUserGroupDto } from './dto/user.dto';
+import { UserFilterDto, UpdateUserStatusDto, UpdateUserGroupDto, BulkDeleteUsersDto, BulkGroupUpdateDto } from './dto/user.dto';
 
 @Injectable()
 export class UsersService {
@@ -315,5 +315,44 @@ export class UsersService {
     return await this.prisma.user.delete({
       where: { id: BigInt(id) },
     });
+  }
+
+  async bulkDelete(dto: BulkDeleteUsersDto) {
+    if (!dto.ids || dto.ids.length === 0) {
+      return { deleted: 0 };
+    }
+
+    const ids = dto.ids.map(id => BigInt(id));
+    const result = await this.prisma.user.deleteMany({
+      where: {
+        id: { in: ids },
+      },
+    });
+
+    return { deleted: result.count };
+  }
+
+  async bulkGroupUpdate(dto: BulkGroupUpdateDto) {
+    if (!dto.ids || dto.ids.length === 0) {
+      return { updated: 0 };
+    }
+
+    const ids = dto.ids.map(id => BigInt(id));
+    const updateData: any = {};
+    
+    if (dto.user_group_id !== undefined && dto.user_group_id !== null) {
+      updateData.user_group_id = BigInt(dto.user_group_id);
+    } else {
+      updateData.user_group_id = null;
+    }
+
+    const result = await this.prisma.user.updateMany({
+      where: {
+        id: { in: ids },
+      },
+      data: updateData,
+    });
+
+    return { updated: result.count };
   }
 }
