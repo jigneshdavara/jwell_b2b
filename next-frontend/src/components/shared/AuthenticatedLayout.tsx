@@ -10,6 +10,7 @@ import { route } from '@/utils/route';
 import { authService } from '@/services/authService';
 import { frontendService } from '@/services/frontendService';
 import { useWishlist } from '@/contexts/WishlistContext';
+import { useCart } from '@/contexts/CartContext';
 
 type NavigationItem = {
     label: string;
@@ -41,8 +42,8 @@ export default function AuthenticatedLayout({
     // For admin pages, this will throw - but admin pages don't use this layout
     const { wishlistCount } = useWishlist();
     
-    // Mocking other props that would come from Laravel
-    const cartCount = 0;
+    // Get cart count from context
+    const { cartCount } = useCart();
 
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [accountMenuOpen, setAccountMenuOpen] = useState(false);

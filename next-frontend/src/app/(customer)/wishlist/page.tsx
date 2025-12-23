@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { frontendService } from "@/services/frontendService";
 import { useWishlist } from "@/contexts/WishlistContext";
+import { useCart } from "@/contexts/CartContext";
 
 type WishlistItem = {
   id: string | number;
@@ -18,6 +19,7 @@ type WishlistItem = {
 
 export default function WishlistPage() {
   const { refreshWishlist, removeProductId } = useWishlist();
+  const { refreshCart } = useCart();
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +144,9 @@ export default function WishlistPage() {
       
       // Refresh wishlist count
       refreshWishlist();
+      
+      // Refresh cart count (item was moved to cart)
+      refreshCart();
       
       setFlashMessage({ type: 'success', message: 'Moved to your quotation list.' });
       setTimeout(() => setFlashMessage(null), 3000);

@@ -81,5 +81,30 @@ export const frontendService = {
       data: variantId ? { product_variant_id: variantId } : undefined,
     });
   },
+
+  // Cart
+  async getCart() {
+    return await apiClient.get('/cart');
+  },
+  async addToCart(productId: number, variantId?: number | null, quantity: number = 1, configuration?: Record<string, any>) {
+    return await apiClient.post('/cart/items', {
+      product_id: productId,
+      product_variant_id: variantId ?? undefined,
+      quantity,
+      configuration: configuration || {},
+    });
+  },
+  async updateCartItem(itemId: number, quantity?: number, configuration?: Record<string, any>) {
+    const body: any = {};
+    if (quantity !== undefined) body.quantity = quantity;
+    if (configuration !== undefined) body.configuration = configuration;
+    return await apiClient.patch(`/cart/items/${itemId}`, body);
+  },
+  async removeCartItem(itemId: number) {
+    return await apiClient.delete(`/cart/items/${itemId}`);
+  },
+  async submitQuotationsFromCart() {
+    return await apiClient.post('/quotations/from-cart');
+  },
 };
 
