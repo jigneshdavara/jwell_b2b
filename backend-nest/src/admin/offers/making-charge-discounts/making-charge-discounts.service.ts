@@ -19,23 +19,45 @@ export class MakingChargeDiscountsService {
                     brands: { select: { id: true, name: true } },
                     categories: { select: { id: true, name: true } },
                     user_groups: { select: { id: true, name: true } },
-                },
+                } as any,
                 orderBy: { created_at: 'desc' },
             }),
             this.prisma.making_charge_discounts.count(),
         ]);
 
         // Format items to match Laravel response structure
-        const formattedItems = items.map((item) => ({
-            ...item,
-            id: Number(item.id),
-            brand: item.brands ? { id: Number(item.brands.id), name: item.brands.name } : null,
-            category: item.categories ? { id: Number(item.categories.id), name: item.categories.name } : null,
-            customer_group: item.user_groups ? { id: Number(item.user_groups.id), name: item.user_groups.name } : null,
-            brands: undefined,
-            categories: undefined,
-            user_groups: undefined,
-        }));
+        const formattedItems = items.map((item) => {
+            const itemWithRelations = item as typeof item & {
+                brands?: { id: bigint; name: string } | null;
+                categories?: { id: bigint; name: string } | null;
+                user_groups?: { id: bigint; name: string } | null;
+            };
+            return {
+                ...item,
+                id: Number(item.id),
+                brand: itemWithRelations.brands
+                    ? {
+                          id: Number(itemWithRelations.brands.id),
+                          name: itemWithRelations.brands.name,
+                      }
+                    : null,
+                category: itemWithRelations.categories
+                    ? {
+                          id: Number(itemWithRelations.categories.id),
+                          name: itemWithRelations.categories.name,
+                      }
+                    : null,
+                customer_group: itemWithRelations.user_groups
+                    ? {
+                          id: Number(itemWithRelations.user_groups.id),
+                          name: itemWithRelations.user_groups.name,
+                      }
+                    : null,
+                brands: undefined,
+                categories: undefined,
+                user_groups: undefined,
+            };
+        });
 
         return {
             items: formattedItems,
@@ -55,19 +77,39 @@ export class MakingChargeDiscountsService {
                 brands: { select: { id: true, name: true } },
                 categories: { select: { id: true, name: true } },
                 user_groups: { select: { id: true, name: true } },
-            },
+            } as any,
         });
 
         if (!discount) {
             throw new NotFoundException('Making charge discount not found');
         }
 
+        const discountWithRelations = discount as typeof discount & {
+            brands?: { id: bigint; name: string } | null;
+            categories?: { id: bigint; name: string } | null;
+            user_groups?: { id: bigint; name: string } | null;
+        };
         return {
             ...discount,
             id: Number(discount.id),
-            brand: discount.brands ? { id: Number(discount.brands.id), name: discount.brands.name } : null,
-            category: discount.categories ? { id: Number(discount.categories.id), name: discount.categories.name } : null,
-            customer_group: discount.user_groups ? { id: Number(discount.user_groups.id), name: discount.user_groups.name } : null,
+            brand: discountWithRelations.brands
+                ? {
+                      id: Number(discountWithRelations.brands.id),
+                      name: discountWithRelations.brands.name,
+                  }
+                : null,
+            category: discountWithRelations.categories
+                ? {
+                      id: Number(discountWithRelations.categories.id),
+                      name: discountWithRelations.categories.name,
+                  }
+                : null,
+            customer_group: discountWithRelations.user_groups
+                ? {
+                      id: Number(discountWithRelations.user_groups.id),
+                      name: discountWithRelations.user_groups.name,
+                  }
+                : null,
             brands: undefined,
             categories: undefined,
             user_groups: undefined,
@@ -85,26 +127,46 @@ export class MakingChargeDiscountsService {
                 category_id: dto.category_id ? BigInt(dto.category_id) : null,
                 user_group_id: dto.user_group_id
                     ? BigInt(dto.user_group_id)
-                    : null,
+                    : (null as any),
                 min_cart_total: dto.min_cart_total,
                 is_auto: dto.is_auto ?? true,
                 is_active: dto.is_active ?? true,
                 starts_at: dto.starts_at ? new Date(dto.starts_at) : null,
                 ends_at: dto.ends_at ? new Date(dto.ends_at) : null,
                 customer_types: dto.user_types as any,
-            },
+            } as any,
             include: {
                 brands: { select: { id: true, name: true } },
                 categories: { select: { id: true, name: true } },
                 user_groups: { select: { id: true, name: true } },
-            },
+            } as any,
         });
+        const discountWithRelations = discount as typeof discount & {
+            brands?: { id: bigint; name: string } | null;
+            categories?: { id: bigint; name: string } | null;
+            user_groups?: { id: bigint; name: string } | null;
+        };
         return {
             ...discount,
             id: Number(discount.id),
-            brand: discount.brands ? { id: Number(discount.brands.id), name: discount.brands.name } : null,
-            category: discount.categories ? { id: Number(discount.categories.id), name: discount.categories.name } : null,
-            customer_group: discount.user_groups ? { id: Number(discount.user_groups.id), name: discount.user_groups.name } : null,
+            brand: discountWithRelations.brands
+                ? {
+                      id: Number(discountWithRelations.brands.id),
+                      name: discountWithRelations.brands.name,
+                  }
+                : null,
+            category: discountWithRelations.categories
+                ? {
+                      id: Number(discountWithRelations.categories.id),
+                      name: discountWithRelations.categories.name,
+                  }
+                : null,
+            customer_group: discountWithRelations.user_groups
+                ? {
+                      id: Number(discountWithRelations.user_groups.id),
+                      name: discountWithRelations.user_groups.name,
+                  }
+                : null,
             brands: undefined,
             categories: undefined,
             user_groups: undefined,
@@ -132,20 +194,40 @@ export class MakingChargeDiscountsService {
                 is_active: dto.is_active,
                 starts_at: dto.starts_at ? new Date(dto.starts_at) : undefined,
                 ends_at: dto.ends_at ? new Date(dto.ends_at) : undefined,
-                user_types: dto.user_types as any,
-            },
+                customer_types: dto.user_types as any, // Map user_types DTO field to customer_types DB field
+            } as any,
             include: {
                 brands: { select: { id: true, name: true } },
                 categories: { select: { id: true, name: true } },
                 user_groups: { select: { id: true, name: true } },
-            },
+            } as any,
         });
+        const discountWithRelations = discount as typeof discount & {
+            brands?: { id: bigint; name: string } | null;
+            categories?: { id: bigint; name: string } | null;
+            user_groups?: { id: bigint; name: string } | null;
+        };
         return {
             ...discount,
             id: Number(discount.id),
-            brand: discount.brands ? { id: Number(discount.brands.id), name: discount.brands.name } : null,
-            category: discount.categories ? { id: Number(discount.categories.id), name: discount.categories.name } : null,
-            customer_group: discount.user_groups ? { id: Number(discount.user_groups.id), name: discount.user_groups.name } : null,
+            brand: discountWithRelations.brands
+                ? {
+                      id: Number(discountWithRelations.brands.id),
+                      name: discountWithRelations.brands.name,
+                  }
+                : null,
+            category: discountWithRelations.categories
+                ? {
+                      id: Number(discountWithRelations.categories.id),
+                      name: discountWithRelations.categories.name,
+                  }
+                : null,
+            customer_group: discountWithRelations.user_groups
+                ? {
+                      id: Number(discountWithRelations.user_groups.id),
+                      name: discountWithRelations.user_groups.name,
+                  }
+                : null,
             brands: undefined,
             categories: undefined,
             user_groups: undefined,

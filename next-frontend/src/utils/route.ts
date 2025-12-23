@@ -9,6 +9,7 @@ const routes: Record<string, string> = {
     'verification.notice': '/verify-email',
     'password.confirm': '/confirm-password',
     'dashboard': '/dashboard',
+    'frontend.dashboard': '/dashboard',
     'profile.edit': '/profile',
     'logout': '/logout', // This will need special handling
     'frontend.quotations.index': '/quotations',
@@ -18,6 +19,8 @@ const routes: Record<string, string> = {
     'frontend.cart.index': '/cart',
     'admin.dashboard': '/admin/dashboard',
     'admin.products.index': '/admin/products',
+    'admin.customers.index': '/admin/users',
+    'admin.customers.kyc.show': '/admin/users/{id}/kyc',
     'production.dashboard': '/production/dashboard',
 };
 

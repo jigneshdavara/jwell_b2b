@@ -107,10 +107,16 @@ export const adminService = {
     return await apiClient.post(`/admin/users/${id}/toggle-status`);
   },
   async updateUserGroupAssignment(id: number, groupId: number | null) {
-    return await apiClient.patch(`/admin/users/${id}/group`, { group_id: groupId });
+    return await apiClient.patch(`/admin/users/${id}/group`, { user_group_id: groupId });
   },
   async deleteCustomer(id: number) {
     return await apiClient.delete(`/admin/users/${id}`);
+  },
+  async bulkDeleteCustomers(ids: number[]) {
+    return await apiClient.delete('/admin/users/bulk', { data: { ids } });
+  },
+  async bulkUpdateCustomerGroup(ids: number[], userGroupId: number | null) {
+    return await apiClient.post('/admin/users/bulk/group', { ids, user_group_id: userGroupId });
   },
 
   // User Groups (formerly Customer Groups)

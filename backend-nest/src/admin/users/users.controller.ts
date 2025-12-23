@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseIntPipe, Request } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { UserFilterDto, UpdateUserStatusDto, UpdateUserGroupDto } from './dto/user.dto';
+import { UserFilterDto, UpdateUserStatusDto, UpdateUserGroupDto, BulkDeleteUsersDto, BulkGroupUpdateDto } from './dto/user.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
 
 @Controller('admin/users')
@@ -56,5 +56,15 @@ export class UsersController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);
+  }
+
+  @Delete('bulk')
+  bulkDelete(@Body() dto: BulkDeleteUsersDto) {
+    return this.usersService.bulkDelete(dto);
+  }
+
+  @Post('bulk/group')
+  bulkGroupUpdate(@Body() dto: BulkGroupUpdateDto) {
+    return this.usersService.bulkGroupUpdate(dto);
   }
 }

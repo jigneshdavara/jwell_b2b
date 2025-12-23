@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UserFilterDto, UpdateUserStatusDto, UpdateUserGroupDto } from './dto/user.dto';
+import { UserFilterDto, UpdateUserStatusDto, UpdateUserGroupDto, BulkDeleteUsersDto, BulkGroupUpdateDto } from './dto/user.dto';
 
 @Injectable()
 export class UsersService {
@@ -124,12 +124,25 @@ export class UsersService {
     const customer = await this.prisma.user.findUnique({ where: { id: BigInt(id) } });
     if (!customer) throw new NotFoundException('User? not found');
 
-    return await this.prisma.user.update({
-      where: { id: BigInt(id) },
-      data: {
-        kyc_status: dto.kyc_status,
-        kyc_notes: dto.kyc_notes,
-      },
+    return await this.prisma.$transaction(async (tx) => {
+      const updatedCustomer = await tx.user.update({
+        where: { id: BigInt(id) },
+        data: {
+          kyc_status: dto.kyc_status,
+          kyc_notes: dto.kyc_notes,
+        },
+      });
+
+      // Add an audit trail message
+      await tx.user_kyc_messages.create({
+        data: {
+          user_id: BigInt(id),
+          sender_type: 'admin',
+          message: `KYC status updated to '${dto.kyc_status}'. Notes: ${dto.kyc_notes || 'N/A'}`,
+        },
+      });
+
+      return updatedCustomer;
     });
   }
 
@@ -302,5 +315,44 @@ export class UsersService {
     return await this.prisma.user.delete({
       where: { id: BigInt(id) },
     });
+  }
+
+  async bulkDelete(dto: BulkDeleteUsersDto) {
+    if (!dto.ids || dto.ids.length === 0) {
+      return { deleted: 0 };
+    }
+
+    const ids = dto.ids.map(id => BigInt(id));
+    const result = await this.prisma.user.deleteMany({
+      where: {
+        id: { in: ids },
+      },
+    });
+
+    return { deleted: result.count };
+  }
+
+  async bulkGroupUpdate(dto: BulkGroupUpdateDto) {
+    if (!dto.ids || dto.ids.length === 0) {
+      return { updated: 0 };
+    }
+
+    const ids = dto.ids.map(id => BigInt(id));
+    const updateData: any = {};
+    
+    if (dto.user_group_id !== undefined && dto.user_group_id !== null) {
+      updateData.user_group_id = BigInt(dto.user_group_id);
+    } else {
+      updateData.user_group_id = null;
+    }
+
+    const result = await this.prisma.user.updateMany({
+      where: {
+        id: { in: ids },
+      },
+      data: updateData,
+    });
+
+    return { updated: result.count };
   }
 }

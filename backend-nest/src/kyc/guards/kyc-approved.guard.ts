@@ -4,26 +4,66 @@ import {
     ExecutionContext,
     ForbiddenException,
 } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+
+interface JwtUser {
+    userId?: string;
+    sub?: string;
+    id?: string;
+    email?: string;
+    type?: string;
+    guard?: string;
+    kycStatus?: string;
+}
 
 @Injectable()
 export class KycApprovedGuard implements CanActivate {
-    canActivate(context: ExecutionContext): boolean {
+    constructor(private prisma: PrismaService) {}
+
+    async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest();
-        const user = request.user;
+        const user: JwtUser | undefined = request.user;
 
-        // Check if user is a customer and if their KYC is approved
-        // In our register logic, we attached the customer data to the user object in the JWT payload or we can fetch it.
-        // However, the JWT strategy usually just returns the payload.
-        // We should ensure the JWT payload includes kyc_status or we fetch it here.
+        if (!user) {
+            throw new ForbiddenException('Authentication required');
+        }
 
-        // For now, let's assume kyc_status is in the request user object
-        // (We might need to update the JWT Strategy to include this from the DB)
+        // Only enforce KYC for customers (not admin users)
+        const userType = (user.type || '').toLowerCase();
+        const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(
+            userType,
+        );
 
-        if (user.kycStatus !== 'approved') {
+        if (!isCustomer) {
+            // Admin users don't need KYC approval
+            return true;
+        }
+
+        // Fetch latest KYC status from database (not from JWT token)
+        // This ensures we get the most up-to-date status even if admin just approved
+        const userIdStr = user.userId || user.sub || user.id;
+        if (!userIdStr) {
+            throw new ForbiddenException('User ID not found in token');
+        }
+
+        const userId = BigInt(userIdStr);
+        const customer = (await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { kyc_status: true, type: true } as any,
+        })) as { kyc_status: string; type: string } | null;
+
+        if (!customer) {
+            throw new ForbiddenException('Customer not found');
+        }
+
+        // Check KYC status from database
+        const kycStatus = customer.kyc_status;
+
+        if (kycStatus !== 'approved') {
             throw new ForbiddenException({
                 message:
                     'Your KYC is not approved. Please complete the onboarding process.',
-                kycStatus: user.kycStatus,
+                kycStatus: kycStatus,
                 error: 'KYC_NOT_APPROVED',
             });
         }

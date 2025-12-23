@@ -57,3 +57,18 @@ export class UpdateUserGroupDto {
     @IsInt()
     user_group_id: number;
 }
+
+export class BulkDeleteUsersDto {
+    @IsInt({ each: true })
+    ids: number[];
+}
+
+export class BulkGroupUpdateDto {
+    @IsInt({ each: true })
+    ids: number[];
+
+    @IsOptional()
+    @IsInt()
+    @Transform(({ value }) => value ? parseInt(value) : null)
+    user_group_id?: number | null;
+}

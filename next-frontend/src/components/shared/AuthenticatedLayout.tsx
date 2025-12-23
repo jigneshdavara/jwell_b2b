@@ -71,6 +71,36 @@ export default function AuthenticatedLayout({
     // Fetch navigation data (categories, catalogs, brands)
     useEffect(() => {
         const fetchNavigation = async () => {
+            // Don't fetch navigation if on onboarding page
+            if (pathname === '/onboarding/kyc') {
+                setNavigationData({
+                    categories: [],
+                    catalogs: [],
+                    brands: [],
+                });
+                return;
+            }
+
+            // Check if user is a customer
+            const userType = (user?.type ?? '').toLowerCase();
+            const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
+            
+            if (!isCustomer) {
+                return;
+            }
+
+            // Check if KYC is approved before calling API
+            const kycStatus = user?.kyc_status || user?.kycStatus;
+            if (kycStatus !== 'approved') {
+                // Don't fetch navigation if KYC not approved (will get 403)
+                setNavigationData({
+                    categories: [],
+                    catalogs: [],
+                    brands: [],
+                });
+                return;
+            }
+
             try {
                 const response = await frontendService.getNavigation();
                 if (response.data) {
@@ -80,17 +110,26 @@ export default function AuthenticatedLayout({
                         brands: response.data.brands || [],
                     });
                 }
-            } catch (error) {
+            } catch (error: any) {
+                // Handle 403 errors gracefully (KYC not approved)
+                if (error.response?.status === 403) {
+                    setNavigationData({
+                        categories: [],
+                        catalogs: [],
+                        brands: [],
+                    });
+                    return;
+                }
                 console.error('Failed to load navigation data:', error);
                 // Keep empty arrays on error
             }
         };
         
-        // Only fetch if user is authenticated (customer)
-        if (user && ['retailer', 'wholesaler', 'sales'].includes((user?.type ?? '').toLowerCase())) {
+        // Only fetch if user is authenticated
+        if (user) {
             fetchNavigation();
         }
-    }, [user]);
+    }, [user, pathname]);
 
     const userType = (user?.type ?? '').toLowerCase();
     const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
