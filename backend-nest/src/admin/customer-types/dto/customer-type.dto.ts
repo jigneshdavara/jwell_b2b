@@ -8,7 +8,7 @@ import {
     IsNotEmpty,
 } from 'class-validator';
 
-export class CreateCustomerGroupDto {
+export class CreateCustomerTypeDto {
     @IsString()
     @IsNotEmpty()
     @MaxLength(191)
@@ -16,7 +16,7 @@ export class CreateCustomerGroupDto {
 
     @IsString()
     @IsNotEmpty()
-    @MaxLength(50)
+    @MaxLength(191)
     code: string;
 
     @IsString()
@@ -33,7 +33,7 @@ export class CreateCustomerGroupDto {
     display_order?: number;
 }
 
-export class UpdateCustomerGroupDto {
+export class UpdateCustomerTypeDto {
     @IsString()
     @IsOptional()
     @MaxLength(191)
@@ -41,7 +41,7 @@ export class UpdateCustomerGroupDto {
 
     @IsString()
     @IsOptional()
-    @MaxLength(50)
+    @MaxLength(191)
     code?: string;
 
     @IsString()
@@ -62,3 +62,4 @@ export class BulkDestroyDto {
     @IsInt({ each: true })
     ids: number[];
 }
+
