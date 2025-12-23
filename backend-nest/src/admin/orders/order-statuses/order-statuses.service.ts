@@ -9,7 +9,6 @@ import {
     UpdateOrderStatusDto,
     BulkDestroyOrderStatusesDto,
 } from './dto/order-status.dto';
-import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class OrderStatusesService {
@@ -22,7 +21,7 @@ export class OrderStatusesService {
             this.prisma.order_statuses.findMany({
                 skip,
                 take: perPage,
-                orderBy: [{ position: 'asc' }, { name: 'asc' }],
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
             this.prisma.order_statuses.count(),
         ]);
@@ -31,11 +30,11 @@ export class OrderStatusesService {
             items: items.map((status) => ({
                 id: status.id.toString(),
                 name: status.name,
-                slug: status.slug,
+                code: status.code,
                 color: status.color,
                 is_default: status.is_default,
                 is_active: status.is_active,
-                position: status.position,
+                display_order: status.display_order,
                 created_at: status.created_at,
                 updated_at: status.updated_at,
             })),
@@ -50,13 +49,24 @@ export class OrderStatusesService {
 
     async create(dto: CreateOrderStatusDto) {
         // Check if name already exists
-        const existing = await this.prisma.order_statuses.findFirst({
+        const existingName = await this.prisma.order_statuses.findFirst({
             where: { name: dto.name },
         });
 
-        if (existing) {
+        if (existingName) {
             throw new BadRequestException(
                 'Order status with this name already exists',
+            );
+        }
+
+        // Check if code already exists
+        const existingCode = await this.prisma.order_statuses.findFirst({
+            where: { code: dto.code },
+        });
+
+        if (existingCode) {
+            throw new BadRequestException(
+                'Order status with this code already exists',
             );
         }
 
@@ -69,27 +79,25 @@ export class OrderStatusesService {
                 });
             }
 
-            const slug = await this.generateUniqueSlug(dto.name, null, tx);
-
             const status = await tx.order_statuses.create({
                 data: {
                     name: dto.name,
-                    slug,
+                    code: dto.code,
                     color: dto.color ?? '#64748b',
                     is_default: dto.is_default ?? false,
                     is_active: dto.is_active ?? true,
-                    position: dto.position ?? 0,
+                    display_order: dto.display_order ?? 0,
                 },
             });
 
             return {
                 id: status.id.toString(),
                 name: status.name,
-                slug: status.slug,
+                code: status.code,
                 color: status.color,
                 is_default: status.is_default,
                 is_active: status.is_active,
-                position: status.position,
+                display_order: status.display_order,
                 created_at: status.created_at,
                 updated_at: status.updated_at,
             };
@@ -117,32 +125,42 @@ export class OrderStatusesService {
                 });
             }
 
-            // Generate new slug if name changed
-            let slug = status.slug;
-            if (dto.name && dto.name !== status.name) {
-                slug = await this.generateUniqueSlug(dto.name, id, tx);
+            // Check if code is being changed and if it already exists
+            if (dto.code && dto.code !== status.code) {
+                const existingCode = await tx.order_statuses.findFirst({
+                    where: {
+                        code: dto.code,
+                        id: { not: id },
+                    },
+                });
+
+                if (existingCode) {
+                    throw new BadRequestException(
+                        'Order status with this code already exists',
+                    );
+                }
             }
 
             const updated = await tx.order_statuses.update({
                 where: { id },
                 data: {
                     name: dto.name ?? status.name,
-                    slug,
+                    code: dto.code ?? status.code,
                     color: dto.color ?? status.color,
                     is_default: dto.is_default ?? status.is_default,
                     is_active: dto.is_active ?? status.is_active,
-                    position: dto.position ?? status.position,
+                    display_order: dto.display_order ?? status.display_order,
                 },
             });
 
             return {
                 id: updated.id.toString(),
                 name: updated.name,
-                slug: updated.slug,
+                code: updated.code,
                 color: updated.color,
                 is_default: updated.is_default,
                 is_active: updated.is_active,
-                position: updated.position,
+                display_order: updated.display_order,
                 created_at: updated.created_at,
                 updated_at: updated.updated_at,
             };
@@ -204,36 +222,5 @@ export class OrderStatusesService {
         });
 
         return { message: 'Selected order statuses deleted successfully' };
-    }
-
-    private async generateUniqueSlug(
-        name: string,
-        ignoreId: bigint | null,
-        tx: Prisma.TransactionClient,
-    ): Promise<string> {
-        const base = name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '');
-
-        let slug = base;
-        let counter = 1;
-
-        while (true) {
-            const existing = await tx.order_statuses.findFirst({
-                where: {
-                    slug,
-                    ...(ignoreId ? { id: { not: ignoreId } } : {}),
-                },
-            });
-
-            if (!existing) {
-                break;
-            }
-
-            slug = `${base}-${counter++}`;
-        }
-
-        return slug;
     }
 }

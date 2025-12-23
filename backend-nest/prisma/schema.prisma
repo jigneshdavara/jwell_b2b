@@ -100,18 +100,6 @@ model brands {
   @@index([display_order], map: "brands_display_order_index")
 }
 
-model cache {
-  key        String @id @db.VarChar(191)
-  value      String
-  expiration Int
-}
-
-model cache_locks {
-  key        String @id @db.VarChar(191)
-  owner      String @db.VarChar(191)
-  expiration Int
-}
-
 model cart_items {
   id                 BigInt            @id @default(autoincrement())
   cart_id            BigInt
@@ -364,41 +352,6 @@ model diamonds {
   @@index([is_active], map: "diamonds_is_active_index")
 }
 
-model failed_jobs {
-  id         BigInt   @id @default(autoincrement())
-  uuid       String   @unique(map: "failed_jobs_uuid_unique") @db.VarChar(191)
-  connection String
-  queue      String
-  payload    String
-  exception  String
-  failed_at  DateTime @default(now()) @db.Timestamptz(0)
-}
-
-model job_batches {
-  id             String  @id @db.VarChar(191)
-  name           String  @db.VarChar(191)
-  total_jobs     Int
-  pending_jobs   Int
-  failed_jobs    Int
-  failed_job_ids String
-  options        String?
-  cancelled_at   Int?
-  created_at     Int
-  finished_at    Int?
-}
-
-model jobs {
-  id           BigInt @id @default(autoincrement())
-  queue        String @db.VarChar(191)
-  payload      String
-  attempts     Int    @db.SmallInt
-  reserved_at  Int?
-  available_at Int
-  created_at   Int
-
-  @@index([queue], map: "jobs_queue_index")
-}
-
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model making_charge_discounts {
   id                BigInt           @id @default(autoincrement())
@@ -536,15 +489,17 @@ model order_status_histories {
 }
 
 model order_statuses {
-  id         BigInt    @id @default(autoincrement())
-  name       String    @unique(map: "order_statuses_name_unique") @db.VarChar(191)
-  slug       String    @unique(map: "order_statuses_slug_unique") @db.VarChar(191)
-  color      String    @default("#64748b") @db.VarChar(191)
-  is_default Boolean   @default(false)
-  is_active  Boolean   @default(true)
-  position   Int       @default(0)
-  created_at DateTime? @default(now()) @db.Timestamptz(0)
-  updated_at DateTime? @updatedAt @db.Timestamptz(0)
+  id            BigInt    @id @default(autoincrement())
+  name          String    @unique(map: "order_statuses_name_unique") @db.VarChar(191)
+  code          String    @unique(map: "order_statuses_code_unique") @db.VarChar(191)
+  color         String    @default("#64748b") @db.VarChar(191)
+  is_default    Boolean   @default(false)
+  is_active     Boolean   @default(true)
+  display_order Int       @default(0)
+  created_at    DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at    DateTime? @updatedAt @db.Timestamptz(0)
+
+  @@index([is_active, display_order], map: "order_statuses_is_active_display_order_index")
 }
 
 model orders {
@@ -747,18 +702,6 @@ model quotations {
   users              User                 @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "quotations_user_id_foreign")
 
   @@index([quotation_group_id], map: "quotations_quotation_group_id_index")
-}
-
-model sessions {
-  id            String  @id @db.VarChar(191)
-  user_id       BigInt?
-  ip_address    String? @db.VarChar(45)
-  user_agent    String?
-  payload       String
-  last_activity Int
-
-  @@index([last_activity], map: "sessions_last_activity_index")
-  @@index([user_id], map: "sessions_user_id_index")
 }
 
 model settings {

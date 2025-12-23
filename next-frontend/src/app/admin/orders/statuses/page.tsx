@@ -8,11 +8,11 @@ import { adminService } from '@/services/adminService';
 type OrderStatusRow = {
     id: number;
     name: string;
-    slug: string;
+    code: string;
     color: string;
     is_default: boolean;
     is_active: boolean;
-    position: number;
+    display_order: number;
 };
 
 export default function AdminOrderStatusesIndex() {
@@ -25,10 +25,11 @@ export default function AdminOrderStatusesIndex() {
 
     const [formData, setFormData] = useState({
         name: '',
+        code: '',
         color: '#64748b',
         is_default: false,
         is_active: true,
-        position: 0,
+        display_order: 0,
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
@@ -46,11 +47,11 @@ export default function AdminOrderStatusesIndex() {
             setStatusesData(items.map((item: any) => ({
                 id: Number(item.id),
                 name: item.name,
-                slug: item.slug,
+                code: item.code,
                 color: item.color,
                 is_default: item.is_default,
                 is_active: item.is_active,
-                position: item.position,
+                display_order: item.display_order,
             })));
         } catch (error: any) {
             console.error('Failed to load order statuses:', error);
@@ -64,10 +65,11 @@ export default function AdminOrderStatusesIndex() {
         setEditingStatus(null);
         setFormData({
             name: '',
+            code: '',
             color: '#64748b',
             is_default: false,
             is_active: true,
-            position: 0,
+            display_order: 0,
         });
         setErrors({});
     };
@@ -76,10 +78,11 @@ export default function AdminOrderStatusesIndex() {
         setEditingStatus(status);
         setFormData({
             name: status.name,
+            code: status.code,
             color: status.color ?? '#64748b',
             is_default: status.is_default,
             is_active: status.is_active,
-            position: status.position,
+            display_order: status.display_order,
         });
     };
 
@@ -87,6 +90,10 @@ export default function AdminOrderStatusesIndex() {
         event.preventDefault();
         if (!formData.name.trim()) {
             setErrors({ name: 'Name is required.' });
+            return;
+        }
+        if (!formData.code.trim()) {
+            setErrors({ code: 'Code is required.' });
             return;
         }
 
@@ -97,18 +104,20 @@ export default function AdminOrderStatusesIndex() {
             if (editingStatus) {
                 await adminService.updateOrderStatusConfig(editingStatus.id, {
                     name: formData.name,
+                    code: formData.code,
                     color: formData.color,
                     is_default: formData.is_default,
                     is_active: formData.is_active,
-                    position: formData.position,
+                    display_order: formData.display_order,
                 });
             } else {
                 await adminService.createOrderStatus({
                     name: formData.name,
+                    code: formData.code,
                     color: formData.color,
                     is_default: formData.is_default,
                     is_active: formData.is_active,
-                    position: formData.position,
+                    display_order: formData.display_order,
                 });
             }
             resetForm();
@@ -132,10 +141,11 @@ export default function AdminOrderStatusesIndex() {
         try {
             await adminService.updateOrderStatusConfig(status.id, {
                 name: status.name,
+                code: status.code,
                 color: status.color,
                 is_default: status.is_default,
                 is_active: !status.is_active,
-                position: status.position,
+                display_order: status.display_order,
             });
             await loadStatuses();
         } catch (error: any) {
@@ -148,10 +158,11 @@ export default function AdminOrderStatusesIndex() {
         try {
             await adminService.updateOrderStatusConfig(status.id, {
                 name: status.name,
+                code: status.code,
                 color: status.color,
                 is_default: true,
                 is_active: status.is_active,
-                position: status.position,
+                display_order: status.display_order,
             });
             await loadStatuses();
         } catch (error: any) {
@@ -269,7 +280,7 @@ export default function AdminOrderStatusesIndex() {
                         )}
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-3">
                         <label className="flex flex-col gap-2 text-sm text-slate-600">
                             <span>Name</span>
                             <input
@@ -282,15 +293,26 @@ export default function AdminOrderStatusesIndex() {
                             {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
                         </label>
                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                            <span>Position</span>
+                            <span>Code</span>
+                            <input
+                                type="text"
+                                value={formData.code}
+                                onChange={(event) => setFormData({ ...formData, code: event.target.value })}
+                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                required
+                            />
+                            {errors.code && <span className="text-xs text-rose-500">{errors.code}</span>}
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                            <span>Display Order</span>
                             <input
                                 type="number"
-                                value={formData.position}
-                                onChange={(event) => setFormData({ ...formData, position: Number(event.target.value) })}
+                                value={formData.display_order}
+                                onChange={(event) => setFormData({ ...formData, display_order: Number(event.target.value) })}
                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                 min={0}
                             />
-                            {errors.position && <span className="text-xs text-rose-500">{errors.position}</span>}
+                            {errors.display_order && <span className="text-xs text-rose-500">{errors.display_order}</span>}
                         </label>
                     </div>
 
@@ -386,9 +408,9 @@ export default function AdminOrderStatusesIndex() {
                                     />
                                 </th>
                                 <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Slug</th>
+                                <th className="px-5 py-3 text-left">Code</th>
                                 <th className="px-5 py-3 text-left">Color</th>
-                                <th className="px-5 py-3 text-left">Order</th>
+                                <th className="px-5 py-3 text-left">Display Order</th>
                                 <th className="px-5 py-3 text-left">Default</th>
                                 <th className="px-5 py-3 text-left">Status</th>
                                 <th className="px-5 py-3 text-right">Actions</th>
@@ -407,7 +429,7 @@ export default function AdminOrderStatusesIndex() {
                                         />
                                     </td>
                                     <td className="px-5 py-3 font-semibold text-slate-900">{status.name}</td>
-                                    <td className="px-5 py-3 text-slate-400">{status.slug}</td>
+                                    <td className="px-5 py-3 text-slate-400">{status.code}</td>
                                     <td className="px-5 py-3">
                                         <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
                                             <span
@@ -417,7 +439,7 @@ export default function AdminOrderStatusesIndex() {
                                             {status.color}
                                         </span>
                                     </td>
-                                    <td className="px-5 py-3 text-slate-500">{status.position}</td>
+                                    <td className="px-5 py-3 text-slate-500">{status.display_order}</td>
                                     <td className="px-5 py-3">
                                         {status.is_default ? (
                                             <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">

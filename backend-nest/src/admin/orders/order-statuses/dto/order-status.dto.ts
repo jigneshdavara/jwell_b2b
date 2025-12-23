@@ -13,6 +13,10 @@ export class CreateOrderStatusDto {
     name: string;
 
     @IsString()
+    @MaxLength(191)
+    code: string;
+
+    @IsString()
     @MaxLength(7)
     @IsOptional()
     color?: string;
@@ -28,7 +32,7 @@ export class CreateOrderStatusDto {
     @IsInt()
     @Min(0)
     @IsOptional()
-    position?: number;
+    display_order?: number;
 }
 
 export class UpdateOrderStatusDto {
@@ -38,6 +42,11 @@ export class UpdateOrderStatusDto {
     name?: string;
 
     @IsString()
+    @MaxLength(191)
+    @IsOptional()
+    code?: string;
+
+    @IsString()
     @MaxLength(7)
     @IsOptional()
     color?: string;
@@ -53,7 +62,7 @@ export class UpdateOrderStatusDto {
     @IsInt()
     @Min(0)
     @IsOptional()
-    position?: number;
+    display_order?: number;
 }
 
 export class BulkDestroyOrderStatusesDto {
