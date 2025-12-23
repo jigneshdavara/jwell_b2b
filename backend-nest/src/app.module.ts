@@ -48,6 +48,7 @@ import { FrontendCheckoutModule } from './frontend/checkout/checkout.module';
 import { FrontendOrdersModule } from './frontend/orders/orders.module';
 import { HomeModule } from './frontend/home/home.module';
 import { ProfileModule } from './frontend/profile/profile.module';
+import { NavigationModule } from './frontend/navigation/navigation.module';
 import { MailModule } from './common/mail/mail.module';
 
 @Module({
@@ -100,6 +101,7 @@ import { MailModule } from './common/mail/mail.module';
         FrontendOrdersModule,
         HomeModule,
         ProfileModule,
+        NavigationModule,
     ],
     controllers: [AppController],
     providers: [AppService],

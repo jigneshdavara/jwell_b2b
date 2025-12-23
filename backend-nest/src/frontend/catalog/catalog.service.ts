@@ -311,7 +311,11 @@ export class CatalogService {
                         firstMedia.url.startsWith('https://')
                     ) {
                         thumbnail = firstMedia.url;
+                    } else if (firstMedia.url.startsWith('/storage/')) {
+                        // URL already has /storage/ prefix, use as-is
+                        thumbnail = firstMedia.url;
                     } else {
+                        // URL is relative, add /storage/ prefix
                         thumbnail = `/storage/${firstMedia.url}`;
                     }
                 }

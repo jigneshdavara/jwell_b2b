@@ -2,10 +2,13 @@
 
 import { useEffect, useMemo, useState, FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js';
 import { route } from '@/utils/route';
-import api from '@/services/api';
+import { frontendService } from '@/services/frontendService';
+import AuthenticatedLayout from '@/components/shared/AuthenticatedLayout';
+import FlashMessage from '@/components/shared/FlashMessage';
 
 type CheckoutData = {
     order: {
@@ -22,6 +25,7 @@ type CheckoutData = {
     payment: {
         publishableKey: string;
         clientSecret: string;
+        paymentId?: string;
         providerReference: string;
     };
     summary: {
@@ -67,7 +71,7 @@ function CheckoutForm({ providerReference }: { providerReference: string }) {
 
         const paymentIntentId = result.paymentIntent?.id ?? providerReference;
         try {
-            await api.post('/checkout/confirm', { payment_intent_id: paymentIntentId });
+            await frontendService.confirmCheckout(paymentIntentId);
             router.push(route('frontend.orders.index'));
         } catch (err: any) {
             setError(err.response?.data?.message || 'Payment confirmation failed.');
@@ -93,17 +97,28 @@ function CheckoutForm({ providerReference }: { providerReference: string }) {
 export default function CheckoutPage() {
     const [data, setData] = useState<CheckoutData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const searchParams = useSearchParams();
 
     useEffect(() => {
         const fetchCheckout = async () => {
             try {
-                const response = await api.get('/checkout', {
-                    headers: { 'X-Inertia': 'true', 'X-Inertia-Version': 'mock' }
-                });
-                setData(response.data.props || response.data);
-            } catch (error) {
+                const response = await frontendService.getCheckout();
+                // Map backend response to frontend format
+                const checkoutData: CheckoutData = {
+                    order: response.data.order,
+                    payment: {
+                        publishableKey: response.data.payment.publishableKey,
+                        clientSecret: response.data.payment.clientSecret,
+                        paymentId: response.data.payment.paymentId,
+                        providerReference: response.data.payment.providerReference,
+                    },
+                    summary: response.data.summary,
+                };
+                setData(checkoutData);
+            } catch (error: any) {
                 console.error('Failed to fetch checkout data', error);
+                setError(error.response?.data?.message || 'Failed to load checkout');
             } finally {
                 setLoading(false);
             }
@@ -118,16 +133,34 @@ export default function CheckoutPage() {
         appearance: { theme: 'stripe' },
     } : null, [data]);
 
-    if (loading || !data) {
+    if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />
-            </div>
+            <AuthenticatedLayout>
+                <div className="flex items-center justify-center py-20">
+                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />
+                </div>
+            </AuthenticatedLayout>
+        );
+    }
+
+    if (error || !data) {
+        return (
+            <AuthenticatedLayout>
+                <div className="flex items-center justify-center py-20">
+                    <div className="text-center">
+                        <p className="text-lg font-semibold text-slate-900">{error || 'Failed to load checkout'}</p>
+                        <Link href={route('frontend.cart.index')} className="mt-4 text-sm text-elvee-blue hover:underline">
+                            Back to cart
+                        </Link>
+                    </div>
+                </div>
+            </AuthenticatedLayout>
         );
     }
 
     return (
-        <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
+        <AuthenticatedLayout>
+            <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
                 <div className="space-y-6">
                     <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
                         <h1 className="text-2xl font-semibold text-slate-900">Secure payment</h1>
@@ -156,6 +189,7 @@ export default function CheckoutPage() {
                     <div className="flex justify-between border-t pt-3 font-semibold text-base"><span>Total due</span><span>{formatter.format(data.summary.total)}</span></div>
                 </aside>
             </div>
+        </AuthenticatedLayout>
     );
 }
 

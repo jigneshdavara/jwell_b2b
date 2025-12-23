@@ -1,10 +1,12 @@
-"use client";
+'use client';
 
-import Modal from "@/components/ui/Modal";
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { orderService } from "@/services/orderService";
+import Modal from '@/components/ui/Modal';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { frontendService } from '@/services/frontendService';
+import AuthenticatedLayout from '@/components/shared/AuthenticatedLayout';
+import { route } from '@/utils/route';
 
 type OrderShowItem = {
   id: number;
@@ -117,10 +119,86 @@ export default function OrderShowPage() {
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const data = await orderService.getOrder(id as string);
-        setOrder(data.order);
-      } catch (error) {
-        console.error("Failed to fetch order", error);
+        const orderId = Number(id);
+        if (isNaN(orderId)) {
+          setLoading(false);
+          return;
+        }
+        const response = await frontendService.getOrder(orderId);
+        const orderData = response.data?.order;
+        
+        if (!orderData) {
+          setLoading(false);
+          return;
+        }
+
+        // Map backend response to frontend format
+        const mappedOrder: OrderDetails = {
+          id: Number(orderData.id),
+          reference: orderData.reference || '',
+          status: orderData.status || 'pending',
+          status_label: orderData.status_label || orderData.status || 'Pending',
+          total_amount: Number(orderData.total_amount) || 0,
+          subtotal_amount: Number(orderData.subtotal_amount) || 0,
+          tax_amount: Number(orderData.tax_amount) || 0,
+          discount_amount: Number(orderData.discount_amount) || 0,
+          created_at: orderData.created_at || null,
+          updated_at: orderData.updated_at || null,
+          items: (orderData.items || []).map((item: any) => ({
+            id: Number(item.id),
+            name: item.name || '',
+            sku: item.sku || '',
+            quantity: Number(item.quantity) || 0,
+            unit_price: Number(item.unit_price) || 0,
+            total_price: Number(item.total_price) || 0,
+            configuration: item.configuration || null,
+            metadata: item.metadata || null,
+            price_breakdown: item.price_breakdown || null,
+            calculated_making_charge: item.calculated_making_charge || null,
+            product: item.product ? {
+              id: Number(item.product.id),
+              name: item.product.name || '',
+              sku: item.product.sku || '',
+              base_price: item.product.base_price ? Number(item.product.base_price) : null,
+              making_charge_amount: item.product.making_charge_amount ? Number(item.product.making_charge_amount) : null,
+              making_charge_percentage: item.product.making_charge_percentage ? Number(item.product.making_charge_percentage) : null,
+              making_charge_types: item.product.making_charge_types || [],
+              media: (item.product.media || []).map((m: any) => ({
+                url: m.url || '',
+                alt: m.alt || item.product.name || '',
+              })),
+            } : null,
+          })),
+          payments: (orderData.payments || []).map((payment: any) => ({
+            id: Number(payment.id),
+            status: payment.status || '',
+            amount: Number(payment.amount) || 0,
+            created_at: payment.created_at || null,
+          })),
+          status_history: (orderData.status_history || []).map((entry: any) => ({
+            id: Number(entry.id),
+            status: entry.status || '',
+            created_at: entry.created_at || null,
+          })),
+          quotations: orderData.quotations ? (orderData.quotations || []).map((q: any) => ({
+            id: Number(q.id),
+            status: q.status || '',
+            quantity: Number(q.quantity) || 0,
+            product: q.product ? {
+              id: Number(q.product.id),
+              name: q.product.name || '',
+              sku: q.product.sku || '',
+              media: (q.product.media || []).map((m: any) => ({
+                url: m.url || '',
+                alt: m.alt || q.product.name || '',
+              })),
+            } : null,
+          })) : undefined,
+        };
+        
+        setOrder(mappedOrder);
+      } catch (error: any) {
+        console.error('Failed to fetch order', error);
       } finally {
         setLoading(false);
       }
@@ -129,24 +207,41 @@ export default function OrderShowPage() {
     fetchOrder();
   }, [id]);
 
+  const getMediaUrl = (url: string): string => {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
-      </div>
+      <AuthenticatedLayout>
+        <div className="flex h-screen items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
+        </div>
+      </AuthenticatedLayout>
     );
   }
 
   if (!order) {
     return (
-      <div className="flex h-screen items-center justify-center text-slate-500">
-        Order not found.
-      </div>
+      <AuthenticatedLayout>
+        <div className="flex h-screen items-center justify-center text-slate-500">
+          <div className="text-center">
+            <p className="text-lg font-semibold text-slate-900">Order not found</p>
+            <Link href={route('frontend.orders.index')} className="mt-4 text-sm text-elvee-blue hover:underline">
+              Back to orders
+            </Link>
+          </div>
+        </div>
+      </AuthenticatedLayout>
     );
   }
 
   return (
-    <>
+    <AuthenticatedLayout>
       <div className="space-y-10">
         <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
           <div className="flex items-center justify-between">
@@ -159,7 +254,7 @@ export default function OrderShowPage() {
               </p>
             </div>
             <Link
-              href="/orders"
+              href={route('frontend.orders.index')}
               className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
             >
               Back to list
@@ -256,16 +351,17 @@ export default function OrderShowPage() {
                         <div className="flex items-center gap-3">
                           {item.product?.media?.[0] && (
                             <img
-                              src={item.product.media[0].url}
+                              src={getMediaUrl(item.product.media[0].url)}
                               alt={item.product.media[0].alt}
                               className="h-12 w-12 rounded-lg object-cover shadow-sm"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
                             />
                           )}
                           <div className="min-w-0 flex-1">
                             <Link
-                              href={`/catalog/${
-                                item.product?.id ?? item.id
-                              }`}
+                              href={route('frontend.catalog.show', item.product?.id ?? item.id)}
                               className="text-sm font-semibold text-slate-900 hover:text-feather-gold transition"
                             >
                               {item.name}
@@ -412,7 +508,7 @@ export default function OrderShowPage() {
                   order.status === "payment_failed") && (
                   <div className="mt-4 flex justify-end">
                     <Link
-                      href={`/orders/${order.id}/pay`}
+                      href={route('frontend.orders.pay', order.id)}
                       className="rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
                     >
                       Proceed to payment
@@ -498,14 +594,17 @@ export default function OrderShowPage() {
                     {order.quotations.map((quotation) => (
                       <Link
                         key={quotation.id}
-                        href={`/quotations/${quotation.id}`}
+                        href={route('frontend.quotations.show', quotation.id)}
                         className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-elvee-blue/50 hover:bg-elvee-blue/5"
                       >
                         {quotation.product?.media?.[0] && (
                           <img
-                            src={quotation.product.media[0].url}
+                            src={getMediaUrl(quotation.product.media[0].url)}
                             alt={quotation.product.media[0].alt}
                             className="h-10 w-10 rounded-lg object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
                           />
                         )}
                         <div className="flex-1">
@@ -572,9 +671,12 @@ export default function OrderShowPage() {
                 <div className="flex gap-6">
                   {productDetailsModalOpen.product?.media?.[0] && (
                     <img
-                      src={productDetailsModalOpen.product.media[0].url}
+                      src={getMediaUrl(productDetailsModalOpen.product.media[0].url)}
                       alt={productDetailsModalOpen.product.media[0].alt}
                       className="h-32 w-32 rounded-lg object-cover shadow-lg"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
                     />
                   )}
                   <div className="flex-1">
@@ -745,7 +847,7 @@ export default function OrderShowPage() {
           </div>
         </Modal>
       )}
-    </>
+    </AuthenticatedLayout>
   );
 }
 

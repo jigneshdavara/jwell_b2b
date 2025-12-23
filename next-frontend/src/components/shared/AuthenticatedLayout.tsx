@@ -8,6 +8,9 @@ import CustomerFooter from '@/components/shared/CustomerFooter';
 import FlashMessage from '@/components/shared/FlashMessage';
 import { route } from '@/utils/route';
 import { authService } from '@/services/authService';
+import { frontendService } from '@/services/frontendService';
+import { useWishlist } from '@/contexts/WishlistContext';
+import { useCart } from '@/contexts/CartContext';
 
 type NavigationItem = {
     label: string;
@@ -24,15 +27,23 @@ export default function AuthenticatedLayout({
     const pathname = usePathname();
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    
-    // Mocking other props that would come from Laravel
-    const cartCount = 0;
-    const wishlistCount = 0;
-    const navigationData = {
+    const [navigationData, setNavigationData] = useState<{
+        categories: Array<{ id: number; name: string; cover_image_url?: string | null }>;
+        catalogs: Array<{ id: number; name: string }>;
+        brands: Array<{ id: number; name: string }>;
+    }>({
         categories: [],
         catalogs: [],
         brands: [],
-    };
+    });
+    
+    // Get wishlist count from context
+    // Note: This will only work for customer pages wrapped in WishlistProvider
+    // For admin pages, this will throw - but admin pages don't use this layout
+    const { wishlistCount } = useWishlist();
+    
+    // Get cart count from context
+    const { cartCount } = useCart();
 
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -56,6 +67,30 @@ export default function AuthenticatedLayout({
         };
         fetchUser();
     }, [router]);
+
+    // Fetch navigation data (categories, catalogs, brands)
+    useEffect(() => {
+        const fetchNavigation = async () => {
+            try {
+                const response = await frontendService.getNavigation();
+                if (response.data) {
+                    setNavigationData({
+                        categories: response.data.categories || [],
+                        catalogs: response.data.catalogs || [],
+                        brands: response.data.brands || [],
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load navigation data:', error);
+                // Keep empty arrays on error
+            }
+        };
+        
+        // Only fetch if user is authenticated (customer)
+        if (user && ['retailer', 'wholesaler', 'sales'].includes((user?.type ?? '').toLowerCase())) {
+            fetchNavigation();
+        }
+    }, [user]);
 
     const userType = (user?.type ?? '').toLowerCase();
     const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
@@ -115,16 +150,27 @@ export default function AuthenticatedLayout({
 
     const navigation = [...customerNav, ...adminNav, ...productionNav];
 
+    // Helper to get media URL
+    const getMediaUrl = (url: string | null | undefined): string | null => {
+        if (!url) return null;
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+        }
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+        return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+    };
+
     const categoriesLinks = useMemo(
         () =>
-            (navigationData.categories ?? []).map((category: any) => ({
+            (navigationData.categories ?? []).map((category: any) => {
+                // Use category ID as the filter value (categories don't have slugs in DB)
+                return {
                 id: category.id,
                 name: category.name,
-                href: route('frontend.catalog.index', {
-                    category: category.slug ?? category.id,
+                    href: `${route('frontend.catalog.index')}?category=${encodeURIComponent(category.id)}`,
+                    image: category.cover_image_url ? getMediaUrl(category.cover_image_url) : null,
+                };
                 }),
-                image: category.cover_image_url ?? null,
-            })),
         [navigationData.categories],
     );
 
@@ -133,9 +179,7 @@ export default function AuthenticatedLayout({
             (navigationData.catalogs ?? []).map((catalog: any) => ({
                 id: catalog.id,
                 name: catalog.name,
-                href: route('frontend.catalog.index', {
-                    catalog: catalog.id,
-                }),
+                href: `${route('frontend.catalog.index')}?catalog=${encodeURIComponent(catalog.id)}`,
             })),
         [navigationData.catalogs],
     );

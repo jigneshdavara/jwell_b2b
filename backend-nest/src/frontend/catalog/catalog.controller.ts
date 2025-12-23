@@ -23,6 +23,13 @@ export class CatalogController {
 
     @Get()
     async index(@Query() filters: CatalogFilterDto, @Request() req) {
+        // Log received filters for debugging
+        console.log('[CatalogController] Received filters:', {
+            category: filters.category,
+            catalog: filters.catalog,
+            brand: filters.brand,
+            page: filters.page,
+        });
         const userId = req.user?.userId ? BigInt(req.user.userId) : undefined;
         return this.catalogService.findAll(filters, userId);
     }

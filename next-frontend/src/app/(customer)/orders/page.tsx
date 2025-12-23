@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { route } from '@/utils/route';
-import api from '@/services/api';
+import { frontendService } from '@/services/frontendService';
+import AuthenticatedLayout from '@/components/shared/AuthenticatedLayout';
 
 type OrderListItem = {
     id: number;
@@ -12,7 +13,11 @@ type OrderListItem = {
     status_label: string;
     total_amount: number;
     created_at?: string | null;
-    items: Array<{ id: number; name: string; quantity: number; }>;
+    items: Array<{
+        id: number;
+        name: string;
+        quantity: number;
+    }>;
 };
 
 type OrdersData = {
@@ -28,10 +33,18 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
 
 const statusColors: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
+    pending_payment: 'bg-amber-100 text-amber-700',
+    payment_failed: 'bg-rose-100 text-rose-700',
+    awaiting_materials: 'bg-indigo-100 text-indigo-700',
+    under_production: 'bg-indigo-100 text-indigo-700',
     approved: 'bg-emerald-100 text-emerald-700',
+    in_production: 'bg-indigo-100 text-indigo-700',
+    quality_check: 'bg-blue-100 text-blue-700',
+    ready_to_dispatch: 'bg-purple-100 text-purple-700',
     dispatched: 'bg-elvee-blue/10 text-elvee-blue',
     delivered: 'bg-emerald-100 text-emerald-700',
     cancelled: 'bg-rose-100 text-rose-700',
+    paid: 'bg-emerald-100 text-emerald-700',
 };
 
 export default function OrdersPage() {
@@ -41,60 +54,148 @@ export default function OrdersPage() {
     useEffect(() => {
         const fetchOrders = async () => {
             setLoading(true);
-            // Mock orders data
-            const mockOrders: OrdersData = {
-                data: [
-                    { id: 1, reference: 'ORD-2025-001', status: 'approved', status_label: 'Approved', total_amount: 125000, created_at: new Date().toISOString(), items: [{ id: 1, name: 'Diamond Ring', quantity: 1 }] },
-                    { id: 2, reference: 'ORD-2025-002', status: 'pending', status_label: 'Pending', total_amount: 85000, created_at: new Date().toISOString(), items: [{ id: 2, name: 'Gold Bracelet', quantity: 1 }] },
-                ],
-                links: [],
-            };
-            setOrders(mockOrders);
-            setLoading(false);
+            try {
+                const response = await frontendService.getOrders();
+                const ordersData = response.data?.orders || { data: [], meta: {} };
+                
+                // Map backend response to frontend format
+                const mappedOrders: OrdersData = {
+                    data: (ordersData.data || []).map((order: any) => ({
+                        id: Number(order.id),
+                        reference: order.reference || '',
+                        status: order.status || 'pending',
+                        status_label: order.status_label || order.status || 'Pending',
+                        total_amount: Number(order.total_amount) || 0,
+                        created_at: order.created_at || null,
+                        items: (order.items || []).map((item: any) => ({
+                            id: Number(item.id),
+                            name: item.name || '',
+                            quantity: Number(item.quantity) || 0,
+                        })),
+                    })),
+                    links: [], // Pagination links can be added later if needed
+                };
+                setOrders(mappedOrders);
+            } catch (error: any) {
+                console.error('Failed to fetch orders:', error);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchOrders();
     }, []);
 
-    const formatDate = (input?: string | null) => input ? new Date(input).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+    const formatDate = (input?: string | null) =>
+        input
+            ? new Date(input).toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+              })
+            : 'N/A';
 
     if (loading && !orders) {
         return (
-            <div className="flex items-center justify-center py-20"><div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" /></div>
+            <AuthenticatedLayout>
+                <div className="flex items-center justify-center py-20">
+                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />
+                </div>
+            </AuthenticatedLayout>
         );
     }
 
     return (
-        <div className="space-y-10">
-                <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-semibold text-slate-900">My orders</h1>
-                        <p className="mt-2 text-sm text-slate-500">Track production and fulfillment.</p>
+        <AuthenticatedLayout>
+            <div className="space-y-10">
+                <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <h1 className="text-3xl font-semibold text-slate-900">My orders</h1>
+                            <p className="mt-2 text-sm text-slate-500">
+                                Track production, payments, and fulfilment for your confirmed jewellery purchases and jobwork conversions.
+                            </p>
+                        </div>
+                        <Link
+                            href={route('frontend.catalog.index')}
+                            className="inline-flex items-center gap-2 rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
+                        >
+                            Browse catalogue
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </Link>
                     </div>
-                    <Link href={route('frontend.catalog.index')} className="bg-elvee-blue text-white px-4 py-2 rounded-full text-sm font-semibold">Browse catalogue</Link>
                 </header>
 
                 <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
                     {!orders?.data || orders.data.length === 0 ? (
-                        <div className="py-16 text-center text-slate-500 space-y-4">
-                            <p>No confirmed orders yet.</p>
-                            <Link href={route('frontend.catalog.index')} className="bg-elvee-blue text-white px-4 py-2 rounded-full inline-block">Browse catalogue</Link>
+                        <div className="flex flex-col items-center justify-center space-y-4 py-16 text-sm text-slate-500">
+                            <p>No confirmed orders yet. Submit a quotation and approve it to generate an order.</p>
+                            <Link
+                                href={route('frontend.catalog.index')}
+                                className="rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
+                            >
+                                Browse catalogue
+                            </Link>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead className="border-b border-slate-200 text-xs text-slate-600 font-semibold uppercase">
-                                    <tr><th className="px-4 py-3 text-left">Order Reference</th><th className="px-4 py-3 text-left">Status</th><th className="px-4 py-3 text-left">Items</th><th className="px-4 py-3 text-left">Date</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3 text-right">Actions</th></tr>
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-slate-200">
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Order Reference</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Status</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Items</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Date</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600">Total</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600">Actions</th>
+                                    </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {orders.data.map(o => (
-                                        <tr key={o.id} className="hover:bg-slate-50">
-                                            <td className="px-4 py-4 font-semibold text-slate-900">{o.reference}</td>
-                                            <td className="px-4 py-4"><span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColors[o.status] || 'bg-slate-100'}`}>{o.status_label}</span></td>
-                                            <td className="px-4 py-4">{o.items.length} item{o.items.length !== 1 ? 's' : ''}</td>
-                                            <td className="px-4 py-4 text-slate-600">{formatDate(o.created_at)}</td>
-                                            <td className="px-4 py-4 text-right font-semibold">{currencyFormatter.format(o.total_amount)}</td>
+                                    {orders.data.map((order) => (
+                                        <tr key={order.id} className="hover:bg-slate-50">
+                                            <td className="px-4 py-4">
+                                                <p className="text-sm font-semibold text-slate-900">{order.reference}</p>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusColors[order.status] ?? 'bg-slate-200 text-slate-700'}`}>
+                                                    {order.status_label}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-sm text-slate-900">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {order.items.slice(0, 2).map((item) => (
+                                                            <span key={item.id} className="text-xs text-slate-500">
+                                                                {item.name} × {item.quantity}
+                                                            </span>
+                                                        ))}
+                                                        {order.items.length > 2 && (
+                                                            <span className="text-xs text-slate-400">+{order.items.length - 2} more</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span className="text-sm text-slate-600">{formatDate(order.created_at)}</span>
+                                            </td>
                                             <td className="px-4 py-4 text-right">
-                                                <Link href={route('frontend.orders.show', o.id)} className="p-2 border rounded hover:bg-slate-50 text-slate-600 inline-block"><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" strokeWidth={2} /></svg></Link>
+                                                <p className="text-sm font-semibold text-slate-900">{currencyFormatter.format(order.total_amount)}</p>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Link
+                                                        href={route('frontend.orders.show', order.id)}
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:border-elvee-blue hover:bg-elvee-blue/5 hover:text-elvee-blue"
+                                                        title="View details"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        </svg>
+                                                    </Link>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -104,6 +205,6 @@ export default function OrdersPage() {
                     )}
                 </section>
             </div>
+        </AuthenticatedLayout>
     );
 }
-
