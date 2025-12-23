@@ -104,18 +104,22 @@ export default function KycOnboardingPage() {
             ]);
             
             const data = onboardingRes.data;
+            
+            // Map user data from backend response
+            const userData = data.user || {};
             setUser({
-                id: data.id || data.user?.id || 0,
-                name: data.name || data.user?.name || '',
-                email: data.email || data.user?.email || '',
-                phone: data.phone || data.user?.phone || null,
-                type: data.type || data.user?.type || null,
-                kyc_status: data.kyc_status || 'pending',
-                kyc_notes: data.kyc_notes || null,
-                kyc_comments_enabled: data.kyc_comments_enabled !== false,
+                id: userData.id || 0,
+                name: userData.name || '',
+                email: userData.email || '',
+                phone: userData.phone || null,
+                type: userData.type || null,
+                kyc_status: userData.kyc_status || 'pending',
+                kyc_notes: userData.kyc_notes || null,
+                kyc_comments_enabled: userData.kyc_comments_enabled !== false,
             });
             
-            const profileData = data.kycProfile?.[0] || data.profile || {};
+            // Map profile data
+            const profileData = data.profile || {};
             setProfile(profileData);
             setProfileData({
                 business_name: profileData.business_name || '',
@@ -129,33 +133,36 @@ export default function KycOnboardingPage() {
                 state: profileData.state || '',
                 postal_code: profileData.postal_code || '',
                 country: profileData.country || 'India',
-                contact_name: profileData.contact_name || data.name || '',
-                contact_phone: profileData.contact_phone || data.phone || '',
+                contact_name: profileData.contact_name || userData.name || '',
+                contact_phone: profileData.contact_phone || userData.phone || '',
             });
             
-            const docs = data.user_kyc_documents || data.documents || [];
+            // Map documents - use correct API URL
+            const docs = data.documents || [];
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
             setDocuments(docs.map((doc: any) => ({
                 id: doc.id,
                 type: doc.type,
                 status: doc.status || 'pending',
                 remarks: doc.remarks || null,
                 file_path: doc.file_path || null,
-                url: doc.url || (doc.file_path ? `/api/onboarding/kyc/documents/${doc.id}/download` : null),
-                download_url: doc.download_url || (doc.file_path ? `/api/onboarding/kyc/documents/${doc.id}/download` : null),
+                url: doc.url ? `${apiBaseUrl}${doc.url}` : null,
+                download_url: doc.download_url ? `${apiBaseUrl}${doc.download_url}` : null,
                 created_at: doc.created_at || null,
-                uploaded_at: doc.created_at || null,
+                uploaded_at: doc.uploaded_at || doc.created_at || null,
             })));
             
-            const msgs = data.user_kyc_messages || data.messages || [];
+            // Map messages
+            const msgs = data.messages || [];
             setMessages(msgs.map((msg: any) => ({
                 id: msg.id,
                 sender_type: msg.sender_type || 'customer',
                 message: msg.message,
                 created_at: msg.created_at || null,
-                users: msg.users || msg.admin || null,
+                users: msg.admin || null,
             })));
             
-            setDocumentTypes(documentTypesRes.data?.documentTypes || []);
+            setDocumentTypes(documentTypesRes.data?.documentTypes || data.documentTypes || []);
         } catch (e: any) {
             console.error('Failed to fetch KYC data:', e);
             setFlashMessage({ type: 'error', message: e.response?.data?.message || 'Failed to load KYC data' });
@@ -651,24 +658,24 @@ export default function KycOnboardingPage() {
                                         <p className="mt-2 text-xs text-rose-500">Remarks: {document.remarks}</p>
                                     )}
                                     <div className="mt-3 flex items-center gap-3 text-xs font-semibold">
+                                        {document.url && (
+                                            <a
+                                                href={document.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sky-600 hover:text-sky-500"
+                                            >
+                                                View file
+                                            </a>
+                                        )}
                                         {document.download_url && (
-                                            <>
-                                                <a
-                                                    href={document.download_url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-sky-600 hover:text-sky-500"
-                                                >
-                                                    View file
-                                                </a>
-                                                <a
-                                                    href={document.download_url}
-                                                    download
-                                                    className="text-slate-500 hover:text-slate-700"
-                                                >
-                                                    Download
-                                                </a>
-                                            </>
+                                            <a
+                                                href={document.download_url}
+                                                download
+                                                className="text-slate-500 hover:text-slate-700"
+                                            >
+                                                Download
+                                            </a>
                                         )}
                                         <button
                                             type="button"

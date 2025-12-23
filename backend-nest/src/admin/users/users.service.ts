@@ -124,12 +124,25 @@ export class UsersService {
     const customer = await this.prisma.user.findUnique({ where: { id: BigInt(id) } });
     if (!customer) throw new NotFoundException('User? not found');
 
-    return await this.prisma.user.update({
-      where: { id: BigInt(id) },
-      data: {
-        kyc_status: dto.kyc_status,
-        kyc_notes: dto.kyc_notes,
-      },
+    return await this.prisma.$transaction(async (tx) => {
+      const updatedCustomer = await tx.user.update({
+        where: { id: BigInt(id) },
+        data: {
+          kyc_status: dto.kyc_status,
+          kyc_notes: dto.kyc_notes,
+        },
+      });
+
+      // Add an audit trail message
+      await tx.user_kyc_messages.create({
+        data: {
+          user_id: BigInt(id),
+          sender_type: 'admin',
+          message: `KYC status updated to '${dto.kyc_status}'. Notes: ${dto.kyc_notes || 'N/A'}`,
+        },
+      });
+
+      return updatedCustomer;
     });
   }
 

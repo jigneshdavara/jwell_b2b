@@ -6,6 +6,7 @@ import { PricingModule } from '../../common/pricing/pricing.module';
 import { TaxModule } from '../../common/tax/tax.module';
 import { CartModule } from '../../cart/cart.module';
 import { MailModule } from '../../common/mail/mail.module';
+import { KycModule } from '../../kyc/kyc.module';
 
 @Module({
     imports: [
@@ -14,6 +15,7 @@ import { MailModule } from '../../common/mail/mail.module';
         TaxModule,
         CartModule,
         MailModule,
+        KycModule,
     ],
     controllers: [FrontendQuotationsController],
     providers: [FrontendQuotationsService],

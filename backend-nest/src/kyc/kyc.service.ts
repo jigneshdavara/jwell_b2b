@@ -185,12 +185,14 @@ export class KycService {
 
         return {
             user: {
+                id: customer.id.toString(),
                 name: customer.name,
                 email: customer.email,
                 phone: customer.phone,
                 type: customer.type,
                 kyc_status: customer.kyc_status,
                 kyc_notes: customer.kyc_notes,
+                kyc_comments_enabled: customer.kyc_comments_enabled,
             },
             profile: {
                 business_name: customer.business_name,

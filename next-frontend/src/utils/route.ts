@@ -9,6 +9,7 @@ const routes: Record<string, string> = {
     'verification.notice': '/verify-email',
     'password.confirm': '/confirm-password',
     'dashboard': '/dashboard',
+    'frontend.dashboard': '/dashboard',
     'profile.edit': '/profile',
     'logout': '/logout', // This will need special handling
     'frontend.quotations.index': '/quotations',

@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
+import { authService } from '@/services/authService';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -46,13 +47,61 @@ type DashboardData = {
 
 export default function DashboardPage() {
     const router = useRouter();
+    const pathname = usePathname();
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [user, setUser] = useState<any | null>(null);
+    const [checkingKyc, setCheckingKyc] = useState(true);
 
+    // Check KYC status synchronously before making any API calls
     useEffect(() => {
-        loadDashboard();
-    }, []);
+        // Skip everything if already on onboarding page
+        if (pathname === '/onboarding/kyc') {
+            setCheckingKyc(false);
+            setLoading(false);
+            return;
+        }
+
+        const checkKycAndLoad = async () => {
+            try {
+                // Fetch user to check KYC status
+                const userResponse = await authService.me();
+                const currentUser = userResponse.data;
+                setUser(currentUser);
+
+                // Check if user is a customer
+                const userType = (currentUser?.type ?? '').toLowerCase();
+                const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
+
+                if (isCustomer) {
+                    // Check KYC status (handle both snake_case and camelCase)
+                    const kycStatus = currentUser?.kyc_status || currentUser?.kycStatus;
+                    
+                    // If KYC is not approved, redirect IMMEDIATELY and DO NOT call dashboard API
+                    if (kycStatus !== 'approved') {
+                        setCheckingKyc(false);
+                        setLoading(false);
+                        // Redirect without making dashboard API call
+                        router.replace('/onboarding/kyc');
+                        return; // Exit early - NO API CALLS
+                    }
+                }
+
+                // KYC is approved (or not a customer), proceed to load dashboard
+                setCheckingKyc(false);
+                await loadDashboard();
+            } catch (err: any) {
+                console.error('Failed to check user or load dashboard:', err);
+                setCheckingKyc(false);
+                setLoading(false);
+                // If auth fails, let AuthenticatedLayout handle redirect
+                setError('Failed to load dashboard data');
+            }
+        };
+
+        checkKycAndLoad();
+    }, [router, pathname]);
 
     const loadDashboard = async () => {
         try {
@@ -70,13 +119,21 @@ export default function DashboardPage() {
             }
         } catch (err: any) {
             console.error('Failed to load dashboard:', err);
+            
+            // If KYC is not approved, redirect to onboarding
+            if (err.response?.status === 403 && err.response?.data?.error === 'KYC_NOT_APPROVED') {
+                router.replace('/onboarding/kyc');
+                return;
+            }
+            
             setError(err.response?.data?.message || 'Failed to load dashboard data');
         } finally {
             setLoading(false);
         }
     };
 
-    if (loading) {
+    // Show loading while checking KYC or loading dashboard
+    if (checkingKyc || loading) {
         return (
             <div className="flex items-center justify-center py-20">
                 <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />

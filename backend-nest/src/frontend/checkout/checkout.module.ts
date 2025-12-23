@@ -6,6 +6,7 @@ import { CartModule } from '../../cart/cart.module';
 import { PaymentsModule } from '../../common/payments/payments.module';
 import { OrdersModule } from '../../admin/orders/orders.module';
 import { MailModule } from '../../common/mail/mail.module';
+import { KycModule } from '../../kyc/kyc.module';
 
 @Module({
     imports: [
@@ -14,6 +15,7 @@ import { MailModule } from '../../common/mail/mail.module';
         PaymentsModule,
         OrdersModule,
         MailModule,
+        KycModule,
     ],
     controllers: [FrontendCheckoutController],
     providers: [FrontendCheckoutService],
