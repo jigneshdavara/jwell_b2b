@@ -80,24 +80,6 @@ CREATE TABLE "brands" (
 );
 
 -- CreateTable
-CREATE TABLE "cache" (
-    "key" VARCHAR(191) NOT NULL,
-    "value" TEXT NOT NULL,
-    "expiration" INTEGER NOT NULL,
-
-    CONSTRAINT "cache_pkey" PRIMARY KEY ("key")
-);
-
--- CreateTable
-CREATE TABLE "cache_locks" (
-    "key" VARCHAR(191) NOT NULL,
-    "owner" VARCHAR(191) NOT NULL,
-    "expiration" INTEGER NOT NULL,
-
-    CONSTRAINT "cache_locks_pkey" PRIMARY KEY ("key")
-);
-
--- CreateTable
 CREATE TABLE "cart_items" (
     "id" BIGSERIAL NOT NULL,
     "cart_id" BIGINT NOT NULL,
@@ -308,48 +290,6 @@ CREATE TABLE "diamonds" (
     "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "diamonds_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "failed_jobs" (
-    "id" BIGSERIAL NOT NULL,
-    "uuid" VARCHAR(191) NOT NULL,
-    "connection" TEXT NOT NULL,
-    "queue" TEXT NOT NULL,
-    "payload" TEXT NOT NULL,
-    "exception" TEXT NOT NULL,
-    "failed_at" TIMESTAMPTZ(0) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "failed_jobs_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "job_batches" (
-    "id" VARCHAR(191) NOT NULL,
-    "name" VARCHAR(191) NOT NULL,
-    "total_jobs" INTEGER NOT NULL,
-    "pending_jobs" INTEGER NOT NULL,
-    "failed_jobs" INTEGER NOT NULL,
-    "failed_job_ids" TEXT NOT NULL,
-    "options" TEXT,
-    "cancelled_at" INTEGER,
-    "created_at" INTEGER NOT NULL,
-    "finished_at" INTEGER,
-
-    CONSTRAINT "job_batches_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "jobs" (
-    "id" BIGSERIAL NOT NULL,
-    "queue" VARCHAR(191) NOT NULL,
-    "payload" TEXT NOT NULL,
-    "attempts" SMALLINT NOT NULL,
-    "reserved_at" INTEGER,
-    "available_at" INTEGER NOT NULL,
-    "created_at" INTEGER NOT NULL,
-
-    CONSTRAINT "jobs_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -693,18 +633,6 @@ CREATE TABLE "quotations" (
 );
 
 -- CreateTable
-CREATE TABLE "sessions" (
-    "id" VARCHAR(191) NOT NULL,
-    "user_id" BIGINT,
-    "ip_address" VARCHAR(45),
-    "user_agent" TEXT,
-    "payload" TEXT NOT NULL,
-    "last_activity" INTEGER NOT NULL,
-
-    CONSTRAINT "sessions_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "settings" (
     "id" BIGSERIAL NOT NULL,
     "key" VARCHAR(191) NOT NULL,
@@ -935,10 +863,6 @@ CREATE INDEX "diamonds_diamond_clarity_id_diamond_color_id_diamond_shape_id_i" O
 CREATE INDEX "diamonds_is_active_index" ON "diamonds"("is_active");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "failed_jobs_uuid_unique" ON "failed_jobs"("uuid");
-
--- CreateIndex
-CREATE INDEX "jobs_queue_index" ON "jobs"("queue");
 
 -- CreateIndex
 CREATE INDEX "making_charge_discounts_is_active_starts_at_ends_at_index" ON "making_charge_discounts"("is_active", "starts_at", "ends_at");
@@ -999,12 +923,6 @@ CREATE UNIQUE INDEX "products_sku_unique" ON "products"("sku");
 
 -- CreateIndex
 CREATE INDEX "quotations_quotation_group_id_index" ON "quotations"("quotation_group_id");
-
--- CreateIndex
-CREATE INDEX "sessions_last_activity_index" ON "sessions"("last_activity");
-
--- CreateIndex
-CREATE INDEX "sessions_user_id_index" ON "sessions"("user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "settings_key_unique" ON "settings"("key");
