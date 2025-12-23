@@ -428,11 +428,11 @@ CREATE TABLE "order_status_histories" (
 CREATE TABLE "order_statuses" (
     "id" BIGSERIAL NOT NULL,
     "name" VARCHAR(191) NOT NULL,
-    "slug" VARCHAR(191) NOT NULL,
+    "code" VARCHAR(191) NOT NULL,
     "color" VARCHAR(191) NOT NULL DEFAULT '#64748b',
     "is_default" BOOLEAN NOT NULL DEFAULT false,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "position" INTEGER NOT NULL DEFAULT 0,
+    "display_order" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMPTZ(0) DEFAULT now(),
     "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
@@ -898,7 +898,10 @@ CREATE UNIQUE INDEX "offers_code_unique" ON "offers"("code");
 CREATE UNIQUE INDEX "order_statuses_name_unique" ON "order_statuses"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "order_statuses_slug_unique" ON "order_statuses"("slug");
+CREATE UNIQUE INDEX "order_statuses_code_unique" ON "order_statuses"("code");
+
+-- CreateIndex
+CREATE INDEX "order_statuses_is_active_display_order_index" ON "order_statuses"("is_active", "display_order");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "orders_reference_unique" ON "orders"("reference");
