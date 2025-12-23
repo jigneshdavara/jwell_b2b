@@ -1,5 +1,8 @@
+'use client';
+
 import React from "react";
 import AuthenticatedLayout from "@/components/shared/AuthenticatedLayout";
+import { WishlistProvider } from "@/contexts/WishlistContext";
 
 export default function CustomerLayout({
   children,
@@ -7,9 +10,11 @@ export default function CustomerLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthenticatedLayout>
-      {children}
-    </AuthenticatedLayout>
+    <WishlistProvider>
+      <AuthenticatedLayout>
+        {children}
+      </AuthenticatedLayout>
+    </WishlistProvider>
   );
 }
 

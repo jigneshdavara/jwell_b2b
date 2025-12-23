@@ -9,6 +9,7 @@ import FlashMessage from '@/components/shared/FlashMessage';
 import { route } from '@/utils/route';
 import { authService } from '@/services/authService';
 import { frontendService } from '@/services/frontendService';
+import { useWishlist } from '@/contexts/WishlistContext';
 
 type NavigationItem = {
     label: string;
@@ -35,9 +36,13 @@ export default function AuthenticatedLayout({
         brands: [],
     });
     
+    // Get wishlist count from context
+    // Note: This will only work for customer pages wrapped in WishlistProvider
+    // For admin pages, this will throw - but admin pages don't use this layout
+    const { wishlistCount } = useWishlist();
+    
     // Mocking other props that would come from Laravel
     const cartCount = 0;
-    const wishlistCount = 0;
 
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -159,12 +164,12 @@ export default function AuthenticatedLayout({
             (navigationData.categories ?? []).map((category: any) => {
                 // Use category ID as the filter value (categories don't have slugs in DB)
                 return {
-                    id: category.id,
-                    name: category.name,
+                id: category.id,
+                name: category.name,
                     href: `${route('frontend.catalog.index')}?category=${encodeURIComponent(category.id)}`,
                     image: category.cover_image_url ? getMediaUrl(category.cover_image_url) : null,
                 };
-            }),
+                }),
         [navigationData.categories],
     );
 

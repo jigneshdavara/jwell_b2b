@@ -52,5 +52,34 @@ export const frontendService = {
   async getNavigation() {
     return await apiClient.get('/navigation');
   },
+
+  // Wishlist
+  async getWishlist() {
+    return await apiClient.get('/wishlist');
+  },
+
+  async addToWishlist(data: {
+    product_id: number;
+    product_variant_id?: number;
+    configuration?: Record<string, any>;
+  }) {
+    return await apiClient.post('/wishlist/items', data);
+  },
+
+  async removeFromWishlist(itemId: number) {
+    return await apiClient.delete(`/wishlist/items/${itemId}`);
+  },
+
+  async moveToCart(itemId: number, quantity?: number) {
+    return await apiClient.post(`/wishlist/items/${itemId}/move-to-cart`, {
+      quantity: quantity || 1,
+    });
+  },
+
+  async removeFromWishlistByProduct(productId: number, variantId?: number | null) {
+    return await apiClient.delete(`/wishlist/product/${productId}`, {
+      data: variantId ? { product_variant_id: variantId } : undefined,
+    });
+  },
 };
 

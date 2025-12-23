@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
+import { useWishlist } from '@/contexts/WishlistContext';
 
 const FILTER_LABELS: Record<string, string> = {
     brand: 'Brand',
@@ -119,11 +120,12 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
 export default function CatalogPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { wishlistProductIds, addProductId, removeProductId, refreshWishlist } = useWishlist();
     
     const [data, setData] = useState<CatalogProps | null>(null);
     const [loading, setLoading] = useState(true);
-    const [wishlistProductIds, setWishlistProductIds] = useState<number[]>([]);
     const [wishlistBusyId, setWishlistBusyId] = useState<number | null>(null);
+    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [catalogItems, setCatalogItems] = useState<Product[]>([]);
@@ -155,7 +157,7 @@ export default function CatalogPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                setLoading(true);
+            setLoading(true);
                 
                 // Build filters from search params
                 const filters: any = {
@@ -241,13 +243,13 @@ export default function CatalogPage() {
                     
                     const mappedData: CatalogProps = {
                         filters: apiData.filters || {},
-                        products: {
+                products: {
                             data: products,
                             links,
                             next_page_url: currentPage < lastPage ? `?${new URLSearchParams({ ...Object.fromEntries(searchParams), page: String(currentPage + 1) }).toString()}` : null,
                             prev_page_url: currentPage > 1 ? `?${new URLSearchParams({ ...Object.fromEntries(searchParams), page: String(currentPage - 1) }).toString()}` : null,
-                        },
-                        facets: {
+                },
+                facets: {
                             ...apiData.facets,
                             categories: (apiData.facets?.categories || []).map((c: any) => ({
                                 id: Number(c.id),
@@ -291,12 +293,13 @@ export default function CatalogPage() {
                                 })),
                             },
                         },
-                    };
-                    
+            };
+            
                     setData(mappedData);
                     setCatalogItems(products);
-                    // TODO: Fetch wishlist separately if needed
-                    setWishlistProductIds([]);
+                    
+                    // Refresh wishlist count (context will handle it)
+                    refreshWishlist();
                 }
             } catch (error: any) {
                 console.error('Failed to load catalog:', error);
@@ -316,7 +319,7 @@ export default function CatalogPage() {
                 });
                 setCatalogItems([]);
             } finally {
-                setLoading(false);
+            setLoading(false);
             }
         };
         fetchData();
@@ -387,10 +390,10 @@ export default function CatalogPage() {
         const newMax = filters.price_max ? Number(filters.price_max) : DEFAULT_PRICE_MAX;
         
         if (prevPriceMinRef.current !== filters.price_min || prevPriceMaxRef.current !== filters.price_max) {
-            setPriceRange({
+        setPriceRange({
                 min: newMin,
                 max: newMax,
-            });
+        });
             prevPriceMinRef.current = filters.price_min;
             prevPriceMaxRef.current = filters.price_max;
         }
@@ -443,15 +446,47 @@ export default function CatalogPage() {
         if (wishlistBusyId === productId) return;
         setWishlistBusyId(productId);
 
-        // Mock wishlist toggle
-        setTimeout(() => {
+        try {
             if (wishlistLookup.has(productId)) {
-                setWishlistProductIds(prev => prev.filter(id => id !== productId));
+                // Remove from wishlist
+                await frontendService.removeFromWishlistByProduct(productId, variantId);
+
+                // Update context
+                removeProductId(productId);
+                
+                // Refresh wishlist to ensure count is accurate
+                await refreshWishlist();
+                
+                // Show flash message
+                setFlashMessage({ type: 'success', message: 'Removed from wishlist.' });
+                setTimeout(() => setFlashMessage(null), 3000);
             } else {
-                setWishlistProductIds(prev => [...prev, productId]);
+                // Add to wishlist
+                await frontendService.addToWishlist({
+                    product_id: productId,
+                    product_variant_id: variantId ?? undefined,
+                });
+
+                // Update context
+                addProductId(productId);
+                
+                // Refresh wishlist to ensure count is accurate
+                await refreshWishlist();
+                
+                // Show flash message (same as Laravel)
+                setFlashMessage({ type: 'success', message: 'Saved to your wishlist.' });
+                setTimeout(() => setFlashMessage(null), 3000);
             }
+        } catch (error: any) {
+            console.error('Error toggling wishlist:', error);
+            setFlashMessage({ 
+                type: 'error', 
+                message: error.response?.data?.message || 'Failed to update wishlist. Please try again.' 
+            });
+            setTimeout(() => setFlashMessage(null), 3000);
+        } finally {
             setWishlistBusyId(null);
-        }, 500);
+        }
     };
 
     const valueNameMap = useMemo(() => {
@@ -599,6 +634,38 @@ export default function CatalogPage() {
 
     return (
         <>
+            {flashMessage && (
+                <div
+                    className={`mb-6 rounded-2xl border px-4 py-3 text-sm shadow-sm transition ${
+                        flashMessage.type === 'success'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                            : 'bg-rose-50 border-rose-200 text-rose-900'
+                    }`}
+                >
+                    <div className="flex items-center justify-between">
+                        <p className="font-medium">{flashMessage.message}</p>
+                        <button
+                            onClick={() => setFlashMessage(null)}
+                            className="ml-4 text-current opacity-70 hover:opacity-100"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                                className="h-4 w-4"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            )}
             <div className="space-y-4" id="catalog">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <h1 className="text-2xl font-semibold text-slate-900">

@@ -2396,7 +2396,7 @@ export default function AdminProductEdit() {
                 const brandIdNum = Number(brandIdValue);
                 if (!isNaN(brandIdNum) && brandIdNum > 0) {
                     payload.brand_id = brandIdNum;
-                } else {
+            } else {
                     setErrors({ brand_id: 'Brand is required' });
                     setProcessing(false);
                     return;
@@ -2413,11 +2413,11 @@ export default function AdminProductEdit() {
                 const categoryIdNum = Number(categoryIdValue);
                 if (!isNaN(categoryIdNum) && categoryIdNum > 0) {
                     payload.category_id = categoryIdNum;
-                } else {
+            } else {
                     setErrors({ category_id: 'Category is required' });
                     setProcessing(false);
                     return;
-                }
+            }
             } else {
                 setErrors({ category_id: 'Category is required' });
                 setProcessing(false);
@@ -2472,7 +2472,7 @@ export default function AdminProductEdit() {
             // Metadata must always be an object (not null) for backend validation
             const metadata: Record<string, any> = {};
             metadata.show_all_variants_by_size = showAllVariantsBySizeValue;
-            payload.metadata = metadata;
+                payload.metadata = metadata;
             
             // Handle catalog_ids (must be array)
             const catalogIds = formState.catalog_ids || [];
