@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { KycModule } from './kyc/kyc.module';
 import { CustomersModule } from './admin/customers/customers.module';
 import { CustomerGroupsModule } from './admin/customer-groups/customer-groups.module';
+import { CustomerTypesModule } from './admin/customer-types/customer-types.module';
 import { DashboardModule } from './admin/dashboard/dashboard.module';
 import { UserGroupsModule } from './admin/user-groups/user-groups.module';
 import { TeamUsersModule } from './admin/team-users/team-users.module';
@@ -57,6 +58,7 @@ import { MailModule } from './common/mail/mail.module';
         KycModule,
         CustomersModule,
         CustomerGroupsModule,
+        CustomerTypesModule,
         DashboardModule,
         UserGroupsModule,
         TeamUsersModule,

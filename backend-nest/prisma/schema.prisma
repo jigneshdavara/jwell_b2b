@@ -15,7 +15,7 @@ model User {
   type              String              @default("admin") @db.VarChar(191)
   user_group_id     BigInt?
   remember_token    String?             @db.VarChar(100)
-  created_at        DateTime?           @db.Timestamptz(0)
+  created_at        DateTime?           @default(now()) @db.Timestamptz(0)
   updated_at        DateTime?           @updatedAt @db.Timestamptz(0)
   user_kyc_messages user_kyc_messages[]
   user_groups       user_groups?        @relation(fields: [user_group_id], references: [id], onUpdate: NoAction, map: "users_user_group_id_foreign")
@@ -39,7 +39,7 @@ model Customer {
   credit_limit           Decimal?                 @default(0) @db.Decimal(12, 2)
   is_active              Boolean                  @default(true)
   remember_token         String?                  @db.VarChar(100)
-  created_at             DateTime?                @db.Timestamptz(0)
+  created_at             DateTime?                @default(now()) @db.Timestamptz(0)
   updated_at             DateTime?                @updatedAt @db.Timestamptz(0)
   kyc_comments_enabled   Boolean                  @default(true)
   carts                  carts[]
@@ -74,7 +74,7 @@ model UserKycProfile {
   contact_name        String?   @db.VarChar(191)
   contact_phone       String?   @db.VarChar(191)
   metadata            Json?
-  created_at          DateTime? @db.Timestamptz(0)
+  created_at          DateTime? @default(now()) @db.Timestamptz(0)
   updated_at          DateTime? @updatedAt @db.Timestamptz(0)
   customer            Customer  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "user_kyc_profiles_user_id_foreign")
 
@@ -87,7 +87,7 @@ model UserLoginOtp {
   code        String    @db.VarChar(191)
   expires_at  DateTime  @db.Timestamptz(0)
   consumed_at DateTime? @db.Timestamptz(0)
-  created_at  DateTime? @db.Timestamptz(0)
+  created_at  DateTime? @default(now()) @db.Timestamptz(0)
   updated_at  DateTime? @updatedAt @db.Timestamptz(0)
   customer    Customer  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "user_login_otps_user_id_foreign")
 
@@ -102,8 +102,8 @@ model brands {
   display_order           Int                       @default(0)
   is_active               Boolean                   @default(true)
   cover_image             String?                   @db.VarChar(191)
-  created_at              DateTime?                 @db.Timestamptz(0)
-  updated_at              DateTime?                 @db.Timestamptz(0)
+  created_at              DateTime?                 @default(now()) @db.Timestamptz(0)
+  updated_at              DateTime?                 @updatedAt @db.Timestamptz(0)
   making_charge_discounts making_charge_discounts[]
   products                products[]
 
@@ -130,8 +130,8 @@ model cart_items {
   quantity           Int               @default(1)
   configuration      Json?
   price_breakdown    Json?
-  created_at         DateTime?         @db.Timestamptz(0)
-  updated_at         DateTime?         @db.Timestamptz(0)
+  created_at         DateTime?         @default(now()) @db.Timestamptz(0)
+  updated_at         DateTime?         @updatedAt @db.Timestamptz(0)
   product_variant_id BigInt?
   carts              carts             @relation(fields: [cart_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "cart_items_cart_id_foreign")
   products           products          @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "cart_items_product_id_foreign")
@@ -144,8 +144,8 @@ model carts {
   status     String       @default("active") @db.VarChar(191)
   currency   String       @default("INR") @db.VarChar(191)
   metadata   Json?
-  created_at DateTime?    @db.Timestamptz(0)
-  updated_at DateTime?    @db.Timestamptz(0)
+  created_at DateTime?    @default(now()) @db.Timestamptz(0)
+  updated_at DateTime?    @updatedAt @db.Timestamptz(0)
   cart_items cart_items[]
   customers  Customer     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "carts_user_id_foreign")
 }
@@ -154,8 +154,8 @@ model catalog_products {
   id         BigInt    @id @default(autoincrement())
   catalog_id BigInt
   product_id BigInt
-  created_at DateTime? @db.Timestamptz(0)
-  updated_at DateTime? @db.Timestamptz(0)
+  created_at DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at DateTime? @updatedAt @db.Timestamptz(0)
   catalogs   catalogs  @relation(fields: [catalog_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "catalog_products_catalog_id_foreign")
   products   products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "catalog_products_product_id_foreign")
 
@@ -169,8 +169,8 @@ model catalogs {
   description      String?
   display_order    Int                @default(0)
   is_active        Boolean            @default(true)
-  created_at       DateTime?          @db.Timestamptz(0)
-  updated_at       DateTime?          @db.Timestamptz(0)
+  created_at       DateTime?          @default(now()) @db.Timestamptz(0)
+  updated_at       DateTime?          @updatedAt @db.Timestamptz(0)
   catalog_products catalog_products[]
 
   @@index([code], map: "catalogs_code_index")
@@ -186,8 +186,8 @@ model categories {
   display_order           Int                       @default(0)
   is_active               Boolean                   @default(true)
   cover_image             String?                   @db.VarChar(191)
-  created_at              DateTime?                 @db.Timestamptz(0)
-  updated_at              DateTime?                 @db.Timestamptz(0)
+  created_at              DateTime?                 @default(now()) @db.Timestamptz(0)
+  updated_at              DateTime?                 @updatedAt @db.Timestamptz(0)
   categories              categories?               @relation("categoriesTocategories", fields: [parent_id], references: [id], onUpdate: NoAction, map: "categories_parent_id_foreign")
   other_categories        categories[]              @relation("categoriesTocategories")
   category_sizes          category_sizes[]
@@ -204,8 +204,8 @@ model category_sizes {
   id          BigInt     @id @default(autoincrement())
   category_id BigInt
   size_id     BigInt
-  created_at  DateTime?  @db.Timestamp(0)
-  updated_at  DateTime?  @db.Timestamp(0)
+  created_at  DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at  DateTime?  @updatedAt @db.Timestamp(0)
   categories  categories @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "category_sizes_category_id_foreign")
   sizes       sizes      @relation(fields: [size_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "category_sizes_size_id_foreign")
 
@@ -218,8 +218,8 @@ model category_styles {
   id          BigInt     @id @default(autoincrement())
   category_id BigInt
   style_id    BigInt
-  created_at  DateTime?  @db.Timestamp(0)
-  updated_at  DateTime?  @db.Timestamp(0)
+  created_at  DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at  DateTime?  @updatedAt @db.Timestamp(0)
   categories  categories @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "category_styles_category_id_foreign")
   styles      styles     @relation(fields: [style_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "category_styles_style_id_foreign")
 
@@ -235,21 +235,21 @@ model customer_groups {
   description             String?
   is_active               Boolean                   @default(true)
   display_order           Int                       @default(0)
-  created_at              DateTime?                 @db.Timestamptz(0)
-  updated_at              DateTime?                 @db.Timestamptz(0)
+  created_at              DateTime?                 @default(now()) @db.Timestamptz(0)
+  updated_at              DateTime?                 @updatedAt @db.Timestamptz(0)
   making_charge_discounts making_charge_discounts[]
   customers               Customer[]
 }
 
 model customer_types {
-  id          BigInt    @id @default(autoincrement())
-  name        String    @unique(map: "customer_types_name_unique") @db.VarChar(191)
-  slug        String    @unique(map: "customer_types_slug_unique") @db.VarChar(191)
-  description String?
-  is_active   Boolean   @default(true)
-  position    Int       @default(0)
-  created_at  DateTime? @db.Timestamptz(0)
-  updated_at  DateTime? @db.Timestamptz(0)
+  id            BigInt    @id @default(autoincrement())
+  name          String    @unique(map: "customer_types_name_unique") @db.VarChar(191)
+  code          String    @unique(map: "customer_types_code_unique") @db.VarChar(191)
+  description   String?
+  is_active     Boolean   @default(true)
+  display_order Int       @default(0)
+  created_at    DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at    DateTime? @updatedAt @db.Timestamptz(0)
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -261,8 +261,8 @@ model diamond_clarities {
   description     String?
   display_order   Int           @default(0)
   is_active       Boolean       @default(true)
-  created_at      DateTime?     @db.Timestamptz(0)
-  updated_at      DateTime?     @db.Timestamptz(0)
+  created_at      DateTime?     @default(now()) @db.Timestamptz(0)
+  updated_at      DateTime?     @updatedAt @db.Timestamptz(0)
   diamond_types   diamond_types @relation(fields: [diamond_type_id], references: [id], onUpdate: NoAction, map: "diamond_clarities_diamond_type_id_foreign")
   diamonds        diamonds[]
 
@@ -279,8 +279,8 @@ model diamond_colors {
   description     String?
   display_order   Int           @default(0)
   is_active       Boolean       @default(true)
-  created_at      DateTime?     @db.Timestamptz(0)
-  updated_at      DateTime?     @db.Timestamptz(0)
+  created_at      DateTime?     @default(now()) @db.Timestamptz(0)
+  updated_at      DateTime?     @updatedAt @db.Timestamptz(0)
   diamond_types   diamond_types @relation(fields: [diamond_type_id], references: [id], onUpdate: NoAction, map: "diamond_colors_diamond_type_id_foreign")
   diamonds        diamonds[]
 
@@ -298,8 +298,8 @@ model diamond_shape_sizes {
   description      String?
   display_order    Int            @default(0)
   ctw              Decimal        @default(0) @db.Decimal(10, 3)
-  created_at       DateTime?      @db.Timestamptz(0)
-  updated_at       DateTime?      @db.Timestamptz(0)
+  created_at       DateTime?      @default(now()) @db.Timestamptz(0)
+  updated_at       DateTime?      @updatedAt @db.Timestamptz(0)
   diamond_shapes   diamond_shapes @relation(fields: [diamond_shape_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "diamond_shape_sizes_diamond_shape_id_foreign")
   diamond_types    diamond_types  @relation(fields: [diamond_type_id], references: [id], onUpdate: NoAction, map: "diamond_shape_sizes_diamond_type_id_foreign")
   diamonds         diamonds[]
@@ -316,8 +316,8 @@ model diamond_shapes {
   description         String?
   is_active           Boolean               @default(true)
   display_order       Int                   @default(0)
-  created_at          DateTime?             @db.Timestamptz(0)
-  updated_at          DateTime?             @db.Timestamptz(0)
+  created_at          DateTime?             @default(now()) @db.Timestamptz(0)
+  updated_at          DateTime?             @updatedAt @db.Timestamptz(0)
   diamond_shape_sizes diamond_shape_sizes[]
   diamond_types       diamond_types         @relation(fields: [diamond_type_id], references: [id], onUpdate: NoAction, map: "diamond_shapes_diamond_type_id_foreign")
   diamonds            diamonds[]
@@ -333,8 +333,8 @@ model diamond_types {
   description         String?
   display_order       Int                   @default(0)
   is_active           Boolean               @default(true)
-  created_at          DateTime?             @db.Timestamp(0)
-  updated_at          DateTime?             @db.Timestamp(0)
+  created_at          DateTime?             @default(now()) @db.Timestamp(0)
+  updated_at          DateTime?             @updatedAt @db.Timestamp(0)
   diamond_clarities   diamond_clarities[]
   diamond_colors      diamond_colors[]
   diamond_shape_sizes diamond_shape_sizes[]
@@ -357,8 +357,8 @@ model diamonds {
   price                    Decimal                    @default(0) @db.Decimal(12, 2)
   description              String?
   is_active                Boolean                    @default(true)
-  created_at               DateTime?                  @db.Timestamptz(0)
-  updated_at               DateTime?                  @db.Timestamptz(0)
+  created_at               DateTime?                  @default(now()) @db.Timestamptz(0)
+  updated_at               DateTime?                  @updatedAt @db.Timestamptz(0)
   diamond_clarities        diamond_clarities          @relation(fields: [diamond_clarity_id], references: [id], onUpdate: NoAction, map: "diamonds_diamond_clarity_id_foreign")
   diamond_colors           diamond_colors             @relation(fields: [diamond_color_id], references: [id], onUpdate: NoAction, map: "diamonds_diamond_color_id_foreign")
   diamond_shapes           diamond_shapes             @relation(fields: [diamond_shape_id], references: [id], onUpdate: NoAction, map: "diamonds_diamond_shape_id_foreign")
@@ -421,8 +421,8 @@ model making_charge_discounts {
   starts_at         DateTime?        @db.Timestamptz(0)
   ends_at           DateTime?        @db.Timestamptz(0)
   customer_types    Json?
-  created_at        DateTime?        @db.Timestamptz(0)
-  updated_at        DateTime?        @db.Timestamptz(0)
+  created_at        DateTime?        @default(now()) @db.Timestamptz(0)
+  updated_at        DateTime?        @updatedAt @db.Timestamptz(0)
   brands            brands?          @relation(fields: [brand_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "making_charge_discounts_brand_id_foreign")
   categories        categories?      @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "making_charge_discounts_category_id_foreign")
   customer_groups   customer_groups? @relation(fields: [customer_group_id], references: [id], onUpdate: NoAction, map: "making_charge_discounts_customer_group_id_foreign")
@@ -438,8 +438,8 @@ model metal_purities {
   description            String?
   display_order          Int                      @default(0)
   is_active              Boolean                  @default(true)
-  created_at             DateTime?                @db.Timestamptz(0)
-  updated_at             DateTime?                @db.Timestamptz(0)
+  created_at             DateTime?                @default(now()) @db.Timestamptz(0)
+  updated_at             DateTime?                @updatedAt @db.Timestamptz(0)
   metals                 metals                   @relation(fields: [metal_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "metal_purities_metal_id_foreign")
   product_variant_metals product_variant_metals[]
 
@@ -456,8 +456,8 @@ model metal_tones {
   description            String?
   display_order          Int                      @default(0)
   is_active              Boolean                  @default(true)
-  created_at             DateTime?                @db.Timestamptz(0)
-  updated_at             DateTime?                @db.Timestamptz(0)
+  created_at             DateTime?                @default(now()) @db.Timestamptz(0)
+  updated_at             DateTime?                @updatedAt @db.Timestamptz(0)
   metals                 metals                   @relation(fields: [metal_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "metal_tones_metal_id_foreign")
   product_variant_metals product_variant_metals[]
 
@@ -473,20 +473,14 @@ model metals {
   description            String?
   display_order          Int                      @default(0)
   is_active              Boolean                  @default(true)
-  created_at             DateTime?                @db.Timestamptz(0)
-  updated_at             DateTime?                @db.Timestamptz(0)
+  created_at             DateTime?                @default(now()) @db.Timestamptz(0)
+  updated_at             DateTime?                @updatedAt @db.Timestamptz(0)
   metal_purities         metal_purities[]
   metal_tones            metal_tones[]
   product_variant_metals product_variant_metals[]
 
   @@index([code], map: "metals_code_index")
   @@index([display_order], map: "metals_display_order_index")
-}
-
-model migrations {
-  id        Int    @id @default(autoincrement())
-  migration String @db.VarChar(191)
-  batch     Int
 }
 
 model notification_logs {
@@ -498,8 +492,8 @@ model notification_logs {
   sent_at    DateTime? @db.Timestamptz(0)
   status     String    @default("queued") @db.VarChar(191)
   response   Json?
-  created_at DateTime? @db.Timestamptz(0)
-  updated_at DateTime? @db.Timestamptz(0)
+  created_at DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at DateTime? @updatedAt @db.Timestamptz(0)
   customers  Customer? @relation(fields: [user_id], references: [id], onUpdate: NoAction, map: "notification_logs_user_id_foreign")
 }
 
@@ -514,8 +508,8 @@ model offers {
   starts_at   DateTime? @db.Timestamptz(0)
   ends_at     DateTime? @db.Timestamptz(0)
   is_active   Boolean   @default(true)
-  created_at  DateTime? @db.Timestamptz(0)
-  updated_at  DateTime? @db.Timestamptz(0)
+  created_at  DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at  DateTime? @updatedAt @db.Timestamptz(0)
 }
 
 model order_items {
@@ -529,8 +523,8 @@ model order_items {
   total_price   Decimal   @default(0) @db.Decimal(12, 2)
   configuration Json?
   metadata      Json?
-  created_at    DateTime? @db.Timestamptz(0)
-  updated_at    DateTime? @db.Timestamptz(0)
+  created_at    DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at    DateTime? @updatedAt @db.Timestamptz(0)
   orders        orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "order_items_order_id_foreign")
   products      products? @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "order_items_product_id_foreign")
 }
@@ -541,8 +535,8 @@ model order_status_histories {
   user_id    BigInt?
   status     String    @db.VarChar(191)
   meta       Json?
-  created_at DateTime? @db.Timestamptz(0)
-  updated_at DateTime? @db.Timestamptz(0)
+  created_at DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at DateTime? @updatedAt @db.Timestamptz(0)
   orders     orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "order_status_histories_order_id_foreign")
   customers  Customer? @relation(fields: [user_id], references: [id], onUpdate: NoAction, map: "order_status_histories_user_id_foreign")
 }
@@ -555,8 +549,8 @@ model order_statuses {
   is_default Boolean   @default(false)
   is_active  Boolean   @default(true)
   position   Int       @default(0)
-  created_at DateTime? @db.Timestamptz(0)
-  updated_at DateTime? @db.Timestamptz(0)
+  created_at DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at DateTime? @updatedAt @db.Timestamptz(0)
 }
 
 model orders {
@@ -572,8 +566,8 @@ model orders {
   price_breakdown        Json?
   locked_rates           Json?
   status_meta            Json?
-  created_at             DateTime?                @db.Timestamptz(0)
-  updated_at             DateTime?                @db.Timestamptz(0)
+  created_at             DateTime?                @default(now()) @db.Timestamptz(0)
+  updated_at             DateTime?                @updatedAt @db.Timestamptz(0)
   order_items            order_items[]
   order_status_histories order_status_histories[]
   customers              Customer                 @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "orders_user_id_foreign")
@@ -584,7 +578,7 @@ model orders {
 model password_reset_tokens {
   email      String    @id @db.VarChar(191)
   token      String    @db.VarChar(191)
-  created_at DateTime? @db.Timestamptz(0)
+  created_at DateTime? @default(now()) @db.Timestamptz(0)
 }
 
 model payment_gateways {
@@ -595,8 +589,8 @@ model payment_gateways {
   is_active  Boolean    @default(false)
   is_default Boolean    @default(false)
   config     Json?
-  created_at DateTime?  @db.Timestamptz(0)
-  updated_at DateTime?  @db.Timestamptz(0)
+  created_at DateTime?  @default(now()) @db.Timestamptz(0)
+  updated_at DateTime?  @updatedAt @db.Timestamptz(0)
   payments   payments[]
 }
 
@@ -609,8 +603,8 @@ model payments {
   amount             Decimal          @db.Decimal(12, 2)
   currency           String           @default("INR") @db.VarChar(3)
   meta               Json?
-  created_at         DateTime?        @db.Timestamptz(0)
-  updated_at         DateTime?        @db.Timestamptz(0)
+  created_at         DateTime?        @default(now()) @db.Timestamptz(0)
+  updated_at         DateTime?        @updatedAt @db.Timestamptz(0)
   orders             orders           @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payments_order_id_foreign")
   payment_gateways   payment_gateways @relation(fields: [payment_gateway_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payments_payment_gateway_id_foreign")
 }
@@ -624,8 +618,8 @@ model price_rates {
   source         String    @default("manual") @db.VarChar(191)
   effective_at   DateTime? @db.Timestamptz(0)
   metadata       Json?
-  created_at     DateTime? @db.Timestamptz(0)
-  updated_at     DateTime? @db.Timestamptz(0)
+  created_at     DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at     DateTime? @updatedAt @db.Timestamptz(0)
 }
 
 model product_medias {
@@ -635,8 +629,8 @@ model product_medias {
   url           String    @db.VarChar(191)
   display_order Int       @default(0)
   metadata      Json?
-  created_at    DateTime? @db.Timestamptz(0)
-  updated_at    DateTime? @db.Timestamptz(0)
+  created_at    DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at    DateTime? @updatedAt @db.Timestamptz(0)
   products      products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "product_medias_product_id_foreign")
 }
 
@@ -647,8 +641,8 @@ model product_variant_diamonds {
   diamonds_count     Int?
   metadata           Json?
   display_order      Int              @default(0)
-  created_at         DateTime?        @db.Timestamptz(0)
-  updated_at         DateTime?        @db.Timestamptz(0)
+  created_at         DateTime?        @default(now()) @db.Timestamptz(0)
+  updated_at         DateTime?        @updatedAt @db.Timestamptz(0)
   diamonds           diamonds?        @relation(fields: [diamond_id], references: [id], onUpdate: NoAction, map: "product_variant_diamonds_diamond_id_foreign")
   product_variants   product_variants @relation(fields: [product_variant_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "product_variant_diamonds_product_variant_id_foreign")
 
@@ -664,8 +658,8 @@ model product_variant_metals {
   metal_weight       Decimal?         @db.Decimal(10, 3)
   metadata           Json?
   display_order      Int              @default(0)
-  created_at         DateTime?        @db.Timestamptz(0)
-  updated_at         DateTime?        @db.Timestamptz(0)
+  created_at         DateTime?        @default(now()) @db.Timestamptz(0)
+  updated_at         DateTime?        @updatedAt @db.Timestamptz(0)
   metals             metals           @relation(fields: [metal_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "product_variant_metals_metal_id_foreign")
   metal_purities     metal_purities?  @relation(fields: [metal_purity_id], references: [id], onUpdate: NoAction, map: "product_variant_metals_metal_purity_id_foreign")
   metal_tones        metal_tones?     @relation(fields: [metal_tone_id], references: [id], onUpdate: NoAction, map: "product_variant_metals_metal_tone_id_foreign")
@@ -683,8 +677,8 @@ model product_variants {
   inventory_quantity       Int                        @default(0)
   is_default               Boolean                    @default(false)
   metadata                 Json?
-  created_at               DateTime?                  @db.Timestamptz(0)
-  updated_at               DateTime?                  @db.Timestamptz(0)
+  created_at               DateTime?                  @default(now()) @db.Timestamptz(0)
+  updated_at               DateTime?                  @updatedAt @db.Timestamptz(0)
   cart_items               cart_items[]
   product_variant_diamonds product_variant_diamonds[]
   product_variant_metals   product_variant_metals[]
@@ -711,8 +705,8 @@ model products {
   making_charge_percentage Decimal?           @db.Decimal(10, 2)
   is_active                Boolean            @default(true)
   metadata                 Json?
-  created_at               DateTime?          @db.Timestamptz(0)
-  updated_at               DateTime?          @db.Timestamptz(0)
+  created_at               DateTime?          @default(now()) @db.Timestamptz(0)
+  updated_at               DateTime?          @updatedAt @db.Timestamptz(0)
   cart_items               cart_items[]
   catalog_products         catalog_products[]
   order_items              order_items[]
@@ -731,8 +725,8 @@ model quotation_messages {
   user_id      BigInt?
   sender       String     @db.VarChar(255)
   message      String
-  created_at   DateTime?  @db.Timestamptz(0)
-  updated_at   DateTime?  @db.Timestamptz(0)
+  created_at   DateTime?  @default(now()) @db.Timestamptz(0)
+  updated_at   DateTime?  @updatedAt @db.Timestamptz(0)
   quotations   quotations @relation(fields: [quotation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "quotation_messages_quotation_id_foreign")
   customers    Customer?  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "quotation_messages_user_id_foreign")
 }
@@ -750,8 +744,8 @@ model quotations {
   order_id           BigInt?
   approved_at        DateTime?            @db.Timestamptz(0)
   admin_notes        String?
-  created_at         DateTime?            @db.Timestamptz(0)
-  updated_at         DateTime?            @db.Timestamptz(0)
+  created_at         DateTime?            @default(now()) @db.Timestamptz(0)
+  updated_at         DateTime?            @updatedAt @db.Timestamptz(0)
   quotation_messages quotation_messages[]
   orders             orders?              @relation(fields: [order_id], references: [id], onUpdate: NoAction, map: "quotations_order_id_foreign")
   products           products             @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "quotations_product_id_foreign")
@@ -779,8 +773,8 @@ model settings {
   value      String?
   type       String    @default("string") @db.VarChar(191)
   group      String    @default("general") @db.VarChar(191)
-  created_at DateTime? @db.Timestamptz(0)
-  updated_at DateTime? @db.Timestamptz(0)
+  created_at DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at DateTime? @updatedAt @db.Timestamptz(0)
 }
 
 model sizes {
@@ -790,8 +784,8 @@ model sizes {
   description      String?
   display_order    Int                @default(0)
   is_active        Boolean            @default(true)
-  created_at       DateTime?          @db.Timestamptz(0)
-  updated_at       DateTime?          @db.Timestamptz(0)
+  created_at       DateTime?          @default(now()) @db.Timestamptz(0)
+  updated_at       DateTime?          @updatedAt @db.Timestamptz(0)
   category_sizes   category_sizes[]
   product_variants product_variants[]
 
@@ -806,8 +800,8 @@ model styles {
   description     String?
   display_order   Int               @default(0)
   is_active       Boolean           @default(true)
-  created_at      DateTime?         @db.Timestamptz(0)
-  updated_at      DateTime?         @db.Timestamptz(0)
+  created_at      DateTime?         @default(now()) @db.Timestamptz(0)
+  updated_at      DateTime?         @updatedAt @db.Timestamptz(0)
   category_styles category_styles[]
 
   @@index([code], map: "styles_code_index")
@@ -819,8 +813,8 @@ model tax_groups {
   name        String    @db.VarChar(191)
   description String?
   is_active   Boolean   @default(true)
-  created_at  DateTime? @db.Timestamptz(0)
-  updated_at  DateTime? @db.Timestamptz(0)
+  created_at  DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at  DateTime? @updatedAt @db.Timestamptz(0)
   taxes       taxes[]
 }
 
@@ -832,8 +826,8 @@ model taxes {
   rate         Decimal    @db.Decimal(5, 2)
   description  String?
   is_active    Boolean    @default(true)
-  created_at   DateTime?  @db.Timestamptz(0)
-  updated_at   DateTime?  @db.Timestamptz(0)
+  created_at   DateTime?  @default(now()) @db.Timestamptz(0)
+  updated_at   DateTime?  @updatedAt @db.Timestamptz(0)
   tax_groups   tax_groups @relation(fields: [tax_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "taxes_tax_group_id_foreign")
 }
 
@@ -845,8 +839,8 @@ model user_groups {
   features    Json?
   is_active   Boolean   @default(true)
   position    Int       @default(0)
-  created_at  DateTime? @db.Timestamptz(0)
-  updated_at  DateTime? @db.Timestamptz(0)
+  created_at  DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at  DateTime? @updatedAt @db.Timestamptz(0)
   users       User[]
 
   @@index([is_active, position], map: "user_groups_is_active_position_index")
@@ -860,8 +854,8 @@ model user_kyc_documents {
   status     String    @default("pending") @db.VarChar(191)
   remarks    String?   @db.VarChar(191)
   metadata   Json?
-  created_at DateTime? @db.Timestamptz(0)
-  updated_at DateTime? @db.Timestamptz(0)
+  created_at DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at DateTime? @updatedAt @db.Timestamptz(0)
   customers  Customer  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "user_kyc_documents_user_id_foreign")
 }
 
@@ -872,8 +866,8 @@ model user_kyc_messages {
   admin_id    BigInt?
   sender_type String    @db.VarChar(255)
   message     String
-  created_at  DateTime? @db.Timestamptz(0)
-  updated_at  DateTime? @db.Timestamptz(0)
+  created_at  DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at  DateTime? @updatedAt @db.Timestamptz(0)
   users       User?     @relation(fields: [admin_id], references: [id], onUpdate: NoAction, map: "user_kyc_messages_admin_id_foreign")
   customers   Customer  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "user_kyc_messages_user_id_foreign")
 }
@@ -884,8 +878,8 @@ model wishlist_items {
   product_id         BigInt
   product_variant_id BigInt?
   configuration      Json?
-  created_at         DateTime?         @db.Timestamptz(0)
-  updated_at         DateTime?         @db.Timestamptz(0)
+  created_at         DateTime?         @default(now()) @db.Timestamptz(0)
+  updated_at         DateTime?         @updatedAt @db.Timestamptz(0)
   products           products          @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "wishlist_items_product_id_foreign")
   product_variants   product_variants? @relation(fields: [product_variant_id], references: [id], onUpdate: NoAction, map: "wishlist_items_product_variant_id_foreign")
   wishlists          wishlists         @relation(fields: [wishlist_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "wishlist_items_wishlist_id_foreign")
@@ -898,8 +892,8 @@ model wishlists {
   customer_id    BigInt           @unique(map: "wishlists_customer_id_unique")
   name           String           @default("Primary") @db.VarChar(191)
   metadata       Json?
-  created_at     DateTime?        @db.Timestamptz(0)
-  updated_at     DateTime?        @db.Timestamptz(0)
+  created_at     DateTime?        @default(now()) @db.Timestamptz(0)
+  updated_at     DateTime?        @updatedAt @db.Timestamptz(0)
   wishlist_items wishlist_items[]
   customers      Customer         @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "wishlists_customer_id_foreign")
 }

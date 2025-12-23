@@ -11,7 +11,6 @@ type CustomerGroupRow = {
     id: number;
     name: string;
     code: string;
-    slug: string;
     description?: string | null;
     is_active: boolean;
     display_order: number;
@@ -57,7 +56,6 @@ export default function AdminCustomerGroupsPage() {
                     id: Number(item.id),
                     name: item.name,
                     code: item.code || '',
-                    slug: item.slug,
                     description: item.description,
                     is_active: item.is_active,
                     display_order: item.display_order || 0,
@@ -256,7 +254,6 @@ export default function AdminCustomerGroupsPage() {
                             </th>
                             <th className="px-5 py-3 text-left">Name</th>
                             <th className="px-5 py-3 text-left">Code</th>
-                            <th className="px-5 py-3 text-left">Slug</th>
                             <th className="px-5 py-3 text-left">Order</th>
                             <th className="px-5 py-3 text-left">Status</th>
                             <th className="px-5 py-3 text-right">Actions</th>
@@ -280,7 +277,6 @@ export default function AdminCustomerGroupsPage() {
                                     </div>
                                 </td>
                                 <td className="px-5 py-3 text-slate-500 font-mono text-sm">{group.code}</td>
-                                <td className="px-5 py-3 text-slate-500">{group.slug}</td>
                                 <td className="px-5 py-3 text-slate-500">{group.display_order}</td>
                                 <td className="px-5 py-3">
                                     <span

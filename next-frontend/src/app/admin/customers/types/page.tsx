@@ -8,10 +8,10 @@ import { adminService } from '@/services/adminService';
 type CustomerTypeRow = {
     id: number;
     name: string;
-    slug: string;
+    code: string;
     description?: string | null;
     is_active: boolean;
-    position: number;
+    display_order: number;
 };
 
 type PaginationMeta = {
@@ -34,9 +34,10 @@ export default function AdminCustomerTypesIndex() {
 
     const [formData, setFormData] = useState({
         name: '',
+        code: '',
         description: '',
         is_active: true,
-        position: 0,
+        display_order: 0,
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
@@ -56,11 +57,11 @@ export default function AdminCustomerTypesIndex() {
                 data: items.map((item: any) => ({
                     id: Number(item.id),
                     name: item.name,
-                    slug: item.slug || item.name.toLowerCase().replace(/\s+/g, '-'),
+                    code: item.code || '',
                     description: item.description,
                     is_active: item.is_active,
-                    position: Number(item.position || 0),
-                })).sort((a: CustomerTypeRow, b: CustomerTypeRow) => a.position - b.position),
+                    display_order: Number(item.display_order || 0),
+                })).sort((a: CustomerTypeRow, b: CustomerTypeRow) => a.display_order - b.display_order),
                 meta: {
                     current_page: responseMeta.current_page || responseMeta.page || 1,
                     last_page: responseMeta.last_page || responseMeta.lastPage || 1,
@@ -79,9 +80,10 @@ export default function AdminCustomerTypesIndex() {
         setEditingType(null);
         setFormData({
             name: '',
+            code: '',
             description: '',
             is_active: true,
-            position: 0,
+            display_order: 0,
         });
         setErrors({});
     };
@@ -90,9 +92,10 @@ export default function AdminCustomerTypesIndex() {
         setEditingType(type);
         setFormData({
             name: type.name,
+            code: type.code,
             description: type.description ?? '',
             is_active: type.is_active,
-            position: type.position,
+            display_order: type.display_order,
         });
         setErrors({});
     };
@@ -100,7 +103,8 @@ export default function AdminCustomerTypesIndex() {
     const validateForm = () => {
         const newErrors: Record<string, string> = {};
         if (!formData.name) newErrors.name = 'Name is required.';
-        if (formData.position < 0) newErrors.position = 'Position cannot be negative.';
+        if (!formData.code) newErrors.code = 'Code is required.';
+        if (formData.display_order < 0) newErrors.display_order = 'Display order cannot be negative.';
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -113,9 +117,10 @@ export default function AdminCustomerTypesIndex() {
         try {
             const payload: any = {
                 name: formData.name,
+                code: formData.code,
                 description: formData.description || null,
                 is_active: formData.is_active,
-                position: formData.position,
+                display_order: formData.display_order,
             };
 
             if (editingType) {
@@ -250,15 +255,28 @@ export default function AdminCustomerTypesIndex() {
                             {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
                         </label>
                         <label className="flex flex-col gap-2 text-sm text-slate-600">
+                            <span>Code</span>
+                            <input
+                                type="text"
+                                value={formData.code}
+                                onChange={(event) => setFormData({ ...formData, code: event.target.value })}
+                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 font-mono"
+                                required
+                            />
+                            {errors.code && <span className="text-xs text-rose-500">{errors.code}</span>}
+                        </label>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <label className="flex flex-col gap-2 text-sm text-slate-600">
                             <span>Display order</span>
                             <input
                                 type="number"
-                                value={formData.position}
-                                onChange={(event) => setFormData({ ...formData, position: Number(event.target.value) })}
+                                value={formData.display_order}
+                                onChange={(event) => setFormData({ ...formData, display_order: Number(event.target.value) })}
                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 min={0}
                             />
-                            {errors.position && <span className="text-xs text-rose-500">{errors.position}</span>}
+                            {errors.display_order && <span className="text-xs text-rose-500">{errors.display_order}</span>}
                         </label>
                     </div>
 
@@ -331,7 +349,7 @@ export default function AdminCustomerTypesIndex() {
                                     />
                                 </th>
                                 <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Slug</th>
+                                <th className="px-5 py-3 text-left">Code</th>
                                 <th className="px-5 py-3 text-left">Order</th>
                                 <th className="px-5 py-3 text-left">Status</th>
                                 <th className="px-5 py-3 text-right">Actions</th>
@@ -362,8 +380,8 @@ export default function AdminCustomerTypesIndex() {
                                             {type.description && <span className="text-xs text-slate-500">{type.description}</span>}
                                         </div>
                                     </td>
-                                    <td className="px-5 py-3 text-slate-500">{type.slug}</td>
-                                    <td className="px-5 py-3 text-slate-500">{type.position}</td>
+                                    <td className="px-5 py-3 text-slate-500 font-mono text-sm">{type.code}</td>
+                                    <td className="px-5 py-3 text-slate-500">{type.display_order}</td>
                                     <td className="px-5 py-3">
                                         <span
                                             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${

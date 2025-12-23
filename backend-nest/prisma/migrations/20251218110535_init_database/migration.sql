@@ -8,8 +8,8 @@ CREATE TABLE "users" (
     "type" VARCHAR(191) NOT NULL DEFAULT 'admin',
     "user_group_id" BIGINT,
     "remember_token" VARCHAR(100),
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -30,8 +30,8 @@ CREATE TABLE "customers" (
     "credit_limit" DECIMAL(12,2) DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "remember_token" VARCHAR(100),
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
     "kyc_comments_enabled" BOOLEAN NOT NULL DEFAULT true,
 
     CONSTRAINT "customers_pkey" PRIMARY KEY ("id")
@@ -55,8 +55,8 @@ CREATE TABLE "user_kyc_profiles" (
     "contact_name" VARCHAR(191),
     "contact_phone" VARCHAR(191),
     "metadata" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "user_kyc_profiles_pkey" PRIMARY KEY ("id")
 );
@@ -68,8 +68,8 @@ CREATE TABLE "user_login_otps" (
     "code" VARCHAR(191) NOT NULL,
     "expires_at" TIMESTAMPTZ(0) NOT NULL,
     "consumed_at" TIMESTAMPTZ(0),
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "user_login_otps_pkey" PRIMARY KEY ("id")
 );
@@ -83,8 +83,8 @@ CREATE TABLE "brands" (
     "display_order" INTEGER NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "cover_image" VARCHAR(191),
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "brands_pkey" PRIMARY KEY ("id")
 );
@@ -115,8 +115,8 @@ CREATE TABLE "cart_items" (
     "quantity" INTEGER NOT NULL DEFAULT 1,
     "configuration" JSONB,
     "price_breakdown" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
     "product_variant_id" BIGINT,
 
     CONSTRAINT "cart_items_pkey" PRIMARY KEY ("id")
@@ -129,8 +129,8 @@ CREATE TABLE "carts" (
     "status" VARCHAR(191) NOT NULL DEFAULT 'active',
     "currency" VARCHAR(191) NOT NULL DEFAULT 'INR',
     "metadata" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "carts_pkey" PRIMARY KEY ("id")
 );
@@ -140,8 +140,8 @@ CREATE TABLE "catalog_products" (
     "id" BIGSERIAL NOT NULL,
     "catalog_id" BIGINT NOT NULL,
     "product_id" BIGINT NOT NULL,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "catalog_products_pkey" PRIMARY KEY ("id")
 );
@@ -154,8 +154,8 @@ CREATE TABLE "catalogs" (
     "description" TEXT,
     "display_order" INTEGER NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "catalogs_pkey" PRIMARY KEY ("id")
 );
@@ -170,8 +170,8 @@ CREATE TABLE "categories" (
     "display_order" INTEGER NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "cover_image" VARCHAR(191),
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "categories_pkey" PRIMARY KEY ("id")
 );
@@ -181,8 +181,8 @@ CREATE TABLE "category_sizes" (
     "id" BIGSERIAL NOT NULL,
     "category_id" BIGINT NOT NULL,
     "size_id" BIGINT NOT NULL,
-    "created_at" TIMESTAMP(0),
-    "updated_at" TIMESTAMP(0),
+    "created_at" TIMESTAMP(0) DEFAULT now(),
+    "updated_at" TIMESTAMP(0) DEFAULT now(),
 
     CONSTRAINT "category_sizes_pkey" PRIMARY KEY ("id")
 );
@@ -192,8 +192,8 @@ CREATE TABLE "category_styles" (
     "id" BIGSERIAL NOT NULL,
     "category_id" BIGINT NOT NULL,
     "style_id" BIGINT NOT NULL,
-    "created_at" TIMESTAMP(0),
-    "updated_at" TIMESTAMP(0),
+    "created_at" TIMESTAMP(0) DEFAULT now(),
+    "updated_at" TIMESTAMP(0) DEFAULT now(),
 
     CONSTRAINT "category_styles_pkey" PRIMARY KEY ("id")
 );
@@ -206,8 +206,8 @@ CREATE TABLE "customer_groups" (
     "description" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "display_order" INTEGER NOT NULL DEFAULT 0,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "customer_groups_pkey" PRIMARY KEY ("id")
 );
@@ -216,12 +216,12 @@ CREATE TABLE "customer_groups" (
 CREATE TABLE "customer_types" (
     "id" BIGSERIAL NOT NULL,
     "name" VARCHAR(191) NOT NULL,
-    "slug" VARCHAR(191) NOT NULL,
+    "code" VARCHAR(191) NOT NULL,
     "description" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "position" INTEGER NOT NULL DEFAULT 0,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "display_order" INTEGER NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "customer_types_pkey" PRIMARY KEY ("id")
 );
@@ -235,8 +235,8 @@ CREATE TABLE "diamond_clarities" (
     "description" TEXT,
     "display_order" INTEGER NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "diamond_clarities_pkey" PRIMARY KEY ("id")
 );
@@ -250,8 +250,8 @@ CREATE TABLE "diamond_colors" (
     "description" TEXT,
     "display_order" INTEGER NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "diamond_colors_pkey" PRIMARY KEY ("id")
 );
@@ -266,8 +266,8 @@ CREATE TABLE "diamond_shape_sizes" (
     "description" TEXT,
     "display_order" INTEGER NOT NULL DEFAULT 0,
     "ctw" DECIMAL(10,3) NOT NULL DEFAULT 0,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "diamond_shape_sizes_pkey" PRIMARY KEY ("id")
 );
@@ -281,8 +281,8 @@ CREATE TABLE "diamond_shapes" (
     "description" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "display_order" INTEGER NOT NULL DEFAULT 0,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "diamond_shapes_pkey" PRIMARY KEY ("id")
 );
@@ -295,8 +295,8 @@ CREATE TABLE "diamond_types" (
     "description" TEXT,
     "display_order" INTEGER NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMP(0),
-    "updated_at" TIMESTAMP(0),
+    "created_at" TIMESTAMP(0) DEFAULT now(),
+    "updated_at" TIMESTAMP(0) DEFAULT now(),
 
     CONSTRAINT "diamond_types_pkey" PRIMARY KEY ("id")
 );
@@ -314,8 +314,8 @@ CREATE TABLE "diamonds" (
     "price" DECIMAL(12,2) NOT NULL DEFAULT 0,
     "description" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "diamonds_pkey" PRIMARY KEY ("id")
 );
@@ -378,8 +378,8 @@ CREATE TABLE "making_charge_discounts" (
     "starts_at" TIMESTAMPTZ(0),
     "ends_at" TIMESTAMPTZ(0),
     "customer_types" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "making_charge_discounts_pkey" PRIMARY KEY ("id")
 );
@@ -393,8 +393,8 @@ CREATE TABLE "metal_purities" (
     "description" TEXT,
     "display_order" INTEGER NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "metal_purities_pkey" PRIMARY KEY ("id")
 );
@@ -408,8 +408,8 @@ CREATE TABLE "metal_tones" (
     "description" TEXT,
     "display_order" INTEGER NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "metal_tones_pkey" PRIMARY KEY ("id")
 );
@@ -422,21 +422,13 @@ CREATE TABLE "metals" (
     "description" TEXT,
     "display_order" INTEGER NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "metals_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "migrations" (
-    "id" SERIAL NOT NULL,
-    "migration" VARCHAR(191) NOT NULL,
-    "batch" INTEGER NOT NULL,
-
-    CONSTRAINT "migrations_pkey" PRIMARY KEY ("id")
-);
-
 -- CreateTable
 CREATE TABLE "notification_logs" (
     "id" BIGSERIAL NOT NULL,
@@ -447,8 +439,8 @@ CREATE TABLE "notification_logs" (
     "sent_at" TIMESTAMPTZ(0),
     "status" VARCHAR(191) NOT NULL DEFAULT 'queued',
     "response" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "notification_logs_pkey" PRIMARY KEY ("id")
 );
@@ -465,8 +457,8 @@ CREATE TABLE "offers" (
     "starts_at" TIMESTAMPTZ(0),
     "ends_at" TIMESTAMPTZ(0),
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "offers_pkey" PRIMARY KEY ("id")
 );
@@ -483,8 +475,8 @@ CREATE TABLE "order_items" (
     "total_price" DECIMAL(12,2) NOT NULL DEFAULT 0,
     "configuration" JSONB,
     "metadata" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "order_items_pkey" PRIMARY KEY ("id")
 );
@@ -496,8 +488,8 @@ CREATE TABLE "order_status_histories" (
     "user_id" BIGINT,
     "status" VARCHAR(191) NOT NULL,
     "meta" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "order_status_histories_pkey" PRIMARY KEY ("id")
 );
@@ -511,8 +503,8 @@ CREATE TABLE "order_statuses" (
     "is_default" BOOLEAN NOT NULL DEFAULT false,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "position" INTEGER NOT NULL DEFAULT 0,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "order_statuses_pkey" PRIMARY KEY ("id")
 );
@@ -531,8 +523,8 @@ CREATE TABLE "orders" (
     "price_breakdown" JSONB,
     "locked_rates" JSONB,
     "status_meta" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "orders_pkey" PRIMARY KEY ("id")
 );
@@ -541,7 +533,7 @@ CREATE TABLE "orders" (
 CREATE TABLE "password_reset_tokens" (
     "email" VARCHAR(191) NOT NULL,
     "token" VARCHAR(191) NOT NULL,
-    "created_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "password_reset_tokens_pkey" PRIMARY KEY ("email")
 );
@@ -555,8 +547,8 @@ CREATE TABLE "payment_gateways" (
     "is_active" BOOLEAN NOT NULL DEFAULT false,
     "is_default" BOOLEAN NOT NULL DEFAULT false,
     "config" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "payment_gateways_pkey" PRIMARY KEY ("id")
 );
@@ -571,8 +563,8 @@ CREATE TABLE "payments" (
     "amount" DECIMAL(12,2) NOT NULL,
     "currency" VARCHAR(3) NOT NULL DEFAULT 'INR',
     "meta" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "payments_pkey" PRIMARY KEY ("id")
 );
@@ -587,8 +579,8 @@ CREATE TABLE "price_rates" (
     "source" VARCHAR(191) NOT NULL DEFAULT 'manual',
     "effective_at" TIMESTAMPTZ(0),
     "metadata" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "price_rates_pkey" PRIMARY KEY ("id")
 );
@@ -601,8 +593,8 @@ CREATE TABLE "product_medias" (
     "url" VARCHAR(191) NOT NULL,
     "display_order" INTEGER NOT NULL DEFAULT 0,
     "metadata" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "product_medias_pkey" PRIMARY KEY ("id")
 );
@@ -615,8 +607,8 @@ CREATE TABLE "product_variant_diamonds" (
     "diamonds_count" INTEGER,
     "metadata" JSONB,
     "display_order" INTEGER NOT NULL DEFAULT 0,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "product_variant_diamonds_pkey" PRIMARY KEY ("id")
 );
@@ -631,8 +623,8 @@ CREATE TABLE "product_variant_metals" (
     "metal_weight" DECIMAL(10,3),
     "metadata" JSONB,
     "display_order" INTEGER NOT NULL DEFAULT 0,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "product_variant_metals_pkey" PRIMARY KEY ("id")
 );
@@ -647,8 +639,8 @@ CREATE TABLE "product_variants" (
     "inventory_quantity" INTEGER NOT NULL DEFAULT 0,
     "is_default" BOOLEAN NOT NULL DEFAULT false,
     "metadata" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "product_variants_pkey" PRIMARY KEY ("id")
 );
@@ -671,8 +663,8 @@ CREATE TABLE "products" (
     "making_charge_percentage" DECIMAL(10,2),
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "metadata" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "products_pkey" PRIMARY KEY ("id")
 );
@@ -684,8 +676,8 @@ CREATE TABLE "quotation_messages" (
     "user_id" BIGINT,
     "sender" VARCHAR(255) NOT NULL,
     "message" TEXT NOT NULL,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "quotation_messages_pkey" PRIMARY KEY ("id")
 );
@@ -704,8 +696,8 @@ CREATE TABLE "quotations" (
     "order_id" BIGINT,
     "approved_at" TIMESTAMPTZ(0),
     "admin_notes" TEXT,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "quotations_pkey" PRIMARY KEY ("id")
 );
@@ -729,8 +721,8 @@ CREATE TABLE "settings" (
     "value" TEXT,
     "type" VARCHAR(191) NOT NULL DEFAULT 'string',
     "group" VARCHAR(191) NOT NULL DEFAULT 'general',
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "settings_pkey" PRIMARY KEY ("id")
 );
@@ -743,8 +735,8 @@ CREATE TABLE "sizes" (
     "description" TEXT,
     "display_order" INTEGER NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "sizes_pkey" PRIMARY KEY ("id")
 );
@@ -757,8 +749,8 @@ CREATE TABLE "styles" (
     "description" TEXT,
     "display_order" INTEGER NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "styles_pkey" PRIMARY KEY ("id")
 );
@@ -769,8 +761,8 @@ CREATE TABLE "tax_groups" (
     "name" VARCHAR(191) NOT NULL,
     "description" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "tax_groups_pkey" PRIMARY KEY ("id")
 );
@@ -784,8 +776,8 @@ CREATE TABLE "taxes" (
     "rate" DECIMAL(5,2) NOT NULL,
     "description" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "taxes_pkey" PRIMARY KEY ("id")
 );
@@ -799,8 +791,8 @@ CREATE TABLE "user_groups" (
     "features" JSONB,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "position" INTEGER NOT NULL DEFAULT 0,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "user_groups_pkey" PRIMARY KEY ("id")
 );
@@ -814,8 +806,8 @@ CREATE TABLE "user_kyc_documents" (
     "status" VARCHAR(191) NOT NULL DEFAULT 'pending',
     "remarks" VARCHAR(191),
     "metadata" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "user_kyc_documents_pkey" PRIMARY KEY ("id")
 );
@@ -827,8 +819,8 @@ CREATE TABLE "user_kyc_messages" (
     "admin_id" BIGINT,
     "sender_type" VARCHAR(255) NOT NULL,
     "message" TEXT NOT NULL,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "user_kyc_messages_pkey" PRIMARY KEY ("id")
 );
@@ -840,8 +832,8 @@ CREATE TABLE "wishlist_items" (
     "product_id" BIGINT NOT NULL,
     "product_variant_id" BIGINT,
     "configuration" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "wishlist_items_pkey" PRIMARY KEY ("id")
 );
@@ -852,8 +844,8 @@ CREATE TABLE "wishlists" (
     "customer_id" BIGINT NOT NULL,
     "name" VARCHAR(191) NOT NULL DEFAULT 'Primary',
     "metadata" JSONB,
-    "created_at" TIMESTAMPTZ(0),
-    "updated_at" TIMESTAMPTZ(0),
+    "created_at" TIMESTAMPTZ(0) DEFAULT now(),
+    "updated_at" TIMESTAMPTZ(0) DEFAULT now(),
 
     CONSTRAINT "wishlists_pkey" PRIMARY KEY ("id")
 );
@@ -917,7 +909,7 @@ CREATE UNIQUE INDEX "customer_groups_code_unique" ON "customer_groups"("code");
 CREATE UNIQUE INDEX "customer_types_name_unique" ON "customer_types"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "customer_types_slug_unique" ON "customer_types"("slug");
+CREATE UNIQUE INDEX "customer_types_code_unique" ON "customer_types"("code");
 
 -- CreateIndex
 CREATE INDEX "diamond_clarities_code_index" ON "diamond_clarities"("code");
