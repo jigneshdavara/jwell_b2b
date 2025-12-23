@@ -5,23 +5,23 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
-    CreateCustomerGroupDto,
-    UpdateCustomerGroupDto,
-} from './dto/customer-group.dto';
+    CreateCustomerTypeDto,
+    UpdateCustomerTypeDto,
+} from './dto/customer-type.dto';
 
 @Injectable()
-export class CustomerGroupsService {
+export class CustomerTypesService {
     constructor(private prisma: PrismaService) {}
 
     async findAll(page: number = 1, perPage: number = 20) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
-            this.prisma.customer_groups.findMany({
+            this.prisma.customer_types.findMany({
                 skip,
                 take: perPage,
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
-            this.prisma.customer_groups.count(),
+            this.prisma.customer_types.count(),
         ]);
 
         return {
@@ -36,38 +36,38 @@ export class CustomerGroupsService {
     }
 
     async findOne(id: number) {
-        const group = await this.prisma.customer_groups.findUnique({
+        const type = await this.prisma.customer_types.findUnique({
             where: { id: BigInt(id) },
         });
-        if (!group) {
-            throw new NotFoundException('Customer group not found');
+        if (!type) {
+            throw new NotFoundException('Customer type not found');
         }
-        return group;
+        return type;
     }
 
-    async create(dto: CreateCustomerGroupDto) {
+    async create(dto: CreateCustomerTypeDto) {
         const [existingByName, existingByCode] = await Promise.all([
-            this.prisma.customer_groups.findUnique({
+            this.prisma.customer_types.findUnique({
                 where: { name: dto.name },
             }),
-            this.prisma.customer_groups.findUnique({
+            this.prisma.customer_types.findUnique({
                 where: { code: dto.code },
             }),
         ]);
 
         if (existingByName) {
             throw new ConflictException(
-                'Customer group with this name already exists',
+                'Customer type with this name already exists',
             );
         }
 
         if (existingByCode) {
             throw new ConflictException(
-                'Customer group with this code already exists',
+                'Customer type with this code already exists',
             );
         }
 
-        return await this.prisma.customer_groups.create({
+        return await this.prisma.customer_types.create({
             data: {
                 name: dto.name,
                 code: dto.code,
@@ -78,32 +78,32 @@ export class CustomerGroupsService {
         });
     }
 
-    async update(id: number, dto: UpdateCustomerGroupDto) {
-        const group = await this.findOne(id);
+    async update(id: number, dto: UpdateCustomerTypeDto) {
+        const type = await this.findOne(id);
 
-        if (dto.name && dto.name !== group.name) {
-            const existing = await this.prisma.customer_groups.findUnique({
+        if (dto.name && dto.name !== type.name) {
+            const existing = await this.prisma.customer_types.findUnique({
                 where: { name: dto.name },
             });
             if (existing) {
                 throw new ConflictException(
-                    'Customer group with this name already exists',
+                    'Customer type with this name already exists',
                 );
             }
         }
 
-        if (dto.code && dto.code !== group.code) {
-            const existing = await this.prisma.customer_groups.findUnique({
+        if (dto.code && dto.code !== type.code) {
+            const existing = await this.prisma.customer_types.findUnique({
                 where: { code: dto.code },
             });
             if (existing) {
                 throw new ConflictException(
-                    'Customer group with this code already exists',
+                    'Customer type with this code already exists',
                 );
             }
         }
 
-        return await this.prisma.customer_groups.update({
+        return await this.prisma.customer_types.update({
             where: { id: BigInt(id) },
             data: {
                 name: dto.name,
@@ -117,15 +117,16 @@ export class CustomerGroupsService {
 
     async remove(id: number) {
         await this.findOne(id);
-        return await this.prisma.customer_groups.delete({
+        return await this.prisma.customer_types.delete({
             where: { id: BigInt(id) },
         });
     }
 
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.customer_groups.deleteMany({
+        return await this.prisma.customer_types.deleteMany({
             where: { id: { in: bigIntIds } },
         });
     }
 }
+

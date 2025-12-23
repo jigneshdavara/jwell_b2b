@@ -10,10 +10,10 @@ import { PaginationMeta, generatePaginationLinks } from "@/utils/pagination";
 type CustomerGroupRow = {
     id: number;
     name: string;
-    slug: string;
+    code: string;
     description?: string | null;
     is_active: boolean;
-    position: number;
+    display_order: number;
 };
 
 
@@ -34,9 +34,10 @@ export default function AdminCustomerGroupsPage() {
 
     const [formState, setFormState] = useState({
         name: '',
+        code: '',
         description: '',
         is_active: true,
-        position: 0,
+        display_order: 0,
     });
 
     useEffect(() => {
@@ -54,10 +55,10 @@ export default function AdminCustomerGroupsPage() {
                 data: items.map((item: any) => ({
                     id: Number(item.id),
                     name: item.name,
-                    slug: item.slug,
+                    code: item.code || '',
                     description: item.description,
                     is_active: item.is_active,
-                    position: item.position || 0,
+                    display_order: item.display_order || 0,
                 })),
                 meta: {
                     current_page: responseMeta.current_page || responseMeta.page || currentPage,
@@ -94,9 +95,10 @@ export default function AdminCustomerGroupsPage() {
         setModalOpen(false);
         setFormState({
             name: '',
+            code: '',
             description: '',
             is_active: true,
-            position: 0,
+            display_order: 0,
         });
     };
 
@@ -109,9 +111,10 @@ export default function AdminCustomerGroupsPage() {
         setEditingGroup(group);
         setFormState({
             name: group.name,
+            code: group.code,
             description: group.description ?? '',
             is_active: group.is_active,
-            position: group.position,
+            display_order: group.display_order,
         });
         setModalOpen(true);
     };
@@ -123,9 +126,10 @@ export default function AdminCustomerGroupsPage() {
         try {
             const payload = {
                 name: formState.name,
+                code: formState.code,
                 description: formState.description || null,
                 is_active: formState.is_active,
-                position: formState.position,
+                display_order: formState.display_order,
             };
 
             if (editingGroup) {
@@ -147,9 +151,10 @@ export default function AdminCustomerGroupsPage() {
         try {
             await adminService.updateCustomerGroup(group.id, {
                 name: group.name,
+                code: group.code,
                 description: group.description,
                 is_active: !group.is_active,
-                position: group.position,
+                display_order: group.display_order,
             });
             await loadGroups();
         } catch (error: any) {
@@ -248,7 +253,7 @@ export default function AdminCustomerGroupsPage() {
                                 />
                             </th>
                             <th className="px-5 py-3 text-left">Name</th>
-                            <th className="px-5 py-3 text-left">Slug</th>
+                            <th className="px-5 py-3 text-left">Code</th>
                             <th className="px-5 py-3 text-left">Order</th>
                             <th className="px-5 py-3 text-left">Status</th>
                             <th className="px-5 py-3 text-right">Actions</th>
@@ -271,8 +276,8 @@ export default function AdminCustomerGroupsPage() {
                                         {group.description && <span className="text-xs font-normal text-slate-500">{group.description}</span>}
                                     </div>
                                 </td>
-                                <td className="px-5 py-3 text-slate-500">{group.slug}</td>
-                                <td className="px-5 py-3 text-slate-500">{group.position}</td>
+                                <td className="px-5 py-3 text-slate-500 font-mono text-sm">{group.code}</td>
+                                <td className="px-5 py-3 text-slate-500">{group.display_order}</td>
                                 <td className="px-5 py-3">
                                     <span
                                         className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -368,11 +373,23 @@ export default function AdminCustomerGroupsPage() {
                                             />
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Code <span className="text-rose-500">*</span></span>
+                                            <input
+                                                type="text"
+                                                value={formState.code}
+                                                onChange={(e) => setFormState(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 font-mono focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                placeholder="e.g., RETAIL, WHOLESALE"
+                                                required
+                                                maxLength={50}
+                                            />
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
                                             <span>Display order <span className="text-rose-500">*</span></span>
                                             <input
                                                 type="number"
-                                                value={formState.position}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, position: Number(e.target.value) }))}
+                                                value={formState.display_order}
+                                                onChange={(e) => setFormState(prev => ({ ...prev, display_order: Number(e.target.value) }))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 required
                                             />
