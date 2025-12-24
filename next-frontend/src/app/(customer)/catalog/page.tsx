@@ -876,6 +876,263 @@ export default function CatalogPage() {
                             )}
                         </div>
 
+                        {/* Brands Filter */}
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, brands: !prev.brands }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Brands</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.brands ? '' : 'rotate-180'}`}
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.brands && (
+                                <div className="mt-3 space-y-1.5 text-sm">
+                                    {facets.brands.map((brand) => {
+                                        const selected = filters.brand.includes(brand);
+                                        return (
+                                            <label
+                                                key={brand}
+                                                className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                    selected ? 'text-slate-900' : 'text-slate-600'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                                    checked={selected}
+                                                    onChange={(event) => {
+                                                        const list = [...filters.brand];
+                                                        if (event.target.checked) {
+                                                            if (!list.includes(brand)) list.push(brand);
+                                                        } else {
+                                                            const index = list.indexOf(brand);
+                                                            if (index >= 0) list.splice(index, 1);
+                                                        }
+                                                        applyFilter('brand', list.length ? list : undefined);
+                                                    }}
+                                                />
+                                                <span>{brand}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Metals Filter */}
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, metals: !prev.metals }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Metals</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.metals ? '' : 'rotate-180'}`}
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.metals && (
+                                <div className="mt-3 space-y-1.5 text-sm">
+                                    {facets.metals.map((metal) => {
+                                        const selected = filters.metal.includes(String(metal.id));
+                                        return (
+                                            <label
+                                                key={metal.id}
+                                                className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                    selected ? 'text-slate-900' : 'text-slate-600'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                                    checked={selected}
+                                                    onChange={(event) => {
+                                                        const list = [...filters.metal];
+                                                        if (event.target.checked) {
+                                                            list.push(String(metal.id));
+                                                        } else {
+                                                            const index = list.indexOf(String(metal.id));
+                                                            if (index >= 0) list.splice(index, 1);
+                                                        }
+                                                        applyFilter('metal', list.length ? list : undefined);
+                                                    }}
+                                                />
+                                                <span>{metal.name}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Metal Purities Filter */}
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, metalPurities: !prev.metalPurities }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Metal purities</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.metalPurities ? '' : 'rotate-180'}`}
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.metalPurities && (
+                                <div className="mt-3 space-y-1.5 text-sm">
+                                    {facets.metalPurities.map((purity) => {
+                                        const selected = filters.metal_purity.includes(String(purity.id));
+                                        return (
+                                            <label
+                                                key={purity.id}
+                                                className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                    selected ? 'text-slate-900' : 'text-slate-600'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                                    checked={selected}
+                                                    onChange={(event) => {
+                                                        const list = [...filters.metal_purity];
+                                                        if (event.target.checked) {
+                                                            list.push(String(purity.id));
+                                                        } else {
+                                                            const index = list.indexOf(String(purity.id));
+                                                            if (index >= 0) list.splice(index, 1);
+                                                        }
+                                                        applyFilter('metal_purity', list.length ? list : undefined);
+                                                    }}
+                                                />
+                                                <span>{purity.name} {purity.metal ? `(${purity.metal.name})` : ''}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Metal Tones Filter */}
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, metalTones: !prev.metalTones }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Metal tones</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.metalTones ? '' : 'rotate-180'}`}
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.metalTones && (
+                                <div className="mt-3 space-y-1.5 text-sm">
+                                    {facets.metalTones.map((tone) => {
+                                        const selected = filters.metal_tone.includes(String(tone.id));
+                                        return (
+                                            <label
+                                                key={tone.id}
+                                                className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                    selected ? 'text-slate-900' : 'text-slate-600'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                                    checked={selected}
+                                                    onChange={(event) => {
+                                                        const list = [...filters.metal_tone];
+                                                        if (event.target.checked) {
+                                                            list.push(String(tone.id));
+                                                        } else {
+                                                            const index = list.indexOf(String(tone.id));
+                                                            if (index >= 0) list.splice(index, 1);
+                                                        }
+                                                        applyFilter('metal_tone', list.length ? list : undefined);
+                                                    }}
+                                                />
+                                                <span>{tone.name} {tone.metal ? `(${tone.metal.name})` : ''}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Diamond Filter */}
+                        <div>
+                            <button
+                                type="button"
+                                onClick={() => setCollapsedFilters((prev) => ({ ...prev, diamond: !prev.diamond }))}
+                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                            >
+                                <span>Diamond</span>
+                                <svg
+                                    className={`h-4 w-4 transition-transform ${collapsedFilters.diamond ? '' : 'rotate-180'}`}
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                            </button>
+                            {!collapsedFilters.diamond && (
+                                <div className="mt-3 space-y-4 text-sm">
+                                    {[
+                                        { title: 'Shapes', kind: 'shape', options: facets.diamondOptions.shapes },
+                                        { title: 'Colors', kind: 'color', options: facets.diamondOptions.colors },
+                                        { title: 'Clarities', kind: 'clarity', options: facets.diamondOptions.clarities },
+                                    ].map(({ title, kind, options }) => (
+                                        <div key={kind}>
+                                            <p className="text-xs font-semibold text-slate-500">{title}</p>
+                                            <div className="mt-2 space-y-1.5">
+                                                {options.map((option) => {
+                                                    const value = `${kind}:${option.id}`;
+                                                    const selected = filters.diamond.includes(value);
+                                                    return (
+                                                        <label
+                                                            key={value}
+                                                            className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                                selected ? 'text-slate-900' : 'text-slate-600'
+                                                            }`}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                                                checked={selected}
+                                                                onChange={(event) => {
+                                                                    const list = [...filters.diamond];
+                                                                    if (event.target.checked) {
+                                                                        if (!list.includes(value)) list.push(value);
+                                                                    } else {
+                                                                        const index = list.indexOf(value);
+                                                                        if (index >= 0) list.splice(index, 1);
+                                                                    }
+                                                                    applyFilter('diamond', list.length ? list : undefined);
+                                                                }}
+                                                            />
+                                                            <span>{option.name}</span>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
                         {/* Price Range Filter */}
                         <div>
                             <button
@@ -960,6 +1217,7 @@ function PriceRangeFilter({
 }) {
     const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
     const [activeThumb, setActiveThumb] = useState<'min' | 'max' | null>(null);
+    const sliderRef = useRef<HTMLDivElement>(null);
 
     const getPercentage = (value: number) => {
         return ((value - DEFAULT_PRICE_MIN) / (DEFAULT_PRICE_MAX - DEFAULT_PRICE_MIN)) * 100;
@@ -967,13 +1225,42 @@ function PriceRangeFilter({
 
     const handleMinChange = (event: ChangeEvent<HTMLInputElement>) => {
         const value = Number(event.target.value);
-        setPriceRange((prev) => ({ ...prev, min: clamp(value, DEFAULT_PRICE_MIN, prev.max - PRICE_STEP) }));
+        if (Number.isNaN(value)) return;
+        setPriceRange((prev) => {
+            const nextMin = clamp(value, DEFAULT_PRICE_MIN, prev.max - PRICE_STEP);
+            return { ...prev, min: nextMin };
+        });
     };
 
     const handleMaxChange = (event: ChangeEvent<HTMLInputElement>) => {
         const value = Number(event.target.value);
-        setPriceRange((prev) => ({ ...prev, max: clamp(value, prev.min + PRICE_STEP, DEFAULT_PRICE_MAX) }));
+        if (Number.isNaN(value)) return;
+        setPriceRange((prev) => {
+            const nextMax = clamp(value, prev.min + PRICE_STEP, DEFAULT_PRICE_MAX);
+            return { ...prev, max: nextMax };
+        });
     };
+
+    const handleMinInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const value = event.target.value === '' ? DEFAULT_PRICE_MIN : Number(event.target.value);
+        if (Number.isNaN(value)) return;
+        setPriceRange((prev) => {
+            const nextMin = clamp(value, DEFAULT_PRICE_MIN, prev.max - PRICE_STEP);
+            return { ...prev, min: nextMin };
+        });
+    };
+
+    const handleMaxInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const value = event.target.value === '' ? DEFAULT_PRICE_MAX : Number(event.target.value);
+        if (Number.isNaN(value)) return;
+        setPriceRange((prev) => {
+            const nextMax = clamp(value, prev.min + PRICE_STEP, DEFAULT_PRICE_MAX);
+            return { ...prev, max: nextMax };
+        });
+    };
+
+    const apply = () => applyPriceRange(priceRange.min, priceRange.max);
+    const reset = () => resetPriceRange();
 
     const minPercent = getPercentage(priceRange.min);
     const maxPercent = getPercentage(priceRange.max);
@@ -984,29 +1271,96 @@ function PriceRangeFilter({
                 <span>{currencyFormatter.format(priceRange.min)}</span>
                 <span>{currencyFormatter.format(priceRange.max)}</span>
             </div>
-            <div className="relative h-2 w-full rounded-full bg-slate-200">
-                <div
-                    className="absolute h-2 rounded-full bg-feather-gold"
-                    style={{ left: `${minPercent}%`, width: `${maxPercent - minPercent}%` }}
+            <div className="relative" ref={sliderRef}>
+                <div className="relative h-2 w-full rounded-full bg-slate-200">
+                    <div
+                        className="absolute h-2 rounded-full bg-feather-gold"
+                        style={{
+                            left: `${minPercent}%`,
+                            width: `${maxPercent - minPercent}%`,
+                        }}
+                    />
+                </div>
+                <input
+                    type="range"
+                    min={DEFAULT_PRICE_MIN}
+                    max={DEFAULT_PRICE_MAX}
+                    step={PRICE_STEP}
+                    value={priceRange.min}
+                    onChange={handleMinChange}
+                    onMouseDown={() => setActiveThumb('min')}
+                    onMouseUp={() => setActiveThumb(null)}
+                    onTouchStart={() => setActiveThumb('min')}
+                    onTouchEnd={() => setActiveThumb(null)}
+                    className="absolute top-0 h-2 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-feather-gold [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:hover:bg-warm-gold [&::-moz-range-thumb]:relative [&::-moz-range-thumb]:z-10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-feather-gold [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:hover:bg-warm-gold"
+                    style={{
+                        zIndex: activeThumb === 'min' ? 20 : 10,
+                    }}
                 />
                 <input
-                    type="range" min={DEFAULT_PRICE_MIN} max={DEFAULT_PRICE_MAX} step={PRICE_STEP}
-                    value={priceRange.min} onChange={handleMinChange}
-                    onMouseDown={() => setActiveThumb('min')} onMouseUp={() => setActiveThumb(null)}
-                    className="absolute top-0 h-2 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:z-20 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-feather-gold"
-                    style={{ zIndex: activeThumb === 'min' ? 20 : 10 }}
-                />
-                <input
-                    type="range" min={DEFAULT_PRICE_MIN} max={DEFAULT_PRICE_MAX} step={PRICE_STEP}
-                    value={priceRange.max} onChange={handleMaxChange}
-                    onMouseDown={() => setActiveThumb('max')} onMouseUp={() => setActiveThumb(null)}
-                    className="absolute top-0 h-2 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:z-20 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-feather-gold"
-                    style={{ zIndex: activeThumb === 'max' ? 20 : 10 }}
+                    type="range"
+                    min={DEFAULT_PRICE_MIN}
+                    max={DEFAULT_PRICE_MAX}
+                    step={PRICE_STEP}
+                    value={priceRange.max}
+                    onChange={handleMaxChange}
+                    onMouseDown={() => setActiveThumb('max')}
+                    onMouseUp={() => setActiveThumb(null)}
+                    onTouchStart={() => setActiveThumb('max')}
+                    onTouchEnd={() => setActiveThumb(null)}
+                    className="absolute top-0 h-2 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-feather-gold [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:hover:bg-warm-gold [&::-moz-range-thumb]:relative [&::-moz-range-thumb]:z-10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-feather-gold [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:hover:bg-warm-gold"
+                    style={{
+                        zIndex: activeThumb === 'max' ? 20 : 10,
+                    }}
                 />
             </div>
+            <div className="flex items-center gap-3">
+                <div className="flex-1">
+                    <label className="text-xs font-medium text-slate-500" htmlFor="price-min">
+                        Min
+                    </label>
+                    <input
+                        id="price-min"
+                        type="number"
+                        value={priceRange.min}
+                        onChange={handleMinInputChange}
+                        min={DEFAULT_PRICE_MIN}
+                        max={priceRange.max}
+                        step={PRICE_STEP}
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                    />
+                </div>
+                <div className="flex-1">
+                    <label className="text-xs font-medium text-slate-500" htmlFor="price-max">
+                        Max
+                    </label>
+                    <input
+                        id="price-max"
+                        type="number"
+                        value={priceRange.max}
+                        onChange={handleMaxInputChange}
+                        min={priceRange.min}
+                        max={DEFAULT_PRICE_MAX}
+                        step={PRICE_STEP}
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                    />
+                </div>
+            </div>
             <div className="flex items-center gap-2">
-                <button type="button" onClick={() => applyPriceRange(priceRange.min, priceRange.max)} className="flex-1 rounded-lg bg-elvee-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-navy">Apply</button>
-                <button type="button" onClick={resetPriceRange} className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100">Reset</button>
+                <button
+                    type="button"
+                    onClick={apply}
+                    className="flex-1 rounded-lg bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy"
+                >
+                    Apply
+                </button>
+                <button
+                    type="button"
+                    onClick={reset}
+                    className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                >
+                    Reset
+                </button>
             </div>
         </div>
     );

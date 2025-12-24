@@ -8,9 +8,12 @@ export class NavigationService {
 
     async getNavigation() {
         const [categories, brands, catalogs] = await Promise.all([
-            // Categories - limit to 8, include cover_image
+            // Categories - limit to 8, include cover_image, only parent categories (parent_id is null)
             this.prisma.categories.findMany({
-                where: { is_active: true },
+                where: { 
+                    is_active: true,
+                    parent_id: null, // Only show parent categories in navbar
+                },
                 select: {
                     id: true,
                     name: true,
