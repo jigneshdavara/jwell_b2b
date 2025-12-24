@@ -439,11 +439,23 @@ export const adminService = {
   async getQuotation(id: number) {
     return await apiClient.get(`/admin/quotations/${id}`);
   },
-  async approveQuotation(id: number) {
-    return await apiClient.post(`/admin/quotations/${id}/approve`);
+  async approveQuotation(id: number, adminNotes?: string) {
+    return await apiClient.post(`/admin/quotations/${id}/approve`, { admin_notes: adminNotes || null });
   },
-  async rejectQuotation(id: number) {
-    return await apiClient.post(`/admin/quotations/${id}/reject`);
+  async rejectQuotation(id: number, adminNotes?: string) {
+    return await apiClient.post(`/admin/quotations/${id}/reject`, { admin_notes: adminNotes || null });
+  },
+  async sendQuotationMessage(id: number, message: string) {
+    return await apiClient.post(`/admin/quotations/${id}/messages`, { message });
+  },
+  async requestQuotationConfirmation(id: number, data: { quantity?: number; product_variant_id?: number; notes?: string }) {
+    return await apiClient.post(`/admin/quotations/${id}/request-confirmation`, data);
+  },
+  async addQuotationItem(id: number, data: { product_id: number; product_variant_id?: number; quantity: number; admin_notes?: string }) {
+    return await apiClient.post(`/admin/quotations/${id}/add-item`, data);
+  },
+  async updateQuotationProduct(id: number, data: { product_id: number; product_variant_id?: number; quantity: number; admin_notes?: string }) {
+    return await apiClient.post(`/admin/quotations/${id}/update-product`, data);
   },
   async deleteQuotation(id: number) {
     return await apiClient.delete(`/admin/quotations/${id}`);
