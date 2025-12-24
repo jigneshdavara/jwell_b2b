@@ -6,6 +6,7 @@ import PrimaryButton from '@/components/ui/PrimaryButton';
 import TextInput from '@/components/ui/TextInput';
 import { Transition } from '@headlessui/react';
 import { useState, FormEventHandler, useRef } from 'react';
+import { frontendService } from '@/services/frontendService';
 
 export default function UpdatePasswordForm({
     className = '',
@@ -24,23 +25,60 @@ export default function UpdatePasswordForm({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [recentlySuccessful, setRecentlySuccessful] = useState(false);
+    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-    const updatePassword: FormEventHandler = (e) => {
+    const updatePassword: FormEventHandler = async (e) => {
         e.preventDefault();
         setProcessing(true);
         setErrors({});
+        setFlashMessage(null);
 
-        // Mock update logic
-        setTimeout(() => {
-            setRecentlySuccessful(true);
+        // Validate password confirmation
+        if (data.password !== data.password_confirmation) {
+            setErrors({ password_confirmation: 'Passwords do not match' });
             setProcessing(false);
+            return;
+        }
+
+        try {
+            await frontendService.updatePassword({
+                current_password: data.current_password,
+                password: data.password,
+                password_confirmation: data.password_confirmation,
+            });
+
+            setRecentlySuccessful(true);
+            setFlashMessage({ type: 'success', message: 'Password updated successfully.' });
             setData({
                 current_password: '',
                 password: '',
                 password_confirmation: '',
             });
             setTimeout(() => setRecentlySuccessful(false), 2000);
-        }, 1000);
+        } catch (error: any) {
+            if (error.response?.data?.message) {
+                const errorMessage = error.response.data.message;
+                if (typeof errorMessage === 'string') {
+                    setFlashMessage({ type: 'error', message: errorMessage });
+                } else if (typeof errorMessage === 'object') {
+                    setErrors(errorMessage);
+                }
+            } else if (error.response?.data) {
+                setErrors(error.response.data);
+            } else {
+                setFlashMessage({ type: 'error', message: 'Failed to update password. Please try again.' });
+            }
+
+            // Focus on the appropriate input based on error
+            if (errors.password) {
+                passwordInput.current?.focus();
+            }
+            if (errors.current_password) {
+                currentPasswordInput.current?.focus();
+            }
+        } finally {
+            setProcessing(false);
+        }
     };
 
     return (
@@ -55,6 +93,16 @@ export default function UpdatePasswordForm({
                     secure.
                 </p>
             </header>
+
+            {flashMessage && (
+                <div className={`mt-4 rounded-2xl px-4 py-3 text-sm ${
+                    flashMessage.type === 'success' 
+                        ? 'bg-emerald-50 border border-emerald-200 text-emerald-900' 
+                        : 'bg-rose-50 border border-rose-200 text-rose-900'
+                }`}>
+                    {flashMessage.message}
+                </div>
+            )}
 
             <form onSubmit={updatePassword} className="mt-6 space-y-6">
                 <div>

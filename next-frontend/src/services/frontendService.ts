@@ -193,6 +193,14 @@ export const frontendService = {
     return await apiClient.patch('/profile', data);
   },
 
+  async updatePassword(data: {
+    current_password: string;
+    password: string;
+    password_confirmation: string;
+  }) {
+    return await apiClient.patch('/profile/password', data);
+  },
+
   async deleteProfile(password: string) {
     return await apiClient.delete('/profile', { data: { password } });
   },

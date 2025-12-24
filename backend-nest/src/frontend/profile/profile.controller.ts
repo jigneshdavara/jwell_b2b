@@ -6,9 +6,10 @@ import {
     Body,
     Request,
     UseGuards,
+    BadRequestException,
 } from '@nestjs/common';
 import { ProfileService } from './profile.service';
-import { UpdateProfileDto, DeleteProfileDto, ProfileResponseDto } from './dto/profile.dto';
+import { UpdateProfileDto, UpdatePasswordDto, DeleteProfileDto, ProfileResponseDto } from './dto/profile.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
 
 @Controller('profile')
@@ -29,6 +30,24 @@ export class ProfileController {
     ): Promise<ProfileResponseDto> {
         const userId = BigInt(req.user.userId);
         return await this.profileService.updateProfile(userId, dto);
+    }
+
+    @Patch('password')
+    async updatePassword(
+        @Body() dto: UpdatePasswordDto,
+        @Request() req: any,
+    ): Promise<{ message: string }> {
+        // Validate password confirmation
+        if (dto.password !== dto.password_confirmation) {
+            throw new BadRequestException('Passwords do not match');
+        }
+
+        const userId = BigInt(req.user.userId);
+        return await this.profileService.updatePassword(
+            userId,
+            dto.current_password,
+            dto.password,
+        );
     }
 
     @Delete()

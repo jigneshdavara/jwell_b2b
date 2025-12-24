@@ -6,6 +6,7 @@ import {
     MaxLength,
     IsIn,
     Matches,
+    MinLength,
 } from 'class-validator';
 
 export class UpdateProfileDto {
@@ -30,6 +31,21 @@ export class UpdateProfileDto {
     preferred_language?: string;
 }
 
+export class UpdatePasswordDto {
+    @IsNotEmpty()
+    @IsString()
+    current_password: string;
+
+    @IsNotEmpty()
+    @IsString()
+    @MinLength(8)
+    password: string;
+
+    @IsNotEmpty()
+    @IsString()
+    password_confirmation: string;
+}
+
 export class DeleteProfileDto {
     @IsNotEmpty()
     @IsString()
@@ -46,6 +62,7 @@ export class ProfileResponseDto {
     type: string;
     kyc_status: string;
     is_active: boolean;
+    credit_limit?: number | null;
     created_at: string;
     updated_at: string;
 }

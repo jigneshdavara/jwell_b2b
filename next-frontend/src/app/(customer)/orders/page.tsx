@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
-import AuthenticatedLayout from '@/components/shared/AuthenticatedLayout';
+import { Pagination } from '@/components/ui/Pagination';
+import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
+import { Head } from '@/components/Head';
 
 type OrderListItem = {
     id: number;
@@ -18,11 +21,6 @@ type OrderListItem = {
         name: string;
         quantity: number;
     }>;
-};
-
-type OrdersData = {
-    data: OrderListItem[];
-    links: Array<{ url: string | null; label: string; active: boolean }>;
 };
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
@@ -48,34 +46,60 @@ const statusColors: Record<string, string> = {
 };
 
 export default function OrdersPage() {
-    const [orders, setOrders] = useState<OrdersData | null>(null);
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const [orders, setOrders] = useState<OrderListItem[]>([]);
+    const [paginationMeta, setPaginationMeta] = useState<PaginationMeta | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // Get current page from URL
+    const currentPage = useMemo(() => {
+        const page = searchParams.get('page');
+        return page ? parseInt(page, 10) : 1;
+    }, [searchParams]);
 
     useEffect(() => {
         const fetchOrders = async () => {
             setLoading(true);
             try {
-                const response = await frontendService.getOrders();
+                const response = await frontendService.getOrders(currentPage, 15);
                 const ordersData = response.data?.orders || { data: [], meta: {} };
                 
-                // Map backend response to frontend format
-                const mappedOrders: OrdersData = {
-                    data: (ordersData.data || []).map((order: any) => ({
-                        id: Number(order.id),
-                        reference: order.reference || '',
-                        status: order.status || 'pending',
-                        status_label: order.status_label || order.status || 'Pending',
-                        total_amount: Number(order.total_amount) || 0,
-                        created_at: order.created_at || null,
-                        items: (order.items || []).map((item: any) => ({
-                            id: Number(item.id),
-                            name: item.name || '',
-                            quantity: Number(item.quantity) || 0,
-                        })),
+                // Map backend response to frontend format (matching Laravel structure)
+                const mappedOrders: OrderListItem[] = (ordersData.data || []).map((order: any) => ({
+                    id: typeof order.id === 'string' ? Number(order.id) : Number(order.id),
+                    reference: order.reference || '',
+                    status: order.status || 'pending',
+                    status_label: order.status_label || order.status || 'Pending',
+                    total_amount: Number(order.total_amount) || 0,
+                    created_at: order.created_at || null,
+                    items: (order.items || []).map((item: any) => ({
+                        id: typeof item.id === 'string' ? Number(item.id) : Number(item.id),
+                        name: item.name || '',
+                        quantity: Number(item.quantity) || 0,
                     })),
-                    links: [], // Pagination links can be added later if needed
-                };
+                }));
+                
                 setOrders(mappedOrders);
+                
+                // Generate pagination meta
+                if (ordersData.meta) {
+                    const meta = ordersData.meta;
+                    const links = generatePaginationLinks(
+                        meta.current_page || currentPage,
+                        meta.last_page || 1
+                    );
+                    
+                    setPaginationMeta({
+                        current_page: meta.current_page || currentPage,
+                        last_page: meta.last_page || 1,
+                        per_page: meta.per_page || 15,
+                        total: meta.total || 0,
+                        from: meta.from || 0,
+                        to: meta.to || 0,
+                        links,
+                    });
+                }
             } catch (error: any) {
                 console.error('Failed to fetch orders:', error);
             } finally {
@@ -83,7 +107,7 @@ export default function OrdersPage() {
             }
         };
         fetchOrders();
-    }, []);
+    }, [currentPage]);
 
     const formatDate = (input?: string | null) =>
         input
@@ -96,18 +120,16 @@ export default function OrdersPage() {
 
     if (loading && !orders) {
         return (
-            <AuthenticatedLayout>
-                <div className="flex items-center justify-center py-20">
-                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />
-                </div>
-            </AuthenticatedLayout>
+            <div className="flex items-center justify-center py-20">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />
+            </div>
         );
     }
 
     return (
-        <AuthenticatedLayout>
-            <div className="space-y-10">
-                <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+        <div className="space-y-10">
+            <Head title="My Orders" />
+            <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                             <h1 className="text-3xl font-semibold text-slate-900">My orders</h1>
@@ -128,7 +150,7 @@ export default function OrdersPage() {
                 </header>
 
                 <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                    {!orders?.data || orders.data.length === 0 ? (
+                    {orders.length === 0 ? (
                         <div className="flex flex-col items-center justify-center space-y-4 py-16 text-sm text-slate-500">
                             <p>No confirmed orders yet. Submit a quotation and approve it to generate an order.</p>
                             <Link
@@ -143,16 +165,16 @@ export default function OrdersPage() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-slate-200">
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Order Reference</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Status</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Items</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Date</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600">Total</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600">Actions</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Order Reference</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Status</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Items</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Date</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Total</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {orders.data.map((order) => (
+                                    {orders.map((order) => (
                                         <tr key={order.id} className="hover:bg-slate-50">
                                             <td className="px-4 py-4">
                                                 <p className="text-sm font-semibold text-slate-900">{order.reference}</p>
@@ -204,7 +226,17 @@ export default function OrdersPage() {
                         </div>
                     )}
                 </section>
+
+                {paginationMeta && paginationMeta.last_page > 1 && (
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                        <Pagination
+                            meta={paginationMeta}
+                            onPageChange={(page) => {
+                                router.push(`?page=${page}`);
+                            }}
+                        />
+                    </div>
+                )}
             </div>
-        </AuthenticatedLayout>
     );
 }

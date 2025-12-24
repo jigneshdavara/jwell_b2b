@@ -9,6 +9,7 @@ import Pagination from '@/components/ui/Pagination';
 import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
 import { useCart } from '@/contexts/CartContext';
+import { PaginationMeta } from '@/utils/pagination';
 
 type PriceBreakdown = {
     metal?: number;
@@ -149,71 +150,212 @@ export default function CartPage() {
     const formatter = useMemo(() => currencyFormatter(cart?.currency || 'INR'), [cart?.currency]);
     const totalQuantity = useMemo(() => cart?.items.reduce((sum, item) => sum + item.quantity, 0) || 0, [cart?.items]);
 
+    // Group items by product, then merge identical variants
     const groupedProducts = useMemo(() => {
         if (!cart?.items) return [];
-        const grouped = new Map<number, { product: CartItem; variants: CartItem[] }>();
+        const grouped = new Map<number, { product: CartItem; variants: Map<string, CartItem & { mergedItemIds: number[] }> }>();
+        
         cart.items.forEach((item) => {
             if (!grouped.has(item.product_id)) {
-                grouped.set(item.product_id, { product: item, variants: [item] });
+                // Use first item as the product representative
+                const variantKey = `${item.product_variant_id ?? 'null'}_${JSON.stringify(item.configuration ?? {})}`;
+                const variantsMap = new Map<string, CartItem & { mergedItemIds: number[] }>();
+                variantsMap.set(variantKey, { ...item, mergedItemIds: [item.id] });
+                
+                grouped.set(item.product_id, {
+                    product: item,
+                    variants: variantsMap,
+                });
             } else {
-                grouped.get(item.product_id)!.variants.push(item);
+                const group = grouped.get(item.product_id)!;
+                // Create a unique key for this variant (variant_id + configuration)
+                const variantKey = `${item.product_variant_id ?? 'null'}_${JSON.stringify(item.configuration ?? {})}`;
+                
+                if (group.variants.has(variantKey)) {
+                    // Merge with existing variant: add quantities and totals
+                    const existing = group.variants.get(variantKey)!;
+                    existing.quantity += item.quantity;
+                    existing.line_total += item.line_total;
+                    existing.line_subtotal = (existing.line_subtotal ?? 0) + (item.line_subtotal ?? item.line_total);
+                    existing.line_discount = (existing.line_discount ?? 0) + (item.line_discount ?? 0);
+                    existing.mergedItemIds.push(item.id);
+                } else {
+                    // New variant
+                    group.variants.set(variantKey, { ...item, mergedItemIds: [item.id] });
+                }
             }
         });
+        
+        // Convert Map to Array and calculate unit_total for merged variants
         return Array.from(grouped.values()).map(group => ({
-            ...group,
-            totalQuantity: group.variants.reduce((sum, v) => sum + v.quantity, 0),
-            totalPrice: group.variants.reduce((sum, v) => sum + v.line_total, 0),
+            product: group.product,
+            variants: Array.from(group.variants.values()).map(variant => {
+                // Recalculate unit_total based on merged quantity and line_total
+                const unitTotal = variant.quantity > 0 ? variant.line_total / variant.quantity : variant.unit_total;
+                return {
+                    ...variant,
+                    unit_total: Math.round(unitTotal * 100) / 100, // Round to 2 decimal places
+                };
+            }),
         }));
     }, [cart?.items]);
 
-    const totalItems = groupedProducts.length;
+    // Calculate totals for grouped products
+    const groupedProductsWithTotals = useMemo(() => {
+        return groupedProducts.map((group) => {
+            const totalQuantity = group.variants.reduce((sum, v) => sum + v.quantity, 0);
+            const totalPrice = group.variants.reduce((sum, v) => sum + v.line_total, 0);
+            
+            return {
+                ...group,
+                totalQuantity,
+                totalPrice,
+            };
+        });
+    }, [groupedProducts]);
+
+    // Pagination calculations for grouped products
+    const totalItems = groupedProductsWithTotals.length;
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const paginatedProducts = groupedProducts.slice(startIndex, startIndex + itemsPerPage);
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedProducts = useMemo(() => {
+        return groupedProductsWithTotals.slice(startIndex, endIndex);
+    }, [groupedProductsWithTotals, startIndex, endIndex]);
 
-    const updateQuantity = async (item: CartItem, delta: number) => {
-        const nextQuantity = Math.max(1, item.quantity + delta);
+    // Create pagination meta object
+    const paginationMeta: PaginationMeta = useMemo(() => {
+        const generateLinks = (current: number, last: number) => {
+            const links: Array<{ label: string; url: string | null; active: boolean }> = [];
+            
+            // Previous link
+            links.push({
+                label: '« Previous',
+                url: current > 1 ? `?page=${current - 1}` : null,
+                active: false,
+            });
+            
+            // Page number links
+            for (let i = 1; i <= last; i++) {
+                if (i === 1 || i === last || (i >= current - 2 && i <= current + 2)) {
+                    links.push({
+                        label: String(i),
+                        url: i !== current ? `?page=${i}` : null,
+                        active: i === current,
+                    });
+                } else if (i === current - 3 || i === current + 3) {
+                    links.push({
+                        label: '...',
+                        url: null,
+                        active: false,
+                    });
+                }
+            }
+            
+            // Next link
+            links.push({
+                label: 'Next »',
+                url: current < last ? `?page=${current + 1}` : null,
+                active: false,
+            });
+            
+            return links;
+        };
         
-        // Check inventory limit (only when increasing)
-        if (delta > 0 && item.inventory_quantity !== null && item.inventory_quantity !== undefined) {
-            if (item.inventory_quantity === 0) {
-                setFlashMessage({ type: 'error', message: 'This product variant is currently out of stock.' });
-                setTimeout(() => setFlashMessage(null), 3000);
+        return {
+            current_page: currentPage,
+            last_page: totalPages,
+            per_page: itemsPerPage,
+            total: totalItems,
+            from: startIndex + 1,
+            to: Math.min(endIndex, totalItems),
+            links: generateLinks(currentPage, totalPages),
+        };
+    }, [currentPage, totalPages, itemsPerPage, totalItems, startIndex, endIndex]);
+
+    const updateQuantity = async (item: CartItem & { mergedItemIds?: number[] }, delta: number) => {
+        // Ensure delta is exactly 1 or -1
+        const normalizedDelta = delta > 0 ? 1 : -1;
+        
+        // Get the item ID to use for tracking updates
+        const itemId = item.mergedItemIds && item.mergedItemIds.length > 1 
+            ? item.mergedItemIds[0] 
+            : item.id;
+        
+        // Prevent multiple simultaneous updates for the same item
+        if (updatingQuantities.has(itemId)) {
+            return;
+        }
+        
+        // Get the current quantity - this is the displayed quantity which may be merged
+        // For merged items, item.quantity is the sum of all merged items' quantities
+        const currentDisplayQuantity = Number(item.quantity) || 0;
+        const nextQuantity = Math.max(1, currentDisplayQuantity + normalizedDelta);
+        
+        // Check inventory limit (only when increasing, not when decreasing)
+        const inventoryQuantity = item.inventory_quantity ?? null;
+        if (inventoryQuantity !== null) {
+            // If inventory is tracked and is 0, prevent all updates
+            if (inventoryQuantity === 0) {
                 return;
             }
-            if (nextQuantity > item.inventory_quantity) {
-                const itemWord = item.inventory_quantity === 1 ? 'item' : 'items';
-                const isWord = item.inventory_quantity === 1 ? 'item is' : 'items are';
-                setFlashMessage({ 
-                    type: 'error', 
-                    message: `Only ${item.inventory_quantity} ${isWord} available. Maximum ${item.inventory_quantity} ${itemWord} allowed.` 
-                });
-                setTimeout(() => setFlashMessage(null), 3000);
+            // Only prevent exceeding inventory when increasing (normalizedDelta > 0)
+            // Allow decreasing even if quantity is above inventory (user needs to fix it)
+            if (normalizedDelta > 0 && nextQuantity > inventoryQuantity) {
                 return;
             }
         }
-
-        setUpdatingQuantities(prev => new Set(prev).add(item.id));
         
-        try {
-            await frontendService.updateCartItem(item.id, nextQuantity);
-            await fetchCart(); // Refresh cart to get updated prices
-            await refreshCart(); // Update cart count in navbar
-            setFlashMessage({ type: 'success', message: 'Updated quotation entry.' });
-            setTimeout(() => setFlashMessage(null), 3000);
-        } catch (err: any) {
-            console.error('Failed to update quantity:', err);
-            setFlashMessage({ 
-                type: 'error', 
-                message: err.response?.data?.message || 'Failed to update quantity. Please try again.' 
+        // Mark this item as being updated
+        setUpdatingQuantities((prev) => new Set(prev).add(itemId));
+        
+        const clearUpdating = () => {
+            setUpdatingQuantities((prev) => {
+                const next = new Set(prev);
+                next.delete(itemId);
+                return next;
             });
-            setTimeout(() => setFlashMessage(null), 3000);
-        } finally {
-            setUpdatingQuantities(prev => { 
-                const n = new Set(prev); 
-                n.delete(item.id); 
-                return n; 
-            });
+        };
+        
+        // If this is a merged variant (multiple cart items with same variant/config)
+        if (item.mergedItemIds && item.mergedItemIds.length > 1) {
+            // For merged items, we need to consolidate them into a single cart item
+            // First, update the first item with the new total quantity
+            try {
+                await frontendService.updateCartItem(item.mergedItemIds[0], nextQuantity);
+                
+                // After updating the first item, delete all other merged items
+                const itemsToDelete = item.mergedItemIds.slice(1);
+                
+                if (itemsToDelete.length > 0) {
+                    // Delete the remaining items sequentially
+                    for (const idToDelete of itemsToDelete) {
+                        try {
+                            await frontendService.removeCartItem(idToDelete);
+                        } catch (err) {
+                            console.error('Failed to remove merged item:', err);
+                        }
+                    }
+                }
+                
+                await fetchCart(); // Refresh cart to get updated prices
+                await refreshCart(); // Update cart count in navbar
+                clearUpdating();
+            } catch (err: any) {
+                console.error('Failed to update quantity:', err);
+                clearUpdating();
+            }
+        } else {
+            // Single item - simple update
+            try {
+                await frontendService.updateCartItem(item.id, nextQuantity);
+                await fetchCart(); // Refresh cart to get updated prices
+                await refreshCart(); // Update cart count in navbar
+                clearUpdating();
+            } catch (err: any) {
+                console.error('Failed to update quantity:', err);
+                clearUpdating();
+            }
         }
     };
 
@@ -258,8 +400,8 @@ export default function CartPage() {
             return;
         }
 
-        // Validate inventory before opening modal
-        const variantQuantities: Record<number, { variant: number | null; product: string; total: number }> = {};
+        // Validate inventory before opening modal (matching Laravel validation)
+        const variantQuantities: Record<number, { variant: number | null; product: string; variantLabel?: string; total: number }> = {};
         const errors: string[] = [];
 
         cart.items.forEach((item) => {
@@ -269,6 +411,7 @@ export default function CartPage() {
                     variantQuantities[variantId] = {
                         variant: item.inventory_quantity,
                         product: item.name,
+                        variantLabel: (item as any).variant_label || undefined,
                         total: 0,
                     };
                 }
@@ -276,12 +419,15 @@ export default function CartPage() {
             }
         });
 
-        // Check if any variant exceeds inventory
-        Object.values(variantQuantities).forEach(({ variant, product, total }) => {
+        // Check if any variant exceeds inventory (matching Laravel error format exactly)
+        Object.values(variantQuantities).forEach(({ variant, product, variantLabel, total }) => {
             if (variant === 0) {
-                errors.push(`${product} is currently out of stock.`);
+                const variantText = variantLabel ? ` (${variantLabel})` : '';
+                errors.push(`${product}${variantText} is currently out of stock. Quotation requests are not available.`);
             } else if (variant !== null && variant !== undefined && total > variant) {
-                errors.push(`Total quantity requested for ${product} is ${total}, but only ${variant} ${variant === 1 ? 'item is' : 'items are'} available.`);
+                const variantText = variantLabel ? ` (${variantLabel})` : '';
+                const itemWord = variant === 1 ? 'item is' : 'items are';
+                errors.push(`Total quantity requested for ${product}${variantText} is ${total}, but only ${variant} ${itemWord} available.`);
             }
         });
 
@@ -294,8 +440,8 @@ export default function CartPage() {
             return;
         }
 
-        // Validate inventory before submitting
-        const variantQuantities: Record<number, { variant: number | null; product: string; total: number }> = {};
+        // Validate inventory before submitting (same validation as before opening modal)
+        const variantQuantities: Record<number, { variant: number | null; product: string; variantLabel?: string; total: number }> = {};
         const inventoryErrors: string[] = [];
 
         cart.items.forEach((item) => {
@@ -305,6 +451,7 @@ export default function CartPage() {
                     variantQuantities[variantId] = {
                         variant: item.inventory_quantity,
                         product: item.name,
+                        variantLabel: (item as any).variant_label || undefined,
                         total: 0,
                     };
                 }
@@ -312,38 +459,68 @@ export default function CartPage() {
             }
         });
 
-        // Check if any variant exceeds inventory
-        Object.values(variantQuantities).forEach(({ variant, product, total }) => {
+        // Check if any variant exceeds inventory (matching Laravel error format)
+        Object.values(variantQuantities).forEach(({ variant, product, variantLabel, total }) => {
             if (variant === 0) {
-                inventoryErrors.push(`${product} is currently out of stock.`);
+                const variantText = variantLabel ? ` (${variantLabel})` : '';
+                inventoryErrors.push(`${product}${variantText} is currently out of stock. Quotation requests are not available.`);
             } else if (variant !== null && variant !== undefined && total > variant) {
-                inventoryErrors.push(`Total quantity requested for ${product} is ${total}, but only ${variant} ${variant === 1 ? 'item is' : 'items are'} available.`);
+                const variantText = variantLabel ? ` (${variantLabel})` : '';
+                const itemWord = variant === 1 ? 'item is' : 'items are';
+                inventoryErrors.push(`Total quantity requested for ${product}${variantText} is ${total}, but only ${variant} ${itemWord} available.`);
             }
         });
 
         if (inventoryErrors.length > 0) {
+            // Show error in modal and don't submit (matching Laravel behavior)
             setInventoryErrors(inventoryErrors);
             return;
         }
         
+        // Clear any previous errors
         setInventoryErrors([]);
         setSubmitting(true);
 
         try {
-            await frontendService.submitQuotationsFromCart();
+            await frontendService.submitQuotationsFromCart(cartComment || null);
             await refreshCart(); // Update cart count in navbar (should be 0 after submission)
             setConfirmOpen(false);
-            setFlashMessage({ type: 'success', message: 'Quotations submitted successfully.' });
-            setTimeout(() => {
-                router.push(route('frontend.quotations.index'));
-            }, 1500);
+            setCartComment(''); // Clear cart notes after submission
+            // Redirect to quotations index (matching Laravel behavior)
+            router.push(route('frontend.quotations.index'));
         } catch (err: any) {
             console.error('Failed to submit quotations:', err);
-            setFlashMessage({ 
-                type: 'error', 
-                message: err.response?.data?.message || 'Failed to submit quotations. Please try again.' 
-            });
-            setTimeout(() => setFlashMessage(null), 3000);
+            // Handle backend validation errors (matching Laravel error handling)
+            if (err.response?.data?.message) {
+                // Backend returns error message in message field
+                const errorMessage = err.response.data.message;
+                // Check if it's an inventory error (contains "out of stock" or "available")
+                if (errorMessage.includes('out of stock') || errorMessage.includes('available')) {
+                    // Split multiple errors if they're space-separated (Laravel joins with space)
+                    const errors = errorMessage.split(/(?<=\.)\s+/).filter((e: string) => e.trim());
+                    setInventoryErrors(errors);
+                } else {
+                    // Other errors show as flash message
+                    setFlashMessage({ 
+                        type: 'error', 
+                        message: errorMessage
+                    });
+                    setTimeout(() => setFlashMessage(null), 3000);
+                }
+            } else if (err.response?.data?.quantity) {
+                // Handle quantity validation errors (if backend returns in quantity field)
+                const quantityErrors = Array.isArray(err.response.data.quantity) 
+                    ? err.response.data.quantity 
+                    : [err.response.data.quantity];
+                setInventoryErrors(quantityErrors);
+            } else {
+                // Generic error
+                setFlashMessage({ 
+                    type: 'error', 
+                    message: 'Failed to submit quotations. Please try again.' 
+                });
+                setTimeout(() => setFlashMessage(null), 3000);
+            }
         } finally {
             setSubmitting(false);
         }
@@ -418,12 +595,43 @@ export default function CartPage() {
                 <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
                     <div className="rounded-2xl bg-white shadow-xl ring-1 ring-slate-200/80 overflow-hidden">
                         {isEmpty ? (
-                            <div className="p-16 text-center text-slate-500 flex flex-col items-center gap-4">
-                                <p>Your cart is empty.</p>
-                                <Link href={route('frontend.catalog.index')} className="bg-slate-900 text-white px-5 py-2 rounded-full text-sm font-semibold">Browse catalogue</Link>
+                            <div className="flex flex-col items-center justify-center space-y-4 p-16 text-sm text-slate-500">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={1.5}
+                                    className="h-12 w-12 text-slate-300"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                                    />
+                                </svg>
+                                <p>Your cart is empty. Explore the catalogue to add designs.</p>
+                                <Link
+                                    href={route('frontend.catalog.index')}
+                                    className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    Browse catalogue
+                                </Link>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
+                            <>
+                                {/* Pagination Controls - Top */}
+                                {totalItems > itemsPerPage && (
+                                    <Pagination
+                                        meta={paginationMeta}
+                                        onPageChange={setCurrentPage}
+                                    />
+                                )}
+                                
+                                <div className="overflow-x-auto">
                                 <table className="w-full border-collapse">
                                     <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-700">
                                         <tr>
@@ -435,225 +643,526 @@ export default function CartPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-200">
-                                        {paginatedProducts.map((group) => (
-                                            <React.Fragment key={group.product.product_id}>
-                                                <tr className="hover:bg-slate-50/50">
-                                                    <td className="px-6 py-4 flex items-center gap-3">
-                                                        <button 
-                                                            onClick={() => setExpandedProducts(prev => { 
-                                                                const n = new Set(prev); 
-                                                                if (n.has(group.product.product_id)) n.delete(group.product.product_id); 
-                                                                else n.add(group.product.product_id); 
-                                                                return n; 
-                                                            })} 
-                                                            className={`transition-transform ${expandedProducts.has(group.product.product_id) ? 'rotate-90' : ''}`}
-                                                        >
-                                                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                                <path d="M9 5l7 7-7 7" strokeWidth={2} />
-                                                            </svg>
-                                                        </button>
-                                                        {group.product.thumbnail && (
-                                                            <img 
-                                                                src={group.product.thumbnail} 
-                                                                alt={group.product.name} 
-                                                                className="h-12 w-12 rounded-lg object-cover"
-                                                                onError={(e) => {
-                                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                                }}
-                                                            />
-                                                        )}
-                                                        <div>
-                                                            <p className="text-sm font-semibold text-slate-900">{group.product.name}</p>
-                                                            <p className="text-xs text-slate-400">SKU {group.product.sku}</p>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-center font-semibold">{group.totalQuantity}</td>
-                                                    <td className="px-6 py-4 text-right text-sm text-slate-500">
-                                                        {group.variants.length > 1 ? '—' : formatter.format(group.product.unit_total)}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right font-semibold">{formatter.format(group.totalPrice)}</td>
-                                                    <td className="px-6 py-4 text-center">
-                                                        <button 
-                                                            onClick={() => setProductDetailsModalOpen(group.product)} 
-                                                            className="text-slate-500 hover:text-elvee-blue"
-                                                        >
-                                                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                                                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                <path d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                                                            </svg>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                                {expandedProducts.has(group.product.product_id) && group.variants.map(v => (
-                                                    <tr key={v.id} className="bg-slate-50/30">
-                                                        <td className="px-6 py-3 pl-20 text-xs text-slate-500">{v.variant_label || 'Default Variant'}</td>
-                                                        <td className="px-6 py-3 text-center flex items-center justify-center gap-2">
-                                                            <button 
-                                                                onClick={() => updateQuantity(v, -1)} 
-                                                                disabled={v.quantity <= 1 || updatingQuantities.has(v.id)} 
-                                                                className="h-6 w-6 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            >
-                                                                -
-                                                            </button>
-                                                            <span className="w-4">{v.quantity}</span>
-                                                            <button 
-                                                                onClick={() => updateQuantity(v, 1)} 
-                                                                disabled={updatingQuantities.has(v.id)} 
-                                                                className="h-6 w-6 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            >
-                                                                +
-                                                            </button>
+                                        {paginatedProducts.map((group) => {
+                                            const isExpanded = expandedProducts.has(group.product.product_id);
+                                            const variantCount = group.variants.length;
+                                            
+                                            return (
+                                                <React.Fragment key={group.product.product_id}>
+                                                    {/* Product Row */}
+                                                    <tr className="transition hover:bg-slate-50/50">
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex items-center gap-3">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setExpandedProducts((prev) => {
+                                                                            const next = new Set(prev);
+                                                                            if (next.has(group.product.product_id)) {
+                                                                                next.delete(group.product.product_id);
+                                                                            } else {
+                                                                                next.add(group.product.product_id);
+                                                                            }
+                                                                            return next;
+                                                                        });
+                                                                    }}
+                                                                    className="flex-shrink-0 text-slate-400 transition hover:text-slate-600"
+                                                                    aria-label={isExpanded ? 'Collapse variants' : 'Expand variants'}
+                                                                >
+                                                                    <svg
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        viewBox="0 0 24 24"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        strokeWidth={2}
+                                                                        className={`h-5 w-5 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                                                                    >
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                                                    </svg>
+                                                                </button>
+                                                                {group.product.thumbnail && (
+                                                                    <img
+                                                                        src={group.product.thumbnail}
+                                                                        alt={group.product.name}
+                                                                        className="h-16 w-16 flex-shrink-0 rounded-lg object-cover shadow-sm"
+                                                                    />
+                                                                )}
+                                                                <div className="min-w-0 flex-1">
+                                                                    <Link
+                                                                        href={route('frontend.catalog.show', { product: group.product.product_id })}
+                                                                        className="text-sm font-semibold text-slate-900 truncate hover:text-feather-gold transition"
+                                                                    >
+                                                                        {group.product.name}
+                                                                    </Link>
+                                                                    <p className="text-xs text-slate-400">SKU {group.product.sku}</p>
+                                                                    {variantCount > 1 && (
+                                                                        <p className="mt-0.5 text-xs font-medium text-slate-500">
+                                                                            {variantCount} {variantCount === 1 ? 'variant' : 'variants'}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
                                                         </td>
-                                                        <td className="px-6 py-3 text-right text-sm">{formatter.format(v.unit_total)}</td>
-                                                        <td className="px-6 py-3 text-right text-sm font-semibold">{formatter.format(v.line_total)}</td>
-                                                        <td className="px-6 py-3 text-center flex gap-2 justify-center">
-                                                            <button 
-                                                                onClick={() => { 
-                                                                    setNotesModalOpen(v.id); 
-                                                                    setNotesValue(prev => ({ ...prev, [v.id]: v.configuration?.notes || '' })); 
-                                                                }} 
-                                                                className="text-slate-400 hover:text-feather-gold"
-                                                            >
-                                                                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                                                    <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                                </svg>
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => removeItem(v)} 
-                                                                className="text-slate-400 hover:text-rose-600"
-                                                            >
-                                                                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                                                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h14" />
-                                                                </svg>
-                                                            </button>
+                                                        <td className="whitespace-nowrap px-6 py-4 text-center">
+                                                            <span className="text-sm font-semibold text-slate-900">{group.totalQuantity}</span>
+                                                        </td>
+                                                        <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-slate-500">
+                                                            {variantCount > 1 ? '—' : formatter.format(group.product.unit_total)}
+                                                        </td>
+                                                        <td className="whitespace-nowrap px-6 py-4 text-right">
+                                                            <p className="text-sm font-semibold text-slate-900">{formatter.format(group.totalPrice)}</p>
+                                                        </td>
+                                                        <td className="whitespace-nowrap px-6 py-4 text-center">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setProductDetailsModalOpen(group.product)}
+                                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-elvee-blue"
+                                                                    aria-label="View product details"
+                                                                    title="View product details"
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
-                                                ))}
-                                            </React.Fragment>
-                                        ))}
+                                                    
+                                                    {/* Variants Rows (Expandable) */}
+                                                    {isExpanded && variantCount > 0 && (
+                                                        <>
+                                                            {group.variants.map((v) => (
+                                                    <tr key={v.id} className="bg-slate-50/30 transition hover:bg-slate-50/50">
+                                                        <td className="px-6 py-3 pl-20">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="min-w-0 flex-1">
+                                                                    {v.variant_label && (
+                                                                        <p className="text-xs font-medium text-slate-700">{v.variant_label}</p>
+                                                                    )}
+                                                                    <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                                                                        {v.price_breakdown.metal && v.price_breakdown.metal > 0 && (
+                                                                            <>
+                                                                                <span>Metal {formatter.format(v.price_breakdown.metal)}</span>
+                                                                                <span>·</span>
+                                                                            </>
+                                                                        )}
+                                                                        {v.price_breakdown.diamond && v.price_breakdown.diamond > 0 && (
+                                                                            <>
+                                                                                <span>Diamond {formatter.format(v.price_breakdown.diamond)}</span>
+                                                                                <span>·</span>
+                                                                            </>
+                                                                        )}
+                                                                        <span>Making {formatter.format(v.price_breakdown.making ?? 0)}</span>
+                                                                    </div>
+                                                                    {(v.line_discount ?? 0) > 0 && (
+                                                                        <p className="mt-1 text-xs font-semibold text-emerald-600">
+                                                                            Discount −{formatter.format(v.line_discount ?? 0)}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="whitespace-nowrap px-6 py-3">
+                                                            <div className="flex flex-col items-center justify-center gap-1">
+                                                                <div className="flex items-center justify-center gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => updateQuantity(v, -1)}
+                                                                        disabled={v.quantity <= 1 || updatingQuantities.has(v.id)}
+                                                                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                        aria-label="Decrease quantity"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+                                                                        </svg>
+                                                                    </button>
+                                                                    <span className="min-w-[2rem] text-center text-sm font-semibold text-slate-900">{v.quantity}</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => updateQuantity(v, 1)}
+                                                                        disabled={updatingQuantities.has(v.id) || 
+                                                                            (v.inventory_quantity !== null && 
+                                                                             v.inventory_quantity !== undefined && 
+                                                                             v.inventory_quantity > 0 && 
+                                                                             v.quantity >= v.inventory_quantity)}
+                                                                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                        aria-label="Increase quantity"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                                {v.inventory_quantity !== null && v.inventory_quantity !== undefined && v.quantity > v.inventory_quantity && (
+                                                                    <span className="text-xs text-rose-500">
+                                                                        Only {v.inventory_quantity} {v.inventory_quantity === 1 ? 'item is' : 'items are'} available
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="whitespace-nowrap px-6 py-3 text-right text-sm font-medium text-slate-900">
+                                                            {formatter.format(v.unit_total)}
+                                                        </td>
+                                                        <td className="whitespace-nowrap px-6 py-3 text-right">
+                                                            <p className="text-sm font-semibold text-slate-900">{formatter.format(v.line_total)}</p>
+                                                        </td>
+                                                        <td className="whitespace-nowrap px-6 py-3 text-center">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setNotesModalOpen(v.id);
+                                                                        setNotesValue(prev => ({ ...prev, [v.id]: v.configuration?.notes || '' }));
+                                                                    }}
+                                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-feather-gold"
+                                                                    aria-label="Edit notes"
+                                                                    title={v.configuration?.notes ? 'View/edit notes' : 'Add notes'}
+                                                                >
+                                                                    {v.configuration?.notes ? (
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                                                                        </svg>
+                                                                    ) : (
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                                                        </svg>
+                                                                    )}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeItem(v)}
+                                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-rose-50 hover:text-rose-600"
+                                                                    aria-label="Remove variant"
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                            ))}
+                                                        </>
+                                                    )}
+                                                </React.Fragment>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
-                            </div>
-                        )}
-                        {totalPages > 1 && (
-                            <Pagination 
-                                currentPage={currentPage} 
-                                totalPages={totalPages} 
-                                totalItems={totalItems} 
-                                itemsPerPage={itemsPerPage} 
-                                onPageChange={setCurrentPage} 
-                                onItemsPerPageChange={setItemsPerPage} 
-                                startIndex={startIndex} 
-                                endIndex={startIndex + itemsPerPage} 
-                            />
+                                </div>
+                                
+                                {/* Pagination Controls - Bottom */}
+                                {totalItems > itemsPerPage && (
+                                    <Pagination
+                                        meta={paginationMeta}
+                                        onPageChange={setCurrentPage}
+                                    />
+                                )}
+                            </>
                         )}
                     </div>
 
                     <aside className="space-y-4">
-                        <div className="rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80 space-y-3 text-sm">
+                        <div className="rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
                             <h2 className="text-lg font-semibold text-slate-900">Summary</h2>
-                            <div className="flex justify-between">
-                                <span>Subtotal</span>
-                                <span>{formatter.format(cart?.subtotal || 0)}</span>
-                            </div>
-                            {cart && cart.discount > 0 && (
-                                <div className="flex justify-between text-rose-600">
-                                    <span>Discount</span>
-                                    <span>-{formatter.format(cart.discount)}</span>
+                            <div className="mt-4 space-y-3 text-sm text-slate-600">
+                                <div className="flex items-center justify-between">
+                                    <span>Subtotal</span>
+                                    <span className="font-medium">{formatter.format(cart?.subtotal || 0)}</span>
                                 </div>
-                            )}
-                            {cart && cart.tax > 0 && (
-                                <div className="flex justify-between">
+                                <div className="flex items-center justify-between">
                                     <span>Tax</span>
-                                    <span>{formatter.format(cart.tax)}</span>
+                                    <span className="font-medium">{formatter.format(cart?.tax || 0)}</span>
                                 </div>
-                            )}
-                            <div className="flex justify-between border-t pt-3 font-semibold text-slate-900">
-                                <span>Total</span>
-                                <span>{formatter.format(cart?.total || 0)}</span>
+                                {cart && cart.discount > 0 && (
+                                    <div className="flex items-center justify-between text-emerald-600">
+                                        <span>Discount</span>
+                                        <span className="font-medium">-{formatter.format(cart.discount)}</span>
+                                    </div>
+                                )}
+                                <div className="flex items-center justify-between">
+                                    <span>Shipping</span>
+                                    <span className="font-medium">{formatter.format(cart?.shipping || 0)}</span>
+                                </div>
+                                <div className="border-t border-slate-200 pt-3">
+                                    <div className="flex items-center justify-between text-base font-semibold text-slate-900">
+                                        <span>Total</span>
+                                        <span>{formatter.format(cart?.total || 0)}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
                         <div className="rounded-2xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
                             <h2 className="text-lg font-semibold text-slate-900">Cart Notes</h2>
-                            <textarea 
-                                value={cartComment} 
-                                onChange={e => setCartComment(e.target.value)} 
-                                className="mt-3 w-full border rounded-xl p-3 text-sm" 
-                                placeholder="Add notes for the merchandising team..." 
-                                rows={4} 
+                            <p className="mt-1 text-xs text-slate-500">Add a comment for all items in this cart</p>
+                            <textarea
+                                value={cartComment}
+                                onChange={(e) => setCartComment(e.target.value)}
+                                className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                placeholder="Add notes for the merchandising team..."
+                                rows={4}
                             />
                         </div>
-                        <button 
-                            onClick={submitQuotations} 
-                            disabled={isEmpty} 
-                            className="w-full bg-elvee-blue text-white py-3 rounded-full font-semibold shadow-lg shadow-elvee-blue/30 hover:bg-navy disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed"
+
+                        <button
+                            type="button"
+                            onClick={submitQuotations}
+                            disabled={isEmpty}
+                            className={`w-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition ${
+                                isEmpty
+                                    ? 'cursor-not-allowed bg-slate-300 text-slate-500'
+                                    : 'bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30 hover:bg-navy'
+                            }`}
                         >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                             Submit quotations
                         </button>
                     </aside>
                 </div>
             </div>
 
-            <Modal show={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="lg">
-                <div className="p-6 space-y-4">
-                    <h2 className="text-lg font-semibold">Submit all quotation requests?</h2>
+            <Modal show={confirmOpen} onClose={() => (!submitting ? (setConfirmOpen(false), setInventoryErrors([])) : undefined)} maxWidth="lg">
+                <div className="space-y-5 p-6">
+                    <h2 className="text-lg font-semibold text-slate-900">Submit all quotation requests?</h2>
+                    <p className="text-sm text-slate-600">
+                        We will create separate quotation tickets for each product so the merchandising team can review the
+                        details. You can still add more items afterwards.
+                    </p>
                     {inventoryErrors.length > 0 && (
-                        <div className="rounded-lg bg-rose-50 border border-rose-200 p-4">
-                            <p className="text-sm font-semibold text-rose-900 mb-2">Inventory Issues:</p>
-                            <ul className="list-disc list-inside text-sm text-rose-700 space-y-1">
-                                {inventoryErrors.map((error, idx) => (
-                                    <li key={idx}>{error}</li>
-                                ))}
-                            </ul>
+                        <div className="rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-800">
+                            <div className="flex items-start gap-2">
+                                <svg className="h-5 w-5 flex-shrink-0 text-rose-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                                <div className="flex-1">
+                                    <p className="font-semibold mb-2">Inventory Not Available</p>
+                                    <ul className="list-disc list-inside space-y-1">
+                                        {inventoryErrors.map((error, index) => (
+                                            <li key={index}>{error}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     )}
-                    <p className="text-sm text-slate-600">
-                        We will create separate quotation tickets for each product. Final total: {formatter.format(cart?.total || 0)}
-                    </p>
+                    <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                        <p>
+                            <span className="font-semibold text-slate-800">Products selected:</span> {cart?.items.length || 0}
+                        </p>
+                        <p className="mt-1">
+                            <span className="font-semibold text-slate-800">Total units:</span> {totalQuantity}
+                        </p>
+                        <p className="mt-1">
+                            <span className="font-semibold text-slate-800">Estimated total:</span> {formatter.format(cart?.total || 0)}
+                        </p>
+                        {cartComment && (
+                            <div className="mt-3 rounded-lg bg-white p-3">
+                                <p className="text-xs font-semibold text-slate-700">Cart Notes:</p>
+                                <p className="mt-1 text-xs text-slate-600">{cartComment}</p>
+                            </div>
+                        )}
+                    </div>
                     <div className="flex justify-end gap-3">
-                        <button 
-                            onClick={() => setConfirmOpen(false)} 
-                            className="border px-4 py-2 rounded-full text-sm font-semibold"
+                        <button
+                            type="button"
+                            onClick={() => (!submitting ? setConfirmOpen(false) : undefined)}
+                            className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                            disabled={submitting}
                         >
                             Cancel
                         </button>
-                        <button 
-                            onClick={confirmSubmit} 
-                            disabled={submitting || inventoryErrors.length > 0} 
-                            className="bg-elvee-blue text-white px-5 py-2 rounded-full text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        <button
+                            type="button"
+                            onClick={confirmSubmit}
+                            disabled={submitting || inventoryErrors.length > 0}
+                            className="inline-flex items-center justify-center rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {submitting ? 'Submitting...' : 'Confirm & submit'}
+                            {submitting ? 'Submitting…' : 'Confirm & submit'}
                         </button>
                     </div>
                 </div>
             </Modal>
 
             <Modal show={notesModalOpen !== null} onClose={() => setNotesModalOpen(null)} maxWidth="md">
-                <div className="p-6 space-y-4">
-                    <h2 className="text-lg font-semibold">Notes</h2>
-                    <textarea 
-                        value={notesValue[notesModalOpen!] || ''} 
-                        onChange={e => setNotesValue(p => ({ ...p, [notesModalOpen!]: e.target.value }))} 
-                        className="w-full border rounded-xl p-3 text-sm" 
-                        rows={5} 
-                        placeholder="Share expectations..." 
-                    />
-                    <div className="flex justify-end gap-3">
-                        <button 
-                            onClick={() => setNotesModalOpen(null)} 
-                            className="px-4 py-2 text-sm font-semibold"
-                        >
-                            Cancel
-                        </button>
-                        <button 
-                            onClick={() => saveNotes(cart!.items.find(i => i.id === notesModalOpen)!)}
-                            className="bg-elvee-blue text-white px-5 py-2 rounded-full text-sm font-semibold"
-                        >
-                            Save notes
-                        </button>
-                    </div>
-                </div>
+                {(() => {
+                    const selectedItem = cart?.items.find((item) => item.id === notesModalOpen);
+                    if (!selectedItem) return null;
+                    
+                    return (
+                        <div className="space-y-4 p-6">
+                            <div>
+                                <h3 className="text-lg font-semibold text-slate-900">Notes for {selectedItem.name}</h3>
+                                <p className="mt-1 text-xs text-slate-500">SKU {selectedItem.sku}</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">Notes</label>
+                                <textarea
+                                    value={notesValue[selectedItem.id] || ''}
+                                    onChange={(e) =>
+                                        setNotesValue((prev) => ({
+                                            ...prev,
+                                            [selectedItem.id]: e.target.value,
+                                        }))
+                                    }
+                                    className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    placeholder="Share expectations or deadlines..."
+                                    rows={5}
+                                />
+                            </div>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setNotesModalOpen(null)}
+                                    className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => saveNotes(selectedItem)}
+                                    className="inline-flex items-center justify-center rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
+                                >
+                                    Save notes
+                                </button>
+                            </div>
+                        </div>
+                    );
+                })()}
             </Modal>
+
+            {/* Quick View Modal */}
+            {productDetailsModalOpen && (
+                <Modal show={true} onClose={() => setProductDetailsModalOpen(null)} maxWidth="lg">
+                    <div className="flex min-h-0 flex-col">
+                        <div className="flex-shrink-0 border-b border-slate-200 px-5 py-3">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-base font-semibold text-slate-900">Quick View</h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setProductDetailsModalOpen(null)}
+                                    className="text-slate-400 transition hover:text-slate-600"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                            <div className="space-y-4">
+                                {/* Product Image and Basic Info - Compact */}
+                                <div className="flex gap-4">
+                                    {productDetailsModalOpen.thumbnail && (
+                                        <img
+                                            src={productDetailsModalOpen.thumbnail}
+                                            alt={productDetailsModalOpen.name}
+                                            className="h-24 w-24 flex-shrink-0 rounded-lg object-cover shadow-md"
+                                        />
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                        <h4 className="text-lg font-semibold text-slate-900">{productDetailsModalOpen.name}</h4>
+                                        <p className="mt-0.5 text-xs text-slate-500">SKU: {productDetailsModalOpen.sku}</p>
+                                        {productDetailsModalOpen.variant_label && (
+                                            <p className="mt-1 text-xs font-medium text-slate-600">{productDetailsModalOpen.variant_label}</p>
+                                        )}
+                                        <div className="mt-2 flex flex-wrap gap-1.5">
+                                            <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                                                Qty: {productDetailsModalOpen.quantity}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Compact Price Breakdown */}
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                    <h5 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-700">Price Breakdown</h5>
+                                    <div className="space-y-1.5 text-xs">
+                                        {(() => {
+                                            const priceBreakdown = productDetailsModalOpen.price_breakdown || {};
+                                            const metalCost = Number(priceBreakdown.metal) || 0;
+                                            const diamondCost = Number(priceBreakdown.diamond) || 0;
+                                            const makingCharge = Number(priceBreakdown.making) || 0;
+                                            const unitTotal = productDetailsModalOpen.unit_total;
+                                            const lineTotal = productDetailsModalOpen.line_total;
+
+                                            return (
+                                                <>
+                                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                                        {metalCost > 0 && (
+                                                            <div className="flex justify-between">
+                                                                <span className="text-slate-600">Metal:</span>
+                                                                <span className="font-semibold text-slate-900">{formatter.format(metalCost)}</span>
+                                                            </div>
+                                                        )}
+                                                        {diamondCost > 0 && (
+                                                            <div className="flex justify-between">
+                                                                <span className="text-slate-600">Diamond:</span>
+                                                                <span className="font-semibold text-slate-900">{formatter.format(diamondCost)}</span>
+                                                            </div>
+                                                        )}
+                                                        {makingCharge > 0 && (
+                                                            <div className="flex justify-between">
+                                                                <span className="text-slate-600">Making:</span>
+                                                                <span className="font-semibold text-slate-900">{formatter.format(makingCharge)}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="border-t border-slate-300 pt-1.5 mt-1.5">
+                                                        <div className="flex justify-between">
+                                                            <span className="font-semibold text-slate-900">Unit Price:</span>
+                                                            <span className="font-semibold text-slate-900">{formatter.format(unitTotal)}</span>
+                                                        </div>
+                                                        {productDetailsModalOpen.quantity > 1 && (
+                                                            <div className="mt-0.5 flex justify-between text-xs text-slate-500">
+                                                                <span>{productDetailsModalOpen.quantity} × {formatter.format(unitTotal)}</span>
+                                                                <span className="font-semibold text-slate-700">= {formatter.format(lineTotal)}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+
+                                {/* Compact Info Grid */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    {/* Variant Info */}
+                                    {productDetailsModalOpen.variant_label && (
+                                        <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Variant</p>
+                                            <p className="mt-1 text-sm font-semibold text-slate-900">{productDetailsModalOpen.variant_label}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Inventory Info */}
+                                    {productDetailsModalOpen.inventory_quantity !== null && productDetailsModalOpen.inventory_quantity !== undefined && (
+                                        <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Stock</p>
+                                            <p className={`mt-1 text-sm font-semibold ${productDetailsModalOpen.inventory_quantity > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                {productDetailsModalOpen.inventory_quantity} {productDetailsModalOpen.inventory_quantity === 1 ? 'item' : 'items'}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Notes - Compact */}
+                                {productDetailsModalOpen.configuration?.notes && (
+                                    <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+                                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Notes</p>
+                                        <p className="text-xs text-slate-700 line-clamp-3">{productDetailsModalOpen.configuration.notes}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
         </>
     );
 }
