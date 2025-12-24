@@ -6,6 +6,7 @@ import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { authService } from "@/services/authService";
 import KycGuard from "@/components/guards/KycGuard";
+import GlobalKycBlocker from "@/components/guards/GlobalKycBlocker";
 
 export default function CustomerLayout({
   children,
@@ -34,6 +35,7 @@ export default function CustomerLayout({
   return (
     <WishlistProvider user={user}>
       <CartProvider user={user}>
+        <GlobalKycBlocker />
         <AuthenticatedLayout>
           <KycGuard user={user} loading={loading}>
             {children}

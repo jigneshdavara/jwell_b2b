@@ -1,5 +1,8 @@
 import apiClient from "./api";
 
+// Request deduplication: prevent multiple simultaneous calls to me()
+let meRequestPromise: Promise<any> | null = null;
+
 export const authService = {
   async login(data: { email: string; password: string; remember?: boolean }) {
     const response = await apiClient.post("/auth/login", data);
@@ -67,12 +70,54 @@ export const authService = {
   },
 
   async me() {
-    // If we have a user in local storage, return it, otherwise try to fetch profile
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      return { data: JSON.parse(savedUser) };
+    // Request deduplication: if a request is already in flight, return the same promise
+    if (meRequestPromise) {
+      return meRequestPromise;
     }
-    return await apiClient.get("/kyc/profile");
+
+    // ALWAYS fetch fresh user data from API to get latest KYC status
+    // Don't rely on localStorage cache as KYC status can change on backend
+    // This ensures localStorage is always up-to-date
+    meRequestPromise = (async () => {
+      try {
+        // Preserve existing token before updating (in case API doesn't return one)
+        const existingToken = localStorage.getItem("auth_token");
+        
+        // Always fetch fresh data from API
+        const response = await apiClient.get("/kyc/profile");
+        
+        // Update localStorage atomically - both user and token together
+        if (response.data) {
+          // Update user data with fresh data from API
+          localStorage.setItem("user", JSON.stringify(response.data));
+          
+          // Update auth_token if provided in response, otherwise preserve existing token
+          // This ensures token and user data stay in sync
+          if (response.data.access_token) {
+            localStorage.setItem("auth_token", response.data.access_token);
+          } else if (existingToken) {
+            // If API doesn't return token, preserve existing token
+            localStorage.setItem("auth_token", existingToken);
+          }
+        }
+        
+        return response;
+      } catch (error) {
+        // If API call fails, fall back to localStorage cache as last resort
+        // But log the error so we know there's an issue
+        console.error("Failed to fetch user data from API:", error);
+        const savedUser = localStorage.getItem("user");
+        if (savedUser) {
+          return { data: JSON.parse(savedUser) };
+        }
+        throw error;
+      } finally {
+        // Clear the promise so subsequent calls can make new requests
+        meRequestPromise = null;
+      }
+    })();
+
+    return meRequestPromise;
   },
 };
 

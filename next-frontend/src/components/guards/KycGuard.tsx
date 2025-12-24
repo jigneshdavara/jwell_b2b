@@ -1,6 +1,6 @@
 'use client';
 
-import { useLayoutEffect, useState, useRef } from 'react';
+import { useLayoutEffect, useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { authService } from '@/services/authService';
 
@@ -17,36 +17,162 @@ export default function KycGuard({ children, user: providedUser, loading: provid
     const [loading, setLoading] = useState(providedLoading ?? true);
     const [isAllowed, setIsAllowed] = useState<boolean | null>(null);
     const hasChecked = useRef(false);
+    const redirectingRef = useRef(false);
+
+    // Helper function to check if KYC is approved
+    const checkKycApproval = (currentUser: any): boolean => {
+        if (!currentUser) return true; // Let auth handle it
+
+        // Check if user is a customer (retailer, wholesaler, sales)
+        const userType = (currentUser?.type ?? '').toLowerCase();
+        const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
+
+        // Only enforce KYC for customers
+        if (!isCustomer) return true;
+
+        // Check KYC status (handle both snake_case and camelCase)
+        const kycStatus = currentUser?.kyc_status || currentUser?.kycStatus;
+        return kycStatus === 'approved';
+    };
+
+    // Monitor route changes - fetch fresh data only if needed
+    useEffect(() => {
+        // Only fetch fresh data if we've already checked and user is approved
+        // This prevents duplicate calls on initial load
+        if (hasChecked.current && pathname && pathname !== '/onboarding/kyc' && !pathname.startsWith('/onboarding/kyc')) {
+            // Fetch fresh user data to check latest KYC status (background refresh)
+            // This updates localStorage with latest data
+            authService.me()
+                .then((response) => {
+                    const freshUser = response.data;
+                    setUser(freshUser);
+                    // localStorage is already updated in authService.me()
+                    const isApproved = checkKycApproval(freshUser);
+                    if (!isApproved) {
+                        // Block rendering if not approved
+                        setIsAllowed(false);
+                        if (!redirectingRef.current) {
+                            redirectingRef.current = true;
+                            router.replace('/onboarding/kyc');
+                        }
+                    } else {
+                        // KYC is approved - ensure access is allowed
+                        setIsAllowed(true);
+                    }
+                })
+                .catch(() => {
+                    // If error, don't block - might be network issue
+                    // Keep current state
+                });
+        }
+    }, [pathname, router]);
 
     // Use useLayoutEffect to check BEFORE paint - prevents flash
     useLayoutEffect(() => {
         // Reset check flag when pathname changes
         hasChecked.current = false;
-        
-        // Immediately block rendering if not on onboarding page (will allow after check)
-        if (pathname !== '/onboarding/kyc') {
-            setIsAllowed(null);
-        }
+        redirectingRef.current = false;
 
         const checkKycStatus = async () => {
             let currentUser = providedUser;
             let currentLoading = providedLoading;
 
             // Allow access to KYC onboarding page immediately
-            if (pathname === '/onboarding/kyc') {
+            if (pathname === '/onboarding/kyc' || pathname.startsWith('/onboarding/kyc')) {
                 setIsAllowed(true);
                 hasChecked.current = true;
+                setLoading(false);
                 return;
             }
 
-            // Fetch user if not provided
-            if (providedUser === undefined && !hasChecked.current) {
+            // If user is provided from parent, use it immediately (no localStorage check needed)
+            if (providedUser !== undefined) {
+                currentUser = providedUser;
+                currentLoading = providedLoading ?? false;
+                
+                // Update localStorage atomically - both user and token together
+                if (currentUser) {
+                    // Preserve existing token if user object doesn't have one
+                    const existingToken = localStorage.getItem("auth_token");
+                    
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                    
+                    // Update token if provided in user object, otherwise preserve existing
+                    if (currentUser.access_token) {
+                        localStorage.setItem('auth_token', currentUser.access_token);
+                    } else if (existingToken) {
+                        // Preserve existing token to keep user and token in sync
+                        localStorage.setItem('auth_token', existingToken);
+                    }
+                }
+                
+                // If we have user data, we can check KYC immediately (don't wait for loading)
+                if (currentUser) {
+                    setLoading(false); // Stop loading since we have user data
+                    currentLoading = false;
+                } else if (!currentLoading) {
+                    // No user and not loading - parent finished but no user
+                    setLoading(false);
+                }
+                
+                // Continue to KYC check below (don't return early)
+            } else {
+                // No user provided - check localStorage for quick check (for approved users)
+                // This allows instant access without loader for approved users
+                try {
+                    const userStr = localStorage.getItem('user');
+                    if (userStr) {
+                        const cachedUser = JSON.parse(userStr);
+                        const isApproved = checkKycApproval(cachedUser);
+                        if (isApproved) {
+                            // KYC is approved - allow access immediately (no loader)
+                            setIsAllowed(true);
+                            hasChecked.current = true;
+                            setLoading(false); // Ensure loading is false
+                            
+                            // Fetch fresh user data in background, but don't block
+                            // Use a small delay to avoid race condition
+                            setTimeout(() => {
+                                authService.me()
+                                    .then((response) => {
+                                        const freshUser = response.data;
+                                        setUser(freshUser);
+                                        // localStorage is already updated in authService.me()
+                                        // Verify fresh data still shows approved
+                                        const freshApproved = checkKycApproval(freshUser);
+                                        if (!freshApproved) {
+                                            // If fresh data shows not approved, block access
+                                            setIsAllowed(false);
+                                            router.replace('/onboarding/kyc');
+                                        }
+                                    })
+                                    .catch(() => {
+                                        // Ignore errors - we already allowed access based on cache
+                                    });
+                            }, 100);
+                            return; // Exit early - no need to fetch if cache shows approved
+                        }
+                    }
+                } catch (e) {
+                    // If error, continue with normal check
+                }
+            }
+
+            // If we don't have user data yet, fetch it
+            if (!currentUser && providedUser === undefined && !hasChecked.current) {
+                // Immediately block rendering if not on onboarding page (will allow after check)
+                if (pathname !== '/onboarding/kyc') {
+                    setIsAllowed(null);
+                }
+                
                 currentLoading = true;
                 setLoading(true);
                 try {
+                    // authService.me() always fetches fresh data and updates localStorage
                     const response = await authService.me();
                     currentUser = response.data;
                     setUser(currentUser);
+                    // localStorage (user and auth_token) is already updated in authService.me()
                 } catch (e) {
                     // If not authenticated, let AuthenticatedLayout handle redirect
                     currentUser = null;
@@ -55,50 +181,54 @@ export default function KycGuard({ children, user: providedUser, loading: provid
                     currentLoading = false;
                     setLoading(false);
                 }
-            } else if (providedUser !== undefined) {
-                currentUser = providedUser;
-                currentLoading = providedLoading ?? false;
+            } else if (!currentUser && pathname !== '/onboarding/kyc') {
+                // No user and not on KYC page - block rendering
+                setIsAllowed(null);
             }
 
-            // Don't check if still loading
-            if (currentLoading) {
+            // If we have user data, check KYC immediately (don't wait for loading to finish)
+            // This prevents loader from showing when user data is already available
+            if (currentUser) {
+                // Check KYC approval
+                const isApproved = checkKycApproval(currentUser);
+                
+                // If KYC is not approved, block rendering and redirect ONLY if not already on KYC page
+                if (!isApproved) {
+                    setIsAllowed(false); // Block rendering - prevents any API calls
+                    hasChecked.current = true;
+                    setLoading(false); // Stop loading since we have result
+                    
+                    // Only redirect if not already on KYC page (prevents unnecessary navigation)
+                    if (pathname !== '/onboarding/kyc' && !pathname.startsWith('/onboarding/kyc')) {
+                        if (!redirectingRef.current) {
+                            redirectingRef.current = true;
+                            // Use replace to avoid adding to history stack
+                            router.replace('/onboarding/kyc');
+                        }
+                    }
+                    return;
+                }
+
+                // KYC approved, allow access immediately
+                setIsAllowed(true);
+                hasChecked.current = true;
+                setLoading(false); // Stop loading since we have result
+                return;
+            }
+
+            // Don't check if still loading AND we don't have user data yet
+            if (currentLoading && !currentUser) {
                 setIsAllowed(null); // Keep blocked while loading
                 return;
             }
 
-            // If no user, let AuthenticatedLayout handle redirect to login
+            // If no user and not loading, let AuthenticatedLayout handle redirect to login
             if (!currentUser) {
                 setIsAllowed(true); // Let auth guard handle it
                 hasChecked.current = true;
+                setLoading(false);
                 return;
             }
-
-            // Check if user is a customer (retailer, wholesaler, sales)
-            const userType = (currentUser?.type ?? '').toLowerCase();
-            const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
-
-            // Only enforce KYC for customers
-            if (!isCustomer) {
-                setIsAllowed(true);
-                hasChecked.current = true;
-                return;
-            }
-
-            // Check KYC status (handle both snake_case and camelCase)
-            const kycStatus = currentUser?.kyc_status || currentUser?.kycStatus;
-            
-            // If KYC is not approved, redirect to onboarding IMMEDIATELY
-            if (kycStatus !== 'approved') {
-                // Use replace to avoid adding to history stack
-                router.replace('/onboarding/kyc');
-                setIsAllowed(false); // Block rendering - prevents any API calls
-                hasChecked.current = true;
-                return;
-            }
-
-            // KYC approved, allow access
-            setIsAllowed(true);
-            hasChecked.current = true;
         };
 
         checkKycStatus();

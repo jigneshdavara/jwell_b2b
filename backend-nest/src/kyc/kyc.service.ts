@@ -1,10 +1,10 @@
 import {
     Injectable,
     NotFoundException,
-    BadRequestException,
     ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
 import { UpdateKycProfileDto, UpdateKycStatusDto } from './dto/kyc.dto';
 import { UpdateOnboardingKycProfileDto } from './dto/onboarding-kyc.dto';
 import * as fs from 'fs';
@@ -12,7 +12,10 @@ import { existsSync } from 'fs';
 
 @Injectable()
 export class KycService {
-    constructor(private prisma: PrismaService) {}
+    constructor(
+        private prisma: PrismaService,
+        private jwtService: JwtService,
+    ) {}
 
     async getProfile(userId: bigint) {
         const user = await this.prisma.user.findUnique({
@@ -21,6 +24,7 @@ export class KycService {
                 id: true,
                 name: true,
                 email: true,
+                type: true,
                 kyc_status: true,
                 business_name: true,
                 business_website: true,
@@ -45,7 +49,21 @@ export class KycService {
             throw new NotFoundException('User not found');
         }
 
-        return user;
+        // Generate access token (same format as login)
+        const payload = {
+            email: user.email,
+            sub: user.id.toString(),
+            type: user.type,
+            guard: 'user',
+            kyc_status: user.kyc_status,
+        };
+
+        const access_token = this.jwtService.sign(payload);
+
+        return {
+            ...user,
+            access_token,
+        };
     }
 
     async updateProfile(userId: bigint, dto: UpdateKycProfileDto) {
@@ -272,9 +290,13 @@ export class KycService {
                     contact_name: dto.contact_name,
                     contact_phone: dto.contact_phone,
                     kyc_status:
-                        customer.kyc_status !== 'approved' ? 'pending' : customer.kyc_status,
+                        customer.kyc_status !== 'approved'
+                            ? 'pending'
+                            : customer.kyc_status,
                     kyc_notes:
-                        customer.kyc_status !== 'approved' ? null : customer.kyc_notes,
+                        customer.kyc_status !== 'approved'
+                            ? null
+                            : customer.kyc_notes,
                 },
             });
 
