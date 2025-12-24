@@ -53,7 +53,7 @@ export class DiscountsService {
                 return false;
 
             const allowedTypes = (
-                (discount.customer_types as string[]) || []
+                (discount.user_types as string[]) || []
             ).map((t) => t.toLowerCase());
             if (allowedTypes.length > 0) {
                 if (!userType || !allowedTypes.includes(userType))
@@ -84,7 +84,7 @@ export class DiscountsService {
         const formattedCandidates = candidates.map((discount) => {
             let priority = 200;
             const hasUserTypes =
-                ((discount.customer_types as string[]) || []).length > 0;
+                ((discount.user_types as string[]) || []).length > 0;
 
             if (hasUserTypes) {
                 priority = 280;
@@ -102,14 +102,14 @@ export class DiscountsService {
                     source: 'global',
                     name: discount.name,
                     priority,
-                    user_types: discount.customer_types,
+                    user_types: discount.user_types,
                     meta: {
                         discount_id: discount.id.toString(),
                         brand_id: discount.brand_id?.toString(),
                         category_id: discount.category_id?.toString(),
                         user_group_id:
                             discount.user_group_id?.toString(),
-                        user_types: discount.customer_types,
+                        user_types: discount.user_types,
                         min_cart_total: discount.min_cart_total?.toNumber(),
                     },
                 },

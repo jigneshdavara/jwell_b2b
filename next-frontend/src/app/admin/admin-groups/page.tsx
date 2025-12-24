@@ -14,6 +14,7 @@ type AdminGroupRow = {
     description?: string | null;
     is_active: boolean;
     display_order: number;
+    features?: string[];
 };
 
 
@@ -32,12 +33,24 @@ export default function AdminAdminGroupsPage() {
     const [deleteConfirm, setDeleteConfirm] = useState<AdminGroupRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
+    const featureOptions = [
+        { value: 'dashboard.view', label: 'Dashboard access' },
+        { value: 'catalog.manage', label: 'Manage catalog' },
+        { value: 'orders.manage', label: 'Manage orders' },
+        { value: 'quotations.manage', label: 'Manage quotations' },
+        { value: 'jobwork.manage', label: 'Manage jobwork' },
+        { value: 'offers.manage', label: 'Manage offers & discounts' },
+        { value: 'customers.manage', label: 'Manage customers' },
+        { value: 'reports.view', label: 'View reports' },
+        { value: 'settings.manage', label: 'Configure settings' },
+    ];
+
     const [formState, setFormState] = useState({
         name: '',
-        code: '',
         description: '',
         is_active: true,
         display_order: 0,
+        features: [] as string[],
     });
 
     useEffect(() => {
@@ -59,6 +72,7 @@ export default function AdminAdminGroupsPage() {
                     description: item.description,
                     is_active: item.is_active,
                     display_order: item.display_order || 0,
+                    features: item.features || [],
                 })),
                 meta: {
                     current_page: responseMeta.current_page || responseMeta.page || currentPage,
@@ -95,10 +109,10 @@ export default function AdminAdminGroupsPage() {
         setModalOpen(false);
         setFormState({
             name: '',
-            code: '',
             description: '',
             is_active: true,
             display_order: 0,
+            features: [],
         });
     };
 
@@ -111,12 +125,21 @@ export default function AdminAdminGroupsPage() {
         setEditingGroup(group);
         setFormState({
             name: group.name,
-            code: group.code,
             description: group.description ?? '',
             is_active: group.is_active,
             display_order: group.display_order,
+            features: (group as any).features || [],
         });
         setModalOpen(true);
+    };
+
+    const toggleFeature = (value: string, checked: boolean) => {
+        setFormState(prev => ({
+            ...prev,
+            features: checked
+                ? [...prev.features, value]
+                : prev.features.filter(f => f !== value),
+        }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -124,12 +147,22 @@ export default function AdminAdminGroupsPage() {
         setLoading(true);
 
         try {
+            // Auto-generate code from name (slugified and uppercased)
+            const generateCode = (name: string) => {
+                return name
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '_')
+                    .replace(/^_+|_+$/g, '')
+                    .toUpperCase();
+            };
+
             const payload = {
                 name: formState.name,
-                code: formState.code,
+                code: generateCode(formState.name),
                 description: formState.description || null,
                 is_active: formState.is_active,
                 display_order: formState.display_order,
+                features: formState.features,
             };
 
             if (editingGroup) {
@@ -152,7 +185,7 @@ export default function AdminAdminGroupsPage() {
             await adminService.updateAdminGroup(group.id, {
                 name: group.name,
                 code: group.code,
-                description: group.description,
+                description: group.description || null,
                 is_active: !group.is_active,
                 display_order: group.display_order,
             });
@@ -339,19 +372,38 @@ export default function AdminAdminGroupsPage() {
                 onPageChange={setCurrentPage} 
             />
 
-            <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">
+            <Modal show={modalOpen} onClose={resetForm} maxWidth="6xl">
                 <div className="flex min-h-0 flex-col">
                     <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-semibold text-slate-900">
-                                {editingGroup ? `Edit admin group: ${editingGroup.name}` : 'Create new admin group'}
+                                {editingGroup ? `Edit user group: ${editingGroup.name}` : 'Create new admin group'}
                             </h2>
                             <div className="flex items-center gap-3">
-                                <button type="button" onClick={resetForm} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900">
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                >
                                     Cancel
                                 </button>
-                                <button type="submit" form="group-form" className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700">
-                                    {editingGroup ? 'Update group' : 'Create group'}
+                                <button
+                                    type="submit"
+                                    form="group-form"
+                                    disabled={loading}
+                                    className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {editingGroup ? 'Update admin group' : 'Create admin group'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={resetForm}
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                                    aria-label="Close modal"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
                                 </button>
                             </div>
                         </div>
@@ -363,7 +415,7 @@ export default function AdminAdminGroupsPage() {
                                 <div className="space-y-6">
                                     <div className="grid gap-4">
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Name <span className="text-rose-500">*</span></span>
+                                            <span>Name</span>
                                             <input
                                                 type="text"
                                                 value={formState.name}
@@ -373,25 +425,13 @@ export default function AdminAdminGroupsPage() {
                                             />
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Code <span className="text-rose-500">*</span></span>
-                                            <input
-                                                type="text"
-                                                value={formState.code}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 font-mono focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                placeholder="e.g., RETAIL, WHOLESALE"
-                                                required
-                                                maxLength={50}
-                                            />
-                                        </label>
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                            <span>Display order <span className="text-rose-500">*</span></span>
+                                            <span>Display order</span>
                                             <input
                                                 type="number"
                                                 value={formState.display_order}
                                                 onChange={(e) => setFormState(prev => ({ ...prev, display_order: Number(e.target.value) }))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                required
+                                                min={0}
                                             />
                                         </label>
                                     </div>
@@ -402,7 +442,7 @@ export default function AdminAdminGroupsPage() {
                                             onChange={(e) => setFormState(prev => ({ ...prev, is_active: e.target.checked }))}
                                             className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                         />
-                                        Active for selection
+                                        Active for assignment
                                     </label>
                                 </div>
                                 <div className="space-y-6">
@@ -411,12 +451,34 @@ export default function AdminAdminGroupsPage() {
                                         <textarea
                                             value={formState.description}
                                             onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                                            className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="min-h-[120px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                             placeholder="Optional notes for internal reference."
                                         />
                                     </label>
                                 </div>
                             </div>
+
+                            <fieldset className="rounded-2xl border border-slate-200 px-4 py-4">
+                                <legend className="px-2 text-xs font-semibold text-slate-400">
+                                    Feature access
+                                </legend>
+                                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                    {featureOptions.map((feature) => {
+                                        const checked = formState.features.includes(feature.value);
+                                        return (
+                                            <label key={feature.value} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={(e) => toggleFeature(feature.value, e.target.checked)}
+                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                />
+                                                {feature.label}
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </fieldset>
                         </form>
                     </div>
                 </div>

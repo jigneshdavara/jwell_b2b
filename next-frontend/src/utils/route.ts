@@ -15,6 +15,7 @@ const routes: Record<string, string> = {
     'frontend.quotations.index': '/quotations',
     'frontend.orders.index': '/orders',
     'frontend.catalog.index': '/catalog',
+    'frontend.catalog.show': '/catalog/{product}',
     'frontend.wishlist.index': '/wishlist',
     'frontend.cart.index': '/cart',
     'admin.dashboard': '/admin/dashboard',

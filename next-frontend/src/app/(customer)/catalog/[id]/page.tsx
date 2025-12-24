@@ -3,14 +3,12 @@
 import { useEffect, useMemo, useState, useCallback, FormEvent } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import AuthenticatedLayout from '@/components/shared/AuthenticatedLayout';
+import { Head } from '@/components/Head';
 import CustomizationSection from '@/components/ui/customization/CustomizationSection';
 import ProductDetailsPanel from '@/components/ui/customization/ProductDetailsPanel';
 import { frontendService } from '@/services/frontendService';
-import { useWishlist } from '@/contexts/WishlistContext';
 import { useCart } from '@/contexts/CartContext';
 import { route } from '@/utils/route';
-import FlashMessage from '@/components/shared/FlashMessage';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -19,9 +17,11 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
 });
 
 type ConfigMetal = {
+    label: string;
     metalId: number;
     metalPurityId: number | null;
     metalToneId: number | null;
+    metalWeight?: string | null;
     metalName?: string;
     purityName?: string;
     toneName?: string;
@@ -38,11 +38,11 @@ type ConfigDiamond = {
 
 type ConfigurationOption = {
     variant_id: number;
-    label?: string;
-    metal_label?: string;
-    diamond_label?: string;
+    label: string;
+    metal_label: string;
+    diamond_label: string;
     metals: ConfigMetal[];
-    diamonds?: ConfigDiamond[];
+    diamonds: ConfigDiamond[];
     price_total: number;
     price_breakup: {
         base: number;
@@ -50,7 +50,7 @@ type ConfigurationOption = {
         diamond: number;
         making: number;
     };
-    sku?: string;
+    sku: string;
     inventory_quantity?: number | null;
     size?: {
         id: number;
@@ -119,7 +119,6 @@ export default function CatalogShowPage() {
     const router = useRouter();
     const params = useParams();
     const productId = Number(params.id);
-    const { wishlistProductIds, addProductId, removeProductId, refreshWishlist } = useWishlist();
     const { refreshCart } = useCart();
 
     const [product, setProduct] = useState<Product | null>(null);
@@ -129,6 +128,7 @@ export default function CatalogShowPage() {
     const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [processing, setProcessing] = useState(false);
     const [quantityInput, setQuantityInput] = useState<string>('1');
     const [quantity, setQuantity] = useState(1);
     const [notes, setNotes] = useState('');
@@ -150,11 +150,7 @@ export default function CatalogShowPage() {
     }>({});
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxZoom, setLightboxZoom] = useState(1.5);
-    const [wishlistPending, setWishlistPending] = useState(false);
-    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-    const wishlistLookup = useMemo(() => new Set(wishlistProductIds), [wishlistProductIds]);
-    const isWishlisted = useMemo(() => product ? wishlistLookup.has(product.id) : false, [wishlistLookup, product]);
 
     const selectedConfig = useMemo(
         () => configurationOptions.find((c) => c.variant_id === selectedVariantId) ?? null,
@@ -181,11 +177,105 @@ export default function CatalogShowPage() {
                 const response = await frontendService.getProduct(productId);
                 const data = response.data;
                 
-                setProduct(data.product);
-                setConfigurationOptions(data.configurationOptions || []);
+                // Map product data to match expected structure
+                const mappedProduct: Product = {
+                    id: Number(data.product.id),
+                    name: data.product.name,
+                    sku: data.product.sku,
+                    description: data.product.description || undefined,
+                    brand: data.product.brand || undefined,
+                    material: data.product.material || undefined,
+                    purity: data.product.purity || undefined,
+                    base_price: data.product.base_price || 0,
+                    making_charge_amount: data.product.making_charge_amount || 0,
+                    making_charge_percentage: data.product.making_charge_percentage || null,
+                    uses_gold: data.product.uses_gold || false,
+                    uses_silver: data.product.uses_silver || false,
+                    uses_diamond: data.product.uses_diamond || false,
+                    category_sizes: (data.product.category_sizes || []).map((cs: any) => ({
+                        id: Number(cs.id),
+                        name: cs.name,
+                        code: cs.code || cs.name,
+                    })),
+                    media: (data.product.media || []).map((m: any) => ({
+                        url: getMediaUrl(m.url),
+                        alt: m.alt || data.product.name,
+                    })),
+                    variants: (data.product.variants || []).map((v: any) => ({
+                        id: Number(v.id),
+                        label: v.label,
+                        is_default: v.is_default || false,
+                        metadata: v.metadata || {},
+                        metals: (v.metals || []).map((m: any) => ({
+                            id: Number(m.id),
+                            metal_id: Number(m.metal_id),
+                            metal_purity_id: m.metal_purity_id ? Number(m.metal_purity_id) : null,
+                            metal_tone_id: m.metal_tone_id ? Number(m.metal_tone_id) : null,
+                            metal_weight: m.metal_weight ? Number(m.metal_weight) : null,
+                            metal: m.metal ? { id: Number(m.metal.id), name: m.metal.name } : null,
+                            metal_purity: m.metal_purity ? { id: Number(m.metal_purity.id), name: m.metal_purity.name } : null,
+                            metal_tone: m.metal_tone ? { id: Number(m.metal_tone.id), name: m.metal_tone.name } : null,
+                        })),
+                        diamonds: (v.diamonds || []).map((d: any) => ({
+                            id: Number(d.id),
+                            diamond_clarity_id: d.diamond_clarity_id ? Number(d.diamond_clarity_id) : null,
+                            diamond_color_id: d.diamond_color_id ? Number(d.diamond_color_id) : null,
+                            diamond_shape_id: d.diamond_shape_id ? Number(d.diamond_shape_id) : null,
+                            diamonds_count: d.diamonds_count ? Number(d.diamonds_count) : null,
+                            total_carat: d.total_carat ? Number(d.total_carat) : null,
+                            diamond_clarity: d.diamond_clarity ? { id: Number(d.diamond_clarity.id), name: d.diamond_clarity.name } : null,
+                            diamond_color: d.diamond_color ? { id: Number(d.diamond_color.id), name: d.diamond_color.name } : null,
+                            diamond_shape: d.diamond_shape ? { id: Number(d.diamond_shape.id), name: d.diamond_shape.name } : null,
+                        })),
+                    })),
+                };
                 
-                if (data.configurationOptions && data.configurationOptions.length > 0) {
-                    setSelectedVariantId(data.configurationOptions[0].variant_id);
+                // Map configuration options
+                const mappedConfigOptions: ConfigurationOption[] = (data.configurationOptions || []).map((opt: any) => ({
+                    variant_id: Number(opt.variant_id),
+                    label: opt.label || '',
+                    metal_label: opt.metal_label || '',
+                    diamond_label: opt.diamond_label || '',
+                    metals: (opt.metals || []).map((m: any) => ({
+                        label: m.label || `${m.purityName || ''} ${m.toneName || ''} ${m.metalName || ''} ${m.metalWeight ? m.metalWeight + 'g' : ''}`.trim() || 'Metal',
+                        metalId: Number(m.metalId),
+                        metalPurityId: m.metalPurityId ? Number(m.metalPurityId) : null,
+                        metalToneId: m.metalToneId ? Number(m.metalToneId) : null,
+                        metalWeight: m.metalWeight ? String(m.metalWeight) : null,
+                        metalName: m.metalName,
+                        purityName: m.purityName,
+                        toneName: m.toneName,
+                    })),
+                    diamonds: (opt.diamonds || []).map((d: any) => ({
+                        label: d.label || '',
+                        diamondShapeId: Number(d.diamondShapeId || 0),
+                        diamondColorId: Number(d.diamondColorId || 0),
+                        diamondClarityId: Number(d.diamondClarityId || 0),
+                        stoneCount: Number(d.stoneCount || 0),
+                        totalCarat: String(d.totalCarat || '0'),
+                    })) || [],
+                    price_total: Number(opt.price_total || 0),
+                    price_breakup: {
+                        base: Number(opt.price_breakup?.base || 0),
+                        metal: Number(opt.price_breakup?.metal || 0),
+                        diamond: Number(opt.price_breakup?.diamond || 0),
+                        making: Number(opt.price_breakup?.making || 0),
+                    },
+                    sku: opt.sku || mappedProduct.sku || '',
+                    inventory_quantity: opt.inventory_quantity !== undefined ? Number(opt.inventory_quantity) : null,
+                    size: opt.size ? {
+                        id: Number(opt.size.id),
+                        name: opt.size.name,
+                        value: opt.size.value || opt.size.name,
+                    } : null,
+                    metadata: opt.metadata || null,
+                }));
+                
+                setProduct(mappedProduct);
+                setConfigurationOptions(mappedConfigOptions);
+                
+                if (mappedConfigOptions.length > 0) {
+                    setSelectedVariantId(mappedConfigOptions[0].variant_id);
                 }
             } catch (err: any) {
                 console.error('Failed to fetch product:', err);
@@ -199,10 +289,21 @@ export default function CatalogShowPage() {
     }, [productId]);
 
     useEffect(() => {
-        if (product && activeImageIndex > mediaCount - 1) {
+        if (product) {
+            setActiveImageIndex(0);
+        }
+    }, [product?.id]);
+
+    useEffect(() => {
+        if (activeImageIndex > mediaCount - 1) {
             setActiveImageIndex(Math.max(mediaCount - 1, 0));
         }
-    }, [activeImageIndex, mediaCount, product]);
+    }, [activeImageIndex, mediaCount]);
+
+    // Sync quantityInput with quantity when variant changes
+    useEffect(() => {
+        setQuantityInput(String(quantity));
+    }, [selectedVariantId, quantity]);
 
     const estimatedTotal = useMemo(() => {
         if (!selectedConfig) return 0;
@@ -243,103 +344,96 @@ export default function CatalogShowPage() {
         return errors;
     };
 
-    const handleAddToCart = async () => {
-        if (processing || invalidCombination) return;
+    const submit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
 
+        if (processing || invalidCombination) {
+            return;
+        }
+
+        // Validate selections
         const errors = validateSelections();
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors);
             return;
         }
 
-        if (!selectedVariantId || !product) return;
+        if (!selectedVariantId) {
+            return;
+        }
 
+        // Clear errors if validation passes
         setValidationErrors({});
 
-        try {
-            await frontendService.addToCart(
-                product.id,
-                selectedVariantId,
-                quantity,
-                { notes }
-            );
+        // Directly add to cart without modal
+        setProcessing(true);
+        frontendService.addToCart(
+            product!.id,
+            selectedVariantId,
+            quantity,
+            { notes }
+        ).then(async () => {
             await refreshCart();
-            setFlashMessage({ type: 'success', message: 'Added to your quotation list.' });
-            setTimeout(() => setFlashMessage(null), 3000);
-        } catch (err: any) {
+            setProcessing(false);
+        }).catch((err: any) => {
             console.error('Failed to add to cart:', err);
-            setFlashMessage({ 
-                type: 'error', 
-                message: err.response?.data?.message || 'Failed to add to cart. Please try again.' 
-            });
-            setTimeout(() => setFlashMessage(null), 3000);
-        }
+            setProcessing(false);
+        });
     };
 
-    const handleSubmitQuotation = async () => {
+    const confirmSubmit = async () => {
         if (processing || submitting) return;
 
+        // Validate selections
         const errors = validateSelections();
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors);
             return;
         }
 
-        if (!selectedVariantId || !product) return;
+        if (!selectedVariantId) {
+            return;
+        }
 
+        // Clear errors if validation passes
         setValidationErrors({});
-        setSubmitting(true);
 
+        setSubmitting(true);
         try {
             await frontendService.submitQuotationsFromCart();
             setConfirmOpen(false);
-            setFlashMessage({ type: 'success', message: 'Quotation request submitted successfully.' });
-            setTimeout(() => {
-                router.push(route('frontend.quotations.index'));
-            }, 1500);
         } catch (err: any) {
             console.error('Failed to submit quotation:', err);
-            setFlashMessage({ 
-                type: 'error', 
-                message: err.response?.data?.message || 'Failed to submit quotation. Please try again.' 
-            });
-            setTimeout(() => setFlashMessage(null), 3000);
         } finally {
             setSubmitting(false);
         }
     };
 
-    const toggleWishlist = async () => {
-        if (!product || wishlistPending) return;
-        setWishlistPending(true);
-
+    const addToQuotationList = async () => {
+        setProcessing(true);
         try {
-            if (isWishlisted) {
-                await frontendService.removeFromWishlistByProduct(product.id, selectedVariantId);
-                removeProductId(product.id);
-                await refreshWishlist();
-                setFlashMessage({ type: 'success', message: 'Removed from wishlist.' });
-            } else {
-                await frontendService.addToWishlist({
-                    product_id: product.id,
-                    product_variant_id: selectedVariantId ?? undefined,
-                });
-                addProductId(product.id);
-                await refreshWishlist();
-                setFlashMessage({ type: 'success', message: 'Saved to your wishlist.' });
-            }
-            setTimeout(() => setFlashMessage(null), 3000);
+            await frontendService.addToCart(
+                product!.id,
+                selectedVariantId!,
+                quantity,
+                { notes }
+            );
+            await refreshCart();
+            setConfirmOpen(false);
         } catch (err: any) {
-            console.error('Error toggling wishlist:', err);
-            setFlashMessage({ 
-                type: 'error', 
-                message: err.response?.data?.message || 'Failed to update wishlist. Please try again.' 
-            });
-            setTimeout(() => setFlashMessage(null), 3000);
+            console.error('Failed to add to cart:', err);
         } finally {
-            setWishlistPending(false);
+            setProcessing(false);
         }
     };
+
+    const handleClearValidationError = useCallback((field: 'metal' | 'purity' | 'tone' | 'size') => {
+        setValidationErrors((prev) => {
+            const updated = { ...prev };
+            delete updated[field];
+            return updated;
+        });
+    }, []);
 
     const openLightbox = useCallback(() => {
         if (hasMedia) setLightboxOpen(true);
@@ -388,40 +482,30 @@ export default function CatalogShowPage() {
         if (lightboxOpen) resetLightboxZoom();
     }, [activeImageIndex, lightboxOpen, resetLightboxZoom]);
 
-    const processing = submitting || wishlistPending;
-
     if (loading) {
         return (
-            <AuthenticatedLayout>
-                <div className="flex items-center justify-center py-20">
-                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />
-                </div>
-            </AuthenticatedLayout>
+            <div className="flex items-center justify-center py-20">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />
+            </div>
         );
     }
 
     if (error || !product) {
         return (
-            <AuthenticatedLayout>
-                <div className="flex items-center justify-center py-20">
-                    <div className="text-center">
-                        <p className="text-lg font-semibold text-slate-900">{error || 'Product not found'}</p>
-                        <Link href={route('frontend.catalog.index')} className="mt-4 text-sm text-elvee-blue hover:underline">
-                            Back to catalog
-                        </Link>
-                    </div>
+            <div className="flex items-center justify-center py-20">
+                <div className="text-center">
+                    <p className="text-lg font-semibold text-slate-900">{error || 'Product not found'}</p>
+                    <Link href={route('frontend.catalog.index')} className="mt-4 text-sm text-elvee-blue hover:underline">
+                        Back to catalog
+                    </Link>
                 </div>
-            </AuthenticatedLayout>
+            </div>
         );
     }
 
     return (
-        <AuthenticatedLayout>
-            {flashMessage && (
-                <div className="mb-6">
-                    <FlashMessage type={flashMessage.type} message={flashMessage.message} />
-                </div>
-            )}
+        <>
+            <Head title={product.name} />
 
             <div className="space-y-8">
                 <div className="grid gap-10 lg:grid-cols-[1.6fr_1fr]">
@@ -484,61 +568,32 @@ export default function CatalogShowPage() {
 
                     <div className="space-y-6">
                         <form
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                handleAddToCart();
-                            }}
+                            onSubmit={submit}
                             className="w-full space-y-5 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80"
                         >
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <h2 className="text-lg font-semibold text-slate-900">Request quotation</h2>
-                                    <p className="text-xs text-slate-500">
-                                        Select your configuration and our merchandising desk will share pricing shortly.
-                                    </p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={toggleWishlist}
-                                    disabled={wishlistPending}
-                                    className={`inline-flex h-10 w-10 items-center justify-center rounded-full border text-sm transition ${
-                                        isWishlisted
-                                            ? 'border-rose-200 bg-rose-500/10 text-rose-500'
-                                            : 'border-slate-300 bg-white text-slate-600 hover:text-rose-500'
-                                    } ${wishlistPending ? 'opacity-60' : ''}`}
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 24 24"
-                                        fill={isWishlisted ? 'currentColor' : 'none'}
-                                        stroke="currentColor"
-                                        strokeWidth={1.5}
-                                        className="h-5 w-5"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 5.053 7.5 10.5 9 10.5s9-5.447 9-10.5z"
-                                        />
-                                    </svg>
-                                </button>
+                            <div>
+                                <h2 className="text-lg font-semibold text-slate-900">
+                                    Request quotation
+                                </h2>
+                                <p className="text-xs text-slate-500">
+                                    Select your configuration and our
+                                    merchandising desk will share pricing
+                                    shortly.
+                                </p>
                             </div>
 
+                            {/* Customization Section */}
                             {configurationOptions.length > 0 && (
-                                <CustomizationSection
-                                    configurationOptions={configurationOptions}
-                                    selectedVariantId={selectedVariantId}
-                                    onVariantChange={setSelectedVariantId}
-                                    onSelectionStateChange={setSelectionState}
-                                    validationErrors={validationErrors}
-                                    onClearValidationError={(field) => {
-                                        setValidationErrors((prev) => {
-                                            const updated = { ...prev };
-                                            delete updated[field];
-                                            return updated;
-                                        });
-                                    }}
-                                />
+                                <>
+                                    <CustomizationSection
+                                        configurationOptions={configurationOptions}
+                                        selectedVariantId={selectedVariantId}
+                                        onVariantChange={setSelectedVariantId}
+                                        onSelectionStateChange={setSelectionState}
+                                        validationErrors={validationErrors}
+                                        onClearValidationError={handleClearValidationError}
+                                    />
+                                </>
                             )}
 
                             <label className="block space-y-1">
@@ -554,14 +609,18 @@ export default function CatalogShowPage() {
                                     max={maxQuantity !== null && maxQuantity > 0 ? maxQuantity : undefined}
                                     value={quantityInput}
                                     onChange={(e) => {
+                                        // Allow completely free typing
                                         const inputValue = e.target.value;
                                         setQuantityInput(inputValue);
+
+                                        // Update quantity if it's a valid number
                                         const numValue = parseInt(inputValue, 10);
                                         if (!isNaN(numValue) && numValue >= 1) {
                                             setQuantity(numValue);
                                         }
                                     }}
                                     onBlur={(e) => {
+                                        // On blur, validate and set proper value
                                         const numValue = parseInt(quantityInput, 10);
                                         if (isNaN(numValue) || numValue < 1) {
                                             setQuantityInput('1');
@@ -578,14 +637,26 @@ export default function CatalogShowPage() {
                                     }`}
                                 />
                                 {validationErrors.quantity && (
-                                    <span className="text-xs text-rose-500">{validationErrors.quantity}</span>
-                                )}
-                                {quantityExceedsInventory && !isOutOfStock && !validationErrors.quantity && maxQuantity !== null && (
                                     <span className="text-xs text-rose-500">
-                                        Only {maxQuantity} {maxQuantity === 1 ? 'item is' : 'items are'} available. Maximum {maxQuantity}{' '}
-                                        {maxQuantity === 1 ? 'item' : 'items'} allowed for request.
+                                        {validationErrors.quantity}
                                     </span>
                                 )}
+                                {quantityExceedsInventory &&
+                                    !isOutOfStock &&
+                                    !validationErrors.quantity &&
+                                    maxQuantity !== null && (
+                                        <span className="text-xs text-rose-500">
+                                            Only {maxQuantity}{" "}
+                                            {maxQuantity === 1
+                                                ? "item is"
+                                                : "items are"}{" "}
+                                            available. Maximum {maxQuantity}{" "}
+                                            {maxQuantity === 1
+                                                ? "item"
+                                                : "items"}{" "}
+                                            allowed for request.
+                                        </span>
+                                    )}
                             </label>
 
                             <label className="block space-y-1">
@@ -598,7 +669,9 @@ export default function CatalogShowPage() {
                                     placeholder="List required scope: hallmarking, hallmark packaging, diamond certification, delivery deadlines…"
                                 />
                                 {validationErrors.notes && (
-                                    <span className="text-xs text-rose-500">{validationErrors.notes}</span>
+                                    <span className="text-xs text-rose-500">
+                                        {validationErrors.notes}
+                                    </span>
                                 )}
                             </label>
 
@@ -675,12 +748,70 @@ export default function CatalogShowPage() {
                                 disabled={processing || invalidCombination || inventoryUnavailable}
                                 className="w-full rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {processing ? 'Submitting…' : 'Add to quotation list'}
+                                {processing
+                                    ? "Submitting…"
+                                    : "Request quotation"}
                             </button>
                         </form>
                     </div>
                 </div>
             </div>
+
+            {confirmOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="w-full max-w-md space-y-4 rounded-3xl bg-white p-6 shadow-2xl">
+                        <h3 className="text-lg font-semibold text-slate-900">
+                            Confirm quotation
+                        </h3>
+                        <p className="text-sm text-slate-600">
+                            Submit this quotation request with the selected
+                            configuration? Our merchandising desk will review
+                            and respond shortly.
+                        </p>
+                        <div className="space-y-2 rounded-2xl bg-slate-50 p-4 text-xs text-slate-500">
+                            <p>
+                                <span className="font-semibold text-slate-700">
+                                    Mode:
+                                </span>{" "}
+                            </p>
+                            <p>
+                                <span className="font-semibold text-slate-700">
+                                    Quantity:
+                                </span>{" "}
+                                {quantity}
+                            </p>
+                        </div>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                type="button"
+                                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                onClick={() => setConfirmOpen(false)}
+                                disabled={submitting}
+                            >
+                                Review again
+                            </button>
+                            <button
+                                type="button"
+                                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                onClick={addToQuotationList}
+                                disabled={submitting}
+                            >
+                                Add to quotation list
+                            </button>
+                            <button
+                                type="button"
+                                className="rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-elvee-blue/30 hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
+                                onClick={confirmSubmit}
+                                disabled={submitting}
+                            >
+                                {submitting
+                                    ? "Submitting…"
+                                    : "Confirm submission"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {lightboxOpen && hasMedia && activeMedia && (
                 <div
@@ -735,7 +866,7 @@ export default function CatalogShowPage() {
                     />
                 </div>
             )}
-        </AuthenticatedLayout>
+        </>
     );
 }
 

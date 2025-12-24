@@ -367,7 +367,7 @@ model making_charge_discounts {
   is_active         Boolean          @default(true)
   starts_at         DateTime?        @db.Timestamptz(0)
   ends_at           DateTime?        @db.Timestamptz(0)
-  customer_types    Json?
+  user_types        Json?
   created_at        DateTime?        @default(now()) @db.Timestamptz(0)
   updated_at        DateTime?        @updatedAt @db.Timestamptz(0)
   brands            brands?          @relation(fields: [brand_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "making_charge_discounts_brand_id_foreign")

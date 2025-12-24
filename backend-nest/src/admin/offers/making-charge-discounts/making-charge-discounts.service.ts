@@ -133,7 +133,7 @@ export class MakingChargeDiscountsService {
                 is_active: dto.is_active ?? true,
                 starts_at: dto.starts_at ? new Date(dto.starts_at) : null,
                 ends_at: dto.ends_at ? new Date(dto.ends_at) : null,
-                customer_types: dto.user_types as any,
+                user_types: dto.user_types as any,
             } as any,
             include: {
                 brands: { select: { id: true, name: true } },
@@ -194,7 +194,7 @@ export class MakingChargeDiscountsService {
                 is_active: dto.is_active,
                 starts_at: dto.starts_at ? new Date(dto.starts_at) : undefined,
                 ends_at: dto.ends_at ? new Date(dto.ends_at) : undefined,
-                customer_types: dto.user_types as any, // Map user_types DTO field to customer_types DB field
+                user_types: dto.user_types as any, // Map user_types DTO field to customer_types DB field
             } as any,
             include: {
                 brands: { select: { id: true, name: true } },

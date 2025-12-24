@@ -145,6 +145,19 @@ export default function AdminAdminsIndex() {
         setErrors({});
         
         try {
+            // Validate password confirmation on frontend
+            if (!editingUser && newUser.password !== newUser.password_confirmation) {
+                setErrors({ password_confirmation: 'Passwords do not match' });
+                setProcessing(false);
+                return;
+            }
+            
+            if (editingUser && newUser.password && newUser.password !== newUser.password_confirmation) {
+                setErrors({ password_confirmation: 'Passwords do not match' });
+                setProcessing(false);
+                return;
+            }
+
             const payload: any = {
                 name: newUser.name,
                 email: newUser.email,
@@ -155,12 +168,10 @@ export default function AdminAdminsIndex() {
             if (editingUser) {
                 if (newUser.password) {
                     payload.password = newUser.password;
-                    payload.password_confirmation = newUser.password_confirmation;
                 }
                 await adminService.updateAdmin(editingUser.id, payload);
             } else {
                 payload.password = newUser.password;
-                payload.password_confirmation = newUser.password_confirmation;
                 await adminService.createAdmin(payload);
             }
 
