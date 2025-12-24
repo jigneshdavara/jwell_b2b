@@ -11,12 +11,12 @@ export default function CreateProductPage() {
         router.replace('/admin/products/new/edit');
     }, [router]);
 
-    return (
-        <div className="flex items-center justify-center min-h-screen">
-            <div className="text-center">
-                <p className="text-slate-600">Redirecting to product creation page...</p>
-            </div>
-        </div>
-    );
+    // return (
+    //     <div className="flex items-center justify-center min-h-screen">
+    //         <div className="text-center">
+    //             <p className="text-slate-600">Redirecting to product creation page...</p>
+    //         </div>
+    //     </div>
+    // );
 }
 

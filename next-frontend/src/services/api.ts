@@ -1,12 +1,39 @@
 import axios from "axios";
 import { AxiosError, InternalAxiosRequestConfig } from "axios";
 
+// Custom params serializer to handle arrays without brackets
+// NestJS expects repeated params: category=2&category=3 (not category[]=2&category[]=3)
+const paramsSerializer = (params: Record<string, any>): string => {
+  const searchParams = new URLSearchParams();
+  
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === null || value === undefined) {
+      return; // Skip null/undefined values
+    }
+    
+    if (Array.isArray(value)) {
+      // For arrays, append each value with the same key (repeated params)
+      value.forEach((item) => {
+        if (item !== null && item !== undefined) {
+          searchParams.append(key, String(item));
+        }
+      });
+    } else {
+      // For single values, just set the param
+      searchParams.set(key, String(value));
+    }
+  });
+  
+  return searchParams.toString();
+};
+
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api",
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
+  paramsSerializer: paramsSerializer, // Use custom serializer function
 });
 
 // Helper function to check if KYC is approved
