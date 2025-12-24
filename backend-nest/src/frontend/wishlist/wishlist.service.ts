@@ -215,13 +215,27 @@ export class WishlistService {
 
                 let thumbnail: string | null = null;
                 if (firstMedia && firstMedia.url) {
+                    let mediaUrl = String(firstMedia.url);
+                    
+                    // Normalize double slashes (except after http:// or https://)
+                    // This handles cases where URL might be /storage//storage/path
+                    mediaUrl = mediaUrl.replace(/(?<!:)\/{2,}/g, '/');
+                    
                     if (
-                        firstMedia.url.startsWith('http://') ||
-                        firstMedia.url.startsWith('https://')
+                        mediaUrl.startsWith('http://') ||
+                        mediaUrl.startsWith('https://')
                     ) {
-                        thumbnail = firstMedia.url;
+                        thumbnail = mediaUrl;
+                    } else if (mediaUrl.startsWith('/storage/')) {
+                        // URL already has /storage/ prefix, use as-is (normalized)
+                        thumbnail = mediaUrl;
                     } else {
-                        thumbnail = `/storage/${firstMedia.url}`;
+                        // URL is relative, add /storage/ prefix
+                        // Remove leading slash if present to avoid double slashes
+                        const cleanUrl = mediaUrl.startsWith('/') 
+                            ? mediaUrl.substring(1) 
+                            : mediaUrl;
+                        thumbnail = `/storage/${cleanUrl}`;
                     }
                 }
 

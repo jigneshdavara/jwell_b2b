@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import { Head } from '@/components/Head';
 
 type QuotationRow = {
     id: number;
@@ -65,38 +66,44 @@ export default function QuotationsPage() {
         setLoading(true);
         try {
             const response = await frontendService.getQuotations();
-            const quotationsData = response.data?.quotations || [];
+            // NestJS returns { quotations: [...] } in response.data
+            const quotationsData = response.data?.quotations || response.data || [];
             
-            // Map backend response to frontend format
-            const mappedQuotations: QuotationRow[] = quotationsData.map((q: any) => ({
-                id: Number(q.id),
-                ids: q.ids ? q.ids.map((id: any) => Number(id)) : undefined,
-                status: q.status || 'pending',
-                approved_at: q.approved_at || null,
-                admin_notes: q.admin_notes || null,
-                quantity: Number(q.quantity) || 0,
-                notes: q.notes || null,
-                product: {
-                    id: Number(q.product?.id || 0),
-                    name: q.product?.name || '',
-                    sku: q.product?.sku || '',
-                    thumbnail: q.product?.thumbnail ? getMediaUrl(q.product.thumbnail) : null,
-                },
-                products: q.products ? q.products.map((p: any) => ({
-                    id: Number(p.id),
-                    name: p.name || '',
-                    sku: p.sku || '',
-                    thumbnail: p.thumbnail ? getMediaUrl(p.thumbnail) : null,
-                })) : undefined,
-                variant: q.variant ? {
-                    id: Number(q.variant.id),
-                    label: q.variant.label || '',
-                    metadata: q.variant.metadata || null,
-                } : null,
-                order_reference: q.order_reference || null,
-                created_at: q.created_at || null,
-                updated_at: q.updated_at || null,
-            }));
+            // Map backend response to frontend format (matching Laravel structure)
+            const mappedQuotations: QuotationRow[] = quotationsData.map((q: any) => {
+                // Handle both string and number IDs
+                const quotationId = typeof q.id === 'string' ? Number(q.id) : q.id;
+                
+                return {
+                    id: quotationId,
+                    ids: q.ids ? q.ids.map((id: any) => typeof id === 'string' ? Number(id) : id) : undefined,
+                    status: q.status || 'pending',
+                    approved_at: q.approved_at || null,
+                    admin_notes: q.admin_notes || null,
+                    quantity: Number(q.quantity) || 0,
+                    notes: q.notes || null,
+                    product: {
+                        id: typeof q.product?.id === 'string' ? Number(q.product.id) : Number(q.product?.id || 0),
+                        name: q.product?.name || '',
+                        sku: q.product?.sku || '',
+                        thumbnail: q.product?.thumbnail ? getMediaUrl(q.product.thumbnail) : null,
+                    },
+                    products: q.products ? q.products.map((p: any) => ({
+                        id: typeof p.id === 'string' ? Number(p.id) : Number(p.id),
+                        name: p.name || '',
+                        sku: p.sku || '',
+                        thumbnail: p.thumbnail ? getMediaUrl(p.thumbnail) : null,
+                    })) : undefined,
+                    variant: q.variant ? {
+                        id: typeof q.variant.id === 'string' ? Number(q.variant.id) : Number(q.variant.id),
+                        label: q.variant.label || '',
+                        metadata: q.variant.metadata || null,
+                    } : null,
+                    order_reference: q.order_reference || null,
+                    created_at: q.created_at || null,
+                    updated_at: q.updated_at || null,
+                };
+            });
             
             setQuotations(mappedQuotations);
         } catch (error: any) {
@@ -110,6 +117,17 @@ export default function QuotationsPage() {
 
     useEffect(() => {
         fetchQuotations();
+    }, []);
+
+    // Refresh quotations when page becomes visible (e.g., after redirect from cart submission)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                fetchQuotations();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, []);
 
     const formatDate = (input?: string | null) =>
@@ -181,6 +199,7 @@ export default function QuotationsPage() {
             )}
 
             <div className="space-y-10">
+                <Head title="Quotation requests" />
                 <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
@@ -237,7 +256,7 @@ export default function QuotationsPage() {
                                             <tr key={quotation.id} className="hover:bg-slate-50">
                                                 <td className="px-4 py-4">
                                                     <Link
-                                                        href={route('frontend.quotations.show', quotation.id)}
+                                                        href={route('frontend.quotations.show', { id: quotation.id })}
                                                         className="text-sm font-semibold text-elvee-blue hover:text-feather-gold transition"
                                                     >
                                                         #{quotation.id}
@@ -280,7 +299,7 @@ export default function QuotationsPage() {
                                                 <td className="px-4 py-4">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <Link
-                                                            href={route('frontend.quotations.show', quotation.id)}
+                                                            href={route('frontend.quotations.show', { id: quotation.id })}
                                                             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:border-elvee-blue hover:bg-elvee-blue/5 hover:text-elvee-blue"
                                                             title="View details"
                                                         >

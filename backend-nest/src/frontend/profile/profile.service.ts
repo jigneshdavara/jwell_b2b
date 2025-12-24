@@ -31,6 +31,7 @@ export class ProfileService {
             type: user.type,
             kyc_status: user.kyc_status,
             is_active: user.is_active,
+            credit_limit: user.credit_limit ? Number(user.credit_limit) : null,
             created_at: user.created_at?.toISOString() || new Date().toISOString(),
             updated_at: user.updated_at?.toISOString() || new Date().toISOString(),
         };
@@ -97,6 +98,44 @@ export class ProfileService {
             created_at: updatedUser.created_at?.toISOString() || new Date().toISOString(),
             updated_at: updatedUser.updated_at?.toISOString() || new Date().toISOString(),
         };
+    }
+
+    async updatePassword(
+        userId: bigint,
+        currentPassword: string,
+        newPassword: string,
+    ): Promise<{ message: string }> {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        // Verify current password
+        const isPasswordValid = await this.verifyPassword(
+            currentPassword,
+            user.password,
+        );
+
+        if (!isPasswordValid) {
+            throw new BadRequestException('Current password is incorrect');
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: {
+                password: hashedPassword,
+                updated_at: new Date(),
+            },
+        });
+
+        return { message: 'Password updated successfully.' };
     }
 
     async deleteProfile(

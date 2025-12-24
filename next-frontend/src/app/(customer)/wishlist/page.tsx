@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { frontendService } from "@/services/frontendService";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
+import { route } from "@/utils/route";
 
 type WishlistItem = {
   id: string | number;
@@ -26,14 +27,26 @@ export default function WishlistPage() {
   const [busyItems, setBusyItems] = useState<Set<string | number>>(new Set());
   const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Helper function to get media URL
+  // Helper function to get media URL (matching catalog page implementation)
   const getMediaUrl = useCallback((url: string | null | undefined): string | null => {
     if (!url) return null;
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
+    
+    // Normalize double slashes (except after http:// or https://)
+    // This handles cases where URL might be /storage//storage/path
+    let cleanUrl = String(url).replace(/(?<!:)\/{2,}/g, '/');
+    
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+      return cleanUrl;
     }
+    
+    // Backend serves static files at root level, so /storage/ paths are accessible directly
+    // The backend returns URLs like /storage/path/to/file.jpg
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+    // Ensure URL starts with / for proper path construction
+    if (!cleanUrl.startsWith('/')) {
+      cleanUrl = `/${cleanUrl}`;
+    }
+    return `${baseUrl}${cleanUrl}`;
   }, []);
 
   const fetchWishlist = async () => {
@@ -43,13 +56,25 @@ export default function WishlistPage() {
       const response = await frontendService.getWishlist();
       
       if (response.data && response.data.items) {
-        // Convert string IDs to numbers for consistency
-        const formattedItems = response.data.items.map((item: any) => ({
-          ...item,
-          id: typeof item.id === 'string' ? parseInt(item.id) : item.id,
-          product_id: typeof item.product_id === 'string' ? parseInt(item.product_id) : item.product_id,
-          variant_id: item.variant_id ? (typeof item.variant_id === 'string' ? parseInt(item.variant_id) : item.variant_id) : null,
-        }));
+        // Convert string IDs to numbers and format thumbnail URLs
+        const formattedItems = response.data.items.map((item: any) => {
+          // Process thumbnail URL - backend returns /storage/... format
+          // Convert to full URL for frontend display
+          let thumbnailUrl: string | null = null;
+          if (item.thumbnail) {
+            // Backend returns URLs like /storage/path/to/file.jpg
+            // Convert to full URL: http://localhost:3001/storage/path/to/file.jpg
+            thumbnailUrl = getMediaUrl(item.thumbnail);
+          }
+          
+          return {
+            ...item,
+            id: typeof item.id === 'string' ? parseInt(item.id) : item.id,
+            product_id: typeof item.product_id === 'string' ? parseInt(item.product_id) : item.product_id,
+            variant_id: item.variant_id ? (typeof item.variant_id === 'string' ? parseInt(item.variant_id) : item.variant_id) : null,
+            thumbnail: thumbnailUrl,
+          };
+        });
         setItems(formattedItems);
       } else {
         setItems([]);
@@ -221,7 +246,7 @@ export default function WishlistPage() {
             </div>
             {!isEmpty && (
               <Link
-                href="/catalog"
+                href={route('frontend.catalog.index')}
                 className="inline-flex items-center gap-2 rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
               >
                 Browse more products
@@ -247,7 +272,7 @@ export default function WishlistPage() {
                 Your wishlist is empty. Add favourites while browsing the catalogue.
               </p>
               <Link
-                href="/catalog"
+                href={route('frontend.catalog.index')}
                 className="rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
               >
                 Explore catalogue
@@ -259,7 +284,8 @@ export default function WishlistPage() {
                 const itemId = typeof item.id === 'string' ? parseInt(item.id) : item.id;
                 const productId = typeof item.product_id === 'string' ? parseInt(item.product_id) : item.product_id;
                 const isBusy = busyItems.has(itemId);
-                const thumbnailUrl = getMediaUrl(item.thumbnail);
+                // Thumbnail is already processed in fetchWishlist, use directly
+                const thumbnailUrl = item.thumbnail;
 
                 return (
                   <article
@@ -267,7 +293,7 @@ export default function WishlistPage() {
                     className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-lg"
                   >
                     <Link
-                      href={`/catalog/${productId}`}
+                      href={route('frontend.catalog.show', productId)}
                       className="relative block aspect-square overflow-hidden bg-slate-100"
                     >
                       {thumbnailUrl ? (
@@ -299,7 +325,7 @@ export default function WishlistPage() {
                     </Link>
                     <div className="flex flex-1 flex-col p-4">
                       <div className="flex-1">
-                        <Link href={`/catalog/${productId}`} className="block">
+                        <Link href={route('frontend.catalog.show', productId)} className="block">
                           <h3 className="text-base font-semibold text-slate-900 transition hover:text-feather-gold line-clamp-2">
                             {item.name}
                           </h3>

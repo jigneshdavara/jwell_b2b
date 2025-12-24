@@ -8,6 +8,8 @@ import SecondaryButton from '@/components/ui/SecondaryButton';
 import TextInput from '@/components/ui/TextInput';
 import { useState, FormEventHandler, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { frontendService } from '@/services/frontendService';
+import { authService } from '@/services/authService';
 
 export default function DeleteUserForm({
     className = '',
@@ -29,17 +31,32 @@ export default function DeleteUserForm({
         setConfirmingUserDeletion(true);
     };
 
-    const deleteUser: FormEventHandler = (e) => {
+    const deleteUser: FormEventHandler = async (e) => {
         e.preventDefault();
         setProcessing(true);
         setErrors({});
 
-        // Mock deletion logic
-        setTimeout(() => {
-            setProcessing(false);
-            closeModal();
+        try {
+            await frontendService.deleteProfile(data.password);
+            
+            // Logout and redirect to home
+            await authService.logout();
             router.push('/');
-        }, 1000);
+        } catch (error: any) {
+            if (error.response?.data?.message) {
+                const errorMessage = error.response.data.message;
+                if (typeof errorMessage === 'string') {
+                    setErrors({ password: errorMessage });
+                } else if (typeof errorMessage === 'object') {
+                    setErrors(errorMessage);
+                }
+            } else if (error.response?.data) {
+                setErrors(error.response.data);
+            } else {
+                setErrors({ password: 'Failed to delete account. Please try again.' });
+            }
+            setProcessing(false);
+        }
     };
 
     const closeModal = () => {

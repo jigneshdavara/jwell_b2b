@@ -7,7 +7,7 @@ import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js';
 import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
-import AuthenticatedLayout from '@/components/shared/AuthenticatedLayout';
+import { Head } from '@/components/Head';
 import FlashMessage from '@/components/shared/FlashMessage';
 
 type CheckoutData = {
@@ -71,8 +71,9 @@ function CheckoutForm({ providerReference }: { providerReference: string }) {
 
         const paymentIntentId = result.paymentIntent?.id ?? providerReference;
         try {
-            await frontendService.confirmCheckout(paymentIntentId);
-            router.push(route('frontend.orders.index'));
+            const response = await frontendService.confirmCheckout(paymentIntentId);
+            // Show success message and redirect
+            router.push(route('frontend.orders.index') + '?order=' + response.data.order.reference);
         } catch (err: any) {
             setError(err.response?.data?.message || 'Payment confirmation failed.');
             setProcessing(false);
@@ -108,10 +109,10 @@ export default function CheckoutPage() {
                 const checkoutData: CheckoutData = {
                     order: response.data.order,
                     payment: {
-                        publishableKey: response.data.payment.publishableKey,
-                        clientSecret: response.data.payment.clientSecret,
-                        paymentId: response.data.payment.paymentId,
-                        providerReference: response.data.payment.providerReference,
+                        publishableKey: response.data.payment.publishable_key,
+                        clientSecret: response.data.payment.client_secret,
+                        paymentId: response.data.payment.payment_id,
+                        providerReference: response.data.payment.provider_reference,
                     },
                     summary: response.data.summary,
                 };
@@ -135,17 +136,19 @@ export default function CheckoutPage() {
 
     if (loading) {
         return (
-            <AuthenticatedLayout>
+            <>
+                <Head title="Checkout" />
                 <div className="flex items-center justify-center py-20">
                     <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />
                 </div>
-            </AuthenticatedLayout>
+            </>
         );
     }
 
     if (error || !data) {
         return (
-            <AuthenticatedLayout>
+            <>
+                <Head title="Checkout" />
                 <div className="flex items-center justify-center py-20">
                     <div className="text-center">
                         <p className="text-lg font-semibold text-slate-900">{error || 'Failed to load checkout'}</p>
@@ -154,12 +157,13 @@ export default function CheckoutPage() {
                         </Link>
                     </div>
                 </div>
-            </AuthenticatedLayout>
+            </>
         );
     }
 
     return (
-        <AuthenticatedLayout>
+        <>
+            <Head title="Checkout" />
             <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
                 <div className="space-y-6">
                     <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
@@ -173,23 +177,56 @@ export default function CheckoutPage() {
                             )}
                         </div>
                     </div>
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80 space-y-4">
+                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
                         <h2 className="text-lg font-semibold text-slate-900">Items</h2>
-                        {data.order.items.map((item) => (
-                            <div key={item.sku} className="flex justify-between text-sm">
-                                <div><p className="font-medium">{item.name}</p><p className="text-xs text-slate-400">{item.quantity} × {item.sku}</p></div>
-                                <p className="font-semibold">{formatter.format(item.line_total)}</p>
-                            </div>
-                        ))}
+                        <div className="mt-4 space-y-3 text-sm text-slate-600">
+                            {data.order.items.map((item) => (
+                                <div key={item.sku} className="flex items-center justify-between">
+                                    <div>
+                                        <p className="font-medium text-slate-900">{item.name}</p>
+                                        <p className="text-xs text-slate-400">
+                                            {item.quantity} × {item.sku}
+                                        </p>
+                                    </div>
+                                    <p className="font-semibold text-slate-900">
+                                        {formatter.format(item.line_total)}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
-                <aside className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80 h-fit space-y-4 text-sm">
-                    <h2 className="text-lg font-semibold">Summary</h2>
-                    <div className="flex justify-between"><span>Subtotal</span><span>{formatter.format(data.summary.subtotal)}</span></div>
-                    <div className="flex justify-between border-t pt-3 font-semibold text-base"><span>Total due</span><span>{formatter.format(data.summary.total)}</span></div>
+                <aside className="space-y-6">
+                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
+                        <h2 className="text-lg font-semibold text-slate-900">Summary</h2>
+                        <div className="mt-4 space-y-3 text-sm text-slate-600">
+                            <div className="flex items-center justify-between">
+                                <span>Subtotal</span>
+                                <span>{formatter.format(data.summary.subtotal)}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span>Tax</span>
+                                <span>{formatter.format(data.summary.tax)}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span>Discount</span>
+                                <span>-{formatter.format(data.summary.discount)}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span>Shipping</span>
+                                <span>{formatter.format(data.summary.shipping)}</span>
+                            </div>
+                            <div className="border-t border-slate-200 pt-3 text-base font-semibold text-slate-900">
+                                <div className="flex items-center justify-between">
+                                    <span>Total due</span>
+                                    <span>{formatter.format(data.summary.total)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </aside>
             </div>
-        </AuthenticatedLayout>
+        </>
     );
 }
 

@@ -5,7 +5,11 @@ import InputLabel from '@/components/ui/InputLabel';
 import PrimaryButton from '@/components/ui/PrimaryButton';
 import TextInput from '@/components/ui/TextInput';
 import { Transition } from '@headlessui/react';
-import { useState, FormEventHandler } from 'react';
+import { useState, FormEventHandler, useEffect } from 'react';
+import { frontendService } from '@/services/frontendService';
+import { authService } from '@/services/authService';
+import { useRouter } from 'next/navigation';
+import FlashMessage from '@/components/shared/FlashMessage';
 
 const languageOptions = [
     { value: 'en', label: 'English' },
@@ -24,6 +28,7 @@ export default function UpdateProfileInformationForm({
     status?: string;
     className?: string;
 }) {
+    const router = useRouter();
     const [data, setData] = useState({
         name: user?.name ?? '',
         email: user?.email ?? '',
@@ -34,18 +39,76 @@ export default function UpdateProfileInformationForm({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [recentlySuccessful, setRecentlySuccessful] = useState(false);
+    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [verificationStatus, setVerificationStatus] = useState<string>('');
+    const [sendingVerification, setSendingVerification] = useState(false);
 
-    const submit: FormEventHandler = (e) => {
+    // Update form data when user changes
+    useEffect(() => {
+        if (user) {
+            setData({
+                name: user.name ?? '',
+                email: user.email ?? '',
+                phone: user.phone ?? '',
+                preferred_language: user.preferred_language ?? 'en',
+            });
+        }
+    }, [user]);
+
+    const submit: FormEventHandler = async (e) => {
         e.preventDefault();
         setProcessing(true);
         setErrors({});
+        setFlashMessage(null);
 
-        // Mock update logic
-        setTimeout(() => {
+        try {
+            await frontendService.updateProfile({
+                name: data.name,
+                email: data.email,
+                phone: data.phone || undefined,
+                preferred_language: data.preferred_language || undefined,
+            });
+
             setRecentlySuccessful(true);
-            setProcessing(false);
+            setFlashMessage({ type: 'success', message: 'Profile updated successfully.' });
             setTimeout(() => setRecentlySuccessful(false), 2000);
-        }, 1000);
+            
+            // Refresh the page to get updated user data
+            router.refresh();
+        } catch (error: any) {
+            if (error.response?.data?.message) {
+                const errorMessage = error.response.data.message;
+                if (typeof errorMessage === 'string') {
+                    setFlashMessage({ type: 'error', message: errorMessage });
+                } else if (typeof errorMessage === 'object') {
+                    setErrors(errorMessage);
+                }
+            } else if (error.response?.data) {
+                setErrors(error.response.data);
+            } else {
+                setFlashMessage({ type: 'error', message: 'Failed to update profile. Please try again.' });
+            }
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleResendVerification = async () => {
+        if (!user?.email) return;
+        
+        setSendingVerification(true);
+        setVerificationStatus('');
+        
+        try {
+            await authService.resendVerification(user.email);
+            setVerificationStatus('verification-link-sent');
+        } catch (error: any) {
+            console.error('Failed to resend verification:', error);
+            // Still show success message for security (don't reveal if email exists)
+            setVerificationStatus('verification-link-sent');
+        } finally {
+            setSendingVerification(false);
+        }
     };
 
     return (
@@ -60,6 +123,16 @@ export default function UpdateProfileInformationForm({
                     move through production.
                 </p>
             </header>
+
+            {flashMessage && (
+                <div className={`mt-4 rounded-2xl px-4 py-3 text-sm ${
+                    flashMessage.type === 'success' 
+                        ? 'bg-emerald-50 border border-emerald-200 text-emerald-900' 
+                        : 'bg-rose-50 border border-rose-200 text-rose-900'
+                }`}>
+                    {flashMessage.message}
+                </div>
+            )}
 
             <form onSubmit={submit} className="mt-6 space-y-6">
                 <div className="grid gap-6 md:grid-cols-2">
@@ -138,13 +211,15 @@ export default function UpdateProfileInformationForm({
                             Your email address is unverified.{' '}
                             <button
                                 type="button"
-                                className="font-semibold text-amber-900 underline decoration-dashed"
+                                onClick={handleResendVerification}
+                                disabled={sendingVerification}
+                                className="font-semibold text-amber-900 underline decoration-dashed hover:text-amber-800 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Click here to re-send the verification email.
+                                {sendingVerification ? 'Sending...' : 'Click here to re-send the verification email.'}
                             </button>
                         </p>
 
-                        {status === 'verification-link-sent' && (
+                        {(status === 'verification-link-sent' || verificationStatus === 'verification-link-sent') && (
                             <div className="mt-2 font-semibold">A new verification link has been sent to your inbox.</div>
                         )}
                     </div>

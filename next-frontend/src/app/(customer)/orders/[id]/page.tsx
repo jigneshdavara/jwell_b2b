@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { frontendService } from '@/services/frontendService';
-import AuthenticatedLayout from '@/components/shared/AuthenticatedLayout';
 import { route } from '@/utils/route';
 
 type OrderShowItem = {
@@ -217,32 +216,27 @@ export default function OrderShowPage() {
 
   if (loading) {
     return (
-      <AuthenticatedLayout>
-        <div className="flex h-screen items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
-        </div>
-      </AuthenticatedLayout>
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
+      </div>
     );
   }
 
   if (!order) {
     return (
-      <AuthenticatedLayout>
-        <div className="flex h-screen items-center justify-center text-slate-500">
-          <div className="text-center">
-            <p className="text-lg font-semibold text-slate-900">Order not found</p>
-            <Link href={route('frontend.orders.index')} className="mt-4 text-sm text-elvee-blue hover:underline">
-              Back to orders
-            </Link>
-          </div>
+      <div className="flex h-screen items-center justify-center text-slate-500">
+        <div className="text-center">
+          <p className="text-lg font-semibold text-slate-900">Order not found</p>
+          <Link href={route('frontend.orders.index')} className="mt-4 text-sm text-elvee-blue hover:underline">
+            Back to orders
+          </Link>
         </div>
-      </AuthenticatedLayout>
+      </div>
     );
   }
 
   return (
-    <AuthenticatedLayout>
-      <div className="space-y-10">
+    <div className="space-y-10">
         <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
           <div className="flex items-center justify-between">
             <div>
@@ -594,7 +588,7 @@ export default function OrderShowPage() {
                     {order.quotations.map((quotation) => (
                       <Link
                         key={quotation.id}
-                        href={route('frontend.quotations.show', quotation.id)}
+                        href={route('frontend.quotations.show', { id: quotation.id })}
                         className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-elvee-blue/50 hover:bg-elvee-blue/5"
                       >
                         {quotation.product?.media?.[0] && (
@@ -847,7 +841,7 @@ export default function OrderShowPage() {
           </div>
         </Modal>
       )}
-    </AuthenticatedLayout>
+    </div>
   );
 }
 
