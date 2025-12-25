@@ -45,6 +45,7 @@ Thumbs.db
 /backend-nest/.env.local
 /backend-nest/.env.*.local
 /backend-nest/uploads/
+/backend-nest/public/storage/
 /backend-nest/*.log
 
 # OS Files

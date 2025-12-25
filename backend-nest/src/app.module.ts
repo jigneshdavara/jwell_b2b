@@ -28,6 +28,7 @@ import { CatalogsModule } from './admin/catalogs/catalogs.module';
 import { GeneralSettingsModule } from './admin/settings/general/general.module';
 import { TaxGroupsModule } from './admin/settings/tax-groups/tax-groups.module';
 import { TaxesModule } from './admin/settings/taxes/taxes.module';
+import { PaymentsSettingsModule } from './admin/settings/payments/payments.module';
 import { OffersModule } from './admin/offers/offers.module';
 import { MakingChargeDiscountsModule } from './admin/offers/making-charge-discounts/making-charge-discounts.module';
 import { ProductsModule } from './admin/products/products.module';
@@ -81,6 +82,7 @@ import { MailModule } from './common/mail/mail.module';
         GeneralSettingsModule,
         TaxGroupsModule,
         TaxesModule,
+        PaymentsSettingsModule,
         MakingChargeDiscountsModule, // Important: Specific prefix before general prefix
         OffersModule,
         ProductsModule,

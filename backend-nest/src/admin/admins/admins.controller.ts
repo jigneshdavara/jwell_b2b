@@ -43,10 +43,7 @@ export class AdminsController {
     }
 
     @Patch(':id')
-    update(
-        @Param('id', ParseIntPipe) id: number,
-        @Body() dto: UpdateAdminDto,
-    ) {
+    update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateAdminDto) {
         return this.adminsService.update(id, dto);
     }
 

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, FormEvent } from 'react';
 import { Head } from '@/components/Head';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
+import FlashMessage from '@/components/shared/FlashMessage';
 import { adminService } from '@/services/adminService';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
@@ -50,6 +51,7 @@ export default function AdminAdminsIndex() {
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [currentPage, setCurrentPage] = useState(1);
+    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
     useEffect(() => {
         loadUsers();
@@ -96,7 +98,7 @@ export default function AdminAdminsIndex() {
             const items = response.data.items || response.data.data || [];
             setAdminGroups(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
         } catch (error: any) {
-            console.error('Failed to load admin groups:', error);
+            // Silently handle error - don't log to console to avoid Next.js error overlay
         }
     };
 
@@ -134,8 +136,11 @@ export default function AdminAdminsIndex() {
             await adminService.updateAdminGroup(user.id, groupIdNum);
             await loadUsers();
         } catch (error: any) {
-            console.error('Failed to update admin group:', error);
-            alert(error.response?.data?.message || 'Failed to update admin group. Please try again.');
+            const errorMessage = error.response?.data?.message || 'Failed to update admin group. Please try again.';
+            setFlashMessage({ type: 'error', message: errorMessage });
+            setTimeout(() => setFlashMessage(null), 5000);
+            
+            // Silently handle error - don't log to console to avoid Next.js overlay
         }
     };
 
@@ -185,14 +190,31 @@ export default function AdminAdminsIndex() {
                 type: 'admin',
             });
             setEditingUser(null);
+            setFlashMessage({ 
+                type: 'success', 
+                message: editingUser ? 'Admin updated successfully.' : 'Admin created successfully.' 
+            });
+            setTimeout(() => setFlashMessage(null), 3000);
             await loadUsers();
         } catch (error: any) {
-            console.error('Failed to save admin:', error);
+            // Prevent error from propagating to avoid Next.js error overlay
+            // Handle the error gracefully and show FlashMessage only
+            
             if (error.response?.data?.errors) {
                 setErrors(error.response.data.errors);
-            } else {
-                alert(error.response?.data?.message || 'Failed to save admin. Please try again.');
             }
+            
+            // Show error message in FlashMessage
+            const errorMessage = error.response?.data?.message 
+                ? (Array.isArray(error.response.data.message) 
+                    ? error.response.data.message.join(', ') 
+                    : error.response.data.message)
+                : 'Failed to save admin. Please try again.';
+            setFlashMessage({ type: 'error', message: errorMessage });
+            setTimeout(() => setFlashMessage(null), 5000);
+            
+            // Silently handle error - don't log to console to avoid Next.js overlay
+            // Errors are already displayed to user via FlashMessage
         } finally {
             setProcessing(false);
         }
@@ -239,10 +261,15 @@ export default function AdminAdminsIndex() {
                     cancelEdit();
                 }
                 setDeleteConfirm(null);
+                setFlashMessage({ type: 'success', message: 'Admin deleted successfully.' });
+                setTimeout(() => setFlashMessage(null), 3000);
                 await loadUsers();
             } catch (error: any) {
-            console.error('Failed to delete admin:', error);
-            alert(error.response?.data?.message || 'Failed to delete admin. Please try again.');
+                const errorMessage = error.response?.data?.message || 'Failed to delete admin. Please try again.';
+                setFlashMessage({ type: 'error', message: errorMessage });
+                setTimeout(() => setFlashMessage(null), 5000);
+                
+                // Silently handle error - don't log to console to avoid Next.js overlay
             }
         }
     };
@@ -259,10 +286,15 @@ export default function AdminAdminsIndex() {
             await adminService.bulkDeleteAdmins(selectedIds);
             setSelectedIds([]);
             setBulkDeleteConfirm(false);
+            setFlashMessage({ type: 'success', message: `${selectedIds.length} admin(s) deleted successfully.` });
+            setTimeout(() => setFlashMessage(null), 3000);
             await loadUsers();
         } catch (error: any) {
-            console.error('Failed to delete admins:', error);
-            alert(error.response?.data?.message || 'Failed to delete admins. Please try again.');
+            const errorMessage = error.response?.data?.message || 'Failed to delete admins. Please try again.';
+            setFlashMessage({ type: 'error', message: errorMessage });
+            setTimeout(() => setFlashMessage(null), 5000);
+            
+            // Silently handle error - don't log to console to avoid Next.js overlay
         }
     };
 
@@ -273,6 +305,9 @@ export default function AdminAdminsIndex() {
             <Head title="Admins" />
 
             <div className="space-y-8">
+                {flashMessage && (
+                    <FlashMessage type={flashMessage.type} message={flashMessage.message} onClose={() => setFlashMessage(null)} />
+                )}
                 <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
