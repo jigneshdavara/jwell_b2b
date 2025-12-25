@@ -16,59 +16,96 @@ export type PaginationMeta = {
 
 /**
  * Generate Laravel-style pagination links
- * Shows pages 1-10, then ellipsis, then last 2 pages
+ * Matches Laravel's default pagination behavior:
+ * - Shows first page, pages around current, and last page
+ * - Uses ellipsis for gaps
+ * - Previous/Next links
  */
 export function generatePaginationLinks(currentPage: number, lastPage: number): PaginationLink[] {
     const links: PaginationLink[] = [];
     
-    // Previous link
+    if (lastPage <= 1) {
+        return links;
+    }
+    
+    // Previous link (Laravel uses "&laquo; Previous")
     links.push({
         url: currentPage > 1 ? `?page=${currentPage - 1}` : null,
-        label: '« Previous',
+        label: '&laquo; Previous',
         active: false,
     });
     
-    // Page number links: Show 1-10, then ellipsis, then last 2 pages
-    if (lastPage <= 10) {
-        // If 10 or fewer pages, show all
+    // Calculate which pages to show
+    const pagesToShow: number[] = [];
+    
+    if (lastPage <= 7) {
+        // If 7 or fewer pages, show all
         for (let i = 1; i <= lastPage; i++) {
-            links.push({
-                url: `?page=${i}`,
-                label: String(i),
-                active: i === currentPage,
-            });
+            pagesToShow.push(i);
         }
     } else {
-        // Show pages 1-10
-        for (let i = 1; i <= 10; i++) {
-            links.push({
-                url: `?page=${i}`,
-                label: String(i),
-                active: i === currentPage,
-            });
+        // Always show first page
+        pagesToShow.push(1);
+        
+        // Calculate start and end around current page
+        let start = Math.max(2, currentPage - 2);
+        let end = Math.min(lastPage - 1, currentPage + 2);
+        
+        // Adjust if we're near the start
+        if (currentPage <= 4) {
+            start = 2;
+            end = Math.min(5, lastPage - 1);
         }
         
-        // Add ellipsis
-        links.push({
-            url: null,
-            label: '...',
-            active: false,
-        });
+        // Adjust if we're near the end
+        if (currentPage >= lastPage - 3) {
+            start = Math.max(2, lastPage - 4);
+            end = lastPage - 1;
+        }
         
-        // Show last 2 pages
-        for (let i = lastPage - 1; i <= lastPage; i++) {
+        // Add ellipsis before if needed
+        if (start > 2) {
+            pagesToShow.push(-1); // -1 represents ellipsis
+        }
+        
+        // Add pages around current
+        for (let i = start; i <= end; i++) {
+            pagesToShow.push(i);
+        }
+        
+        // Add ellipsis after if needed
+        if (end < lastPage - 1) {
+            pagesToShow.push(-1); // -1 represents ellipsis
+        }
+        
+        // Always show last page
+        if (lastPage > 1) {
+            pagesToShow.push(lastPage);
+        }
+    }
+    
+    // Convert page numbers to links
+    for (const page of pagesToShow) {
+        if (page === -1) {
+            // Ellipsis
             links.push({
-                url: `?page=${i}`,
-                label: String(i),
-                active: i === currentPage,
+                url: null,
+                label: '...',
+                active: false,
+            });
+        } else {
+            links.push({
+                url: page !== currentPage ? `?page=${page}` : null,
+                label: String(page),
+                active: page === currentPage,
             });
         }
     }
     
-    // Next link
+    // Next link (Laravel uses "Next &raquo;")
     links.push({
         url: currentPage < lastPage ? `?page=${currentPage + 1}` : null,
-        label: 'Next »',
+        label: 'Next &raquo;',
         active: false,
     });
     

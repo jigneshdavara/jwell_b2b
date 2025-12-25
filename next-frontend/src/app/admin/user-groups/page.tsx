@@ -49,6 +49,7 @@ export default function AdminUserGroupsIndex() {
 
     const [formState, setFormState] = useState({
         name: '',
+        code: '',
         description: '',
         is_active: true,
         display_order: 0 as number | '',
@@ -122,6 +123,7 @@ export default function AdminUserGroupsIndex() {
         setModalOpen(false);
         setFormState({
             name: '',
+            code: '',
             description: '',
             is_active: true,
             display_order: 0 as number | '',
@@ -138,6 +140,7 @@ export default function AdminUserGroupsIndex() {
         setEditingGroup(group);
         setFormState({
             name: group.name,
+            code: group.code || '',
             description: group.description ?? '',
             is_active: group.is_active,
             display_order: group.display_order || 0,
@@ -161,8 +164,8 @@ export default function AdminUserGroupsIndex() {
         setErrors({});
 
         try {
-            // Generate code from name if creating new, or use existing code if editing
-            const code = editingGroup ? editingGroup.code : generateSlug(formState.name).toUpperCase();
+            // Auto-generate code from name if empty (for new groups)
+            const code = formState.code || generateSlug(formState.name).toUpperCase();
             
             const payload: any = {
                 name: formState.name,
@@ -625,6 +628,17 @@ export default function AdminUserGroupsIndex() {
                                                 required
                                             />
                                             {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Code</span>
+                                            <input
+                                                type="text"
+                                                value={formState.code}
+                                                onChange={(event) => setFormState({ ...formState, code: event.target.value.toUpperCase() })}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 font-mono text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                placeholder="e.g., VIP, DORMANT"
+                                            />
+                                            {errors.code && <span className="text-xs text-rose-500">{errors.code}</span>}
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
                                             <span>Display order</span>

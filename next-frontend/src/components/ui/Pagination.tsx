@@ -41,24 +41,56 @@ export default function Pagination({ meta, onPageChange, className = "" }: Pagin
                         .replace(/&nbsp;/g, ' ')
                         .trim();
 
-                    if (!link.url) {
+                    const isPreviousOrNext = cleanLabel.includes('Previous') || cleanLabel.includes('Next');
+
+                    // Active page link (current page) - not clickable
+                    if (link.active) {
                         return (
-                            <span key={`${link.label}-${index}`} className="rounded-full px-3 py-1 text-sm text-slate-400">
+                            <span
+                                key={`${link.label}-${index}`}
+                                className="rounded-full px-3 py-1 text-sm font-semibold bg-elvee-blue text-white shadow shadow-elvee-blue/25 cursor-default"
+                            >
                                 {cleanLabel}
                             </span>
                         );
                     }
 
+                    // Disabled link (no URL) - Previous/Next when at boundaries, or ellipsis
+                    if (!link.url) {
+                        return (
+                            <span 
+                                key={`${link.label}-${index}`} 
+                                className={isPreviousOrNext 
+                                    ? "py-1 text-sm text-slate-400 cursor-not-allowed" 
+                                    : "rounded-full px-3 py-1 text-sm text-slate-400 cursor-not-allowed"
+                                }
+                            >
+                                {cleanLabel}
+                            </span>
+                        );
+                    }
+
+                    // Previous/Next links - text only, no button styling
+                    if (isPreviousOrNext) {
+                        return (
+                            <button
+                                key={`${link.label}-${index}`}
+                                type="button"
+                                onClick={() => handleLinkClick(link.url)}
+                                className="py-1 text-sm font-semibold text-elvee-blue transition hover:text-feather-gold focus:outline-none"
+                            >
+                                {cleanLabel}
+                            </button>
+                        );
+                    }
+
+                    // Clickable page number link - button styling
                     return (
                         <button
                             key={`${link.label}-${index}`}
                             type="button"
                             onClick={() => handleLinkClick(link.url)}
-                            className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                link.active 
-                                    ? 'bg-sky-600 text-white shadow shadow-sky-600/20' 
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
+                            className="rounded-full px-3 py-1 text-sm font-semibold bg-white border border-slate-200 text-elvee-blue transition hover:bg-elvee-blue hover:text-white hover:border-elvee-blue focus:outline-none focus:ring-2 focus:ring-feather-gold focus:ring-offset-2"
                         >
                             {cleanLabel}
                         </button>
