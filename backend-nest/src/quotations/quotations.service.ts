@@ -203,6 +203,10 @@ export class QuotationsService {
       created_at: quotation.created_at,
       updated_at: quotation.updated_at,
       approved_at: quotation.approved_at,
+      user: user ? {
+        name: user.name,
+        email: user.email,
+      } : null,
       product: {
         id: quotation.products.id.toString(),
         name: quotation.products.name,
