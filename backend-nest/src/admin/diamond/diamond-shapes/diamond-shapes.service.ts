@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
     CreateDiamondShapeDto,
@@ -94,15 +98,80 @@ export class DiamondShapesService {
 
     async remove(id: number) {
         await this.findOne(id);
+
+        // Check if diamonds exist - if they do, prevent deletion
+        const diamondsCount = await this.prisma.diamonds.count({
+            where: { diamond_shape_id: BigInt(id) },
+        });
+
+        if (diamondsCount > 0) {
+            throw new BadRequestException(
+                'Cannot delete diamond shape because it has associated diamonds. Please remove all diamonds first.',
+            );
+        }
+
+        // If no diamonds exist, delete the shape
+        // Shape sizes will be automatically deleted due to cascadeOnDelete foreign key constraint
         return await this.prisma.diamond_shapes.delete({
             where: { id: BigInt(id) },
         });
     }
 
     async bulkRemove(ids: number[]) {
-        const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.diamond_shapes.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
+        let deletedCount = 0;
+        let skippedCount = 0;
+
+        for (const id of ids) {
+            // Check if shape exists
+            const shape = await this.prisma.diamond_shapes.findUnique({
+                where: { id: BigInt(id) },
+            });
+
+            if (!shape) {
+                continue;
+            }
+
+            // Check if diamonds exist - if they do, skip deletion
+            const diamondsCount = await this.prisma.diamonds.count({
+                where: { diamond_shape_id: BigInt(id) },
+            });
+
+            if (diamondsCount > 0) {
+                skippedCount++;
+                continue;
+            }
+
+            // If no diamonds exist, delete the shape
+            // Shape sizes will be automatically deleted due to cascadeOnDelete
+            await this.prisma.diamond_shapes.delete({
+                where: { id: BigInt(id) },
+            });
+
+            deletedCount++;
+        }
+
+        const messages: string[] = [];
+
+        if (deletedCount > 0) {
+            messages.push(
+                `${deletedCount} diamond shape(s) and all related shape sizes deleted successfully.`,
+            );
+        }
+
+        if (skippedCount > 0) {
+            messages.push(
+                `${skippedCount} diamond shape(s) could not be deleted because they have associated diamonds.`,
+            );
+        }
+
+        if (messages.length === 0) {
+            throw new BadRequestException('No diamond shapes were deleted.');
+        }
+
+        return {
+            deletedCount,
+            skippedCount,
+            message: messages.join(' '),
+        };
     }
 }

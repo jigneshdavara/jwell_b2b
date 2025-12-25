@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import Pagination from "@/components/ui/Pagination";
+import FlashMessage from "@/components/shared/FlashMessage";
 import { adminService } from "@/services/adminService";
 import { PaginationMeta, generatePaginationLinks } from "@/utils/pagination";
 
@@ -58,6 +59,7 @@ export default function AdminDiamondsPage() {
     const [loadingFilters, setLoadingFilters] = useState(false);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
     const [formState, setFormState] = useState({
         code: '',
@@ -354,8 +356,10 @@ export default function AdminDiamondsPage() {
 
             if (editingDiamond) {
                 await adminService.updateDiamond(editingDiamond.id, payload);
+                setFlashMessage({ type: 'success', message: 'Diamond updated successfully.' });
             } else {
                 await adminService.createDiamond(payload);
+                setFlashMessage({ type: 'success', message: 'Diamond created successfully.' });
             }
             resetForm();
             await loadDiamonds();
@@ -364,7 +368,7 @@ export default function AdminDiamondsPage() {
             if (error.response?.data?.errors) {
                 setFormErrors(error.response.data.errors);
             } else {
-                alert(error.response?.data?.message || 'Failed to save diamond. Please try again.');
+                setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to save diamond. Please try again.' });
             }
         } finally {
             setProcessing(false);
@@ -380,10 +384,12 @@ export default function AdminDiamondsPage() {
             try {
                 await adminService.deleteDiamond(deleteConfirm.id);
                 setDeleteConfirm(null);
+                setFlashMessage({ type: 'success', message: 'Diamond deleted successfully.' });
                 await loadDiamonds();
             } catch (error: any) {
                 console.error('Failed to delete diamond:', error);
-                alert(error.response?.data?.message || 'Failed to delete diamond. Please try again.');
+                setDeleteConfirm(null);
+                setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to delete diamond. Please try again.' });
             }
         }
     };
@@ -397,13 +403,16 @@ export default function AdminDiamondsPage() {
 
     const handleBulkDelete = async () => {
         try {
-            await adminService.bulkDeleteDiamonds(selectedDiamonds);
+            const response = await adminService.bulkDeleteDiamonds(selectedDiamonds);
             setSelectedDiamonds([]);
             setBulkDeleteConfirm(false);
+            const message = response.data?.message || `${selectedDiamonds.length} diamond(s) deleted successfully.`;
+            setFlashMessage({ type: 'success', message });
             await loadDiamonds();
         } catch (error: any) {
             console.error('Failed to delete diamonds:', error);
-            alert(error.response?.data?.message || 'Failed to delete diamonds. Please try again.');
+            setBulkDeleteConfirm(false);
+            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to delete diamonds. Please try again.' });
         }
     };
 
@@ -432,6 +441,13 @@ export default function AdminDiamondsPage() {
 
     return (
         <div className="space-y-8">
+            {flashMessage && (
+                <FlashMessage
+                    type={flashMessage.type}
+                    message={flashMessage.message}
+                    onClose={() => setFlashMessage(null)}
+                />
+            )}
             <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                 <div>
                     <h1 className="text-2xl font-semibold text-slate-900">Diamonds</h1>

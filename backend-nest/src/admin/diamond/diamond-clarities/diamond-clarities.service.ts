@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
     CreateDiamondClarityDto,
@@ -85,15 +89,81 @@ export class DiamondClaritiesService {
 
     async remove(id: number) {
         await this.findOne(id);
+
+        // Check if diamonds exist - if they do, prevent deletion
+        const diamondsCount = await this.prisma.diamonds.count({
+            where: { diamond_clarity_id: BigInt(id) },
+        });
+
+        if (diamondsCount > 0) {
+            throw new BadRequestException(
+                'Cannot delete diamond clarity because it has associated diamonds. Please remove all diamonds first.',
+            );
+        }
+
+        // If no diamonds exist, delete the clarity
         return await this.prisma.diamond_clarities.delete({
             where: { id: BigInt(id) },
         });
     }
 
     async bulkRemove(ids: number[]) {
-        const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.diamond_clarities.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
+        let deletedCount = 0;
+        let skippedCount = 0;
+
+        for (const id of ids) {
+            // Check if clarity exists
+            const clarity = await this.prisma.diamond_clarities.findUnique({
+                where: { id: BigInt(id) },
+            });
+
+            if (!clarity) {
+                continue;
+            }
+
+            // Check if diamonds exist - if they do, skip deletion
+            const diamondsCount = await this.prisma.diamonds.count({
+                where: { diamond_clarity_id: BigInt(id) },
+            });
+
+            if (diamondsCount > 0) {
+                skippedCount++;
+                continue;
+            }
+
+            // If no diamonds exist, delete the clarity
+            await this.prisma.diamond_clarities.delete({
+                where: { id: BigInt(id) },
+            });
+
+            deletedCount++;
+        }
+
+        const messages: string[] = [];
+
+        if (deletedCount > 0) {
+            const plural = deletedCount === 1 ? 'y' : 'ies';
+            messages.push(
+                `${deletedCount} diamond clarit${plural} deleted successfully.`,
+            );
+        }
+
+        if (skippedCount > 0) {
+            const plural = skippedCount === 1 ? 'y' : 'ies';
+            const verb = skippedCount === 1 ? 'it has' : 'they have';
+            messages.push(
+                `${skippedCount} diamond clarit${plural} could not be deleted because ${verb} associated diamonds.`,
+            );
+        }
+
+        if (messages.length === 0) {
+            throw new BadRequestException('No diamond clarities were deleted.');
+        }
+
+        return {
+            deletedCount,
+            skippedCount,
+            message: messages.join(' '),
+        };
     }
 }

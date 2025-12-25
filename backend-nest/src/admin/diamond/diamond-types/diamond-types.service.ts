@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
     CreateDiamondTypeDto,
@@ -73,15 +77,105 @@ export class DiamondTypesService {
 
     async remove(id: number) {
         await this.findOne(id);
-        return await this.prisma.diamond_types.delete({
+
+        // Check if diamonds exist - if they do, prevent deletion
+        const diamondsCount = await this.prisma.diamonds.count({
+            where: { diamond_type_id: BigInt(id) },
+        });
+
+        if (diamondsCount > 0) {
+            throw new BadRequestException(
+                'Cannot delete diamond type because it has associated diamonds. Please remove all diamonds first.',
+            );
+        }
+
+        // If no diamonds exist, cascade delete all related data
+        // Delete in order to respect foreign key constraints
+        await this.prisma.diamond_shape_sizes.deleteMany({
+            where: { diamond_type_id: BigInt(id) },
+        });
+        await this.prisma.diamond_shapes.deleteMany({
+            where: { diamond_type_id: BigInt(id) },
+        });
+        await this.prisma.diamond_clarities.deleteMany({
+            where: { diamond_type_id: BigInt(id) },
+        });
+        await this.prisma.diamond_colors.deleteMany({
+            where: { diamond_type_id: BigInt(id) },
+        });
+        await this.prisma.diamond_types.delete({
             where: { id: BigInt(id) },
         });
+
+        return { success: true };
     }
 
     async bulkRemove(ids: number[]) {
-        const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.diamond_types.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
+        let deletedCount = 0;
+        let skippedCount = 0;
+
+        for (const id of ids) {
+            // Check if type exists
+            const type = await this.prisma.diamond_types.findUnique({
+                where: { id: BigInt(id) },
+            });
+
+            if (!type) {
+                continue;
+            }
+
+            // Check if diamonds exist - if they do, skip deletion
+            const diamondsCount = await this.prisma.diamonds.count({
+                where: { diamond_type_id: BigInt(id) },
+            });
+
+            if (diamondsCount > 0) {
+                skippedCount++;
+                continue;
+            }
+
+            // If no diamonds exist, cascade delete all related data
+            await this.prisma.diamond_shape_sizes.deleteMany({
+                where: { diamond_type_id: BigInt(id) },
+            });
+            await this.prisma.diamond_shapes.deleteMany({
+                where: { diamond_type_id: BigInt(id) },
+            });
+            await this.prisma.diamond_clarities.deleteMany({
+                where: { diamond_type_id: BigInt(id) },
+            });
+            await this.prisma.diamond_colors.deleteMany({
+                where: { diamond_type_id: BigInt(id) },
+            });
+            await this.prisma.diamond_types.delete({
+                where: { id: BigInt(id) },
+            });
+
+            deletedCount++;
+        }
+
+        const messages: string[] = [];
+
+        if (deletedCount > 0) {
+            messages.push(
+                `${deletedCount} diamond type(s) and all related data deleted successfully.`,
+            );
+        }
+
+        if (skippedCount > 0) {
+            messages.push(
+                `${skippedCount} diamond type(s) could not be deleted because they have associated diamonds.`,
+            );
+        }
+
+        if (messages.length === 0) {
+            throw new BadRequestException('No diamond types were deleted.');
+        }
+
+        return {
+            deletedCount,
+            skippedCount,
+            message: messages.join(' '),
+        };
     }
 }

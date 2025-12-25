@@ -6,6 +6,7 @@ import { adminService } from '@/services/adminService';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
+import FlashMessage from '@/components/shared/FlashMessage';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type DiamondType = {
@@ -52,6 +53,7 @@ export default function AdminDiamondShapeSizesIndex() {
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondShapeSizeRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
     const [formData, setFormData] = useState({
         diamond_type_id: '' as string | number,
@@ -234,8 +236,10 @@ export default function AdminDiamondShapeSizesIndex() {
 
             if (editingSize) {
                 await adminService.updateDiamondShapeSize(editingSize.id, payload);
+                setFlashMessage({ type: 'success', message: 'Diamond shape size updated successfully.' });
             } else {
                 await adminService.createDiamondShapeSize(payload);
+                setFlashMessage({ type: 'success', message: 'Diamond shape size created successfully.' });
             }
             resetForm();
             await loadSizes();
@@ -244,7 +248,7 @@ export default function AdminDiamondShapeSizesIndex() {
             if (error.response?.data?.errors) {
                 setFormErrors(error.response.data.errors);
             } else {
-                alert(error.response?.data?.message || 'Failed to save diamond shape size. Please try again.');
+                setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to save diamond shape size. Please try again.' });
             }
         } finally {
             setProcessing(false);
@@ -260,10 +264,12 @@ export default function AdminDiamondShapeSizesIndex() {
             try {
                 await adminService.deleteDiamondShapeSize(deleteConfirm.id);
                 setDeleteConfirm(null);
+                setFlashMessage({ type: 'success', message: 'Diamond shape size deleted successfully.' });
                 await loadSizes();
             } catch (error: any) {
                 console.error('Failed to delete diamond shape size:', error);
-                alert(error.response?.data?.message || 'Failed to delete diamond shape size. Please try again.');
+                setDeleteConfirm(null);
+                setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to delete diamond shape size. Please try again.' });
             }
         }
     };
@@ -277,13 +283,16 @@ export default function AdminDiamondShapeSizesIndex() {
 
     const handleBulkDelete = async () => {
         try {
-            await adminService.bulkDeleteDiamondShapeSizes(selectedSizes);
+            const response = await adminService.bulkDeleteDiamondShapeSizes(selectedSizes);
             setSelectedSizes([]);
             setBulkDeleteConfirm(false);
+            const message = response.data?.message || `${selectedSizes.length} diamond shape size(s) deleted successfully.`;
+            setFlashMessage({ type: 'success', message });
             await loadSizes();
         } catch (error: any) {
             console.error('Failed to bulk delete diamond shape sizes:', error);
-            alert(error.response?.data?.message || 'Failed to delete diamond shape sizes. Please try again.');
+            setBulkDeleteConfirm(false);
+            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to delete diamond shape sizes. Please try again.' });
         }
     };
 
@@ -304,6 +313,13 @@ export default function AdminDiamondShapeSizesIndex() {
         <>
             <Head title="Diamond shape sizes" />
             <div className="space-y-8">
+                {flashMessage && (
+                    <FlashMessage
+                        type={flashMessage.type}
+                        message={flashMessage.message}
+                        onClose={() => setFlashMessage(null)}
+                    />
+                )}
                 <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div>
                         <h1 className="text-2xl font-semibold text-slate-900">Diamond shape sizes</h1>

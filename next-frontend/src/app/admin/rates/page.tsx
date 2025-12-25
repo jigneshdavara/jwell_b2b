@@ -499,7 +499,7 @@ export default function AdminRatesIndex() {
                             const availablePurities = metalPurities[metal] ?? [];
 
                             return (
-                                <div key={`${rate.purity}-${index}-${formUpdateKey}`} className="rounded-2xl border border-slate-200 p-4">
+                                <div key={`${metal}-${rate.purity}-${index}`} className="rounded-2xl border border-slate-200 p-4">
                                     <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
                                         <div className="flex flex-col gap-3">
                                             <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
@@ -632,7 +632,6 @@ export default function AdminRatesIndex() {
             formatCurrency,
             formatSourceLabel,
             metalPurities,
-            formUpdateKey,
             setRateField,
             removeRateRow,
             addRateRow,

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
     CreateDiamondShapeSizeDto,
@@ -110,15 +114,79 @@ export class DiamondShapeSizesService {
 
     async remove(id: number) {
         await this.findOne(id);
+
+        // Check if diamonds exist - if they do, prevent deletion
+        const diamondsCount = await this.prisma.diamonds.count({
+            where: { diamond_shape_size_id: BigInt(id) },
+        });
+
+        if (diamondsCount > 0) {
+            throw new BadRequestException(
+                'Cannot delete diamond shape size because it has associated diamonds. Please remove all diamonds first.',
+            );
+        }
+
+        // If no diamonds exist, delete the shape size
         return await this.prisma.diamond_shape_sizes.delete({
             where: { id: BigInt(id) },
         });
     }
 
     async bulkRemove(ids: number[]) {
-        const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.diamond_shape_sizes.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
+        let deletedCount = 0;
+        let skippedCount = 0;
+
+        for (const id of ids) {
+            // Check if shape size exists
+            const shapeSize = await this.prisma.diamond_shape_sizes.findUnique({
+                where: { id: BigInt(id) },
+            });
+
+            if (!shapeSize) {
+                continue;
+            }
+
+            // Check if diamonds exist - if they do, skip deletion
+            const diamondsCount = await this.prisma.diamonds.count({
+                where: { diamond_shape_size_id: BigInt(id) },
+            });
+
+            if (diamondsCount > 0) {
+                skippedCount++;
+                continue;
+            }
+
+            // If no diamonds exist, delete the shape size
+            await this.prisma.diamond_shape_sizes.delete({
+                where: { id: BigInt(id) },
+            });
+
+            deletedCount++;
+        }
+
+        const messages: string[] = [];
+
+        if (deletedCount > 0) {
+            const plural = deletedCount === 1 ? '' : 's';
+            messages.push(
+                `${deletedCount} diamond shape size${plural} deleted successfully.`,
+            );
+        }
+
+        if (skippedCount > 0) {
+            messages.push(
+                `${skippedCount} diamond shape size(s) could not be deleted because they have associated diamonds.`,
+            );
+        }
+
+        if (messages.length === 0) {
+            throw new BadRequestException('No diamond shape sizes were deleted.');
+        }
+
+        return {
+            deletedCount,
+            skippedCount,
+            message: messages.join(' '),
+        };
     }
 }
