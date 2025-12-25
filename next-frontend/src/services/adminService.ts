@@ -74,8 +74,9 @@ export const adminService = {
   async bulkDeleteCatalogs(ids: number[]) {
     return await apiClient.delete('/admin/catalogs/bulk', { data: { ids } });
   },
-  async getAssignProducts(catalogId: number) {
-    return await apiClient.get(`/admin/catalogs/${catalogId}/assign-products`);
+  async getAssignProducts(catalogId: number, search?: string) {
+    const params = search ? { search } : {};
+    return await apiClient.get(`/admin/catalogs/${catalogId}/assign-products`, { params });
   },
   async assignProducts(catalogId: number, productIds: number[]) {
     return await apiClient.post(`/admin/catalogs/${catalogId}/assign-products`, { product_ids: productIds });
@@ -137,6 +138,13 @@ export const adminService = {
   },
   async bulkDeleteUserGroups(ids: number[]) {
     return await apiClient.delete('/admin/user-groups/bulk', { data: { ids } });
+  },
+  async getAssignUsers(groupId: number, search?: string) {
+    const params = search ? { search } : {};
+    return await apiClient.get(`/admin/user-groups/${groupId}/assign-users`, { params });
+  },
+  async assignUsers(groupId: number, userIds: number[]) {
+    return await apiClient.post(`/admin/user-groups/${groupId}/assign-users`, { user_ids: userIds });
   },
 
   // User Types (formerly Customer Types)
@@ -608,6 +616,13 @@ export const adminService = {
   },
   async bulkDeleteAdminGroups(ids: number[]) {
     return await apiClient.delete('/admin/admin-groups/bulk', { data: { ids } });
+  },
+  async getAssignAdmins(groupId: number, search?: string) {
+    const params = search ? { search } : {};
+    return await apiClient.get(`/admin/admin-groups/${groupId}/assign-admins`, { params });
+  },
+  async assignAdmins(groupId: number, adminIds: number[]) {
+    return await apiClient.post(`/admin/admin-groups/${groupId}/assign-admins`, { admin_ids: adminIds });
   },
 
   // Products

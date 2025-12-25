@@ -136,4 +136,66 @@ export class AdminGroupsService {
     });
   }
 
+  async getAdminsForAssignment(id: number, search?: string) {
+    const group = await this.findOne(id);
+    const groupId = BigInt(id);
+
+    // Get admins currently in this group
+    const adminsInGroup = await this.prisma.admin.findMany({
+      where: { admin_group_id: groupId },
+      select: { id: true },
+    });
+    const selectedAdminIds = adminsInGroup.map((a) => a.id.toString());
+
+    // Get all admins (with optional search)
+    const admins = await this.prisma.admin.findMany({
+      where: search
+        ? {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { email: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {},
+      select: { id: true, name: true, email: true },
+      orderBy: { name: 'asc' },
+    });
+
+    return {
+      group: {
+        id: Number(group.id),
+        name: group.name,
+      },
+      admins: admins.map((admin) => ({
+        id: Number(admin.id),
+        name: admin.name,
+        email: admin.email,
+        selected: selectedAdminIds.includes(admin.id.toString()),
+      })),
+      selectedAdminIds: adminsInGroup.map((a) => Number(a.id)),
+    };
+  }
+
+  async assignAdmins(id: number, adminIds: number[]) {
+    const groupId = BigInt(id);
+    const bigIntAdminIds = adminIds.map((aid) => BigInt(aid));
+
+    // Update all selected admins to this group
+    await this.prisma.admin.updateMany({
+      where: { id: { in: bigIntAdminIds } },
+      data: { admin_group_id: groupId },
+    });
+
+    // Remove admins from this group if they're not in the selected list
+    await this.prisma.admin.updateMany({
+      where: {
+        admin_group_id: groupId,
+        id: { notIn: bigIntAdminIds },
+      },
+      data: { admin_group_id: null },
+    });
+
+    return { success: true };
+  }
+
 }

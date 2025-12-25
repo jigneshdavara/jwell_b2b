@@ -518,7 +518,20 @@ export default function AdminDiamondClaritiesIndex() {
                                             <input
                                                 type="number"
                                                 value={formData.display_order === '' || formData.display_order === undefined ? '' : formData.display_order}
-                                                onChange={(event) => setFormData({ ...formData, display_order: event.target.value === '' ? '' : Number(event.target.value) })}
+                                                onChange={(event) => {
+                                                    const value = event.target.value;
+                                                    setFormData({ ...formData, display_order: value === '' ? '' : Number(value) });
+                                                }}
+                                                onBlur={(e) => {
+                                                    if (e.target.value === '') {
+                                                        setFormData({ ...formData, display_order: 0 });
+                                                    }
+                                                }}
+                                                onFocus={(e) => {
+                                                    if (e.target.value === '0') {
+                                                        e.target.select();
+                                                    }
+                                                }}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                                 required

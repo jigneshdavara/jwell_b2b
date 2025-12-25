@@ -236,6 +236,7 @@ export default function OrderShowPage() {
   }
 
   return (
+    <>
     <div className="space-y-10">
         <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
           <div className="flex items-center justify-between">
@@ -842,6 +843,7 @@ export default function OrderShowPage() {
         </Modal>
       )}
     </div>
+    </>
   );
 }
 

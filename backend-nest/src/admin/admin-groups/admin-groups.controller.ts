@@ -15,6 +15,7 @@ import {
     CreateAdminGroupDto,
     UpdateAdminGroupDto,
     BulkDestroyDto,
+    AssignAdminsDto,
 } from './dto/admin-group.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
 
@@ -57,5 +58,21 @@ export class AdminGroupsController {
     @Delete(':id')
     remove(@Param('id', ParseIntPipe) id: number) {
         return this.adminGroupsService.remove(id);
+    }
+
+    @Get(':id/assign-admins')
+    getAdminsForAssignment(
+        @Param('id', ParseIntPipe) id: number,
+        @Query('search') search?: string,
+    ) {
+        return this.adminGroupsService.getAdminsForAssignment(id, search);
+    }
+
+    @Post(':id/assign-admins')
+    assignAdmins(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: AssignAdminsDto,
+    ) {
+        return this.adminGroupsService.assignAdmins(id, dto.admin_ids);
     }
 }

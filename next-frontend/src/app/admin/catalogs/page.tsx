@@ -1,12 +1,11 @@
 'use client';
 
 import { Head } from '@/components/Head';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { adminService } from '@/services/adminService';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
-import Link from 'next/link';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type CatalogRow = {
@@ -18,6 +17,13 @@ type CatalogRow = {
     display_order: number;
     products_count: number;
     product_ids?: number[];
+};
+
+type Product = {
+    id: number;
+    name: string;
+    sku: string;
+    selected: boolean;
 };
 
 
@@ -39,8 +45,16 @@ export default function AdminCatalogsIndex() {
         name: '',
         description: '',
         is_active: true,
-        display_order: 0,
+        display_order: 0 as number | '',
     });
+    // Assign Products Modal state
+    const [assignModalOpen, setAssignModalOpen] = useState(false);
+    const [assigningCatalog, setAssigningCatalog] = useState<CatalogRow | null>(null);
+    const [assignProducts, setAssignProducts] = useState<Product[]>([]);
+    const [assignSelectedIds, setAssignSelectedIds] = useState<number[]>([]);
+    const [assignSearchTerm, setAssignSearchTerm] = useState('');
+    const [assignLoading, setAssignLoading] = useState(false);
+    const [assignProcessing, setAssignProcessing] = useState(false);
 
     useEffect(() => {
         loadCatalogs();
@@ -195,6 +209,123 @@ export default function AdminCatalogsIndex() {
         }
     };
 
+    // Assign Products Modal functions
+    const openAssignModal = async (catalog: CatalogRow) => {
+        setAssigningCatalog(catalog);
+        setAssignSearchTerm('');
+        setAssignLoading(true);
+        setAssignModalOpen(true);
+        try {
+            const response = await adminService.getAssignProducts(catalog.id);
+            const data = response.data;
+            setAssignProducts(data.products || []);
+            setAssignSelectedIds(data.selectedProductIds || []);
+        } catch (error: any) {
+            console.error('Failed to load products:', error);
+            alert(error.response?.data?.message || 'Failed to load products. Please try again.');
+            setAssignModalOpen(false);
+        } finally {
+            setAssignLoading(false);
+        }
+    };
+
+    const closeAssignModal = () => {
+        setAssignModalOpen(false);
+        setAssigningCatalog(null);
+        setAssignProducts([]);
+        setAssignSelectedIds([]);
+        setAssignSearchTerm('');
+    };
+
+    const filteredAssignProducts = useMemo(() => {
+        if (!assignSearchTerm.trim()) {
+            return assignProducts;
+        }
+        const search = assignSearchTerm.toLowerCase();
+        return assignProducts.filter(
+            (product) =>
+                product.name.toLowerCase().includes(search) ||
+                product.sku.toLowerCase().includes(search)
+        );
+    }, [assignProducts, assignSearchTerm]);
+
+    const visibleSelectedCount = useMemo(() => {
+        return filteredAssignProducts.filter((p) => assignSelectedIds.includes(p.id)).length;
+    }, [filteredAssignProducts, assignSelectedIds]);
+
+    const allVisibleSelected = useMemo(() => {
+        if (filteredAssignProducts.length === 0) return false;
+        return filteredAssignProducts.every((p) => assignSelectedIds.includes(p.id));
+    }, [filteredAssignProducts, assignSelectedIds]);
+
+    const toggleAssignProduct = (productId: number) => {
+        setAssignSelectedIds((prev) =>
+            prev.includes(productId)
+                ? prev.filter((id) => id !== productId)
+                : [...prev, productId]
+        );
+    };
+
+    const selectAllVisible = () => {
+        const visibleIds = filteredAssignProducts.map((p) => p.id);
+        setAssignSelectedIds((prev) => {
+            const newIds = [...prev];
+            visibleIds.forEach((id) => {
+                if (!newIds.includes(id)) {
+                    newIds.push(id);
+                }
+            });
+            return newIds;
+        });
+    };
+
+    const deselectAllVisible = () => {
+        const visibleIds = filteredAssignProducts.map((p) => p.id);
+        setAssignSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    };
+
+    const handleAssignSearch = async () => {
+        if (!assigningCatalog) return;
+        setAssignLoading(true);
+        try {
+            const response = await adminService.getAssignProducts(assigningCatalog.id, assignSearchTerm);
+            const data = response.data;
+            setAssignProducts(data.products || []);
+            // Preserve selections
+            setAssignSelectedIds((prev) => {
+                const newIds = [...prev];
+                data.selectedProductIds?.forEach((id: number) => {
+                    if (!newIds.includes(id)) {
+                        newIds.push(id);
+                    }
+                });
+                return newIds;
+            });
+        } catch (error: any) {
+            console.error('Failed to search products:', error);
+            alert(error.response?.data?.message || 'Failed to search products. Please try again.');
+        } finally {
+            setAssignLoading(false);
+        }
+    };
+
+    const handleAssignSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!assigningCatalog) return;
+        
+        setAssignProcessing(true);
+        try {
+            await adminService.assignProducts(assigningCatalog.id, assignSelectedIds);
+            closeAssignModal();
+            await loadCatalogs();
+        } catch (error: any) {
+            console.error('Failed to assign products:', error);
+            alert(error.response?.data?.message || 'Failed to assign products. Please try again.');
+        } finally {
+            setAssignProcessing(false);
+        }
+    };
+
     return (
         <>
             <Head title="Catalogs" />
@@ -314,15 +445,16 @@ export default function AdminCatalogsIndex() {
                                             </td>
                                             <td className="px-5 py-3 text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <Link
-                                                        href={`/admin/catalogs/${catalog.id}/assign-products`}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openAssignModal(catalog)}
                                                         className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-sky-200 hover:text-sky-600"
                                                         title="Assign products"
                                                     >
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                                         </svg>
-                                                    </Link>
+                                                    </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => openEditModal(catalog)}
@@ -443,7 +575,20 @@ export default function AdminCatalogsIndex() {
                                                 <input
                                                     type="number"
                                                     value={formState.display_order}
-                                                    onChange={(e) => setFormState({ ...formState, display_order: e.target.value === '' ? 0 : Number(e.target.value) })}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        setFormState({ ...formState, display_order: value === '' ? '' : Number(value) });
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        if (e.target.value === '') {
+                                                            setFormState({ ...formState, display_order: 0 });
+                                                        }
+                                                    }}
+                                                    onFocus={(e) => {
+                                                        if (e.target.value === '0') {
+                                                            e.target.select();
+                                                        }
+                                                    }}
                                                     className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                     min={0}
                                                     required
@@ -498,6 +643,169 @@ export default function AdminCatalogsIndex() {
                     confirmText="Delete"
                     variant="danger"
                 />
+
+                {/* Assign Products Modal */}
+                <Modal show={assignModalOpen} onClose={closeAssignModal} maxWidth="6xl">
+                    <div className="flex min-h-0 flex-col">
+                        <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-xl font-semibold text-slate-900">
+                                        Assign products to {assigningCatalog?.name}!
+                                    </h2>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        Select one or more SKUs. Use filters to narrow the list, then save to sync assignments.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={closeAssignModal}
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                                    aria-label="Close modal"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                            <form onSubmit={handleAssignSubmit} className="space-y-4">
+                                {/* Search and Filters */}
+                                <div className="flex items-center gap-3">
+                                    <div className="flex-1">
+                                        <input
+                                            type="text"
+                                            value={assignSearchTerm}
+                                            onChange={(e) => setAssignSearchTerm(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleAssignSearch();
+                                                }
+                                            }}
+                                            placeholder="Search name or SKU..."
+                                            className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleAssignSearch}
+                                        disabled={assignLoading}
+                                        className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {assignLoading ? 'Searching...' : 'Search'}
+                                    </button>
+                                </div>
+
+                                {/* Select All / Deselect All */}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={selectAllVisible}
+                                            className="rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                        >
+                                            Select all visible
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={deselectAllVisible}
+                                            className="rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                        >
+                                            Deselect all visible
+                                        </button>
+                                    </div>
+                                    <div className="text-sm text-slate-600">
+                                        <span className="font-semibold">{visibleSelectedCount}</span> selected /{' '}
+                                        <span className="font-semibold">{filteredAssignProducts.length}</span> visible
+                                    </div>
+                                </div>
+
+                                {/* Products Table */}
+                                {assignLoading ? (
+                                    <div className="flex items-center justify-center py-16">
+                                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
+                                    </div>
+                                ) : (
+                                    <div className="overflow-hidden rounded-2xl border border-slate-200">
+                                        <table className="min-w-full divide-y divide-slate-200 text-sm">
+                                            <thead className="bg-slate-50 text-xs text-slate-500">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={allVisibleSelected}
+                                                            onChange={() => {
+                                                                if (allVisibleSelected) {
+                                                                    deselectAllVisible();
+                                                                } else {
+                                                                    selectAllVisible();
+                                                                }
+                                                            }}
+                                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                            aria-label="Select all visible products"
+                                                        />
+                                                    </th>
+                                                    <th className="px-4 py-3 text-left">Product</th>
+                                                    <th className="px-4 py-3 text-left">SKU</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 bg-white">
+                                                {filteredAssignProducts.map((product) => {
+                                                    const isSelected = assignSelectedIds.includes(product.id);
+                                                    return (
+                                                        <tr key={product.id} className="hover:bg-slate-50">
+                                                            <td className="px-4 py-3">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={() => toggleAssignProduct(product.id)}
+                                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                                    aria-label={`Select ${product.name}`}
+                                                                />
+                                                            </td>
+                                                            <td className="px-4 py-3 font-medium text-slate-900">
+                                                                {product.name}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-slate-600">{product.sku}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {filteredAssignProducts.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={3} className="px-4 py-6 text-center text-sm text-slate-500">
+                                                            No products found matching your search.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+
+                                {/* Action Buttons */}
+                                <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={closeAssignModal}
+                                        className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={assignProcessing}
+                                        className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {assignProcessing ? 'Saving...' : 'Save assignments'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </Modal>
             </div>
         </>
     );
