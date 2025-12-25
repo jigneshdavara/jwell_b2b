@@ -179,6 +179,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     const [actionType, setActionType] = useState<'approve' | 'reject' | 'request_confirmation' | ''>('');
     const [actionNotes, setActionNotes] = useState('');
     const [actionProcessing, setActionProcessing] = useState(false);
+    const [hasChanges, setHasChanges] = useState(false);
     
     // Messages state
     const [messageText, setMessageText] = useState('');
@@ -224,6 +225,8 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
             const response = await adminService.getQuotation(Number(resolvedParams.id));
             if (response.data) {
                 setQuotation(response.data);
+                // Update hasChanges based on status (like Laravel)
+                setHasChanges(response.data.status === 'pending_customer_confirmation');
             }
         } catch (error: any) {
             console.error('Failed to load quotation:', error);
@@ -279,6 +282,8 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                 await adminService.requestQuotationConfirmation(Number(resolvedParams.id), {
                     notes: actionNotes || undefined,
                 });
+                // Reset hasChanges after requesting confirmation
+                setHasChanges(false);
             }
             setActionType('');
             setActionNotes('');
@@ -530,7 +535,22 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
     // Auto-match variant for Change Product modal
     useEffect(() => {
-        if (!changeProductMetalId || !changeProductPurityId || !changeProductToneId) {
+        // Reset dependent fields when parent changes (like Laravel)
+        if (!changeProductMetalId) {
+            setChangeProductPurityId('');
+            setChangeProductToneId('');
+            setChangeProductSize('');
+            setChangeProductVariantId('');
+            return;
+        }
+        if (!changeProductPurityId) {
+            setChangeProductToneId('');
+            setChangeProductSize('');
+            setChangeProductVariantId('');
+            return;
+        }
+        if (!changeProductToneId) {
+            setChangeProductSize('');
             setChangeProductVariantId('');
             return;
         }
@@ -708,6 +728,9 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                 admin_notes: changeProductNotes || undefined,
             });
             closeChangeModal();
+            // Reset action type after product update
+            setActionType('');
+            setActionNotes('');
             await loadQuotation();
         } catch (error: any) {
             console.error('Failed to update product:', error);
@@ -1174,6 +1197,13 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                             <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
                                 <h2 className="mb-4 text-lg font-semibold text-slate-900">Actions</h2>
                                 
+                                {hasChanges && (
+                                    <div className="mb-4 rounded-xl border-2 border-amber-400 bg-amber-50 p-3">
+                                        <p className="text-sm font-semibold text-amber-800">Changes detected</p>
+                                        <p className="mt-1 text-xs text-amber-700">Product or quantity has been modified. Request customer confirmation to save changes.</p>
+                                    </div>
+                                )}
+                                
                                 <form onSubmit={handleAction} className="space-y-4">
                                     <div>
                                         <label className="mb-2 block text-sm font-semibold text-slate-700">Action</label>
@@ -1217,12 +1247,14 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                         className={`w-full rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg transition disabled:cursor-not-allowed disabled:opacity-70 ${
                                             actionType === 'approve' ? 'bg-emerald-600 shadow-emerald-600/30 hover:bg-emerald-500' :
                                             actionType === 'reject' ? 'bg-rose-600 shadow-rose-600/30 hover:bg-rose-500' :
+                                            hasChanges ? 'bg-amber-600 shadow-amber-600/30 hover:bg-amber-500' :
                                             'bg-sky-600 shadow-sky-600/30 hover:bg-sky-500'
                                         }`}
                                     >
                                         {actionProcessing ? 'Processing…' : 
                                          actionType === 'approve' ? 'Approve Quotation' :
                                          actionType === 'reject' ? 'Reject Quotation' :
+                                         hasChanges ? 'Request Confirmation (Changes Pending)' :
                                          'Request Confirmation'}
                                     </button>
                                 </form>
@@ -1429,9 +1461,6 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                 value={changeProductMetalId}
                                                 onChange={(e) => {
                                                     setChangeProductMetalId(Number(e.target.value) || '');
-                                                    setChangeProductPurityId('');
-                                                    setChangeProductToneId('');
-                                                    setChangeProductSize('');
                                                 }}
                                                 className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                             >
@@ -1451,8 +1480,6 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                     value={changeProductPurityId}
                                                     onChange={(e) => {
                                                         setChangeProductPurityId(Number(e.target.value) || '');
-                                                        setChangeProductToneId('');
-                                                        setChangeProductSize('');
                                                     }}
                                                     className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 >
@@ -1473,7 +1500,6 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                     value={changeProductToneId}
                                                     onChange={(e) => {
                                                         setChangeProductToneId(Number(e.target.value) || '');
-                                                        setChangeProductSize('');
                                                     }}
                                                     className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 >
