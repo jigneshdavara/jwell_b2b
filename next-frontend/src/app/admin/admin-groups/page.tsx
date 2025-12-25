@@ -62,6 +62,7 @@ export default function AdminAdminGroupsPage() {
 
     const [formState, setFormState] = useState({
         name: '',
+        code: '',
         description: '',
         is_active: true,
         display_order: 0 as number | '',
@@ -124,6 +125,7 @@ export default function AdminAdminGroupsPage() {
         setModalOpen(false);
         setFormState({
             name: '',
+            code: '',
             description: '',
             is_active: true,
             display_order: 0 as number | '',
@@ -140,6 +142,7 @@ export default function AdminAdminGroupsPage() {
         setEditingGroup(group);
         setFormState({
             name: group.name,
+            code: group.code || '',
             description: group.description ?? '',
             is_active: group.is_active,
             display_order: group.display_order || 0,
@@ -162,7 +165,7 @@ export default function AdminAdminGroupsPage() {
         setLoading(true);
 
         try {
-            // Auto-generate code from name (slugified and uppercased)
+            // Auto-generate code from name if empty (for new groups)
             const generateCode = (name: string) => {
                 return name
                     .toLowerCase()
@@ -171,9 +174,11 @@ export default function AdminAdminGroupsPage() {
                     .toUpperCase();
             };
 
+            const code = formState.code || generateCode(formState.name);
+
             const payload = {
                 name: formState.name,
-                code: generateCode(formState.name),
+                code: code,
                 description: formState.description || null,
                 is_active: formState.is_active,
                 display_order: Number(formState.display_order) || 0,
@@ -564,6 +569,16 @@ export default function AdminAdminGroupsPage() {
                                                 onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 required
+                                            />
+                                        </label>
+                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                            <span>Code</span>
+                                            <input
+                                                type="text"
+                                                value={formState.code}
+                                                onChange={(e) => setFormState(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                                                className="rounded-2xl border border-slate-300 px-4 py-2 font-mono text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                placeholder="e.g., ADMIN, MANAGER"
                                             />
                                         </label>
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
