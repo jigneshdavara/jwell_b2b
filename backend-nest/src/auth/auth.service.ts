@@ -207,6 +207,41 @@ export class AuthService {
         };
     }
 
+    async refreshToken(jwtPayload: any) {
+        // Get user data from database based on JWT payload
+        // JWT strategy returns userId (not sub), so use that
+        const userId = BigInt(jwtPayload.userId || jwtPayload.sub);
+        const guard = jwtPayload.guard || 'user';
+        
+        let user: any;
+        if (guard === 'admin') {
+            user = await this.prisma.admin.findUnique({
+                where: { id: userId },
+            });
+        } else {
+            user = await this.prisma.user.findUnique({
+                where: { id: userId },
+            });
+        }
+
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        // Generate new token with updated user data
+        const payload = {
+            email: user.email,
+            sub: user.id.toString(),
+            type: user.type,
+            guard: guard,
+            kyc_status: user.kyc_status,
+        };
+
+        return {
+            access_token: this.jwtService.sign(payload),
+        };
+    }
+
     async requestOtp(email: string) {
         const customer = await this.prisma.user.findUnique({
             where: { email },

@@ -41,12 +41,10 @@ export default function KycGuard({ children, user: providedUser, loading: provid
         // This prevents duplicate calls on initial load
         if (hasChecked.current && pathname && pathname !== '/onboarding/kyc' && !pathname.startsWith('/onboarding/kyc')) {
             // Fetch fresh user data to check latest KYC status (background refresh)
-            // This updates localStorage with latest data
             authService.me()
                 .then((response) => {
                     const freshUser = response.data;
                     setUser(freshUser);
-                    // localStorage is already updated in authService.me()
                     const isApproved = checkKycApproval(freshUser);
                     if (!isApproved) {
                         // Block rendering if not approved
@@ -85,26 +83,10 @@ export default function KycGuard({ children, user: providedUser, loading: provid
                 return;
             }
 
-            // If user is provided from parent, use it immediately (no localStorage check needed)
+            // If user is provided from parent, use it immediately
             if (providedUser !== undefined) {
                 currentUser = providedUser;
                 currentLoading = providedLoading ?? false;
-                
-                // Update localStorage atomically - both user and token together
-                if (currentUser) {
-                    // Preserve existing token if user object doesn't have one
-                    const existingToken = localStorage.getItem("auth_token");
-                    
-                    localStorage.setItem('user', JSON.stringify(currentUser));
-                    
-                    // Update token if provided in user object, otherwise preserve existing
-                    if (currentUser.access_token) {
-                        localStorage.setItem('auth_token', currentUser.access_token);
-                    } else if (existingToken) {
-                        // Preserve existing token to keep user and token in sync
-                        localStorage.setItem('auth_token', existingToken);
-                    }
-                }
                 
                 // If we have user data, we can check KYC immediately (don't wait for loading)
                 if (currentUser) {
@@ -116,46 +98,6 @@ export default function KycGuard({ children, user: providedUser, loading: provid
                 }
                 
                 // Continue to KYC check below (don't return early)
-            } else {
-                // No user provided - check localStorage for quick check (for approved users)
-                // This allows instant access without loader for approved users
-                try {
-                    const userStr = localStorage.getItem('user');
-                    if (userStr) {
-                        const cachedUser = JSON.parse(userStr);
-                        const isApproved = checkKycApproval(cachedUser);
-                        if (isApproved) {
-                            // KYC is approved - allow access immediately (no loader)
-                            setIsAllowed(true);
-                            hasChecked.current = true;
-                            setLoading(false); // Ensure loading is false
-                            
-                            // Fetch fresh user data in background, but don't block
-                            // Use a small delay to avoid race condition
-                            setTimeout(() => {
-                                authService.me()
-                                    .then((response) => {
-                                        const freshUser = response.data;
-                                        setUser(freshUser);
-                                        // localStorage is already updated in authService.me()
-                                        // Verify fresh data still shows approved
-                                        const freshApproved = checkKycApproval(freshUser);
-                                        if (!freshApproved) {
-                                            // If fresh data shows not approved, block access
-                                            setIsAllowed(false);
-                                            router.replace('/onboarding/kyc');
-                                        }
-                                    })
-                                    .catch(() => {
-                                        // Ignore errors - we already allowed access based on cache
-                                    });
-                            }, 100);
-                            return; // Exit early - no need to fetch if cache shows approved
-                        }
-                    }
-                } catch (e) {
-                    // If error, continue with normal check
-                }
             }
 
             // If we don't have user data yet, fetch it
@@ -168,11 +110,10 @@ export default function KycGuard({ children, user: providedUser, loading: provid
                 currentLoading = true;
                 setLoading(true);
                 try {
-                    // authService.me() always fetches fresh data and updates localStorage
+                    // authService.me() always fetches fresh data from API (no localStorage)
                     const response = await authService.me();
                     currentUser = response.data;
                     setUser(currentUser);
-                    // localStorage (user and auth_token) is already updated in authService.me()
                 } catch (e) {
                     // If not authenticated, let AuthenticatedLayout handle redirect
                     currentUser = null;

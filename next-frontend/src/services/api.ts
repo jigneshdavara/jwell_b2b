@@ -36,27 +36,8 @@ const apiClient = axios.create({
   paramsSerializer: paramsSerializer, // Use custom serializer function
 });
 
-// Helper function to check if KYC is approved
-const isKycApproved = (): boolean => {
-  if (typeof window === "undefined") return true; // Server-side, allow
-  
-  try {
-    const userStr = localStorage.getItem("user");
-    if (!userStr) return true; // No user, let auth handle it
-    
-    const user = JSON.parse(userStr);
-    const userType = (user?.type ?? "").toLowerCase();
-    const isCustomer = ["retailer", "wholesaler", "sales"].includes(userType);
-    
-    // Only enforce KYC for customers
-    if (!isCustomer) return true;
-    
-    const kycStatus = user?.kyc_status || user?.kycStatus;
-    return kycStatus === "approved";
-  } catch {
-    return true; // On error, allow (let backend handle)
-  }
-};
+// KYC check removed - backend will handle KYC validation
+// User data is no longer stored in localStorage, only token is stored
 
 // Helper function to check if endpoint is KYC-related (allowed)
 const isKycEndpoint = (url: string): boolean => {
@@ -69,33 +50,28 @@ const isKycEndpoint = (url: string): boolean => {
   return kycEndpoints.some((endpoint) => url.includes(endpoint));
 };
 
+// Import token service
+import { tokenService } from './tokenService';
+
 // Add request interceptor for tokens and KYC check
 apiClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("auth_token");
+      // Get token from token service
+      let token = tokenService.getToken();
+      
+      // If no token and not a public endpoint, try to refresh
+      if (!token && !isKycEndpoint(config.url || "")) {
+        token = await tokenService.refreshToken();
+      }
+      
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
       
       // Block API calls if KYC is not approved (except KYC endpoints)
-      if (!isKycEndpoint(config.url || "")) {
-        if (!isKycApproved()) {
-          // Reject the request with a clear error
-          return Promise.reject(
-            new axios.AxiosError(
-              "KYC approval required to access this resource.",
-              "KYC_REQUIRED",
-              config,
-              undefined,
-              {
-                status: 403,
-                statusText: "KYC approval required",
-              } as any
-            )
-          );
-        }
-      }
+      // Note: KYC check removed as user data is no longer in localStorage
+      // Backend will handle KYC validation
     }
     return config;
   },
@@ -104,11 +80,41 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle 403 KYC errors
+// Add response interceptor to handle token refresh and errors
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
-    // If backend returns 403 for KYC, redirect to KYC page
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    
+    // Handle 401 Unauthorized - token expired or invalid
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        // Try to refresh token
+        const newToken = await tokenService.refreshToken();
+        
+        if (newToken && originalRequest.headers) {
+          // Retry original request with new token
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return apiClient(originalRequest);
+        }
+      } catch (refreshError) {
+        // Refresh failed, redirect to login
+        if (typeof window !== "undefined") {
+          const currentPath = window.location.pathname;
+          const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
+          
+          if (!publicPaths.some(path => currentPath.startsWith(path))) {
+            tokenService.removeToken();
+            window.location.href = '/login';
+          }
+        }
+        return Promise.reject(refreshError);
+      }
+    }
+    
+    // Handle 403 Forbidden - KYC or other permission issues
     if (error.response?.status === 403 && typeof window !== "undefined") {
       const errorMessage = error.response?.data as any;
       if (
@@ -121,6 +127,7 @@ apiClient.interceptors.response.use(
         }
       }
     }
+    
     return Promise.reject(error);
   }
 );

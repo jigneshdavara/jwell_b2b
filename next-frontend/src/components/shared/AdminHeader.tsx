@@ -11,15 +11,14 @@ export const AdminHeader = () => {
   const [flash, setFlash] = useState<{ success?: string; error?: string } | null>(null);
 
   useEffect(() => {
-    // Load user from localStorage
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error('Failed to parse user data:', e);
-      }
-    }
+    // Fetch user from API (no localStorage)
+    authService.me()
+      .then((response) => {
+        setUser(response.data);
+      })
+      .catch(() => {
+        setUser(null);
+      });
 
     // Listen for flash messages (can be set via window events or context)
     const handleFlash = (event: CustomEvent) => {

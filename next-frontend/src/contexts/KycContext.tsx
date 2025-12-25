@@ -35,11 +35,10 @@ export function KycProvider({ children, initialUser, initialLoading }: { childre
             let currentUser = user;
             if (!currentUser) {
                 try {
-                    // authService.me() always fetches fresh data and updates localStorage
+                    // authService.me() always fetches fresh data from API (no localStorage)
                     const response = await authService.me();
                     currentUser = response.data;
                     setUser(currentUser);
-                    // localStorage (user and auth_token) is already updated in authService.me()
                 } catch (e) {
                     // If not authenticated, let auth guard handle it
                     currentUser = null;
@@ -94,21 +93,7 @@ export function KycProvider({ children, initialUser, initialLoading }: { childre
     useEffect(() => {
         if (initialUser !== undefined) {
             setUser(initialUser);
-            // Update localStorage atomically - both user and token together
-            if (initialUser) {
-                // Preserve existing token if user object doesn't have one
-                const existingToken = localStorage.getItem("auth_token");
-                
-                localStorage.setItem('user', JSON.stringify(initialUser));
-                
-                // Update token if provided in user object, otherwise preserve existing
-                if (initialUser.access_token) {
-                    localStorage.setItem('auth_token', initialUser.access_token);
-                } else if (existingToken) {
-                    // Preserve existing token to keep user and token in sync
-                    localStorage.setItem('auth_token', existingToken);
-                }
-            }
+            // No localStorage storage - user data is managed from token only
         }
     }, [initialUser]);
 

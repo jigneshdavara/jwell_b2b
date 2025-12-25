@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { authService } from '@/services/authService';
 
 /**
  * Global component that intercepts all link clicks and navigation
@@ -10,26 +11,33 @@ import { usePathname } from 'next/navigation';
  */
 export default function GlobalKycBlocker() {
   const pathname = usePathname();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Fetch user data from API
+    authService.me()
+      .then((response) => {
+        setUser(response.data);
+      })
+      .catch(() => {
+        // If not authenticated, let auth handle it
+        setUser(null);
+      });
+  }, []);
 
   useEffect(() => {
     // Helper to check if KYC is approved
     const isKycApproved = (): boolean => {
-      try {
-        const userStr = localStorage.getItem('user');
-        if (!userStr) return true; // No user, let auth handle it
+      if (!user) return true; // No user, let auth handle it
 
-        const user = JSON.parse(userStr);
-        const userType = (user?.type ?? '').toLowerCase();
-        const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
+      const userType = (user?.type ?? '').toLowerCase();
+      const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
 
-        // Only enforce KYC for customers
-        if (!isCustomer) return true;
+      // Only enforce KYC for customers
+      if (!isCustomer) return true;
 
-        const kycStatus = user?.kyc_status || user?.kycStatus;
-        return kycStatus === 'approved';
-      } catch {
-        return true; // On error, allow (let guard handle it)
-      }
+      const kycStatus = user?.kyc_status || user?.kycStatus;
+      return kycStatus === 'approved';
     };
 
     // Intercept all link clicks globally
@@ -91,7 +99,7 @@ export default function GlobalKycBlocker() {
       document.removeEventListener('click', handleLinkClick, true);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [pathname]);
+  }, [pathname, user]);
 
   return null; // This component doesn't render anything
 }

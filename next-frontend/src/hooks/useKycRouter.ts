@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter as useNextRouter } from 'next/navigation';
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
+import { authService } from '@/services/authService';
 
 /**
  * Custom router hook that respects KYC status
@@ -9,28 +10,32 @@ import { useCallback } from 'react';
  */
 export function useKycRouter() {
   const router = useNextRouter();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Fetch user data from API
+    authService.me()
+      .then((response) => {
+        setUser(response.data);
+      })
+      .catch(() => {
+        setUser(null);
+      });
+  }, []);
 
   // Helper to check if KYC is approved
   const isKycApproved = useCallback((): boolean => {
-    if (typeof window === 'undefined') return true;
+    if (!user) return true; // No user, let auth handle it
 
-    try {
-      const userStr = localStorage.getItem('user');
-      if (!userStr) return true; // No user, let auth handle it
+    const userType = (user?.type ?? '').toLowerCase();
+    const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
 
-      const user = JSON.parse(userStr);
-      const userType = (user?.type ?? '').toLowerCase();
-      const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
+    // Only enforce KYC for customers
+    if (!isCustomer) return true;
 
-      // Only enforce KYC for customers
-      if (!isCustomer) return true;
-
-      const kycStatus = user?.kyc_status || user?.kycStatus;
-      return kycStatus === 'approved';
-    } catch {
-      return true; // On error, allow (let guard handle it)
-    }
-  }, []);
+    const kycStatus = user?.kyc_status || user?.kycStatus;
+    return kycStatus === 'approved';
+  }, [user]);
 
   // Wrapped push that checks KYC
   const push = useCallback(
