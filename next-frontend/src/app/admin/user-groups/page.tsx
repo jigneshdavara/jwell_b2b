@@ -51,7 +51,7 @@ export default function AdminUserGroupsIndex() {
         name: '',
         description: '',
         is_active: true,
-        display_order: 0,
+        display_order: 0 as number | '',
     });
 
     useEffect(() => {
@@ -124,7 +124,7 @@ export default function AdminUserGroupsIndex() {
             name: '',
             description: '',
             is_active: true,
-            display_order: 0,
+            display_order: 0 as number | '',
         });
         setErrors({});
     };
@@ -140,7 +140,7 @@ export default function AdminUserGroupsIndex() {
             name: group.name,
             description: group.description ?? '',
             is_active: group.is_active,
-            display_order: group.display_order,
+            display_order: group.display_order || 0,
         });
         setModalOpen(true);
     };
@@ -169,7 +169,7 @@ export default function AdminUserGroupsIndex() {
                 code: code,
                 description: formState.description || null,
                 is_active: formState.is_active,
-                display_order: formState.display_order,
+                display_order: Number(formState.display_order) || 0,
             };
 
             if (editingGroup) {
@@ -631,7 +631,26 @@ export default function AdminUserGroupsIndex() {
                                             <input
                                                 type="number"
                                                 value={formState.display_order}
-                                                onChange={(event) => setFormState({ ...formState, display_order: Number(event.target.value) })}
+                                                onChange={(event) => {
+                                                    const value = event.target.value;
+                                                    setFormState({ 
+                                                        ...formState, 
+                                                        display_order: value === '' ? '' : Number(value) 
+                                                    });
+                                                }}
+                                                onBlur={(e) => {
+                                                    if (e.target.value === '') {
+                                                        setFormState({ 
+                                                            ...formState, 
+                                                            display_order: 0 
+                                                        });
+                                                    }
+                                                }}
+                                                onFocus={(e) => {
+                                                    if (e.target.value === '0') {
+                                                        e.target.select();
+                                                    }
+                                                }}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                             />

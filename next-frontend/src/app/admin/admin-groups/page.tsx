@@ -64,7 +64,7 @@ export default function AdminAdminGroupsPage() {
         name: '',
         description: '',
         is_active: true,
-        display_order: 0,
+        display_order: 0 as number | '',
         features: [] as string[],
     });
 
@@ -126,7 +126,7 @@ export default function AdminAdminGroupsPage() {
             name: '',
             description: '',
             is_active: true,
-            display_order: 0,
+            display_order: 0 as number | '',
             features: [],
         });
     };
@@ -142,7 +142,7 @@ export default function AdminAdminGroupsPage() {
             name: group.name,
             description: group.description ?? '',
             is_active: group.is_active,
-            display_order: group.display_order,
+            display_order: group.display_order || 0,
             features: (group as any).features || [],
         });
         setModalOpen(true);
@@ -176,7 +176,7 @@ export default function AdminAdminGroupsPage() {
                 code: generateCode(formState.name),
                 description: formState.description || null,
                 is_active: formState.is_active,
-                display_order: formState.display_order,
+                display_order: Number(formState.display_order) || 0,
                 features: formState.features,
             };
 
@@ -571,7 +571,26 @@ export default function AdminAdminGroupsPage() {
                                             <input
                                                 type="number"
                                                 value={formState.display_order}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, display_order: Number(e.target.value) }))}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    setFormState(prev => ({ 
+                                                        ...prev, 
+                                                        display_order: value === '' ? '' : Number(value) 
+                                                    }));
+                                                }}
+                                                onBlur={(e) => {
+                                                    if (e.target.value === '') {
+                                                        setFormState(prev => ({ 
+                                                            ...prev, 
+                                                            display_order: 0 
+                                                        }));
+                                                    }
+                                                }}
+                                                onFocus={(e) => {
+                                                    if (e.target.value === '0') {
+                                                        e.target.select();
+                                                    }
+                                                }}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                             />
