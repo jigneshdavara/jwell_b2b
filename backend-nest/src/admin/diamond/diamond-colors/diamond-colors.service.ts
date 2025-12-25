@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
     CreateDiamondColorDto,
@@ -93,15 +97,81 @@ export class DiamondColorsService {
 
     async remove(id: number) {
         await this.findOne(id);
+
+        // Check if diamonds exist - if they do, prevent deletion
+        const diamondsCount = await this.prisma.diamonds.count({
+            where: { diamond_color_id: BigInt(id) },
+        });
+
+        if (diamondsCount > 0) {
+            throw new BadRequestException(
+                'Cannot delete diamond color because it has associated diamonds. Please remove all diamonds first.',
+            );
+        }
+
+        // If no diamonds exist, delete the color
         return await this.prisma.diamond_colors.delete({
             where: { id: BigInt(id) },
         });
     }
 
     async bulkRemove(ids: number[]) {
-        const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.diamond_colors.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
+        let deletedCount = 0;
+        let skippedCount = 0;
+
+        for (const id of ids) {
+            // Check if color exists
+            const color = await this.prisma.diamond_colors.findUnique({
+                where: { id: BigInt(id) },
+            });
+
+            if (!color) {
+                continue;
+            }
+
+            // Check if diamonds exist - if they do, skip deletion
+            const diamondsCount = await this.prisma.diamonds.count({
+                where: { diamond_color_id: BigInt(id) },
+            });
+
+            if (diamondsCount > 0) {
+                skippedCount++;
+                continue;
+            }
+
+            // If no diamonds exist, delete the color
+            await this.prisma.diamond_colors.delete({
+                where: { id: BigInt(id) },
+            });
+
+            deletedCount++;
+        }
+
+        const messages: string[] = [];
+
+        if (deletedCount > 0) {
+            const plural = deletedCount === 1 ? '' : 's';
+            messages.push(
+                `${deletedCount} diamond color${plural} deleted successfully.`,
+            );
+        }
+
+        if (skippedCount > 0) {
+            const plural = skippedCount === 1 ? '' : 's';
+            const verb = skippedCount === 1 ? 'it has' : 'they have';
+            messages.push(
+                `${skippedCount} diamond color${plural} could not be deleted because ${verb} associated diamonds.`,
+            );
+        }
+
+        if (messages.length === 0) {
+            throw new BadRequestException('No diamond colors were deleted.');
+        }
+
+        return {
+            deletedCount,
+            skippedCount,
+            message: messages.join(' '),
+        };
     }
 }

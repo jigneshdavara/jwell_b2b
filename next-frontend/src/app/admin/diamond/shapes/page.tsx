@@ -6,6 +6,7 @@ import { adminService } from '@/services/adminService';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
+import FlashMessage from '@/components/shared/FlashMessage';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type DiamondType = {
@@ -41,6 +42,7 @@ export default function AdminDiamondShapesIndex() {
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondShapeRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
     const [formData, setFormData] = useState({
         diamond_type_id: '' as string | number,
@@ -196,8 +198,10 @@ export default function AdminDiamondShapesIndex() {
 
             if (editingShape) {
                 await adminService.updateDiamondShape(editingShape.id, payload);
+                setFlashMessage({ type: 'success', message: 'Diamond shape updated successfully.' });
             } else {
                 await adminService.createDiamondShape(payload);
+                setFlashMessage({ type: 'success', message: 'Diamond shape created successfully.' });
             }
             resetForm();
             await loadShapes();
@@ -206,7 +210,7 @@ export default function AdminDiamondShapesIndex() {
             if (error.response?.data?.errors) {
                 setFormErrors(error.response.data.errors);
             } else {
-                alert(error.response?.data?.message || 'Failed to save diamond shape. Please try again.');
+                setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to save diamond shape. Please try again.' });
             }
         } finally {
             setProcessing(false);
@@ -224,9 +228,10 @@ export default function AdminDiamondShapesIndex() {
                 display_order: shape.display_order,
             });
             await loadShapes();
+            setFlashMessage({ type: 'success', message: `Diamond shape ${!shape.is_active ? 'activated' : 'deactivated'} successfully.` });
         } catch (error: any) {
             console.error('Failed to toggle diamond shape status:', error);
-            alert(error.response?.data?.message || 'Failed to update diamond shape. Please try again.');
+            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to update diamond shape. Please try again.' });
         }
     };
 
@@ -239,10 +244,12 @@ export default function AdminDiamondShapesIndex() {
             try {
                 await adminService.deleteDiamondShape(deleteConfirm.id);
                 setDeleteConfirm(null);
+                setFlashMessage({ type: 'success', message: 'Diamond shape deleted successfully.' });
                 await loadShapes();
             } catch (error: any) {
                 console.error('Failed to delete diamond shape:', error);
-                alert(error.response?.data?.message || 'Failed to delete diamond shape. Please try again.');
+                setDeleteConfirm(null);
+                setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to delete diamond shape. Please try again.' });
             }
         }
     };
@@ -256,13 +263,16 @@ export default function AdminDiamondShapesIndex() {
 
     const handleBulkDelete = async () => {
         try {
-            await adminService.bulkDeleteDiamondShapes(selectedShapes);
+            const response = await adminService.bulkDeleteDiamondShapes(selectedShapes);
             setSelectedShapes([]);
             setBulkDeleteConfirm(false);
+            const message = response.data?.message || `${selectedShapes.length} diamond shape(s) deleted successfully.`;
+            setFlashMessage({ type: 'success', message });
             await loadShapes();
         } catch (error: any) {
             console.error('Failed to bulk delete diamond shapes:', error);
-            alert(error.response?.data?.message || 'Failed to delete diamond shapes. Please try again.');
+            setBulkDeleteConfirm(false);
+            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to delete diamond shapes. Please try again.' });
         }
     };
 
@@ -277,6 +287,13 @@ export default function AdminDiamondShapesIndex() {
         <>
             <Head title="Diamond shapes" />
             <div className="space-y-8">
+                {flashMessage && (
+                    <FlashMessage
+                        type={flashMessage.type}
+                        message={flashMessage.message}
+                        onClose={() => setFlashMessage(null)}
+                    />
+                )}
                 <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div>
                         <h1 className="text-2xl font-semibold text-slate-900">Diamond shapes</h1>

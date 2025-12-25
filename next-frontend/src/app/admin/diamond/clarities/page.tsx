@@ -6,6 +6,7 @@ import { adminService } from '@/services/adminService';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
+import FlashMessage from '@/components/shared/FlashMessage';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type DiamondType = {
@@ -41,6 +42,7 @@ export default function AdminDiamondClaritiesIndex() {
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondClarityRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
     const [formData, setFormData] = useState({
         diamond_type_id: '' as string | number,
@@ -196,8 +198,10 @@ export default function AdminDiamondClaritiesIndex() {
 
             if (editingClarity) {
                 await adminService.updateDiamondClarity(editingClarity.id, payload);
+                setFlashMessage({ type: 'success', message: 'Diamond clarity updated successfully.' });
             } else {
                 await adminService.createDiamondClarity(payload);
+                setFlashMessage({ type: 'success', message: 'Diamond clarity created successfully.' });
             }
             resetForm();
             await loadClarities();
@@ -206,7 +210,7 @@ export default function AdminDiamondClaritiesIndex() {
             if (error.response?.data?.errors) {
                 setFormErrors(error.response.data.errors);
             } else {
-                alert(error.response?.data?.message || 'Failed to save diamond clarity. Please try again.');
+                setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to save diamond clarity. Please try again.' });
             }
         } finally {
             setProcessing(false);
@@ -224,9 +228,10 @@ export default function AdminDiamondClaritiesIndex() {
                 display_order: clarity.display_order,
             });
             await loadClarities();
+            setFlashMessage({ type: 'success', message: `Diamond clarity ${!clarity.is_active ? 'activated' : 'deactivated'} successfully.` });
         } catch (error: any) {
             console.error('Failed to toggle diamond clarity status:', error);
-            alert(error.response?.data?.message || 'Failed to update diamond clarity. Please try again.');
+            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to update diamond clarity. Please try again.' });
         }
     };
 
@@ -239,10 +244,12 @@ export default function AdminDiamondClaritiesIndex() {
             try {
                 await adminService.deleteDiamondClarity(deleteConfirm.id);
                 setDeleteConfirm(null);
+                setFlashMessage({ type: 'success', message: 'Diamond clarity deleted successfully.' });
                 await loadClarities();
             } catch (error: any) {
                 console.error('Failed to delete diamond clarity:', error);
-                alert(error.response?.data?.message || 'Failed to delete diamond clarity. Please try again.');
+                setDeleteConfirm(null);
+                setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to delete diamond clarity. Please try again.' });
             }
         }
     };
@@ -256,13 +263,16 @@ export default function AdminDiamondClaritiesIndex() {
 
     const handleBulkDelete = async () => {
         try {
-            await adminService.bulkDeleteDiamondClarities(selectedClarities);
+            const response = await adminService.bulkDeleteDiamondClarities(selectedClarities);
             setSelectedClarities([]);
             setBulkDeleteConfirm(false);
+            const message = response.data?.message || `${selectedClarities.length} diamond clarit${selectedClarities.length === 1 ? 'y' : 'ies'} deleted successfully.`;
+            setFlashMessage({ type: 'success', message });
             await loadClarities();
         } catch (error: any) {
             console.error('Failed to bulk delete diamond clarities:', error);
-            alert(error.response?.data?.message || 'Failed to delete diamond clarities. Please try again.');
+            setBulkDeleteConfirm(false);
+            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to delete diamond clarities. Please try again.' });
         }
     };
 
@@ -277,6 +287,13 @@ export default function AdminDiamondClaritiesIndex() {
         <>
             <Head title="Diamond clarities" />
             <div className="space-y-8">
+                {flashMessage && (
+                    <FlashMessage
+                        type={flashMessage.type}
+                        message={flashMessage.message}
+                        onClose={() => setFlashMessage(null)}
+                    />
+                )}
                 <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div>
                         <h1 className="text-2xl font-semibold text-slate-900">Diamond clarities</h1>
