@@ -51,9 +51,14 @@ export default function Login() {
 
         try {
             const response = await authService.login(passwordData);
-            // Check user type and redirect accordingly
-            const user = response.data?.user || JSON.parse(localStorage.getItem('user') || '{}');
-            const userType = (user.type || '').toLowerCase();
+            
+            // Token is now stored in tokenService, refresh it to ensure it's valid
+            const { tokenService } = await import('@/services/tokenService');
+            await tokenService.refreshToken();
+            
+            // Get user data from response to determine redirect
+            const user = response.data?.user;
+            const userType = (user?.type || '').toLowerCase();
             
             if (['admin', 'super-admin'].includes(userType)) {
                 router.push(route('admin.dashboard'));
@@ -98,9 +103,14 @@ export default function Login() {
         
         try {
             const response = await authService.verifyOtp({ email: sharedEmail, code: otpVerifyData.code });
-            // Check user type and redirect accordingly
-            const user = response.data?.user || JSON.parse(localStorage.getItem('user') || '{}');
-            const userType = (user.type || '').toLowerCase();
+            
+            // Token is now stored in tokenService, refresh it to ensure it's valid
+            const { tokenService } = await import('@/services/tokenService');
+            await tokenService.refreshToken();
+            
+            // Get user data from response to determine redirect
+            const user = response.data?.user;
+            const userType = (user?.type || '').toLowerCase();
             
             if (['admin', 'super-admin'].includes(userType)) {
                 router.push(route('admin.dashboard'));

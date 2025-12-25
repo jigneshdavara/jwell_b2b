@@ -120,4 +120,11 @@ export class AuthController {
             confirmPasswordDto,
         );
     }
+
+    @Post('refresh-token')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async refreshToken(@Request() req: any) {
+        return this.authService.refreshToken(req.user);
+    }
 }

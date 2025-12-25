@@ -76,32 +76,22 @@ export default function HomeIndex() {
     }, []);
 
     useEffect(() => {
-        // Check authentication synchronously (like Laravel's Auth::check())
-        const checkAuth = () => {
+        // Check authentication - only check token (no user storage)
+        const checkAuth = async () => {
             if (typeof window === 'undefined') return false;
             
-            const token = localStorage.getItem('auth_token');
-            const savedUser = localStorage.getItem('user');
-            
-            if (token && savedUser) {
-                try {
-                    const user = JSON.parse(savedUser);
-                    if (user && user.id) {
-                        return true;
-                    }
-                } catch (e) {
-                    // Invalid user data
-                }
-            }
-            return false;
+            const { tokenService } = await import('@/services/tokenService');
+            return tokenService.hasToken();
         };
 
         // If authenticated, redirect immediately (like Laravel)
-        if (checkAuth()) {
-            setRedirecting(true);
-            router.push(route('dashboard'));
-            return;
-        }
+        checkAuth().then((isAuth) => {
+            if (isAuth) {
+                setRedirecting(true);
+                router.push(route('dashboard'));
+                return;
+            }
+        });
 
         // Load home page data for unauthenticated users
         const loadData = async () => {
