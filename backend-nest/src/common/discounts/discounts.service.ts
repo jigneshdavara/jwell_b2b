@@ -30,16 +30,18 @@ export class DiscountsService {
             context.line_subtotal || unitSubtotal * quantity,
         );
 
-        const globalDiscounts =
-            await this.prisma.making_charge_discounts.findMany({
-                where: {
-                    is_active: true,
-                    OR: [{ starts_at: null }, { starts_at: { lte: now } }],
-                    AND: [
-                        { OR: [{ ends_at: null }, { ends_at: { gte: now } }] },
-                    ],
-                },
-            });
+        const globalDiscounts = (await this.prisma.making_charge_discounts.findMany({
+            where: {
+                is_active: true,
+                OR: [{ starts_at: null }, { starts_at: { lte: now } }],
+                AND: [
+                    { OR: [{ ends_at: null }, { ends_at: { gte: now } }] },
+                ],
+            },
+        })) as Array<{
+            user_types?: any;
+            [key: string]: any;
+        }>;
 
         const candidates = globalDiscounts.filter((discount) => {
             if (!discount.is_auto) return false;
@@ -52,9 +54,10 @@ export class DiscountsService {
             )
                 return false;
 
+            const userTypesJson = discount.user_types as any;
             const allowedTypes = (
-                (discount.user_types as string[]) || []
-            ).map((t) => t.toLowerCase());
+                (Array.isArray(userTypesJson) ? userTypesJson : []) || []
+            ).map((t: string) => t.toLowerCase());
             if (allowedTypes.length > 0) {
                 if (!userType || !allowedTypes.includes(userType))
                     return false;
@@ -83,8 +86,9 @@ export class DiscountsService {
 
         const formattedCandidates = candidates.map((discount) => {
             let priority = 200;
+            const userTypesJson = discount.user_types as any;
             const hasUserTypes =
-                ((discount.user_types as string[]) || []).length > 0;
+                (Array.isArray(userTypesJson) ? userTypesJson : []).length > 0;
 
             if (hasUserTypes) {
                 priority = 280;
@@ -102,14 +106,14 @@ export class DiscountsService {
                     source: 'global',
                     name: discount.name,
                     priority,
-                    user_types: discount.user_types,
+                    user_types: (discount.user_types as any) || null,
                     meta: {
                         discount_id: discount.id.toString(),
                         brand_id: discount.brand_id?.toString(),
                         category_id: discount.category_id?.toString(),
                         user_group_id:
                             discount.user_group_id?.toString(),
-                        user_types: discount.user_types,
+                        user_types: (discount.user_types as any) || null,
                         min_cart_total: discount.min_cart_total?.toNumber(),
                     },
                 },

@@ -22,41 +22,66 @@ const statusMessages: Record<string, string> = {
     kyc_pending: 'Your KYC documents are under review. We will notify you as soon as the verification is complete.',
 };
 
-export default function FlashMessage({ flash }: { flash?: Record<string, string | null> }) {
-    const [message, setMessage] = useState<{ type: keyof typeof variants; text: string } | null>(null);
+interface FlashMessageProps {
+    flash?: Record<string, string | null>;
+    type?: 'success' | 'error' | 'info';
+    message?: string;
+    onClose?: () => void;
+}
+
+export default function FlashMessage({ flash, type, message, onClose }: FlashMessageProps) {
+    const [displayMessage, setDisplayMessage] = useState<{ type: keyof typeof variants; text: string } | null>(null);
 
     useEffect(() => {
+        // If direct type and message props are provided, use those
+        if (type && message) {
+            setDisplayMessage({ type, text: message });
+            return;
+        }
+
+        // Otherwise, use flash prop
         if (!flash) {
-            setMessage(null);
+            setDisplayMessage(null);
             return;
         }
 
         if (flash.error) {
-            setMessage({ type: 'error', text: flash.error });
+            setDisplayMessage({ type: 'error', text: flash.error });
         } else if (flash.success) {
-            setMessage({ type: 'success', text: flash.success });
+            setDisplayMessage({ type: 'success', text: flash.success });
         } else if (flash.info) {
-            setMessage({ type: 'info', text: flash.info });
+            setDisplayMessage({ type: 'info', text: flash.info });
         } else if (flash.status) {
             const statusKey = String(flash.status).trim();
             const statusText = statusMessages[statusKey] ?? statusKey;
-            setMessage({ type: 'info', text: statusText });
+            setDisplayMessage({ type: 'info', text: statusText });
         } else {
-            setMessage(null);
+            setDisplayMessage(null);
         }
-    }, [flash]);
+    }, [flash, type, message]);
 
-    if (!message) {
+    if (!displayMessage) {
         return null;
     }
 
-    const variant = variants[message.type];
+    const variant = variants[displayMessage.type];
 
     return (
         <div
             className={`mb-6 rounded-2xl border ${variant.bg} ${variant.border} ${variant.text} px-4 py-3 text-sm shadow-sm transition`}
         >
-            {message.text}
+            <div className="flex items-center justify-between">
+                <span>{displayMessage.text}</span>
+                {onClose && (
+                    <button
+                        onClick={onClose}
+                        className="ml-4 text-current opacity-70 hover:opacity-100"
+                        aria-label="Close"
+                    >
+                        ×
+                    </button>
+                )}
+            </div>
         </div>
     );
 }

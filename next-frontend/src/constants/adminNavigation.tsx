@@ -31,7 +31,7 @@ export const adminNavigation: NavItem[] = [
         children: [
             { label: 'User list', href: '/admin/users', match: '/admin/users*' },
             { label: 'User groups', href: '/admin/user-groups', match: '/admin/user-groups*' },
-            { label: 'User types', href: '/admin/user-types', match: '/admin/user-types*' },
+            // { label: 'User types', href: '/admin/user-types', match: '/admin/user-types*' },
         ],
     },
     {
