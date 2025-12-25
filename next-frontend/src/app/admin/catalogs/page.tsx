@@ -45,7 +45,7 @@ export default function AdminCatalogsIndex() {
         name: '',
         description: '',
         is_active: true,
-        display_order: 0,
+        display_order: 0 as number | '',
     });
     // Assign Products Modal state
     const [assignModalOpen, setAssignModalOpen] = useState(false);
@@ -575,7 +575,20 @@ export default function AdminCatalogsIndex() {
                                                 <input
                                                     type="number"
                                                     value={formState.display_order}
-                                                    onChange={(e) => setFormState({ ...formState, display_order: e.target.value === '' ? 0 : Number(e.target.value) })}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        setFormState({ ...formState, display_order: value === '' ? '' : Number(value) });
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        if (e.target.value === '') {
+                                                            setFormState({ ...formState, display_order: 0 });
+                                                        }
+                                                    }}
+                                                    onFocus={(e) => {
+                                                        if (e.target.value === '0') {
+                                                            e.target.select();
+                                                        }
+                                                    }}
                                                     className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                     min={0}
                                                     required

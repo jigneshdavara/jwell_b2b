@@ -729,7 +729,20 @@ export default function AdminCategoriesPage() {
                                             <input
                                                 type="number"
                                                 value={formState.display_order}
-                                                onChange={(e) => setFormState(prev => ({ ...prev, display_order: Number(e.target.value) }))}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    setFormState(prev => ({ ...prev, display_order: value === '' ? '' : Number(value) }));
+                                                }}
+                                                onBlur={(e) => {
+                                                    if (e.target.value === '') {
+                                                        setFormState(prev => ({ ...prev, display_order: 0 }));
+                                                    }
+                                                }}
+                                                onFocus={(e) => {
+                                                    if (e.target.value === '0') {
+                                                        e.target.select();
+                                                    }
+                                                }}
                                                 className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                 min={0}
                                             />
