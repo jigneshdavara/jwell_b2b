@@ -4,10 +4,7 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-    CreateUserGroupDto,
-    UpdateUserGroupDto,
-} from './dto/user-group.dto';
+import { CreateUserGroupDto, UpdateUserGroupDto } from './dto/user-group.dto';
 
 @Injectable()
 export class UserGroupsService {
@@ -127,5 +124,67 @@ export class UserGroupsService {
         return await this.prisma.user_groups.deleteMany({
             where: { id: { in: bigIntIds } },
         });
+    }
+
+    async getUsersForAssignment(id: number, search?: string) {
+        const group = await this.findOne(id);
+        const groupId = BigInt(id);
+
+        // Get users currently in this group
+        const usersInGroup = await this.prisma.user.findMany({
+            where: { user_group_id: groupId },
+            select: { id: true },
+        });
+        const selectedUserIds = usersInGroup.map((u) => u.id.toString());
+
+        // Get all users (with optional search)
+        const users = await this.prisma.user.findMany({
+            where: search
+                ? {
+                      OR: [
+                          { name: { contains: search, mode: 'insensitive' } },
+                          { email: { contains: search, mode: 'insensitive' } },
+                      ],
+                  }
+                : {},
+            select: { id: true, name: true, email: true },
+            orderBy: { name: 'asc' },
+        });
+
+        return {
+            group: {
+                id: Number(group.id),
+                name: group.name,
+            },
+            users: users.map((user) => ({
+                id: Number(user.id),
+                name: user.name,
+                email: user.email,
+                selected: selectedUserIds.includes(user.id.toString()),
+            })),
+            selectedUserIds: usersInGroup.map((u) => Number(u.id)),
+        };
+    }
+
+    async assignUsers(id: number, userIds: number[]) {
+        const groupId = BigInt(id);
+        const bigIntUserIds = userIds.map((uid) => BigInt(uid));
+
+        // Update all selected users to this group
+        await this.prisma.user.updateMany({
+            where: { id: { in: bigIntUserIds } },
+            data: { user_group_id: groupId },
+        });
+
+        // Remove users from this group if they're not in the selected list
+        await this.prisma.user.updateMany({
+            where: {
+                user_group_id: groupId,
+                id: { notIn: bigIntUserIds },
+            },
+            data: { user_group_id: null },
+        });
+
+        return { success: true };
     }
 }

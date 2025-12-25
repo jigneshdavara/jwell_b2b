@@ -15,6 +15,7 @@ import {
     CreateUserGroupDto,
     UpdateUserGroupDto,
     BulkDestroyDto,
+    AssignUsersDto,
 } from './dto/user-group.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
 
@@ -59,5 +60,21 @@ export class UserGroupsController {
     @Delete(':id')
     remove(@Param('id', ParseIntPipe) id: number) {
         return this.userGroupsService.remove(id);
+    }
+
+    @Get(':id/assign-users')
+    getUsersForAssignment(
+        @Param('id', ParseIntPipe) id: number,
+        @Query('search') search?: string,
+    ) {
+        return this.userGroupsService.getUsersForAssignment(id, search);
+    }
+
+    @Post(':id/assign-users')
+    assignUsers(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: AssignUsersDto,
+    ) {
+        return this.userGroupsService.assignUsers(id, dto.user_ids);
     }
 }

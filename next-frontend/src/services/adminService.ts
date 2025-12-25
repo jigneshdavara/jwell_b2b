@@ -139,6 +139,13 @@ export const adminService = {
   async bulkDeleteUserGroups(ids: number[]) {
     return await apiClient.delete('/admin/user-groups/bulk', { data: { ids } });
   },
+  async getAssignUsers(groupId: number, search?: string) {
+    const params = search ? { search } : {};
+    return await apiClient.get(`/admin/user-groups/${groupId}/assign-users`, { params });
+  },
+  async assignUsers(groupId: number, userIds: number[]) {
+    return await apiClient.post(`/admin/user-groups/${groupId}/assign-users`, { user_ids: userIds });
+  },
 
   // User Types (formerly Customer Types)
   async getUserTypes(page = 1, perPage = 20) {
