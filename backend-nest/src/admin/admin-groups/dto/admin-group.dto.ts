@@ -71,3 +71,8 @@ export class BulkDestroyDto {
     @IsInt({ each: true })
     ids: number[];
 }
+
+export class AssignAdminsDto {
+    @IsInt({ each: true })
+    admin_ids: number[];
+}

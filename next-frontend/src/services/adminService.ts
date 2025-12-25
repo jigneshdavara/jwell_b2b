@@ -617,6 +617,13 @@ export const adminService = {
   async bulkDeleteAdminGroups(ids: number[]) {
     return await apiClient.delete('/admin/admin-groups/bulk', { data: { ids } });
   },
+  async getAssignAdmins(groupId: number, search?: string) {
+    const params = search ? { search } : {};
+    return await apiClient.get(`/admin/admin-groups/${groupId}/assign-admins`, { params });
+  },
+  async assignAdmins(groupId: number, adminIds: number[]) {
+    return await apiClient.post(`/admin/admin-groups/${groupId}/assign-admins`, { admin_ids: adminIds });
+  },
 
   // Products
   async getProducts(filters?: { page?: number; per_page?: number; search?: string; status?: string; brand_id?: number; category_id?: number }) {
