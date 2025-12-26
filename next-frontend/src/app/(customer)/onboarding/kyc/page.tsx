@@ -7,6 +7,7 @@ import { route } from '@/utils/route';
 import InputError from '@/components/ui/InputError';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { checkKycStatus, fetchKycDocuments } from '@/store/slices/kycSlice';
+import { toastSuccess, toastError } from '@/utils/toast';
 import type { KycDocument, KycProfile, ConversationMessage, KycUser } from '@/types';
 
 const statusLabels: Record<string, { title: string; description: string; badge: string }> = {
@@ -41,7 +42,7 @@ export default function KycOnboardingPage() {
     const [messages, setMessages] = useState<ConversationMessage[]>([]);
     const [documentTypes, setDocumentTypes] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
-    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    // Toast notifications are handled via RTK
     
     const [profileData, setProfileData] = useState<KycProfile>({});
     const [documentType, setDocumentType] = useState('gst_certificate');
@@ -122,8 +123,7 @@ export default function KycOnboardingPage() {
             // Only show error if it's not a 403 (KYC not approved) or 401 (unauthorized)
             // These are handled by guards/middleware, don't show error on refresh
             if (e.response?.status !== 403 && e.response?.status !== 401) {
-                setFlashMessage({ type: 'error', message: e.response?.data?.message || 'Failed to load KYC data' });
-                setTimeout(() => setFlashMessage(null), 5000);
+                toastError(e.response?.data?.message || 'Failed to load KYC data');
             }
         } finally {
             setLoading(false);
@@ -140,8 +140,7 @@ export default function KycOnboardingPage() {
         setErrors({});
         try {
             await kycService.updateProfile(profileData);
-            setFlashMessage({ type: 'success', message: 'Profile updated successfully' });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastSuccess('Profile updated successfully');
             await fetchData();
             // Refresh KYC state in RTK
             dispatch(checkKycStatus());
@@ -150,8 +149,7 @@ export default function KycOnboardingPage() {
             if (errorData?.errors) {
                 setErrors(errorData.errors);
             } else {
-                setFlashMessage({ type: 'error', message: errorData?.message || 'Failed to update profile' });
-                setTimeout(() => setFlashMessage(null), 5000);
+                toastError(errorData?.message || 'Failed to update profile');
             }
         } finally {
             setProcessing(false);
@@ -168,8 +166,7 @@ export default function KycOnboardingPage() {
             setDocumentFile(null);
             const input = document.getElementById('document_file') as HTMLInputElement;
             if (input) input.value = '';
-            setFlashMessage({ type: 'success', message: 'Document uploaded successfully' });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastSuccess('Document uploaded successfully');
             await fetchData();
             // Refresh KYC state in RTK
             dispatch(checkKycStatus());
@@ -178,8 +175,7 @@ export default function KycOnboardingPage() {
             if (errorData?.errors) {
                 setErrors(errorData.errors);
             } else {
-                setFlashMessage({ type: 'error', message: errorData?.message || 'Failed to upload document' });
-                setTimeout(() => setFlashMessage(null), 5000);
+                toastError(errorData?.message || 'Failed to upload document');
             }
         } finally {
             setProcessing(false);
@@ -193,15 +189,13 @@ export default function KycOnboardingPage() {
         try {
             await kycService.addMessage(newMessage);
             setNewMessage('');
-            setFlashMessage({ type: 'success', message: 'Message sent successfully' });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastSuccess('Message sent successfully');
             await fetchData();
             // Refresh KYC state in RTK
             dispatch(checkKycStatus());
         } catch (e: any) {
             console.error('Failed to send message:', e);
-            setFlashMessage({ type: 'error', message: e.response?.data?.message || 'Failed to send message' });
-            setTimeout(() => setFlashMessage(null), 5000);
+            toastError(e.response?.data?.message || 'Failed to send message');
         } finally {
             setProcessing(false);
         }
@@ -211,15 +205,13 @@ export default function KycOnboardingPage() {
         if (!confirm('Are you sure you want to delete this document?')) return;
         try {
             await kycService.deleteDocument(Number(documentId));
-            setFlashMessage({ type: 'success', message: 'Document deleted successfully' });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastSuccess('Document deleted successfully');
             await fetchData();
             // Refresh KYC state in RTK
             dispatch(checkKycStatus());
         } catch (e: any) {
             console.error('Failed to delete document:', e);
-            setFlashMessage({ type: 'error', message: e.response?.data?.message || 'Failed to delete document' });
-            setTimeout(() => setFlashMessage(null), 5000);
+            toastError(e.response?.data?.message || 'Failed to delete document');
         }
     };
 
@@ -253,38 +245,6 @@ export default function KycOnboardingPage() {
 
     return (
         <div className="space-y-8">
-            {flashMessage && (
-                <div
-                    className={`rounded-2xl border px-4 py-3 text-sm shadow-sm transition ${
-                        flashMessage.type === 'success'
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                            : 'bg-rose-50 border-rose-200 text-rose-900'
-                    }`}
-                >
-                    <div className="flex items-center justify-between">
-                        <p className="font-medium">{flashMessage.message}</p>
-                        <button
-                            onClick={() => setFlashMessage(null)}
-                            className="ml-4 text-current opacity-70 hover:opacity-100"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                                className="h-4 w-4"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M6 18L18 6M6 6l12 12"
-                                />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            )}
 
             <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 p-8 text-white shadow-2xl">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.25),_transparent_40%),_radial-gradient(circle_at_bottom_right,_rgba(249,115,22,0.25),_transparent_45%)]" />

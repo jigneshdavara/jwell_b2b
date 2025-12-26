@@ -7,6 +7,7 @@ import { useAppDispatch } from "@/store/hooks";
 import { fetchWishlist as fetchWishlistThunk, removeProductId as removeProductIdAction } from "@/store/slices/wishlistSlice";
 import { fetchCart as fetchCartThunk } from "@/store/slices/cartSlice";
 import { route } from "@/utils/route";
+import { toastSuccess, toastError } from "@/utils/toast";
 import type { WishlistItem } from "@/types";
 
 export default function WishlistPage() {
@@ -17,7 +18,7 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyItems, setBusyItems] = useState<Set<string | number>>(new Set());
-  const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  // Toast notifications are handled via RTK
 
   // Helper function to get media URL (matching catalog page implementation)
   const getMediaUrl = useCallback((url: string | null | undefined): string | null => {
@@ -114,15 +115,10 @@ export default function WishlistPage() {
       // Refresh wishlist count
       refreshWishlist();
       
-      setFlashMessage({ type: 'success', message: 'Removed from wishlist.' });
-      setTimeout(() => setFlashMessage(null), 3000);
+      toastSuccess('Removed from wishlist.');
     } catch (err: any) {
       console.error('Error removing item:', err);
-      setFlashMessage({ 
-        type: 'error', 
-        message: err.response?.data?.message || 'Failed to remove item. Please try again.' 
-      });
-      setTimeout(() => setFlashMessage(null), 3000);
+      toastError(err.response?.data?.message || 'Failed to remove item. Please try again.');
     } finally {
       setBusyItems(prev => {
         const newSet = new Set(prev);
@@ -165,15 +161,10 @@ export default function WishlistPage() {
       // Refresh cart count (item was moved to cart)
       refreshCart();
       
-      setFlashMessage({ type: 'success', message: 'Moved to your quotation list.' });
-      setTimeout(() => setFlashMessage(null), 3000);
+      toastSuccess('Moved to your quotation list.');
     } catch (err: any) {
       console.error('Error moving to cart:', err);
-      setFlashMessage({ 
-        type: 'error', 
-        message: err.response?.data?.message || 'Failed to move item to cart. Please try again.' 
-      });
-      setTimeout(() => setFlashMessage(null), 3000);
+      toastError(err.response?.data?.message || 'Failed to move item to cart. Please try again.');
     } finally {
       setBusyItems(prev => {
         const newSet = new Set(prev);
@@ -195,38 +186,6 @@ export default function WishlistPage() {
 
   return (
       <div className="space-y-10">
-        {flashMessage && (
-          <div
-            className={`rounded-lg border p-4 ${
-              flashMessage.type === 'success'
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                : 'bg-rose-50 border-rose-200 text-rose-900'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">{flashMessage.message}</p>
-              <button
-                onClick={() => setFlashMessage(null)}
-                className="ml-4 text-current opacity-70 hover:opacity-100"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  className="h-4 w-4"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
 
         <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

@@ -11,6 +11,7 @@ import { frontendService } from '@/services/frontendService';
 import { useAppDispatch } from '@/store/hooks';
 import { fetchCart as fetchCartThunk } from '@/store/slices/cartSlice';
 import { PaginationMeta } from '@/utils/pagination';
+import { toastSuccess, toastError } from '@/utils/toast';
 import type { CartItem, CartData } from '@/types';
 
 const currencyFormatter = (currency: string) =>
@@ -48,7 +49,7 @@ export default function CartPage() {
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
     const [cartComment, setCartComment] = useState('');
-    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    // Toast notifications are handled via RTK
 
     const loadCartData = async () => {
         setLoading(true);
@@ -328,15 +329,10 @@ export default function CartPage() {
             await frontendService.removeCartItem(item.id);
             await loadCartData(); // Refresh cart
             await refreshCart(); // Update cart count in navbar
-            setFlashMessage({ type: 'success', message: 'Removed from your purchase list.' });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastSuccess('Removed from your purchase list.');
         } catch (err: any) {
             console.error('Failed to remove item:', err);
-            setFlashMessage({ 
-                type: 'error', 
-                message: err.response?.data?.message || 'Failed to remove item. Please try again.' 
-            });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastError(err.response?.data?.message || 'Failed to remove item. Please try again.');
         }
     };
 
@@ -347,15 +343,10 @@ export default function CartPage() {
             });
             await loadCartData(); // Refresh cart
             setNotesModalOpen(null);
-            setFlashMessage({ type: 'success', message: 'Updated quotation entry.' });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastSuccess('Updated quotation entry.');
         } catch (err: any) {
             console.error('Failed to save notes:', err);
-            setFlashMessage({ 
-                type: 'error', 
-                message: err.response?.data?.message || 'Failed to save notes. Please try again.' 
-            });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastError(err.response?.data?.message || 'Failed to save notes. Please try again.');
         }
     };
 
@@ -465,11 +456,7 @@ export default function CartPage() {
                     setInventoryErrors(errors);
                 } else {
                     // Other errors show as flash message
-                    setFlashMessage({ 
-                        type: 'error', 
-                        message: errorMessage
-                    });
-                    setTimeout(() => setFlashMessage(null), 3000);
+                    toastError(errorMessage);
                 }
             } else if (err.response?.data?.quantity) {
                 // Handle quantity validation errors (if backend returns in quantity field)
@@ -479,11 +466,7 @@ export default function CartPage() {
                 setInventoryErrors(quantityErrors);
             } else {
                 // Generic error
-                setFlashMessage({ 
-                    type: 'error', 
-                    message: 'Failed to submit quotations. Please try again.' 
-                });
-                setTimeout(() => setFlashMessage(null), 3000);
+                toastError('Failed to submit quotations. Please try again.');
             }
         } finally {
             setSubmitting(false);
@@ -502,38 +485,6 @@ export default function CartPage() {
 
     return (
         <>
-            {flashMessage && (
-                <div
-                    className={`mb-6 rounded-2xl border px-4 py-3 text-sm shadow-sm transition ${
-                        flashMessage.type === 'success'
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                            : 'bg-rose-50 border-rose-200 text-rose-900'
-                    }`}
-                >
-                    <div className="flex items-center justify-between">
-                        <p className="font-medium">{flashMessage.message}</p>
-                        <button
-                            onClick={() => setFlashMessage(null)}
-                            className="ml-4 text-current opacity-70 hover:opacity-100"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                                className="h-4 w-4"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M6 18L18 6M6 6l12 12"
-                                />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            )}
             <div className="space-y-10">
                 <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70 flex flex-col lg:flex-row justify-between items-center gap-4">
                     <div>

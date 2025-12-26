@@ -8,6 +8,7 @@ import { Menu, Transition } from "@headlessui/react";
 import React from "react";
 import { adminService } from "@/services/adminService";
 import { PaginationMeta, generatePaginationLinks } from "@/utils/pagination";
+import { toastError } from "@/utils/toast";
 
 type CategoryRow = {
     id: number;
@@ -96,7 +97,6 @@ export default function AdminCategoriesPage() {
             const items = response.data.items || response.data.data || [];
             setStyles(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
         } catch (error: any) {
-            console.error('Failed to load styles:', error);
         }
     };
 
@@ -106,7 +106,6 @@ export default function AdminCategoriesPage() {
             const items = response.data.items || response.data.data || [];
             setSizes(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
         } catch (error: any) {
-            console.error('Failed to load sizes:', error);
         }
     };
 
@@ -140,7 +139,6 @@ export default function AdminCategoriesPage() {
                 },
             });
         } catch (error: any) {
-            console.error('Failed to load categories:', error);
         } finally {
             setLoading(false);
         }
@@ -407,7 +405,6 @@ export default function AdminCategoriesPage() {
                 expandPathToCategory(Number(fullCategory.parent_id), categoryTree);
             }
         } catch (error: any) {
-            console.error('Failed to load category details:', error);
             // Fallback to basic category data
             setEditingCategory(category);
             setFormState({
@@ -500,8 +497,7 @@ export default function AdminCategoriesPage() {
             resetForm();
             await loadCategories();
         } catch (error: any) {
-            console.error('Failed to save category:', error);
-            alert(error.response?.data?.message || 'Failed to save category. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to save category. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -519,8 +515,7 @@ export default function AdminCategoriesPage() {
             await adminService.updateCategory(category.id, formData);
             await loadCategories();
         } catch (error: any) {
-            console.error('Failed to toggle category:', error);
-            alert(error.response?.data?.message || 'Failed to update category. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update category. Please try again.');
         }
     };
 
@@ -531,8 +526,7 @@ export default function AdminCategoriesPage() {
                 setDeleteConfirm(null);
                 await loadCategories();
             } catch (error: any) {
-                console.error('Failed to delete category:', error);
-                alert(error.response?.data?.message || 'Failed to delete category. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete category. Please try again.');
             }
         }
     };
@@ -1136,8 +1130,7 @@ export default function AdminCategoriesPage() {
                     setBulkDeleteConfirm(false);
                     await loadCategories();
                 } catch (error: any) {
-                    console.error('Failed to delete categories:', error);
-                    alert(error.response?.data?.message || 'Failed to delete categories. Please try again.');
+                    toastError(error.response?.data?.message || 'Failed to delete categories. Please try again.');
                 }
             }} title="Delete Categories" message={`Are you sure you want to delete ${selectedCategories.length} selected category(s)?`} confirmText="Delete" variant="danger" />
         </div>

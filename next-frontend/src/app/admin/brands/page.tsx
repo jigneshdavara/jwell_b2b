@@ -212,7 +212,7 @@ export default function AdminBrandsPage() {
             await loadBrands();
         } catch (error: any) {
             console.error('Failed to save brand:', error);
-            alert(error.response?.data?.message || 'Failed to save brand. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to save brand. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -230,7 +230,7 @@ export default function AdminBrandsPage() {
             await loadBrands();
         } catch (error: any) {
             console.error('Failed to toggle brand:', error);
-            alert(error.response?.data?.message || 'Failed to update brand. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update brand. Please try again.');
         }
     };
 
@@ -242,7 +242,7 @@ export default function AdminBrandsPage() {
                 await loadBrands();
             } catch (error: any) {
                 console.error('Failed to delete brand:', error);
-                alert(error.response?.data?.message || 'Failed to delete brand. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete brand. Please try again.');
             }
         }
     };
@@ -255,7 +255,7 @@ export default function AdminBrandsPage() {
             await loadBrands();
         } catch (error: any) {
             console.error('Failed to delete brands:', error);
-            alert(error.response?.data?.message || 'Failed to delete brands. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to delete brands. Please try again.');
         }
     };
 

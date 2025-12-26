@@ -7,6 +7,7 @@ import TextInput from '@/components/ui/TextInput';
 import { Transition } from '@headlessui/react';
 import { useState, FormEventHandler, useRef } from 'react';
 import { frontendService } from '@/services/frontendService';
+import { toastSuccess, toastError } from '@/utils/toast';
 
 export default function UpdatePasswordForm({
     className = '',
@@ -25,13 +26,12 @@ export default function UpdatePasswordForm({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [recentlySuccessful, setRecentlySuccessful] = useState(false);
-    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    // Toast notifications are handled via RTK
 
     const updatePassword: FormEventHandler = async (e) => {
         e.preventDefault();
         setProcessing(true);
         setErrors({});
-        setFlashMessage(null);
 
         // Validate password confirmation
         if (data.password !== data.password_confirmation) {
@@ -48,7 +48,7 @@ export default function UpdatePasswordForm({
             });
 
             setRecentlySuccessful(true);
-            setFlashMessage({ type: 'success', message: 'Password updated successfully.' });
+            toastSuccess('Password updated successfully.');
             setData({
                 current_password: '',
                 password: '',
@@ -59,14 +59,14 @@ export default function UpdatePasswordForm({
             if (error.response?.data?.message) {
                 const errorMessage = error.response.data.message;
                 if (typeof errorMessage === 'string') {
-                    setFlashMessage({ type: 'error', message: errorMessage });
+                    toastError(errorMessage);
                 } else if (typeof errorMessage === 'object') {
                     setErrors(errorMessage);
                 }
             } else if (error.response?.data) {
                 setErrors(error.response.data);
             } else {
-                setFlashMessage({ type: 'error', message: 'Failed to update password. Please try again.' });
+                toastError('Failed to update password. Please try again.');
             }
 
             // Focus on the appropriate input based on error
@@ -94,15 +94,6 @@ export default function UpdatePasswordForm({
                 </p>
             </header>
 
-            {flashMessage && (
-                <div className={`mt-4 rounded-2xl px-4 py-3 text-sm ${
-                    flashMessage.type === 'success' 
-                        ? 'bg-emerald-50 border border-emerald-200 text-emerald-900' 
-                        : 'bg-rose-50 border border-rose-200 text-rose-900'
-                }`}>
-                    {flashMessage.message}
-                </div>
-            )}
 
             <form onSubmit={updatePassword} className="mt-6 space-y-6">
                 <div>

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { env } from "@/config/env";
+import { toastError, toastSuccess } from "@/utils/toast";
 
 // Custom params serializer to handle arrays without brackets
 // NestJS expects repeated params: category=2&category=3 (not category[]=2&category[]=3)
@@ -86,9 +87,24 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle token refresh and errors
+// Add response interceptor to handle token refresh, errors, and success messages
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Handle success messages if present in response
+    // Check if response has a success message in data
+    if (response.data?.message && typeof response.data.message === 'string') {
+      // Only show success toast for POST, PUT, PATCH, DELETE methods
+      const method = response.config.method?.toUpperCase();
+      if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        // Check if this is a silent request (no toast needed)
+        const isSilent = response.config.headers?.['X-Silent-Request'] === 'true';
+        if (!isSilent) {
+          toastSuccess(response.data.message);
+        }
+      }
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     
@@ -144,6 +160,30 @@ apiClient.interceptors.response.use(
         if (window.location.pathname !== "/onboarding/kyc") {
           window.location.href = "/onboarding/kyc";
         }
+        // Don't show toast for KYC redirects
+        return Promise.reject(error);
+      }
+    }
+    
+    // Show error toast for all API errors (except 401/403 which are handled above)
+    if (error.response && typeof window !== "undefined") {
+      const errorData = error.response.data as any;
+      const errorMessage = 
+        errorData?.message || 
+        errorData?.error || 
+        error.response.statusText || 
+        'An error occurred. Please try again.';
+      
+      // Check if this is a silent request (no toast needed)
+      const isSilent = originalRequest?.headers?.['X-Silent-Request'] === 'true';
+      if (!isSilent) {
+        toastError(errorMessage);
+      }
+    } else if (error.request && typeof window !== "undefined") {
+      // Network error (no response received)
+      const isSilent = originalRequest?.headers?.['X-Silent-Request'] === 'true';
+      if (!isSilent) {
+        toastError('Network error. Please check your connection and try again.');
       }
     }
     

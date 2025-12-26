@@ -9,7 +9,7 @@ import { useState, FormEventHandler, useEffect } from 'react';
 import { frontendService } from '@/services/frontendService';
 import { authService } from '@/services/authService';
 import { useRouter } from 'next/navigation';
-import FlashMessage from '@/components/shared/FlashMessage';
+import { toastSuccess, toastError } from '@/utils/toast';
 
 const languageOptions = [
     { value: 'en', label: 'English' },
@@ -39,7 +39,7 @@ export default function UpdateProfileInformationForm({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [recentlySuccessful, setRecentlySuccessful] = useState(false);
-    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    // Toast notifications are handled via RTK
     const [verificationStatus, setVerificationStatus] = useState<string>('');
     const [sendingVerification, setSendingVerification] = useState(false);
 
@@ -59,7 +59,6 @@ export default function UpdateProfileInformationForm({
         e.preventDefault();
         setProcessing(true);
         setErrors({});
-        setFlashMessage(null);
 
         try {
             await frontendService.updateProfile({
@@ -70,7 +69,7 @@ export default function UpdateProfileInformationForm({
             });
 
             setRecentlySuccessful(true);
-            setFlashMessage({ type: 'success', message: 'Profile updated successfully.' });
+            toastSuccess('Profile updated successfully.');
             setTimeout(() => setRecentlySuccessful(false), 2000);
             
             // Refresh the page to get updated user data
@@ -79,14 +78,14 @@ export default function UpdateProfileInformationForm({
             if (error.response?.data?.message) {
                 const errorMessage = error.response.data.message;
                 if (typeof errorMessage === 'string') {
-                    setFlashMessage({ type: 'error', message: errorMessage });
+                    toastError(errorMessage);
                 } else if (typeof errorMessage === 'object') {
                     setErrors(errorMessage);
                 }
             } else if (error.response?.data) {
                 setErrors(error.response.data);
             } else {
-                setFlashMessage({ type: 'error', message: 'Failed to update profile. Please try again.' });
+                toastError('Failed to update profile. Please try again.');
             }
         } finally {
             setProcessing(false);
@@ -103,7 +102,6 @@ export default function UpdateProfileInformationForm({
             await authService.resendVerification(user.email);
             setVerificationStatus('verification-link-sent');
         } catch (error: any) {
-            console.error('Failed to resend verification:', error);
             // Still show success message for security (don't reveal if email exists)
             setVerificationStatus('verification-link-sent');
         } finally {
@@ -124,15 +122,6 @@ export default function UpdateProfileInformationForm({
                 </p>
             </header>
 
-            {flashMessage && (
-                <div className={`mt-4 rounded-2xl px-4 py-3 text-sm ${
-                    flashMessage.type === 'success' 
-                        ? 'bg-emerald-50 border border-emerald-200 text-emerald-900' 
-                        : 'bg-rose-50 border border-rose-200 text-rose-900'
-                }`}>
-                    {flashMessage.message}
-                </div>
-            )}
 
             <form onSubmit={submit} className="mt-6 space-y-6">
                 <div className="grid gap-6 md:grid-cols-2">

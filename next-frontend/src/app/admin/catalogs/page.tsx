@@ -7,6 +7,7 @@ import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
+import { toastError } from '@/utils/toast';
 
 type CatalogRow = {
     id: number;
@@ -89,7 +90,6 @@ export default function AdminCatalogsIndex() {
                 },
             });
         } catch (error: any) {
-            console.error('Failed to load catalogs:', error);
         } finally {
             setLoading(false);
         }
@@ -144,8 +144,7 @@ export default function AdminCatalogsIndex() {
             resetForm();
             await loadCatalogs();
         } catch (error: any) {
-            console.error('Failed to save catalog:', error);
-            alert(error.response?.data?.message || 'Failed to save catalog. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to save catalog. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -162,8 +161,7 @@ export default function AdminCatalogsIndex() {
             });
             await loadCatalogs();
         } catch (error: any) {
-            console.error('Failed to toggle catalog:', error);
-            alert(error.response?.data?.message || 'Failed to toggle catalog. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to toggle catalog. Please try again.');
         }
     };
 
@@ -191,8 +189,7 @@ export default function AdminCatalogsIndex() {
             setBulkDeleteConfirm(false);
             await loadCatalogs();
         } catch (error: any) {
-            console.error('Failed to delete catalogs:', error);
-            alert(error.response?.data?.message || 'Failed to delete catalogs. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to delete catalogs. Please try again.');
         }
     };
 
@@ -203,8 +200,7 @@ export default function AdminCatalogsIndex() {
                 setDeleteConfirm(null);
                 await loadCatalogs();
             } catch (error: any) {
-                console.error('Failed to delete catalog:', error);
-                alert(error.response?.data?.message || 'Failed to delete catalog. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete catalog. Please try again.');
             }
         }
     };
@@ -221,8 +217,7 @@ export default function AdminCatalogsIndex() {
             setAssignProducts(data.products || []);
             setAssignSelectedIds(data.selectedProductIds || []);
         } catch (error: any) {
-            console.error('Failed to load products:', error);
-            alert(error.response?.data?.message || 'Failed to load products. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to load products. Please try again.');
             setAssignModalOpen(false);
         } finally {
             setAssignLoading(false);
@@ -302,8 +297,7 @@ export default function AdminCatalogsIndex() {
                 return newIds;
             });
         } catch (error: any) {
-            console.error('Failed to search products:', error);
-            alert(error.response?.data?.message || 'Failed to search products. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to search products. Please try again.');
         } finally {
             setAssignLoading(false);
         }
@@ -319,8 +313,7 @@ export default function AdminCatalogsIndex() {
             closeAssignModal();
             await loadCatalogs();
         } catch (error: any) {
-            console.error('Failed to assign products:', error);
-            alert(error.response?.data?.message || 'Failed to assign products. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to assign products. Please try again.');
         } finally {
             setAssignProcessing(false);
         }

@@ -5,6 +5,7 @@ import { Head } from '@/components/Head';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { adminService } from '@/services/adminService';
+import { toastSuccess, toastError } from '@/utils/toast';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type UserGroupRow = {
@@ -187,7 +188,7 @@ export default function AdminUserGroupsIndex() {
             if (error.response?.data?.errors) {
                 setErrors(error.response.data.errors);
             } else {
-                alert(error.response?.data?.message || 'Failed to save user group. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to save user group. Please try again.');
             }
         } finally {
             setProcessing(false);
@@ -206,7 +207,7 @@ export default function AdminUserGroupsIndex() {
             await loadGroups();
         } catch (error: any) {
             console.error('Failed to toggle group:', error);
-            alert(error.response?.data?.message || 'Failed to update group. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update group. Please try again.');
         }
     };
 
@@ -223,7 +224,7 @@ export default function AdminUserGroupsIndex() {
                 await loadGroups();
             } catch (error: any) {
                 console.error('Failed to delete user group:', error);
-                alert(error.response?.data?.message || 'Failed to delete user group. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete user group. Please try again.');
             } finally {
                 setProcessing(false);
             }
@@ -246,7 +247,7 @@ export default function AdminUserGroupsIndex() {
             await loadGroups();
         } catch (error: any) {
             console.error('Failed to delete user groups:', error);
-            alert(error.response?.data?.message || 'Failed to delete user groups. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to delete user groups. Please try again.');
         } finally {
             setProcessing(false);
         }
@@ -275,7 +276,7 @@ export default function AdminUserGroupsIndex() {
             setAssignSelectedIds(data.selectedUserIds || []);
         } catch (error: any) {
             console.error('Failed to load users:', error);
-            alert(error.response?.data?.message || 'Failed to load users. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to load users. Please try again.');
             setAssignModalOpen(false);
         } finally {
             setAssignLoading(false);
@@ -356,7 +357,7 @@ export default function AdminUserGroupsIndex() {
             });
         } catch (error: any) {
             console.error('Failed to search users:', error);
-            alert(error.response?.data?.message || 'Failed to search users. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to search users. Please try again.');
         } finally {
             setAssignLoading(false);
         }
@@ -373,7 +374,7 @@ export default function AdminUserGroupsIndex() {
             await loadGroups();
         } catch (error: any) {
             console.error('Failed to assign users:', error);
-            alert(error.response?.data?.message || 'Failed to assign users. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to assign users. Please try again.');
         } finally {
             setAssignProcessing(false);
         }

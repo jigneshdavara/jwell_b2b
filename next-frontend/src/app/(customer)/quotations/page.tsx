@@ -6,6 +6,7 @@ import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
+import { toastSuccess, toastError } from '@/utils/toast';
 import type { QuotationRow } from '@/types';
 
 const statusLabels: Record<string, { label: string; style: string }> = {
@@ -31,7 +32,7 @@ export default function QuotationsPage() {
     const [quotations, setQuotations] = useState<QuotationRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [cancelConfirm, setCancelConfirm] = useState<{ show: boolean; quotationId: number | null }>({ show: false, quotationId: null });
-    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    // Toast notifications are handled via RTK
 
     const fetchQuotations = async () => {
         setLoading(true);
@@ -79,8 +80,7 @@ export default function QuotationsPage() {
             setQuotations(mappedQuotations);
         } catch (error: any) {
             console.error('Failed to fetch quotations:', error);
-            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to load quotations' });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastError(error.response?.data?.message || 'Failed to load quotations');
         } finally {
             setLoading(false);
         }
@@ -117,12 +117,10 @@ export default function QuotationsPage() {
             await frontendService.deleteQuotation(cancelConfirm.quotationId);
             setQuotations(prev => prev.filter(q => q.id !== cancelConfirm.quotationId));
             setCancelConfirm({ show: false, quotationId: null });
-            setFlashMessage({ type: 'success', message: 'Quotation cancelled successfully.' });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastSuccess('Quotation cancelled successfully.');
         } catch (error: any) {
             console.error('Failed to cancel quotation:', error);
-            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to cancel quotation' });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastError(error.response?.data?.message || 'Failed to cancel quotation');
         }
     };
 
@@ -136,38 +134,6 @@ export default function QuotationsPage() {
 
     return (
         <>
-            {flashMessage && (
-                <div
-                    className={`mb-6 rounded-2xl border px-4 py-3 text-sm shadow-sm transition ${
-                        flashMessage.type === 'success'
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                            : 'bg-rose-50 border-rose-200 text-rose-900'
-                    }`}
-                >
-                    <div className="flex items-center justify-between">
-                        <p className="font-medium">{flashMessage.message}</p>
-                        <button
-                            onClick={() => setFlashMessage(null)}
-                            className="ml-4 text-current opacity-70 hover:opacity-100"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                                className="h-4 w-4"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M6 18L18 6M6 6l12 12"
-                                />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            )}
 
             <div className="space-y-10">
                 <Head title="Quotation requests" />

@@ -6,7 +6,7 @@ import { adminService } from '@/services/adminService';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
-import FlashMessage from '@/components/shared/FlashMessage';
+import { toastSuccess, toastError, toastInfo } from '@/utils/toast';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type DiamondType = {
@@ -42,7 +42,7 @@ export default function AdminDiamondShapesIndex() {
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondShapeRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+    // Toast notifications are handled via RTK
 
     const [formData, setFormData] = useState({
         diamond_type_id: '' as string | number,
@@ -198,10 +198,10 @@ export default function AdminDiamondShapesIndex() {
 
             if (editingShape) {
                 await adminService.updateDiamondShape(editingShape.id, payload);
-                setFlashMessage({ type: 'success', message: 'Diamond shape updated successfully.' });
+                toastSuccess('Diamond shape updated successfully.');
             } else {
                 await adminService.createDiamondShape(payload);
-                setFlashMessage({ type: 'success', message: 'Diamond shape created successfully.' });
+                toastSuccess('Diamond shape created successfully.');
             }
             resetForm();
             await loadShapes();
@@ -210,7 +210,7 @@ export default function AdminDiamondShapesIndex() {
             if (error.response?.data?.errors) {
                 setFormErrors(error.response.data.errors);
             } else {
-                setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to save diamond shape. Please try again.' });
+                toastError(error.response?.data?.message || 'Failed to save diamond shape. Please try again.');
             }
         } finally {
             setProcessing(false);
@@ -228,10 +228,10 @@ export default function AdminDiamondShapesIndex() {
                 display_order: shape.display_order,
             });
             await loadShapes();
-            setFlashMessage({ type: 'success', message: `Diamond shape ${!shape.is_active ? 'activated' : 'deactivated'} successfully.` });
+            toastSuccess(`Diamond shape ${!shape.is_active ? 'activated' : 'deactivated'} successfully.`);
         } catch (error: any) {
             console.error('Failed to toggle diamond shape status:', error);
-            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to update diamond shape. Please try again.' });
+            toastError(error.response?.data?.message || 'Failed to update diamond shape. Please try again.');
         }
     };
 
@@ -244,12 +244,12 @@ export default function AdminDiamondShapesIndex() {
             try {
                 await adminService.deleteDiamondShape(deleteConfirm.id);
                 setDeleteConfirm(null);
-                setFlashMessage({ type: 'success', message: 'Diamond shape deleted successfully.' });
+                toastSuccess('Diamond shape deleted successfully.');
                 await loadShapes();
             } catch (error: any) {
                 console.error('Failed to delete diamond shape:', error);
                 setDeleteConfirm(null);
-                setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to delete diamond shape. Please try again.' });
+                toastError(error.response?.data?.message || 'Failed to delete diamond shape. Please try again.');
             }
         }
     };
@@ -267,12 +267,12 @@ export default function AdminDiamondShapesIndex() {
             setSelectedShapes([]);
             setBulkDeleteConfirm(false);
             const message = response.data?.message || `${selectedShapes.length} diamond shape(s) deleted successfully.`;
-            setFlashMessage({ type: 'success', message });
+            toastSuccess(message);
             await loadShapes();
         } catch (error: any) {
             console.error('Failed to bulk delete diamond shapes:', error);
             setBulkDeleteConfirm(false);
-            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to delete diamond shapes. Please try again.' });
+            toastError(error.response?.data?.message || 'Failed to delete diamond shapes. Please try again.');
         }
     };
 
@@ -287,13 +287,6 @@ export default function AdminDiamondShapesIndex() {
         <>
             <Head title="Diamond shapes" />
             <div className="space-y-8">
-                {flashMessage && (
-                    <FlashMessage
-                        type={flashMessage.type}
-                        message={flashMessage.message}
-                        onClose={() => setFlashMessage(null)}
-                    />
-                )}
                 <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div>
                         <h1 className="text-2xl font-semibold text-slate-900">Diamond shapes</h1>

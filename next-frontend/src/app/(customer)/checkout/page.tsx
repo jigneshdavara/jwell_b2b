@@ -8,7 +8,6 @@ import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js';
 import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
 import { Head } from '@/components/Head';
-import FlashMessage from '@/components/shared/FlashMessage';
 
 import type { CheckoutData } from '@/types';
 
