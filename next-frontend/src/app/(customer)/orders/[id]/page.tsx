@@ -6,80 +6,8 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { frontendService } from '@/services/frontendService';
 import { route } from '@/utils/route';
-
-type OrderShowItem = {
-  id: number;
-  name: string;
-  sku: string;
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-  configuration?: Record<string, unknown> | null;
-  metadata?: Record<string, unknown> | null;
-  price_breakdown?: {
-    metal?: number;
-    diamond?: number;
-    making?: number;
-    subtotal?: number;
-    discount?: number;
-    total?: number;
-  } | null;
-  calculated_making_charge?: number | null;
-  product?: {
-    id: number;
-    name: string;
-    sku: string;
-    base_price?: number | null;
-    making_charge_amount?: number | null;
-    making_charge_percentage?: number | null;
-    making_charge_types?: string[];
-    media: Array<{ url: string; alt: string }>;
-  } | null;
-};
-
-type OrderPayment = {
-  id: number;
-  status: string;
-  amount: number;
-  created_at?: string | null;
-};
-
-type OrderDetails = {
-  id: number;
-  reference: string;
-  status: string;
-  status_label: string;
-  total_amount: number;
-  subtotal_amount: number;
-  tax_amount: number;
-  discount_amount: number;
-  created_at?: string | null;
-  updated_at?: string | null;
-  items: OrderShowItem[];
-  payments: OrderPayment[];
-  status_history: Array<{
-    id: number;
-    status: string;
-    created_at?: string | null;
-  }>;
-  quotations?: Array<{
-    id: number;
-    status: string;
-    quantity: number;
-    product?: {
-      id: number;
-      name: string;
-      sku: string;
-      media: Array<{ url: string; alt: string }>;
-    } | null;
-  }>;
-};
-
-const currencyFormatter = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 2,
-});
+import { formatCurrency } from '@/utils/formatting';
+import type { OrderShowItem, OrderPayment, OrderDetails } from '@/types';
 
 const statusColors: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
@@ -237,7 +165,7 @@ export default function OrderShowPage() {
 
   return (
     <>
-    <div className="space-y-10">
+      <div className="space-y-10">
         <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
           <div className="flex items-center justify-between">
             <div>
@@ -369,7 +297,7 @@ export default function OrderShowPage() {
                       </td>
                       <td className="px-4 py-4 text-right">
                         <div className="text-sm font-semibold text-slate-900">
-                          {currencyFormatter.format(item.unit_price)}
+                          {formatCurrency(item.unit_price)}
                         </div>
                       </td>
                       <td className="px-4 py-4 text-center">
@@ -379,7 +307,7 @@ export default function OrderShowPage() {
                       </td>
                       <td className="px-4 py-4 text-right">
                         <div className="text-sm font-semibold text-slate-900">
-                          {currencyFormatter.format(item.total_price)}
+                          {formatCurrency(item.total_price)}
                         </div>
                       </td>
                       <td className="px-4 py-4">
@@ -420,7 +348,7 @@ export default function OrderShowPage() {
                     </td>
                     <td className="px-4 py-2"></td>
                     <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
-                      {currencyFormatter.format(order.subtotal_amount)}
+                      {formatCurrency(order.subtotal_amount)}
                     </td>
                   </tr>
                   {order.discount_amount > 0 && (
@@ -433,7 +361,7 @@ export default function OrderShowPage() {
                       </td>
                       <td className="px-4 py-2"></td>
                       <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
-                        -{currencyFormatter.format(order.discount_amount)}
+                        -{formatCurrency(order.discount_amount)}
                       </td>
                     </tr>
                   )}
@@ -446,7 +374,7 @@ export default function OrderShowPage() {
                     </td>
                     <td className="px-4 py-2"></td>
                     <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
-                      {currencyFormatter.format(order.tax_amount)}
+                      {formatCurrency(order.tax_amount)}
                     </td>
                   </tr>
                   <tr className="border-t-2 border-slate-300">
@@ -458,7 +386,7 @@ export default function OrderShowPage() {
                     </td>
                     <td className="px-4 py-3"></td>
                     <td className="px-4 py-3 text-right text-lg font-bold text-slate-900">
-                      {currencyFormatter.format(order.total_amount)}
+                      {formatCurrency(order.total_amount)}
                     </td>
                     <td className="px-4 py-3"></td>
                   </tr>
@@ -494,7 +422,7 @@ export default function OrderShowPage() {
                         </p>
                       </div>
                       <span className="text-sm font-semibold text-slate-900">
-                        {currencyFormatter.format(payment.amount)}
+                        {formatCurrency(payment.amount)}
                       </span>
                     </div>
                   ))}
@@ -713,7 +641,7 @@ export default function OrderShowPage() {
                             <div className="flex justify-between">
                               <span className="text-slate-600">Metal:</span>
                               <span className="font-semibold text-slate-900">
-                                {currencyFormatter.format(metalCost)}
+                                {formatCurrency(metalCost)}
                               </span>
                             </div>
                           )}
@@ -721,7 +649,7 @@ export default function OrderShowPage() {
                             <div className="flex justify-between">
                               <span className="text-slate-600">Diamond:</span>
                               <span className="font-semibold text-slate-900">
-                                {currencyFormatter.format(diamondCost)}
+                                {formatCurrency(diamondCost)}
                               </span>
                             </div>
                           )}
@@ -731,7 +659,7 @@ export default function OrderShowPage() {
                                 Making Charge:
                               </span>
                               <span className="font-semibold text-slate-900">
-                                {currencyFormatter.format(makingCharge)}
+                                {formatCurrency(makingCharge)}
                               </span>
                             </div>
                           )}
@@ -739,7 +667,7 @@ export default function OrderShowPage() {
                             <div className="flex justify-between text-rose-600">
                               <span>Discount:</span>
                               <span className="font-semibold">
-                                -{currencyFormatter.format(discount)}
+                                -{formatCurrency(discount)}
                               </span>
                             </div>
                           )}
@@ -752,7 +680,7 @@ export default function OrderShowPage() {
                           Unit Price:
                         </span>
                         <span className="font-semibold text-slate-900">
-                          {currencyFormatter.format(
+                          {formatCurrency(
                             productDetailsModalOpen.unit_price
                           )}
                         </span>
@@ -762,7 +690,7 @@ export default function OrderShowPage() {
                           Total Price:
                         </span>
                         <span className="font-semibold text-slate-900">
-                          {currencyFormatter.format(
+                          {formatCurrency(
                             productDetailsModalOpen.total_price
                           )}
                         </span>
@@ -842,7 +770,6 @@ export default function OrderShowPage() {
           </div>
         </Modal>
       )}
-    </div>
     </>
   );
 }

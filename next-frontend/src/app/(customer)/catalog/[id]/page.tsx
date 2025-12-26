@@ -16,96 +16,7 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
     maximumFractionDigits: 0,
 });
 
-type ConfigMetal = {
-    label: string;
-    metalId: number;
-    metalPurityId: number | null;
-    metalToneId: number | null;
-    metalWeight?: string | null;
-    metalName?: string;
-    purityName?: string;
-    toneName?: string;
-};
-
-type ConfigDiamond = {
-    label: string;
-    diamondShapeId: number;
-    diamondColorId: number;
-    diamondClarityId: number;
-    stoneCount: number;
-    totalCarat: string;
-};
-
-type ConfigurationOption = {
-    variant_id: number;
-    label: string;
-    metal_label: string;
-    diamond_label: string;
-    metals: ConfigMetal[];
-    diamonds: ConfigDiamond[];
-    price_total: number;
-    price_breakup: {
-        base: number;
-        metal: number;
-        diamond: number;
-        making: number;
-    };
-    sku: string;
-    inventory_quantity?: number | null;
-    size?: {
-        id: number;
-        name: string;
-        value?: string;
-    } | null;
-    metadata?: Record<string, unknown> | null;
-};
-
-type ProductVariant = {
-    id: number;
-    label: string;
-    is_default: boolean;
-    metadata?: Record<string, unknown> | null;
-    metals?: Array<{
-        id: number;
-        metal_id: number;
-        metal_purity_id: number | null;
-        metal_tone_id: number | null;
-        metal_weight: number | null;
-        metal: { id: number; name: string } | null;
-        metal_purity: { id: number; name: string } | null;
-        metal_tone: { id: number; name: string } | null;
-    }>;
-    diamonds?: Array<{
-        id: number;
-        diamond_clarity_id: number | null;
-        diamond_color_id: number | null;
-        diamond_shape_id: number | null;
-        diamonds_count: number | null;
-        total_carat: number | null;
-        diamond_clarity: { id: number; name: string } | null;
-        diamond_color: { id: number; name: string } | null;
-        diamond_shape: { id: number; name: string } | null;
-    }>;
-};
-
-type Product = {
-    id: number;
-    name: string;
-    sku: string;
-    description?: string;
-    brand?: string;
-    material?: string;
-    purity?: string;
-    base_price?: number;
-    making_charge_amount?: number;
-    making_charge_percentage?: number | null;
-    uses_gold: boolean;
-    uses_silver: boolean;
-    uses_diamond: boolean;
-    category_sizes?: Array<{ id: number; name: string; code: string }>;
-    media: Array<{ url: string; alt: string }>;
-    variants: ProductVariant[];
-};
+import type { ProductDetail, ProductVariant, ConfigurationOption, ConfigMetal, ConfigDiamond } from '@/types';
 
 const getMediaUrl = (url: string): string => {
     if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -121,7 +32,7 @@ export default function CatalogShowPage() {
     const productId = Number(params.id);
     const { refreshCart } = useCart();
 
-    const [product, setProduct] = useState<Product | null>(null);
+    const [product, setProduct] = useState<ProductDetail | null>(null);
     const [configurationOptions, setConfigurationOptions] = useState<ConfigurationOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -157,9 +68,9 @@ export default function CatalogShowPage() {
         [selectedVariantId, configurationOptions]
     );
 
-    const mediaCount = product?.media.length || 0;
+    const mediaCount = product?.media?.length || 0;
     const hasMedia = mediaCount > 0;
-    const activeMedia = hasMedia && product
+    const activeMedia = hasMedia && product && product.media
         ? product.media[Math.min(activeImageIndex, mediaCount - 1)]
         : null;
 
@@ -178,7 +89,7 @@ export default function CatalogShowPage() {
                 const data = response.data;
                 
                 // Map product data to match expected structure
-                const mappedProduct: Product = {
+                const mappedProduct: ProductDetail = {
                     id: Number(data.product.id),
                     name: data.product.name,
                     sku: data.product.sku,
@@ -533,7 +444,7 @@ export default function CatalogShowPage() {
                                     </div>
                                     {mediaCount > 1 && (
                                         <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-                                            {product.media.map((media, index) => (
+                                            {product.media?.map((media: { url: string; alt: string }, index: number) => (
                                                 <button
                                                     key={index}
                                                     type="button"

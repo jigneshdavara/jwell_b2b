@@ -6,36 +6,7 @@ import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
-
-type QuotationRow = {
-    id: number;
-    ids?: number[];
-    status: string;
-    approved_at?: string | null;
-    admin_notes?: string | null;
-    quantity: number;
-    notes?: string | null;
-    product: {
-        id: number;
-        name: string;
-        sku: string;
-        thumbnail?: string | null;
-    };
-    products?: Array<{
-        id: number;
-        name: string;
-        sku: string;
-        thumbnail?: string | null;
-    }>;
-    variant?: {
-        id: number;
-        label: string;
-        metadata?: Record<string, string | number | boolean | null | undefined> | null;
-    } | null;
-    order_reference?: string | null;
-    created_at?: string | null;
-    updated_at?: string | null;
-};
+import type { QuotationRow } from '@/types';
 
 const statusLabels: Record<string, { label: string; style: string }> = {
     pending: { label: 'Pending review', style: 'bg-amber-100 text-amber-700' },

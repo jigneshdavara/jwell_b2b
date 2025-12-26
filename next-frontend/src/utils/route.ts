@@ -52,9 +52,5 @@ export function route(name: string, params?: any): string {
     return path;
 }
 
-route.current = (name?: string) => {
-    // This would ideally check the current path from Next.js
-    // For now, returning false to avoid errors
-    return false;
-};
+;
 

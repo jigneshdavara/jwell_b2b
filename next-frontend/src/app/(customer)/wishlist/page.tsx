@@ -6,17 +6,7 @@ import { frontendService } from "@/services/frontendService";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
 import { route } from "@/utils/route";
-
-type WishlistItem = {
-  id: string | number;
-  product_id: string | number;
-  variant_id: string | number | null;
-  sku?: string | null;
-  name?: string | null;
-  thumbnail?: string | null;
-  variant_label?: string | null;
-  configuration?: Record<string, unknown> | null;
-};
+import type { WishlistItem } from "@/types";
 
 export default function WishlistPage() {
   const { refreshWishlist, removeProductId } = useWishlist();
