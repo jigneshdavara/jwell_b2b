@@ -6,42 +6,10 @@ import { useRouter } from 'next/navigation';
 import CustomerHeader from '@/components/shared/CustomerHeader';
 import CustomerFooter from '@/components/shared/CustomerFooter';
 import { route } from '@/utils/route';
-import { authService } from '@/services/authService';
 import { homeService } from '@/services/homeService';
+import { formatCurrency, formatNumber, prettifyKey } from '@/utils/formatting';
+import type { HomePageProps } from '@/types';
 
-type HomePageProps = {
-    stats: {
-        products: number;
-        orders: number;
-        jobworks: number;
-        active_offers: number;
-    };
-    brands: string[];
-    spotlight: Array<{
-        id: number | string;
-        name: string;
-        brand?: string | null;
-        price: number | null;
-        making_charge_amount: number | null;
-        making_charge_percentage?: number | null;
-        making_charge_types?: string[];
-    }>;
-    features: Array<{ title: string; description: string }>;
-};
-
-const numberFormatter = new Intl.NumberFormat('en-IN');
-const currencyFormatter = new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-});
-
-const prettifyKey = (key: string) =>
-    key
-        .replace(/_/g, ' ')
-        .split(' ')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
 
 // Default features (always available, matching Laravel)
 const defaultFeatures = [
@@ -253,7 +221,7 @@ export default function HomeIndex() {
                             {Object.entries(stats).map(([key, value]) => (
                                 <div key={key} className="rounded-2xl border border-elvee-blue/10 bg-white/80 p-5 shadow-lg shadow-elvee-blue/5">
                                     <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/60">{prettifyKey(key)}</p>
-                                    <p className="mt-3 text-3xl font-semibold text-elvee-blue">{numberFormatter.format(value)}</p>
+                                    <p className="mt-3 text-3xl font-semibold text-elvee-blue">{formatNumber(value)}</p>
                                 </div>
                             ))}
                         </div>
@@ -272,7 +240,7 @@ export default function HomeIndex() {
                                             </p>
                                         </div>
                                         <div className="text-right text-sm text-ink/80">
-                                            <p>{currencyFormatter.format(product.price ?? 0)}</p>
+                                            <p>{formatCurrency(product.price)}</p>
                                             <p className="text-xs text-ink/60">
                                                 {(() => {
                                                     const types = product.making_charge_types || [];
@@ -282,11 +250,11 @@ export default function HomeIndex() {
                                                     if (hasFixed && hasPercentage) {
                                                         return `Making: ₹${product.making_charge_amount?.toLocaleString('en-IN')} + ${product.making_charge_percentage}%`;
                                                     } else if (hasFixed) {
-                                                        return `Making: ${currencyFormatter.format(product.making_charge_amount ?? 0)}`;
+                                                        return `Making: ${formatCurrency(product.making_charge_amount)}`;
                                                     } else if (hasPercentage) {
                                                         return `Making: ${product.making_charge_percentage}% of metal`;
                                                     }
-                                                    return `Making: ${currencyFormatter.format(product.making_charge_amount ?? 0)}`;
+                                                    return `Making: ${formatCurrency(product.making_charge_amount)}`;
                                                 })()}
                                             </p>
                                         </div>

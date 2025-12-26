@@ -158,8 +158,11 @@ export default function AdminMetalsPage() {
     const toggleMetal = async (metal: MetalRow) => {
         try {
             await adminService.updateMetal(metal.id, {
-                ...metal,
+                code: metal.code || '',
+                name: metal.name,
+                description: metal.description || null,
                 is_active: !metal.is_active,
+                display_order: metal.display_order,
             });
             await loadMetals();
         } catch (error: any) {

@@ -79,16 +79,9 @@ class TokenService {
         if (error.response?.status === 401) {
           this.removeToken();
           
-          // Only redirect if we're not already on login/register pages
-          if (typeof window !== 'undefined') {
-            const currentPath = window.location.pathname;
-            const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
-            
-            if (!publicPaths.some(path => currentPath.startsWith(path))) {
-              window.location.href = '/login';
-            }
-          }
-          
+          // NEVER redirect to login from refreshToken() method
+          // Let the API interceptor handle redirects based on the current route
+          // This ensures home page (/) is never redirected to login
           return null;
         }
         

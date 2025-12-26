@@ -10,33 +10,7 @@ import { frontendService } from '@/services/frontendService';
 import { Head } from '@/components/Head';
 import FlashMessage from '@/components/shared/FlashMessage';
 
-type CheckoutData = {
-    order: {
-        reference: string;
-        total: number;
-        currency: string;
-        items: Array<{
-            sku: string;
-            name: string;
-            quantity: number;
-            line_total: number;
-        }>;
-    };
-    payment: {
-        publishableKey: string;
-        clientSecret: string;
-        paymentId?: string;
-        providerReference: string;
-    };
-    summary: {
-        subtotal: number;
-        tax: number;
-        discount: number;
-        shipping: number;
-        total: number;
-        currency: string;
-    };
-};
+import type { CheckoutData } from '@/types';
 
 const currencyFormatter = (currency: string) =>
     new Intl.NumberFormat('en-IN', {

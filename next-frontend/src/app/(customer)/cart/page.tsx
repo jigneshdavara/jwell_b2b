@@ -10,45 +10,7 @@ import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
 import { useCart } from '@/contexts/CartContext';
 import { PaginationMeta } from '@/utils/pagination';
-
-type PriceBreakdown = {
-    metal?: number;
-    diamond?: number;
-    making?: number;
-    subtotal?: number;
-    discount?: number;
-    total?: number;
-};
-
-type CartItem = {
-    id: number;
-    product_id: number;
-    product_variant_id?: number | null;
-    sku: string;
-    name: string;
-    quantity: number;
-    inventory_quantity?: number | null;
-    unit_total: number;
-    line_total: number;
-    line_subtotal?: number;
-    line_discount?: number;
-    price_breakdown: PriceBreakdown;
-    thumbnail?: string | null;
-    variant_label?: string | null;
-    configuration?: {
-        notes?: string | null;
-    };
-};
-
-type CartData = {
-    items: CartItem[];
-    currency: string;
-    subtotal: number;
-    tax: number;
-    discount: number;
-    shipping: number;
-    total: number;
-};
+import type { CartItem, CartData } from '@/types';
 
 const currencyFormatter = (currency: string) =>
     new Intl.NumberFormat('en-IN', {

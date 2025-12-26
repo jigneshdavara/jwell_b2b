@@ -8,27 +8,8 @@ import { frontendService } from '@/services/frontendService';
 import Pagination from '@/components/ui/Pagination';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 import { Head } from '@/components/Head';
-
-type OrderListItem = {
-    id: number;
-    reference: string;
-    status: string;
-    status_label: string;
-    total_amount: number;
-    created_at?: string | null;
-    items: Array<{
-        id: number;
-        name: string;
-        quantity: number;
-    }>;
-};
-
-
-const currencyFormatter = new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-});
+import type { OrderListItem } from '@/types';
+import { formatCurrency } from '@/utils/formatting';
 
 const statusColors: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
@@ -217,7 +198,7 @@ export default function OrdersPage() {
                                                 <span className="text-sm text-slate-600">{formatDate(order.created_at)}</span>
                                             </td>
                                             <td className="px-4 py-4 text-right">
-                                                <p className="text-sm font-semibold text-slate-900">{currencyFormatter.format(order.total_amount)}</p>
+                                                <p className="text-sm font-semibold text-slate-900">{formatCurrency(order.total_amount)}</p>
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex items-center justify-end gap-2">

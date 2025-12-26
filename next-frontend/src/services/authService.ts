@@ -73,10 +73,15 @@ export const authService = {
   },
 
   async logout() {
-    // Remove token only
+    // Remove token
     tokenService.removeToken();
-    // NestJS side usually doesn't need a logout call for JWT unless blacklisting
-    // but we can call it if implemented.
+    
+    // Immediately redirect to home page using replace
+    // This happens synchronously and prevents any further code execution
+    // No need for sessionStorage - home page check in interceptors is sufficient
+    if (typeof window !== 'undefined') {
+      window.location.replace('/');
+    }
   },
 
   async me() {

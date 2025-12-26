@@ -16,7 +16,9 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Public paths that don't require authentication
+  // Home page (/) is always public and should never redirect to login
   const publicPaths = [
+    '/', // Home page - always accessible
     '/login',
     '/register',
     '/forgot-password',
@@ -25,7 +27,7 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
     '/confirm-password',
   ];
 
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
+  const isPublicPath = publicPaths.some(path => pathname === path || (path !== '/' && pathname.startsWith(path)));
 
   useEffect(() => {
     const checkAuth = async () => {

@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
 import { useWishlist } from '@/contexts/WishlistContext';
+import { formatCurrency } from '@/utils/formatting';
+import type { Product, CatalogFiltersInput, CatalogFilters, CatalogProps, PriceRange } from '@/types';
 
 const FILTER_LABELS: Record<string, string> = {
     brand: 'Brand',
@@ -22,100 +24,10 @@ const FILTER_LABELS: Record<string, string> = {
     ready_made: 'Ready made jewelry',
 };
 
-type Product = {
-    id: number;
-    name: string;
-    sku: string;
-    brand?: string | null;
-    category?: string | null;
-    material?: string | null;
-    purity?: string | null;
-    price_total: number;
-    making_charge_amount: number;
-    uses_gold: boolean;
-    uses_silver: boolean;
-    uses_diamond: boolean;
-    thumbnail?: string | null;
-    media?: Array<{ url: string; alt: string }>;
-    catalogs?: Array<{ id: number; name: string; slug?: string | null }>;
-    variants: Array<{
-        id: number;
-        label: string;
-        is_default: boolean;
-        metadata?: Record<string, unknown>;
-    }>;
-};
-
-type CatalogFiltersInput = {
-    brand?: string | string[] | null;
-    metal?: string | string[] | null;
-    metal_purity?: string | string[] | null;
-    metal_tone?: string | string[] | null;
-    diamond?: string | string[] | null;
-    price_min?: string | null;
-    price_max?: string | null;
-    search?: string | string[] | null;
-    category?: string | string[] | null;
-    catalog?: string | null;
-    sort?: string | null;
-    jobwork_available?: string | null;
-    ready_made?: string | null;
-};
-
-type CatalogProps = {
-    filters: CatalogFiltersInput;
-    products: {
-        data: Product[];
-        links: Array<{ url: string | null; label: string; active: boolean }>;
-        next_page_url: string | null;
-        prev_page_url: string | null;
-    };
-    facets: {
-        brands: string[];
-        categories: Array<{ id: number; name: string; slug?: string | null }>;
-        catalogs: Array<{ id: number; name: string; slug?: string | null }>;
-        metals: Array<{ id: number; name: string }>;
-        metalPurities: Array<{ id: number; name: string; metal_id: number; metal: { id: number; name: string } | null }>;
-        metalTones: Array<{ id: number; name: string; metal_id: number; metal: { id: number; name: string } | null }>;
-        diamondOptions: {
-            types: Array<{ id: number; name: string }>;
-            shapes: Array<{ id: number; name: string }>;
-            colors: Array<{ id: number; name: string }>;
-            clarities: Array<{ id: number; name: string }>;
-        };
-    };
-};
-
-type PriceRange = {
-    min: number;
-    max: number;
-};
-
 const DEFAULT_PRICE_MIN = 0;
 const DEFAULT_PRICE_MAX = 500000;
 const PRICE_STEP = 1000;
 
-type CatalogFilters = {
-    brand: string[];
-    metal: string[];
-    metal_purity: string[];
-    metal_tone: string[];
-    diamond: string[];
-    price_min?: string;
-    price_max?: string;
-    search?: string;
-    category: string[];
-    catalog: string[];
-    sort?: string;
-    jobwork_available?: string;
-    ready_made?: string;
-};
-
-const currencyFormatter = new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-});
 
 export default function CatalogPage() {
     const router = useRouter();
@@ -590,7 +502,7 @@ export default function CatalogPage() {
                 key: 'price_min',
                 value: filters.price_min,
                 label: FILTER_LABELS.price_min,
-                valueLabel: currencyFormatter.format(Number(filters.price_min)),
+                valueLabel: formatCurrency(Number(filters.price_min)),
             });
         }
 
@@ -599,7 +511,7 @@ export default function CatalogPage() {
                 key: 'price_max',
                 value: filters.price_max,
                 label: FILTER_LABELS.price_max,
-                valueLabel: currencyFormatter.format(Number(filters.price_max)),
+                valueLabel: formatCurrency(Number(filters.price_max)),
             });
         }
 
@@ -1268,8 +1180,8 @@ function PriceRangeFilter({
     return (
         <div className="mt-3 space-y-4">
             <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-                <span>{currencyFormatter.format(priceRange.min)}</span>
-                <span>{currencyFormatter.format(priceRange.max)}</span>
+                <span>{formatCurrency(priceRange.min)}</span>
+                <span>{formatCurrency(priceRange.max)}</span>
             </div>
             <div className="relative" ref={sliderRef}>
                 <div className="relative h-2 w-full rounded-full bg-slate-200">
@@ -1429,7 +1341,7 @@ function ProductCard({
                             <Link href={productLink} className="text-lg font-semibold text-slate-900 transition hover:text-feather-gold">{product.name}</Link>
                             <p className="text-sm text-slate-500">SKU {product.sku}</p>
                             <p className="text-sm text-slate-600">{product.brand ?? 'Elvee Atelier'}</p>
-                            <p className="text-sm text-slate-600">{currencyFormatter.format(product.price_total)}</p>
+                            <p className="text-sm text-slate-600">{formatCurrency(product.price_total)}</p>
                             <div className="flex flex-wrap gap-2 text-xs text-slate-500"><span>{product.material ?? 'Custom material'}</span></div>
                         </div>
                         {WishlistButton}
@@ -1463,7 +1375,7 @@ function ProductCard({
                 <Link href={productLink} className="text-lg font-semibold text-slate-900 transition hover:text-feather-gold">{product.name}</Link>
                 <p className="text-sm text-slate-500">SKU {product.sku}</p>
                 <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                    <span>{currencyFormatter.format(product.price_total)}</span>
+                    <span>{formatCurrency(product.price_total)}</span>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
                         <div><span className="font-medium text-slate-600">Material</span><p>{product.material ?? 'Custom blend'}</p></div>
                     </div>
