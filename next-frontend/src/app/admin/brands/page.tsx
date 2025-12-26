@@ -33,6 +33,8 @@ export default function AdminBrandsPage() {
     const [deleteConfirm, setDeleteConfirm] = useState<BrandRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
+    const [coverObjectUrl, setCoverObjectUrl] = useState<string | null>(null);
+    const [removeCoverImage, setRemoveCoverImage] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [formState, setFormState] = useState({
@@ -46,6 +48,13 @@ export default function AdminBrandsPage() {
     useEffect(() => {
         loadBrands();
     }, [currentPage, perPage]);
+
+    const getImageUrl = (imagePath: string | null | undefined): string | null => {
+        if (!imagePath) return null;
+        if (imagePath.startsWith('http')) return imagePath;
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+        return `${baseUrl}/${imagePath}`.replace(/(?<!:)\/{2,}/g, '/');
+    };
 
     const loadBrands = async () => {
         setLoading(true);
@@ -94,6 +103,14 @@ export default function AdminBrandsPage() {
         setSelectedBrands(prev => prev.includes(id) ? prev.filter(bId => bId !== id) : [...prev, id]);
     };
 
+    useEffect(() => {
+        return () => {
+            if (coverObjectUrl) {
+                URL.revokeObjectURL(coverObjectUrl);
+            }
+        };
+    }, [coverObjectUrl]);
+
     const resetForm = () => {
         setEditingBrand(null);
         setModalOpen(false);
@@ -105,6 +122,11 @@ export default function AdminBrandsPage() {
             display_order: 0,
         });
         setCoverPreview(null);
+        setRemoveCoverImage(false);
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
@@ -122,16 +144,43 @@ export default function AdminBrandsPage() {
             is_active: brand.is_active,
             display_order: brand.display_order,
         });
-        setCoverPreview(brand.cover_image ?? null);
+        setCoverPreview(getImageUrl(brand.cover_image));
+        setRemoveCoverImage(false);
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
         setModalOpen(true);
     };
 
     const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+        const file = e.target.files?.[0] ?? null;
+        setRemoveCoverImage(false);
+
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => setCoverPreview(reader.result as string);
-            reader.readAsDataURL(file);
+            const objectUrl = URL.createObjectURL(file);
+            setCoverPreview(objectUrl);
+            setCoverObjectUrl(objectUrl);
+        } else {
+            setCoverPreview(editingBrand ? getImageUrl(editingBrand.cover_image) : null);
+        }
+    };
+
+    const removeCoverImageHandler = () => {
+        setRemoveCoverImage(true);
+        if (coverObjectUrl) {
+            URL.revokeObjectURL(coverObjectUrl);
+            setCoverObjectUrl(null);
+        }
+        setCoverPreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
         }
     };
 
@@ -150,6 +199,8 @@ export default function AdminBrandsPage() {
             const coverFile = fileInputRef.current?.files?.[0];
             if (coverFile) {
                 formData.append('cover_image', coverFile);
+            } else if (removeCoverImage) {
+                formData.append('remove_cover_image', 'true');
             }
 
             if (editingBrand) {
@@ -406,7 +457,7 @@ export default function AdminBrandsPage() {
                                                 value={formState.display_order}
                                                 onChange={(e) => {
                                                     const value = e.target.value;
-                                                    setFormState(prev => ({ ...prev, display_order: value === '' ? '' : Number(value) }));
+                                                    setFormState(prev => ({ ...prev, display_order: value === '' ? 0 : Number(value) }));
                                                 }}
                                                 onBlur={(e) => {
                                                     if (e.target.value === '') {
@@ -431,9 +482,48 @@ export default function AdminBrandsPage() {
                                                 onChange={handleCoverChange}
                                                 className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-700"
                                             />
-                                            {coverPreview && (
-                                                <div className="mt-2">
-                                                    <img src={coverPreview} alt="Preview" className="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200" />
+                                            {coverPreview && coverObjectUrl && (
+                                                <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
+                                                    <img
+                                                        src={coverPreview}
+                                                        alt="Cover preview"
+                                                        className="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
+                                                    />
+                                                    <div className="flex flex-col gap-2">
+                                                        <span className="text-xs text-slate-500">
+                                                            {editingBrand
+                                                                ? 'This preview will replace the existing brand image once saved.'
+                                                                : 'This image will be used as the brand cover image.'}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={removeCoverImageHandler}
+                                                            className="self-start rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                                        >
+                                                            Remove selected image
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {coverPreview && !coverObjectUrl && editingBrand?.cover_image && !removeCoverImage && (
+                                                <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
+                                                    <img
+                                                        src={coverPreview}
+                                                        alt="Current cover"
+                                                        className="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
+                                                    />
+                                                    <div className="flex flex-col gap-2">
+                                                        <span className="text-xs text-slate-500">
+                                                            Current brand image. Upload a new file to replace it.
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={removeCoverImageHandler}
+                                                            className="self-start rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                                        >
+                                                            Remove image
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             )}
                                         </label>

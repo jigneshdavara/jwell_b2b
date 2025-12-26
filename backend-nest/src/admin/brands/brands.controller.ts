@@ -45,7 +45,7 @@ export class BrandsController {
     @UseInterceptors(
         FileInterceptor('cover_image', {
             storage: diskStorage({
-                destination: './public/brands',
+                destination: './public/storage/brands',
                 filename: (req, file, cb) => {
                     const randomName = Array(32)
                         .fill(null)
@@ -63,7 +63,7 @@ export class BrandsController {
         @Body() dto: CreateBrandDto,
         @UploadedFile() file?: Express.Multer.File,
     ) {
-        const imagePath = file ? `brands/${file.filename}` : undefined;
+        const imagePath = file ? `storage/brands/${file.filename}` : undefined;
         return this.brandsService.create(dto, imagePath);
     }
 
@@ -71,7 +71,7 @@ export class BrandsController {
     @UseInterceptors(
         FileInterceptor('cover_image', {
             storage: diskStorage({
-                destination: './public/brands',
+                destination: './public/storage/brands',
                 filename: (req, file, cb) => {
                     const randomName = Array(32)
                         .fill(null)
@@ -90,7 +90,7 @@ export class BrandsController {
         @Body() dto: UpdateBrandDto,
         @UploadedFile() file?: Express.Multer.File,
     ) {
-        const imagePath = file ? `brands/${file.filename}` : undefined;
+        const imagePath = file ? `storage/brands/${file.filename}` : undefined;
         return this.brandsService.update(id, dto, imagePath);
     }
 

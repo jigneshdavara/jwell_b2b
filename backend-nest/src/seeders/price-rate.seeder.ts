@@ -34,3 +34,4 @@ export class PriceRateSeeder extends BaseSeeder {
 
 
 
+

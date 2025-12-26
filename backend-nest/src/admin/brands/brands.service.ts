@@ -56,28 +56,31 @@ export class BrandsService {
   async update(id: number, dto: UpdateBrandDto, coverImage?: string) {
     const brand = await this.findOne(id);
     
-    let imageToUpdate: string | undefined = coverImage;
+    const updateData: any = {
+      code: dto.code,
+      name: dto.name,
+      description: dto.description,
+      is_active: dto.is_active,
+      display_order: dto.display_order,
+    };
+
     if (dto.remove_cover_image && brand.cover_image) {
+      // Remove image: delete from storage and set to null in database
       this.deleteImage(brand.cover_image);
-      imageToUpdate = undefined;
-    } else if (coverImage && brand.cover_image) {
-      // New image uploaded, delete old one
-      this.deleteImage(brand.cover_image);
-    } else if (!coverImage) {
-      // No new image, preserve existing unless removed
-      imageToUpdate = brand.cover_image ?? undefined;
+      updateData.cover_image = null;
+    } else if (coverImage) {
+      // New image uploaded: delete old one (if exists) and set new path
+      if (brand.cover_image) {
+        this.deleteImage(brand.cover_image);
+      }
+      updateData.cover_image = coverImage;
     }
+    // If no new image and not removing, cover_image is not included in updateData
+    // This preserves the existing image in the database
 
     return await this.prisma.brands.update({
       where: { id: BigInt(id) },
-      data: {
-        code: dto.code,
-        name: dto.name,
-        description: dto.description,
-        is_active: dto.is_active,
-        display_order: dto.display_order,
-        cover_image: imageToUpdate,
-      },
+      data: updateData,
     });
   }
 
@@ -110,7 +113,8 @@ export class BrandsService {
   }
 
   private deleteImage(imagePath: string) {
-    // Assuming imagePath is relative to the storage root
+    // Image path is stored as "storage/brands/filename.png" in database
+    // Need to prepend "public/" to get the full path
     const fullPath = path.join(process.cwd(), 'public', imagePath);
     if (fs.existsSync(fullPath)) {
       try {
