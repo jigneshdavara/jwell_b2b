@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { frontendService } from "@/services/frontendService";
-import { useWishlist } from "@/contexts/WishlistContext";
-import { useCart } from "@/contexts/CartContext";
+import { useAppDispatch } from "@/store/hooks";
+import { fetchWishlist as fetchWishlistThunk, removeProductId as removeProductIdAction } from "@/store/slices/wishlistSlice";
+import { fetchCart as fetchCartThunk } from "@/store/slices/cartSlice";
 import { route } from "@/utils/route";
 import type { WishlistItem } from "@/types";
 
 export default function WishlistPage() {
-  const { refreshWishlist, removeProductId } = useWishlist();
-  const { refreshCart } = useCart();
+  const dispatch = useAppDispatch();
+  const refreshWishlist = () => dispatch(fetchWishlistThunk());
+  const refreshCart = () => dispatch(fetchCartThunk());
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +41,7 @@ export default function WishlistPage() {
     return `${baseUrl}${cleanUrl}`;
   }, []);
 
-  const fetchWishlist = async () => {
+  const loadWishlistData = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -79,7 +81,7 @@ export default function WishlistPage() {
   };
 
   useEffect(() => {
-    fetchWishlist();
+    loadWishlistData();
   }, []);
 
   const removeItem = async (item: WishlistItem) => {
@@ -106,7 +108,7 @@ export default function WishlistPage() {
       // Update context (outside state updater to avoid React error)
       if (productId) {
         const pid = typeof productId === 'string' ? parseInt(productId) : productId;
-        removeProductId(pid);
+        dispatch(removeProductIdAction(pid));
       }
       
       // Refresh wishlist count
@@ -154,7 +156,7 @@ export default function WishlistPage() {
       // Update context (outside state updater to avoid React error)
       if (productId) {
         const pid = typeof productId === 'string' ? parseInt(productId) : productId;
-        removeProductId(pid);
+        dispatch(removeProductIdAction(pid));
       }
       
       // Refresh wishlist count
@@ -250,7 +252,7 @@ export default function WishlistPage() {
             <div className="flex flex-col items-center justify-center gap-4 py-16 text-sm text-rose-600">
               <p>{error}</p>
               <button
-                onClick={fetchWishlist}
+                onClick={loadWishlistData}
                 className="rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
               >
                 Try again
@@ -274,7 +276,7 @@ export default function WishlistPage() {
                 const itemId = typeof item.id === 'string' ? parseInt(item.id) : item.id;
                 const productId = typeof item.product_id === 'string' ? parseInt(item.product_id) : item.product_id;
                 const isBusy = busyItems.has(itemId);
-                // Thumbnail is already processed in fetchWishlist, use directly
+                // Thumbnail is already processed in loadWishlistData, use directly
                 const thumbnailUrl = item.thumbnail;
 
                 return (

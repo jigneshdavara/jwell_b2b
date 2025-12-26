@@ -7,10 +7,15 @@ import ApplicationLogo from '@/components/shared/ApplicationLogo';
 import CustomerFooter from '@/components/shared/CustomerFooter';
 import FlashMessage from '@/components/shared/FlashMessage';
 import { route } from '@/utils/route';
-import { authService } from '@/services/authService';
-import { frontendService } from '@/services/frontendService';
-import { useWishlist } from '@/contexts/WishlistContext';
-import { useCart } from '@/contexts/CartContext';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { fetchNavigationData } from '@/store/slices/navigationSlice';
+import { fetchUser, logout } from '@/store/slices/authSlice';
+import { toggleMobileMenu, toggleAccountMenu, toggleSearch, setSearchTerm, setOpenMenu, setMobileMenuOpen, setAccountMenuOpen, setSearchOpen, setLanguage } from '@/store/slices/uiSlice';
+import { selectUser, selectAuthLoading, selectIsCustomer, selectIsKycApproved } from '@/store/selectors/authSelectors';
+import { selectNavigationData } from '@/store/selectors/navigationSelectors';
+import { selectWishlistCount } from '@/store/selectors/wishlistSelectors';
+import { selectCartCount } from '@/store/selectors/cartSelectors';
+import { selectMobileMenuOpen, selectAccountMenuOpen, selectSearchOpen, selectSearchTerm, selectOpenMenu, selectLanguage } from '@/store/selectors/uiSelectors';
 
 type NavigationItem = {
     label: string;
@@ -25,114 +30,57 @@ export default function AuthenticatedLayout({
 }: PropsWithChildren<{ header?: ReactNode }>) {
     const router = useRouter();
     const pathname = usePathname();
-    const [user, setUser] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [navigationData, setNavigationData] = useState<{
-        categories: Array<{ id: number; name: string; cover_image_url?: string | null }>;
-        catalogs: Array<{ id: number; name: string }>;
-        brands: Array<{ id: number; name: string }>;
-    }>({
-        categories: [],
-        catalogs: [],
-        brands: [],
-    });
+    const dispatch = useAppDispatch();
     
-    // Get wishlist count from context
-    // Note: This will only work for customer pages wrapped in WishlistProvider
-    // For admin pages, this will throw - but admin pages don't use this layout
-    const { wishlistCount } = useWishlist();
+    // Get user and navigation from RTK store (using memoized selectors)
+    const user = useAppSelector(selectUser);
+    const loading = useAppSelector(selectAuthLoading);
+    const navigationData = useAppSelector(selectNavigationData);
     
-    // Get cart count from context
-    const { cartCount } = useCart();
+    // Get wishlist and cart counts from RTK store (using memoized selectors)
+    const wishlistCount = useAppSelector(selectWishlistCount);
+    const cartCount = useAppSelector(selectCartCount);
 
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-    const [searchOpen, setSearchOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
+    // Get UI state from RTK store (using memoized selectors)
+    const mobileMenuOpen = useAppSelector(selectMobileMenuOpen);
+    const accountMenuOpen = useAppSelector(selectAccountMenuOpen);
+    const searchOpen = useAppSelector(selectSearchOpen);
+    const searchTerm = useAppSelector(selectSearchTerm);
+    const openMenu = useAppSelector(selectOpenMenu);
+    const language = useAppSelector(selectLanguage);
     const searchInputRef = useRef<HTMLInputElement>(null);
-    const [language, setLanguage] = useState('en');
-    const [openMenu, setOpenMenu] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            setLoading(true);
-            try {
-                const response = await authService.me();
-                setUser(response.data);
-            } catch (e) {
-                router.push('/login');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchUser();
-    }, [router]);
-
-    // Fetch navigation data (categories, catalogs, brands)
-    useEffect(() => {
-        const fetchNavigation = async () => {
-            // Don't fetch navigation if on onboarding page
-            if (pathname === '/onboarding/kyc') {
-                setNavigationData({
-                    categories: [],
-                    catalogs: [],
-                    brands: [],
-                });
-                return;
-            }
-
-            // Check if user is a customer
-            const userType = (user?.type ?? '').toLowerCase();
-            const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
-            
-            if (!isCustomer) {
-                return;
-            }
-
-            // Check if KYC is approved before calling API
-            const kycStatus = user?.kyc_status || user?.kycStatus;
-            if (kycStatus !== 'approved') {
-                // Don't fetch navigation if KYC not approved (will get 403)
-                setNavigationData({
-                    categories: [],
-                    catalogs: [],
-                    brands: [],
-                });
-                return;
-            }
-
-            try {
-                const response = await frontendService.getNavigation();
-                if (response.data) {
-                    setNavigationData({
-                        categories: response.data.categories || [],
-                        catalogs: response.data.catalogs || [],
-                        brands: response.data.brands || [],
-                    });
-                }
-            } catch (error: any) {
-                // Handle 403 errors gracefully (KYC not approved)
-                if (error.response?.status === 403) {
-                    setNavigationData({
-                        categories: [],
-                        catalogs: [],
-                        brands: [],
-                    });
-                    return;
-                }
-                console.error('Failed to load navigation data:', error);
-                // Keep empty arrays on error
-            }
-        };
-        
-        // Only fetch if user is authenticated
-        if (user) {
-            fetchNavigation();
-        }
-    }, [user, pathname]);
-
+    // Use memoized selectors for derived state
+    const isCustomer = useAppSelector(selectIsCustomer);
+    const isKycApproved = useAppSelector(selectIsKycApproved);
+    
+    // Keep userType for backward compatibility in other parts of the component
     const userType = (user?.type ?? '').toLowerCase();
-    const isCustomer = ['retailer', 'wholesaler', 'sales'].includes(userType);
+
+    // Fetch user on mount
+    useEffect(() => {
+        if (!user) {
+            dispatch(fetchUser()).catch(() => {
+                router.push('/login');
+            });
+        }
+    }, [dispatch, router, user]);
+
+    // Fetch navigation data (categories, catalogs, brands) via RTK
+    useEffect(() => {
+        // Don't fetch navigation if on onboarding page
+        if (pathname === '/onboarding/kyc') {
+            return;
+        }
+
+        // Check if user is a customer and KYC approved
+        if (!isCustomer || !user || !isKycApproved) {
+            return;
+        }
+
+        // Fetch navigation data via RTK
+        dispatch(fetchNavigationData());
+    }, [dispatch, user, pathname, isCustomer, isKycApproved]);
 
     useEffect(() => {
         if (!searchOpen) {
@@ -266,7 +214,7 @@ export default function AuthenticatedLayout({
     const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const term = searchTerm.trim();
-        setSearchOpen(false);
+        dispatch(setSearchOpen(false));
         if (term.length === 0) {
             return;
         }
@@ -275,8 +223,8 @@ export default function AuthenticatedLayout({
     };
 
     const handleLogout = async () => {
-        await authService.logout();
-        router.push('/');
+        await dispatch(logout());
+        // Redirect is handled by authService.logout() inside the RTK action
     };
 
     if (loading) {
@@ -334,7 +282,7 @@ export default function AuthenticatedLayout({
                                 <button
                                     type="button"
                                     className="inline-flex items-center rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-slate-300 hover:text-slate-900 lg:hidden"
-                                    onClick={() => setMobileMenuOpen(true)}
+                                    onClick={() => dispatch(setMobileMenuOpen(true))}
                                     aria-label="Open navigation"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
@@ -364,13 +312,13 @@ export default function AuthenticatedLayout({
                                         <div
                                             key={item.label}
                                             className="group relative"
-                                            onMouseEnter={() => setOpenMenu(item.label)}
+                                            onMouseEnter={() => dispatch(setOpenMenu(item.label))}
                                         >
                                             <button
                                                 type="button"
                                                 className="inline-flex items-center gap-1 text-sm font-semibold text-slate-500 transition hover:text-slate-900"
-                                                onClick={() => setOpenMenu((prev) => (prev === item.label ? null : item.label))}
-                                                onFocus={() => setOpenMenu(item.label)}
+                                                onClick={() => dispatch(setOpenMenu(openMenu === item.label ? null : item.label))}
+                                                onFocus={() => dispatch(setOpenMenu(item.label))}
                                             >
                                                 {item.label}
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={1.5}>
@@ -384,8 +332,8 @@ export default function AuthenticatedLayout({
                                                             ? 'w-[38rem] lg:w-[46rem]'
                                                             : 'w-[28rem] lg:w-[32rem]'
                                                     } ${openMenu === item.label ? 'visible opacity-100 pointer-events-auto' : 'invisible opacity-0 pointer-events-none'}`}
-                                                    onMouseEnter={() => setOpenMenu(item.label)}
-                                                    onMouseLeave={() => setOpenMenu(null)}
+                                                    onMouseEnter={() => dispatch(setOpenMenu(item.label))}
+                                                    onMouseLeave={() => dispatch(setOpenMenu(null))}
                                                 >
                                                     <div
                                                         className={`grid gap-3 ${
@@ -450,8 +398,8 @@ export default function AuthenticatedLayout({
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        setSearchTerm('');
-                                        setSearchOpen(true);
+                                        dispatch(setSearchTerm(''));
+                                        dispatch(setSearchOpen(true));
                                     }}
                                     className="inline-flex h-7 w-7 items-center justify-center text-slate-600 transition hover:text-slate-900"
                                     aria-label="Search"
@@ -499,10 +447,10 @@ export default function AuthenticatedLayout({
                                 <div className="relative hidden lg:block">
                                     <button
                                         type="button"
-                                        onMouseEnter={() => setAccountMenuOpen(true)}
-                                        onFocus={() => setAccountMenuOpen(true)}
-                                        onBlur={() => setAccountMenuOpen(false)}
-                                        onClick={() => setAccountMenuOpen((previous) => !previous)}
+                                        onMouseEnter={() => dispatch(setAccountMenuOpen(true))}
+                                        onFocus={() => dispatch(setAccountMenuOpen(true))}
+                                        onBlur={() => dispatch(setAccountMenuOpen(false))}
+                                        onClick={() => dispatch(toggleAccountMenu())}
                                         className="inline-flex h-7 w-7 items-center justify-center text-slate-600 transition hover:text-slate-900"
                                         aria-label="Account menu"
                                     >
@@ -515,8 +463,8 @@ export default function AuthenticatedLayout({
                                         className={`absolute right-0 mt-3 w-56 rounded-2xl border border-slate-100 bg-white p-4 shadow-xl transition ${
                                             accountMenuOpen ? 'visible opacity-100 pointer-events-auto' : 'invisible opacity-0 pointer-events-none'
                                         }`}
-                                        onMouseEnter={() => setAccountMenuOpen(true)}
-                                        onMouseLeave={() => setAccountMenuOpen(false)}
+                                        onMouseEnter={() => dispatch(setAccountMenuOpen(true))}
+                                        onMouseLeave={() => dispatch(setAccountMenuOpen(false))}
                                     >
                                         <p className="text-sm font-semibold text-slate-700">
                                             Hello, {user?.name?.split(' ')[0] ?? 'there'}
@@ -553,7 +501,7 @@ export default function AuthenticatedLayout({
                                 <button
                                     type="button"
                                     className="inline-flex items-center rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-slate-300 hover:text-slate-900 lg:hidden"
-                                    onClick={() => setMobileMenuOpen(true)}
+                                    onClick={() => dispatch(setMobileMenuOpen(true))}
                                     aria-label="Open menu"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
@@ -571,7 +519,7 @@ export default function AuthenticatedLayout({
                                         ref={searchInputRef}
                                         type="search"
                                         value={searchTerm}
-                                        onChange={(event) => setSearchTerm(event.target.value)}
+                                        onChange={(event) => dispatch(setSearchTerm(event.target.value))}
                                         placeholder="Search collections or SKU"
                                         className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                     />
@@ -583,7 +531,7 @@ export default function AuthenticatedLayout({
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setSearchOpen(false)}
+                                        onClick={() => dispatch(setSearchOpen(false))}
                                         className="rounded-full border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 hover:text-slate-900"
                                     >
                                         Close
@@ -648,7 +596,7 @@ export default function AuthenticatedLayout({
                             <button
                                 type="button"
                                 className="inline-flex items-center rounded-full border border-white/20 p-2 text-white transition hover:bg-white/20 lg:hidden"
-                                onClick={() => setMobileMenuOpen((prev) => !prev)}
+                                onClick={() => dispatch(toggleMobileMenu())}
                                 aria-label="Toggle menu"
                             >
                                 <svg

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { kycService } from '@/services/kycService';
 import { route } from '@/utils/route';
 import InputError from '@/components/ui/InputError';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { checkKycStatus, fetchKycDocuments } from '@/store/slices/kycSlice';
 import type { KycDocument, KycProfile, ConversationMessage, KycUser } from '@/types';
 
 const statusLabels: Record<string, { title: string; description: string; badge: string }> = {
@@ -32,6 +34,7 @@ const statusLabels: Record<string, { title: string; description: string; badge: 
 
 export default function KycOnboardingPage() {
     const router = useRouter();
+    const dispatch = useAppDispatch();
     const [user, setUser] = useState<KycUser | null>(null);
     const [profile, setProfile] = useState<KycProfile>({});
     const [documents, setDocuments] = useState<KycDocument[]>([]);
@@ -116,8 +119,12 @@ export default function KycOnboardingPage() {
             setDocumentTypes(documentTypesRes.data?.documentTypes || data.documentTypes || []);
         } catch (e: any) {
             console.error('Failed to fetch KYC data:', e);
-            setFlashMessage({ type: 'error', message: e.response?.data?.message || 'Failed to load KYC data' });
-            setTimeout(() => setFlashMessage(null), 5000);
+            // Only show error if it's not a 403 (KYC not approved) or 401 (unauthorized)
+            // These are handled by guards/middleware, don't show error on refresh
+            if (e.response?.status !== 403 && e.response?.status !== 401) {
+                setFlashMessage({ type: 'error', message: e.response?.data?.message || 'Failed to load KYC data' });
+                setTimeout(() => setFlashMessage(null), 5000);
+            }
         } finally {
             setLoading(false);
         }
@@ -136,6 +143,8 @@ export default function KycOnboardingPage() {
             setFlashMessage({ type: 'success', message: 'Profile updated successfully' });
             setTimeout(() => setFlashMessage(null), 3000);
             await fetchData();
+            // Refresh KYC state in RTK
+            dispatch(checkKycStatus());
         } catch (error: any) {
             const errorData = error.response?.data;
             if (errorData?.errors) {
@@ -162,6 +171,8 @@ export default function KycOnboardingPage() {
             setFlashMessage({ type: 'success', message: 'Document uploaded successfully' });
             setTimeout(() => setFlashMessage(null), 3000);
             await fetchData();
+            // Refresh KYC state in RTK
+            dispatch(checkKycStatus());
         } catch (error: any) {
             const errorData = error.response?.data;
             if (errorData?.errors) {
@@ -185,6 +196,8 @@ export default function KycOnboardingPage() {
             setFlashMessage({ type: 'success', message: 'Message sent successfully' });
             setTimeout(() => setFlashMessage(null), 3000);
             await fetchData();
+            // Refresh KYC state in RTK
+            dispatch(checkKycStatus());
         } catch (e: any) {
             console.error('Failed to send message:', e);
             setFlashMessage({ type: 'error', message: e.response?.data?.message || 'Failed to send message' });
@@ -201,6 +214,8 @@ export default function KycOnboardingPage() {
             setFlashMessage({ type: 'success', message: 'Document deleted successfully' });
             setTimeout(() => setFlashMessage(null), 3000);
             await fetchData();
+            // Refresh KYC state in RTK
+            dispatch(checkKycStatus());
         } catch (e: any) {
             console.error('Failed to delete document:', e);
             setFlashMessage({ type: 'error', message: e.response?.data?.message || 'Failed to delete document' });

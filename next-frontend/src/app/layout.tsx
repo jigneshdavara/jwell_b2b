@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthMiddleware } from "@/middleware/authMiddleware";
+import { StoreProvider } from "@/components/providers/StoreProvider";
 
 export const metadata: Metadata = {
   title: "Jwell B2B Platform",
@@ -15,9 +16,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning>
-        <AuthMiddleware>
-          {children}
-        </AuthMiddleware>
+        <StoreProvider>
+          <AuthMiddleware>
+            {children}
+          </AuthMiddleware>
+        </StoreProvider>
       </body>
     </html>
   );

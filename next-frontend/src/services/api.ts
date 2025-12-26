@@ -1,5 +1,6 @@
 import axios from "axios";
 import { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { env } from "@/config/env";
 
 // Custom params serializer to handle arrays without brackets
 // NestJS expects repeated params: category=2&category=3 (not category[]=2&category[]=3)
@@ -28,12 +29,13 @@ const paramsSerializer = (params: Record<string, any>): string => {
 };
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api",
+  baseURL: env.apiUrl,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
   paramsSerializer: paramsSerializer, // Use custom serializer function
+  timeout: 30000, // 30 seconds timeout
 });
 
 // KYC check removed - backend will handle KYC validation
