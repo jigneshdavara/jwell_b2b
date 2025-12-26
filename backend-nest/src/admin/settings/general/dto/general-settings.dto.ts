@@ -4,7 +4,9 @@ import {
     IsEmail,
     MaxLength,
     IsNotEmpty,
+    IsBoolean,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class UpdateGeneralSettingsDto {
     @IsEmail()
@@ -66,4 +68,14 @@ export class UpdateGeneralSettingsDto {
     @IsNotEmpty()
     @MaxLength(3)
     app_currency: string;
+
+    @IsBoolean()
+    @IsOptional()
+    @Transform(({ value }) => value === 'true' || value === true)
+    remove_logo?: boolean;
+
+    @IsBoolean()
+    @IsOptional()
+    @Transform(({ value }) => value === 'true' || value === true)
+    remove_favicon?: boolean;
 }

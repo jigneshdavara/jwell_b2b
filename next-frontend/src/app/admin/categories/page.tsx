@@ -62,21 +62,27 @@ export default function AdminCategoriesPage() {
         name: '',
         description: '',
         is_active: true,
-        display_order: 0,
+        display_order: 0 as number | string,
         style_ids: [] as number[],
         size_ids: [] as number[],
-        cover_image: null as File | null,
-        remove_cover_image: false,
     });
 
     const [styles, setStyles] = useState<Style[]>([]);
     const [sizes, setSizes] = useState<Size[]>([]);
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
     const [coverObjectUrl, setCoverObjectUrl] = useState<string | null>(null);
+    const [removeCoverImage, setRemoveCoverImage] = useState(false);
     const [styleSearchQuery, setStyleSearchQuery] = useState('');
     const [sizeSearchQuery, setSizeSearchQuery] = useState('');
     const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const getImageUrl = (imagePath: string | null | undefined): string | null => {
+        if (!imagePath) return null;
+        if (imagePath.startsWith('http')) return imagePath;
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+        return `${baseUrl}/${imagePath}`.replace(/(?<!:)\/{2,}/g, '/');
+    };
 
     useEffect(() => {
         loadCategories();
@@ -121,6 +127,7 @@ export default function AdminCategoriesPage() {
                     description: item.description,
                     is_active: item.is_active,
                     display_order: item.display_order || 0,
+                    cover_image_url: item.cover_image_url ? getImageUrl(item.cover_image_url) : null,
                 })),
                 meta: {
                     current_page: responseMeta.current_page || responseMeta.page || currentPage,
@@ -318,12 +325,11 @@ export default function AdminCategoriesPage() {
             display_order: 0,
             style_ids: [],
             size_ids: [],
-            cover_image: null,
-            remove_cover_image: false,
         });
         setStyleSearchQuery('');
         setSizeSearchQuery('');
         setCoverPreview(null);
+        setRemoveCoverImage(false);
         if (coverObjectUrl) {
             URL.revokeObjectURL(coverObjectUrl);
             setCoverObjectUrl(null);
@@ -377,7 +383,7 @@ export default function AdminCategoriesPage() {
                 ...category,
                 styles: fullCategory.styles || [],
                 sizes: fullCategory.sizes || [],
-                cover_image_url: fullCategory.cover_image_url || null,
+                cover_image_url: fullCategory.cover_image_url ? getImageUrl(fullCategory.cover_image_url) : null,
             });
             setFormState({
                 parent_id: fullCategory.parent_id ? String(fullCategory.parent_id) : '',
@@ -388,10 +394,14 @@ export default function AdminCategoriesPage() {
                 display_order: fullCategory.display_order,
                 style_ids: fullCategory.styles?.map((s: any) => Number(s.id)) ?? [],
                 size_ids: fullCategory.sizes?.map((s: any) => Number(s.id)) ?? [],
-                cover_image: null,
-                remove_cover_image: false,
             });
-            setCoverPreview(fullCategory.cover_image_url ?? null);
+            setCoverPreview(fullCategory.cover_image_url ? getImageUrl(fullCategory.cover_image_url) : null);
+            setRemoveCoverImage(false);
+            if (coverObjectUrl) {
+                URL.revokeObjectURL(coverObjectUrl);
+                setCoverObjectUrl(null);
+            }
+            if (fileInputRef.current) fileInputRef.current.value = '';
             setModalOpen(true);
             if (fullCategory.parent_id && categoryTree.length > 0) {
                 expandPathToCategory(Number(fullCategory.parent_id), categoryTree);
@@ -409,17 +419,20 @@ export default function AdminCategoriesPage() {
                 display_order: category.display_order,
                 style_ids: [],
                 size_ids: [],
-                cover_image: null,
-                remove_cover_image: false,
             });
-            setCoverPreview(category.cover_image_url ?? null);
+            setCoverPreview(category.cover_image_url ? getImageUrl(category.cover_image_url) : null);
+            setRemoveCoverImage(false);
+            if (coverObjectUrl) {
+                URL.revokeObjectURL(coverObjectUrl);
+                setCoverObjectUrl(null);
+            }
             setModalOpen(true);
         }
     };
 
-    const handleCoverChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0] ?? null;
-        setFormState(prev => ({ ...prev, cover_image: file, remove_cover_image: false }));
+    const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] ?? null;
+        setRemoveCoverImage(false);
 
         if (coverObjectUrl) {
             URL.revokeObjectURL(coverObjectUrl);
@@ -431,12 +444,12 @@ export default function AdminCategoriesPage() {
             setCoverPreview(objectUrl);
             setCoverObjectUrl(objectUrl);
         } else {
-            setCoverPreview(editingCategory?.cover_image_url ?? null);
+            setCoverPreview(editingCategory?.cover_image_url ? getImageUrl(editingCategory.cover_image_url) : null);
         }
     };
 
-    const removeCoverImage = () => {
-        setFormState(prev => ({ ...prev, cover_image: null, remove_cover_image: true }));
+    const removeCoverImageHandler = () => {
+        setRemoveCoverImage(true);
         if (coverObjectUrl) {
             URL.revokeObjectURL(coverObjectUrl);
             setCoverObjectUrl(null);
@@ -472,11 +485,11 @@ export default function AdminCategoriesPage() {
             formState.style_ids.forEach(id => formData.append('style_ids', String(id)));
             formState.size_ids.forEach(id => formData.append('size_ids', String(id)));
             
-            if (formState.cover_image instanceof File) {
-                formData.append('cover_image', formState.cover_image);
-            }
-            if (formState.remove_cover_image) {
-                formData.append('remove_cover_image', '1');
+            const coverFile = fileInputRef.current?.files?.[0];
+            if (coverFile) {
+                formData.append('cover_image', coverFile);
+            } else if (removeCoverImage) {
+                formData.append('remove_cover_image', 'true');
             }
 
             if (editingCategory) {
@@ -756,7 +769,7 @@ export default function AdminCategoriesPage() {
                                                 onChange={handleCoverChange}
                                                 className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-700"
                                             />
-                                            {coverPreview && (
+                                            {coverPreview && coverObjectUrl && (
                                                 <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
                                                     <img
                                                         src={coverPreview}
@@ -765,28 +778,24 @@ export default function AdminCategoriesPage() {
                                                     />
                                                     <div className="flex flex-col gap-2">
                                                         <span className="text-xs text-slate-500">
-                                                            {coverObjectUrl && editingCategory
+                                                            {editingCategory
                                                                 ? 'This preview will replace the existing category image once saved.'
-                                                                : coverObjectUrl
-                                                                ? 'This image will be used as the category cover image.'
-                                                                : 'Current category image. Upload a new file to replace it.'}
+                                                                : 'This image will be used as the category cover image.'}
                                                         </span>
-                                                        {coverObjectUrl && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={removeCoverImage}
-                                                                className="self-start rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
-                                                            >
-                                                                Remove selected image
-                                                            </button>
-                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={removeCoverImageHandler}
+                                                            className="self-start rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                                        >
+                                                            Remove selected image
+                                                        </button>
                                                     </div>
                                                 </div>
                                             )}
-                                            {!coverPreview && editingCategory?.cover_image_url && (
+                                            {coverPreview && !coverObjectUrl && editingCategory?.cover_image_url && !removeCoverImage && (
                                                 <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
                                                     <img
-                                                        src={editingCategory.cover_image_url}
+                                                        src={coverPreview}
                                                         alt="Current cover"
                                                         className="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
                                                     />
@@ -796,7 +805,7 @@ export default function AdminCategoriesPage() {
                                                         </span>
                                                         <button
                                                             type="button"
-                                                            onClick={removeCoverImage}
+                                                            onClick={removeCoverImageHandler}
                                                             className="self-start rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
                                                         >
                                                             Remove image

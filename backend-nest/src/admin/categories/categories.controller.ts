@@ -45,7 +45,7 @@ export class CategoriesController {
     @UseInterceptors(
         FileInterceptor('cover_image', {
             storage: diskStorage({
-                destination: './public/categories',
+                destination: './public/storage/categories',
                 filename: (req, file, cb) => {
                     const randomName = Array(32)
                         .fill(null)
@@ -63,7 +63,9 @@ export class CategoriesController {
         @Body() dto: CreateCategoryDto,
         @UploadedFile() file?: Express.Multer.File,
     ) {
-        const imagePath = file ? `categories/${file.filename}` : undefined;
+        const imagePath = file
+            ? `storage/categories/${file.filename}`
+            : undefined;
         return this.categoriesService.create(dto, imagePath);
     }
 
@@ -71,7 +73,7 @@ export class CategoriesController {
     @UseInterceptors(
         FileInterceptor('cover_image', {
             storage: diskStorage({
-                destination: './public/categories',
+                destination: './public/storage/categories',
                 filename: (req, file, cb) => {
                     const randomName = Array(32)
                         .fill(null)
@@ -90,7 +92,9 @@ export class CategoriesController {
         @Body() dto: UpdateCategoryDto,
         @UploadedFile() file?: Express.Multer.File,
     ) {
-        const imagePath = file ? `categories/${file.filename}` : undefined;
+        const imagePath = file
+            ? `storage/categories/${file.filename}`
+            : undefined;
         return this.categoriesService.update(id, dto, imagePath);
     }
 
