@@ -5,7 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
-import { useWishlist } from '@/contexts/WishlistContext';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { fetchWishlist, addProductId, removeProductId } from '@/store/slices/wishlistSlice';
+import { selectWishlistProductIds } from '@/store/selectors/wishlistSelectors';
 import { formatCurrency } from '@/utils/formatting';
 import type { Product, CatalogFiltersInput, CatalogFilters, CatalogProps, PriceRange } from '@/types';
 
@@ -32,7 +34,11 @@ const PRICE_STEP = 1000;
 export default function CatalogPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { wishlistProductIds, addProductId, removeProductId, refreshWishlist } = useWishlist();
+    const dispatch = useAppDispatch();
+    const wishlistProductIds = useAppSelector(selectWishlistProductIds);
+    const refreshWishlist = async () => {
+        await dispatch(fetchWishlist());
+    };
     
     const [data, setData] = useState<CatalogProps | null>(null);
     const [loading, setLoading] = useState(true);
@@ -363,8 +369,8 @@ export default function CatalogPage() {
                 // Remove from wishlist
                 await frontendService.removeFromWishlistByProduct(productId, variantId);
 
-                // Update context
-                removeProductId(productId);
+                // Update RTK state
+                dispatch(removeProductId(productId));
                 
                 // Refresh wishlist to ensure count is accurate
                 await refreshWishlist();
@@ -380,7 +386,7 @@ export default function CatalogPage() {
                 });
 
                 // Update context
-                addProductId(productId);
+                dispatch(addProductId(productId));
                 
                 // Refresh wishlist to ensure count is accurate
                 await refreshWishlist();

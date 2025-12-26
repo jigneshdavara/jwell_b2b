@@ -8,7 +8,8 @@ import Modal from '@/components/ui/Modal';
 import Pagination from '@/components/ui/Pagination';
 import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
-import { useCart } from '@/contexts/CartContext';
+import { useAppDispatch } from '@/store/hooks';
+import { fetchCart as fetchCartThunk } from '@/store/slices/cartSlice';
 import { PaginationMeta } from '@/utils/pagination';
 import type { CartItem, CartData } from '@/types';
 
@@ -31,7 +32,8 @@ const getMediaUrl = (url: string | null | undefined): string | null => {
 
 export default function CartPage() {
     const router = useRouter();
-    const { refreshCart } = useCart();
+    const dispatch = useAppDispatch();
+    const refreshCart = () => dispatch(fetchCartThunk());
     const [cart, setCart] = useState<CartData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export default function CartPage() {
     const [cartComment, setCartComment] = useState('');
     const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-    const fetchCart = async () => {
+    const loadCartData = async () => {
         setLoading(true);
         setError(null);
         try {
@@ -106,7 +108,7 @@ export default function CartPage() {
     };
 
     useEffect(() => {
-        fetchCart();
+        loadCartData();
     }, []);
 
     const formatter = useMemo(() => currencyFormatter(cart?.currency || 'INR'), [cart?.currency]);
@@ -300,7 +302,7 @@ export default function CartPage() {
                     }
                 }
                 
-                await fetchCart(); // Refresh cart to get updated prices
+                await loadCartData(); // Refresh cart to get updated prices
                 await refreshCart(); // Update cart count in navbar
                 clearUpdating();
             } catch (err: any) {
@@ -311,7 +313,7 @@ export default function CartPage() {
             // Single item - simple update
             try {
                 await frontendService.updateCartItem(item.id, nextQuantity);
-                await fetchCart(); // Refresh cart to get updated prices
+                await loadCartData(); // Refresh cart to get updated prices
                 await refreshCart(); // Update cart count in navbar
                 clearUpdating();
             } catch (err: any) {
@@ -324,7 +326,7 @@ export default function CartPage() {
     const removeItem = async (item: CartItem) => {
         try {
             await frontendService.removeCartItem(item.id);
-            await fetchCart(); // Refresh cart
+            await loadCartData(); // Refresh cart
             await refreshCart(); // Update cart count in navbar
             setFlashMessage({ type: 'success', message: 'Removed from your purchase list.' });
             setTimeout(() => setFlashMessage(null), 3000);
@@ -343,7 +345,7 @@ export default function CartPage() {
             await frontendService.updateCartItem(item.id, undefined, {
                 notes: notesValue[item.id] || null,
             });
-            await fetchCart(); // Refresh cart
+            await loadCartData(); // Refresh cart
             setNotesModalOpen(null);
             setFlashMessage({ type: 'success', message: 'Updated quotation entry.' });
             setTimeout(() => setFlashMessage(null), 3000);

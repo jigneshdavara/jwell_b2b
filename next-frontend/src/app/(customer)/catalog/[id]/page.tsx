@@ -7,7 +7,8 @@ import { Head } from '@/components/Head';
 import CustomizationSection from '@/components/ui/customization/CustomizationSection';
 import ProductDetailsPanel from '@/components/ui/customization/ProductDetailsPanel';
 import { frontendService } from '@/services/frontendService';
-import { useCart } from '@/contexts/CartContext';
+import { useAppDispatch } from '@/store/hooks';
+import { fetchCart } from '@/store/slices/cartSlice';
 import { route } from '@/utils/route';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
@@ -30,7 +31,8 @@ export default function CatalogShowPage() {
     const router = useRouter();
     const params = useParams();
     const productId = Number(params.id);
-    const { refreshCart } = useCart();
+    const dispatch = useAppDispatch();
+    const refreshCart = () => dispatch(fetchCart());
 
     const [product, setProduct] = useState<ProductDetail | null>(null);
     const [configurationOptions, setConfigurationOptions] = useState<ConfigurationOption[]>([]);
