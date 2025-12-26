@@ -20,7 +20,8 @@ export class ProfileController {
     @Get()
     async getProfile(@Request() req: any): Promise<ProfileResponseDto> {
         const userId = BigInt(req.user.userId);
-        return await this.profileService.getProfile(userId);
+        const guard = req.user.guard || 'user';
+        return await this.profileService.getProfile(userId, guard);
     }
 
     @Patch()

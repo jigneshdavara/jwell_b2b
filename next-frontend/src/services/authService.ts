@@ -100,7 +100,8 @@ export const authService = {
         }
         
         // Always fetch fresh data from API
-        const response = await apiClient.get("/kyc/profile");
+        // Use /profile endpoint which works for both admins and users
+        const response = await apiClient.get("/profile");
         
         // Update token if provided in response
         if (response.data?.access_token) {
@@ -112,7 +113,7 @@ export const authService = {
         // If API call fails, try to refresh token and retry once
         try {
           await tokenService.refreshToken();
-          const retryResponse = await apiClient.get("/kyc/profile");
+          const retryResponse = await apiClient.get("/profile");
           if (retryResponse.data?.access_token) {
             tokenService.setToken(retryResponse.data.access_token);
           }
