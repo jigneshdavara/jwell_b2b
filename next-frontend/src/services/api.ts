@@ -57,11 +57,21 @@ import { tokenService } from './tokenService';
 apiClient.interceptors.request.use(
   async (config) => {
     if (typeof window !== "undefined") {
+      // Don't try to refresh token if logout is in progress
+      const isLoggingOut = sessionStorage.getItem('is_logging_out') === 'true';
+      if (isLoggingOut) {
+        return config;
+      }
+      
       // Get token from token service
       let token = tokenService.getToken();
       
       // If no token and not a public endpoint, try to refresh
-      if (!token && !isKycEndpoint(config.url || "")) {
+      // But NEVER try to refresh if we're on home page (/)
+      // Home page should always be accessible without authentication
+      const isOnHomePage = window.location.pathname === '/';
+      
+      if (!token && !isKycEndpoint(config.url || "") && !isOnHomePage) {
         token = await tokenService.refreshToken();
       }
       
@@ -88,6 +98,14 @@ apiClient.interceptors.response.use(
     
     // Handle 401 Unauthorized - token expired or invalid
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't try to refresh if logout is in progress or we're on home page
+      const isLoggingOut = typeof window !== "undefined" && sessionStorage.getItem('is_logging_out') === 'true';
+      const isOnHomePage = typeof window !== "undefined" && window.location.pathname === '/';
+      
+      if (isLoggingOut || isOnHomePage) {
+        return Promise.reject(error);
+      }
+      
       originalRequest._retry = true;
       
       try {
@@ -100,11 +118,17 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
-        // Refresh failed, redirect to login
-        if (typeof window !== "undefined") {
+        // Refresh failed - redirect to login ONLY if:
+        // 1. Not logging out
+        // 2. Not on home page (/)
+        // 3. Not on other public paths
+        // This ensures home page is always accessible and never redirected to login
+        if (!isLoggingOut && !isOnHomePage && typeof window !== "undefined") {
           const currentPath = window.location.pathname;
           const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
           
+          // Only redirect to login if not on public paths
+          // Home page (/) is explicitly excluded above (isOnHomePage check)
           if (!publicPaths.some(path => currentPath.startsWith(path))) {
             tokenService.removeToken();
             window.location.href = '/login';

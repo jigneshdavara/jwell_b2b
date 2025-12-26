@@ -76,6 +76,11 @@ export default function HomeIndex() {
     }, []);
 
     useEffect(() => {
+        // Clear logout flag when home page loads (logout completed)
+        if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('is_logging_out');
+        }
+        
         // Check authentication - only check token (no user storage)
         const checkAuth = async () => {
             if (typeof window === 'undefined') return false;
