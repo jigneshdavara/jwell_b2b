@@ -57,12 +57,6 @@ import { tokenService } from './tokenService';
 apiClient.interceptors.request.use(
   async (config) => {
     if (typeof window !== "undefined") {
-      // Don't try to refresh token if logout is in progress
-      const isLoggingOut = sessionStorage.getItem('is_logging_out') === 'true';
-      if (isLoggingOut) {
-        return config;
-      }
-      
       // Get token from token service
       let token = tokenService.getToken();
       
@@ -98,11 +92,11 @@ apiClient.interceptors.response.use(
     
     // Handle 401 Unauthorized - token expired or invalid
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Don't try to refresh if logout is in progress or we're on home page
-      const isLoggingOut = typeof window !== "undefined" && sessionStorage.getItem('is_logging_out') === 'true';
+      // Don't try to refresh if we're on home page (/)
+      // Home page should never trigger redirects to login
       const isOnHomePage = typeof window !== "undefined" && window.location.pathname === '/';
       
-      if (isLoggingOut || isOnHomePage) {
+      if (isOnHomePage) {
         return Promise.reject(error);
       }
       
@@ -119,11 +113,10 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshError) {
         // Refresh failed - redirect to login ONLY if:
-        // 1. Not logging out
-        // 2. Not on home page (/)
-        // 3. Not on other public paths
+        // 1. Not on home page (/)
+        // 2. Not on other public paths
         // This ensures home page is always accessible and never redirected to login
-        if (!isLoggingOut && !isOnHomePage && typeof window !== "undefined") {
+        if (!isOnHomePage && typeof window !== "undefined") {
           const currentPath = window.location.pathname;
           const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
           

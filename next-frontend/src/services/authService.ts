@@ -73,16 +73,12 @@ export const authService = {
   },
 
   async logout() {
-    // Set logout flag in sessionStorage (persists during redirect)
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('is_logging_out', 'true');
-    }
-    
     // Remove token
     tokenService.removeToken();
     
     // Immediately redirect to home page using replace
     // This happens synchronously and prevents any further code execution
+    // No need for sessionStorage - home page check in interceptors is sufficient
     if (typeof window !== 'undefined') {
       window.location.replace('/');
     }
