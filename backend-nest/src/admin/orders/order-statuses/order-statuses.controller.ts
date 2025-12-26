@@ -31,7 +31,7 @@ export class OrderStatusesController {
         @Query('per_page', new ParseIntPipe({ optional: true }))
         perPage?: number,
     ) {
-        return this.orderStatusesService.findAll(page ?? 1, perPage ?? 20);
+        return this.orderStatusesService.findAll(page ?? 1, perPage ?? 10);
     }
 
     @Post()

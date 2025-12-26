@@ -12,7 +12,7 @@ export class OrdersService {
 
     async findAll(
         page: number = 1,
-        perPage: number = 20,
+        perPage: number = 10,
         filters?: {
             status?: string;
             search?: string;
@@ -220,19 +220,13 @@ export class OrdersService {
                 // Ensure price_breakdown has all required fields
                 if (priceBreakdown && typeof priceBreakdown === 'object') {
                     priceBreakdown = {
-                        metal: parseFloat((priceBreakdown as any).metal ?? 0),
-                        diamond: parseFloat(
-                            (priceBreakdown as any).diamond ?? 0,
-                        ),
-                        making: parseFloat((priceBreakdown as any).making ?? 0),
-                        subtotal: parseFloat(
-                            (priceBreakdown as any).subtotal ?? 0,
-                        ),
-                        discount: parseFloat(
-                            (priceBreakdown as any).discount ?? 0,
-                        ),
+                        metal: parseFloat(priceBreakdown.metal ?? 0),
+                        diamond: parseFloat(priceBreakdown.diamond ?? 0),
+                        making: parseFloat(priceBreakdown.making ?? 0),
+                        subtotal: parseFloat(priceBreakdown.subtotal ?? 0),
+                        discount: parseFloat(priceBreakdown.discount ?? 0),
                         total: parseFloat(
-                            (priceBreakdown as any).total ??
+                            priceBreakdown.total ??
                                 parseFloat(item.unit_price.toString()),
                         ),
                     };
@@ -249,7 +243,7 @@ export class OrdersService {
                     metadata: item.metadata,
                     price_breakdown: priceBreakdown,
                     calculated_making_charge: priceBreakdown
-                        ? (priceBreakdown as any).making
+                        ? priceBreakdown.making
                         : null,
                     product: item.products
                         ? {

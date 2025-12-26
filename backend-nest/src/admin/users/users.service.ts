@@ -15,7 +15,7 @@ export class UsersService {
     async findAll(filters: UserFilterDto) {
         const {
             page = 1,
-            per_page = 20,
+            per_page = 10,
             search,
             status,
             user_group_id,

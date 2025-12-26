@@ -13,7 +13,7 @@ import {
 export class AdminGroupsService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 20) {
+    async findAll(page: number = 1, perPage: number = 10) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.admin_groups.findMany({
