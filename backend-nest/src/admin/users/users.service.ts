@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import {
     UserFilterDto,
     UpdateUserStatusDto,
-    UpdateUserGroupDto,
     BulkDeleteUsersDto,
     BulkGroupUpdateDto,
 } from './dto/user.dto';
@@ -25,12 +25,10 @@ export class UsersService {
 
         const skip = (page - 1) * per_page;
 
-        const where: any = {
-            AND: [],
-        };
+        const andConditions: Prisma.UserWhereInput[] = [];
 
         if (search) {
-            where.AND.push({
+            andConditions.push({
                 OR: [
                     { name: { contains: search, mode: 'insensitive' } },
                     { email: { contains: search, mode: 'insensitive' } },
@@ -39,20 +37,23 @@ export class UsersService {
         }
 
         if (status) {
-            where.AND.push({ kyc_status: status });
+            andConditions.push({ kyc_status: status });
         }
 
         if (user_group_id) {
-            where.AND.push({ user_group_id: BigInt(user_group_id) });
+            andConditions.push({ user_group_id: BigInt(user_group_id) });
         }
 
         if (type) {
-            where.AND.push({ type: type });
+            andConditions.push({ type: type });
         }
 
         if (only_active) {
-            where.AND.push({ is_active: true });
+            andConditions.push({ is_active: true });
         }
+
+        const where: Prisma.UserWhereInput =
+            andConditions.length > 0 ? { AND: andConditions } : {};
 
         const [items, total] = await Promise.all([
             this.prisma.user.findMany({
@@ -128,11 +129,15 @@ export class UsersService {
         };
     }
 
-    async updateStatus(id: number, dto: UpdateUserStatusDto) {
-        const customer = await this.prisma.user.findUnique({
+    async updateStatus(
+        id: number,
+        dto: UpdateUserStatusDto,
+        adminId: bigint | null,
+    ) {
+        const user = await this.prisma.user.findUnique({
             where: { id: BigInt(id) },
         });
-        if (!customer) throw new NotFoundException('User? not found');
+        if (!user) throw new NotFoundException('User not found');
 
         return await this.prisma.$transaction(async (tx) => {
             const updatedCustomer = await tx.user.update({
@@ -147,8 +152,9 @@ export class UsersService {
             await tx.user_kyc_messages.create({
                 data: {
                     user_id: BigInt(id),
+                    admin_id: adminId,
                     sender_type: 'admin',
-                    message: `KYC status updated to '${dto.kyc_status}'. Notes: ${dto.kyc_notes || 'N/A'}`,
+                    message: `KYC status updated to '${dto.kyc_status}'. ${dto.kyc_notes ? `Notes: ${dto.kyc_notes}` : ''}`,
                 },
             });
 
@@ -156,36 +162,22 @@ export class UsersService {
         });
     }
 
-    async updateGroup(id: number, dto: UpdateUserGroupDto) {
-        const customer = await this.prisma.user.findUnique({
-            where: { id: BigInt(id) },
-        });
-        if (!customer) throw new NotFoundException('User? not found');
-
-        return await this.prisma.user.update({
-            where: { id: BigInt(id) },
-            data: {
-                user_group_id: BigInt(dto.user_group_id),
-            },
-        });
-    }
-
     async toggleStatus(id: number) {
-        const customer = await this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: BigInt(id) },
         });
-        if (!customer) throw new NotFoundException('User? not found');
+        if (!user) throw new NotFoundException('User not found');
 
         return await this.prisma.user.update({
             where: { id: BigInt(id) },
             data: {
-                is_active: !customer.is_active,
+                is_active: !user.is_active,
             },
         });
     }
 
     async findOne(id: number) {
-        const customer = await this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: BigInt(id) },
             include: {
                 user_groups: {
@@ -214,46 +206,43 @@ export class UsersService {
             },
         });
 
-        if (!customer) {
-            throw new NotFoundException('User? not found');
+        if (!user) {
+            throw new NotFoundException('User not found');
         }
 
-        // Type assertion to handle Prisma include types - Prisma types may not include all relations
-        const cust = customer as any;
-
         return {
-            id: Number(cust.id),
-            name: cust.name,
-            email: cust.email,
-            phone: cust.phone,
-            type: cust.type,
-            is_active: cust.is_active,
-            kyc_status: cust.kyc_status,
-            kyc_notes: cust.kyc_notes,
-            kyc_comments_enabled: cust.kyc_comments_enabled,
-            customer_group: cust.user_groups
+            id: Number(user.id),
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            type: user.type,
+            is_active: user.is_active,
+            kyc_status: user.kyc_status,
+            kyc_notes: user.kyc_notes,
+            kyc_comments_enabled: user.kyc_comments_enabled,
+            customer_group: user.user_groups
                 ? {
-                      id: Number(cust.user_groups.id),
-                      name: cust.user_groups.name,
+                      id: Number(user.user_groups.id),
+                      name: user.user_groups.name,
                   }
                 : null,
             kyc_profile: {
-                business_name: cust.business_name,
-                business_website: cust.business_website,
-                gst_number: cust.gst_number,
-                pan_number: cust.pan_number,
-                registration_number: cust.registration_number,
-                address_line1: cust.address_line1,
-                address_line2: cust.address_line2,
-                city: cust.city,
-                state: cust.state,
-                postal_code: cust.postal_code,
-                country: cust.country,
-                contact_name: cust.contact_name,
-                contact_phone: cust.contact_phone,
-                metadata: cust.kyc_metadata,
+                business_name: user.business_name,
+                business_website: user.business_website,
+                gst_number: user.gst_number,
+                pan_number: user.pan_number,
+                registration_number: user.registration_number,
+                address_line1: user.address_line1,
+                address_line2: user.address_line2,
+                city: user.city,
+                state: user.state,
+                postal_code: user.postal_code,
+                country: user.country,
+                contact_name: user.contact_name,
+                contact_phone: user.contact_phone,
+                metadata: user.kyc_metadata,
             },
-            kyc_documents: (cust.user_kyc_documents || []).map((doc: any) => ({
+            kyc_documents: (user.user_kyc_documents || []).map((doc) => ({
                 id: Number(doc.id),
                 type: doc.type,
                 file_path: doc.file_path,
@@ -264,7 +253,7 @@ export class UsersService {
                 remarks: doc.remarks,
                 created_at: doc.created_at,
             })),
-            kyc_messages: (cust.user_kyc_messages || []).map((msg: any) => ({
+            kyc_messages: (user.user_kyc_messages || []).map((msg) => ({
                 id: Number(msg.id),
                 message: msg.message,
                 is_admin: msg.sender_type === 'admin',
@@ -277,11 +266,11 @@ export class UsersService {
                     : null,
                 created_at: msg.created_at,
             })),
-            kyc_document_count: cust._count?.user_kyc_documents || 0,
-            kyc_message_count: cust._count?.user_kyc_messages || 0,
-            joined_at: cust.created_at,
-            created_at: cust.created_at,
-            updated_at: cust.updated_at,
+            kyc_document_count: user._count?.user_kyc_documents || 0,
+            kyc_message_count: user._count?.user_kyc_messages || 0,
+            joined_at: user.created_at,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
         };
     }
 
@@ -290,10 +279,10 @@ export class UsersService {
         message: string,
         adminId: bigint | null = null,
     ) {
-        const customer = await this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: BigInt(id) },
         });
-        if (!customer) throw new NotFoundException('User? not found');
+        if (!user) throw new NotFoundException('User not found');
 
         return await this.prisma.user_kyc_messages.create({
             data: {
@@ -311,10 +300,10 @@ export class UsersService {
         status: string,
         remarks?: string,
     ) {
-        const customer = await this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: BigInt(id) },
         });
-        if (!customer) throw new NotFoundException('User? not found');
+        if (!user) throw new NotFoundException('User not found');
 
         const document = await this.prisma.user_kyc_documents.findUnique({
             where: { id: BigInt(docId) },
@@ -333,10 +322,10 @@ export class UsersService {
     }
 
     async toggleKycComments(id: number, allowReplies: boolean) {
-        const customer = await this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: BigInt(id) },
         });
-        if (!customer) throw new NotFoundException('User? not found');
+        if (!user) throw new NotFoundException('User not found');
 
         return await this.prisma.user.update({
             where: { id: BigInt(id) },
@@ -347,10 +336,10 @@ export class UsersService {
     }
 
     async remove(id: number) {
-        const customer = await this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: BigInt(id) },
         });
-        if (!customer) throw new NotFoundException('User? not found');
+        if (!user) throw new NotFoundException('User not found');
 
         return await this.prisma.user.delete({
             where: { id: BigInt(id) },
@@ -378,7 +367,9 @@ export class UsersService {
         }
 
         const ids = dto.ids.map((id) => BigInt(id));
-        const updateData: any = {};
+        const updateData: Prisma.UserUpdateManyMutationInput & {
+            user_group_id?: bigint | null;
+        } = {};
 
         if (dto.user_group_id !== undefined && dto.user_group_id !== null) {
             updateData.user_group_id = BigInt(dto.user_group_id);

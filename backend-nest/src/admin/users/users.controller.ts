@@ -15,7 +15,6 @@ import { UsersService } from './users.service';
 import {
     UserFilterDto,
     UpdateUserStatusDto,
-    UpdateUserGroupDto,
     BulkDeleteUsersDto,
     BulkGroupUpdateDto,
 } from './dto/user.dto';
@@ -41,21 +40,15 @@ export class UsersController {
     updateStatus(
         @Param('id', ParseIntPipe) id: number,
         @Body() dto: UpdateUserStatusDto,
+        @Request() req: any,
     ) {
-        return this.usersService.updateStatus(id, dto);
+        const adminId = req.user?.userId ? BigInt(req.user.userId) : null;
+        return this.usersService.updateStatus(id, dto, adminId);
     }
 
     @Post(':id/toggle-status')
     toggleStatus(@Param('id', ParseIntPipe) id: number) {
         return this.usersService.toggleStatus(id);
-    }
-
-    @Patch(':id/group')
-    updateGroup(
-        @Param('id', ParseIntPipe) id: number,
-        @Body() dto: UpdateUserGroupDto,
-    ) {
-        return this.usersService.updateGroup(id, dto);
     }
 
     @Post(':id/kyc-messages')
