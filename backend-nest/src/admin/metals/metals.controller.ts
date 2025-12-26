@@ -17,9 +17,10 @@ import {
     BulkDestroyDto,
 } from './dto/metal.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/auth/guards/admin.guard';
 
 @Controller('admin/metals')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class MetalsController {
     constructor(private readonly metalsService: MetalsService) {}
 

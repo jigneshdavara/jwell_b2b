@@ -13,9 +13,10 @@ import {
 import { TaxGroupsService } from './tax-groups.service';
 import { CreateTaxGroupDto, UpdateTaxGroupDto } from './dto/tax-group.dto';
 import { JwtAuthGuard } from '../../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../../common/auth/guards/admin.guard';
 
 @Controller('admin/settings/tax-groups')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class TaxGroupsController {
     constructor(private readonly taxGroupsService: TaxGroupsService) {}
 

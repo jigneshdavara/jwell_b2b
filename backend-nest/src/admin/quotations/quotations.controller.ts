@@ -21,9 +21,10 @@ import {
     StoreQuotationMessageDto,
 } from '../../quotations/dto/quotation.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/auth/guards/admin.guard';
 
 @Controller('admin/quotations')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminQuotationsController {
     constructor(private readonly quotationsService: QuotationsService) {}
 

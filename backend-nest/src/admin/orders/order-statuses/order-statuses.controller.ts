@@ -18,9 +18,10 @@ import {
     BulkDestroyOrderStatusesDto,
 } from './dto/order-status.dto';
 import { JwtAuthGuard } from '../../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../../common/auth/guards/admin.guard';
 
 @Controller('admin/orders/statuses')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class OrderStatusesController {
     constructor(private readonly orderStatusesService: OrderStatusesService) {}
 

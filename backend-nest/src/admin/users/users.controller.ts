@@ -2,9 +2,10 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Pa
 import { UsersService } from './users.service';
 import { UserFilterDto, UpdateUserStatusDto, UpdateUserGroupDto, BulkDeleteUsersDto, BulkGroupUpdateDto } from './dto/user.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/auth/guards/admin.guard';
 
 @Controller('admin/users')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

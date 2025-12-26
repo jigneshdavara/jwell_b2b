@@ -11,11 +11,12 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { GeneralSettingsService } from './general.service';
 import { UpdateGeneralSettingsDto } from './dto/general-settings.dto';
 import { JwtAuthGuard } from '../../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../../common/auth/guards/admin.guard';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 
 @Controller('admin/settings/general')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class GeneralSettingsController {
     constructor(
         private readonly generalSettingsService: GeneralSettingsService,
