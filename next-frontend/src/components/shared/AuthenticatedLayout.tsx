@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import ApplicationLogo from '@/components/shared/ApplicationLogo';
 import CustomerFooter from '@/components/shared/CustomerFooter';
-import FlashMessage from '@/components/shared/FlashMessage';
 import { route } from '@/utils/route';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchNavigationData } from '@/store/slices/navigationSlice';
@@ -624,7 +623,6 @@ export default function AuthenticatedLayout({
 
             <main className="relative z-0 flex-1">
                 <div className="mx-auto max-w-[95rem] px-4 py-10 lg:py-12">
-                    <FlashMessage />
                     {children}
                 </div>
             </main>

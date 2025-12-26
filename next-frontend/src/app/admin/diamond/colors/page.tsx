@@ -6,7 +6,7 @@ import { adminService } from '@/services/adminService';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
-import FlashMessage from '@/components/shared/FlashMessage';
+import { toastSuccess, toastError, toastInfo } from '@/utils/toast';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type DiamondType = {
@@ -42,7 +42,7 @@ export default function AdminDiamondColorsIndex() {
     const [deleteConfirm, setDeleteConfirm] = useState<DiamondColorRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+    // Toast notifications are handled via RTK
 
     const [formData, setFormData] = useState({
         diamond_type_id: '' as string | number,
@@ -198,10 +198,10 @@ export default function AdminDiamondColorsIndex() {
 
             if (editingColor) {
                 await adminService.updateDiamondColor(editingColor.id, payload);
-                setFlashMessage({ type: 'success', message: 'Diamond color updated successfully.' });
+                toastSuccess('Diamond color updated successfully.');
             } else {
                 await adminService.createDiamondColor(payload);
-                setFlashMessage({ type: 'success', message: 'Diamond color created successfully.' });
+                toastSuccess('Diamond color created successfully.');
             }
             resetForm();
             await loadColors();
@@ -210,7 +210,7 @@ export default function AdminDiamondColorsIndex() {
             if (error.response?.data?.errors) {
                 setFormErrors(error.response.data.errors);
             } else {
-                setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to save diamond color. Please try again.' });
+                toastError(error.response?.data?.message || 'Failed to save diamond color. Please try again.');
             }
         } finally {
             setProcessing(false);
@@ -228,10 +228,10 @@ export default function AdminDiamondColorsIndex() {
                 display_order: color.display_order,
             });
             await loadColors();
-            setFlashMessage({ type: 'success', message: `Diamond color ${!color.is_active ? 'activated' : 'deactivated'} successfully.` });
+            toastSuccess(`Diamond color ${!color.is_active ? 'activated' : 'deactivated'} successfully.`);
         } catch (error: any) {
             console.error('Failed to toggle diamond color status:', error);
-            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to update diamond color. Please try again.' });
+            toastError(error.response?.data?.message || 'Failed to update diamond color. Please try again.');
         }
     };
 
@@ -244,12 +244,12 @@ export default function AdminDiamondColorsIndex() {
             try {
                 await adminService.deleteDiamondColor(deleteConfirm.id);
                 setDeleteConfirm(null);
-                setFlashMessage({ type: 'success', message: 'Diamond color deleted successfully.' });
+                toastSuccess('Diamond color deleted successfully.');
                 await loadColors();
             } catch (error: any) {
                 console.error('Failed to delete diamond color:', error);
                 setDeleteConfirm(null);
-                setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to delete diamond color. Please try again.' });
+                toastError(error.response?.data?.message || 'Failed to delete diamond color. Please try again.');
             }
         }
     };
@@ -267,12 +267,12 @@ export default function AdminDiamondColorsIndex() {
             setSelectedColors([]);
             setBulkDeleteConfirm(false);
             const message = response.data?.message || `${selectedColors.length} diamond color${selectedColors.length === 1 ? '' : 's'} deleted successfully.`;
-            setFlashMessage({ type: 'success', message });
+            toastSuccess(message);
             await loadColors();
         } catch (error: any) {
             console.error('Failed to bulk delete diamond colors:', error);
             setBulkDeleteConfirm(false);
-            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to delete diamond colors. Please try again.' });
+            toastError(error.response?.data?.message || 'Failed to delete diamond colors. Please try again.');
         }
     };
 
@@ -287,13 +287,6 @@ export default function AdminDiamondColorsIndex() {
         <>
             <Head title="Diamond colors" />
             <div className="space-y-8">
-                {flashMessage && (
-                    <FlashMessage
-                        type={flashMessage.type}
-                        message={flashMessage.message}
-                        onClose={() => setFlashMessage(null)}
-                    />
-                )}
                 <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div>
                         <h1 className="text-2xl font-semibold text-slate-900">Diamond colors</h1>

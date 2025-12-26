@@ -101,7 +101,6 @@ export default function AdminAdminGroupsPage() {
                 },
             });
         } catch (error: any) {
-            console.error('Failed to load admin groups:', error);
         } finally {
             setLoading(false);
         }
@@ -194,7 +193,7 @@ export default function AdminAdminGroupsPage() {
             await loadGroups();
         } catch (error: any) {
             console.error('Failed to save admin group:', error);
-            alert(error.response?.data?.message || 'Failed to save admin group. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to save admin group. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -211,8 +210,7 @@ export default function AdminAdminGroupsPage() {
             });
             await loadGroups();
         } catch (error: any) {
-            console.error('Failed to toggle admin group:', error);
-            alert(error.response?.data?.message || 'Failed to update admin group. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update admin group. Please try again.');
         }
     };
 
@@ -223,8 +221,7 @@ export default function AdminAdminGroupsPage() {
                 setDeleteConfirm(null);
                 await loadGroups();
             } catch (error: any) {
-                console.error('Failed to delete admin group:', error);
-                alert(error.response?.data?.message || 'Failed to delete admin group. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete admin group. Please try again.');
             }
         }
     };
@@ -236,8 +233,7 @@ export default function AdminAdminGroupsPage() {
             setBulkDeleteConfirm(false);
             await loadGroups();
         } catch (error: any) {
-            console.error('Failed to delete admin groups:', error);
-            alert(error.response?.data?.message || 'Failed to delete admin groups. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to delete admin groups. Please try again.');
         }
     };
 
@@ -253,8 +249,7 @@ export default function AdminAdminGroupsPage() {
             setAssignAdmins(data.admins || []);
             setAssignSelectedIds(data.selectedAdminIds || []);
         } catch (error: any) {
-            console.error('Failed to load admins:', error);
-            alert(error.response?.data?.message || 'Failed to load admins. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to load admins. Please try again.');
             setAssignModalOpen(false);
         } finally {
             setAssignLoading(false);
@@ -334,8 +329,7 @@ export default function AdminAdminGroupsPage() {
                 return newIds;
             });
         } catch (error: any) {
-            console.error('Failed to search admins:', error);
-            alert(error.response?.data?.message || 'Failed to search admins. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to search admins. Please try again.');
         } finally {
             setAssignLoading(false);
         }
@@ -351,8 +345,7 @@ export default function AdminAdminGroupsPage() {
             closeAssignModal();
             await loadGroups();
         } catch (error: any) {
-            console.error('Failed to assign admins:', error);
-            alert(error.response?.data?.message || 'Failed to assign admins. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to assign admins. Please try again.');
         } finally {
             setAssignProcessing(false);
         }

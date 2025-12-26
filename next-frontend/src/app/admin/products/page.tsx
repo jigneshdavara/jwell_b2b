@@ -1,7 +1,7 @@
 "use client";
 
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
-import AlertModal from "@/components/ui/AlertModal";
+import { toastSuccess, toastError, toastInfo, toastWarning } from "@/utils/toast";
 import Pagination from "@/components/ui/Pagination";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -42,11 +42,7 @@ export default function AdminProductsPage() {
   const [bulkBrand, setBulkBrand] = useState("");
   const [bulkCategory, setBulkCategory] = useState("");
 
-  const [alertModal, setAlertModal] = useState({
-    show: false,
-    title: "",
-    message: "",
-  });
+  // Toast notifications are handled via RTK
   const [confirmModal, setConfirmModal] = useState({
     show: false,
     title: "",
@@ -105,11 +101,7 @@ export default function AdminProductsPage() {
       });
     } catch (error: any) {
       console.error('Failed to load products:', error);
-      setAlertModal({
-        show: true,
-        title: "Error",
-        message: error.response?.data?.message || "Failed to load products. Please try again.",
-      });
+      toastError(error.response?.data?.message || "Failed to load products. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -144,11 +136,7 @@ export default function AdminProductsPage() {
 
   const ensureSelection = (callback: () => void) => {
     if (selectedProducts.length === 0) {
-      setAlertModal({
-        show: true,
-        title: "Selection Required",
-        message: "Select at least one product first.",
-      });
+      toastWarning("Select at least one product first.");
       return;
     }
     callback();
@@ -172,11 +160,7 @@ export default function AdminProductsPage() {
               onConfirm: () => {},
             });
           } catch (error: any) {
-            setAlertModal({
-              show: true,
-              title: "Error",
-              message: error.response?.data?.message || "Failed to delete products. Please try again.",
-            });
+            toastError(error.response?.data?.message || "Failed to delete products. Please try again.");
           }
         },
       });
@@ -190,11 +174,7 @@ export default function AdminProductsPage() {
         setSelectedProducts([]);
         await fetchProducts();
       } catch (error: any) {
-        setAlertModal({
-          show: true,
-          title: "Error",
-          message: error.response?.data?.message || "Failed to update product status. Please try again.",
-        });
+        toastError(error.response?.data?.message || "Failed to update product status. Please try again.");
       }
     });
   };
@@ -203,36 +183,20 @@ export default function AdminProductsPage() {
   const bulkAssignBrand = () => {
     ensureSelection(async () => {
       if (!bulkBrand) {
-        setAlertModal({
-          show: true,
-          title: "Brand Required",
-          message: "Select a brand to assign.",
-        });
+        toastWarning("Select a brand to assign.");
         return;
       }
-      setAlertModal({
-        show: true,
-        title: "Not Available",
-        message: "Bulk brand assignment is not yet available in the API.",
-      });
+      toastInfo("Bulk brand assignment is not yet available in the API.");
     });
   };
 
   const bulkAssignCategory = () => {
     ensureSelection(async () => {
       if (!bulkCategory) {
-        setAlertModal({
-          show: true,
-          title: "Category Required",
-          message: "Select a category to assign.",
-        });
+        toastWarning("Select a category to assign.");
         return;
       }
-      setAlertModal({
-        show: true,
-        title: "Not Available",
-        message: "Bulk category assignment is not yet available in the API.",
-      });
+      toastInfo("Bulk category assignment is not yet available in the API.");
     });
   };
 
@@ -240,17 +204,9 @@ export default function AdminProductsPage() {
     try {
       await adminService.copyProduct(id);
       await fetchProducts();
-      setAlertModal({
-        show: true,
-        title: "Success",
-        message: "Product duplicated successfully.",
-      });
+      toastSuccess("Product duplicated successfully.");
     } catch (error: any) {
-      setAlertModal({
-        show: true,
-        title: "Error",
-        message: error.response?.data?.message || "Failed to duplicate product. Please try again.",
-      });
+      toastError(error.response?.data?.message || "Failed to duplicate product. Please try again.");
     }
   };
 
@@ -271,11 +227,7 @@ export default function AdminProductsPage() {
             onConfirm: () => {},
           });
         } catch (error: any) {
-          setAlertModal({
-            show: true,
-            title: "Error",
-            message: error.response?.data?.message || "Failed to delete product. Please try again.",
-          });
+          toastError(error.response?.data?.message || "Failed to delete product. Please try again.");
         }
       },
     });
@@ -614,12 +566,6 @@ export default function AdminProductsPage() {
         />
       </div>
 
-      <AlertModal
-        show={alertModal.show}
-        onClose={() => setAlertModal({ show: false, title: "", message: "" })}
-        title={alertModal.title}
-        message={alertModal.message}
-      />
 
       <ConfirmationModal
         show={confirmModal.show}

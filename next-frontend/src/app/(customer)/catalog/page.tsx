@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchWishlist, addProductId, removeProductId } from '@/store/slices/wishlistSlice';
 import { selectWishlistProductIds } from '@/store/selectors/wishlistSelectors';
 import { formatCurrency } from '@/utils/formatting';
+import { toastSuccess, toastError } from '@/utils/toast';
 import type { Product, CatalogFiltersInput, CatalogFilters, CatalogProps, PriceRange } from '@/types';
 
 const FILTER_LABELS: Record<string, string> = {
@@ -43,7 +44,7 @@ export default function CatalogPage() {
     const [data, setData] = useState<CatalogProps | null>(null);
     const [loading, setLoading] = useState(true);
     const [wishlistBusyId, setWishlistBusyId] = useState<number | null>(null);
-    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    // Toast notifications are handled via RTK
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [catalogItems, setCatalogItems] = useState<Product[]>([]);
@@ -375,9 +376,8 @@ export default function CatalogPage() {
                 // Refresh wishlist to ensure count is accurate
                 await refreshWishlist();
                 
-                // Show flash message
-                setFlashMessage({ type: 'success', message: 'Removed from wishlist.' });
-                setTimeout(() => setFlashMessage(null), 3000);
+                // Show toast
+                toastSuccess('Removed from wishlist.');
             } else {
                 // Add to wishlist
                 await frontendService.addToWishlist({
@@ -391,17 +391,12 @@ export default function CatalogPage() {
                 // Refresh wishlist to ensure count is accurate
                 await refreshWishlist();
                 
-                // Show flash message (same as Laravel)
-                setFlashMessage({ type: 'success', message: 'Saved to your wishlist.' });
-                setTimeout(() => setFlashMessage(null), 3000);
+                // Show toast (same as Laravel)
+                toastSuccess('Saved to your wishlist.');
             }
         } catch (error: any) {
             console.error('Error toggling wishlist:', error);
-            setFlashMessage({ 
-                type: 'error', 
-                message: error.response?.data?.message || 'Failed to update wishlist. Please try again.' 
-            });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastError(error.response?.data?.message || 'Failed to update wishlist. Please try again.');
         } finally {
             setWishlistBusyId(null);
         }
@@ -552,38 +547,6 @@ export default function CatalogPage() {
 
     return (
         <>
-            {flashMessage && (
-                <div
-                    className={`mb-6 rounded-2xl border px-4 py-3 text-sm shadow-sm transition ${
-                        flashMessage.type === 'success'
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                            : 'bg-rose-50 border-rose-200 text-rose-900'
-                    }`}
-                >
-                    <div className="flex items-center justify-between">
-                        <p className="font-medium">{flashMessage.message}</p>
-                        <button
-                            onClick={() => setFlashMessage(null)}
-                            className="ml-4 text-current opacity-70 hover:opacity-100"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                                className="h-4 w-4"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M6 18L18 6M6 6l12 12"
-                                />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            )}
             <div className="space-y-4" id="catalog">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <h1 className="text-2xl font-semibold text-slate-900">

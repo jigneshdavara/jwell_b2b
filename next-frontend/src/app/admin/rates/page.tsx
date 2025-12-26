@@ -3,6 +3,7 @@
 import { Head } from '@/components/Head';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { adminService } from '@/services/adminService';
+import { toastSuccess, toastError } from '@/utils/toast';
 
 type RateRow = {
     id: number;
@@ -409,10 +410,10 @@ export default function AdminRatesIndex() {
                 });
 
                 await loadRates();
-                alert('Rates saved successfully');
+                toastSuccess('Rates saved successfully');
             } catch (error: any) {
                 console.error('Failed to save rates:', error);
-                alert(error.response?.data?.message || 'Failed to save rates. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to save rates. Please try again.');
             }
         },
         [getFormForMetal],
@@ -426,7 +427,7 @@ export default function AdminRatesIndex() {
                 await loadRates();
             } catch (error: any) {
                 console.error('Failed to sync rates:', error);
-                alert(error.response?.data?.message || 'Failed to sync rates. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to sync rates. Please try again.');
             } finally {
                 setSyncingMetal(null);
             }

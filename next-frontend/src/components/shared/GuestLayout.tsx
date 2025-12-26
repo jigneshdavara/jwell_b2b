@@ -3,7 +3,6 @@
 import React from 'react';
 import CustomerHeader from './CustomerHeader';
 import CustomerFooter from './CustomerFooter';
-import FlashMessage from './FlashMessage';
 import { route } from '@/utils/route';
 
 export default function GuestLayout({ children }: { children: React.ReactNode }) {
@@ -32,7 +31,6 @@ export default function GuestLayout({ children }: { children: React.ReactNode })
                 </div>
 
                 <div className="relative z-10 mx-auto flex min-h-[75vh] w-full max-w-6xl flex-col px-6 py-12 lg:px-10 lg:py-16">
-                    <FlashMessage />
                     <div className="flex-1">{children}</div>
                 </div>
             </div>

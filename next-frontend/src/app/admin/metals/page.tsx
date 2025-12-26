@@ -6,6 +6,7 @@ import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import Pagination from "@/components/ui/Pagination";
 import { adminService } from "@/services/adminService";
 import { PaginationMeta, PaginationLink, generatePaginationLinks } from "@/utils/pagination";
+import { toastError } from "@/utils/toast";
 
 type MetalRow = {
     id: number;
@@ -149,7 +150,7 @@ export default function AdminMetalsPage() {
             await loadMetals();
         } catch (error: any) {
             console.error('Failed to save metal:', error);
-            alert(error.response?.data?.message || 'Failed to save metal. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to save metal. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -167,7 +168,7 @@ export default function AdminMetalsPage() {
             await loadMetals();
         } catch (error: any) {
             console.error('Failed to toggle metal:', error);
-            alert(error.response?.data?.message || 'Failed to update metal. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update metal. Please try again.');
         }
     };
 
@@ -179,7 +180,7 @@ export default function AdminMetalsPage() {
                 await loadMetals();
             } catch (error: any) {
                 console.error('Failed to delete metal:', error);
-                alert(error.response?.data?.message || 'Failed to delete metal. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete metal. Please try again.');
             }
         }
     };
@@ -192,7 +193,7 @@ export default function AdminMetalsPage() {
             await loadMetals();
         } catch (error: any) {
             console.error('Failed to delete metals:', error);
-            alert(error.response?.data?.message || 'Failed to delete metals. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to delete metals. Please try again.');
         }
     };
 

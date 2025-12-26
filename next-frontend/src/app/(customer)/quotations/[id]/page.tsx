@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Modal from '@/components/ui/Modal';
 import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
-import FlashMessage from '@/components/shared/FlashMessage';
+import { toastSuccess, toastError } from '@/utils/toast';
 
 type RelatedQuotation = {
     id: number | string;
@@ -150,7 +150,7 @@ export default function QuotationDetailPage() {
     const [declineNotes, setDeclineNotes] = useState('');
     const [productDetailsModalOpen, setProductDetailsModalOpen] = useState<RelatedQuotation | QuotationDetails | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const [flashMessage, setFlashMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    // Toast notifications are handled via RTK
 
     const fetchQuotation = useCallback(async () => {
         try {
@@ -248,7 +248,7 @@ export default function QuotationDetailPage() {
             setQuotation(mappedQuotation);
         } catch (error: any) {
             console.error('Failed to fetch quotation', error);
-            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to load quotation details.' });
+            toastError(error.response?.data?.message || 'Failed to load quotation details.');
         } finally {
             setLoading(false);
         }
@@ -272,12 +272,10 @@ export default function QuotationDetailPage() {
             await frontendService.sendQuotationMessage(quotationId, message);
             setMessage('');
             await fetchQuotation();
-            setFlashMessage({ type: 'success', message: 'Message sent successfully.' });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastSuccess('Message sent successfully.');
         } catch (error: any) {
             console.error('Failed to send message', error);
-            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to send message. Please try again.' });
-            setTimeout(() => setFlashMessage(null), 5000);
+            toastError(error.response?.data?.message || 'Failed to send message. Please try again.');
         } finally {
             setSubmitting(false);
         }
@@ -290,12 +288,10 @@ export default function QuotationDetailPage() {
             const quotationId = typeof params.id === 'string' ? parseInt(params.id) : Number(params.id);
             await frontendService.confirmQuotation(quotationId);
             await fetchQuotation();
-            setFlashMessage({ type: 'success', message: 'Quotation confirmed successfully.' });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastSuccess('Quotation confirmed successfully.');
         } catch (error: any) {
             console.error('Failed to confirm quotation', error);
-            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to confirm quotation. Please try again.' });
-            setTimeout(() => setFlashMessage(null), 5000);
+            toastError(error.response?.data?.message || 'Failed to confirm quotation. Please try again.');
         } finally {
             setSubmitting(false);
         }
@@ -308,13 +304,11 @@ export default function QuotationDetailPage() {
             const quotationId = typeof params.id === 'string' ? parseInt(params.id) : Number(params.id);
             await frontendService.declineQuotation(quotationId);
             await fetchQuotation();
-            setFlashMessage({ type: 'success', message: 'Quotation declined successfully.' });
-            setTimeout(() => setFlashMessage(null), 3000);
+            toastSuccess('Quotation declined successfully.');
             router.push(route('frontend.quotations.index'));
         } catch (error: any) {
             console.error('Failed to decline quotation', error);
-            setFlashMessage({ type: 'error', message: error.response?.data?.message || 'Failed to decline quotation. Please try again.' });
-            setTimeout(() => setFlashMessage(null), 5000);
+            toastError(error.response?.data?.message || 'Failed to decline quotation. Please try again.');
         } finally {
             setSubmitting(false);
         }
@@ -335,13 +329,6 @@ export default function QuotationDetailPage() {
 
     return (
         <>
-            {flashMessage && (
-                <FlashMessage
-                    type={flashMessage.type}
-                    message={flashMessage.message}
-                    onClose={() => setFlashMessage(null)}
-                />
-            )}
 
             <div className="space-y-10">
                 <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
