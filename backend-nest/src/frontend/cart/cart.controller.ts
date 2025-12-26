@@ -141,7 +141,9 @@ export class FrontendCartController {
                 });
 
                 if (variant && variant.inventory_quantity !== null) {
-                    const inventoryQuantity = Number(variant.inventory_quantity);
+                    const inventoryQuantity = Number(
+                        variant.inventory_quantity,
+                    );
 
                     // If inventory is tracked and is 0, reject the update
                     if (inventoryQuantity === 0) {
@@ -179,10 +181,7 @@ export class FrontendCartController {
     }
 
     @Delete('items/:id')
-    async destroy(
-        @Request() req,
-        @Param('id', ParseIntPipe) id: number,
-    ) {
+    async destroy(@Request() req, @Param('id', ParseIntPipe) id: number) {
         const userId = BigInt(req.user.userId);
         const itemId = BigInt(id);
 
@@ -213,4 +212,3 @@ export class FrontendCartController {
         }
     }
 }
-

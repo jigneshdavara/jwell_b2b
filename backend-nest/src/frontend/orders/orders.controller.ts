@@ -38,10 +38,7 @@ export class FrontendOrdersController {
     }
 
     @Get(':id')
-    async show(
-        @Param('id', ParseIntPipe) id: number,
-        @Request() req: any,
-    ) {
+    async show(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
         const orderId = BigInt(id);
         const userId = BigInt(req.user.userId);
 
@@ -52,4 +49,3 @@ export class FrontendOrdersController {
         };
     }
 }
-

@@ -22,10 +22,7 @@ export class CatalogService {
         // Filter by ready_made
         if (filters.ready_made === '1') {
             where.base_price = { not: null };
-            where.AND = [
-                ...(where.AND || []),
-                { base_price: { gt: 0 } },
-            ];
+            where.AND = [...(where.AND || []), { base_price: { gt: 0 } }];
         }
 
         // Filter by brand
@@ -100,7 +97,9 @@ export class CatalogService {
 
         // Filter by diamond (format: "shape:1", "color:2", "clarity:3")
         if (filters.diamond && filters.diamond.length > 0) {
-            const diamondFilters = filters.diamond.filter((d) => d && d.includes(':'));
+            const diamondFilters = filters.diamond.filter(
+                (d) => d && d.includes(':'),
+            );
             if (diamondFilters.length > 0) {
                 const diamondConditions: any[] = [];
                 for (const filter of diamondFilters) {
@@ -266,11 +265,16 @@ export class CatalogService {
                     const productForPricing = {
                         id: product.id,
                         making_charge_amount: productAny.making_charge_amount
-                            ? parseFloat(productAny.making_charge_amount.toString())
+                            ? parseFloat(
+                                  productAny.making_charge_amount.toString(),
+                              )
                             : null,
-                        making_charge_percentage: productAny.making_charge_percentage
-                            ? parseFloat(productAny.making_charge_percentage.toString())
-                            : null,
+                        making_charge_percentage:
+                            productAny.making_charge_percentage
+                                ? parseFloat(
+                                      productAny.making_charge_percentage.toString(),
+                                  )
+                                : null,
                         metadata: (productAny.metadata as any) || {},
                     };
 
@@ -286,11 +290,16 @@ export class CatalogService {
                     const productForPricing = {
                         id: product.id,
                         making_charge_amount: productAny.making_charge_amount
-                            ? parseFloat(productAny.making_charge_amount.toString())
+                            ? parseFloat(
+                                  productAny.making_charge_amount.toString(),
+                              )
                             : null,
-                        making_charge_percentage: productAny.making_charge_percentage
-                            ? parseFloat(productAny.making_charge_percentage.toString())
-                            : null,
+                        making_charge_percentage:
+                            productAny.making_charge_percentage
+                                ? parseFloat(
+                                      productAny.making_charge_percentage.toString(),
+                                  )
+                                : null,
                         metadata: (productAny.metadata as any) || {},
                     };
                     const priceData =
@@ -326,8 +335,7 @@ export class CatalogService {
                     sku: product.sku,
                     category: product.categories?.[0]?.name || null,
                     material: null, // Material relationship not found in Prisma schema
-                    purity:
-                        (product.metadata as any)?.purity || null,
+                    purity: (product.metadata as any)?.purity || null,
                     price_total: Math.max(0, priceTotal),
                     making_charge_amount: productAny.making_charge_amount
                         ? parseFloat(productAny.making_charge_amount.toString())
@@ -335,8 +343,7 @@ export class CatalogService {
                     thumbnail,
                     media: product.product_medias.map((media) => ({
                         url: media.url,
-                        alt:
-                            (media.metadata as any)?.alt || product.name,
+                        alt: (media.metadata as any)?.alt || product.name,
                     })),
                     uses_gold: productAny.uses_gold || false,
                     uses_silver: productAny.uses_silver || false,
@@ -353,7 +360,10 @@ export class CatalogService {
 
         // Apply price filter
         let filteredProducts = productsWithPrices;
-        if (filters.price_min !== undefined || filters.price_max !== undefined) {
+        if (
+            filters.price_min !== undefined ||
+            filters.price_max !== undefined
+        ) {
             filteredProducts = productsWithPrices.filter((p) => {
                 const price = p.price_total;
                 if (
@@ -493,10 +503,15 @@ export class CatalogService {
                     ? parseFloat((product as any).base_price.toString())
                     : 0,
                 making_charge_amount: (product as any).making_charge_amount
-                    ? parseFloat((product as any).making_charge_amount.toString())
+                    ? parseFloat(
+                          (product as any).making_charge_amount.toString(),
+                      )
                     : 0,
-                making_charge_percentage: (product as any).making_charge_percentage
-                    ? parseFloat((product as any).making_charge_percentage.toString())
+                making_charge_percentage: (product as any)
+                    .making_charge_percentage
+                    ? parseFloat(
+                          (product as any).making_charge_percentage.toString(),
+                      )
                     : null,
                 uses_gold: (product as any).uses_gold || false,
                 uses_silver: (product as any).uses_silver || false,
@@ -550,24 +565,30 @@ export class CatalogService {
                                       name: diamond.name,
                                       diamond_clarity_id:
                                           diamond.diamond_clarity_id,
-                                      diamond_color_id: diamond.diamond_color_id,
-                                      diamond_shape_id: diamond.diamond_shape_id,
+                                      diamond_color_id:
+                                          diamond.diamond_color_id,
+                                      diamond_shape_id:
+                                          diamond.diamond_shape_id,
                                       diamond_clarity: diamond.diamond_clarities
                                           ? {
-                                                id: diamond.diamond_clarities.id,
-                                                name: diamond.diamond_clarities.name,
+                                                id: diamond.diamond_clarities
+                                                    .id,
+                                                name: diamond.diamond_clarities
+                                                    .name,
                                             }
                                           : null,
                                       diamond_color: diamond.diamond_colors
                                           ? {
                                                 id: diamond.diamond_colors.id,
-                                                name: diamond.diamond_colors.name,
+                                                name: diamond.diamond_colors
+                                                    .name,
                                             }
                                           : null,
                                       diamond_shape: diamond.diamond_shapes
                                           ? {
                                                 id: diamond.diamond_shapes.id,
-                                                name: diamond.diamond_shapes.name,
+                                                name: diamond.diamond_shapes
+                                                    .name,
                                             }
                                           : null,
                                   }
@@ -580,11 +601,7 @@ export class CatalogService {
         };
     }
 
-    async calculatePrice(
-        productId: bigint,
-        options: any,
-        userId?: bigint,
-    ) {
+    async calculatePrice(productId: bigint, options: any, userId?: bigint) {
         const product = await this.prisma.products.findUnique({
             where: { id: productId },
         });
@@ -616,7 +633,10 @@ export class CatalogService {
     private async buildConfigurationOptions(product: any, userId?: bigint) {
         const configOptions: any[] = [];
 
-        if (!product.product_variants || product.product_variants.length === 0) {
+        if (
+            !product.product_variants ||
+            product.product_variants.length === 0
+        ) {
             return [];
         }
 
@@ -634,11 +654,10 @@ export class CatalogService {
                     const weight = variantMetal.metal_weight
                         ? parseFloat(variantMetal.metal_weight.toString())
                         : null;
-                    const weightStr = weight
-                        ? weight.toFixed(2) + 'g'
-                        : '';
+                    const weightStr = weight ? weight.toFixed(2) + 'g' : '';
 
-                    const metalLabel = `${purity.name} ${tone.name} ${metal.name} ${weightStr}`.trim();
+                    const metalLabel =
+                        `${purity.name} ${tone.name} ${metal.name} ${weightStr}`.trim();
 
                     metals.push({
                         label: metalLabel,
@@ -678,7 +697,8 @@ export class CatalogService {
                     variantDiamond.diamonds_count > 1
                         ? `(${variantDiamond.diamonds_count})`
                         : '';
-                const diamondLabel = `${diamond.name || parts.join(' ')} ${countStr}`.trim();
+                const diamondLabel =
+                    `${diamond.name || parts.join(' ')} ${countStr}`.trim();
 
                 diamonds.push({
                     label: diamondLabel,
@@ -787,7 +807,9 @@ export class CatalogService {
                     ? {
                           id: firstVariant.sizes.id,
                           name: firstVariant.sizes.name,
-                          value: firstVariant.sizes.code || firstVariant.sizes.name,
+                          value:
+                              firstVariant.sizes.code ||
+                              firstVariant.sizes.name,
                       }
                     : null,
                 price_total: parseFloat(priceData.total?.toString() || '0'),
@@ -935,4 +957,3 @@ export class CatalogService {
         };
     }
 }
-

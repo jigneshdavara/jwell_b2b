@@ -26,7 +26,8 @@ export class PaymentsService {
 
     async getPaymentSettings() {
         try {
-            const gateway = (await this.gatewayManager.activeGateway()) as Gateway;
+            const gateway =
+                (await this.gatewayManager.activeGateway()) as Gateway;
 
             return {
                 gateway: {
@@ -35,8 +36,7 @@ export class PaymentsService {
                     slug: gateway.slug,
                     is_active: gateway.is_active,
                     config: {
-                        publishable_key:
-                            gateway.config?.publishable_key || '',
+                        publishable_key: gateway.config?.publishable_key || '',
                         secret_key: gateway.config?.secret_key || '',
                         webhook_secret: gateway.config?.webhook_secret || '',
                     },

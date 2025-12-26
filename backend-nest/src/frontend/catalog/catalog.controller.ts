@@ -35,12 +35,11 @@ export class CatalogController {
     }
 
     @Get(':id')
-    async show(
-        @Param('id', ParseIntPipe) id: number,
-        @Request() req,
-    ) {
+    async show(@Param('id', ParseIntPipe) id: number, @Request() req) {
         try {
-            const userId = req.user?.userId ? BigInt(req.user.userId) : undefined;
+            const userId = req.user?.userId
+                ? BigInt(req.user.userId)
+                : undefined;
             return await this.catalogService.findOne(BigInt(id), userId);
         } catch (error) {
             if (error.message === 'Product not found') {
@@ -58,7 +57,9 @@ export class CatalogController {
         @Request() req,
     ) {
         try {
-            const userId = req.user?.userId ? BigInt(req.user.userId) : undefined;
+            const userId = req.user?.userId
+                ? BigInt(req.user.userId)
+                : undefined;
             return await this.catalogService.calculatePrice(
                 BigInt(id),
                 dto,
@@ -72,4 +73,3 @@ export class CatalogController {
         }
     }
 }
-

@@ -339,9 +339,7 @@ describe('Frontend Orders (e2e)', () => {
         });
 
         it('should return 401 without authentication', async () => {
-            await request(app.getHttpServer())
-                .get('/api/orders')
-                .expect(401);
+            await request(app.getHttpServer()).get('/api/orders').expect(401);
         });
 
         it('should return orders in descending order by created_at', async () => {
@@ -515,4 +513,3 @@ describe('Frontend Orders (e2e)', () => {
         });
     });
 });
-

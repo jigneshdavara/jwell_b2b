@@ -18,9 +18,10 @@ import {
     BulkDestroyDto,
 } from './dto/admin.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/auth/guards/admin.guard';
 
 @Controller('admin/admins')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminsController {
     constructor(private readonly adminsService: AdminsService) {}
 

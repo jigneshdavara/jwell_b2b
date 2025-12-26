@@ -17,9 +17,10 @@ import {
     BulkDestroyDto,
 } from './dto/metal-tone.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/auth/guards/admin.guard';
 
 @Controller('admin/metal-tones')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class MetalTonesController {
     constructor(private readonly metalTonesService: MetalTonesService) {}
 

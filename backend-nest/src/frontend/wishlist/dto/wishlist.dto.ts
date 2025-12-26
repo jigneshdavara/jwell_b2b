@@ -24,4 +24,3 @@ export class MoveToCartDto {
     @IsInt()
     quantity?: number;
 }
-

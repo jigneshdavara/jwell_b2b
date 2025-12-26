@@ -1,4 +1,11 @@
-import { IsOptional, IsString, IsArray, IsNumber, IsIn, Min } from 'class-validator';
+import {
+    IsOptional,
+    IsString,
+    IsArray,
+    IsNumber,
+    IsIn,
+    Min,
+} from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
 // Helper to transform string or array to array
@@ -100,4 +107,3 @@ export class CalculatePriceDto {
     @IsString()
     user_type?: string;
 }
-

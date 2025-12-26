@@ -180,7 +180,9 @@ export class DiamondShapeSizesService {
         }
 
         if (messages.length === 0) {
-            throw new BadRequestException('No diamond shape sizes were deleted.');
+            throw new BadRequestException(
+                'No diamond shape sizes were deleted.',
+            );
         }
 
         return {

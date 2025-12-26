@@ -17,9 +17,10 @@ import {
     BulkDestroyDto,
 } from './dto/diamond-shape-size.dto';
 import { JwtAuthGuard } from '../../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../../common/auth/guards/admin.guard';
 
 @Controller('admin/diamond/shape-sizes')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class DiamondShapeSizesController {
     constructor(
         private readonly diamondShapeSizesService: DiamondShapeSizesService,

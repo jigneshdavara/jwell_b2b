@@ -1,16 +1,11 @@
-import {
-    Controller,
-    Get,
-    Put,
-    Body,
-    UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { UpdatePaymentSettingsDto } from './dto/payments.dto';
 import { JwtAuthGuard } from '../../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../../common/auth/guards/admin.guard';
 
 @Controller('admin/settings/payments')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class PaymentsController {
     constructor(private readonly paymentsService: PaymentsService) {}
 
@@ -24,8 +19,3 @@ export class PaymentsController {
         return this.paymentsService.updatePaymentSettings(dto);
     }
 }
-
-
-
-
-

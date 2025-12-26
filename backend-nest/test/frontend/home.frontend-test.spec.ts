@@ -200,9 +200,9 @@ describe('Home (e2e)', () => {
                     'making_charge_percentage',
                 );
                 expect(spotlightProduct).toHaveProperty('making_charge_types');
-                expect(Array.isArray(spotlightProduct.making_charge_types)).toBe(
-                    true,
-                );
+                expect(
+                    Array.isArray(spotlightProduct.making_charge_types),
+                ).toBe(true);
             }
 
             expect(response.body.features).toBeDefined();
@@ -305,11 +305,12 @@ describe('Home (e2e)', () => {
             // Verify they exist and the spotlight is working correctly
             expect(latestProduct).toBeDefined();
             expect(oldProduct).toBeDefined();
-            
+
             // Verify the spotlight contains our products and is ordered (latest first)
             // Note: Exact ordering may vary if timestamps are very close, but both should be present
             if (latestProduct && oldProduct) {
-                const latestIndex = response.body.spotlight.indexOf(latestProduct);
+                const latestIndex =
+                    response.body.spotlight.indexOf(latestProduct);
                 const oldIndex = response.body.spotlight.indexOf(oldProduct);
                 // Product2 (latest) should come before or equal to Product1 (old) in DESC order
                 // If timestamps are identical, order may be non-deterministic
@@ -451,7 +452,9 @@ describe('Home (e2e)', () => {
 
             // Cleanup
             await prisma.products.delete({ where: { id: productBoth.id } });
-            await prisma.products.delete({ where: { id: productPercentage.id } });
+            await prisma.products.delete({
+                where: { id: productPercentage.id },
+            });
             await prisma.products.delete({ where: { id: productFixed.id } });
             await prisma.categories.delete({ where: { id: category.id } });
             await prisma.brands.delete({ where: { id: brand.id } });
@@ -527,4 +530,3 @@ describe('Home (e2e)', () => {
         });
     });
 });
-

@@ -11,4 +11,3 @@ export class HomeController {
         return await this.homeService.getHomeData();
     }
 }
-

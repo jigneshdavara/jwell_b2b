@@ -18,13 +18,12 @@ import {
     AssignUsersDto,
 } from './dto/user-group.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/auth/guards/admin.guard';
 
 @Controller('admin/user-groups')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class UserGroupsController {
-    constructor(
-        private readonly userGroupsService: UserGroupsService,
-    ) {}
+    constructor(private readonly userGroupsService: UserGroupsService) {}
 
     @Get()
     findAll(

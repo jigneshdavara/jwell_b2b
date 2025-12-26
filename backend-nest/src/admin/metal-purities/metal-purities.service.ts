@@ -30,10 +30,12 @@ export class MetalPuritiesService {
                 ...item,
                 id: Number(item.id),
                 metal_id: Number(item.metal_id),
-                metal: item.metals ? {
-                    id: Number(item.metals.id),
-                    name: item.metals.name,
-                } : null,
+                metal: item.metals
+                    ? {
+                          id: Number(item.metals.id),
+                          name: item.metals.name,
+                      }
+                    : null,
             })),
             meta: {
                 total,
@@ -58,10 +60,12 @@ export class MetalPuritiesService {
             ...purity,
             id: Number(purity.id),
             metal_id: Number(purity.metal_id),
-            metal: purity.metals ? {
-                id: Number(purity.metals.id),
-                name: purity.metals.name,
-            } : null,
+            metal: purity.metals
+                ? {
+                      id: Number(purity.metals.id),
+                      name: purity.metals.name,
+                  }
+                : null,
         };
     }
 
@@ -85,10 +89,12 @@ export class MetalPuritiesService {
             ...purity,
             id: Number(purity.id),
             metal_id: Number(purity.metal_id),
-            metal: purity.metals ? {
-                id: Number(purity.metals.id),
-                name: purity.metals.name,
-            } : null,
+            metal: purity.metals
+                ? {
+                      id: Number(purity.metals.id),
+                      name: purity.metals.name,
+                  }
+                : null,
         };
     }
 
@@ -119,10 +125,12 @@ export class MetalPuritiesService {
             ...purity,
             id: Number(purity.id),
             metal_id: Number(purity.metal_id),
-            metal: purity.metals ? {
-                id: Number(purity.metals.id),
-                name: purity.metals.name,
-            } : null,
+            metal: purity.metals
+                ? {
+                      id: Number(purity.metals.id),
+                      name: purity.metals.name,
+                  }
+                : null,
         };
     }
 

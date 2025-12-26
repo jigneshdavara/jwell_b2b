@@ -55,4 +55,3 @@ export class UpdateCartItemDto {
     @Type(() => ConfigurationDto)
     configuration?: ConfigurationDto;
 }
-

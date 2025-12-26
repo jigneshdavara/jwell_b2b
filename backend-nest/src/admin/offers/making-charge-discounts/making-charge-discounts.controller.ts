@@ -17,9 +17,10 @@ import {
     BulkDestroyDto,
 } from './dto/making-charge-discount.dto';
 import { JwtAuthGuard } from '../../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../../common/auth/guards/admin.guard';
 
 @Controller('admin/offers/making-charge-discounts')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class MakingChargeDiscountsController {
     constructor(
         private readonly discountsService: MakingChargeDiscountsService,

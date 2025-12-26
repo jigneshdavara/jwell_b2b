@@ -190,18 +190,25 @@ export class AuthService {
     }
 
     login(user: any) {
-        const payload = {
+        const payload: any = {
             email: user.email,
             sub: user.id.toString(),
             type: user.type,
             guard: user.guard,
-            kyc_status: user.kyc_status,
         };
+
+        // Only include kyc_status for regular users, not admins
+        if (user.guard === 'user' && user.kyc_status !== undefined) {
+            payload.kyc_status = user.kyc_status;
+        }
+
+        // Clean up the user object to remove password and ensure consistent structure
+        const { password: _, ...userWithoutPassword } = user;
 
         return {
             access_token: this.jwtService.sign(payload),
             user: {
-                ...user,
+                ...userWithoutPassword,
                 id: user.id.toString(),
             },
         };
@@ -212,7 +219,7 @@ export class AuthService {
         // JWT strategy returns userId (not sub), so use that
         const userId = BigInt(jwtPayload.userId || jwtPayload.sub);
         const guard = jwtPayload.guard || 'user';
-        
+
         let user: any;
         if (guard === 'admin') {
             user = await this.prisma.admin.findUnique({
@@ -229,13 +236,17 @@ export class AuthService {
         }
 
         // Generate new token with updated user data
-        const payload = {
+        const payload: any = {
             email: user.email,
             sub: user.id.toString(),
             type: user.type,
             guard: guard,
-            kyc_status: user.kyc_status,
         };
+
+        // Only include kyc_status for regular users, not admins
+        if (guard === 'user' && user.kyc_status !== undefined) {
+            payload.kyc_status = user.kyc_status;
+        }
 
         return {
             access_token: this.jwtService.sign(payload),
@@ -594,10 +605,10 @@ export class AuthService {
     ) {
         const { password } = confirmPasswordDto;
 
-        // Find user
+        // Find user based on guard
         let user: any;
         if (guard === 'admin') {
-            user = await this.prisma.user.findUnique({
+            user = await this.prisma.admin.findUnique({
                 where: { id: BigInt(userId) },
             });
         } else {

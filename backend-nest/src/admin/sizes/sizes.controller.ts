@@ -13,9 +13,10 @@ import {
 import { SizesService } from './sizes.service';
 import { CreateSizeDto, UpdateSizeDto, BulkDestroyDto } from './dto/size.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/auth/guards/admin.guard';
 
 @Controller('admin/sizes')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class SizesController {
     constructor(private readonly sizesService: SizesService) {}
 

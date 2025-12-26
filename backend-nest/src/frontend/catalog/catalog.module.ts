@@ -11,4 +11,3 @@ import { KycModule } from '../../kyc/kyc.module';
     providers: [CatalogService],
 })
 export class CatalogModule {}
-

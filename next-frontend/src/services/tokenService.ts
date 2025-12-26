@@ -105,8 +105,8 @@ class TokenService {
 
     try {
       // Make a lightweight API call to validate token
-      // Use /kyc/profile as it requires authentication
-      await apiClient.get('/kyc/profile', {
+      // Use /profile as it requires authentication and works for both admins and users
+      await apiClient.get('/profile', {
         headers: {
           Authorization: `Bearer ${token}`,
         },

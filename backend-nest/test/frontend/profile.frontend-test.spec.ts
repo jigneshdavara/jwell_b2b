@@ -73,7 +73,7 @@ describe('Frontend Profile (e2e)', () => {
                 await prisma.quotations.deleteMany({
                     where: { user_id: testCustomer.id },
                 });
-                
+
                 // Delete cart items and carts
                 const carts = await prisma.carts.findMany({
                     where: { user_id: testCustomer.id },
@@ -87,7 +87,7 @@ describe('Frontend Profile (e2e)', () => {
                 await prisma.carts.deleteMany({
                     where: { user_id: testCustomer.id },
                 });
-                
+
                 // Delete wishlist items through wishlists
                 const wishlists = await prisma.wishlists.findMany({
                     where: { customer_id: testCustomer.id },
@@ -95,13 +95,15 @@ describe('Frontend Profile (e2e)', () => {
                 });
                 if (wishlists.length > 0) {
                     await prisma.wishlist_items.deleteMany({
-                        where: { wishlist_id: { in: wishlists.map((w) => w.id) } },
+                        where: {
+                            wishlist_id: { in: wishlists.map((w) => w.id) },
+                        },
                     });
                 }
                 await prisma.wishlists.deleteMany({
                     where: { customer_id: testCustomer.id },
                 });
-                
+
                 // Delete orders and related data
                 const orders = await prisma.orders.findMany({
                     where: { user_id: testCustomer.id },
@@ -122,7 +124,7 @@ describe('Frontend Profile (e2e)', () => {
                 await prisma.orders.deleteMany({
                     where: { user_id: testCustomer.id },
                 });
-                
+
                 await prisma.user_kyc_documents.deleteMany({
                     where: { user_id: testCustomer.id },
                 });
@@ -159,9 +161,7 @@ describe('Frontend Profile (e2e)', () => {
         });
 
         it('should return 401 without authentication', async () => {
-            await request(app.getHttpServer())
-                .get('/api/profile')
-                .expect(401);
+            await request(app.getHttpServer()).get('/api/profile').expect(401);
         });
     });
 
@@ -183,7 +183,9 @@ describe('Frontend Profile (e2e)', () => {
             expect(response.body.name).toBe(updateData.name);
             expect(response.body.email).toBe(updateData.email);
             expect(response.body.phone).toBe(updateData.phone);
-            expect(response.body.preferred_language).toBe(updateData.preferred_language);
+            expect(response.body.preferred_language).toBe(
+                updateData.preferred_language,
+            );
 
             // Verify email_verified_at is null when email changed
             expect(response.body.email_verified_at).toBeNull();
@@ -338,7 +340,9 @@ describe('Frontend Profile (e2e)', () => {
                 .send({ password: 'delete-password' })
                 .expect(200);
 
-            expect(response.body.message).toBe('Your account has been deleted.');
+            expect(response.body.message).toBe(
+                'Your account has been deleted.',
+            );
 
             // Verify customer is deleted
             const deletedCustomer = await prisma.customer.findUnique({
@@ -371,4 +375,3 @@ describe('Frontend Profile (e2e)', () => {
         });
     });
 });
-

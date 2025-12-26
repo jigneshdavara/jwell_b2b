@@ -22,4 +22,3 @@ import { KycModule } from '../../kyc/kyc.module';
     exports: [FrontendCheckoutService],
 })
 export class FrontendCheckoutModule {}
-

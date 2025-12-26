@@ -8,13 +8,7 @@ import { CartModule } from '../cart/cart.module';
 import { MailModule } from '../common/mail/mail.module';
 
 @Module({
-    imports: [
-        PrismaModule,
-        PricingModule,
-        TaxModule,
-        CartModule,
-        MailModule,
-    ],
+    imports: [PrismaModule, PricingModule, TaxModule, CartModule, MailModule],
     providers: [QuotationsService],
     controllers: [QuotationsController],
     exports: [QuotationsService],

@@ -319,9 +319,7 @@ export class CartService {
      * Normalize configuration for comparison by extracting only relevant fields
      * (notes) and ignoring extra fields like 'variant' label.
      */
-    private normalizeConfiguration(
-        configuration: Record<string, any>,
-    ): string {
+    private normalizeConfiguration(configuration: Record<string, any>): string {
         // Extract only the fields that matter for matching
         const relevantFields = {
             notes: configuration['notes'] || null,

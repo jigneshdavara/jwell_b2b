@@ -81,10 +81,7 @@ export class FrontendQuotationsService {
 
         return Array.from(grouped.values()).map((group) => {
             const first = group[0];
-            const totalQuantity = group.reduce(
-                (sum, q) => sum + q.quantity,
-                0,
-            );
+            const totalQuantity = group.reduce((sum, q) => sum + q.quantity, 0);
 
             // Prioritize pending_customer_confirmation status if any quotation in the group has it
             let status = first.status;
@@ -96,9 +93,10 @@ export class FrontendQuotationsService {
             }
 
             const getThumbnail = (product: any) => {
-                const media = product.product_medias?.find(
-                    (m: any) => m.display_order === 0,
-                ) || product.product_medias?.[0];
+                const media =
+                    product.product_medias?.find(
+                        (m: any) => m.display_order === 0,
+                    ) || product.product_medias?.[0];
                 return media?.url || null;
             };
 
@@ -205,7 +203,9 @@ export class FrontendQuotationsService {
                 include: {
                     products: {
                         include: {
-                            product_medias: { orderBy: { display_order: 'asc' } },
+                            product_medias: {
+                                orderBy: { display_order: 'asc' },
+                            },
                             product_variants: true,
                         },
                     },
@@ -287,18 +287,19 @@ export class FrontendQuotationsService {
         }
 
         // Calculate price breakdown for main quotation
-        const mainPriceBreakdown = await this.pricingService.calculateProductPrice(
-            product as any,
-            customer as any,
-            {
-                variant_id: variant ? Number(variant.id) : null,
-                quantity: quotation.quantity,
-                user_group_id: customer.user_group_id
-                    ? Number(customer.user_group_id)
-                    : undefined,
-                user_type: customer.type || undefined,
-            },
-        );
+        const mainPriceBreakdown =
+            await this.pricingService.calculateProductPrice(
+                product as any,
+                customer as any,
+                {
+                    variant_id: variant ? Number(variant.id) : null,
+                    quantity: quotation.quantity,
+                    user_group_id: customer.user_group_id
+                        ? Number(customer.user_group_id)
+                        : undefined,
+                    user_type: customer.type || undefined,
+                },
+            );
 
         // Calculate price breakdown for related quotations
         const relatedQuotationsWithPricing = await Promise.all(
@@ -337,30 +338,37 @@ export class FrontendQuotationsService {
                             .making_charge_amount
                             ? Number((rq.products as any).making_charge_amount)
                             : null,
-                        media: rq.products.product_medias?.map((m: any) => ({
-                            url: m.url,
-                            alt: (m.metadata as any)?.alt || rq.products.name,
-                        })) || [],
-                        variants: rq.products.product_variants?.map((v: any) => ({
-                            id: v.id.toString(),
-                            label: v.label || '',
-                            metadata: (v.metadata as any) || {},
-                        })) || [],
+                        media:
+                            rq.products.product_medias?.map((m: any) => ({
+                                url: m.url,
+                                alt:
+                                    (m.metadata as any)?.alt ||
+                                    rq.products.name,
+                            })) || [],
+                        variants:
+                            rq.products.product_variants?.map((v: any) => ({
+                                id: v.id.toString(),
+                                label: v.label || '',
+                                metadata: (v.metadata as any) || {},
+                            })) || [],
                     },
                     variant: rq.product_variants
                         ? {
                               id: rq.product_variants.id.toString(),
                               label: rq.product_variants.label || '',
-                              metadata: (rq.product_variants.metadata as any) || {},
+                              metadata:
+                                  (rq.product_variants.metadata as any) || {},
                           }
                         : null,
                     price_breakdown: pricing,
                 };
             }),
         );
-        
+
         // Filter out null entries
-        const validRelatedQuotations = relatedQuotationsWithPricing.filter((q) => q !== null);
+        const validRelatedQuotations = relatedQuotationsWithPricing.filter(
+            (q) => q !== null,
+        );
 
         // Calculate tax summary
         const taxSummary = await this.calculateQuotationTaxSummary(
@@ -370,10 +378,12 @@ export class FrontendQuotationsService {
         );
 
         const getMedia = (product: any) => {
-            return product.product_medias?.map((m: any) => ({
-                url: m.url,
-                alt: (m.metadata as any)?.alt || product.name,
-            })) || [];
+            return (
+                product.product_medias?.map((m: any) => ({
+                    url: m.url,
+                    alt: (m.metadata as any)?.alt || product.name,
+                })) || []
+            );
         };
 
         return {
@@ -395,11 +405,12 @@ export class FrontendQuotationsService {
                     : null,
                 making_charge: (product as any).making_charge || null,
                 media: getMedia(product),
-                variants: product.product_variants?.map((v: any) => ({
-                    id: v.id.toString(),
-                    label: v.label || '',
-                    metadata: (v.metadata as any) || {},
-                })) || [],
+                variants:
+                    product.product_variants?.map((v: any) => ({
+                        id: v.id.toString(),
+                        label: v.label || '',
+                        metadata: (v.metadata as any) || {},
+                    })) || [],
             },
             variant: variant
                 ? {
@@ -461,9 +472,7 @@ export class FrontendQuotationsService {
             }
 
             if (variant.product_id !== BigInt(dto.product_id.toString())) {
-                throw new NotFoundException(
-                    'Product variant not found',
-                );
+                throw new NotFoundException('Product variant not found');
             }
 
             // Validate inventory availability
@@ -517,7 +526,8 @@ export class FrontendQuotationsService {
         }
 
         return {
-            message: 'Quotation submitted successfully. Our team will get back to you shortly.',
+            message:
+                'Quotation submitted successfully. Our team will get back to you shortly.',
             quotation: {
                 id: quotation.id.toString(),
             },
@@ -584,7 +594,8 @@ export class FrontendQuotationsService {
                     continue;
                 }
                 if (totalQuantity > inventoryQuantity) {
-                    const itemWord = inventoryQuantity === 1 ? 'item is' : 'items are';
+                    const itemWord =
+                        inventoryQuantity === 1 ? 'item is' : 'items are';
                     errors.push(
                         `Total quantity requested for ${product.name} (${variant.label || 'N/A'}) is ${totalQuantity}, but only ${inventoryQuantity} ${itemWord} available.`,
                     );
@@ -662,8 +673,7 @@ export class FrontendQuotationsService {
         }
 
         return {
-            message:
-                'Quotation requests submitted successfully.',
+            message: 'Quotation requests submitted successfully.',
             quotations: quotations.map((q) => ({
                 id: q.id.toString(),
             })),
@@ -993,4 +1003,3 @@ export class FrontendQuotationsService {
         };
     }
 }
-

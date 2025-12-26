@@ -23,13 +23,14 @@ import {
     BulkStatusDto,
 } from './dto/product.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/auth/guards/admin.guard';
 import { TransformMultipartInterceptor } from '../../common/interceptors/transform-multipart.interceptor';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import * as fs from 'fs';
 
 @Controller('admin/products')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class ProductsController {
     constructor(private readonly productsService: ProductsService) {}
 

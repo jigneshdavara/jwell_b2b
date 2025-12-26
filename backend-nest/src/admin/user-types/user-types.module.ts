@@ -7,4 +7,3 @@ import { UserTypesController } from './user-types.controller';
     controllers: [UserTypesController],
 })
 export class UserTypesModule {}
-

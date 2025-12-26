@@ -27,10 +27,12 @@ export class MetalTonesService {
                 ...item,
                 id: Number(item.id),
                 metal_id: Number(item.metal_id),
-                metal: item.metals ? {
-                    id: Number(item.metals.id),
-                    name: item.metals.name,
-                } : null,
+                metal: item.metals
+                    ? {
+                          id: Number(item.metals.id),
+                          name: item.metals.name,
+                      }
+                    : null,
             })),
             meta: {
                 total,
@@ -55,10 +57,12 @@ export class MetalTonesService {
             ...tone,
             id: Number(tone.id),
             metal_id: Number(tone.metal_id),
-            metal: tone.metals ? {
-                id: Number(tone.metals.id),
-                name: tone.metals.name,
-            } : null,
+            metal: tone.metals
+                ? {
+                      id: Number(tone.metals.id),
+                      name: tone.metals.name,
+                  }
+                : null,
         };
     }
 
@@ -82,10 +86,12 @@ export class MetalTonesService {
             ...tone,
             id: Number(tone.id),
             metal_id: Number(tone.metal_id),
-            metal: tone.metals ? {
-                id: Number(tone.metals.id),
-                name: tone.metals.name,
-            } : null,
+            metal: tone.metals
+                ? {
+                      id: Number(tone.metals.id),
+                      name: tone.metals.name,
+                  }
+                : null,
         };
     }
 
@@ -116,10 +122,12 @@ export class MetalTonesService {
             ...tone,
             id: Number(tone.id),
             metal_id: Number(tone.metal_id),
-            metal: tone.metals ? {
-                id: Number(tone.metals.id),
-                name: tone.metals.name,
-            } : null,
+            metal: tone.metals
+                ? {
+                      id: Number(tone.metals.id),
+                      name: tone.metals.name,
+                  }
+                : null,
         };
     }
 

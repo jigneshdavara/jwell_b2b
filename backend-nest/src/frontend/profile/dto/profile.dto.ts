@@ -60,10 +60,9 @@ export class ProfileResponseDto {
     preferred_language?: string | null;
     email_verified_at?: string | null;
     type: string;
-    kyc_status: string;
+    kyc_status?: string | null; // Optional - admins don't have kyc_status
     is_active: boolean;
     credit_limit?: number | null;
     created_at: string;
     updated_at: string;
 }
-

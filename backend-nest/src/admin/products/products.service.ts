@@ -473,25 +473,33 @@ export class ProductsService {
             .filter((cat: any) => !cat.parent_id)
             .map((cat: any) => {
                 // Debug: Log raw category data
-                console.log(`Backend: Processing category "${cat.name}" (ID: ${Number(cat.id)})`);
-                console.log(`  - category_sizes count: ${(cat.category_sizes || []).length}`);
-                console.log(`  - category_styles count: ${(cat.category_styles || []).length}`);
-                
+                console.log(
+                    `Backend: Processing category "${cat.name}" (ID: ${Number(cat.id)})`,
+                );
+                console.log(
+                    `  - category_sizes count: ${(cat.category_sizes || []).length}`,
+                );
+                console.log(
+                    `  - category_styles count: ${(cat.category_styles || []).length}`,
+                );
+
                 // Extract sizes from category_sizes pivot table
                 // category_sizes is an array, each item has a sizes relation
                 const rawSizes = (cat.category_sizes || [])
                     .map((cs: any) => {
                         if (Number(cat.id) === 2) {
-                            console.log(`  - category_size entry for cat 2:`, { 
-                                id: cs.id, 
-                                size_id: cs.size_id, 
+                            console.log(`  - category_size entry for cat 2:`, {
+                                id: cs.id,
+                                size_id: cs.size_id,
                                 sizes: cs.sizes,
                                 sizes_is_active: cs.sizes?.is_active,
-                                sizes_name: cs.sizes?.name
+                                sizes_name: cs.sizes?.name,
                             });
                         }
                         if (!cs.sizes) {
-                            console.warn(`Category ${cat.id}: category_size ${cs.id} has no sizes relation!`);
+                            console.warn(
+                                `Category ${cat.id}: category_size ${cs.id} has no sizes relation!`,
+                            );
                             return null;
                         }
                         return cs.sizes;
@@ -499,7 +507,9 @@ export class ProductsService {
                     .filter((s: any) => {
                         if (s === null || s === undefined) {
                             if (Number(cat.id) === 2) {
-                                console.log(`  - Filtered out null/undefined size`);
+                                console.log(
+                                    `  - Filtered out null/undefined size`,
+                                );
                             }
                             return false;
                         }
@@ -507,39 +517,47 @@ export class ProductsService {
                         const isActive = s.is_active === true;
                         if (!isActive) {
                             if (Number(cat.id) === 2) {
-                                console.log(`  - Size is inactive:`, { id: s.id, name: s.name, is_active: s.is_active });
+                                console.log(`  - Size is inactive:`, {
+                                    id: s.id,
+                                    name: s.name,
+                                    is_active: s.is_active,
+                                });
                             }
                             // Still include inactive for now to see if that's the issue
                             // return false;
                         }
                         return true; // Include all sizes for debugging
                     });
-                
+
                 console.log(`  - Raw sizes after filter: ${rawSizes.length}`);
-                
+
                 const sizes = rawSizes
-                    .sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''))
+                    .sort((a: any, b: any) =>
+                        (a.name || '').localeCompare(b.name || ''),
+                    )
                     .map((s: any) => ({
                         id: Number(s.id),
                         name: s.name,
                         value: s.value || s.name,
                     }));
-                
+
                 // Extract styles from category_styles pivot table
                 // category_styles is an array, each item has a styles relation
                 const rawStyles = (cat.category_styles || [])
                     .map((cs: any) => {
                         if (Number(cat.id) === 2) {
-                            console.log(`  - category_style entry for cat 2:`, { 
-                                id: cs.id, 
-                                style_id: cs.style_id, 
+                            console.log(`  - category_style entry for cat 2:`, {
+                                id: cs.id,
+                                style_id: cs.style_id,
                                 styles: cs.styles,
                                 styles_is_active: cs.styles?.is_active,
-                                styles_name: cs.styles?.name
+                                styles_name: cs.styles?.name,
                             });
                         }
                         if (!cs.styles) {
-                            console.warn(`Category ${cat.id}: category_style ${cs.id} has no styles relation!`);
+                            console.warn(
+                                `Category ${cat.id}: category_style ${cs.id} has no styles relation!`,
+                            );
                             return null;
                         }
                         return cs.styles;
@@ -547,7 +565,9 @@ export class ProductsService {
                     .filter((s: any) => {
                         if (s === null || s === undefined) {
                             if (Number(cat.id) === 2) {
-                                console.log(`  - Filtered out null/undefined style`);
+                                console.log(
+                                    `  - Filtered out null/undefined style`,
+                                );
                             }
                             return false;
                         }
@@ -555,20 +575,26 @@ export class ProductsService {
                         const isActive = s.is_active === true;
                         if (!isActive) {
                             if (Number(cat.id) === 2) {
-                                console.log(`  - Style is inactive:`, { id: s.id, name: s.name, is_active: s.is_active });
+                                console.log(`  - Style is inactive:`, {
+                                    id: s.id,
+                                    name: s.name,
+                                    is_active: s.is_active,
+                                });
                             }
                             // Still include inactive for now to see if that's the issue
                             // return false;
                         }
                         return true; // Include all styles for debugging
                     });
-                
+
                 console.log(`  - Raw styles after filter: ${rawStyles.length}`);
-                
+
                 const styles = rawStyles
                     .sort((a: any, b: any) => {
                         if (a.display_order !== b.display_order) {
-                            return (a.display_order || 0) - (b.display_order || 0);
+                            return (
+                                (a.display_order || 0) - (b.display_order || 0)
+                            );
                         }
                         return (a.name || '').localeCompare(b.name || '');
                     })
@@ -576,10 +602,12 @@ export class ProductsService {
                         id: Number(s.id),
                         name: s.name,
                     }));
-                
+
                 // Debug: Log final result
-                console.log(`Backend: Category "${cat.name}" (ID: ${Number(cat.id)}) - Final Sizes: ${sizes.length}, Final Styles: ${styles.length}`);
-                
+                console.log(
+                    `Backend: Category "${cat.name}" (ID: ${Number(cat.id)}) - Final Sizes: ${sizes.length}, Final Styles: ${styles.length}`,
+                );
+
                 return {
                     id: Number(cat.id),
                     name: cat.name,
@@ -715,7 +743,7 @@ export class ProductsService {
 
     private formatProductForEdit(product: any) {
         const metadata = product.metadata || {};
-        
+
         // Format category with sizes
         const category = product.categories
             ? {
@@ -746,9 +774,15 @@ export class ProductsService {
             making_charge_types: metadata.making_charge_types || [],
             is_active: product.is_active,
             metadata: metadata,
-            style_ids: (product.style_ids || []).map((id: bigint) => Number(id)),
-            category_ids: (product.subcategory_ids || []).map((id: bigint) => Number(id)),
-            catalog_ids: product.catalog_products.map((cp: any) => Number(cp.catalog_id)),
+            style_ids: (product.style_ids || []).map((id: bigint) =>
+                Number(id),
+            ),
+            category_ids: (product.subcategory_ids || []).map((id: bigint) =>
+                Number(id),
+            ),
+            catalog_ids: product.catalog_products.map((cp: any) =>
+                Number(cp.catalog_id),
+            ),
             category: category,
             media: product.product_medias.map((m: any) => ({
                 id: Number(m.id),
@@ -762,14 +796,20 @@ export class ProductsService {
                 sku: v.sku,
                 label: v.label,
                 size_id: v.size_id ? Number(v.size_id) : null,
-                inventory_quantity: v.inventory_quantity ? Number(v.inventory_quantity) : 0,
+                inventory_quantity: v.inventory_quantity
+                    ? Number(v.inventory_quantity)
+                    : 0,
                 is_default: v.is_default,
                 metadata: v.metadata || {},
                 metals: v.product_variant_metals.map((m: any) => ({
                     id: Number(m.id),
                     metal_id: Number(m.metal_id),
-                    metal_purity_id: m.metal_purity_id ? Number(m.metal_purity_id) : null,
-                    metal_tone_id: m.metal_tone_id ? Number(m.metal_tone_id) : null,
+                    metal_purity_id: m.metal_purity_id
+                        ? Number(m.metal_purity_id)
+                        : null,
+                    metal_tone_id: m.metal_tone_id
+                        ? Number(m.metal_tone_id)
+                        : null,
                     metal_weight: m.metal_weight ? Number(m.metal_weight) : 0,
                     metadata: m.metadata || {},
                     metal: m.metals
@@ -794,7 +834,9 @@ export class ProductsService {
                 diamonds: v.product_variant_diamonds.map((d: any) => ({
                     id: Number(d.id),
                     diamond_id: d.diamond_id ? Number(d.diamond_id) : null,
-                    diamonds_count: d.diamonds_count ? Number(d.diamonds_count) : 0,
+                    diamonds_count: d.diamonds_count
+                        ? Number(d.diamonds_count)
+                        : 0,
                     metadata: d.metadata || {},
                     diamond: d.diamonds
                         ? {

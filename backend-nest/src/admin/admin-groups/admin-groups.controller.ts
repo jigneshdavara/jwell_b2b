@@ -18,9 +18,10 @@ import {
     AssignAdminsDto,
 } from './dto/admin-group.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/auth/guards/admin.guard';
 
 @Controller('admin/admin-groups')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminGroupsController {
     constructor(private readonly adminGroupsService: AdminGroupsService) {}
 

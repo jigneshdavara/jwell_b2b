@@ -83,9 +83,8 @@ export class StripeGateway implements PaymentGatewayDriver {
         currency: string;
     }> {
         try {
-            const intent = await this.client.paymentIntents.retrieve(
-                providerReference,
-            );
+            const intent =
+                await this.client.paymentIntents.retrieve(providerReference);
 
             return {
                 status: intent.status,
@@ -100,7 +99,8 @@ export class StripeGateway implements PaymentGatewayDriver {
     }
 
     publishableKey(): string {
-        const publishableKey = (this.gatewayConfig.config as any)?.publishable_key;
+        const publishableKey = (this.gatewayConfig.config as any)
+            ?.publishable_key;
 
         if (!publishableKey) {
             throw new BadRequestException(
@@ -111,4 +111,3 @@ export class StripeGateway implements PaymentGatewayDriver {
         return publishableKey;
     }
 }
-

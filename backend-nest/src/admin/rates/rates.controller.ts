@@ -10,9 +10,10 @@ import {
 import { RatesService } from './rates.service';
 import { UpdateMetalRatesDto } from './dto/rate.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/auth/guards/admin.guard';
 
 @Controller('admin/rates')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class RatesController {
     constructor(private readonly ratesService: RatesService) {}
 

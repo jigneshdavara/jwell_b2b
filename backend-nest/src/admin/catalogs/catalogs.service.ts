@@ -33,7 +33,9 @@ export class CatalogsService {
             is_active: catalog.is_active,
             display_order: catalog.display_order,
             products_count: catalog._count.catalog_products,
-            product_ids: catalog.catalog_products.map((cp) => Number(cp.product_id)),
+            product_ids: catalog.catalog_products.map((cp) =>
+                Number(cp.product_id),
+            ),
         }));
 
         return {
@@ -68,7 +70,9 @@ export class CatalogsService {
             description: catalog.description,
             is_active: catalog.is_active,
             display_order: catalog.display_order,
-            product_ids: catalog.catalog_products.map((cp) => Number(cp.product_id)),
+            product_ids: catalog.catalog_products.map((cp) =>
+                Number(cp.product_id),
+            ),
         };
     }
 

@@ -13,9 +13,10 @@ import {
 import { OffersService } from './offers.service';
 import { CreateOfferDto, UpdateOfferDto } from './dto/offer.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/auth/guards/admin.guard';
 
 @Controller('admin/offers')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class OffersController {
     constructor(private readonly offersService: OffersService) {}
 

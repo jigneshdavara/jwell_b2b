@@ -9,11 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class FrontendOrdersService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(
-        userId: bigint,
-        page: number = 1,
-        perPage: number = 15,
-    ) {
+    async findAll(userId: bigint, page: number = 1, perPage: number = 15) {
         const skip = (page - 1) * perPage;
 
         const where = {
@@ -135,14 +131,13 @@ export class FrontendOrdersService {
             created_at: order.created_at?.toISOString() || null,
             updated_at: order.updated_at?.toISOString() || null,
             items: order.order_items.map((item) => {
-                const itemMetadata = (item.metadata as Record<string, any>) ||
-                    {};
+                const itemMetadata =
+                    (item.metadata as Record<string, any>) || {};
                 const itemConfiguration =
                     (item.configuration as Record<string, any>) || {};
 
                 // Try to get price breakdown from item metadata
-                let priceBreakdown =
-                    itemMetadata.price_breakdown || null;
+                let priceBreakdown = itemMetadata.price_breakdown || null;
 
                 // If not in item metadata, try to get from order-level price_breakdown
                 if (!priceBreakdown) {
@@ -207,19 +202,16 @@ export class FrontendOrdersService {
                               id: item.products.id.toString(),
                               name: item.products.name,
                               sku: item.products.sku,
-                              making_charge_amount:
-                                  item.products.making_charge_amount
-                                      ? Number(
-                                            item.products.making_charge_amount,
-                                        )
-                                      : null,
-                              making_charge_percentage:
-                                  item.products.making_charge_percentage
-                                      ? Number(
-                                            item.products
-                                                .making_charge_percentage,
-                                        )
-                                      : null,
+                              making_charge_amount: item.products
+                                  .making_charge_amount
+                                  ? Number(item.products.making_charge_amount)
+                                  : null,
+                              making_charge_percentage: item.products
+                                  .making_charge_percentage
+                                  ? Number(
+                                        item.products.making_charge_percentage,
+                                    )
+                                  : null,
                               making_charge_types: this.getMakingChargeTypes(
                                   item.products,
                               ),
@@ -230,7 +222,8 @@ export class FrontendOrdersService {
                                           ((media.metadata as any)?.alt as
                                               | string
                                               | undefined) ||
-                                          (item.products?.name || ''),
+                                          item.products?.name ||
+                                          '',
                                   }),
                               ),
                           }
@@ -283,7 +276,10 @@ export class FrontendOrdersService {
 
     private getMakingChargeTypes(product: any): string[] {
         const metadata = (product.metadata as Record<string, any>) || {};
-        if (metadata.making_charge_types && Array.isArray(metadata.making_charge_types)) {
+        if (
+            metadata.making_charge_types &&
+            Array.isArray(metadata.making_charge_types)
+        ) {
             return metadata.making_charge_types;
         }
 
@@ -298,4 +294,3 @@ export class FrontendOrdersService {
         return types.length > 0 ? types : [];
     }
 }
-

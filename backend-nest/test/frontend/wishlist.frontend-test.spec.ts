@@ -174,9 +174,7 @@ describe('Frontend Wishlist (e2e)', () => {
         });
 
         it('should return 401 without authentication', async () => {
-            await request(app.getHttpServer())
-                .get('/api/wishlist')
-                .expect(401);
+            await request(app.getHttpServer()).get('/api/wishlist').expect(401);
         });
     });
 
@@ -382,15 +380,15 @@ describe('Frontend Wishlist (e2e)', () => {
             if (existingItem) {
                 wishlistItemId = existingItem.id.toString();
             } else {
-            const newItem = await prisma.wishlist_items.create({
-                data: {
-                    wishlist_id: wishlistRecord!.id,
-                    product_id: testProduct.id,
-                    product_variant_id: testVariant.id,
-                    created_at: new Date(),
-                    updated_at: new Date(),
-                },
-            });
+                const newItem = await prisma.wishlist_items.create({
+                    data: {
+                        wishlist_id: wishlistRecord!.id,
+                        product_id: testProduct.id,
+                        product_variant_id: testVariant.id,
+                        created_at: new Date(),
+                        updated_at: new Date(),
+                    },
+                });
                 wishlistItemId = newItem.id.toString();
             }
         });
@@ -527,4 +525,3 @@ describe('Frontend Wishlist (e2e)', () => {
         });
     });
 });
-

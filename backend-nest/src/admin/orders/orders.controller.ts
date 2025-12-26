@@ -14,9 +14,10 @@ import {
 import { OrdersService } from './orders.service';
 import { UpdateOrderStatusDto } from './dto/order.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/auth/guards/admin.guard';
 
 @Controller('admin/orders')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class OrdersController {
     constructor(private readonly ordersService: OrdersService) {}
 

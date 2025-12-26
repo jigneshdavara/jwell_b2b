@@ -5,4 +5,3 @@ export class ConfirmCheckoutDto {
     @IsString()
     payment_intent_id: string;
 }
-

@@ -22,4 +22,3 @@ import { KycModule } from '../../kyc/kyc.module';
     exports: [FrontendQuotationsService],
 })
 export class FrontendQuotationsModule {}
-

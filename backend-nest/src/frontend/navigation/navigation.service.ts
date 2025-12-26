@@ -10,7 +10,7 @@ export class NavigationService {
         const [categories, brands, catalogs] = await Promise.all([
             // Categories - limit to 8, include cover_image, only parent categories (parent_id is null)
             this.prisma.categories.findMany({
-                where: { 
+                where: {
                     is_active: true,
                     parent_id: null, // Only show parent categories in navbar
                 },
@@ -47,13 +47,18 @@ export class NavigationService {
         ]);
 
         // Helper to resolve image URL
-        const resolveImageUrl = (coverImage: string | null | undefined): string | null => {
+        const resolveImageUrl = (
+            coverImage: string | null | undefined,
+        ): string | null => {
             if (!coverImage) {
                 return null;
             }
 
             // If already absolute URL, return as-is
-            if (coverImage.startsWith('http://') || coverImage.startsWith('https://')) {
+            if (
+                coverImage.startsWith('http://') ||
+                coverImage.startsWith('https://')
+            ) {
                 return coverImage;
             }
 
@@ -83,4 +88,3 @@ export class NavigationService {
         };
     }
 }
-

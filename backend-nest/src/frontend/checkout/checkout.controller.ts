@@ -106,10 +106,7 @@ export class FrontendCheckoutController {
 
     @Post('confirm')
     @HttpCode(HttpStatus.OK)
-    async confirm(
-        @Body() dto: ConfirmCheckoutDto,
-        @Request() req: any,
-    ) {
+    async confirm(@Body() dto: ConfirmCheckoutDto, @Request() req: any) {
         const userId = BigInt(req.user.userId);
 
         try {
@@ -143,4 +140,3 @@ export class FrontendCheckoutController {
         }
     }
 }
-

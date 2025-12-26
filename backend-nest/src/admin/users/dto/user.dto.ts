@@ -69,6 +69,6 @@ export class BulkGroupUpdateDto {
 
     @IsOptional()
     @IsInt()
-    @Transform(({ value }) => value ? parseInt(value) : null)
+    @Transform(({ value }) => (value ? parseInt(value) : null))
     user_group_id?: number | null;
 }

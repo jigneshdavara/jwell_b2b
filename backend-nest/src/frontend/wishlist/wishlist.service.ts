@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CartService } from '../../cart/cart.service';
 import { Prisma } from '@prisma/client';
@@ -165,7 +169,7 @@ export class WishlistService {
 
         // Add to cart using CartService
         const cart = await this.cartService.getActiveCart(userId);
-        
+
         // Check if item already exists in cart with same configuration
         const existingCartItem = await this.prisma.cart_items.findFirst({
             where: {
@@ -192,7 +196,9 @@ export class WishlistService {
                     product_id: item.product_id,
                     product_variant_id: item.product_variant_id || null,
                     quantity: quantity,
-                    configuration: item.configuration ? item.configuration : Prisma.JsonNull,
+                    configuration: item.configuration
+                        ? item.configuration
+                        : Prisma.JsonNull,
                     created_at: new Date(),
                     updated_at: new Date(),
                 },
@@ -216,11 +222,11 @@ export class WishlistService {
                 let thumbnail: string | null = null;
                 if (firstMedia && firstMedia.url) {
                     let mediaUrl = String(firstMedia.url);
-                    
+
                     // Normalize double slashes (except after http:// or https://)
                     // This handles cases where URL might be /storage//storage/path
                     mediaUrl = mediaUrl.replace(/(?<!:)\/{2,}/g, '/');
-                    
+
                     if (
                         mediaUrl.startsWith('http://') ||
                         mediaUrl.startsWith('https://')
@@ -232,8 +238,8 @@ export class WishlistService {
                     } else {
                         // URL is relative, add /storage/ prefix
                         // Remove leading slash if present to avoid double slashes
-                        const cleanUrl = mediaUrl.startsWith('/') 
-                            ? mediaUrl.substring(1) 
+                        const cleanUrl = mediaUrl.startsWith('/')
+                            ? mediaUrl.substring(1)
                             : mediaUrl;
                         thumbnail = `/storage/${cleanUrl}`;
                     }
@@ -247,7 +253,9 @@ export class WishlistService {
                     name: product.name || null,
                     thumbnail,
                     variant_label: variant?.label || null,
-                    configuration: item.configuration ? item.configuration : Prisma.JsonNull,
+                    configuration: item.configuration
+                        ? item.configuration
+                        : Prisma.JsonNull,
                 };
             })
             .filter((item) => item.name !== null);
@@ -255,4 +263,3 @@ export class WishlistService {
         return items;
     }
 }
-

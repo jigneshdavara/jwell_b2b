@@ -9,7 +9,12 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 import { ProfileService } from './profile.service';
-import { UpdateProfileDto, UpdatePasswordDto, DeleteProfileDto, ProfileResponseDto } from './dto/profile.dto';
+import {
+    UpdateProfileDto,
+    UpdatePasswordDto,
+    DeleteProfileDto,
+    ProfileResponseDto,
+} from './dto/profile.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
 
 @Controller('profile')
@@ -20,7 +25,8 @@ export class ProfileController {
     @Get()
     async getProfile(@Request() req: any): Promise<ProfileResponseDto> {
         const userId = BigInt(req.user.userId);
-        return await this.profileService.getProfile(userId);
+        const guard = req.user.guard || 'user';
+        return await this.profileService.getProfile(userId, guard);
     }
 
     @Patch()
@@ -59,4 +65,3 @@ export class ProfileController {
         return await this.profileService.deleteProfile(userId, dto.password);
     }
 }
-
