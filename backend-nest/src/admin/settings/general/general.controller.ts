@@ -35,7 +35,7 @@ export class GeneralSettingsController {
             ],
             {
                 storage: diskStorage({
-                    destination: './public/settings',
+                    destination: './public/storage/settings',
                     filename: (req, file, cb) => {
                         const randomName = Array(32)
                             .fill(null)
@@ -60,12 +60,27 @@ export class GeneralSettingsController {
             favicon?: Express.Multer.File[];
         },
     ) {
+        // If new file uploaded, use the path; if remove flag set, use null; otherwise undefined (don't update)
         const logoPath = files?.logo?.[0]
-            ? `settings/${files.logo[0].filename}`
-            : undefined;
+            ? `storage/settings/${files.logo[0].filename}`
+            : dto.remove_logo
+              ? null
+              : undefined;
         const faviconPath = files?.favicon?.[0]
-            ? `settings/${files.favicon[0].filename}`
-            : undefined;
-        return this.generalSettingsService.update(dto, logoPath, faviconPath);
+            ? `storage/settings/${files.favicon[0].filename}`
+            : dto.remove_favicon
+              ? null
+              : undefined;
+
+        // Remove flags from DTO before passing to service
+        const cleanDto = { ...dto };
+        delete cleanDto.remove_logo;
+        delete cleanDto.remove_favicon;
+
+        return this.generalSettingsService.update(
+            cleanDto,
+            logoPath,
+            faviconPath,
+        );
     }
 }

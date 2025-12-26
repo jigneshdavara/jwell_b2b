@@ -30,6 +30,11 @@ export class CategoriesService {
       parent: item.categories,
       styles: item.category_styles.map(cs => cs.styles),
       sizes: item.category_sizes.map(cs => cs.sizes),
+      cover_image_url: item.cover_image
+        ? item.cover_image.startsWith('storage/')
+          ? `/${item.cover_image}`
+          : `/storage/${item.cover_image}`
+        : null,
       // Clean up internal prisma relation fields
       categories: undefined,
       category_styles: undefined,
@@ -94,6 +99,11 @@ export class CategoriesService {
       parent: category.categories,
       styles: category.category_styles.map(cs => cs.styles),
       sizes: category.category_sizes.map(cs => cs.sizes),
+      cover_image_url: category.cover_image
+        ? category.cover_image.startsWith('storage/')
+          ? `/${category.cover_image}`
+          : `/storage/${category.cover_image}`
+        : null,
       categories: undefined,
       category_styles: undefined,
       category_sizes: undefined,
@@ -141,28 +151,33 @@ export class CategoriesService {
     const category = await this.prisma.categories.findUnique({ where: { id: categoryId } });
     if (!category) throw new NotFoundException('Category not found');
 
-    let imageToUpdate: string | undefined = coverImage;
+    const updateData: any = {
+      parent_id: dto.parent_id !== undefined ? (dto.parent_id ? BigInt(dto.parent_id) : null) : undefined,
+      code: dto.code,
+      name: dto.name,
+      description: dto.description,
+      is_active: dto.is_active,
+      display_order: dto.display_order,
+    };
+
     if (dto.remove_cover_image && category.cover_image) {
+      // Remove image: delete from storage and set to null in database
       this.deleteImage(category.cover_image);
-      imageToUpdate = undefined;
-    } else if (coverImage && category.cover_image) {
-      this.deleteImage(category.cover_image);
-    } else if (!coverImage) {
-      imageToUpdate = category.cover_image ?? undefined;
+      updateData.cover_image = null;
+    } else if (coverImage) {
+      // New image uploaded: delete old one (if exists) and set new path
+      if (category.cover_image) {
+        this.deleteImage(category.cover_image);
+      }
+      updateData.cover_image = coverImage;
     }
+    // If no new image and not removing, cover_image is not included in updateData
+    // This preserves the existing image in the database
 
     return await this.prisma.$transaction(async (tx) => {
       const updatedCategory = await tx.categories.update({
         where: { id: categoryId },
-        data: {
-          parent_id: dto.parent_id !== undefined ? (dto.parent_id ? BigInt(dto.parent_id) : null) : undefined,
-          code: dto.code,
-          name: dto.name,
-          description: dto.description,
-          is_active: dto.is_active,
-          display_order: dto.display_order,
-          cover_image: imageToUpdate,
-        },
+        data: updateData,
       });
 
       if (dto.style_ids !== undefined) {
@@ -267,7 +282,11 @@ export class CategoriesService {
   }
 
   private deleteImage(imagePath: string) {
-    const fullPath = path.join(process.cwd(), 'public', imagePath);
+    // Handle paths that already include 'storage/' prefix
+    const pathToUse = imagePath.startsWith('storage/')
+      ? imagePath
+      : `storage/${imagePath}`;
+    const fullPath = path.join(process.cwd(), 'public', pathToUse);
     if (fs.existsSync(fullPath)) {
       try {
         fs.unlinkSync(fullPath);

@@ -58,29 +58,72 @@ export class GeneralSettingsService {
         return {
             ...finalSettings,
             logo_url: finalSettings.logo_path
-                ? `/storage/${finalSettings.logo_path}`
+                ? finalSettings.logo_path.startsWith('storage/')
+                    ? `/${finalSettings.logo_path}`
+                    : `/storage/${finalSettings.logo_path}`
                 : null,
             favicon_url: finalSettings.favicon_path
-                ? `/storage/${finalSettings.favicon_path}`
+                ? finalSettings.favicon_path.startsWith('storage/')
+                    ? `/${finalSettings.favicon_path}`
+                    : `/storage/${finalSettings.favicon_path}`
                 : null,
         };
     }
 
     async update(
         dto: UpdateGeneralSettingsDto,
-        logo?: string,
-        favicon?: string,
+        logo?: string | null,
+        favicon?: string | null,
     ) {
+        // Get text fields from dto (already cleaned in controller, no flags here)
         const updates = Object.entries(dto).map(([key, value]) => {
-            return this.set(key, value as string);
+            return this.set(key, String(value));
         });
 
-        if (logo) {
-            updates.push(this.set('logo_path', logo));
+        // Handle logo: if path provided (string), set it; if null, remove it; if undefined, don't update
+        if (logo !== undefined) {
+            if (logo === null) {
+                // Remove logo: delete old file and set to null
+                const existing = await this.prisma.settings.findUnique({
+                    where: { key: 'logo_path' },
+                });
+                if (existing?.value) {
+                    this.deleteFile(existing.value);
+                }
+                updates.push(this.set('logo_path', ''));
+            } else {
+                // New logo uploaded: delete old file if exists, then set new path
+                const existing = await this.prisma.settings.findUnique({
+                    where: { key: 'logo_path' },
+                });
+                if (existing?.value && existing.value !== logo) {
+                    this.deleteFile(existing.value);
+                }
+                updates.push(this.set('logo_path', logo));
+            }
         }
 
-        if (favicon) {
-            updates.push(this.set('favicon_path', favicon));
+        // Handle favicon: if path provided (string), set it; if null, remove it; if undefined, don't update
+        if (favicon !== undefined) {
+            if (favicon === null) {
+                // Remove favicon: delete old file and set to null
+                const existing = await this.prisma.settings.findUnique({
+                    where: { key: 'favicon_path' },
+                });
+                if (existing?.value) {
+                    this.deleteFile(existing.value);
+                }
+                updates.push(this.set('favicon_path', ''));
+            } else {
+                // New favicon uploaded: delete old file if exists, then set new path
+                const existing = await this.prisma.settings.findUnique({
+                    where: { key: 'favicon_path' },
+                });
+                if (existing?.value && existing.value !== favicon) {
+                    this.deleteFile(existing.value);
+                }
+                updates.push(this.set('favicon_path', favicon));
+            }
         }
 
         await Promise.all(updates);

@@ -1,7 +1,7 @@
 'use client';
 
 import { Head } from '@/components/Head';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { adminService } from '@/services/adminService';
 
 const timezones = [
@@ -34,11 +34,15 @@ export default function AdminGeneralSettingsIndex() {
         app_timezone: '',
         app_currency: '',
     });
+
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
-    const [hasSubmitted, setHasSubmitted] = useState(false);
-    const [logoInputKey, setLogoInputKey] = useState(0);
-    const [faviconInputKey, setFaviconInputKey] = useState(0);
+    const [logoObjectUrl, setLogoObjectUrl] = useState<string | null>(null);
+    const [faviconObjectUrl, setFaviconObjectUrl] = useState<string | null>(null);
+    const [removeLogo, setRemoveLogo] = useState(false);
+    const [removeFavicon, setRemoveFavicon] = useState(false);
+    const logoInputRef = useRef<HTMLInputElement>(null);
+    const faviconInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
         admin_email: '',
@@ -50,10 +54,6 @@ export default function AdminGeneralSettingsIndex() {
         company_phone: '',
         company_email: '',
         company_gstin: '',
-        logo: null as File | null,
-        favicon: null as File | null,
-        remove_logo: false,
-        remove_favicon: false,
         app_name: '',
         app_timezone: '',
         app_currency: '',
@@ -62,11 +62,15 @@ export default function AdminGeneralSettingsIndex() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
 
-    useEffect(() => {
-        loadSettings();
+    const getImageUrl = useCallback((imagePath: string | null | undefined): string | null => {
+        if (!imagePath) return null;
+        if (imagePath.startsWith('http')) return imagePath;
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+        const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+        return `${baseUrl}/${cleanPath}`.replace(/(?<!:)\/{2,}/g, '/');
     }, []);
 
-    const loadSettings = async () => {
+    const loadSettings = useCallback(async () => {
         try {
             const response = await adminService.getGeneralSettings();
             const data = response.data;
@@ -81,90 +85,117 @@ export default function AdminGeneralSettingsIndex() {
                 company_phone: data.company_phone || '',
                 company_email: data.company_email || '',
                 company_gstin: data.company_gstin || '',
-                logo: null,
-                favicon: null,
-                remove_logo: false,
-                remove_favicon: false,
                 app_name: data.app_name || '',
                 app_timezone: data.app_timezone || '',
                 app_currency: data.app_currency || '',
             });
-            setLogoPreview(data.logo_url ?? null);
-            setFaviconPreview(data.favicon_url ?? null);
+            setLogoPreview(getImageUrl(data.logo_url));
+            setFaviconPreview(getImageUrl(data.favicon_url));
         } catch (error: any) {
             console.error('Failed to load settings:', error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [getImageUrl]);
 
-    // Initialize and sync previews with settings
     useEffect(() => {
-        if (!formData.logo && !formData.remove_logo) {
-            setLogoPreview(settings.logo_url ?? null);
-        }
-        if (!formData.favicon && !formData.remove_favicon) {
-            setFaviconPreview(settings.favicon_url ?? null);
-        }
-    }, [settings.logo_url, settings.favicon_url, formData.logo, formData.favicon, formData.remove_logo, formData.remove_favicon]);
+        loadSettings();
+    }, [loadSettings]);
 
-    const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0] ?? null;
-        setFormData({ ...formData, logo: file, remove_logo: false });
+    // Cleanup object URLs
+    useEffect(() => {
+        return () => {
+            if (logoObjectUrl) {
+                URL.revokeObjectURL(logoObjectUrl);
+            }
+            if (faviconObjectUrl) {
+                URL.revokeObjectURL(faviconObjectUrl);
+            }
+        };
+    }, [logoObjectUrl, faviconObjectUrl]);
+
+    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] ?? null;
+        setRemoveLogo(false);
+
+        if (logoObjectUrl) {
+            URL.revokeObjectURL(logoObjectUrl);
+            setLogoObjectUrl(null);
+        }
+
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                setLogoPreview(e.target?.result as string);
-            };
-            reader.readAsDataURL(file);
+            const objectUrl = URL.createObjectURL(file);
+            setLogoPreview(objectUrl);
+            setLogoObjectUrl(objectUrl);
         } else {
-            setLogoPreview(settings.logo_url ?? null);
+            setLogoPreview(settings.logo_url ? getImageUrl(settings.logo_url) : null);
         }
     };
 
-    const handleFaviconChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0] ?? null;
-        setFormData({ ...formData, favicon: file, remove_favicon: false });
+    const handleFaviconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] ?? null;
+        setRemoveFavicon(false);
+
+        if (faviconObjectUrl) {
+            URL.revokeObjectURL(faviconObjectUrl);
+            setFaviconObjectUrl(null);
+        }
+
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                setFaviconPreview(e.target?.result as string);
-            };
-            reader.readAsDataURL(file);
+            const objectUrl = URL.createObjectURL(file);
+            setFaviconPreview(objectUrl);
+            setFaviconObjectUrl(objectUrl);
         } else {
-            setFaviconPreview(settings.favicon_url ?? null);
+            setFaviconPreview(settings.favicon_url ? getImageUrl(settings.favicon_url) : null);
+        }
+    };
+
+    const removeLogoHandler = () => {
+        setRemoveLogo(true);
+        if (logoObjectUrl) {
+            URL.revokeObjectURL(logoObjectUrl);
+            setLogoObjectUrl(null);
+        }
+        setLogoPreview(null);
+        if (logoInputRef.current) {
+            logoInputRef.current.value = '';
+        }
+    };
+
+    const removeFaviconHandler = () => {
+        setRemoveFavicon(true);
+        if (faviconObjectUrl) {
+            URL.revokeObjectURL(faviconObjectUrl);
+            setFaviconObjectUrl(null);
+        }
+        setFaviconPreview(null);
+        if (faviconInputRef.current) {
+            faviconInputRef.current.value = '';
         }
     };
 
     const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        setHasSubmitted(true);
         setProcessing(true);
         setErrors({});
 
         const trimmedAdminEmail = formData.admin_email?.trim() || '';
         const trimmedCompanyName = formData.company_name?.trim() || '';
         const trimmedAppName = formData.app_name?.trim() || '';
-        const logo = formData.logo;
-        const favicon = formData.favicon;
-        const hasFile = logo instanceof File || favicon instanceof File;
 
         // Frontend validation
         if (!trimmedAdminEmail) {
             setErrors({ admin_email: 'The admin email field is required.' });
-            setHasSubmitted(false);
             setProcessing(false);
             return;
         }
         if (!trimmedCompanyName) {
             setErrors({ company_name: 'The company name field is required.' });
-            setHasSubmitted(false);
             setProcessing(false);
             return;
         }
         if (!trimmedAppName) {
             setErrors({ app_name: 'The app name field is required.' });
-            setHasSubmitted(false);
             setProcessing(false);
             return;
         }
@@ -184,44 +215,45 @@ export default function AdminGeneralSettingsIndex() {
             formDataToSend.append('app_timezone', formData.app_timezone);
             formDataToSend.append('app_currency', formData.app_currency);
 
-            if (formData.remove_logo) {
+            const logoFile = logoInputRef.current?.files?.[0];
+            if (logoFile) {
+                formDataToSend.append('logo', logoFile);
+            } else if (removeLogo) {
                 formDataToSend.append('remove_logo', 'true');
             }
-            if (formData.remove_favicon) {
+
+            const faviconFile = faviconInputRef.current?.files?.[0];
+            if (faviconFile) {
+                formDataToSend.append('favicon', faviconFile);
+            } else if (removeFavicon) {
                 formDataToSend.append('remove_favicon', 'true');
             }
 
-            if (logo instanceof File) {
-                formDataToSend.append('logo', logo);
-            }
-            if (favicon instanceof File) {
-                formDataToSend.append('favicon', favicon);
-            }
-
             await adminService.updateGeneralSettings(formDataToSend);
-            
-            // Clear file inputs and remove flags after successful save
-            setFormData({
-                ...formData,
-                logo: null,
-                favicon: null,
-                remove_logo: false,
-                remove_favicon: false,
-            });
-            setLogoInputKey(prev => prev + 1);
-            setFaviconInputKey(prev => prev + 1);
-            
+
+            // Reset form state
+            if (logoObjectUrl) {
+                URL.revokeObjectURL(logoObjectUrl);
+                setLogoObjectUrl(null);
+            }
+            if (faviconObjectUrl) {
+                URL.revokeObjectURL(faviconObjectUrl);
+                setFaviconObjectUrl(null);
+            }
+            setRemoveLogo(false);
+            setRemoveFavicon(false);
+            if (logoInputRef.current) logoInputRef.current.value = '';
+            if (faviconInputRef.current) faviconInputRef.current.value = '';
+
             // Reload settings to get updated URLs
             await loadSettings();
-            setHasSubmitted(false);
         } catch (error: any) {
             console.error('Failed to save settings:', error);
             if (error.response?.data?.errors) {
                 setErrors(error.response.data.errors);
             } else {
-                setErrors({ general: 'Failed to save settings. Please try again.' });
+                setErrors({ general: error.response?.data?.message || 'Failed to save settings. Please try again.' });
             }
-            setHasSubmitted(false);
         } finally {
             setProcessing(false);
         }
@@ -231,8 +263,11 @@ export default function AdminGeneralSettingsIndex() {
         return (
             <>
                 <Head title="General Settings" />
-                <div className="flex items-center justify-center p-8">
-                    <div className="text-sm text-slate-500">Loading settings...</div>
+                <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                        <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-slate-900 border-r-transparent"></div>
+                        <p className="text-sm text-slate-600">Loading settings...</p>
+                    </div>
                 </div>
             </>
         );
@@ -241,76 +276,47 @@ export default function AdminGeneralSettingsIndex() {
     return (
         <>
             <Head title="General Settings" />
-
             <div className="space-y-8">
                 <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <h1 className="text-2xl font-semibold text-slate-900">General Settings</h1>
-                    <p className="mt-2 text-sm text-slate-500">
-                        Manage basic application settings, company details, and branding.
-                    </p>
+                    <p className="mt-2 text-sm text-slate-500">Manage your application's general settings and branding.</p>
                 </div>
 
-                <form onSubmit={submit} className="space-y-8">
-                    {/* Email Settings */}
+                <form onSubmit={submit} className="space-y-6">
+                    {/* Company Information */}
                     <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                        <h2 className="mb-6 text-lg font-semibold text-slate-900">Email Settings</h2>
-                        <div className="space-y-4">
+                        <h2 className="mb-6 text-lg font-semibold text-slate-900">Company Information</h2>
+                        <div className="grid gap-6 lg:grid-cols-2">
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                    Admin Email <span className="text-rose-500">*</span>
-                                </label>
+                                <label className="mb-2 block text-sm font-semibold text-slate-700">Admin Email <span className="text-rose-500">*</span></label>
                                 <input
                                     type="email"
                                     value={formData.admin_email}
                                     onChange={(e) => setFormData({ ...formData, admin_email: e.target.value })}
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                    required
                                 />
                                 {errors.admin_email && <p className="mt-1 text-xs text-rose-500">{errors.admin_email}</p>}
                             </div>
-                        </div>
-                    </div>
-
-                    {/* Company Details */}
-                    <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                        <h2 className="mb-6 text-lg font-semibold text-slate-900">Company Details</h2>
-                        <div className="grid gap-6 lg:grid-cols-2">
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                    Company Name <span className="text-rose-500">*</span>
-                                </label>
+                                <label className="mb-2 block text-sm font-semibold text-slate-700">Company Name <span className="text-rose-500">*</span></label>
                                 <input
                                     type="text"
                                     value={formData.company_name}
                                     onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                    required
                                 />
                                 {errors.company_name && <p className="mt-1 text-xs text-rose-500">{errors.company_name}</p>}
                             </div>
-
-                            <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">GSTIN</label>
+                            <div className="lg:col-span-2">
+                                <label className="mb-2 block text-sm font-semibold text-slate-700">Company Address</label>
                                 <input
                                     type="text"
-                                    value={formData.company_gstin}
-                                    onChange={(e) => setFormData({ ...formData, company_gstin: e.target.value })}
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                />
-                                {errors.company_gstin && <p className="mt-1 text-xs text-rose-500">{errors.company_gstin}</p>}
-                            </div>
-
-                            <div className="lg:col-span-2">
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">Address</label>
-                                <textarea
                                     value={formData.company_address}
                                     onChange={(e) => setFormData({ ...formData, company_address: e.target.value })}
-                                    rows={2}
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 />
                                 {errors.company_address && <p className="mt-1 text-xs text-rose-500">{errors.company_address}</p>}
                             </div>
-
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-slate-700">City</label>
                                 <input
@@ -321,7 +327,6 @@ export default function AdminGeneralSettingsIndex() {
                                 />
                                 {errors.company_city && <p className="mt-1 text-xs text-rose-500">{errors.company_city}</p>}
                             </div>
-
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-slate-700">State</label>
                                 <input
@@ -332,7 +337,6 @@ export default function AdminGeneralSettingsIndex() {
                                 />
                                 {errors.company_state && <p className="mt-1 text-xs text-rose-500">{errors.company_state}</p>}
                             </div>
-
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-slate-700">Pincode</label>
                                 <input
@@ -343,7 +347,6 @@ export default function AdminGeneralSettingsIndex() {
                                 />
                                 {errors.company_pincode && <p className="mt-1 text-xs text-rose-500">{errors.company_pincode}</p>}
                             </div>
-
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-slate-700">Phone</label>
                                 <input
@@ -354,7 +357,6 @@ export default function AdminGeneralSettingsIndex() {
                                 />
                                 {errors.company_phone && <p className="mt-1 text-xs text-rose-500">{errors.company_phone}</p>}
                             </div>
-
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-slate-700">Email</label>
                                 <input
@@ -364,6 +366,16 @@ export default function AdminGeneralSettingsIndex() {
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
                                 />
                                 {errors.company_email && <p className="mt-1 text-xs text-rose-500">{errors.company_email}</p>}
+                            </div>
+                            <div>
+                                <label className="mb-2 block text-sm font-semibold text-slate-700">GSTIN</label>
+                                <input
+                                    type="text"
+                                    value={formData.company_gstin}
+                                    onChange={(e) => setFormData({ ...formData, company_gstin: e.target.value })}
+                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                />
+                                {errors.company_gstin && <p className="mt-1 text-xs text-rose-500">{errors.company_gstin}</p>}
                             </div>
                         </div>
                     </div>
@@ -375,58 +387,74 @@ export default function AdminGeneralSettingsIndex() {
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-slate-700">Logo</label>
                                 <div className="space-y-3">
-                                    {logoPreview && (
+                                    <input
+                                        ref={logoInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleLogoChange}
+                                        className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-700"
+                                    />
+                                    {logoPreview && logoObjectUrl && (
                                         <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                             <img src={logoPreview} alt="Logo preview" className="h-16 w-auto object-contain" />
                                             <button
                                                 type="button"
-                                                onClick={() => {
-                                                    setFormData({ ...formData, logo: null, remove_logo: true });
-                                                    setLogoPreview(null);
-                                                }}
+                                                onClick={removeLogoHandler}
                                                 className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50"
                                             >
-                                                Remove
+                                                Remove selected image
                                             </button>
                                         </div>
                                     )}
-                                    <input
-                                        key={logoInputKey}
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleLogoChange}
-                                        className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                    />
-                                    {errors.logo && <p className="mt-1 text-xs text-rose-500">{errors.logo}</p>}
+                                    {logoPreview && !logoObjectUrl && settings.logo_url && !removeLogo && (
+                                        <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                            <img src={logoPreview} alt="Current logo" className="h-16 w-auto object-contain" />
+                                            <button
+                                                type="button"
+                                                onClick={removeLogoHandler}
+                                                className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50"
+                                            >
+                                                Remove image
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-slate-700">Favicon</label>
                                 <div className="space-y-3">
-                                    {faviconPreview && (
+                                    <input
+                                        ref={faviconInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFaviconChange}
+                                        className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-700"
+                                    />
+                                    {faviconPreview && faviconObjectUrl && (
                                         <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                             <img src={faviconPreview} alt="Favicon preview" className="h-8 w-8 object-contain" />
                                             <button
                                                 type="button"
-                                                onClick={() => {
-                                                    setFormData({ ...formData, favicon: null, remove_favicon: true });
-                                                    setFaviconPreview(null);
-                                                }}
+                                                onClick={removeFaviconHandler}
                                                 className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50"
                                             >
-                                                Remove
+                                                Remove selected image
                                             </button>
                                         </div>
                                     )}
-                                    <input
-                                        key={faviconInputKey}
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleFaviconChange}
-                                        className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                    />
-                                    {errors.favicon && <p className="mt-1 text-xs text-rose-500">{errors.favicon}</p>}
+                                    {faviconPreview && !faviconObjectUrl && settings.favicon_url && !removeFavicon && (
+                                        <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                            <img src={faviconPreview} alt="Current favicon" className="h-8 w-8 object-contain" />
+                                            <button
+                                                type="button"
+                                                onClick={removeFaviconHandler}
+                                                className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50"
+                                            >
+                                                Remove image
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -435,30 +463,23 @@ export default function AdminGeneralSettingsIndex() {
                     {/* Application Settings */}
                     <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                         <h2 className="mb-6 text-lg font-semibold text-slate-900">Application Settings</h2>
-                        <div className="grid gap-6 lg:grid-cols-3">
+                        <div className="grid gap-6 lg:grid-cols-2">
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                    App Name <span className="text-rose-500">*</span>
-                                </label>
+                                <label className="mb-2 block text-sm font-semibold text-slate-700">App Name <span className="text-rose-500">*</span></label>
                                 <input
                                     type="text"
                                     value={formData.app_name}
                                     onChange={(e) => setFormData({ ...formData, app_name: e.target.value })}
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                    required
                                 />
                                 {errors.app_name && <p className="mt-1 text-xs text-rose-500">{errors.app_name}</p>}
                             </div>
-
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                    Timezone <span className="text-rose-500">*</span>
-                                </label>
+                                <label className="mb-2 block text-sm font-semibold text-slate-700">Timezone <span className="text-rose-500">*</span></label>
                                 <select
                                     value={formData.app_timezone}
                                     onChange={(e) => setFormData({ ...formData, app_timezone: e.target.value })}
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                    required
                                 >
                                     {timezones.map((tz) => (
                                         <option key={tz} value={tz}>
@@ -468,16 +489,12 @@ export default function AdminGeneralSettingsIndex() {
                                 </select>
                                 {errors.app_timezone && <p className="mt-1 text-xs text-rose-500">{errors.app_timezone}</p>}
                             </div>
-
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                    Currency <span className="text-rose-500">*</span>
-                                </label>
+                                <label className="mb-2 block text-sm font-semibold text-slate-700">Currency <span className="text-rose-500">*</span></label>
                                 <select
                                     value={formData.app_currency}
                                     onChange={(e) => setFormData({ ...formData, app_currency: e.target.value })}
                                     className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
-                                    required
                                 >
                                     {currencies.map((curr) => (
                                         <option key={curr} value={curr}>
@@ -490,11 +507,17 @@ export default function AdminGeneralSettingsIndex() {
                         </div>
                     </div>
 
-                    <div className="flex justify-end">
+                    {errors.general && (
+                        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+                            {errors.general}
+                        </div>
+                    )}
+
+                    <div className="flex justify-end gap-4">
                         <button
                             type="submit"
                             disabled={processing}
-                            className="rounded-full bg-elvee-blue px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/20 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-70"
+                            className="rounded-full bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {processing ? 'Saving...' : 'Save Settings'}
                         </button>
