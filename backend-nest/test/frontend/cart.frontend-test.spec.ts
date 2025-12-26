@@ -168,9 +168,7 @@ describe('Frontend Cart (e2e)', () => {
         });
 
         it('should return 401 without authentication', async () => {
-            await request(app.getHttpServer())
-                .get('/api/cart')
-                .expect(401);
+            await request(app.getHttpServer()).get('/api/cart').expect(401);
         });
     });
 
@@ -186,7 +184,9 @@ describe('Frontend Cart (e2e)', () => {
                 .expect(201);
 
             expect(response.body).toHaveProperty('message');
-            expect(response.body.message).toContain('added to your quotation list');
+            expect(response.body.message).toContain(
+                'added to your quotation list',
+            );
         });
 
         it('should add item with variant to cart', async () => {
@@ -200,7 +200,9 @@ describe('Frontend Cart (e2e)', () => {
                 })
                 .expect(201);
 
-            expect(response.body.message).toContain('added to your quotation list');
+            expect(response.body.message).toContain(
+                'added to your quotation list',
+            );
         });
 
         it('should increment quantity for duplicate items', async () => {
@@ -473,4 +475,3 @@ describe('Frontend Cart (e2e)', () => {
         });
     });
 });
-

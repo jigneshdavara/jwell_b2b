@@ -9,4 +9,3 @@ import { PaymentsModule as CommonPaymentsModule } from '../../../common/payments
     controllers: [PaymentsController],
 })
 export class PaymentsSettingsModule {}
-

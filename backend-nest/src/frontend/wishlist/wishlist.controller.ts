@@ -37,7 +37,7 @@ export class WishlistController {
     @HttpCode(HttpStatus.CREATED)
     async store(@Request() req, @Body() dto: AddWishlistItemDto) {
         const userId = BigInt(req.user.userId);
-        
+
         // Verify product exists
         const product = await this.prisma.products.findUnique({
             where: { id: BigInt(dto.product_id) },
@@ -53,7 +53,10 @@ export class WishlistController {
                 where: { id: BigInt(dto.product_variant_id) },
             });
 
-            if (!variant || variant.product_id.toString() !== dto.product_id.toString()) {
+            if (
+                !variant ||
+                variant.product_id.toString() !== dto.product_id.toString()
+            ) {
                 throw new NotFoundException('Product variant not found');
             }
         }
@@ -97,7 +100,7 @@ export class WishlistController {
         @Body() body?: { product_variant_id?: number },
     ) {
         const userId = BigInt(req.user.userId);
-        
+
         // Verify product exists
         const product = await this.prisma.products.findUnique({
             where: { id: BigInt(id) },
@@ -110,10 +113,11 @@ export class WishlistController {
         await this.wishlistService.removeByProduct(
             userId,
             BigInt(id),
-            body?.product_variant_id ? BigInt(body.product_variant_id) : undefined,
+            body?.product_variant_id
+                ? BigInt(body.product_variant_id)
+                : undefined,
         );
 
         return { message: 'Removed from wishlist.' };
     }
 }
-

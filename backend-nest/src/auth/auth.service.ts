@@ -204,7 +204,7 @@ export class AuthService {
 
         // Clean up the user object to remove password and ensure consistent structure
         const { password: _, ...userWithoutPassword } = user;
-        
+
         return {
             access_token: this.jwtService.sign(payload),
             user: {
@@ -219,7 +219,7 @@ export class AuthService {
         // JWT strategy returns userId (not sub), so use that
         const userId = BigInt(jwtPayload.userId || jwtPayload.sub);
         const guard = jwtPayload.guard || 'user';
-        
+
         let user: any;
         if (guard === 'admin') {
             user = await this.prisma.admin.findUnique({

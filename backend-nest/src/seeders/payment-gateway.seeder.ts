@@ -48,4 +48,3 @@ export class PaymentGatewaySeeder extends BaseSeeder {
         this.log(`Seeded ${gateways.length} payment gateways`);
     }
 }
-

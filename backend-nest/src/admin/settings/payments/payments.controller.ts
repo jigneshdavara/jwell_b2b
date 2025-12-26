@@ -1,10 +1,4 @@
-import {
-    Controller,
-    Get,
-    Put,
-    Body,
-    UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { UpdatePaymentSettingsDto } from './dto/payments.dto';
 import { JwtAuthGuard } from '../../../common/auth/guards/jwt-auth.guard';
@@ -25,8 +19,3 @@ export class PaymentsController {
         return this.paymentsService.updatePaymentSettings(dto);
     }
 }
-
-
-
-
-

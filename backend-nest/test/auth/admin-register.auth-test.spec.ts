@@ -379,10 +379,7 @@ describe('Admin Registration (e2e)', () => {
 
             expect(loginResponse.status).toBe(200);
             expect(loginResponse.body).toHaveProperty('access_token');
-            expect(loginResponse.body.user.email).toBe(
-                'admin@gmail.com',
-            );
+            expect(loginResponse.body.user.email).toBe('admin@gmail.com');
         });
     });
 });
-

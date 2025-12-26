@@ -11,4 +11,3 @@ import { KycModule } from '../../kyc/kyc.module';
     exports: [NavigationService],
 })
 export class NavigationModule {}
-

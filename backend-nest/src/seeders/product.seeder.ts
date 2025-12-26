@@ -3,11 +3,17 @@ import { BaseSeeder } from './base-seeder';
 export class ProductSeeder extends BaseSeeder {
     async run(): Promise<void> {
         // Get required relations
-        const brand = await this.prisma.brands.findFirst({ where: { code: 'TAN' } });
-        const category = await this.prisma.categories.findFirst({ where: { code: 'RINGS' } });
+        const brand = await this.prisma.brands.findFirst({
+            where: { code: 'TAN' },
+        });
+        const category = await this.prisma.categories.findFirst({
+            where: { code: 'RINGS' },
+        });
 
         if (!brand || !category) {
-            this.log('⚠️  Brand or Category not found. Skipping product seeding.');
+            this.log(
+                '⚠️  Brand or Category not found. Skipping product seeding.',
+            );
             return;
         }
 
@@ -16,7 +22,8 @@ export class ProductSeeder extends BaseSeeder {
                 name: 'Classic Gold Ring',
                 titleline: 'Elegant traditional design',
                 sku: 'RING-GOLD-001',
-                description: 'Beautiful classic gold ring with intricate designs',
+                description:
+                    'Beautiful classic gold ring with intricate designs',
                 making_charge_amount: 500,
                 making_charge_percentage: 10,
             },
@@ -32,7 +39,8 @@ export class ProductSeeder extends BaseSeeder {
                 name: 'Traditional Gold Necklace',
                 titleline: 'Heavy traditional necklace',
                 sku: 'NECK-GOLD-001',
-                description: 'Traditional heavy gold necklace with detailed work',
+                description:
+                    'Traditional heavy gold necklace with detailed work',
                 making_charge_amount: 2000,
                 making_charge_percentage: 15,
             },
@@ -66,4 +74,3 @@ export class ProductSeeder extends BaseSeeder {
         this.log(`Seeded ${products.length} products`);
     }
 }
-

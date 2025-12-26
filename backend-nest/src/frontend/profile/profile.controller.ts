@@ -9,7 +9,12 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 import { ProfileService } from './profile.service';
-import { UpdateProfileDto, UpdatePasswordDto, DeleteProfileDto, ProfileResponseDto } from './dto/profile.dto';
+import {
+    UpdateProfileDto,
+    UpdatePasswordDto,
+    DeleteProfileDto,
+    ProfileResponseDto,
+} from './dto/profile.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
 
 @Controller('profile')
@@ -60,4 +65,3 @@ export class ProfileController {
         return await this.profileService.deleteProfile(userId, dto.password);
     }
 }
-

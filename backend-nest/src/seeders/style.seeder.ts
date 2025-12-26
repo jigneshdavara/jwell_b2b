@@ -3,11 +3,36 @@ import { BaseSeeder } from './base-seeder';
 export class StyleSeeder extends BaseSeeder {
     async run(): Promise<void> {
         const styles = [
-            { code: 'TRADITIONAL', name: 'Traditional', description: 'Traditional jewelry designs', display_order: 1 },
-            { code: 'MODERN', name: 'Modern', description: 'Modern and contemporary designs', display_order: 2 },
-            { code: 'FUSION', name: 'Fusion', description: 'Fusion of traditional and modern', display_order: 3 },
-            { code: 'VINTAGE', name: 'Vintage', description: 'Vintage and antique designs', display_order: 4 },
-            { code: 'MINIMALIST', name: 'Minimalist', description: 'Minimalist and elegant designs', display_order: 5 },
+            {
+                code: 'TRADITIONAL',
+                name: 'Traditional',
+                description: 'Traditional jewelry designs',
+                display_order: 1,
+            },
+            {
+                code: 'MODERN',
+                name: 'Modern',
+                description: 'Modern and contemporary designs',
+                display_order: 2,
+            },
+            {
+                code: 'FUSION',
+                name: 'Fusion',
+                description: 'Fusion of traditional and modern',
+                display_order: 3,
+            },
+            {
+                code: 'VINTAGE',
+                name: 'Vintage',
+                description: 'Vintage and antique designs',
+                display_order: 4,
+            },
+            {
+                code: 'MINIMALIST',
+                name: 'Minimalist',
+                description: 'Minimalist and elegant designs',
+                display_order: 5,
+            },
         ];
 
         for (const style of styles) {
@@ -41,4 +66,3 @@ export class StyleSeeder extends BaseSeeder {
         this.log(`Seeded ${styles.length} styles`);
     }
 }
-

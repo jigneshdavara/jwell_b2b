@@ -203,7 +203,9 @@ describe('Frontend Catalog (e2e)', () => {
 
             expect(response.body.products.data).toBeInstanceOf(Array);
             if (response.body.products.data.length > 1) {
-                const names = response.body.products.data.map((p: any) => p.name);
+                const names = response.body.products.data.map(
+                    (p: any) => p.name,
+                );
                 const sortedNames = [...names].sort();
                 expect(names).toEqual(sortedNames);
             }
@@ -223,9 +225,7 @@ describe('Frontend Catalog (e2e)', () => {
         });
 
         it('should return 401 without authentication', async () => {
-            await request(app.getHttpServer())
-                .get('/api/catalog')
-                .expect(401);
+            await request(app.getHttpServer()).get('/api/catalog').expect(401);
         });
 
         it('should return 403 if KYC is not approved', async () => {
@@ -375,4 +375,3 @@ describe('Frontend Catalog (e2e)', () => {
         });
     });
 });
-

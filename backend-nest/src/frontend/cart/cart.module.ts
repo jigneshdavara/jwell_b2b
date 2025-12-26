@@ -9,4 +9,3 @@ import { KycModule } from '../../kyc/kyc.module';
     controllers: [FrontendCartController],
 })
 export class FrontendCartModule {}
-

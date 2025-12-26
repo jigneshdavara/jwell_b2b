@@ -54,9 +54,7 @@ export class FrontendCheckoutService {
             });
         }
 
-        const reference = order
-            ? order.reference
-            : this.generateReference();
+        const reference = order ? order.reference : this.generateReference();
 
         if (!order) {
             order = await this.prisma.orders.create({
@@ -127,8 +125,10 @@ export class FrontendCheckoutService {
                         variant_label: itemSummary.variant_label || null,
                         variant_id: itemSummary.product_variant_id
                             ? typeof itemSummary.product_variant_id === 'string'
-                              ? itemSummary.product_variant_id
-                              : (itemSummary.product_variant_id as any).toString()
+                                ? itemSummary.product_variant_id
+                                : (
+                                      itemSummary.product_variant_id as any
+                                  ).toString()
                             : null,
                     } as any,
                     created_at: new Date(),
@@ -185,9 +185,7 @@ export class FrontendCheckoutService {
             order.status !== OrderStatus.PENDING_PAYMENT &&
             order.status !== OrderStatus.PAYMENT_FAILED
         ) {
-            throw new BadRequestException(
-                'Order is not awaiting payment.',
-            );
+            throw new BadRequestException('Order is not awaiting payment.');
         }
 
         const priceBreakdown =
@@ -388,4 +386,3 @@ export class FrontendCheckoutService {
         return `ORD-${randomString}`;
     }
 }
-

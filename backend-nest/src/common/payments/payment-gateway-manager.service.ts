@@ -28,9 +28,7 @@ export class PaymentGatewayManager {
             return fallbackGateway;
         }
 
-        throw new NotFoundException(
-            'No active payment gateway configured.',
-        );
+        throw new NotFoundException('No active payment gateway configured.');
     }
 
     driver(gateway?: any): PaymentGatewayDriver {
@@ -47,7 +45,10 @@ export class PaymentGatewayManager {
         }
 
         // Map driver class names to implementations
-        if (driverClass.includes('StripeGateway') || gateway.slug === 'stripe') {
+        if (
+            driverClass.includes('StripeGateway') ||
+            gateway.slug === 'stripe'
+        ) {
             return new StripeGateway(gateway) as PaymentGatewayDriver;
         }
 
@@ -60,4 +61,3 @@ export class PaymentGatewayManager {
         );
     }
 }
-

@@ -72,15 +72,17 @@ function getTemplateDir(): string {
                             }
 
                             // For all other properties, return the original value
-                            const value = Reflect.get(target, prop, receiver) as
-                                | unknown
-                                | undefined;
+                            const value = Reflect.get(
+                                target,
+                                prop,
+                                receiver,
+                            ) as unknown | undefined;
 
                             // Bind methods to maintain 'this' context
                             if (typeof value === 'function') {
-                                return (value as (...args: unknown[]) => unknown).bind(
-                                    target,
-                                );
+                                return (
+                                    value as (...args: unknown[]) => unknown
+                                ).bind(target);
                             }
 
                             return value;

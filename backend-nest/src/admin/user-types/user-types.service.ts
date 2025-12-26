@@ -4,10 +4,7 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-    CreateUserTypeDto,
-    UpdateUserTypeDto,
-} from './dto/user-type.dto';
+import { CreateUserTypeDto, UpdateUserTypeDto } from './dto/user-type.dto';
 
 @Injectable()
 export class UserTypesService {
@@ -129,4 +126,3 @@ export class UserTypesService {
         });
     }
 }
-

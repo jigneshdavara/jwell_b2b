@@ -20,8 +20,3 @@ export abstract class BaseSeeder {
         console.log(`[Seeder] ${message}`);
     }
 }
-
-
-
-
-

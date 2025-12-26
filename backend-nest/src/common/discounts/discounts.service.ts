@@ -16,11 +16,7 @@ export class DiscountsService {
         const now = context.now ? new Date(context.now) : new Date();
         const userGroupId =
             context.user_group_id ?? user?.user_group_id ?? null;
-        const userType = (
-            context.user_type ||
-            user?.type ||
-            ''
-        ).toLowerCase();
+        const userType = (context.user_type || user?.type || '').toLowerCase();
         const quantity = Math.max(1, parseInt(context.quantity || 1));
         const unitSubtotal = parseFloat(
             context.unit_subtotal ||
@@ -30,18 +26,19 @@ export class DiscountsService {
             context.line_subtotal || unitSubtotal * quantity,
         );
 
-        const globalDiscounts = (await this.prisma.making_charge_discounts.findMany({
-            where: {
-                is_active: true,
-                OR: [{ starts_at: null }, { starts_at: { lte: now } }],
-                AND: [
-                    { OR: [{ ends_at: null }, { ends_at: { gte: now } }] },
-                ],
-            },
-        })) as Array<{
-            user_types?: any;
-            [key: string]: any;
-        }>;
+        const globalDiscounts =
+            (await this.prisma.making_charge_discounts.findMany({
+                where: {
+                    is_active: true,
+                    OR: [{ starts_at: null }, { starts_at: { lte: now } }],
+                    AND: [
+                        { OR: [{ ends_at: null }, { ends_at: { gte: now } }] },
+                    ],
+                },
+            })) as Array<{
+                user_types?: any;
+                [key: string]: any;
+            }>;
 
         const candidates = globalDiscounts.filter((discount) => {
             if (!discount.is_auto) return false;
@@ -59,8 +56,7 @@ export class DiscountsService {
                 (Array.isArray(userTypesJson) ? userTypesJson : []) || []
             ).map((t: string) => t.toLowerCase());
             if (allowedTypes.length > 0) {
-                if (!userType || !allowedTypes.includes(userType))
-                    return false;
+                if (!userType || !allowedTypes.includes(userType)) return false;
             }
 
             if (discount.user_group_id) {
@@ -111,8 +107,7 @@ export class DiscountsService {
                         discount_id: discount.id.toString(),
                         brand_id: discount.brand_id?.toString(),
                         category_id: discount.category_id?.toString(),
-                        user_group_id:
-                            discount.user_group_id?.toString(),
+                        user_group_id: discount.user_group_id?.toString(),
                         user_types: (discount.user_types as any) || null,
                         min_cart_total: discount.min_cart_total?.toNumber(),
                     },
@@ -208,9 +203,7 @@ export class DiscountsService {
             name: attributes.name || null,
             meta: attributes.meta || {},
             user_types:
-                attributes.user_types ||
-                attributes.meta?.user_types ||
-                null,
+                attributes.user_types || attributes.meta?.user_types || null,
         };
     }
 

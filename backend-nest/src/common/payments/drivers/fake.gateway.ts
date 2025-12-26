@@ -16,8 +16,7 @@ export class FakeGateway implements PaymentGatewayDriver {
         amount: number;
         currency: string;
     }> {
-        const reference =
-            payment?.provider_reference || `pi_fake_${order.id}`;
+        const reference = payment?.provider_reference || `pi_fake_${order.id}`;
 
         return {
             provider_reference: reference,
@@ -40,7 +39,9 @@ export class FakeGateway implements PaymentGatewayDriver {
     }
 
     publishableKey(): string {
-        return (this.gatewayConfig.config as any)?.publishable_key || 'pk_test_fake';
+        return (
+            (this.gatewayConfig.config as any)?.publishable_key ||
+            'pk_test_fake'
+        );
     }
 }
-

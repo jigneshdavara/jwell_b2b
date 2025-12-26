@@ -123,7 +123,15 @@ describe('Frontend Quotations (e2e)', () => {
         }
 
         await prisma.cart_items.deleteMany({
-            where: { cart_id: { in: (await prisma.carts.findMany({ where: { user_id: testCustomer.id } })).map(c => c.id) } },
+            where: {
+                cart_id: {
+                    in: (
+                        await prisma.carts.findMany({
+                            where: { user_id: testCustomer.id },
+                        })
+                    ).map((c) => c.id),
+                },
+            },
         });
         await prisma.carts.deleteMany({
             where: { user_id: testCustomer.id },
@@ -306,7 +314,9 @@ describe('Frontend Quotations (e2e)', () => {
                 .expect(200);
 
             expect(response.body.quotation).toBeDefined();
-            expect(response.body.quotation.id).toBe(testQuotation.id.toString());
+            expect(response.body.quotation.id).toBe(
+                testQuotation.id.toString(),
+            );
             expect(response.body.quotation.product).toBeDefined();
         });
 
@@ -434,7 +444,10 @@ describe('Frontend Quotations (e2e)', () => {
                 .expect(201);
 
             // Response should be an object with message property
-            console.log('Response body:', JSON.stringify(response.body, null, 2));
+            console.log(
+                'Response body:',
+                JSON.stringify(response.body, null, 2),
+            );
             expect(response.body).toBeDefined();
             expect(response.body.message).toBe('Message sent.');
         });
@@ -595,7 +608,9 @@ describe('Frontend Quotations (e2e)', () => {
                 .set('Authorization', `Bearer ${authToken}`)
                 .expect(200);
 
-            expect(response.body.message).toBe('Quotation cancelled successfully.');
+            expect(response.body.message).toBe(
+                'Quotation cancelled successfully.',
+            );
 
             // Verify deleted
             const deleted = await prisma.quotations.findUnique({
@@ -630,5 +645,3 @@ describe('Frontend Quotations (e2e)', () => {
         });
     });
 });
-
-

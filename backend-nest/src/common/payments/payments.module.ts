@@ -10,4 +10,3 @@ import { FakeGateway } from './drivers/fake.gateway';
     exports: [PaymentGatewayManager],
 })
 export class PaymentsModule {}
-

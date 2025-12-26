@@ -3,11 +3,36 @@ import { BaseSeeder } from './base-seeder';
 export class SizeSeeder extends BaseSeeder {
     async run(): Promise<void> {
         const sizes = [
-            { code: 'SIZE_1', name: 'Size 1', description: 'Small size', display_order: 1 },
-            { code: 'SIZE_2', name: 'Size 2', description: 'Medium size', display_order: 2 },
-            { code: 'SIZE_3', name: 'Size 3', description: 'Large size', display_order: 3 },
-            { code: 'SIZE_4', name: 'Size 4', description: 'Extra large size', display_order: 4 },
-            { code: 'SIZE_5', name: 'Size 5', description: 'Custom size', display_order: 5 },
+            {
+                code: 'SIZE_1',
+                name: 'Size 1',
+                description: 'Small size',
+                display_order: 1,
+            },
+            {
+                code: 'SIZE_2',
+                name: 'Size 2',
+                description: 'Medium size',
+                display_order: 2,
+            },
+            {
+                code: 'SIZE_3',
+                name: 'Size 3',
+                description: 'Large size',
+                display_order: 3,
+            },
+            {
+                code: 'SIZE_4',
+                name: 'Size 4',
+                description: 'Extra large size',
+                display_order: 4,
+            },
+            {
+                code: 'SIZE_5',
+                name: 'Size 5',
+                description: 'Custom size',
+                display_order: 5,
+            },
         ];
 
         for (const size of sizes) {
@@ -41,4 +66,3 @@ export class SizeSeeder extends BaseSeeder {
         this.log(`Seeded ${sizes.length} sizes`);
     }
 }
-

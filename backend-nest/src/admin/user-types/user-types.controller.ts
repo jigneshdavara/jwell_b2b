@@ -22,9 +22,7 @@ import { AdminGuard } from '../../common/auth/guards/admin.guard';
 @Controller('admin/user-types')
 @UseGuards(JwtAuthGuard, AdminGuard)
 export class UserTypesController {
-    constructor(
-        private readonly userTypesService: UserTypesService,
-    ) {}
+    constructor(private readonly userTypesService: UserTypesService) {}
 
     @Get()
     findAll(
@@ -62,4 +60,3 @@ export class UserTypesController {
         return this.userTypesService.remove(id);
     }
 }
-

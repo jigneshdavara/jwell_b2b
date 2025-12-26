@@ -80,9 +80,7 @@ export class HomeService {
                     ? parseFloat(productAny.making_charge_amount.toString())
                     : null,
                 making_charge_percentage: productAny.making_charge_percentage
-                    ? parseFloat(
-                          productAny.making_charge_percentage.toString(),
-                      )
+                    ? parseFloat(productAny.making_charge_percentage.toString())
                     : null,
                 making_charge_types: makingChargeTypes,
             };
@@ -110,10 +108,7 @@ export class HomeService {
         // Get brands (active brands ordered by display_order and name)
         const brands = await this.prisma.brands.findMany({
             where: { is_active: true },
-            orderBy: [
-                { display_order: 'asc' },
-                { name: 'asc' },
-            ],
+            orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             select: { name: true },
         });
 
@@ -130,4 +125,3 @@ export class HomeService {
         };
     }
 }
-

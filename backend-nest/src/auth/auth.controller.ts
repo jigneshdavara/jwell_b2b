@@ -62,13 +62,15 @@ export class AuthController {
         } catch (error) {
             // Log the error for debugging
             console.error('OTP request error:', error);
-            
+
             // Return a user-friendly error message
             if (error instanceof BadRequestException) {
                 throw error;
             }
-            
-            throw new BadRequestException('Failed to send code. Please try again.');
+
+            throw new BadRequestException(
+                'Failed to send code. Please try again.',
+            );
         }
     }
 

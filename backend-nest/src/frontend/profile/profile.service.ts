@@ -12,9 +12,12 @@ import * as bcrypt from 'bcrypt';
 export class ProfileService {
     constructor(private prisma: PrismaService) {}
 
-    async getProfile(userId: bigint, guard: 'admin' | 'user' = 'user'): Promise<ProfileResponseDto> {
+    async getProfile(
+        userId: bigint,
+        guard: 'admin' | 'user' = 'user',
+    ): Promise<ProfileResponseDto> {
         let user: any;
-        
+
         if (guard === 'admin') {
             user = await this.prisma.admin.findUnique({
                 where: { id: userId },
@@ -37,13 +40,16 @@ export class ProfileService {
                 email: user.email,
                 phone: null, // Admins don't have phone
                 preferred_language: null, // Admins don't have preferred_language
-                email_verified_at: user.email_verified_at?.toISOString() || null,
+                email_verified_at:
+                    user.email_verified_at?.toISOString() || null,
                 type: user.type,
                 kyc_status: null, // Admins don't have kyc_status
                 is_active: true, // Admins are always active
                 credit_limit: null, // Admins don't have credit_limit
-                created_at: user.created_at?.toISOString() || new Date().toISOString(),
-                updated_at: user.updated_at?.toISOString() || new Date().toISOString(),
+                created_at:
+                    user.created_at?.toISOString() || new Date().toISOString(),
+                updated_at:
+                    user.updated_at?.toISOString() || new Date().toISOString(),
             };
         }
 
@@ -59,8 +65,10 @@ export class ProfileService {
             kyc_status: user.kyc_status,
             is_active: user.is_active,
             credit_limit: user.credit_limit ? Number(user.credit_limit) : null,
-            created_at: user.created_at?.toISOString() || new Date().toISOString(),
-            updated_at: user.updated_at?.toISOString() || new Date().toISOString(),
+            created_at:
+                user.created_at?.toISOString() || new Date().toISOString(),
+            updated_at:
+                user.updated_at?.toISOString() || new Date().toISOString(),
         };
     }
 
@@ -77,7 +85,8 @@ export class ProfileService {
         }
 
         // Check if email is being changed
-        const emailChanged = dto.email.toLowerCase() !== user.email.toLowerCase();
+        const emailChanged =
+            dto.email.toLowerCase() !== user.email.toLowerCase();
 
         // Check email uniqueness if email is being changed
         if (emailChanged) {
@@ -118,12 +127,17 @@ export class ProfileService {
             email: updatedUser.email,
             phone: updatedUser.phone,
             preferred_language: updatedUser.preferred_language,
-            email_verified_at: updatedUser.email_verified_at?.toISOString() || null,
+            email_verified_at:
+                updatedUser.email_verified_at?.toISOString() || null,
             type: updatedUser.type,
             kyc_status: updatedUser.kyc_status,
             is_active: updatedUser.is_active,
-            created_at: updatedUser.created_at?.toISOString() || new Date().toISOString(),
-            updated_at: updatedUser.updated_at?.toISOString() || new Date().toISOString(),
+            created_at:
+                updatedUser.created_at?.toISOString() ||
+                new Date().toISOString(),
+            updated_at:
+                updatedUser.updated_at?.toISOString() ||
+                new Date().toISOString(),
         };
     }
 
@@ -213,4 +227,3 @@ export class ProfileService {
         }
     }
 }
-

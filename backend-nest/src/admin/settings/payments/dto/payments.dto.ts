@@ -17,8 +17,3 @@ export class UpdatePaymentSettingsDto {
     @IsOptional()
     is_active?: boolean;
 }
-
-
-
-
-

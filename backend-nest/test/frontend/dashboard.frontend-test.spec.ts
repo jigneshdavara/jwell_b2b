@@ -33,27 +33,27 @@ describe('Frontend Dashboard (e2e)', () => {
         prisma = moduleFixture.get<PrismaService>(PrismaService);
         authService = moduleFixture.get<AuthService>(AuthService);
 
-    // Create test customer with approved KYC
-    const hashedPassword = await bcrypt.hash('password123', 10);
-    testCustomer = await prisma.customer.create({
-      data: {
-        name: 'Test Customer',
-        email: `dashboard-test-${Date.now()}@example.com`,
-        password: hashedPassword,
-        type: 'retailer',
-        kyc_status: 'approved',
-        is_active: true,
-      },
-    });
+        // Create test customer with approved KYC
+        const hashedPassword = await bcrypt.hash('password123', 10);
+        testCustomer = await prisma.customer.create({
+            data: {
+                name: 'Test Customer',
+                email: `dashboard-test-${Date.now()}@example.com`,
+                password: hashedPassword,
+                type: 'retailer',
+                kyc_status: 'approved',
+                is_active: true,
+            },
+        });
 
-    // Login to get auth token
-    const loginResult = await authService.login({
-      ...testCustomer,
-      id: testCustomer.id.toString(),
-    });
-    if (loginResult && 'access_token' in loginResult) {
-      authToken = loginResult.access_token;
-    }
+        // Login to get auth token
+        const loginResult = await authService.login({
+            ...testCustomer,
+            id: testCustomer.id.toString(),
+        });
+        if (loginResult && 'access_token' in loginResult) {
+            authToken = loginResult.access_token;
+        }
     });
 
     afterAll(async () => {
@@ -128,27 +128,27 @@ describe('Frontend Dashboard (e2e)', () => {
         });
 
         it('should return 403 if KYC is not approved', async () => {
-      // Create customer with pending KYC
-      const pendingPassword = await bcrypt.hash('password123', 10);
-      const pendingCustomer = await prisma.customer.create({
-        data: {
-          name: 'Pending Customer',
-          email: `pending-${Date.now()}@example.com`,
-          password: pendingPassword,
-          type: 'retailer',
-          kyc_status: 'pending',
-          is_active: true,
-        },
-      });
+            // Create customer with pending KYC
+            const pendingPassword = await bcrypt.hash('password123', 10);
+            const pendingCustomer = await prisma.customer.create({
+                data: {
+                    name: 'Pending Customer',
+                    email: `pending-${Date.now()}@example.com`,
+                    password: pendingPassword,
+                    type: 'retailer',
+                    kyc_status: 'pending',
+                    is_active: true,
+                },
+            });
 
-      const loginResult = await authService.login({
-        ...pendingCustomer,
-        id: pendingCustomer.id.toString(),
-      });
-      const pendingToken =
-        loginResult && 'access_token' in loginResult
-          ? loginResult.access_token
-          : null;
+            const loginResult = await authService.login({
+                ...pendingCustomer,
+                id: pendingCustomer.id.toString(),
+            });
+            const pendingToken =
+                loginResult && 'access_token' in loginResult
+                    ? loginResult.access_token
+                    : null;
 
             await request(app.getHttpServer())
                 .get('/api/dashboard')

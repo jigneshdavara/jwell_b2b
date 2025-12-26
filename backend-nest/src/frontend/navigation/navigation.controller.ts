@@ -13,4 +13,3 @@ export class NavigationController {
         return this.navigationService.getNavigation();
     }
 }
-

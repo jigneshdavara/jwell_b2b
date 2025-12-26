@@ -10,7 +10,8 @@ export class PortalAccessGuard implements CanActivate {
     private allowedRoles: string[];
 
     constructor(...roles: string[]) {
-        this.allowedRoles = roles.length > 0 ? roles : ['retailer', 'wholesaler', 'sales'];
+        this.allowedRoles =
+            roles.length > 0 ? roles : ['retailer', 'wholesaler', 'sales'];
     }
 
     canActivate(context: ExecutionContext): boolean {
@@ -36,6 +37,3 @@ export class PortalAccessGuard implements CanActivate {
         return true;
     }
 }
-
-
-
