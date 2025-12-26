@@ -28,7 +28,7 @@ export class AdminsController {
     @Get()
     findAll(
         @Query('page') page: string = '1',
-        @Query('per_page') perPage: string = '20',
+        @Query('per_page') perPage: string = '10',
     ) {
         return this.adminsService.findAll(+page, +perPage);
     }

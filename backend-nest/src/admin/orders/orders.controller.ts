@@ -29,7 +29,7 @@ export class OrdersController {
         @Query('status') status?: string,
         @Query('search') search?: string,
     ) {
-        return this.ordersService.findAll(page ?? 1, perPage ?? 20, {
+        return this.ordersService.findAll(page ?? 1, perPage ?? 10, {
             status,
             search,
         });

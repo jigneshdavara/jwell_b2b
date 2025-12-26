@@ -41,7 +41,7 @@ export class UserFilterDto {
     @IsInt()
     @Min(1)
     @Transform(({ value }) => parseInt(value))
-    per_page?: number = 20;
+    per_page?: number = 10;
 }
 
 export class UpdateUserStatusDto {
