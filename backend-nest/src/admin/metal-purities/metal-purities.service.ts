@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    BadRequestException,
+    ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
     CreateMetalPurityDto,
@@ -9,7 +14,7 @@ import {
 export class MetalPuritiesService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.metal_purities.findMany({
@@ -70,7 +75,46 @@ export class MetalPuritiesService {
     }
 
     async create(dto: CreateMetalPurityDto) {
-        const purity = await this.prisma.metal_purities.create({
+        // Validate that metal_id exists
+        const metal = await this.prisma.metals.findUnique({
+            where: { id: BigInt(dto.metal_id) },
+        });
+
+        if (!metal) {
+            throw new BadRequestException(`Metal does not exist`);
+        }
+
+        // Check for duplicate code within the same metal
+        if (dto.code) {
+            const existingByCode = await this.prisma.metal_purities.findFirst({
+                where: {
+                    metal_id: BigInt(dto.metal_id),
+                    code: dto.code,
+                },
+            });
+
+            if (existingByCode) {
+                throw new ConflictException(
+                    `Metal purity with code "${dto.code}" already exists for this metal`,
+                );
+            }
+        }
+
+        // Check for duplicate name within the same metal
+        const existingByName = await this.prisma.metal_purities.findFirst({
+            where: {
+                metal_id: BigInt(dto.metal_id),
+                name: dto.name,
+            },
+        });
+
+        if (existingByName) {
+            throw new ConflictException(
+                `Metal purity with name "${dto.name}" already exists for this metal`,
+            );
+        }
+
+        await this.prisma.metal_purities.create({
             data: {
                 metal_id: BigInt(dto.metal_id),
                 code: dto.code,
@@ -86,15 +130,8 @@ export class MetalPuritiesService {
             },
         });
         return {
-            ...purity,
-            id: Number(purity.id),
-            metal_id: Number(purity.metal_id),
-            metal: purity.metals
-                ? {
-                      id: Number(purity.metals.id),
-                      name: purity.metals.name,
-                  }
-                : null,
+            success: true,
+            message: 'Metal purity created successfully',
         };
     }
 
@@ -105,6 +142,54 @@ export class MetalPuritiesService {
         if (!existing) {
             throw new NotFoundException('Metal purity not found');
         }
+
+        const metalId = dto.metal_id ?? Number(existing.metal_id);
+
+        // Validate that metal_id exists if provided
+        if (dto.metal_id !== undefined) {
+            const metal = await this.prisma.metals.findUnique({
+                where: { id: BigInt(dto.metal_id) },
+            });
+
+            if (!metal) {
+                throw new BadRequestException(`Metal does not exist`);
+            }
+        }
+
+        // Check for duplicate code within the same metal (excluding current record)
+        if (dto.code && dto.code !== existing.code) {
+            const existingByCode = await this.prisma.metal_purities.findFirst({
+                where: {
+                    metal_id: BigInt(metalId),
+                    code: dto.code,
+                    id: { not: BigInt(id) },
+                },
+            });
+
+            if (existingByCode) {
+                throw new ConflictException(
+                    `Metal purity with code "${dto.code}" already exists for this metal`,
+                );
+            }
+        }
+
+        // Check for duplicate name within the same metal (excluding current record)
+        if (dto.name && dto.name !== existing.name) {
+            const existingByName = await this.prisma.metal_purities.findFirst({
+                where: {
+                    metal_id: BigInt(metalId),
+                    name: dto.name,
+                    id: { not: BigInt(id) },
+                },
+            });
+
+            if (existingByName) {
+                throw new ConflictException(
+                    `Metal purity with name "${dto.name}" already exists for this metal`,
+                );
+            }
+        }
+
         const purity = await this.prisma.metal_purities.update({
             where: { id: BigInt(id) },
             data: {

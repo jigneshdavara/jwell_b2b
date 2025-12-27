@@ -6,7 +6,7 @@ import { CreateMetalDto, UpdateMetalDto } from './dto/metal.dto';
 export class MetalsService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.metals.findMany({
@@ -39,7 +39,7 @@ export class MetalsService {
     }
 
     async create(dto: CreateMetalDto) {
-        return await this.prisma.metals.create({
+        await this.prisma.metals.create({
             data: {
                 code: dto.code,
                 name: dto.name,
@@ -48,11 +48,15 @@ export class MetalsService {
                 display_order: dto.display_order,
             },
         });
+        return {
+            success: true,
+            message: 'Metal created successfully',
+        };
     }
 
     async update(id: number, dto: UpdateMetalDto) {
         await this.findOne(id);
-        return await this.prisma.metals.update({
+        await this.prisma.metals.update({
             where: { id: BigInt(id) },
             data: {
                 code: dto.code,
@@ -62,19 +66,31 @@ export class MetalsService {
                 display_order: dto.display_order,
             },
         });
+        return {
+            success: true,
+            message: 'Metal updated successfully',
+        };
     }
 
     async remove(id: number) {
         await this.findOne(id);
-        return await this.prisma.metals.delete({
+        await this.prisma.metals.delete({
             where: { id: BigInt(id) },
         });
+        return {
+            success: true,
+            message: 'Metal deleted successfully',
+        };
     }
 
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.metals.deleteMany({
+        await this.prisma.metals.deleteMany({
             where: { id: { in: bigIntIds } },
         });
+        return {
+            success: true,
+            message: 'Metals deleted successfully',
+        };
     }
 }

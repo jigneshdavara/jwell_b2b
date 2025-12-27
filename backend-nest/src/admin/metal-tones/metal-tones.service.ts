@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    BadRequestException,
+    ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateMetalToneDto, UpdateMetalToneDto } from './dto/metal-tone.dto';
 
@@ -6,7 +11,7 @@ import { CreateMetalToneDto, UpdateMetalToneDto } from './dto/metal-tone.dto';
 export class MetalTonesService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.metal_tones.findMany({
@@ -67,7 +72,46 @@ export class MetalTonesService {
     }
 
     async create(dto: CreateMetalToneDto) {
-        const tone = await this.prisma.metal_tones.create({
+        // Validate that metal_id exists
+        const metal = await this.prisma.metals.findUnique({
+            where: { id: BigInt(dto.metal_id) },
+        });
+
+        if (!metal) {
+            throw new BadRequestException(`Metal does not exist`);
+        }
+
+        // Check for duplicate code within the same metal
+        if (dto.code) {
+            const existingByCode = await this.prisma.metal_tones.findFirst({
+                where: {
+                    metal_id: BigInt(dto.metal_id),
+                    code: dto.code,
+                },
+            });
+
+            if (existingByCode) {
+                throw new ConflictException(
+                    `Metal tone with code "${dto.code}" already exists for this metal`,
+                );
+            }
+        }
+
+        // Check for duplicate name within the same metal
+        const existingByName = await this.prisma.metal_tones.findFirst({
+            where: {
+                metal_id: BigInt(dto.metal_id),
+                name: dto.name,
+            },
+        });
+
+        if (existingByName) {
+            throw new ConflictException(
+                `Metal tone with name "${dto.name}" already exists for this metal`,
+            );
+        }
+
+        await this.prisma.metal_tones.create({
             data: {
                 metal_id: BigInt(dto.metal_id),
                 code: dto.code,
@@ -83,15 +127,8 @@ export class MetalTonesService {
             },
         });
         return {
-            ...tone,
-            id: Number(tone.id),
-            metal_id: Number(tone.metal_id),
-            metal: tone.metals
-                ? {
-                      id: Number(tone.metals.id),
-                      name: tone.metals.name,
-                  }
-                : null,
+            success: true,
+            message: 'Metal tone created successfully',
         };
     }
 
@@ -102,7 +139,55 @@ export class MetalTonesService {
         if (!existing) {
             throw new NotFoundException('Metal tone not found');
         }
-        const tone = await this.prisma.metal_tones.update({
+
+        const metalId = dto.metal_id ?? Number(existing.metal_id);
+
+        // Validate that metal_id exists if provided
+        if (dto.metal_id !== undefined) {
+            const metal = await this.prisma.metals.findUnique({
+                where: { id: BigInt(dto.metal_id) },
+            });
+
+            if (!metal) {
+                throw new BadRequestException(`Metal does not exist`);
+            }
+        }
+
+        // Check for duplicate code within the same metal (excluding current record)
+        if (dto.code && dto.code !== existing.code) {
+            const existingByCode = await this.prisma.metal_tones.findFirst({
+                where: {
+                    metal_id: BigInt(metalId),
+                    code: dto.code,
+                    id: { not: BigInt(id) },
+                },
+            });
+
+            if (existingByCode) {
+                throw new ConflictException(
+                    `Metal tone with code "${dto.code}" already exists for this metal`,
+                );
+            }
+        }
+
+        // Check for duplicate name within the same metal (excluding current record)
+        if (dto.name && dto.name !== existing.name) {
+            const existingByName = await this.prisma.metal_tones.findFirst({
+                where: {
+                    metal_id: BigInt(metalId),
+                    name: dto.name,
+                    id: { not: BigInt(id) },
+                },
+            });
+
+            if (existingByName) {
+                throw new ConflictException(
+                    `Metal tone with name "${dto.name}" already exists for this metal`,
+                );
+            }
+        }
+
+        await this.prisma.metal_tones.update({
             where: { id: BigInt(id) },
             data: {
                 metal_id: dto.metal_id ? BigInt(dto.metal_id) : undefined,
@@ -119,15 +204,8 @@ export class MetalTonesService {
             },
         });
         return {
-            ...tone,
-            id: Number(tone.id),
-            metal_id: Number(tone.metal_id),
-            metal: tone.metals
-                ? {
-                      id: Number(tone.metals.id),
-                      name: tone.metals.name,
-                  }
-                : null,
+            success: true,
+            message: 'Metal tone updated successfully',
         };
     }
 
