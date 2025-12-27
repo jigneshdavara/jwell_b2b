@@ -11,7 +11,6 @@ import { frontendService } from '@/services/frontendService';
 import { useAppDispatch } from '@/store/hooks';
 import { fetchCart as fetchCartThunk } from '@/store/slices/cartSlice';
 import { PaginationMeta } from '@/utils/pagination';
-import { toastSuccess, toastError } from '@/utils/toast';
 import type { CartItem, CartData } from '@/types';
 
 const currencyFormatter = (currency: string) =>
@@ -37,7 +36,6 @@ export default function CartPage() {
     const refreshCart = () => dispatch(fetchCartThunk());
     const [cart, setCart] = useState<CartData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [notesModalOpen, setNotesModalOpen] = useState<number | null>(null);
@@ -49,11 +47,9 @@ export default function CartPage() {
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
     const [cartComment, setCartComment] = useState('');
-    // Toast notifications are handled via RTK
 
     const loadCartData = async () => {
         setLoading(true);
-        setError(null);
         try {
             const response = await frontendService.getCart();
             if (response.data?.cart) {
@@ -101,7 +97,7 @@ export default function CartPage() {
             }
         } catch (err: any) {
             console.error('Failed to fetch cart:', err);
-            setError('Failed to load cart. Please try again.');
+            // Error toast handled by API interceptor
             setCart({ items: [], currency: 'INR', subtotal: 0, tax: 0, discount: 0, shipping: 0, total: 0 });
         } finally {
             setLoading(false);
@@ -329,10 +325,10 @@ export default function CartPage() {
             await frontendService.removeCartItem(item.id);
             await loadCartData(); // Refresh cart
             await refreshCart(); // Update cart count in navbar
-            toastSuccess('Removed from your purchase list.');
+            // Toast handled by API interceptor if backend returns response.data.message
         } catch (err: any) {
             console.error('Failed to remove item:', err);
-            toastError(err.response?.data?.message || 'Failed to remove item. Please try again.');
+            // Error toast handled by API interceptor
         }
     };
 
@@ -343,10 +339,10 @@ export default function CartPage() {
             });
             await loadCartData(); // Refresh cart
             setNotesModalOpen(null);
-            toastSuccess('Updated quotation entry.');
+            // Toast handled by API interceptor if backend returns response.data.message
         } catch (err: any) {
             console.error('Failed to save notes:', err);
-            toastError(err.response?.data?.message || 'Failed to save notes. Please try again.');
+            // Error toast handled by API interceptor
         }
     };
 
@@ -454,9 +450,10 @@ export default function CartPage() {
                     // Split multiple errors if they're space-separated (Laravel joins with space)
                     const errors = errorMessage.split(/(?<=\.)\s+/).filter((e: string) => e.trim());
                     setInventoryErrors(errors);
+                    // Don't show toast for inventory errors - they're shown in modal
                 } else {
-                    // Other errors show as flash message
-                    toastError(errorMessage);
+                    // Other errors are handled by API interceptor
+                    // No manual toast needed
                 }
             } else if (err.response?.data?.quantity) {
                 // Handle quantity validation errors (if backend returns in quantity field)
@@ -464,10 +461,8 @@ export default function CartPage() {
                     ? err.response.data.quantity 
                     : [err.response.data.quantity];
                 setInventoryErrors(quantityErrors);
-            } else {
-                // Generic error
-                toastError('Failed to submit quotations. Please try again.');
             }
+            // Generic errors are handled by API interceptor
         } finally {
             setSubmitting(false);
         }

@@ -1,4 +1,4 @@
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 
 // Deduplication: Track recent toasts to prevent duplicates
 const recentToasts = new Map<string, number>();
@@ -11,8 +11,8 @@ const DEDUPLICATION_INTERVAL = 3000; // 3 seconds (increased from 2 to catch mor
 const normalizeMessage = (message: string): string => {
     return message
         .trim()
-        .replace(/[.!?]+$/, '') // Remove trailing punctuation
-        .replace(/\s+/g, ' ') // Normalize whitespace
+        .replace(/[.!?]+$/, "") // Remove trailing punctuation
+        .replace(/\s+/g, " ") // Normalize whitespace
         .toLowerCase();
 };
 
@@ -30,14 +30,14 @@ const showDeduplicatedToast = (
     const lastShown = recentToasts.get(normalizedMessage);
 
     // If the same (or similar) message was shown recently, skip it
-    if (lastShown && (now - lastShown < DEDUPLICATION_INTERVAL)) {
+    if (lastShown && now - lastShown < DEDUPLICATION_INTERVAL) {
         return;
     }
 
     // Show the toast
     toastFn(message, {
         autoClose: duration || 5000,
-        position: 'top-right',
+        position: "top-right",
     });
 
     // Record when this message was shown (use normalized key)
@@ -82,13 +82,17 @@ export const toastWarning = (message: string, duration?: number) => {
 /**
  * Show a toast (generic)
  */
-export const showToast = (type: 'success' | 'error' | 'info' | 'warning', message: string, duration?: number) => {
+export const showToast = (
+    type: "success" | "error" | "info" | "warning",
+    message: string,
+    duration?: number
+) => {
     const toastFn = {
         success: toast.success,
         error: toast.error,
         info: toast.info,
         warning: toast.warning,
     }[type];
-    
+
     showDeduplicatedToast(toastFn, message, duration);
 };

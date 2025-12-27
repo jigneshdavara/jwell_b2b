@@ -6,7 +6,6 @@ import Link from 'next/link';
 import Modal from '@/components/ui/Modal';
 import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
-import { toastSuccess, toastError } from '@/utils/toast';
 
 type RelatedQuotation = {
     id: number | string;
@@ -248,7 +247,7 @@ export default function QuotationDetailPage() {
             setQuotation(mappedQuotation);
         } catch (error: any) {
             console.error('Failed to fetch quotation', error);
-            toastError(error.response?.data?.message || 'Failed to load quotation details.');
+            // Error toast handled by API interceptor
         } finally {
             setLoading(false);
         }
@@ -272,10 +271,10 @@ export default function QuotationDetailPage() {
             await frontendService.sendQuotationMessage(quotationId, message);
             setMessage('');
             await fetchQuotation();
-            toastSuccess('Message sent successfully.');
+            // Toast handled by API interceptor if backend returns response.data.message
         } catch (error: any) {
             console.error('Failed to send message', error);
-            toastError(error.response?.data?.message || 'Failed to send message. Please try again.');
+            // Error toast handled by API interceptor
         } finally {
             setSubmitting(false);
         }
@@ -288,10 +287,10 @@ export default function QuotationDetailPage() {
             const quotationId = typeof params.id === 'string' ? parseInt(params.id) : Number(params.id);
             await frontendService.confirmQuotation(quotationId);
             await fetchQuotation();
-            toastSuccess('Quotation confirmed successfully.');
+            // Toast handled by API interceptor if backend returns response.data.message
         } catch (error: any) {
             console.error('Failed to confirm quotation', error);
-            toastError(error.response?.data?.message || 'Failed to confirm quotation. Please try again.');
+            // Error toast handled by API interceptor
         } finally {
             setSubmitting(false);
         }
@@ -304,11 +303,11 @@ export default function QuotationDetailPage() {
             const quotationId = typeof params.id === 'string' ? parseInt(params.id) : Number(params.id);
             await frontendService.declineQuotation(quotationId);
             await fetchQuotation();
-            toastSuccess('Quotation declined successfully.');
+            // Toast handled by API interceptor if backend returns response.data.message
             router.push(route('frontend.quotations.index'));
         } catch (error: any) {
             console.error('Failed to decline quotation', error);
-            toastError(error.response?.data?.message || 'Failed to decline quotation. Please try again.');
+            // Error toast handled by API interceptor
         } finally {
             setSubmitting(false);
         }
