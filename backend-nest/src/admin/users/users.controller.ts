@@ -84,8 +84,8 @@ export class UsersController {
     }
 
     @Delete('bulk')
-    bulkDelete(@Body() dto: BulkDeleteUsersDto) {
-        return this.usersService.bulkDelete(dto);
+    bulkRemove(@Body() dto: BulkDeleteUsersDto) {
+        return this.usersService.bulkRemove(dto);
     }
 
     @Delete(':id')

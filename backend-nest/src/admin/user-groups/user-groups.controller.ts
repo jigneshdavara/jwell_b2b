@@ -52,8 +52,8 @@ export class UserGroupsController {
     }
 
     @Delete('bulk')
-    bulkDelete(@Body() dto: BulkDestroyUserGroupsDto) {
-        return this.userGroupsService.bulkDelete(dto);
+    bulkRemove(@Body() dto: BulkDestroyUserGroupsDto) {
+        return this.userGroupsService.bulkRemove(dto);
     }
 
     @Delete(':id')

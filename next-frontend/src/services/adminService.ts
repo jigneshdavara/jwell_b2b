@@ -579,9 +579,6 @@ export const adminService = {
   async getAdmins(page = 1, perPage = 20) {
     return await apiClient.get('/admin/admins', { params: { page, per_page: perPage } });
   },
-  async getAdmin(id: number) {
-    return await apiClient.get(`/admin/admins/${id}`);
-  },
   async createAdmin(data: any) {
     return await apiClient.post('/admin/admins', data);
   },
@@ -594,7 +591,7 @@ export const adminService = {
   async bulkDeleteAdmins(ids: number[]) {
     return await apiClient.delete('/admin/admins/bulk', { data: { ids } });
   },
-  async updateAdminGroup(id: number, groupId: number | null) {
+  async updateAdminGroupAssignment(id: number, groupId: number | null) {
     return await apiClient.patch(`/admin/admins/${id}/group`, { admin_group_id: groupId });
   },
 

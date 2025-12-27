@@ -352,7 +352,7 @@ export class UsersService {
         return { success: true, message: 'User removed successfully' };
     }
 
-    async bulkDelete(dto: BulkDeleteUsersDto) {
+    async bulkRemove(dto: BulkDeleteUsersDto) {
         if (!dto.ids || dto.ids.length === 0) {
             throw new BadRequestException('No users to delete');
         }

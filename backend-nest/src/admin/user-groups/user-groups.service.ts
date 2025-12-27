@@ -15,7 +15,7 @@ import {
 export class UserGroupsService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.user_groups.findMany({
@@ -134,7 +134,7 @@ export class UserGroupsService {
         return { success: true, message: 'User group removed successfully' };
     }
 
-    async bulkDelete(dto: BulkDestroyUserGroupsDto) {
+    async bulkRemove(dto: BulkDestroyUserGroupsDto) {
         if (!dto.ids || dto.ids.length === 0) {
             throw new BadRequestException('No users to delete');
         }

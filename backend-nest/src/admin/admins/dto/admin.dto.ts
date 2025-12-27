@@ -6,7 +6,6 @@ import {
     MaxLength,
     IsEnum,
     IsInt,
-    Min,
     MinLength,
     ValidateIf,
     ValidationArguments,
@@ -15,9 +14,8 @@ import {
     registerDecorator,
     ValidationOptions,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
 
-export enum UserType {
+export enum AdminType {
     ADMIN = 'admin',
     SUPER_ADMIN = 'super-admin',
     PRODUCTION = 'production',
@@ -76,9 +74,9 @@ export class CreateAdminDto {
     })
     password_confirmation: string;
 
-    @IsEnum(UserType)
+    @IsEnum(AdminType)
     @IsOptional()
-    type?: UserType;
+    type?: AdminType;
 
     @IsInt()
     @IsOptional()
@@ -124,9 +122,9 @@ export class UpdateAdminDto {
     })
     password_confirmation?: string;
 
-    @IsEnum(UserType)
+    @IsEnum(AdminType)
     @IsOptional()
-    type?: UserType;
+    type?: AdminType;
 
     @IsInt()
     @IsOptional()

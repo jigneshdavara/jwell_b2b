@@ -8,7 +8,7 @@ import {
     IsEnum,
     IsInt,
 } from 'class-validator';
-import { UserType } from '../../admin/admins/dto/admin.dto';
+import { AdminType } from '../../admin/admins/dto/admin.dto';
 
 export class RegisterAdminDto {
     @IsString()
@@ -30,9 +30,9 @@ export class RegisterAdminDto {
     @IsNotEmpty()
     password_confirmation: string;
 
-    @IsEnum(UserType)
+    @IsEnum(AdminType)
     @IsOptional()
-    type?: UserType;
+    type?: AdminType;
 
     @IsInt()
     @IsOptional()
