@@ -787,7 +787,10 @@ CREATE INDEX "brands_display_order_index" ON "brands"("display_order");
 CREATE UNIQUE INDEX "catalog_product_unique" ON "catalog_products"("catalog_id", "product_id");
 
 -- CreateIndex
-CREATE INDEX "catalogs_code_index" ON "catalogs"("code");
+CREATE UNIQUE INDEX "catalogs_code_unique" ON "catalogs"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "catalogs_name_unique" ON "catalogs"("name");
 
 -- CreateIndex
 CREATE INDEX "catalogs_display_order_index" ON "catalogs"("display_order");

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCatalogDto, UpdateCatalogDto } from './dto/catalog.dto';
 
@@ -6,7 +10,7 @@ import { CreateCatalogDto, UpdateCatalogDto } from './dto/catalog.dto';
 export class CatalogsService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.catalogs.findMany({
@@ -77,7 +81,28 @@ export class CatalogsService {
     }
 
     async create(dto: CreateCatalogDto) {
-        const catalog = await this.prisma.catalogs.create({
+        const [existingByName, existingByCode] = await Promise.all([
+            this.prisma.catalogs.findUnique({
+                where: { name: dto.name },
+            }),
+            this.prisma.catalogs.findUnique({
+                where: { code: dto.code },
+            }),
+        ]);
+
+        if (existingByName) {
+            throw new ConflictException(
+                'Catalog with this name already exists',
+            );
+        }
+
+        if (existingByCode) {
+            throw new ConflictException(
+                'Catalog with this code already exists',
+            );
+        }
+
+        await this.prisma.catalogs.create({
             data: {
                 code: dto.code,
                 name: dto.name,
@@ -88,15 +113,39 @@ export class CatalogsService {
                 updated_at: new Date(),
             },
         });
-        return {
-            ...catalog,
-            id: Number(catalog.id),
-        };
+        // return {
+        //     ...catalog,
+        //     id: Number(catalog.id),
+        // };
+        return { success: true, message: 'Catalog created successfully' };
     }
 
     async update(id: number, dto: UpdateCatalogDto) {
-        await this.findOne(id);
-        const catalog = await this.prisma.catalogs.update({
+        const existingCatalog = await this.findOne(id);
+
+        if (dto.name && dto.name !== existingCatalog.name) {
+            const existing = await this.prisma.catalogs.findUnique({
+                where: { name: dto.name },
+            });
+            if (existing) {
+                throw new ConflictException(
+                    'Catalog with this name already exists',
+                );
+            }
+        }
+
+        if (dto.code && dto.code !== existingCatalog.code) {
+            const existing = await this.prisma.catalogs.findUnique({
+                where: { code: dto.code },
+            });
+            if (existing) {
+                throw new ConflictException(
+                    'Catalog with this code already exists',
+                );
+            }
+        }
+
+        await this.prisma.catalogs.update({
             where: { id: BigInt(id) },
             data: {
                 code: dto.code,
@@ -107,24 +156,27 @@ export class CatalogsService {
                 updated_at: new Date(),
             },
         });
-        return {
-            ...catalog,
-            id: Number(catalog.id),
-        };
+        // return {
+        //     ...catalog,
+        //     id: Number(catalog.id),
+        // };
+        return { success: true, message: 'Catalog updated successfully' };
     }
 
     async remove(id: number) {
         await this.findOne(id);
-        return await this.prisma.catalogs.delete({
+        await this.prisma.catalogs.delete({
             where: { id: BigInt(id) },
         });
+        return { success: true, message: 'Catalog removed successfully' };
     }
 
-    async bulkDestroy(ids: number[]) {
+    async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.catalogs.deleteMany({
+        await this.prisma.catalogs.deleteMany({
             where: { id: { in: bigIntIds } },
         });
+        return { success: true, message: 'Catalogs removed successfully' };
     }
 
     async getProductsForAssignment(id: number, search?: string) {
@@ -166,12 +218,10 @@ export class CatalogsService {
         await this.findOne(id);
 
         return await this.prisma.$transaction(async (tx) => {
-            // Delete existing assignments
             await tx.catalog_products.deleteMany({
                 where: { catalog_id: catalogId },
             });
 
-            // Create new assignments
             if (productIds.length > 0) {
                 await tx.catalog_products.createMany({
                     data: productIds.map((productId) => ({
@@ -183,7 +233,10 @@ export class CatalogsService {
                 });
             }
 
-            return { message: 'Catalog products updated successfully' };
+            return {
+                success: true,
+                message: 'Catalog products updated successfully',
+            };
         });
     }
 }
