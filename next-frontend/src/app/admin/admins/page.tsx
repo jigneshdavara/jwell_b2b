@@ -503,19 +503,12 @@ export default function AdminAdminsIndex() {
                                                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                                                     Super admin
                                                 </span>
+                                            ) : user.admin_group ? (
+                                                <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
+                                                    {user.admin_group.name}
+                                                </span>
                                             ) : (
-                                                <select
-                                                    value={user.admin_group?.id ?? ''}
-                                                    onChange={(event) => updateAdminGroup(user, event.target.value)}
-                                                    className="rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                                >
-                                                    <option value="">No group assigned</option>
-                                                    {adminGroups.map((groupOption) => (
-                                                        <option key={groupOption.id} value={groupOption.id}>
-                                                            {groupOption.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                <span className="text-slate-400 text-left">—</span>
                                             )}
                                         </td>
                                         <td className="px-5 py-3 text-slate-500">

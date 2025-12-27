@@ -515,7 +515,7 @@ export default function AdminAdminGroupsPage() {
             }
         } else {
             // Backend pagination - fetch new data
-            loadAssignAdmins(page, assignSearchTerm || undefined);
+        loadAssignAdmins(page, assignSearchTerm || undefined);
         }
     };
 
@@ -886,129 +886,129 @@ export default function AdminAdminGroupsPage() {
                     <form onSubmit={handleAssignSubmit} className="flex min-h-0 flex-1 flex-col">
                         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
                             <div className="space-y-4">
-                                {/* Search and Filters */}
+                            {/* Search and Filters */}
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1">
+                                    <input
+                                        type="text"
+                                        value={assignSearchTerm}
+                                        onChange={(e) => setAssignSearchTerm(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleAssignSearch();
+                                            }
+                                        }}
+                                        placeholder="Search name or email..."
+                                        className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleAssignSearch}
+                                    disabled={assignLoading}
+                                    className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {assignLoading ? 'Searching...' : 'Search'}
+                                </button>
+                            </div>
+
+                            {/* Select All / Deselect All */}
+                            <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="flex-1">
-                                        <input
-                                            type="text"
-                                            value={assignSearchTerm}
-                                            onChange={(e) => setAssignSearchTerm(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    handleAssignSearch();
-                                                }
-                                            }}
-                                            placeholder="Search name or email..."
-                                            className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
-                                        />
-                                    </div>
                                     <button
                                         type="button"
-                                        onClick={handleAssignSearch}
-                                        disabled={assignLoading}
-                                        className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                        onClick={selectAllVisible}
+                                        className="rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
                                     >
-                                        {assignLoading ? 'Searching...' : 'Search'}
+                                        Select all visible
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={deselectAllVisible}
+                                        className="rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                    >
+                                        Deselect all visible
                                     </button>
                                 </div>
-
-                                {/* Select All / Deselect All */}
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={selectAllVisible}
-                                            className="rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
-                                        >
-                                            Select all visible
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={deselectAllVisible}
-                                            className="rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
-                                        >
-                                            Deselect all visible
-                                        </button>
-                                    </div>
-                                    <div className="text-sm text-slate-600">
-                                        <span className="font-semibold">{visibleSelectedCount}</span> selected /{' '}
-                                        <span className="font-semibold">{filteredAssignAdmins.length}</span> visible
-                                    </div>
+                                <div className="text-sm text-slate-600">
+                                    <span className="font-semibold">{visibleSelectedCount}</span> selected /{' '}
+                                    <span className="font-semibold">{filteredAssignAdmins.length}</span> visible
                                 </div>
+                            </div>
 
-                                {/* Admins Table */}
-                                {assignLoading ? (
-                                    <div className="flex items-center justify-center py-16">
-                                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
-                                    </div>
-                                ) : (
-                                    <div className="overflow-hidden rounded-2xl border border-slate-200">
+                            {/* Admins Table */}
+                            {assignLoading ? (
+                                <div className="flex items-center justify-center py-16">
+                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
+                                </div>
+                            ) : (
+                                <div className="overflow-hidden rounded-2xl border border-slate-200">
                                         <div className="overflow-x-auto" data-admin-table-container>
-                                            <table className="min-w-full divide-y divide-slate-200 text-sm">
+                                    <table className="min-w-full divide-y divide-slate-200 text-sm">
                                                 <thead className="bg-slate-50 text-xs text-slate-500 sticky top-0 z-10">
-                                                    <tr>
+                                            <tr>
                                                         <th className="px-4 py-3 text-left bg-slate-50">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={allVisibleSelected}
-                                                                onChange={() => {
-                                                                    if (allVisibleSelected) {
-                                                                        deselectAllVisible();
-                                                                    } else {
-                                                                        selectAllVisible();
-                                                                    }
-                                                                }}
-                                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                                aria-label="Select all visible admins"
-                                                            />
-                                                        </th>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={allVisibleSelected}
+                                                        onChange={() => {
+                                                            if (allVisibleSelected) {
+                                                                deselectAllVisible();
+                                                            } else {
+                                                                selectAllVisible();
+                                                            }
+                                                        }}
+                                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                        aria-label="Select all visible admins"
+                                                    />
+                                                </th>
                                                         <th className="px-4 py-3 text-left bg-slate-50">Name</th>
                                                         <th className="px-4 py-3 text-left bg-slate-50">Email</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 bg-white">
+                                            {filteredAssignAdmins.map((admin) => {
+                                                const isSelected = assignSelectedIds.includes(admin.id);
+                                                return (
+                                                    <tr key={admin.id} className="hover:bg-slate-50">
+                                                        <td className="px-4 py-3">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isSelected}
+                                                                onChange={() => toggleAssignAdmin(admin.id)}
+                                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                                aria-label={`Select ${admin.name}`}
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-3 font-medium text-slate-900">
+                                                            {admin.name}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-slate-600">{admin.email}</td>
                                                     </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100 bg-white">
-                                                    {filteredAssignAdmins.map((admin) => {
-                                                        const isSelected = assignSelectedIds.includes(admin.id);
-                                                        return (
-                                                            <tr key={admin.id} className="hover:bg-slate-50">
-                                                                <td className="px-4 py-3">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={isSelected}
-                                                                        onChange={() => toggleAssignAdmin(admin.id)}
-                                                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                                        aria-label={`Select ${admin.name}`}
-                                                                    />
-                                                                </td>
-                                                                <td className="px-4 py-3 font-medium text-slate-900">
-                                                                    {admin.name}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-slate-600">{admin.email}</td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                    {filteredAssignAdmins.length === 0 && (
-                                                        <tr>
-                                                            <td colSpan={3} className="px-4 py-6 text-center text-sm text-slate-500">
-                                                                No admins found matching your search.
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                                );
+                                            })}
+                                            {filteredAssignAdmins.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={3} className="px-4 py-6 text-center text-sm text-slate-500">
+                                                        No admins found matching your search.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                                         {/* Pagination inside table container */}
                                         <div className="border-t border-slate-200 bg-white px-4 py-3">
-                                            <Pagination
-                                                meta={assignAdminsMeta}
-                                                onPageChange={handleAssignPageChange}
-                                            />
+                                <Pagination
+                                    meta={assignAdminsMeta}
+                                    onPageChange={handleAssignPageChange}
+                                />
                                         </div>
                                     </div>
                                 )}
                             </div>
-                        </div>
+                            </div>
 
                         {/* Footer with Action Buttons */}
                         <div className="flex-shrink-0 border-t border-slate-200 bg-white px-6 py-4">
@@ -1028,8 +1028,8 @@ export default function AdminAdminGroupsPage() {
                                     {assignProcessing ? 'Saving...' : 'Save assignments'}
                                 </button>
                             </div>
-                        </div>
-                    </form>
+                            </div>
+                        </form>
                 </div>
             </Modal>
         </div>
