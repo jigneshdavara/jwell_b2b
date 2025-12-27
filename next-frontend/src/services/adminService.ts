@@ -107,9 +107,6 @@ export const adminService = {
   async toggleCustomerStatus(id: number) {
     return await apiClient.post(`/admin/users/${id}/toggle-status`);
   },
-  async updateUserGroupAssignment(id: number, groupId: number | null) {
-    return await apiClient.patch(`/admin/users/${id}/group`, { user_group_id: groupId });
-  },
   async deleteCustomer(id: number) {
     return await apiClient.delete(`/admin/users/${id}`);
   },

@@ -53,11 +53,6 @@ export class UpdateUserStatusDto {
     kyc_notes?: string;
 }
 
-export class UpdateUserGroupDto {
-    @IsInt()
-    user_group_id: number;
-}
-
 export class BulkDeleteUsersDto {
     @IsInt({ each: true })
     ids: number[];

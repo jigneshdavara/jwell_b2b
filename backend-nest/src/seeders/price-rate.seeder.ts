@@ -72,3 +72,4 @@ export class PriceRateSeeder extends BaseSeeder {
         this.log(`Seeded ${rates.length} price rates`);
     }
 }
+

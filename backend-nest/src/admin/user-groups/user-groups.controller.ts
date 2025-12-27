@@ -14,7 +14,7 @@ import { UserGroupsService } from './user-groups.service';
 import {
     CreateUserGroupDto,
     UpdateUserGroupDto,
-    BulkDestroyDto,
+    BulkDestroyUserGroupsDto,
     AssignUsersDto,
 } from './dto/user-group.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
@@ -27,10 +27,10 @@ export class UserGroupsController {
 
     @Get()
     findAll(
-        @Query('page') page: string = '1',
-        @Query('per_page') perPage: string = '10',
+        @Query('page') page: number = 1,
+        @Query('per_page') perPage: number = 10,
     ) {
-        return this.userGroupsService.findAll(+page, +perPage);
+        return this.userGroupsService.findAll(page, perPage);
     }
 
     @Get(':id')
@@ -52,8 +52,8 @@ export class UserGroupsController {
     }
 
     @Delete('bulk')
-    bulkRemove(@Body() dto: BulkDestroyDto) {
-        return this.userGroupsService.bulkRemove(dto.ids);
+    bulkDelete(@Body() dto: BulkDestroyUserGroupsDto) {
+        return this.userGroupsService.bulkDelete(dto);
     }
 
     @Delete(':id')

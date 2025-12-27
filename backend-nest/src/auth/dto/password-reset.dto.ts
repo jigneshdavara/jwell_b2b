@@ -24,3 +24,4 @@ export class ResetPasswordDto {
     @IsNotEmpty()
     password_confirmation: string;
 }
+
