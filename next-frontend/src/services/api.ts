@@ -145,7 +145,7 @@ apiClient.interceptors.response.use(
         };
 
         // Handle 401 Unauthorized - token expired or invalid
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401) {
             // Don't try to refresh if we're on home page (/)
             // Home page should never trigger redirects to login
             const isOnHomePage =
@@ -156,23 +156,16 @@ apiClient.interceptors.response.use(
                 return Promise.reject(error);
             }
 
-            originalRequest._retry = true;
+            // Check if this is a refresh-token request itself
+            // If refresh-token fails, we should redirect immediately (no retry loop)
+            const requestUrl = originalRequest?.url || "";
+            const isRefreshTokenRequest =
+                requestUrl.includes("/auth/refresh-token") ||
+                requestUrl.includes("refresh-token");
 
-            try {
-                // Try to refresh token
-                const newToken = await tokenService.refreshToken();
-
-                if (newToken && originalRequest.headers) {
-                    // Retry original request with new token
-                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                    return apiClient(originalRequest);
-                }
-            } catch (refreshError) {
-                // Refresh failed - redirect to login ONLY if:
-                // 1. Not on home page (/)
-                // 2. Not on other public paths
-                // This ensures home page is always accessible and never redirected to login
-                if (!isOnHomePage && typeof window !== "undefined") {
+            // If this is a refresh-token request that failed, redirect immediately
+            if (isRefreshTokenRequest) {
+                if (typeof window !== "undefined") {
                     const currentPath = window.location.pathname;
                     const publicPaths = [
                         "/login",
@@ -182,18 +175,94 @@ apiClient.interceptors.response.use(
                         "/verify-email",
                     ];
 
-                    // Only redirect to login if not on public paths
-                    // Home page (/) is explicitly excluded above (isOnHomePage check)
                     if (
+                        !isOnHomePage &&
                         !publicPaths.some((path) =>
                             currentPath.startsWith(path)
                         )
                     ) {
                         tokenService.removeToken();
-                        window.location.href = "/login";
+                        // Use replace to prevent back button navigation
+                        window.location.replace("/login");
+                        // Return a promise that never resolves to prevent further processing
+                        return new Promise(() => {});
                     }
                 }
-                return Promise.reject(refreshError);
+                return Promise.reject(error);
+            }
+
+            // If this is not a retry, try to refresh token
+            if (!originalRequest._retry) {
+                originalRequest._retry = true;
+
+                try {
+                    // Try to refresh token
+                    const newToken = await tokenService.refreshToken();
+
+                    if (newToken && originalRequest.headers) {
+                        // Retry original request with new token
+                        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                        return apiClient(originalRequest);
+                    } else {
+                        // No token returned from refresh - redirect to login
+                        throw new Error("Token refresh returned no token");
+                    }
+                } catch (refreshError) {
+                    // Refresh failed - redirect to login ONLY if:
+                    // 1. Not on home page (/)
+                    // 2. Not on other public paths
+                    // This ensures home page is always accessible and never redirected to login
+                    if (!isOnHomePage && typeof window !== "undefined") {
+                        const currentPath = window.location.pathname;
+                        const publicPaths = [
+                            "/login",
+                            "/register",
+                            "/forgot-password",
+                            "/reset-password",
+                            "/verify-email",
+                        ];
+
+                        // Only redirect to login if not on public paths
+                        // Home page (/) is explicitly excluded above (isOnHomePage check)
+                        if (
+                            !publicPaths.some((path) =>
+                                currentPath.startsWith(path)
+                            )
+                        ) {
+                            tokenService.removeToken();
+                            // Use replace to prevent back button navigation
+                            window.location.replace("/login");
+                            // Return a promise that never resolves to prevent further processing
+                            return new Promise(() => {});
+                        }
+                    }
+                    return Promise.reject(refreshError);
+                }
+            } else {
+                // Already retried - redirect immediately
+                if (typeof window !== "undefined") {
+                    const currentPath = window.location.pathname;
+                    const publicPaths = [
+                        "/login",
+                        "/register",
+                        "/forgot-password",
+                        "/reset-password",
+                        "/verify-email",
+                    ];
+
+                    if (
+                        !isOnHomePage &&
+                        !publicPaths.some((path) =>
+                            currentPath.startsWith(path)
+                        )
+                    ) {
+                        tokenService.removeToken();
+                        window.location.replace("/login");
+                        // Return a promise that never resolves to prevent further processing
+                        return new Promise(() => {});
+                    }
+                }
+                return Promise.reject(error);
             }
         }
 
