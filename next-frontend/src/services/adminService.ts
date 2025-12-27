@@ -599,9 +599,6 @@ export const adminService = {
   async getAdminGroups(page = 1, perPage = 20) {
     return await apiClient.get('/admin/admin-groups', { params: { page, per_page: perPage } });
   },
-  async getAdminGroup(id: number) {
-    return await apiClient.get(`/admin/admin-groups/${id}`);
-  },
   async createAdminGroup(data: any) {
     return await apiClient.post('/admin/admin-groups', data);
   },

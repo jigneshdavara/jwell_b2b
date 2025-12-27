@@ -27,15 +27,10 @@ export class AdminGroupsController {
 
     @Get()
     findAll(
-        @Query('page') page: string = '1',
-        @Query('per_page') perPage: string = '10',
+        @Query('page') page: number = 1,
+        @Query('per_page') perPage: number = 10,
     ) {
-        return this.adminGroupsService.findAll(+page, +perPage);
-    }
-
-    @Get(':id')
-    findOne(@Param('id', ParseIntPipe) id: number) {
-        return this.adminGroupsService.findOne(id);
+        return this.adminGroupsService.findAll(page, perPage);
     }
 
     @Post()
