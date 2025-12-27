@@ -857,7 +857,10 @@ CREATE INDEX "diamond_shapes_code_index" ON "diamond_shapes"("code");
 CREATE INDEX "diamond_shapes_display_order_index" ON "diamond_shapes"("display_order");
 
 -- CreateIndex
-CREATE INDEX "diamond_types_code_index" ON "diamond_types"("code");
+CREATE UNIQUE INDEX "diamond_types_code_unique" ON "diamond_types"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "diamond_types_name_unique" ON "diamond_types"("name");
 
 -- CreateIndex
 CREATE INDEX "diamond_types_display_order_index" ON "diamond_types"("display_order");

@@ -2,6 +2,7 @@ import {
     Injectable,
     NotFoundException,
     BadRequestException,
+    ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
@@ -13,7 +14,7 @@ import {
 export class DiamondColorsService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.diamond_colors.findMany({
@@ -62,8 +63,46 @@ export class DiamondColorsService {
     }
 
     async create(dto: CreateDiamondColorDto) {
-        const now = new Date();
-        return await this.prisma.diamond_colors.create({
+        // Validate that diamond_type_id exists
+        const diamondType = await this.prisma.diamond_types.findUnique({
+            where: { id: BigInt(dto.diamond_type_id) },
+        });
+
+        if (!diamondType) {
+            throw new BadRequestException(`Diamond type does not exist`);
+        }
+
+        // Check for duplicate code within the same diamond type
+        if (dto.code) {
+            const existingByCode = await this.prisma.diamond_colors.findFirst({
+                where: {
+                    diamond_type_id: BigInt(dto.diamond_type_id),
+                    code: dto.code,
+                },
+            });
+
+            if (existingByCode) {
+                throw new ConflictException(
+                    `Diamond color with code "${dto.code}" already exists for this diamond type`,
+                );
+            }
+        }
+
+        // Check for duplicate name within the same diamond type
+        const existingByName = await this.prisma.diamond_colors.findFirst({
+            where: {
+                diamond_type_id: BigInt(dto.diamond_type_id),
+                name: dto.name,
+            },
+        });
+
+        if (existingByName) {
+            throw new ConflictException(
+                `Diamond color with name "${dto.name}" already exists for this diamond type`,
+            );
+        }
+
+        await this.prisma.diamond_colors.create({
             data: {
                 diamond_type_id: BigInt(dto.diamond_type_id),
                 code: dto.code,
@@ -71,15 +110,65 @@ export class DiamondColorsService {
                 description: dto.description || null,
                 is_active: dto.is_active ?? true,
                 display_order: dto.display_order,
-                created_at: now,
-                updated_at: now,
             },
         });
+        return {
+            success: true,
+            message: 'Diamond color created successfully',
+        };
     }
 
     async update(id: number, dto: UpdateDiamondColorDto) {
-        await this.findOne(id);
-        return await this.prisma.diamond_colors.update({
+        const existing = await this.findOne(id);
+        const diamondTypeId =
+            dto.diamond_type_id ?? Number(existing.diamond_type_id);
+
+        // Validate that diamond_type_id exists if provided
+        if (dto.diamond_type_id !== undefined) {
+            const diamondType = await this.prisma.diamond_types.findUnique({
+                where: { id: BigInt(dto.diamond_type_id) },
+            });
+
+            if (!diamondType) {
+                throw new BadRequestException(`Diamond type does not exist`);
+            }
+        }
+
+        // Check for duplicate code within the same diamond type (excluding current record)
+        if (dto.code && dto.code !== existing.code) {
+            const existingByCode = await this.prisma.diamond_colors.findFirst({
+                where: {
+                    diamond_type_id: BigInt(diamondTypeId),
+                    code: dto.code,
+                    id: { not: BigInt(id) },
+                },
+            });
+
+            if (existingByCode) {
+                throw new ConflictException(
+                    `Diamond color with code "${dto.code}" already exists for this diamond type`,
+                );
+            }
+        }
+
+        // Check for duplicate name within the same diamond type (excluding current record)
+        if (dto.name && dto.name !== existing.name) {
+            const existingByName = await this.prisma.diamond_colors.findFirst({
+                where: {
+                    diamond_type_id: BigInt(diamondTypeId),
+                    name: dto.name,
+                    id: { not: BigInt(id) },
+                },
+            });
+
+            if (existingByName) {
+                throw new ConflictException(
+                    `Diamond color with name "${dto.name}" already exists for this diamond type`,
+                );
+            }
+        }
+
+        await this.prisma.diamond_colors.update({
             where: { id: BigInt(id) },
             data: {
                 diamond_type_id: dto.diamond_type_id
@@ -90,9 +179,12 @@ export class DiamondColorsService {
                 description: dto.description,
                 is_active: dto.is_active,
                 display_order: dto.display_order,
-                updated_at: new Date(),
             },
         });
+        return {
+            success: true,
+            message: 'Diamond color updated successfully',
+        };
     }
 
     async remove(id: number) {
@@ -110,9 +202,13 @@ export class DiamondColorsService {
         }
 
         // If no diamonds exist, delete the color
-        return await this.prisma.diamond_colors.delete({
+        await this.prisma.diamond_colors.delete({
             where: { id: BigInt(id) },
         });
+        return {
+            success: true,
+            message: 'Diamond color deleted successfully',
+        };
     }
 
     async bulkRemove(ids: number[]) {
@@ -169,8 +265,7 @@ export class DiamondColorsService {
         }
 
         return {
-            deletedCount,
-            skippedCount,
+            success: true,
             message: messages.join(' '),
         };
     }

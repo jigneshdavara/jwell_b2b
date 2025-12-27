@@ -13,7 +13,7 @@ import {
 export class DiamondShapeSizesService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10, shapeId?: number) {
+    async findAll(page: number, perPage: number, shapeId?: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.diamond_shape_sizes.findMany({
@@ -75,8 +75,7 @@ export class DiamondShapeSizesService {
     }
 
     async create(dto: CreateDiamondShapeSizeDto) {
-        const now = new Date();
-        return await this.prisma.diamond_shape_sizes.create({
+        await this.prisma.diamond_shape_sizes.create({
             data: {
                 diamond_type_id: BigInt(dto.diamond_type_id),
                 diamond_shape_id: BigInt(dto.diamond_shape_id),
@@ -85,15 +84,17 @@ export class DiamondShapeSizesService {
                 description: dto.description || null,
                 display_order: dto.display_order,
                 ctw: dto.ctw,
-                created_at: now,
-                updated_at: now,
             },
         });
+        return {
+            success: true,
+            message: 'Diamond shape size created successfully',
+        };
     }
 
     async update(id: number, dto: UpdateDiamondShapeSizeDto) {
         await this.findOne(id);
-        return await this.prisma.diamond_shape_sizes.update({
+        await this.prisma.diamond_shape_sizes.update({
             where: { id: BigInt(id) },
             data: {
                 diamond_type_id: dto.diamond_type_id
@@ -107,9 +108,12 @@ export class DiamondShapeSizesService {
                 description: dto.description,
                 display_order: dto.display_order,
                 ctw: dto.ctw,
-                updated_at: new Date(),
             },
         });
+        return {
+            success: true,
+            message: 'Diamond shape size updated successfully',
+        };
     }
 
     async remove(id: number) {
@@ -127,9 +131,13 @@ export class DiamondShapeSizesService {
         }
 
         // If no diamonds exist, delete the shape size
-        return await this.prisma.diamond_shape_sizes.delete({
+        await this.prisma.diamond_shape_sizes.delete({
             where: { id: BigInt(id) },
         });
+        return {
+            success: true,
+            message: 'Diamond shape size deleted successfully',
+        };
     }
 
     async bulkRemove(ids: number[]) {
@@ -186,8 +194,7 @@ export class DiamondShapeSizesService {
         }
 
         return {
-            deletedCount,
-            skippedCount,
+            success: true,
             message: messages.join(' '),
         };
     }
