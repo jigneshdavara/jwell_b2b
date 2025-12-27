@@ -28,10 +28,25 @@ export default function CustomerLayout({
 
   // Initialize RTK state on mount
   useEffect(() => {
+    // Don't make API calls if logout is in progress
+    if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+      return;
+    }
+
     const initializeApp = async () => {
+      // Double-check logout flag before making API calls
+      if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+        return;
+      }
+
       // Ensure token is valid before fetching user
       if (tokenService.hasToken()) {
         await tokenService.refreshToken();
+      }
+      
+      // Check logout flag again before dispatch
+      if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+        return;
       }
       
       // Fetch user via RTK
@@ -45,6 +60,11 @@ export default function CustomerLayout({
 
   // Check KYC status when user is available
   useEffect(() => {
+    // Don't make API calls if logout is in progress
+    if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+      return;
+    }
+
     if (user) {
       dispatch(checkKycStatus());
     }
@@ -52,6 +72,11 @@ export default function CustomerLayout({
 
   // Fetch cart and wishlist when user is available and KYC approved
   useEffect(() => {
+    // Don't make API calls if logout is in progress
+    if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+      return;
+    }
+
     if (!user) return;
     
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '';

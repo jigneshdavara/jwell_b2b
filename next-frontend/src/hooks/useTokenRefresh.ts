@@ -10,11 +10,24 @@ import { tokenService } from '@/services/tokenService';
 export function useTokenRefresh() {
   useEffect(() => {
     const refreshTokenOnLoad = async () => {
+      // Don't refresh token if logout is in progress
+      if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+        return;
+      }
+
       // Only refresh if we have a token
       if (tokenService.hasToken()) {
         try {
+          // Check logout flag again before making API call
+          if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+            return;
+          }
           await tokenService.refreshToken();
         } catch (error) {
+          // Don't log errors if logout is in progress
+          if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+            return;
+          }
           console.error('Failed to refresh token on page load:', error);
         }
       }

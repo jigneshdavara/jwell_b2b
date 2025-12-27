@@ -39,6 +39,20 @@ const apiClient = axios.create({
     timeout: 30000, // 30 seconds timeout
 });
 
+// Cancel token source for aborting requests during logout
+let cancelTokenSource: AbortController | null = null;
+
+// Function to cancel all pending requests
+export const cancelAllRequests = () => {
+    if (cancelTokenSource) {
+        cancelTokenSource.abort();
+    }
+    cancelTokenSource = new AbortController();
+};
+
+// Create new cancel token source on initialization
+cancelTokenSource = new AbortController();
+
 // KYC check removed - backend will handle KYC validation
 // User data is no longer stored in localStorage, only token is stored
 
@@ -60,6 +74,17 @@ import { tokenService } from "./tokenService";
 apiClient.interceptors.request.use(
     async (config) => {
         if (typeof window !== "undefined") {
+            // CRITICAL: Block all requests if logout is in progress
+            const isLoggingOut = (window as any).__isLoggingOut === true;
+            if (isLoggingOut) {
+                // Cancel the request immediately
+                const error = new Error(
+                    "Request cancelled: Logout in progress"
+                );
+                (error as any).isCancel = true;
+                return Promise.reject(error);
+            }
+
             // Get token from token service
             let token = tokenService.getToken();
 
@@ -74,6 +99,11 @@ apiClient.interceptors.request.use(
 
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
+            }
+
+            // Add cancel token to request
+            if (cancelTokenSource) {
+                config.signal = cancelTokenSource.signal;
             }
 
             // Block API calls if KYC is not approved (except KYC endpoints)
@@ -183,7 +213,38 @@ apiClient.interceptors.response.use(
             }
         }
 
+        // Check if request was cancelled (logout in progress)
+        const isCancelled =
+            (error as any).isCancel ||
+            error.code === "ERR_CANCELED" ||
+            error.message?.includes("cancelled");
+        const isLoggingOut =
+            typeof window !== "undefined" &&
+            (window as any).__isLoggingOut === true;
+
+        // If request was cancelled or logout is in progress, don't show error
+        if (isCancelled || isLoggingOut) {
+            return Promise.reject(error);
+        }
+
         // Show error toast for all API errors (except 401/403 which are handled above)
+        // BUT: Suppress errors when user is logged out (no token) to prevent multiple toasts during logout
+        const hasToken =
+            typeof window !== "undefined" && tokenService.hasToken();
+        const isOnHomePage =
+            typeof window !== "undefined" && window.location.pathname === "/";
+        const isOnLoginPage =
+            typeof window !== "undefined" &&
+            window.location.pathname === "/login";
+
+        // Don't show error toasts if:
+        // 1. User is logging out (prevents multiple toasts during logout)
+        // 2. User is logged out (no token) - prevents multiple toasts after logout
+        // 3. On home page (public page, errors are expected)
+        // 4. On login page (errors are handled by login form)
+        const shouldSuppressToast =
+            isLoggingOut || !hasToken || isOnHomePage || isOnLoginPage;
+
         if (error.response && typeof window !== "undefined") {
             const errorData = error.response.data as any;
             const errorMessage =
@@ -195,14 +256,14 @@ apiClient.interceptors.response.use(
             // Check if this is a silent request (no toast needed)
             const isSilent =
                 originalRequest?.headers?.["X-Silent-Request"] === "true";
-            if (!isSilent) {
+            if (!isSilent && !shouldSuppressToast) {
                 toastError(errorMessage);
             }
         } else if (error.request && typeof window !== "undefined") {
             // Network error (no response received)
             const isSilent =
                 originalRequest?.headers?.["X-Silent-Request"] === "true";
-            if (!isSilent) {
+            if (!isSilent && !shouldSuppressToast) {
                 toastError(
                     "Network error. Please check your connection and try again."
                 );

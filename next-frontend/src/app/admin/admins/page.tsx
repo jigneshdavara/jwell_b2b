@@ -172,10 +172,12 @@ export default function AdminAdminsIndex() {
             if (editingUser) {
                 if (newUser.password) {
                     payload.password = newUser.password;
+                    payload.password_confirmation = newUser.password_confirmation;
                 }
                 await adminService.updateAdmin(editingUser.id, payload);
             } else {
                 payload.password = newUser.password;
+                payload.password_confirmation = newUser.password_confirmation;
                 await adminService.createAdmin(payload);
             }
 

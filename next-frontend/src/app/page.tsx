@@ -48,16 +48,36 @@ export default function HomeIndex() {
         const checkAuth = async () => {
             if (typeof window === 'undefined') return false;
             
+            // Don't redirect if logout is in progress
+            if ((window as any).__isLoggingOut === true) {
+                return false;
+            }
+            
             const { tokenService } = await import('@/services/tokenService');
             return tokenService.hasToken();
         };
 
         // If authenticated, redirect immediately (like Laravel)
+        // Use a small delay to prevent redirect loop if user just logged out
         checkAuth().then((isAuth) => {
-            if (isAuth) {
-                setRedirecting(true);
-                router.push(route('dashboard'));
-                return;
+            if (isAuth && !redirecting) {
+                // Small delay to ensure logout redirect completes first
+                setTimeout(() => {
+                    // Double-check token still exists and we're not logging out
+                    if (typeof window === 'undefined') return;
+                    
+                    const { tokenService } = require('@/services/tokenService');
+                    const stillLoggingOut = (window as any).__isLoggingOut === true;
+                    
+                    // Only redirect if:
+                    // 1. Token still exists
+                    // 2. Not already redirecting
+                    // 3. Not in the middle of logout
+                    if (tokenService.hasToken() && !redirecting && !stillLoggingOut) {
+                        setRedirecting(true);
+                        router.push(route('dashboard'));
+                    }
+                }, 300);
             }
         });
 
