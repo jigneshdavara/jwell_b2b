@@ -37,7 +37,7 @@ export class UserGroupsService {
             where: { id: BigInt(id) },
         });
         if (!group) {
-            throw new NotFoundException('User? group not found');
+            throw new NotFoundException('User group not found');
         }
         return group;
     }

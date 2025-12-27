@@ -775,7 +775,10 @@ CREATE UNIQUE INDEX "admins_email_unique" ON "admins"("email");
 CREATE UNIQUE INDEX "users_email_unique" ON "users"("email");
 
 -- CreateIndex
-CREATE INDEX "brands_code_index" ON "brands"("code");
+CREATE UNIQUE INDEX "brands_code_unique" ON "brands"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "brands_name_unique" ON "brands"("name");
 
 -- CreateIndex
 CREATE INDEX "brands_display_order_index" ON "brands"("display_order");

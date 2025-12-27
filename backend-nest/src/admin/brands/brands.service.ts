@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    ConflictException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateBrandDto, UpdateBrandDto } from './dto/brand.dto';
 import * as fs from 'fs';
@@ -8,7 +12,7 @@ import * as path from 'path';
 export class BrandsService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.brands.findMany({
@@ -41,7 +45,21 @@ export class BrandsService {
     }
 
     async create(dto: CreateBrandDto, coverImage?: string) {
-        return await this.prisma.brands.create({
+        const [existingByName, existingByCode] = await Promise.all([
+            this.prisma.brands.findUnique({
+                where: { name: dto.name },
+            }),
+            this.prisma.brands.findUnique({
+                where: { code: dto.code },
+            }),
+        ]);
+        if (existingByName) {
+            throw new ConflictException('Brand with this name already exists');
+        }
+        if (existingByCode) {
+            throw new ConflictException('Brand with this code already exists');
+        }
+        await this.prisma.brands.create({
             data: {
                 code: dto.code,
                 name: dto.name,
@@ -51,12 +69,41 @@ export class BrandsService {
                 cover_image: coverImage,
             },
         });
+        return { success: true, message: 'Brand created successfully' };
     }
 
     async update(id: number, dto: UpdateBrandDto, coverImage?: string) {
         const brand = await this.findOne(id);
 
-        const updateData: any = {
+        if (dto.name && dto.name !== brand.name) {
+            const existing = await this.prisma.brands.findUnique({
+                where: { name: dto.name },
+            });
+            if (existing) {
+                throw new ConflictException(
+                    'Brand with this name already exists',
+                );
+            }
+        }
+
+        if (dto.code && dto.code !== brand.code) {
+            const existing = await this.prisma.brands.findUnique({
+                where: { code: dto.code },
+            });
+            if (existing) {
+                throw new ConflictException(
+                    'Brand with this code already exists',
+                );
+            }
+        }
+        const updateData: {
+            code?: string;
+            name?: string;
+            description?: string;
+            is_active?: boolean;
+            display_order?: number;
+            cover_image?: string | null;
+        } = {
             code: dto.code,
             name: dto.name,
             description: dto.description,
@@ -65,23 +112,20 @@ export class BrandsService {
         };
 
         if (dto.remove_cover_image && brand.cover_image) {
-            // Remove image: delete from storage and set to null in database
             this.deleteImage(brand.cover_image);
             updateData.cover_image = null;
         } else if (coverImage) {
-            // New image uploaded: delete old one (if exists) and set new path
             if (brand.cover_image) {
                 this.deleteImage(brand.cover_image);
             }
             updateData.cover_image = coverImage;
         }
-        // If no new image and not removing, cover_image is not included in updateData
-        // This preserves the existing image in the database
 
-        return await this.prisma.brands.update({
+        await this.prisma.brands.update({
             where: { id: BigInt(id) },
             data: updateData,
         });
+        return { success: true, message: 'Brand updated successfully' };
     }
 
     async remove(id: number) {
@@ -89,9 +133,10 @@ export class BrandsService {
         if (brand.cover_image) {
             this.deleteImage(brand.cover_image);
         }
-        return await this.prisma.brands.delete({
+        await this.prisma.brands.delete({
             where: { id: BigInt(id) },
         });
+        return { success: true, message: 'Brand deleted successfully' };
     }
 
     async bulkRemove(ids: number[]) {
@@ -107,14 +152,13 @@ export class BrandsService {
             }
         }
 
-        return await this.prisma.brands.deleteMany({
+        await this.prisma.brands.deleteMany({
             where: { id: { in: bigIntIds } },
         });
+        return { success: true, message: 'Brands deleted successfully' };
     }
 
     private deleteImage(imagePath: string) {
-        // Image path is stored as "storage/brands/filename.png" in database
-        // Need to prepend "public/" to get the full path
         const fullPath = path.join(process.cwd(), 'public', imagePath);
         if (fs.existsSync(fullPath)) {
             try {
