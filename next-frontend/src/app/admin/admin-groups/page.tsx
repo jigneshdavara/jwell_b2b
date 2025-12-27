@@ -6,6 +6,7 @@ import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import Pagination from "@/components/ui/Pagination";
 import { adminService } from "@/services/adminService";
 import { PaginationMeta, generatePaginationLinks } from "@/utils/pagination";
+import { toastError } from "@/utils/toast";
 
 type AdminGroupRow = {
     id: number;
@@ -47,6 +48,14 @@ export default function AdminAdminGroupsPage() {
     const [assignSearchTerm, setAssignSearchTerm] = useState('');
     const [assignLoading, setAssignLoading] = useState(false);
     const [assignProcessing, setAssignProcessing] = useState(false);
+    const [assignCurrentPage, setAssignCurrentPage] = useState(1);
+    const [assignPerPage, setAssignPerPage] = useState(10);
+    const [assignAdminsMeta, setAssignAdminsMeta] = useState<PaginationMeta>({
+        current_page: 1,
+        last_page: 1,
+        per_page: 10,
+        total: 0,
+    });
 
     const featureOptions = [
         { value: 'dashboard.view', label: 'Dashboard access' },
@@ -241,15 +250,36 @@ export default function AdminAdminGroupsPage() {
     const openAssignModal = async (group: AdminGroupRow) => {
         setAssigningGroup(group);
         setAssignSearchTerm('');
+        setAssignCurrentPage(1);
         setAssignLoading(true);
         setAssignModalOpen(true);
         try {
-            const response = await adminService.getAssignAdmins(group.id);
+            const response = await adminService.getAssignAdmins(group.id, undefined, 1, assignPerPage);
             const data = response.data;
             setAssignAdmins(data.admins || []);
             setAssignSelectedIds(data.selectedAdminIds || []);
+            // Handle pagination metadata
+            if (data.meta) {
+                setAssignAdminsMeta({
+                    current_page: data.meta.current_page || data.meta.page || 1,
+                    last_page: data.meta.last_page || data.meta.lastPage || 1,
+                    per_page: data.meta.per_page || data.meta.perPage || assignPerPage,
+                    total: data.meta.total || 0,
+                    from: data.meta.from,
+                    to: data.meta.to,
+                    links: data.meta.links || generatePaginationLinks(data.meta.current_page || data.meta.page || 1, data.meta.last_page || data.meta.lastPage || 1),
+                });
+            } else {
+                // Fallback if no meta provided
+                setAssignAdminsMeta({
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: assignPerPage,
+                    total: data.admins?.length || 0,
+                });
+            }
         } catch (error: any) {
-            toastError(error.response?.data?.message || 'Failed to load admins. Please try again.');
+            console.error('Failed to load admins:', error);
             setAssignModalOpen(false);
         } finally {
             setAssignLoading(false);
@@ -262,19 +292,67 @@ export default function AdminAdminGroupsPage() {
         setAssignAdmins([]);
         setAssignSelectedIds([]);
         setAssignSearchTerm('');
+        setAssignCurrentPage(1);
+        setAssignAdminsMeta({
+            current_page: 1,
+            last_page: 1,
+            per_page: 10,
+            total: 0,
+        });
     };
 
-    const filteredAssignAdmins = useMemo(() => {
-        if (!assignSearchTerm.trim()) {
-            return assignAdmins;
+    // Load assign admins with pagination
+    const loadAssignAdmins = async (page: number = assignCurrentPage, search?: string) => {
+        if (!assigningGroup) return;
+        setAssignLoading(true);
+        try {
+            const response = await adminService.getAssignAdmins(
+                assigningGroup.id,
+                search || assignSearchTerm || undefined,
+                page,
+                assignPerPage
+            );
+            const data = response.data;
+            setAssignAdmins(data.admins || []);
+            // Handle pagination metadata
+            if (data.meta) {
+                setAssignAdminsMeta({
+                    current_page: data.meta.current_page || data.meta.page || page,
+                    last_page: data.meta.last_page || data.meta.lastPage || 1,
+                    per_page: data.meta.per_page || data.meta.perPage || assignPerPage,
+                    total: data.meta.total || 0,
+                    from: data.meta.from,
+                    to: data.meta.to,
+                    links: data.meta.links || generatePaginationLinks(data.meta.current_page || data.meta.page || page, data.meta.last_page || data.meta.lastPage || 1),
+                });
+            } else {
+                // Fallback if no meta provided
+                setAssignAdminsMeta({
+                    current_page: page,
+                    last_page: 1,
+                    per_page: assignPerPage,
+                    total: data.admins?.length || 0,
+                });
+            }
+            // Preserve selections
+            setAssignSelectedIds((prev) => {
+                const newIds = [...prev];
+                data.selectedAdminIds?.forEach((id: number) => {
+                    if (!newIds.includes(id)) {
+                        newIds.push(id);
+                    }
+                });
+                return newIds;
+            });
+        } catch (error: any) {
+            console.error('Failed to load admins:', error);
+        } finally {
+            setAssignLoading(false);
         }
-        const search = assignSearchTerm.toLowerCase();
-        return assignAdmins.filter(
-            (admin) =>
-                admin.name.toLowerCase().includes(search) ||
-                admin.email.toLowerCase().includes(search)
-        );
-    }, [assignAdmins, assignSearchTerm]);
+    };
+
+    // Use assignAdmins directly (no client-side filtering when paginated)
+    const filteredAssignAdmins = assignAdmins;
 
     const visibleSelectedCount = useMemo(() => {
         return filteredAssignAdmins.filter((a) => assignSelectedIds.includes(a.id)).length;
@@ -312,27 +390,13 @@ export default function AdminAdminGroupsPage() {
     };
 
     const handleAssignSearch = async () => {
-        if (!assigningGroup) return;
-        setAssignLoading(true);
-        try {
-            const response = await adminService.getAssignAdmins(assigningGroup.id, assignSearchTerm);
-            const data = response.data;
-            setAssignAdmins(data.admins || []);
-            // Preserve selections
-            setAssignSelectedIds((prev) => {
-                const newIds = [...prev];
-                data.selectedAdminIds?.forEach((id: number) => {
-                    if (!newIds.includes(id)) {
-                        newIds.push(id);
-                    }
-                });
-                return newIds;
-            });
-        } catch (error: any) {
-            toastError(error.response?.data?.message || 'Failed to search admins. Please try again.');
-        } finally {
-            setAssignLoading(false);
-        }
+        setAssignCurrentPage(1);
+        await loadAssignAdmins(1, assignSearchTerm);
+    };
+
+    const handleAssignPageChange = (page: number) => {
+        setAssignCurrentPage(page);
+        loadAssignAdmins(page, assignSearchTerm || undefined);
     };
 
     const handleAssignSubmit = async (e: React.FormEvent) => {
@@ -699,7 +763,7 @@ export default function AdminAdminGroupsPage() {
                         </div>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                    <div className="min-h-0 flex-1 px-6 py-4">
                         <form onSubmit={handleAssignSubmit} className="space-y-4">
                             {/* Search and Filters */}
                             <div className="flex items-center gap-3">
@@ -813,6 +877,14 @@ export default function AdminAdminGroupsPage() {
                                     </table>
                                 </div>
                             )}
+
+                            {/* Pagination */}
+                            <div className="border-t border-slate-200 pt-4">
+                                <Pagination
+                                    meta={assignAdminsMeta}
+                                    onPageChange={handleAssignPageChange}
+                                />
+                            </div>
 
                             {/* Action Buttons */}
                             <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">

@@ -53,13 +53,39 @@ export default function AuthenticatedLayout({
     const isCustomer = useAppSelector(selectIsCustomer);
     const isKycApproved = useAppSelector(selectIsKycApproved);
     
+    // Check if logout is in progress - if so, don't show user info in header
+    const isLoggingOut = typeof window !== 'undefined' && (window as any).__isLoggingOut === true;
+    
     // Keep userType for backward compatibility in other parts of the component
-    const userType = (user?.type ?? '').toLowerCase();
+    // If logging out, treat as no user to prevent header from showing user info
+    const userType = isLoggingOut ? '' : ((user?.type ?? '').toLowerCase());
+    
+    // If logging out, preserve current layout to prevent header from switching
+    // This prevents the header from changing appearance during logout
+    // Use a ref to remember the layout type before logout starts
+    const layoutTypeRef = useRef<'customer' | 'admin' | null>(null);
+    if (!isLoggingOut && isCustomer) {
+        layoutTypeRef.current = 'customer';
+    } else if (!isLoggingOut && !isCustomer && user) {
+        layoutTypeRef.current = 'admin';
+    }
+    const effectiveIsCustomer = isLoggingOut 
+        ? (layoutTypeRef.current === 'customer') 
+        : isCustomer;
 
     // Fetch user on mount
     useEffect(() => {
+        // Don't make API calls if logout is in progress
+        if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+            return;
+        }
+
         if (!user) {
             dispatch(fetchUser()).catch(() => {
+                // Don't redirect if logout is in progress
+                if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+                    return;
+                }
                 router.push('/login');
             });
         }
@@ -67,6 +93,11 @@ export default function AuthenticatedLayout({
 
     // Fetch navigation data (categories, catalogs, brands) via RTK
     useEffect(() => {
+        // Don't make API calls if logout is in progress
+        if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+            return;
+        }
+
         // Don't fetch navigation if on onboarding page
         if (pathname === '/onboarding/kyc') {
             return;
@@ -236,7 +267,7 @@ export default function AuthenticatedLayout({
 
     return (
         <div className="flex min-h-screen flex-col bg-slate-100">
-            {isCustomer ? (
+            {effectiveIsCustomer ? (
                 <>
                     <header className="relative z-40 bg-white text-slate-900 shadow">
                         <div className="hidden border-b border-slate-100 bg-slate-900 text-xs text-white lg:block">
@@ -466,7 +497,7 @@ export default function AuthenticatedLayout({
                                         onMouseLeave={() => dispatch(setAccountMenuOpen(false))}
                                     >
                                         <p className="text-sm font-semibold text-slate-700">
-                                            Hello, {user?.name?.split(' ')[0] ?? 'there'}
+                                            Hello, {isLoggingOut ? 'there' : (user?.name?.split(' ')[0] ?? 'there')}
                                         </p>
                                         <div className="mt-3 space-y-0.5 text-sm text-slate-600">
                                             {accountLinks.map(({ label, href }) => (
@@ -575,8 +606,8 @@ export default function AuthenticatedLayout({
 
                             <div className="hidden items-center gap-4 lg:flex">
                                 <div className="text-right text-sm">
-                                    <p className="font-semibold text-white">{user?.name}</p>
-                                    <p className="text-slate-200/80">{user?.email}</p>
+                                    <p className="font-semibold text-white">{isLoggingOut ? '' : (user?.name || '')}</p>
+                                    <p className="text-slate-200/80">{isLoggingOut ? '' : (user?.email || '')}</p>
                                 </div>
                                 <Link
                                     href={route('profile.edit')}

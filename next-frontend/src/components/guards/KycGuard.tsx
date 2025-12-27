@@ -72,6 +72,11 @@ export default function KycGuard({ children, user: providedUser, loading: provid
         redirectingRef.current = false;
 
         const checkKycStatus = async () => {
+            // Don't make API calls if logout is in progress
+            if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+                return;
+            }
+
             let currentUser = providedUser;
             let currentLoading = providedLoading;
 
@@ -102,6 +107,11 @@ export default function KycGuard({ children, user: providedUser, loading: provid
 
             // If we don't have user data yet, fetch it
             if (!currentUser && providedUser === undefined && !hasChecked.current) {
+                // Check logout flag again before making API call
+                if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+                    return;
+                }
+
                 // Immediately block rendering if not on onboarding page (will allow after check)
                 if (pathname !== '/onboarding/kyc') {
                     setIsAllowed(null);
@@ -110,12 +120,21 @@ export default function KycGuard({ children, user: providedUser, loading: provid
                 currentLoading = true;
                 setLoading(true);
                 try {
+                    // Check logout flag one more time before API call
+                    if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+                        return;
+                    }
+
                     // authService.me() always fetches fresh data from API (no localStorage)
                     const response = await authService.me();
                     currentUser = response.data;
                     setUser(currentUser);
                 } catch (e) {
                     // If not authenticated, let AuthenticatedLayout handle redirect
+                    // But don't do anything if logout is in progress
+                    if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
+                        return;
+                    }
                     currentUser = null;
                     setUser(null);
                 } finally {

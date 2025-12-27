@@ -71,9 +71,12 @@ export const login = createAsyncThunk(
 export const logout = createAsyncThunk(
   'auth/logout',
   async (_, { dispatch }) => {
-    await authService.logout();
-    // Clear all state
+    // CRITICAL: Clear Redux state FIRST, before redirect
+    // This prevents header from showing user info during logout
     dispatch(clearAuth());
+    
+    // Then call authService.logout() which handles redirect
+    await authService.logout();
     // Redirect handled by authService
   }
 );
