@@ -139,8 +139,11 @@ export const adminService = {
   async bulkDeleteUserGroups(ids: number[]) {
     return await apiClient.delete('/admin/user-groups/bulk', { data: { ids } });
   },
-  async getAssignUsers(groupId: number, search?: string) {
-    const params = search ? { search } : {};
+  async getAssignUsers(groupId: number, search?: string, page?: number, perPage?: number) {
+    const params: any = {};
+    if (search) params.search = search;
+    if (page) params.page = page;
+    if (perPage) params.per_page = perPage;
     return await apiClient.get(`/admin/user-groups/${groupId}/assign-users`, { params });
   },
   async assignUsers(groupId: number, userIds: number[]) {
@@ -617,8 +620,11 @@ export const adminService = {
   async bulkDeleteAdminGroups(ids: number[]) {
     return await apiClient.delete('/admin/admin-groups/bulk', { data: { ids } });
   },
-  async getAssignAdmins(groupId: number, search?: string) {
-    const params = search ? { search } : {};
+  async getAssignAdmins(groupId: number, search?: string, page?: number, perPage?: number) {
+    const params: any = {};
+    if (search) params.search = search;
+    if (page) params.page = page;
+    if (perPage) params.per_page = perPage;
     return await apiClient.get(`/admin/admin-groups/${groupId}/assign-admins`, { params });
   },
   async assignAdmins(groupId: number, adminIds: number[]) {

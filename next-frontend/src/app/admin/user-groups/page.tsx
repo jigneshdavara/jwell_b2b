@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Head } from '@/components/Head';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import Pagination from '@/components/ui/Pagination';
 import { adminService } from '@/services/adminService';
 import { toastSuccess, toastError } from '@/utils/toast';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
@@ -47,6 +48,14 @@ export default function AdminUserGroupsIndex() {
     const [assignSearchTerm, setAssignSearchTerm] = useState('');
     const [assignLoading, setAssignLoading] = useState(false);
     const [assignProcessing, setAssignProcessing] = useState(false);
+    const [assignCurrentPage, setAssignCurrentPage] = useState(1);
+    const [assignPerPage, setAssignPerPage] = useState(10);
+    const [assignUsersMeta, setAssignUsersMeta] = useState<PaginationMeta>({
+        current_page: 1,
+        last_page: 1,
+        per_page: 10,
+        total: 0,
+    });
 
     const [formState, setFormState] = useState({
         name: '',
@@ -267,13 +276,34 @@ export default function AdminUserGroupsIndex() {
     const openAssignModal = async (group: UserGroupRow) => {
         setAssigningGroup(group);
         setAssignSearchTerm('');
+        setAssignCurrentPage(1);
         setAssignLoading(true);
         setAssignModalOpen(true);
         try {
-            const response = await adminService.getAssignUsers(group.id);
+            const response = await adminService.getAssignUsers(group.id, undefined, 1, assignPerPage);
             const data = response.data;
             setAssignUsers(data.users || []);
             setAssignSelectedIds(data.selectedUserIds || []);
+            // Handle pagination metadata
+            if (data.meta) {
+                setAssignUsersMeta({
+                    current_page: data.meta.current_page || data.meta.page || 1,
+                    last_page: data.meta.last_page || data.meta.lastPage || 1,
+                    per_page: data.meta.per_page || data.meta.perPage || assignPerPage,
+                    total: data.meta.total || 0,
+                    from: data.meta.from,
+                    to: data.meta.to,
+                    links: data.meta.links || generatePaginationLinks(data.meta.current_page || data.meta.page || 1, data.meta.last_page || data.meta.lastPage || 1),
+                });
+            } else {
+                // Fallback if no meta provided
+                setAssignUsersMeta({
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: assignPerPage,
+                    total: data.users?.length || 0,
+                });
+            }
         } catch (error: any) {
             console.error('Failed to load users:', error);
             toastError(error.response?.data?.message || 'Failed to load users. Please try again.');
@@ -289,19 +319,68 @@ export default function AdminUserGroupsIndex() {
         setAssignUsers([]);
         setAssignSelectedIds([]);
         setAssignSearchTerm('');
+        setAssignCurrentPage(1);
+        setAssignUsersMeta({
+            current_page: 1,
+            last_page: 1,
+            per_page: 10,
+            total: 0,
+        });
     };
 
-    const filteredAssignUsers = useMemo(() => {
-        if (!assignSearchTerm.trim()) {
-            return assignUsers;
+    // Load assign users with pagination
+    const loadAssignUsers = async (page: number = assignCurrentPage, search?: string) => {
+        if (!assigningGroup) return;
+        setAssignLoading(true);
+        try {
+            const response = await adminService.getAssignUsers(
+                assigningGroup.id,
+                search || assignSearchTerm || undefined,
+                page,
+                assignPerPage
+            );
+            const data = response.data;
+            setAssignUsers(data.users || []);
+            // Handle pagination metadata
+            if (data.meta) {
+                setAssignUsersMeta({
+                    current_page: data.meta.current_page || data.meta.page || page,
+                    last_page: data.meta.last_page || data.meta.lastPage || 1,
+                    per_page: data.meta.per_page || data.meta.perPage || assignPerPage,
+                    total: data.meta.total || 0,
+                    from: data.meta.from,
+                    to: data.meta.to,
+                    links: data.meta.links || generatePaginationLinks(data.meta.current_page || data.meta.page || page, data.meta.last_page || data.meta.lastPage || 1),
+                });
+            } else {
+                // Fallback if no meta provided
+                setAssignUsersMeta({
+                    current_page: page,
+                    last_page: 1,
+                    per_page: assignPerPage,
+                    total: data.users?.length || 0,
+                });
+            }
+            // Preserve selections
+            setAssignSelectedIds((prev) => {
+                const newIds = [...prev];
+                data.selectedUserIds?.forEach((id: number) => {
+                    if (!newIds.includes(id)) {
+                        newIds.push(id);
+                    }
+                });
+                return newIds;
+            });
+        } catch (error: any) {
+            console.error('Failed to load users:', error);
+            toastError(error.response?.data?.message || 'Failed to load users. Please try again.');
+        } finally {
+            setAssignLoading(false);
         }
-        const search = assignSearchTerm.toLowerCase();
-        return assignUsers.filter(
-            (user) =>
-                user.name.toLowerCase().includes(search) ||
-                user.email.toLowerCase().includes(search)
-        );
-    }, [assignUsers, assignSearchTerm]);
+    };
+
+    // Use assignUsers directly (no client-side filtering when paginated)
+    const filteredAssignUsers = assignUsers;
 
     const visibleSelectedCount = useMemo(() => {
         return filteredAssignUsers.filter((u) => assignSelectedIds.includes(u.id)).length;
@@ -339,28 +418,13 @@ export default function AdminUserGroupsIndex() {
     };
 
     const handleAssignSearch = async () => {
-        if (!assigningGroup) return;
-        setAssignLoading(true);
-        try {
-            const response = await adminService.getAssignUsers(assigningGroup.id, assignSearchTerm);
-            const data = response.data;
-            setAssignUsers(data.users || []);
-            // Preserve selections
-            setAssignSelectedIds((prev) => {
-                const newIds = [...prev];
-                data.selectedUserIds?.forEach((id: number) => {
-                    if (!newIds.includes(id)) {
-                        newIds.push(id);
-                    }
-                });
-                return newIds;
-            });
-        } catch (error: any) {
-            console.error('Failed to search users:', error);
-            toastError(error.response?.data?.message || 'Failed to search users. Please try again.');
-        } finally {
-            setAssignLoading(false);
-        }
+        setAssignCurrentPage(1);
+        await loadAssignUsers(1, assignSearchTerm);
+    };
+
+    const handleAssignPageChange = (page: number) => {
+        setAssignCurrentPage(page);
+        loadAssignUsers(page, assignSearchTerm || undefined);
     };
 
     const handleAssignSubmit = async (e: React.FormEvent) => {
@@ -750,7 +814,7 @@ export default function AdminUserGroupsIndex() {
                         </div>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                    <div className="min-h-0 flex-1 px-6 py-4">
                         <form onSubmit={handleAssignSubmit} className="space-y-4">
                             {/* Search and Filters */}
                             <div className="flex items-center gap-3">
@@ -864,6 +928,14 @@ export default function AdminUserGroupsIndex() {
                                     </table>
                                 </div>
                             )}
+
+                            {/* Pagination */}
+                            <div className="border-t border-slate-200 pt-4">
+                                <Pagination
+                                    meta={assignUsersMeta}
+                                    onPageChange={handleAssignPageChange}
+                                />
+                            </div>
 
                             {/* Action Buttons */}
                             <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
