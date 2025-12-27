@@ -6,3 +6,4 @@ export class ConfirmPasswordDto {
     @MinLength(8)
     password: string;
 }
+

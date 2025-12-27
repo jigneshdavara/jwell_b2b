@@ -186,3 +186,4 @@ export class UserAndKycSeeder extends BaseSeeder {
         }
     }
 }
+

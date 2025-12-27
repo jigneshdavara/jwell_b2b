@@ -58,7 +58,7 @@ export class UpdateUserGroupDto {
     display_order?: number;
 }
 
-export class BulkDestroyDto {
+export class BulkDestroyUserGroupsDto {
     @IsInt({ each: true })
     ids: number[];
 }

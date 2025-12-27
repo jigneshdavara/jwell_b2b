@@ -37,3 +37,4 @@ export class PortalAccessGuard implements CanActivate {
         return true;
     }
 }
+

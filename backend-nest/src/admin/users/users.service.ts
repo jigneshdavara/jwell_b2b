@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import {
@@ -341,24 +345,26 @@ export class UsersService {
         });
         if (!user) throw new NotFoundException('User not found');
 
-        return await this.prisma.user.delete({
+        await this.prisma.user.delete({
             where: { id: BigInt(id) },
         });
+
+        return { success: true, message: 'User removed successfully' };
     }
 
     async bulkDelete(dto: BulkDeleteUsersDto) {
         if (!dto.ids || dto.ids.length === 0) {
-            return { deleted: 0 };
+            throw new BadRequestException('No users to delete');
         }
 
         const ids = dto.ids.map((id) => BigInt(id));
-        const result = await this.prisma.user.deleteMany({
+        await this.prisma.user.deleteMany({
             where: {
                 id: { in: ids },
             },
         });
 
-        return { deleted: result.count };
+        return { success: true, message: 'Users deleted successfully' };
     }
 
     async bulkGroupUpdate(dto: BulkGroupUpdateDto) {
@@ -377,13 +383,13 @@ export class UsersService {
             updateData.user_group_id = null;
         }
 
-        const result = await this.prisma.user.updateMany({
+        await this.prisma.user.updateMany({
             where: {
                 id: { in: ids },
             },
             data: updateData,
         });
 
-        return { updated: result.count };
+        return { success: true, message: 'Users updated successfully' };
     }
 }

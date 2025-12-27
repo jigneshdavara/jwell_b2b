@@ -57,3 +57,4 @@ export class DatabaseSeeder {
         console.log('✨ Database seeding completed successfully!');
     }
 }
+

@@ -83,14 +83,14 @@ export class UsersController {
         return this.usersService.toggleKycComments(id, allowReplies);
     }
 
-    @Delete(':id')
-    remove(@Param('id', ParseIntPipe) id: number) {
-        return this.usersService.remove(id);
-    }
-
     @Delete('bulk')
     bulkDelete(@Body() dto: BulkDeleteUsersDto) {
         return this.usersService.bulkDelete(dto);
+    }
+
+    @Delete(':id')
+    remove(@Param('id', ParseIntPipe) id: number) {
+        return this.usersService.remove(id);
     }
 
     @Post('bulk/group')

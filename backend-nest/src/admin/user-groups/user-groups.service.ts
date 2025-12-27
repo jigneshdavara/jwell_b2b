@@ -2,15 +2,20 @@ import {
     Injectable,
     ConflictException,
     NotFoundException,
+    BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateUserGroupDto, UpdateUserGroupDto } from './dto/user-group.dto';
+import {
+    BulkDestroyUserGroupsDto,
+    CreateUserGroupDto,
+    UpdateUserGroupDto,
+} from './dto/user-group.dto';
 
 @Injectable()
 export class UserGroupsService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 20) {
+    async findAll(page: number = 1, perPage: number = 10) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.user_groups.findMany({
@@ -54,17 +59,17 @@ export class UserGroupsService {
 
         if (existingByName) {
             throw new ConflictException(
-                'User? group with this name already exists',
+                'User group with this name already exists',
             );
         }
 
         if (existingByCode) {
             throw new ConflictException(
-                'User? group with this code already exists',
+                'User group with this code already exists',
             );
         }
 
-        return await this.prisma.user_groups.create({
+        await this.prisma.user_groups.create({
             data: {
                 name: dto.name,
                 code: dto.code,
@@ -73,6 +78,8 @@ export class UserGroupsService {
                 display_order: dto.display_order ?? 0,
             },
         });
+
+        return { success: true, message: 'User group created successfully' };
     }
 
     async update(id: number, dto: UpdateUserGroupDto) {
@@ -84,7 +91,7 @@ export class UserGroupsService {
             });
             if (existing) {
                 throw new ConflictException(
-                    'User? group with this name already exists',
+                    'User group with this name already exists',
                 );
             }
         }
@@ -95,12 +102,12 @@ export class UserGroupsService {
             });
             if (existing) {
                 throw new ConflictException(
-                    'User? group with this code already exists',
+                    'User group with this code already exists',
                 );
             }
         }
 
-        return await this.prisma.user_groups.update({
+        await this.prisma.user_groups.update({
             where: { id: BigInt(id) },
             data: {
                 name: dto.name,
@@ -110,34 +117,48 @@ export class UserGroupsService {
                 display_order: dto.display_order,
             },
         });
+
+        return { success: true, message: 'User group updated successfully' };
     }
 
     async remove(id: number) {
-        await this.findOne(id);
-        return await this.prisma.user_groups.delete({
+        const group = await this.prisma.user_groups.findUnique({
             where: { id: BigInt(id) },
         });
+        if (!group) throw new NotFoundException('User group not found');
+
+        await this.prisma.user_groups.delete({
+            where: { id: BigInt(id) },
+        });
+
+        return { success: true, message: 'User group removed successfully' };
     }
 
-    async bulkRemove(ids: number[]) {
-        const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.user_groups.deleteMany({
-            where: { id: { in: bigIntIds } },
+    async bulkDelete(dto: BulkDestroyUserGroupsDto) {
+        if (!dto.ids || dto.ids.length === 0) {
+            throw new BadRequestException('No users to delete');
+        }
+
+        const ids = dto.ids.map((id) => BigInt(id));
+        await this.prisma.user_groups.deleteMany({
+            where: {
+                id: { in: ids },
+            },
         });
+
+        return { success: true, message: 'Users deleted successfully' };
     }
 
     async getUsersForAssignment(id: number, search?: string) {
         const group = await this.findOne(id);
         const groupId = BigInt(id);
 
-        // Get users currently in this group
         const usersInGroup = await this.prisma.user.findMany({
             where: { user_group_id: groupId },
             select: { id: true },
         });
         const selectedUserIds = usersInGroup.map((u) => u.id.toString());
 
-        // Get all users (with optional search)
         const users = await this.prisma.user.findMany({
             where: search
                 ? {
@@ -170,13 +191,11 @@ export class UserGroupsService {
         const groupId = BigInt(id);
         const bigIntUserIds = userIds.map((uid) => BigInt(uid));
 
-        // Update all selected users to this group
         await this.prisma.user.updateMany({
             where: { id: { in: bigIntUserIds } },
             data: { user_group_id: groupId },
         });
 
-        // Remove users from this group if they're not in the selected list
         await this.prisma.user.updateMany({
             where: {
                 user_group_id: groupId,
@@ -185,6 +204,9 @@ export class UserGroupsService {
             data: { user_group_id: null },
         });
 
-        return { success: true };
+        return {
+            success: true,
+            message: 'Users assigned to group successfully',
+        };
     }
 }
