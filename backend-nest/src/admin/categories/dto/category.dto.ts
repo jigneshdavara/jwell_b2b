@@ -13,7 +13,9 @@ import { Transform } from 'class-transformer';
 export class CreateCategoryDto {
     @IsInt()
     @IsOptional()
-    @Transform(({ value }) => (value === '' ? null : parseInt(value)))
+    @Transform(({ value }: { value: string | number | null | undefined }) =>
+        value === '' ? null : parseInt(String(value), 10),
+    )
     parent_id?: number | null;
 
     @IsString()
@@ -38,24 +40,40 @@ export class CreateCategoryDto {
     @IsInt()
     @IsOptional()
     @Min(0)
-    @Transform(({ value }) => parseInt(value))
+    @Transform(({ value }: { value: string | number | undefined }) =>
+        parseInt(String(value), 10),
+    )
     display_order?: number;
 
     @IsArray()
     @IsOptional()
-    @Transform(({ value }) =>
-        typeof value === 'string'
-            ? value.split(',').map((v) => parseInt(v))
-            : value,
+    @Transform(
+        ({
+            value,
+        }: {
+            value: string | number[] | undefined;
+        }): number[] | undefined => {
+            if (typeof value === 'string') {
+                return value.split(',').map((v: string) => parseInt(v, 10));
+            }
+            return value;
+        },
     )
     style_ids?: number[];
 
     @IsArray()
     @IsOptional()
-    @Transform(({ value }) =>
-        typeof value === 'string'
-            ? value.split(',').map((v) => parseInt(v))
-            : value,
+    @Transform(
+        ({
+            value,
+        }: {
+            value: string | number[] | undefined;
+        }): number[] | undefined => {
+            if (typeof value === 'string') {
+                return value.split(',').map((v: string) => parseInt(v, 10));
+            }
+            return value;
+        },
     )
     size_ids?: number[];
 }
@@ -63,7 +81,9 @@ export class CreateCategoryDto {
 export class UpdateCategoryDto {
     @IsInt()
     @IsOptional()
-    @Transform(({ value }) => (value === '' ? null : parseInt(value)))
+    @Transform(({ value }: { value: string | number | null | undefined }) =>
+        value === '' ? null : parseInt(String(value), 10),
+    )
     parent_id?: number | null;
 
     @IsString()
@@ -88,24 +108,40 @@ export class UpdateCategoryDto {
     @IsInt()
     @IsOptional()
     @Min(0)
-    @Transform(({ value }) => parseInt(value))
+    @Transform(({ value }: { value: string | number | undefined }) =>
+        parseInt(String(value), 10),
+    )
     display_order?: number;
 
     @IsArray()
     @IsOptional()
-    @Transform(({ value }) =>
-        typeof value === 'string'
-            ? value.split(',').map((v) => parseInt(v))
-            : value,
+    @Transform(
+        ({
+            value,
+        }: {
+            value: string | number[] | undefined;
+        }): number[] | undefined => {
+            if (typeof value === 'string') {
+                return value.split(',').map((v: string) => parseInt(v, 10));
+            }
+            return value;
+        },
     )
     style_ids?: number[];
 
     @IsArray()
     @IsOptional()
-    @Transform(({ value }) =>
-        typeof value === 'string'
-            ? value.split(',').map((v) => parseInt(v))
-            : value,
+    @Transform(
+        ({
+            value,
+        }: {
+            value: string | number[] | undefined;
+        }): number[] | undefined => {
+            if (typeof value === 'string') {
+                return value.split(',').map((v: string) => parseInt(v, 10));
+            }
+            return value;
+        },
     )
     size_ids?: number[];
 
