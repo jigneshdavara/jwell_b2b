@@ -20,7 +20,7 @@ import {
     ResendVerificationDto,
 } from './dto/email-verification.dto';
 import { ConfirmPasswordDto } from './dto/password-confirm.dto';
-import { UserType } from '../admin/admins/dto/admin.dto';
+import { AdminType } from '../admin/admins/dto/admin.dto';
 
 @Injectable()
 export class AuthService {
@@ -144,7 +144,7 @@ export class AuthService {
                 name,
                 email,
                 password: hashedPassword,
-                type: type || UserType.ADMIN,
+                type: type || AdminType.ADMIN,
                 admin_group_id: admin_group_id ? BigInt(admin_group_id) : null,
                 email_verified_at: new Date(),
             },

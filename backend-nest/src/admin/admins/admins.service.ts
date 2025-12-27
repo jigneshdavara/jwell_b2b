@@ -9,7 +9,7 @@ import {
     CreateAdminDto,
     UpdateAdminDto,
     UpdateAdminGroupDto,
-    UserType,
+    AdminType,
 } from './dto/admin.dto';
 import * as bcrypt from 'bcrypt';
 
@@ -18,13 +18,13 @@ export class AdminsService {
     constructor(private prisma: PrismaService) {}
 
     private readonly INTERNAL_TYPES = [
-        UserType.ADMIN,
-        UserType.SUPER_ADMIN,
-        UserType.PRODUCTION,
-        UserType.SALES,
+        AdminType.ADMIN,
+        AdminType.SUPER_ADMIN,
+        AdminType.PRODUCTION,
+        AdminType.SALES,
     ];
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.admin.findMany({
@@ -47,7 +47,6 @@ export class AdminsService {
             }),
         ]);
 
-        // Helper to format type label
         const formatTypeLabel = (type: string) => {
             return type
                 .split('-')
@@ -56,9 +55,9 @@ export class AdminsService {
         };
 
         return {
-            items: items.map((user) => {
+            items: items.map((admin) => {
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const { password, admin_groups, created_at, ...rest } = user;
+                const { password, admin_groups, created_at, ...rest } = admin;
                 return {
                     ...rest,
                     id: Number(rest.id),
@@ -81,57 +80,47 @@ export class AdminsService {
         };
     }
 
-    async findOne(id: number) {
-        const user = await this.prisma.admin.findUnique({
-            where: { id: BigInt(id) },
-            include: {
-                admin_groups: true,
-            },
-        });
-
-        if (!user || !this.INTERNAL_TYPES.includes(user.type as UserType)) {
-            throw new NotFoundException('Admin not found');
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { password, ...rest } = user;
-        return rest;
-    }
-
     async create(dto: CreateAdminDto) {
-        const existing = await this.prisma.user.findUnique({
+        const existingAdmin = await this.prisma.admin.findUnique({
             where: { email: dto.email },
         });
-        if (existing) {
+
+        const existingUser = await this.prisma.user.findUnique({
+            where: { email: dto.email },
+        });
+
+        if (existingAdmin || existingUser) {
             throw new ConflictException('Email already registered');
         }
 
         const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-        return await this.prisma.admin.create({
+        await this.prisma.admin.create({
             data: {
                 name: dto.name,
                 email: dto.email,
                 password: hashedPassword,
-                type: dto.type || UserType.ADMIN,
+                type: dto.type || AdminType.ADMIN,
                 admin_group_id: dto.admin_group_id
                     ? BigInt(dto.admin_group_id)
                     : null,
             },
         });
+
+        return { success: true, message: 'Admin created successfully' };
     }
 
     async update(id: number, dto: UpdateAdminDto) {
-        const user = await this.prisma.admin.findUnique({
+        const admin = await this.prisma.admin.findUnique({
             where: { id: BigInt(id) },
         });
 
-        if (!user || !this.INTERNAL_TYPES.includes(user.type as UserType)) {
+        if (!admin || !this.INTERNAL_TYPES.includes(admin.type as AdminType)) {
             throw new NotFoundException('Admin not found');
         }
 
-        if (dto.email && dto.email !== user.email) {
-            const existing = await this.prisma.user.findUnique({
+        if (dto.email && dto.email !== admin.email) {
+            const existing = await this.prisma.admin.findUnique({
                 where: { email: dto.email },
             });
             if (existing) {
@@ -139,15 +128,29 @@ export class AdminsService {
             }
         }
 
-        const data: any = {
-            name: dto.name,
-            email: dto.email,
-            admin_group_id: dto.admin_group_id
-                ? BigInt(dto.admin_group_id)
-                : null,
-        };
+        const data: {
+            name?: string;
+            email?: string;
+            admin_group_id?: bigint | null;
+            type?: AdminType;
+            password?: string;
+        } = {};
 
-        if (dto.type && user.type !== UserType.SUPER_ADMIN) {
+        if (dto.name !== undefined) {
+            data.name = dto.name;
+        }
+
+        if (dto.email !== undefined) {
+            data.email = dto.email;
+        }
+
+        if (dto.admin_group_id !== undefined) {
+            data.admin_group_id = dto.admin_group_id
+                ? BigInt(dto.admin_group_id)
+                : null;
+        }
+
+        if (dto.type && (admin.type as AdminType) !== AdminType.SUPER_ADMIN) {
             data.type = dto.type;
         }
 
@@ -155,22 +158,24 @@ export class AdminsService {
             data.password = await bcrypt.hash(dto.password, 10);
         }
 
-        return await this.prisma.admin.update({
+        await this.prisma.admin.update({
             where: { id: BigInt(id) },
             data,
         });
+
+        return { success: true, message: 'Admin updated successfully' };
     }
 
     async updateGroup(id: number, dto: UpdateAdminGroupDto) {
-        const user = await this.prisma.admin.findUnique({
+        const admin = await this.prisma.admin.findUnique({
             where: { id: BigInt(id) },
         });
 
-        if (!user || !this.INTERNAL_TYPES.includes(user.type as UserType)) {
+        if (!admin || !this.INTERNAL_TYPES.includes(admin.type as AdminType)) {
             throw new NotFoundException('Admin not found');
         }
 
-        return await this.prisma.admin.update({
+        await this.prisma.admin.update({
             where: { id: BigInt(id) },
             data: {
                 admin_group_id: dto.admin_group_id
@@ -178,48 +183,53 @@ export class AdminsService {
                     : null,
             },
         });
+
+        return { success: true, message: 'Admin group updated successfully' };
     }
 
     async remove(id: number) {
-        const user = await this.prisma.admin.findUnique({
+        const admin = await this.prisma.admin.findUnique({
             where: { id: BigInt(id) },
         });
 
-        if (!user || !this.INTERNAL_TYPES.includes(user.type as UserType)) {
+        if (!admin || !this.INTERNAL_TYPES.includes(admin.type as AdminType)) {
             throw new NotFoundException('Admin not found');
         }
 
-        if (user.type === UserType.SUPER_ADMIN) {
-            throw new ForbiddenException('Cannot delete super-admin user');
+        if ((admin.type as AdminType) === AdminType.SUPER_ADMIN) {
+            throw new ForbiddenException('Cannot delete super-admin admin');
         }
 
-        return await this.prisma.admin.delete({
+        await this.prisma.admin.delete({
             where: { id: BigInt(id) },
         });
+
+        return { success: true, message: 'Admin deleted successfully' };
     }
 
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
 
-        // Filter out super admins and non-internal users
-        const users = await this.prisma.admin.findMany({
+        const admins = await this.prisma.admin.findMany({
             where: {
                 id: { in: bigIntIds },
             },
         });
 
-        const validIds = users
+        const validIds = admins
             .filter(
                 (u) =>
-                    this.INTERNAL_TYPES.includes(u.type as UserType) &&
-                    u.type !== UserType.SUPER_ADMIN,
+                    this.INTERNAL_TYPES.includes(u.type as AdminType) &&
+                    (u.type as AdminType) !== AdminType.SUPER_ADMIN,
             )
             .map((u) => u.id);
 
         if (validIds.length === 0) return { count: 0 };
 
-        return await this.prisma.admin.deleteMany({
+        await this.prisma.admin.deleteMany({
             where: { id: { in: validIds } },
         });
+
+        return { success: true, message: 'Admins deleted successfully' };
     }
 }

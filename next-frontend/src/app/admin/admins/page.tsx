@@ -133,7 +133,7 @@ export default function AdminAdminsIndex() {
         }
         try {
             const groupIdNum = groupId ? Number(groupId) : null;
-            await adminService.updateAdminGroup(user.id, groupIdNum);
+            await adminService.updateAdminGroupAssignment(user.id, groupIdNum);
             await loadUsers();
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || 'Failed to update admin group. Please try again.';

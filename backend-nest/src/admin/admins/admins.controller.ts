@@ -27,15 +27,10 @@ export class AdminsController {
 
     @Get()
     findAll(
-        @Query('page') page: string = '1',
-        @Query('per_page') perPage: string = '10',
+        @Query('page') page: number = 1,
+        @Query('per_page') perPage: number = 10,
     ) {
-        return this.adminsService.findAll(+page, +perPage);
-    }
-
-    @Get(':id')
-    findOne(@Param('id', ParseIntPipe) id: number) {
-        return this.adminsService.findOne(id);
+        return this.adminsService.findAll(page, perPage);
     }
 
     @Post()
