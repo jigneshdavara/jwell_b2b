@@ -496,6 +496,17 @@ export class CreateProductDto {
 
 // Update Product DTO
 export class UpdateProductDto {
+    @IsInt()
+    @IsOptional()
+    @Transform(({ value }) => {
+        if (value === '' || value === null || value === undefined) {
+            return undefined;
+        }
+        const parsed = parseInt(value, 10);
+        return isNaN(parsed) ? undefined : parsed;
+    })
+    id?: number;
+
     @IsString()
     @IsOptional()
     @MaxLength(191)
