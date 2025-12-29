@@ -46,6 +46,7 @@ type Product = {
     category_id?: number;
     style_ids?: number[];
     category_ids?: number[];
+    subcategory_ids?: number[];
     category?: {
         id: number;
         name: string;
@@ -997,15 +998,45 @@ export default function AdminProductEdit() {
                 console.log('Filtered parentCats:', parentCats);
                 
                 const mappedParentCategories = parentCats.map((cat: any) => {
-                    // Backend already returns sizes and styles as arrays in parentCategories
-                    // But we need to ensure they're properly formatted
-                    const sizes = Array.isArray(cat.sizes) && cat.sizes.length > 0
-                        ? cat.sizes.map((s: any) => ({
+                    // Backend might return sizes/styles in different formats
+                    // Handle both snake_case and camelCase, and check nested structures
+                    let sizes: Array<{ id: number; name: string; value?: string }> = [];
+                    
+                    // Try multiple possible locations for sizes
+                    if (Array.isArray(cat.sizes) && cat.sizes.length > 0) {
+                        sizes = cat.sizes.map((s: any) => ({
                             id: typeof s.id === 'number' ? s.id : Number(s.id),
                             name: s.name || s.value || '',
                             value: s.value || s.name || '',
-                        }))
-                        : [];
+                        }));
+                    } else if (Array.isArray(cat.size) && cat.size.length > 0) {
+                        sizes = cat.size.map((s: any) => ({
+                            id: typeof s.id === 'number' ? s.id : Number(s.id),
+                            name: s.name || s.value || '',
+                            value: s.value || s.name || '',
+                        }));
+                    } else if (cat.sizes_data && Array.isArray(cat.sizes_data)) {
+                        sizes = cat.sizes_data.map((s: any) => ({
+                            id: typeof s.id === 'number' ? s.id : Number(s.id),
+                            name: s.name || s.value || '',
+                            value: s.value || s.name || '',
+                        }));
+                    }
+                    
+                    // If sizes are not in category, try to get from global sizes list filtered by category
+                    if (sizes.length === 0 && cat.id) {
+                        // Check if there's a category_id field in the global sizes list
+                        const categorySizes = (options.sizes || []).filter((s: any) => 
+                            s.category_id === cat.id || s.categoryId === cat.id || s.category_id === Number(cat.id)
+                        );
+                        if (categorySizes.length > 0) {
+                            sizes = categorySizes.map((s: any) => ({
+                                id: typeof s.id === 'number' ? s.id : Number(s.id),
+                                name: s.name || s.value || '',
+                                value: s.value || s.name || '',
+                            }));
+                        }
+                    }
                     
                     const styles = Array.isArray(cat.styles) && cat.styles.length > 0
                         ? cat.styles.map((s: any) => ({
@@ -1014,10 +1045,12 @@ export default function AdminProductEdit() {
                         }))
                         : [];
                     
-                    // Debug: Log each category
-                    if (sizes.length > 0 || styles.length > 0) {
-                        console.log(`Category "${cat.name}" (ID: ${Number(cat.id)}) - Sizes: ${sizes.length}, Styles: ${styles.length}`, { sizes, styles });
-                    }
+                    // Debug: Log each category with sizes
+                    console.log(`Category "${cat.name}" (ID: ${Number(cat.id)}) - Sizes: ${sizes.length}, Styles: ${styles.length}`, { 
+                        sizes, 
+                        styles,
+                        rawCategory: cat 
+                    });
                     
                     return {
                         id: Number(cat.id),
@@ -1038,30 +1071,123 @@ export default function AdminProductEdit() {
                     parent_id: Number(cat.parent_id) 
                 })));
                 
-                // Other options
-                setCatalogs((options.catalogs || []).map((cat: any) => ({
+                // Other options - Handle both snake_case and camelCase from API
+                // Note: NestJS backend might not return catalogs, so we need to fetch them separately if missing
+                let catalogsData = options.catalogs || [];
+                
+                // If catalogs are not in options, try to fetch them separately
+                if (catalogsData.length === 0) {
+                    try {
+                        const catalogsResponse = await adminService.getCatalogs(1, 1000); // Get all catalogs
+                        catalogsData = catalogsResponse.data?.data || catalogsResponse.data?.items || [];
+                    } catch (error) {
+                        console.error('Failed to load catalogs separately:', error);
+                    }
+                }
+                
+                setCatalogs(catalogsData.map((cat: any) => ({
                     id: Number(cat.id),
-                    code: cat.code,
-                    name: cat.name,
-                    products_count: cat.products_count || 0,
-                    display_order: cat.display_order || 0,
-                    is_active: cat.is_active ?? true,
+                    code: cat.code || '',
+                    name: cat.name || '',
+                    products_count: cat.products_count || cat.productsCount || 0,
+                    display_order: cat.display_order || cat.displayOrder || 0,
+                    is_active: cat.is_active ?? cat.isActive ?? true,
                 })));
                 setDiamonds((options.diamonds || []).map((d: any) => ({ id: Number(d.id), name: d.name })));
                 setMetals((options.metals || []).map((m: any) => ({ id: Number(m.id), name: m.name })));
-                setMetalPurities((options.metalPurities || []).map((mp: any) => ({
+                // Handle both snake_case (metal_purities) and camelCase (metalPurities) from API
+                const metalPuritiesData = options.metal_purities || options.metalPurities || [];
+                setMetalPurities(metalPuritiesData.map((mp: any) => ({
                     id: Number(mp.id),
-                    metal_id: Number(mp.metal_id),
+                    metal_id: Number(mp.metal_id || mp.metalId),
                     name: mp.name,
                     metal: mp.metals ? { id: Number(mp.metals.id), name: mp.metals.name } : null,
                 })));
-                setMetalTones((options.metalTones || []).map((mt: any) => ({
+                // Handle both snake_case (metal_tones) and camelCase (metalTones) from API
+                const metalTonesData = options.metal_tones || options.metalTones || [];
+                setMetalTones(metalTonesData.map((mt: any) => ({
                     id: Number(mt.id),
-                    metal_id: Number(mt.metal_id),
+                    metal_id: Number(mt.metal_id || mt.metalId),
                     name: mt.name,
                     metal: mt.metals ? { id: Number(mt.metals.id), name: mt.metals.name } : null,
                 })));
-                setSizes((options.sizes || []).map((s: any) => ({ id: Number(s.id), name: s.name })));
+                // Load sizes - need to fetch category-sizes relationships separately
+                const sizesData = options.sizes || [];
+                setSizes(sizesData.map((s: any) => ({ id: Number(s.id), name: s.name || '' })));
+                
+                // Fetch category-sizes relationships for each parent category
+                // Since NestJS backend doesn't include sizes in parentCategories, we need to fetch them
+                try {
+                    const categorySizesAndStylesPromises = mappedParentCategories.map(async (cat: { id: number; name: string; sizes: Array<{ id: number; name: string; value?: string }>; styles: Array<{ id: number; name: string }> }) => {
+                        try {
+                            // Try to get category with sizes and styles from a separate endpoint
+                            const categoryResponse = await adminService.getCategory(cat.id);
+                            const categoryData = categoryResponse.data;
+                            
+                            // Check if sizes are in the response
+                            let categorySizes: Array<{ id: number; name: string; value?: string }> = [];
+                            
+                            if (categoryData?.sizes && Array.isArray(categoryData.sizes)) {
+                                categorySizes = categoryData.sizes.map((s: { id: number | string; name?: string; value?: string }) => ({
+                                    id: typeof s.id === 'number' ? s.id : Number(s.id),
+                                    name: s.name || s.value || '',
+                                    value: s.value || s.name || '',
+                                }));
+                            } else if (categoryData?.category_sizes && Array.isArray(categoryData.category_sizes)) {
+                                // Handle nested category_sizes relationship
+                                categorySizes = categoryData.category_sizes
+                                    .map((cs: { size?: { id: number | string; name?: string; value?: string }; sizes?: { id: number | string; name?: string; value?: string } }) => {
+                                        const size = cs.size || cs.sizes;
+                                        if (size) {
+                                            return {
+                                                id: typeof size.id === 'number' ? size.id : Number(size.id),
+                                                name: size.name || size.value || '',
+                                                value: size.value || size.name || '',
+                                            };
+                                        }
+                                        return null;
+                                    })
+                                    .filter((s: { id: number; name: string; value?: string } | null): s is { id: number; name: string; value?: string } => s !== null);
+                            }
+                            
+                            // Check if styles are in the response
+                            let categoryStyles: Array<{ id: number; name: string }> = [];
+                            
+                            if (categoryData?.styles && Array.isArray(categoryData.styles)) {
+                                categoryStyles = categoryData.styles.map((s: { id: number | string; name?: string }) => ({
+                                    id: typeof s.id === 'number' ? s.id : Number(s.id),
+                                    name: s.name || '',
+                                }));
+                            } else if (categoryData?.category_styles && Array.isArray(categoryData.category_styles)) {
+                                // Handle nested category_styles relationship
+                                categoryStyles = categoryData.category_styles
+                                    .map((cs: { style?: { id: number | string; name?: string }; styles?: { id: number | string; name?: string } }) => {
+                                        const style = cs.style || cs.styles;
+                                        if (style) {
+                                            return {
+                                                id: typeof style.id === 'number' ? style.id : Number(style.id),
+                                                name: style.name || '',
+                                            };
+                                        }
+                                        return null;
+                                    })
+                                    .filter((s: { id: number; name: string } | null): s is { id: number; name: string } => s !== null);
+                            }
+                            
+                            return { ...cat, sizes: categorySizes, styles: categoryStyles };
+                        } catch (error) {
+                            console.error(`Failed to fetch sizes/styles for category ${cat.id}:`, error);
+                            return cat; // Return category without sizes/styles if fetch fails
+                        }
+                    });
+                    
+                    const categoriesWithSizesAndStyles = await Promise.all(categorySizesAndStylesPromises);
+                    setParentCategories(categoriesWithSizesAndStyles);
+                    console.log('Updated parentCategories with sizes and styles from API:', categoriesWithSizesAndStyles);
+                } catch (error) {
+                    console.error('Failed to fetch category sizes:', error);
+                    // Continue with categories without sizes if fetch fails
+                }
                 
                 // Load product if editing
                 if (productId) {
@@ -1198,7 +1324,7 @@ export default function AdminProductEdit() {
         titleline: product?.titleline ?? '',
         description: product?.description ?? '',
         catalog_ids: product?.catalog_ids ?? [],
-        subcategory_ids: (product?.category_ids ?? []).map((id: any) => Number(id)).filter((id: any) => !isNaN(id) && id > 0),
+        subcategory_ids: (product?.subcategory_ids ?? []).map((id: any) => Number(id)).filter((id: any) => !isNaN(id) && id > 0),
         brand_id: String(product?.brand_id ?? ''),
         category_id: String(product?.category_id ?? ''),
         style_ids: (product?.style_ids || []).map((id: any) => Number(id)).filter((id: any) => !isNaN(id) && id > 0),
@@ -1291,16 +1417,19 @@ export default function AdminProductEdit() {
             return undefined;
         })(),
         selected_sizes: (() => {
-            if (product?.variants && product.variants.length > 0 && product?.category?.sizes) {
-                const categorySizeIds = new Set(
-                    product.category.sizes.map((s: any) => typeof s.id === 'number' ? s.id : Number(s.id))
-                );
-                return product.variants
+            if (product?.variants && product.variants.length > 0) {
+                // Extract all unique size IDs from variants
+                const variantSizeIds = product.variants
                     .map((v: any) => {
                         const sizeId = v.size_id;
                         return sizeId !== null && sizeId !== undefined ? (typeof sizeId === 'number' ? sizeId : Number(sizeId)) : null;
                     })
-                    .filter((id: number | null): id is number => id !== null && !isNaN(id) && categorySizeIds.has(id));
+                    .filter((id: number | null): id is number => id !== null && !isNaN(id));
+                
+                // Remove duplicates
+                const uniqueSizeIds = Array.from(new Set(variantSizeIds));
+                
+                return uniqueSizeIds;
             }
             return [];
         })(),
@@ -2378,6 +2507,27 @@ export default function AdminProductEdit() {
                 return;
             }
 
+            // Handle media: include existing media (excluding removed) + new uploads
+            if (product?.id && product?.media) {
+                // Get existing media that are NOT being removed
+                const removedMediaIds = formState.removed_media_ids ?? [];
+                const existingMediaToKeep = product.media
+                    .filter((mediaItem) => !removedMediaIds.includes(mediaItem.id))
+                    .map((mediaItem) => ({
+                        id: mediaItem.id,
+                        type: mediaItem.type,
+                        url: mediaItem.url,
+                        display_order: mediaItem.display_order,
+                        metadata: mediaItem.metadata || {},
+                    }));
+                
+                // Only include media field if there are existing media to keep
+                if (existingMediaToKeep.length > 0) {
+                    payload.media = existingMediaToKeep;
+                }
+            }
+            
+            // Add new file uploads
             if (formState.media_uploads && Array.isArray(formState.media_uploads) && formState.media_uploads.length > 0) {
                 payload.media_uploads = formState.media_uploads;
             }
@@ -2476,6 +2626,11 @@ export default function AdminProductEdit() {
             // Handle catalog_ids (must be array)
             const catalogIds = formState.catalog_ids || [];
             payload.catalog_ids = Array.isArray(catalogIds) ? catalogIds : [];
+            
+            // Handle subcategory_ids (must be array)
+            const subcategoryIds = formState.subcategory_ids || [];
+            payload.subcategory_ids = Array.isArray(subcategoryIds) ? subcategoryIds : [];
+            
             if (!payload.media_uploads || (Array.isArray(payload.media_uploads) && payload.media_uploads.length === 0)) {
                 delete payload.media_uploads;
             }
@@ -2489,8 +2644,6 @@ export default function AdminProductEdit() {
             
             // Ensure making_charge_amount is a number (default to 0)
             if (payload.making_charge_amount === undefined) payload.making_charge_amount = 0;
-            
-            delete payload.subcategory_ids;
 
             // Use variants for submission (from generatedMatrixVariants if available, otherwise newly generated)
             if (variantsToUse && Array.isArray(variantsToUse) && variantsToUse.length > 0) {
@@ -2530,10 +2683,18 @@ export default function AdminProductEdit() {
                 }
                 
                 // Create a deep copy of variants to avoid mutating the original
+                // Ensure diamond id is preserved as a number if it exists
                 let processedVariants = variantsToUse.map((variant: any) => ({
                     ...variant,
                     metals: variant.metals ? variant.metals.map((m: any) => ({ ...m })) : [],
-                    diamonds: variant.diamonds ? variant.diamonds.map((d: any) => ({ ...d })) : [],
+                    diamonds: variant.diamonds ? variant.diamonds.map((d: any) => {
+                        const diamondCopy: any = { ...d };
+                        // Ensure id is preserved as a number if it exists
+                        if (d.id !== undefined && d.id !== null && d.id !== '' && d.id !== 0) {
+                            diamondCopy.id = typeof d.id === 'number' ? d.id : Number(d.id);
+                        }
+                        return diamondCopy;
+                    }) : [],
                 }));
                 
                 // If "Show all variants" is unchecked, apply weight and inventory_quantity to all variants with same metal
@@ -2616,6 +2777,9 @@ export default function AdminProductEdit() {
                         formattedVariant.id = Number(variant.id);
                     }
                     
+                    // Preserve diamonds from variant with their IDs intact before processing
+                    formattedVariant.diamonds = variant.diamonds || [];
+                    
                     // Format metals array with proper types
                     formattedVariant.metals = (variant.metals || []).map((metal: any) => {
                         const metalId = metal.metal_id !== '' && metal.metal_id !== null && metal.metal_id !== undefined
@@ -2680,6 +2844,7 @@ export default function AdminProductEdit() {
                     
                     let variantDiamonds: any[] = [];
                     
+                    // Use diamonds from formattedVariant (which was set from variant.diamonds above)
                     if (formattedVariant.diamonds && Array.isArray(formattedVariant.diamonds) && formattedVariant.diamonds.length > 0) {
                         variantDiamonds = formattedVariant.diamonds
                             .map((diamond: any) => {
@@ -2692,7 +2857,7 @@ export default function AdminProductEdit() {
                                     : null;
                                 
                                 if (diamondId === null || diamondId === 0 || isNaN(diamondId)) {
-                                    return null;
+                                    return null; // Skip diamonds without valid diamond_id
                                 }
                                 
                                 const diamondsCount = diamond.diamonds_count !== '' && 
@@ -2703,12 +2868,55 @@ export default function AdminProductEdit() {
                                         : Number(diamond.diamonds_count))
                                     : null;
                                 
-                                return {
-                                    id: diamond.id ?? null,
-                                    diamond_id: diamondId,
-                                    diamonds_count: diamondsCount,
-                                    metadata: diamond.metadata ?? {},
-                                };
+                                if (diamondsCount === null || isNaN(diamondsCount)) {
+                                    return null; // Skip diamonds without valid count
+                                }
+                                
+                                // When editing (productId exists), diamonds MUST have a valid id
+                                // The backend uses UpdateVariantDiamondDto which requires id
+                                if (productId) {
+                                    // Check if this is an existing diamond (has id) - required for updates
+                                    const existingDiamondId = diamond.id !== undefined && 
+                                                             diamond.id !== null && 
+                                                             diamond.id !== '' &&
+                                                             diamond.id !== 0 &&
+                                                             !isNaN(Number(diamond.id))
+                                        ? Number(diamond.id)
+                                        : null;
+                                    
+                                    // If editing and no valid id, skip this diamond (can't update without id)
+                                    // New diamonds should be added through a different mechanism or variant recreation
+                                    if (existingDiamondId === null || existingDiamondId <= 0) {
+                                        return null; // Skip diamonds without valid id when editing
+                                    }
+                                    
+                                    // Build the diamond object with required id for updates
+                                    const formattedDiamond: any = {
+                                        id: existingDiamondId,
+                                        diamond_id: diamondId,
+                                        diamonds_count: diamondsCount,
+                                    };
+                                    
+                                    // Add metadata if present
+                                    if (diamond.metadata && Object.keys(diamond.metadata).length > 0) {
+                                        formattedDiamond.metadata = diamond.metadata;
+                                    }
+                                    
+                                    return formattedDiamond;
+                                } else {
+                                    // New product - no id needed, use create DTO
+                                    const formattedDiamond: any = {
+                                        diamond_id: diamondId,
+                                        diamonds_count: diamondsCount,
+                                    };
+                                    
+                                    // Add metadata if present
+                                    if (diamond.metadata && Object.keys(diamond.metadata).length > 0) {
+                                        formattedDiamond.metadata = diamond.metadata;
+                                    }
+                                    
+                                    return formattedDiamond;
+                                }
                             })
                             .filter((d: any) => d !== null);
                     }
@@ -2736,12 +2944,25 @@ export default function AdminProductEdit() {
                                         : Number(selection.count))
                                     : null;
                                 
-                                return {
-                                    id: null,
+                                // Don't include id for new products - only for editing existing diamonds
+                                const formattedDiamond: any = {
                                     diamond_id: diamondId,
                                     diamonds_count: diamondsCount,
-                                    metadata: {},
                                 };
+                                
+                                // Only add id if editing existing diamond (shouldn't happen from diamond_selections, but just in case)
+                                if (productId && selection.id !== undefined && selection.id !== null && selection.id !== '') {
+                                    formattedDiamond.id = Number(selection.id);
+                                }
+                                
+                                // Add metadata if present
+                                if (selection.metadata && Object.keys(selection.metadata).length > 0) {
+                                    formattedDiamond.metadata = selection.metadata;
+                                } else {
+                                    formattedDiamond.metadata = {};
+                                }
+                                
+                                return formattedDiamond;
                             })
                             .filter((d: any) => d !== null);
                     }
@@ -2764,7 +2985,6 @@ export default function AdminProductEdit() {
             delete payload.selected_sizes;
             delete payload.all_sizes_available;
             delete payload.show_all_variants_by_size; // This is in metadata, not top-level
-            delete payload.subcategory_ids; // Already converted to category_ids
             delete payload._method;
 
         // Create FormData with proper type conversion
@@ -2831,6 +3051,7 @@ export default function AdminProductEdit() {
         // Array fields (must be arrays, even if empty)
         appendToFormData('style_ids', payload.style_ids || []);
         appendToFormData('catalog_ids', payload.catalog_ids || []);
+        appendToFormData('subcategory_ids', payload.subcategory_ids || []);
         
         // Number fields
         if (payload.making_charge_amount !== undefined) {
@@ -2857,6 +3078,11 @@ export default function AdminProductEdit() {
         // Optional array fields
         if (payload.removed_media_ids && Array.isArray(payload.removed_media_ids) && payload.removed_media_ids.length > 0) {
             appendToFormData('removed_media_ids', payload.removed_media_ids);
+        }
+        
+        // Existing media to keep (when updating product)
+        if (payload.media && Array.isArray(payload.media) && payload.media.length > 0) {
+            appendToFormData('media', payload.media);
         }
         
         // Media uploads (files)
@@ -2914,10 +3140,22 @@ export default function AdminProductEdit() {
         if (url.startsWith('http://') || url.startsWith('https://')) {
             return url;
         }
-        // Convert relative URL to absolute URL
+        
+        // Get base URL from environment
+        let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        
         // Remove '/api' from base URL since storage files are served from root
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-        return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+        // Handle both '/api' and '/api/' endings
+        baseUrl = baseUrl.replace(/\/api\/?$/, ''); // Remove trailing /api or /api/
+        
+        // Remove trailing slash from baseUrl if present
+        baseUrl = baseUrl.replace(/\/$/, '');
+        
+        // Ensure url starts with a slash (backend returns URLs like /storage/products/...)
+        const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+        
+        // Construct full URL: http://localhost:3001/storage/products/...
+        return `${baseUrl}${cleanUrl}`;
     }, []);
 
     const toggleRemoveMedia = (id: number) => {
@@ -2928,12 +3166,34 @@ export default function AdminProductEdit() {
     };
 
     const handleMediaSelect = (event: ChangeEvent<HTMLInputElement>) => {
-        const files = event.target.files ? Array.from(event.target.files) : [];
-        if (files.length === 0) {
+        const selectedFiles = event.target.files ? Array.from(event.target.files) : [];
+        if (selectedFiles.length === 0) {
             return;
         }
 
-        setDataField('media_uploads', [...(data.media_uploads ?? []), ...files]);
+        // Get existing files to avoid duplicates
+        const existingFiles = data.media_uploads ?? [];
+        
+        // Filter out duplicates based on file name and size
+        const newFiles = selectedFiles.filter((newFile) => {
+            return !existingFiles.some(
+                (existingFile) =>
+                    existingFile.name === newFile.name &&
+                    existingFile.size === newFile.size
+            );
+        });
+
+        if (newFiles.length === 0) {
+            // All files are duplicates, but still allow selection
+            return;
+        }
+
+        // Add new files to existing media_uploads array
+        const updatedFiles = [...existingFiles, ...newFiles];
+        
+        setDataField('media_uploads', updatedFiles);
+        
+        // Reset input to allow selecting the same files again if needed
         event.target.value = '';
     };
 
@@ -3317,7 +3577,7 @@ export default function AdminProductEdit() {
                             </svg>
                             <div>
                                 <p className="text-sm font-semibold text-slate-700">Click to upload</p>
-                                <p className="mt-1 text-xs text-slate-400">JPEG, PNG, WebP, MP4 up to 50MB each.</p>
+                                <p className="mt-1 text-xs text-slate-400">JPEG, PNG, WebP, MP4 up to 50MB each. You can select multiple files at once.</p>
                             </div>
                             <input
                                 type="file"
@@ -3325,6 +3585,7 @@ export default function AdminProductEdit() {
                                 accept="image/*,video/*"
                                 onChange={handleMediaSelect}
                                 className="hidden"
+                                id="media-upload-input"
                             />
                         </label>
                         {mediaErrors.length > 0 && (
