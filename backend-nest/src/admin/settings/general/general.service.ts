@@ -37,13 +37,14 @@ export class GeneralSettingsService {
 
         // Provide defaults if keys are missing
         const defaults = {
-            admin_email: '',
+            admin_email: 'info@titliya.com',
             company_name: 'Elvee Jewellery Pvt. Ltd.',
-            company_address: '',
-            company_city: 'Mumbai',
-            company_state: 'Maharashtra',
-            company_pincode: '',
-            company_phone: '+91 99888 77665',
+            company_address:
+                'M1- M6, Gujarat Hira Bourse, Gem & Jewellery Park Pal, Road, Ichchhapor, Hazira',
+            company_city: 'Surat',
+            company_state: 'Gujarat',
+            company_pincode: '394510',
+            company_phone: '+91 261 610 5100',
             company_email: 'hello@elvee.in',
             company_gstin: '27AAAAA0000A1Z5',
             logo_path: '',

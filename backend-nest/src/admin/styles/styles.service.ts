@@ -10,7 +10,7 @@ import { CreateStyleDto, UpdateStyleDto } from './dto/style.dto';
 export class StylesService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.styles.findMany({
@@ -49,7 +49,7 @@ export class StylesService {
     }
 
     async create(dto: CreateStyleDto) {
-        const style = await this.prisma.styles.create({
+        await this.prisma.styles.create({
             data: {
                 code: dto.code,
                 name: dto.name,
@@ -59,8 +59,8 @@ export class StylesService {
             },
         });
         return {
-            ...style,
-            id: Number(style.id),
+            success: true,
+            message: 'Style created successfully',
         };
     }
 
@@ -71,7 +71,7 @@ export class StylesService {
         if (!existing) {
             throw new NotFoundException('Style not found');
         }
-        const style = await this.prisma.styles.update({
+        await this.prisma.styles.update({
             where: { id: BigInt(id) },
             data: {
                 code: dto.code,
@@ -82,8 +82,8 @@ export class StylesService {
             },
         });
         return {
-            ...style,
-            id: Number(style.id),
+            success: true,
+            message: 'Style updated successfully',
         };
     }
 
@@ -101,9 +101,13 @@ export class StylesService {
             );
         }
 
-        return await this.prisma.styles.delete({
+        await this.prisma.styles.delete({
             where: { id: BigInt(id) },
         });
+        return {
+            success: true,
+            message: 'Style deleted successfully',
+        };
     }
 
     async bulkRemove(ids: number[]) {
@@ -120,13 +124,13 @@ export class StylesService {
         );
         const deletableIds = bigIntIds.filter((id) => !associatedIds.has(id));
 
-        const result = await this.prisma.styles.deleteMany({
+        await this.prisma.styles.deleteMany({
             where: { id: { in: deletableIds } },
         });
 
         return {
-            deletedCount: result.count,
-            skippedCount: bigIntIds.length - deletableIds.length,
+            success: true,
+            message: 'Styles deleted successfully',
         };
     }
 }

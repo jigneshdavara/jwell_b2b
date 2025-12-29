@@ -10,7 +10,7 @@ import { CreateSizeDto, UpdateSizeDto } from './dto/size.dto';
 export class SizesService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.sizes.findMany({
@@ -49,7 +49,7 @@ export class SizesService {
     }
 
     async create(dto: CreateSizeDto) {
-        const size = await this.prisma.sizes.create({
+        await this.prisma.sizes.create({
             data: {
                 code: dto.code,
                 name: dto.name,
@@ -59,8 +59,8 @@ export class SizesService {
             },
         });
         return {
-            ...size,
-            id: Number(size.id),
+            success: true,
+            message: 'Size created successfully',
         };
     }
 
@@ -71,7 +71,7 @@ export class SizesService {
         if (!existing) {
             throw new NotFoundException('Size not found');
         }
-        const size = await this.prisma.sizes.update({
+        await this.prisma.sizes.update({
             where: { id: BigInt(id) },
             data: {
                 code: dto.code,
@@ -82,8 +82,8 @@ export class SizesService {
             },
         });
         return {
-            ...size,
-            id: Number(size.id),
+            success: true,
+            message: 'Size updated successfully',
         };
     }
 
@@ -106,9 +106,13 @@ export class SizesService {
             );
         }
 
-        return await this.prisma.sizes.delete({
+        await this.prisma.sizes.delete({
             where: { id: BigInt(id) },
         });
+        return {
+            success: true,
+            message: 'Size deleted successfully',
+        };
     }
 
     async bulkRemove(ids: number[]) {
@@ -132,13 +136,13 @@ export class SizesService {
 
         const deletableIds = bigIntIds.filter((id) => !associatedIds.has(id));
 
-        const result = await this.prisma.sizes.deleteMany({
+        await this.prisma.sizes.deleteMany({
             where: { id: { in: deletableIds } },
         });
 
         return {
-            deletedCount: result.count,
-            skippedCount: bigIntIds.length - deletableIds.length,
+            success: true,
+            message: 'Sizes deleted successfully',
         };
     }
 }

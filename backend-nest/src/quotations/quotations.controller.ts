@@ -4,7 +4,6 @@ import {
     Post,
     Body,
     Param,
-    Delete,
     UseGuards,
     Request,
     ParseIntPipe,
@@ -23,15 +22,12 @@ export class QuotationsController {
 
     @Get()
     findAll(@Request() req) {
-        return this.quotationsService.findAllFrontend(BigInt(req.user.userId));
+        return this.quotationsService.findAll(BigInt(req.user.userId));
     }
 
     @Get(':id')
     findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
-        return this.quotationsService.findOneFrontend(
-            id,
-            BigInt(req.user.userId),
-        );
+        return this.quotationsService.findOne(id, BigInt(req.user.userId));
     }
 
     @Post()

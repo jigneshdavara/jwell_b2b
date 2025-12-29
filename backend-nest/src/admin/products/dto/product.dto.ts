@@ -31,10 +31,10 @@ export class ProductMediaDto {
     metadata?: Record<string, unknown>;
 }
 
-// Media DTO (for update - ID required)
+// Media DTO (for update - ID optional for new items)
 export class UpdateProductMediaDto {
     @IsInt()
-    @IsNotEmpty()
+    @IsOptional()
     @Transform(({ value }) => {
         if (value === '' || value === null || value === undefined) {
             return undefined;
@@ -42,7 +42,7 @@ export class UpdateProductMediaDto {
         const parsed = parseInt(value, 10);
         return isNaN(parsed) ? undefined : parsed;
     })
-    id: number;
+    id?: number;
 
     @IsString()
     @IsNotEmpty()
@@ -105,10 +105,10 @@ export class VariantMetalDto {
     metadata?: Record<string, unknown>;
 }
 
-// Variant Metal DTO (for update - ID required)
+// Variant Metal DTO (for update - ID optional for new items)
 export class UpdateVariantMetalDto {
     @IsInt()
-    @IsNotEmpty()
+    @IsOptional()
     @Transform(({ value }) => {
         if (value === '' || value === null || value === undefined) {
             return undefined;
@@ -116,7 +116,7 @@ export class UpdateVariantMetalDto {
         const parsed = parseInt(value, 10);
         return isNaN(parsed) ? undefined : parsed;
     })
-    id: number;
+    id?: number;
 
     @IsInt()
     @IsNotEmpty()
@@ -189,10 +189,10 @@ export class VariantDiamondDto {
     metadata?: Record<string, unknown>;
 }
 
-// Variant Diamond DTO (for update - ID required)
+// Variant Diamond DTO (for update - ID optional for new items)
 export class UpdateVariantDiamondDto {
     @IsInt()
-    @IsNotEmpty()
+    @IsOptional()
     @Transform(({ value }) => {
         if (value === '' || value === null || value === undefined) {
             return undefined;
@@ -200,7 +200,7 @@ export class UpdateVariantDiamondDto {
         const parsed = parseInt(value, 10);
         return isNaN(parsed) ? undefined : parsed;
     })
-    id: number;
+    id?: number;
 
     @IsInt()
     @IsOptional()
@@ -283,10 +283,10 @@ export class ProductVariantDto {
     diamonds: VariantDiamondDto[];
 }
 
-// Variant DTO (for update - ID required)
+// Variant DTO (for update - ID optional for new items)
 export class UpdateProductVariantDto {
     @IsInt()
-    @IsNotEmpty()
+    @IsOptional()
     @Transform(({ value }) => {
         if (value === '' || value === null || value === undefined) {
             return undefined;
@@ -294,7 +294,7 @@ export class UpdateProductVariantDto {
         const parsed = parseInt(value, 10);
         return isNaN(parsed) ? undefined : parsed;
     })
-    id: number;
+    id?: number;
 
     @IsString()
     @IsOptional()
