@@ -26,6 +26,14 @@ export type NavItem =
 export const adminNavigation: NavItem[] = [
     { label: 'Overview', href: '/admin/dashboard', match: '/admin/dashboard', icon: 'grid' },
     {
+        label: 'Admins',
+        icon: 'users',
+        children: [
+            { label: 'Admin list', href: '/admin/admins', match: '/admin/admins*' },
+            { label: 'Admin groups', href: '/admin/admin-groups', match: '/admin/admin-groups*' },
+        ],
+    },
+    {
         label: 'Users',
         icon: 'users',
         children: [
@@ -34,18 +42,10 @@ export const adminNavigation: NavItem[] = [
             // { label: 'User types', href: '/admin/user-types', match: '/admin/user-types*' },
         ],
     },
-    {
-        label: 'Admins',
-        icon: 'users',
-        children: [
-            { label: 'Admin list', href: '/admin/admins', match: '/admin/admins*' },
-            { label: 'Admin groups', href: '/admin/admin-groups', match: '/admin/admin-groups*' },
-        ],
-    },
-    { label: 'Products', href: '/admin/products', match: '/admin/products*', icon: 'diamond' },
-    { label: 'Categories', href: '/admin/categories', match: '/admin/categories*', icon: 'layers' },
     { label: 'Brands', href: '/admin/brands', match: '/admin/brands*', icon: 'sparkle' },
-    { label: 'Catalogs', href: '/admin/catalogs', match: '/admin/catalogs*', icon: 'collection' },
+    { label: 'Categories', href: '/admin/categories', match: '/admin/categories*', icon: 'layers' },
+    { label: 'Sizes', href: '/admin/sizes', match: '/admin/sizes*', icon: 'collection' },
+    { label: 'Styles', href: '/admin/styles', match: '/admin/styles*', icon: 'sparkle' },
     {
         label: 'Metals',
         icon: 'ingot',
@@ -67,8 +67,14 @@ export const adminNavigation: NavItem[] = [
             { label: 'Shape sizes', href: '/admin/diamond/shape-sizes', match: '/admin/diamond/shape-sizes*' },
         ],
     },
-    { label: 'Sizes', href: '/admin/sizes', match: '/admin/sizes*', icon: 'collection' },
-    { label: 'Styles', href: '/admin/styles', match: '/admin/styles*', icon: 'sparkle' },
+    { label: 'Products', href: '/admin/products', match: '/admin/products*', icon: 'diamond' },
+    { label: 'Catalogs', href: '/admin/catalogs', match: '/admin/catalogs*', icon: 'collection' },
+    {
+        label: 'Quotations',
+        icon: 'inbox',
+        href: '/admin/quotations',
+        match: '/admin/quotations*',
+    },
     {
         label: 'Orders',
         icon: 'clipboard',
@@ -76,12 +82,6 @@ export const adminNavigation: NavItem[] = [
             { label: 'Order list', href: '/admin/orders', match: '/admin/orders*' },
             { label: 'Order statuses', href: '/admin/orders/statuses', match: '/admin/orders/statuses*' },
         ],
-    },
-    {
-        label: 'Quotations',
-        icon: 'inbox',
-        href: '/admin/quotations',
-        match: '/admin/quotations*',
     },
     {
         label: 'Offers',

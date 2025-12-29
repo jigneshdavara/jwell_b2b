@@ -1,12 +1,4 @@
-import {
-    IsString,
-    IsOptional,
-    IsArray,
-    IsObject,
-    IsEnum,
-    ValidateNested,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsObject, IsEnum } from 'class-validator';
 
 // Order status enum values (matching Laravel's OrderStatus enum)
 export enum OrderStatus {

@@ -280,7 +280,7 @@ export class FrontendQuotationsService {
         const variant = quotation.product_variants;
 
         if (!customer) {
-            throw new NotFoundException('User? not found for quotation');
+            throw new NotFoundException('User not found for quotation');
         }
         if (!product) {
             throw new NotFoundException('Product not found for quotation');
@@ -840,7 +840,7 @@ export class FrontendQuotationsService {
                 quotation_id: quotationId,
                 user_id: userId,
                 sender: 'customer',
-                message: 'User? approved the updated quotation.',
+                message: 'User approved the updated quotation.',
                 created_at: new Date(),
                 updated_at: new Date(),
             },
@@ -944,7 +944,7 @@ export class FrontendQuotationsService {
                 quotation_id: quotationId,
                 user_id: userId,
                 sender: 'customer',
-                message: 'User? declined the updated quotation.',
+                message: 'User declined the updated quotation.',
                 created_at: new Date(),
                 updated_at: new Date(),
             },

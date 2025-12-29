@@ -4,11 +4,18 @@ import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 import * as fs from 'fs';
 import * as path from 'path';
 
+export type TreeNode = {
+    id: bigint;
+    name: string;
+    parent_id: bigint | null;
+    children: TreeNode[];
+};
+
 @Injectable()
 export class CategoriesService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.categories.findMany({
@@ -123,7 +130,7 @@ export class CategoriesService {
     }
 
     async create(dto: CreateCategoryDto, coverImage?: string) {
-        return await this.prisma.$transaction(async (tx) => {
+        await this.prisma.$transaction(async (tx) => {
             const category = await tx.categories.create({
                 data: {
                     parent_id: dto.parent_id ? BigInt(dto.parent_id) : null,
@@ -156,6 +163,7 @@ export class CategoriesService {
 
             return category;
         });
+        return { success: true, message: 'Category created successfully' };
     }
 
     async update(id: number, dto: UpdateCategoryDto, coverImage?: string) {
@@ -165,19 +173,34 @@ export class CategoriesService {
         });
         if (!category) throw new NotFoundException('Category not found');
 
-        const updateData: any = {
-            parent_id:
-                dto.parent_id !== undefined
-                    ? dto.parent_id
-                        ? BigInt(dto.parent_id)
-                        : null
-                    : undefined,
-            code: dto.code,
-            name: dto.name,
-            description: dto.description,
-            is_active: dto.is_active,
-            display_order: dto.display_order,
-        };
+        const updateData: {
+            parent_id?: bigint | null;
+            code?: string;
+            name?: string;
+            description?: string | null;
+            is_active?: boolean;
+            display_order?: number;
+            cover_image?: string | null;
+        } = {};
+
+        if (dto.parent_id !== undefined) {
+            updateData.parent_id = dto.parent_id ? BigInt(dto.parent_id) : null;
+        }
+        if (dto.code !== undefined) {
+            updateData.code = dto.code;
+        }
+        if (dto.name !== undefined) {
+            updateData.name = dto.name;
+        }
+        if (dto.description !== undefined) {
+            updateData.description = dto.description;
+        }
+        if (dto.is_active !== undefined) {
+            updateData.is_active = dto.is_active;
+        }
+        if (dto.display_order !== undefined) {
+            updateData.display_order = dto.display_order;
+        }
 
         if (dto.remove_cover_image && category.cover_image) {
             // Remove image: delete from storage and set to null in database
@@ -193,7 +216,7 @@ export class CategoriesService {
         // If no new image and not removing, cover_image is not included in updateData
         // This preserves the existing image in the database
 
-        return await this.prisma.$transaction(async (tx) => {
+        await this.prisma.$transaction(async (tx) => {
             const updatedCategory = await tx.categories.update({
                 where: { id: categoryId },
                 data: updateData,
@@ -229,6 +252,8 @@ export class CategoriesService {
 
             return updatedCategory;
         });
+
+        return { success: true, message: 'Category updated successfully' };
     }
 
     async remove(id: number) {
@@ -242,10 +267,10 @@ export class CategoriesService {
             this.deleteImage(category.cover_image);
         }
 
-        // Prisma onDelete: Cascade should handle pivot tables
-        return await this.prisma.categories.delete({
+        await this.prisma.categories.delete({
             where: { id: categoryId },
         });
+        return { success: true, message: 'Category removed successfully' };
     }
 
     async bulkRemove(ids: number[]) {
@@ -261,14 +286,17 @@ export class CategoriesService {
             }
         }
 
-        return await this.prisma.categories.deleteMany({
+        await this.prisma.categories.deleteMany({
             where: { id: { in: bigIntIds } },
         });
+        return { success: true, message: 'Categories removed successfully' };
     }
 
-    private buildTree(nodes: any[]): any[] {
-        const map: Record<string, any> = {};
-        const tree: any[] = [];
+    private buildTree(
+        nodes: Array<{ id: bigint; name: string; parent_id: bigint | null }>,
+    ): TreeNode[] {
+        const map: Record<string, TreeNode> = {};
+        const tree: TreeNode[] = [];
 
         nodes.forEach((node) => {
             map[node.id.toString()] = { ...node, children: [] };
@@ -290,8 +318,11 @@ export class CategoriesService {
         return tree;
     }
 
-    private flattenTree(tree: any[], level = 0): any[] {
-        let result: any[] = [];
+    private flattenTree(
+        tree: TreeNode[],
+        level = 0,
+    ): Array<{ id: bigint; name: string; level: number }> {
+        let result: Array<{ id: bigint; name: string; level: number }> = [];
         const prefix = level > 0 ? '  '.repeat(level) + '└─ ' : '';
 
         tree.forEach((node) => {

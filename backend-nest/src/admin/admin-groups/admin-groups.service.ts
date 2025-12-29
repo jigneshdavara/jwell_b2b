@@ -13,7 +13,7 @@ import {
 export class AdminGroupsService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.admin_groups.findMany({
@@ -72,7 +72,7 @@ export class AdminGroupsService {
             );
         }
 
-        const group = await this.prisma.admin_groups.create({
+        await this.prisma.admin_groups.create({
             data: {
                 name: dto.name,
                 code: dto.code,
@@ -82,11 +82,13 @@ export class AdminGroupsService {
                 display_order: dto.display_order ?? 0,
             },
         });
-        return {
-            ...group,
-            id: Number(group.id),
-            features: Array.isArray(group.features) ? group.features : [],
-        };
+        // return {
+        //     ...group,
+        //     id: Number(group.id),
+        //     features: Array.isArray(group.features) ? group.features : [],
+        // };
+
+        return { success: true, message: 'Admin group created successfully' };
     }
 
     async update(id: number, dto: UpdateAdminGroupDto) {
@@ -114,55 +116,75 @@ export class AdminGroupsService {
             }
         }
 
-        const updateData: any = {};
-        if (dto.name !== undefined) updateData.name = dto.name;
-        if (dto.code !== undefined) updateData.code = dto.code;
-        if (dto.description !== undefined)
-            updateData.description = dto.description;
-        if (dto.features !== undefined) updateData.features = dto.features;
-        if (dto.is_active !== undefined) updateData.is_active = dto.is_active;
-        if (dto.display_order !== undefined)
-            updateData.display_order = dto.display_order;
+        const updateData: {
+            name?: string;
+            code?: string;
+            description?: string | null;
+            features?: string[];
+            is_active?: boolean;
+            display_order?: number;
+        } = {};
 
-        const updatedGroup = await this.prisma.admin_groups.update({
+        if (dto.name !== undefined) {
+            updateData.name = dto.name;
+        }
+        if (dto.code !== undefined) {
+            updateData.code = dto.code;
+        }
+        if (dto.description !== undefined) {
+            updateData.description = dto.description;
+        }
+        if (dto.features !== undefined) {
+            updateData.features = dto.features;
+        }
+        if (dto.is_active !== undefined) {
+            updateData.is_active = dto.is_active;
+        }
+        if (dto.display_order !== undefined) {
+            updateData.display_order = dto.display_order;
+        }
+
+        await this.prisma.admin_groups.update({
             where: { id: BigInt(id) },
             data: updateData,
         });
-        return {
-            ...updatedGroup,
-            id: Number(updatedGroup.id),
-            features: Array.isArray(updatedGroup.features)
-                ? updatedGroup.features
-                : [],
-        };
+        // return {
+        //     ...updatedGroup,
+        //     id: Number(updatedGroup.id),
+        //     features: Array.isArray(updatedGroup.features)
+        //         ? updatedGroup.features
+        //         : [],
+        // };
+
+        return { success: true, message: 'Admin group updated successfully' };
     }
 
     async remove(id: number) {
         await this.findOne(id);
-        return await this.prisma.admin_groups.delete({
+        await this.prisma.admin_groups.delete({
             where: { id: BigInt(id) },
         });
+        return { success: true, message: 'Admin group deleted successfully' };
     }
 
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.admin_groups.deleteMany({
+        await this.prisma.admin_groups.deleteMany({
             where: { id: { in: bigIntIds } },
         });
+        return { success: true, message: 'Admin groups deleted successfully' };
     }
 
     async getAdminsForAssignment(id: number, search?: string) {
         const group = await this.findOne(id);
         const groupId = BigInt(id);
 
-        // Get admins currently in this group
         const adminsInGroup = await this.prisma.admin.findMany({
             where: { admin_group_id: groupId },
             select: { id: true },
         });
         const selectedAdminIds = adminsInGroup.map((a) => a.id.toString());
 
-        // Get all admins (with optional search)
         const admins = await this.prisma.admin.findMany({
             where: search
                 ? {
@@ -195,13 +217,11 @@ export class AdminGroupsService {
         const groupId = BigInt(id);
         const bigIntAdminIds = adminIds.map((aid) => BigInt(aid));
 
-        // Update all selected admins to this group
         await this.prisma.admin.updateMany({
             where: { id: { in: bigIntAdminIds } },
             data: { admin_group_id: groupId },
         });
 
-        // Remove admins from this group if they're not in the selected list
         await this.prisma.admin.updateMany({
             where: {
                 admin_group_id: groupId,
@@ -210,6 +230,9 @@ export class AdminGroupsService {
             data: { admin_group_id: null },
         });
 
-        return { success: true };
+        return {
+            success: true,
+            message: 'Admins assigned to group successfully',
+        };
     }
 }

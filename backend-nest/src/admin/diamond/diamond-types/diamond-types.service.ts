@@ -2,6 +2,7 @@ import {
     Injectable,
     NotFoundException,
     BadRequestException,
+    ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
@@ -13,7 +14,7 @@ import {
 export class DiamondTypesService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const [items, total] = await Promise.all([
             this.prisma.diamond_types.findMany({
@@ -46,23 +47,63 @@ export class DiamondTypesService {
     }
 
     async create(dto: CreateDiamondTypeDto) {
-        const now = new Date();
-        return await this.prisma.diamond_types.create({
+        const [existingByName, existingByCode] = await Promise.all([
+            this.prisma.diamond_types.findUnique({
+                where: { name: dto.name },
+            }),
+            this.prisma.diamond_types.findUnique({
+                where: { code: dto.code },
+            }),
+        ]);
+        if (existingByName) {
+            throw new ConflictException(
+                'Diamond type with this name already exists',
+            );
+        }
+        if (existingByCode) {
+            throw new ConflictException(
+                'Diamond type with this code already exists',
+            );
+        }
+        await this.prisma.diamond_types.create({
             data: {
                 code: dto.code,
                 name: dto.name,
                 description: dto.description,
                 is_active: dto.is_active ?? true,
                 display_order: dto.display_order,
-                created_at: now,
-                updated_at: now,
             },
         });
+        return {
+            success: true,
+            message: 'Diamond type created successfully',
+        };
     }
 
     async update(id: number, dto: UpdateDiamondTypeDto) {
-        await this.findOne(id);
-        return await this.prisma.diamond_types.update({
+        const existing = await this.findOne(id);
+
+        if (dto.name && dto.name !== existing.name) {
+            const existingByName = await this.prisma.diamond_types.findUnique({
+                where: { name: dto.name },
+            });
+            if (existingByName) {
+                throw new ConflictException(
+                    'Diamond type with this name already exists',
+                );
+            }
+        }
+        if (dto.code && dto.code !== existing.code) {
+            const existingByCode = await this.prisma.diamond_types.findUnique({
+                where: { code: dto.code },
+            });
+            if (existingByCode) {
+                throw new ConflictException(
+                    'Diamond type with this code already exists',
+                );
+            }
+        }
+        await this.prisma.diamond_types.update({
             where: { id: BigInt(id) },
             data: {
                 code: dto.code,
@@ -70,9 +111,12 @@ export class DiamondTypesService {
                 description: dto.description,
                 is_active: dto.is_active,
                 display_order: dto.display_order,
-                updated_at: new Date(),
             },
         });
+        return {
+            success: true,
+            message: 'Diamond type updated successfully',
+        };
     }
 
     async remove(id: number) {
@@ -107,7 +151,7 @@ export class DiamondTypesService {
             where: { id: BigInt(id) },
         });
 
-        return { success: true };
+        return { success: true, message: 'Diamond type deleted successfully' };
     }
 
     async bulkRemove(ids: number[]) {
@@ -173,8 +217,7 @@ export class DiamondTypesService {
         }
 
         return {
-            deletedCount,
-            skippedCount,
+            success: true,
             message: messages.join(' '),
         };
     }

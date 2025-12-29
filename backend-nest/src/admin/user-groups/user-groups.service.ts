@@ -2,14 +2,9 @@ import {
     Injectable,
     ConflictException,
     NotFoundException,
-    BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-    BulkDestroyUserGroupsDto,
-    CreateUserGroupDto,
-    UpdateUserGroupDto,
-} from './dto/user-group.dto';
+import { CreateUserGroupDto, UpdateUserGroupDto } from './dto/user-group.dto';
 
 @Injectable()
 export class UserGroupsService {
@@ -42,7 +37,7 @@ export class UserGroupsService {
             where: { id: BigInt(id) },
         });
         if (!group) {
-            throw new NotFoundException('User? group not found');
+            throw new NotFoundException('User group not found');
         }
         return group;
     }
@@ -122,30 +117,18 @@ export class UserGroupsService {
     }
 
     async remove(id: number) {
-        const group = await this.prisma.user_groups.findUnique({
-            where: { id: BigInt(id) },
-        });
-        if (!group) throw new NotFoundException('User group not found');
-
+        await this.findOne(id);
         await this.prisma.user_groups.delete({
             where: { id: BigInt(id) },
         });
-
-        return { success: true, message: 'User group removed successfully' };
+        return { success: true, message: 'User group deleted successfully' };
     }
 
-    async bulkRemove(dto: BulkDestroyUserGroupsDto) {
-        if (!dto.ids || dto.ids.length === 0) {
-            throw new BadRequestException('No users to delete');
-        }
-
-        const ids = dto.ids.map((id) => BigInt(id));
+    async bulkRemove(ids: number[]) {
+        const bigIntIds = ids.map((id) => BigInt(id));
         await this.prisma.user_groups.deleteMany({
-            where: {
-                id: { in: ids },
-            },
+            where: { id: { in: bigIntIds } },
         });
-
         return { success: true, message: 'Users deleted successfully' };
     }
 

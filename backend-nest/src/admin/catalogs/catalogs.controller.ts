@@ -27,10 +27,10 @@ export class CatalogsController {
 
     @Get()
     findAll(
-        @Query('page') page: string = '1',
-        @Query('per_page') perPage: string = '10',
+        @Query('page') page: number = 1,
+        @Query('per_page') perPage: number = 10,
     ) {
-        return this.catalogsService.findAll(+page, +perPage);
+        return this.catalogsService.findAll(page, perPage);
     }
 
     @Get(':id')
@@ -52,8 +52,8 @@ export class CatalogsController {
     }
 
     @Delete('bulk')
-    bulkDestroy(@Body() dto: BulkDestroyCatalogsDto) {
-        return this.catalogsService.bulkDestroy(dto.ids);
+    bulkRemove(@Body() dto: BulkDestroyCatalogsDto) {
+        return this.catalogsService.bulkRemove(dto.ids);
     }
 
     @Delete(':id')

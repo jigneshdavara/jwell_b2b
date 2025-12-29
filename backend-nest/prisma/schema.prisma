@@ -85,8 +85,8 @@ model UserLoginOtp {
 
 model brands {
   id                      BigInt                    @id @default(autoincrement())
-  code                    String                    @db.VarChar(191)
-  name                    String                    @db.VarChar(191)
+  code                    String                    @unique(map: "brands_code_unique") @db.VarChar(191)
+  name                    String                    @unique(map: "brands_name_unique") @db.VarChar(191)
   description             String?
   display_order           Int                       @default(0)
   is_active               Boolean                   @default(true)
@@ -96,7 +96,6 @@ model brands {
   making_charge_discounts making_charge_discounts[]
   products                products[]
 
-  @@index([code], map: "brands_code_index")
   @@index([display_order], map: "brands_display_order_index")
 }
 
@@ -141,8 +140,8 @@ model catalog_products {
 
 model catalogs {
   id               BigInt             @id @default(autoincrement())
-  code             String             @db.VarChar(191)
-  name             String             @db.VarChar(191)
+  code             String             @unique(map: "catalogs_code_unique") @db.VarChar(191)
+  name             String             @unique(map: "catalogs_name_unique") @db.VarChar(191)
   description      String?
   display_order    Int                @default(0)
   is_active        Boolean            @default(true)
@@ -150,7 +149,6 @@ model catalogs {
   updated_at       DateTime?          @updatedAt @db.Timestamptz(0)
   catalog_products catalog_products[]
 
-  @@index([code], map: "catalogs_code_index")
   @@index([display_order], map: "catalogs_display_order_index")
 }
 
@@ -310,8 +308,8 @@ model diamond_shapes {
 
 model diamond_types {
   id                  BigInt                @id @default(autoincrement())
-  code                String                @db.VarChar(191)
-  name                String                @db.VarChar(191)
+  code                String                @unique(map: "diamond_types_code_unique") @db.VarChar(191)
+  name                String                @unique(map: "diamond_types_name_unique") @db.VarChar(191)
   description         String?
   display_order       Int                   @default(0)
   is_active           Boolean               @default(true)
@@ -323,7 +321,6 @@ model diamond_types {
   diamond_shapes      diamond_shapes[]
   diamonds            diamonds[]
 
-  @@index([code], map: "diamond_types_code_index")
   @@index([display_order], map: "diamond_types_display_order_index")
 }
 

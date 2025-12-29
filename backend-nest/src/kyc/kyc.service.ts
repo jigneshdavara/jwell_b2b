@@ -72,7 +72,7 @@ export class KycService {
         });
 
         if (!customer) {
-            throw new NotFoundException('User? not found');
+            throw new NotFoundException('User not found');
         }
 
         return await this.prisma.user.update({
@@ -198,7 +198,7 @@ export class KycService {
         });
 
         if (!customer) {
-            throw new NotFoundException('User? not found');
+            throw new NotFoundException('User not found');
         }
 
         return {
@@ -270,7 +270,7 @@ export class KycService {
             });
 
             if (!customer) {
-                throw new NotFoundException('User? not found');
+                throw new NotFoundException('User not found');
             }
 
             const updated = await tx.user.update({
@@ -386,7 +386,7 @@ export class KycService {
             });
 
             if (!customer) {
-                throw new NotFoundException('User? not found');
+                throw new NotFoundException('User not found');
             }
 
             if (!customer.kyc_comments_enabled) {

@@ -775,7 +775,10 @@ CREATE UNIQUE INDEX "admins_email_unique" ON "admins"("email");
 CREATE UNIQUE INDEX "users_email_unique" ON "users"("email");
 
 -- CreateIndex
-CREATE INDEX "brands_code_index" ON "brands"("code");
+CREATE UNIQUE INDEX "brands_code_unique" ON "brands"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "brands_name_unique" ON "brands"("name");
 
 -- CreateIndex
 CREATE INDEX "brands_display_order_index" ON "brands"("display_order");
@@ -784,7 +787,10 @@ CREATE INDEX "brands_display_order_index" ON "brands"("display_order");
 CREATE UNIQUE INDEX "catalog_product_unique" ON "catalog_products"("catalog_id", "product_id");
 
 -- CreateIndex
-CREATE INDEX "catalogs_code_index" ON "catalogs"("code");
+CREATE UNIQUE INDEX "catalogs_code_unique" ON "catalogs"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "catalogs_name_unique" ON "catalogs"("name");
 
 -- CreateIndex
 CREATE INDEX "catalogs_display_order_index" ON "catalogs"("display_order");
@@ -851,7 +857,10 @@ CREATE INDEX "diamond_shapes_code_index" ON "diamond_shapes"("code");
 CREATE INDEX "diamond_shapes_display_order_index" ON "diamond_shapes"("display_order");
 
 -- CreateIndex
-CREATE INDEX "diamond_types_code_index" ON "diamond_types"("code");
+CREATE UNIQUE INDEX "diamond_types_code_unique" ON "diamond_types"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "diamond_types_name_unique" ON "diamond_types"("name");
 
 -- CreateIndex
 CREATE INDEX "diamond_types_display_order_index" ON "diamond_types"("display_order");

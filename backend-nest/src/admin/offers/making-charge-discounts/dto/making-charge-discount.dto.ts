@@ -7,9 +7,7 @@ import {
     IsDateString,
     IsInt,
     IsArray,
-    IsJSON,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
 
 export class CreateMakingChargeDiscountDto {
     @IsString()

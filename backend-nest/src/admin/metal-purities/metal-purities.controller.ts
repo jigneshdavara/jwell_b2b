@@ -26,10 +26,10 @@ export class MetalPuritiesController {
 
     @Get()
     findAll(
-        @Query('page') page: string = '1',
-        @Query('per_page') perPage: string = '10',
+        @Query('page') page: number = 1,
+        @Query('per_page') perPage: number = 10,
     ) {
-        return this.metalPuritiesService.findAll(+page, +perPage);
+        return this.metalPuritiesService.findAll(page, perPage);
     }
 
     @Get(':id')
