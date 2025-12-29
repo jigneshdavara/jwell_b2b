@@ -22,10 +22,10 @@ export class OffersController {
 
     @Get()
     findAll(
-        @Query('page') page: string = '1',
-        @Query('per_page') perPage: string = '10',
+        @Query('page') page: number = 1,
+        @Query('per_page') perPage: number = 10,
     ) {
-        return this.offersService.findAll(+page, +perPage);
+        return this.offersService.findAll(page, perPage);
     }
 
     @Get(':id')
@@ -46,5 +46,10 @@ export class OffersController {
     @Delete(':id')
     remove(@Param('id', ParseIntPipe) id: number) {
         return this.offersService.remove(id);
+    }
+
+    @Get('code/:code')
+    findByCode(@Param('code') code: string) {
+        return this.offersService.findByCode(code);
     }
 }
