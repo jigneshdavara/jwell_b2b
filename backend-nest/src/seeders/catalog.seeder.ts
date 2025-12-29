@@ -142,14 +142,21 @@ export class CatalogSeeder extends BaseSeeder {
         ];
 
         for (const catalog of catalogs) {
+            // Check for existing catalog by code OR name (both are unique)
             const existing = await this.prisma.catalogs.findFirst({
-                where: { code: catalog.code },
+                where: {
+                    OR: [
+                        { code: catalog.code },
+                        { name: catalog.name },
+                    ],
+                },
             });
 
             if (existing) {
                 await this.prisma.catalogs.update({
                     where: { id: existing.id },
                     data: {
+                        code: catalog.code,
                         name: catalog.name,
                         description: catalog.description,
                         is_active: true,
