@@ -1,87 +1,307 @@
-import { PrismaService } from '../prisma/prisma.service';
 import { BaseSeeder } from './base-seeder';
 
 export class CategorySeeder extends BaseSeeder {
     async run(): Promise<void> {
-        const categories = [
+        // Create parent categories first
+        const parentCategories = [
             {
-                code: 'RINGS',
+                code: 'RNG',
                 name: 'Rings',
-                description: 'Beautiful rings for all occasions',
+                description:
+                    'Various types of rings including engagement, wedding, and fashion rings',
                 display_order: 1,
             },
             {
-                code: 'NECKLACES',
+                code: 'NKL',
                 name: 'Necklaces',
-                description: 'Elegant necklaces and chains',
+                description: 'Necklaces and pendants in various styles and designs',
                 display_order: 2,
             },
             {
-                code: 'EARRINGS',
+                code: 'ERL',
                 name: 'Earrings',
-                description: 'Stylish earrings collection',
+                description: 'Earrings including studs, hoops, and drop earrings',
                 display_order: 3,
             },
             {
-                code: 'BRACELETS',
+                code: 'BRC',
                 name: 'Bracelets',
-                description: 'Charming bracelets and bangles',
+                description: 'Bracelets and bangles for all occasions',
                 display_order: 4,
             },
             {
-                code: 'PENDANTS',
-                name: 'Pendants',
-                description: 'Exquisite pendants and lockets',
+                code: 'CHN',
+                name: 'Chains',
+                description: 'Gold and silver chains in various designs',
                 display_order: 5,
             },
             {
-                code: 'BANGLES',
-                name: 'Bangles',
-                description: 'Traditional and modern bangles',
+                code: 'PNT',
+                name: 'Pendants',
+                description: 'Pendants and lockets for necklaces',
                 display_order: 6,
-            },
-            {
-                code: 'CHAINS',
-                name: 'Chains',
-                description: 'Gold and diamond chains',
-                display_order: 7,
-            },
-            {
-                code: 'SETS',
-                name: 'Jewelry Sets',
-                description: 'Complete jewelry sets',
-                display_order: 8,
             },
         ];
 
-        for (const category of categories) {
+        const createdParents: Record<string, { id: bigint }> = {};
+
+        for (const parent of parentCategories) {
             const existing = await this.prisma.categories.findFirst({
-                where: { name: category.name },
+                where: { name: parent.name },
+            });
+
+            let category;
+            if (existing) {
+                category = await this.prisma.categories.update({
+                    where: { id: existing.id },
+                    data: {
+                        code: parent.code,
+                        description: parent.description,
+                        is_active: true,
+                        display_order: parent.display_order,
+                    },
+                });
+            } else {
+                category = await this.prisma.categories.create({
+                    data: {
+                        code: parent.code,
+                        name: parent.name,
+                        description: parent.description,
+                        is_active: true,
+                        display_order: parent.display_order,
+                    },
+                });
+            }
+            createdParents[parent.name] = category;
+        }
+
+        // Create child categories
+        const childCategories = [
+            // Rings subcategories
+            {
+                parent: 'Rings',
+                code: 'ENG',
+                name: 'Engagement Rings',
+                description: 'Engagement rings with diamonds and gemstones',
+                display_order: 1,
+            },
+            {
+                parent: 'Rings',
+                code: 'WED',
+                name: 'Wedding Rings',
+                description: 'Wedding bands for couples',
+                display_order: 2,
+            },
+            {
+                parent: 'Rings',
+                code: 'FAS',
+                name: 'Fashion Rings',
+                description: 'Trendy and fashionable rings',
+                display_order: 3,
+            },
+            {
+                parent: 'Rings',
+                code: 'SOL',
+                name: 'Solitaire Rings',
+                description: 'Single stone rings',
+                display_order: 4,
+            },
+            {
+                parent: 'Rings',
+                code: 'CLS',
+                name: 'Cluster Rings',
+                description: 'Rings with multiple stones',
+                display_order: 5,
+            },
+
+            // Necklaces subcategories
+            {
+                parent: 'Necklaces',
+                code: 'CHN',
+                name: 'Chain Necklaces',
+                description: 'Necklaces with chain designs',
+                display_order: 1,
+            },
+            {
+                parent: 'Necklaces',
+                code: 'PNT',
+                name: 'Pendant Necklaces',
+                description: 'Necklaces with pendant attachments',
+                display_order: 2,
+            },
+            {
+                parent: 'Necklaces',
+                code: 'CHK',
+                name: 'Choker Necklaces',
+                description: 'Short, close-fitting necklaces',
+                display_order: 3,
+            },
+            {
+                parent: 'Necklaces',
+                code: 'LNG',
+                name: 'Long Necklaces',
+                description: 'Extended length necklaces',
+                display_order: 4,
+            },
+
+            // Earrings subcategories
+            {
+                parent: 'Earrings',
+                code: 'STD',
+                name: 'Stud Earrings',
+                description: 'Small, simple stud earrings',
+                display_order: 1,
+            },
+            {
+                parent: 'Earrings',
+                code: 'HOP',
+                name: 'Hoop Earrings',
+                description: 'Circular hoop earrings',
+                display_order: 2,
+            },
+            {
+                parent: 'Earrings',
+                code: 'DRP',
+                name: 'Drop Earrings',
+                description: 'Earrings that hang below the earlobe',
+                display_order: 3,
+            },
+            {
+                parent: 'Earrings',
+                code: 'JHM',
+                name: 'Jhumka Earrings',
+                description: 'Traditional Indian jhumka style',
+                display_order: 4,
+            },
+
+            // Bracelets subcategories
+            {
+                parent: 'Bracelets',
+                code: 'BNG',
+                name: 'Bangles',
+                description: 'Rigid circular bracelets',
+                display_order: 1,
+            },
+            {
+                parent: 'Bracelets',
+                code: 'CHN',
+                name: 'Chain Bracelets',
+                description: 'Bracelets with chain links',
+                display_order: 2,
+            },
+            {
+                parent: 'Bracelets',
+                code: 'CHM',
+                name: 'Charm Bracelets',
+                description: 'Bracelets with decorative charms',
+                display_order: 3,
+            },
+            {
+                parent: 'Bracelets',
+                code: 'CTN',
+                name: 'Cuff Bracelets',
+                description: 'Open-ended bracelet designs',
+                display_order: 4,
+            },
+
+            // Chains subcategories
+            {
+                parent: 'Chains',
+                code: 'CBL',
+                name: 'Cable Chains',
+                description: 'Classic cable link chains',
+                display_order: 1,
+            },
+            {
+                parent: 'Chains',
+                code: 'BOX',
+                name: 'Box Chains',
+                description: 'Square link box chains',
+                display_order: 2,
+            },
+            {
+                parent: 'Chains',
+                code: 'FIG',
+                name: 'Figaro Chains',
+                description: 'Italian figaro chain design',
+                display_order: 3,
+            },
+            {
+                parent: 'Chains',
+                code: 'RPE',
+                name: 'Rope Chains',
+                description: 'Twisted rope-style chains',
+                display_order: 4,
+            },
+
+            // Pendants subcategories
+            {
+                parent: 'Pendants',
+                code: 'LKT',
+                name: 'Lockets',
+                description: 'Pendants that open to hold photos',
+                display_order: 1,
+            },
+            {
+                parent: 'Pendants',
+                code: 'CRS',
+                name: 'Cross Pendants',
+                description: 'Religious cross pendants',
+                display_order: 2,
+            },
+            {
+                parent: 'Pendants',
+                code: 'HRT',
+                name: 'Heart Pendants',
+                description: 'Heart-shaped pendant designs',
+                display_order: 3,
+            },
+            {
+                parent: 'Pendants',
+                code: 'GEM',
+                name: 'Gemstone Pendants',
+                description: 'Pendants with gemstone settings',
+                display_order: 4,
+            },
+        ];
+
+        for (const child of childCategories) {
+            const parentCategory = createdParents[child.parent];
+            if (!parentCategory) continue;
+
+            const existing = await this.prisma.categories.findFirst({
+                where: {
+                    parent_id: parentCategory.id,
+                    name: child.name,
+                },
             });
 
             if (existing) {
                 await this.prisma.categories.update({
                     where: { id: existing.id },
                     data: {
-                        code: category.code,
-                        description: category.description,
+                        code: child.code,
+                        description: child.description,
                         is_active: true,
-                        display_order: category.display_order,
+                        display_order: child.display_order,
                     },
                 });
             } else {
                 await this.prisma.categories.create({
                     data: {
-                        code: category.code,
-                        name: category.name,
-                        description: category.description,
+                        parent_id: parentCategory.id,
+                        code: child.code,
+                        name: child.name,
+                        description: child.description,
                         is_active: true,
-                        display_order: category.display_order,
+                        display_order: child.display_order,
                     },
                 });
             }
         }
 
-        this.log(`Seeded ${categories.length} categories`);
+        this.log(
+            `Seeded ${parentCategories.length} parent categories and ${childCategories.length} child categories`,
+        );
     }
 }
