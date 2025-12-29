@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AdminHeader } from "@/components/shared/AdminHeader";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -12,7 +12,9 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>(() => {
+  
+  // Initialize with only the active group open (accordion behavior)
+  const getInitialOpenGroups = () => {
     const initial: Record<string, boolean> = {};
     adminNavigation.forEach((item) => {
       if (item.children) {
@@ -22,11 +24,32 @@ export default function AdminLayout({
           }
           return pathname === child.match;
         });
+        // Only set to true if this group has an active child (accordion: only one open)
         initial[item.label] = anyActive;
       }
     });
     return initial;
-  });
+  };
+
+  const [openNavGroups, setOpenNavGroups] = useState<Record<string, boolean>>(getInitialOpenGroups);
+
+  // Update open groups when pathname changes (accordion behavior)
+  useEffect(() => {
+    const newState: Record<string, boolean> = {};
+    adminNavigation.forEach((item) => {
+      if (item.children) {
+        const anyActive = item.children.some((child) => {
+          if (child.match.endsWith("*")) {
+            return pathname.startsWith(child.match.slice(0, -1));
+          }
+          return pathname === child.match;
+        });
+        // Only open the group that has an active child
+        newState[item.label] = anyActive;
+      }
+    });
+    setOpenNavGroups(newState);
+  }, [pathname]);
 
   const isMatch = (pattern: string) => {
     if (pattern.endsWith("*")) {
@@ -54,11 +77,23 @@ export default function AdminLayout({
               const anyActive = item.children.some((child) => isMatch(child.match));
               const icon = item.icon ? iconMap[item.icon] : null;
               const isOpen = openNavGroups[item.label] ?? anyActive;
-              const toggleGroup = () =>
-                setOpenNavGroups((previous) => ({
-                  ...previous,
-                  [item.label]: !isOpen,
-                }));
+              const toggleGroup = () => {
+                // Accordion behavior: close all other groups and toggle the clicked one
+                setOpenNavGroups((previous) => {
+                  const newState: Record<string, boolean> = {};
+                  // Close all groups first
+                  adminNavigation.forEach((navItem) => {
+                    if (navItem.children) {
+                      newState[navItem.label] = false;
+                    }
+                  });
+                  // Open only the clicked group if it wasn't already open
+                  if (!isOpen) {
+                    newState[item.label] = true;
+                  }
+                  return newState;
+                });
+              };
 
               return (
                 <div key={item.label}>

@@ -650,23 +650,30 @@ export class CatalogService {
                 const purity = variantMetal.metal_purities;
                 const tone = variantMetal.metal_tones;
 
-                if (metal && purity && tone) {
+                // Include metal even if purity or tone is missing
+                if (metal) {
                     const weight = variantMetal.metal_weight
                         ? parseFloat(variantMetal.metal_weight.toString())
                         : null;
                     const weightStr = weight ? weight.toFixed(2) + 'g' : '';
 
-                    const metalLabel =
-                        `${purity.name} ${tone.name} ${metal.name} ${weightStr}`.trim();
+                    // Build label parts
+                    const labelParts: string[] = [];
+                    if (purity) labelParts.push(purity.name);
+                    if (tone) labelParts.push(tone.name);
+                    labelParts.push(metal.name);
+                    if (weightStr) labelParts.push(weightStr);
+
+                    const metalLabel = labelParts.join(' ').trim();
 
                     metals.push({
                         label: metalLabel,
                         metalId: metal.id,
-                        metalPurityId: purity.id,
-                        metalToneId: tone.id,
+                        metalPurityId: purity ? purity.id : null,
+                        metalToneId: tone ? tone.id : null,
                         metalWeight: weight ? weight.toFixed(2) : null,
-                        purityName: purity.name,
-                        toneName: tone.name,
+                        purityName: purity ? purity.name : null,
+                        toneName: tone ? tone.name : null,
                         metalName: metal.name,
                     });
 

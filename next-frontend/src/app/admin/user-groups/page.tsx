@@ -44,18 +44,20 @@ export default function AdminUserGroupsIndex() {
     const [assignModalOpen, setAssignModalOpen] = useState(false);
     const [assigningGroup, setAssigningGroup] = useState<UserGroupRow | null>(null);
     const [assignUsers, setAssignUsers] = useState<User[]>([]);
+    const [allAssignUsers, setAllAssignUsers] = useState<User[]>([]); // Store all users for client-side pagination
     const [assignSelectedIds, setAssignSelectedIds] = useState<number[]>([]);
     const [assignSearchTerm, setAssignSearchTerm] = useState('');
     const [assignLoading, setAssignLoading] = useState(false);
     const [assignProcessing, setAssignProcessing] = useState(false);
     const [assignCurrentPage, setAssignCurrentPage] = useState(1);
-    const [assignPerPage, setAssignPerPage] = useState(10);
+    const [assignPerPage, setAssignPerPage] = useState(5);
     const [assignUsersMeta, setAssignUsersMeta] = useState<PaginationMeta>({
         current_page: 1,
         last_page: 1,
         per_page: 10,
         total: 0,
     });
+    const [isClientSidePagination, setIsClientSidePagination] = useState(false);
 
     const [formState, setFormState] = useState({
         name: '',
@@ -73,6 +75,21 @@ export default function AdminUserGroupsIndex() {
         const existingIds = new Set(groups.data.map((group) => group.id));
         setSelectedGroups((prev) => prev.filter((id) => existingIds.has(id)));
     }, [groups.data]);
+
+    // Reload assign users when per page changes
+    useEffect(() => {
+        if (assignModalOpen && assigningGroup) {
+            setAssignCurrentPage(1);
+            if (isClientSidePagination && allAssignUsers.length > 0) {
+                // Client-side pagination - recalculate
+                handleAssignPageChange(1);
+            } else {
+                // Backend pagination - fetch new data
+                loadAssignUsers(1, assignSearchTerm || undefined);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [assignPerPage]);
 
     const loadGroups = async () => {
         setLoading(true);
@@ -282,26 +299,63 @@ export default function AdminUserGroupsIndex() {
         try {
             const response = await adminService.getAssignUsers(group.id, undefined, 1, assignPerPage);
             const data = response.data;
-            setAssignUsers(data.users || []);
-            setAssignSelectedIds(data.selectedUserIds || []);
+            let newUsers = data.users || [];
+            const selectedIds = data.selectedUserIds || [];
+            
+            // Sort users: selected users first
+            newUsers = [...newUsers].sort((a, b) => {
+                const aSelected = selectedIds.includes(a.id) || a.selected || false;
+                const bSelected = selectedIds.includes(b.id) || b.selected || false;
+                if (aSelected && !bSelected) return -1;
+                if (!aSelected && bSelected) return 1;
+                return 0;
+            });
+            
+            setAssignUsers(newUsers);
+            setAssignSelectedIds(selectedIds);
+            
             // Handle pagination metadata
             if (data.meta) {
+                const currentPage = data.meta.current_page || data.meta.page || 1;
+                const lastPage = data.meta.last_page || data.meta.lastPage || 1;
+                const perPage = data.meta.per_page || data.meta.perPage || assignPerPage;
+                const total = data.meta.total || 0;
+                
+                // Calculate from and to if not provided
+                const from = data.meta.from ?? (total > 0 ? (currentPage - 1) * perPage + 1 : 0);
+                const to = data.meta.to ?? Math.min(currentPage * perPage, total);
+                
                 setAssignUsersMeta({
-                    current_page: data.meta.current_page || data.meta.page || 1,
-                    last_page: data.meta.last_page || data.meta.lastPage || 1,
-                    per_page: data.meta.per_page || data.meta.perPage || assignPerPage,
-                    total: data.meta.total || 0,
-                    from: data.meta.from,
-                    to: data.meta.to,
-                    links: data.meta.links || generatePaginationLinks(data.meta.current_page || data.meta.page || 1, data.meta.last_page || data.meta.lastPage || 1),
+                    current_page: currentPage,
+                    last_page: lastPage,
+                    per_page: perPage,
+                    total: total,
+                    from: from,
+                    to: to,
+                    links: data.meta.links || generatePaginationLinks(currentPage, lastPage),
                 });
             } else {
-                // Fallback if no meta provided
+                // Client-side pagination fallback - backend returned all users
+                setIsClientSidePagination(true);
+                setAllAssignUsers(newUsers);
+                
+                const total = newUsers.length;
+                const lastPage = total > 0 ? Math.ceil(total / assignPerPage) : 1;
+                const from = total > 0 ? 1 : 0;
+                const to = Math.min(assignPerPage, total);
+                
+                // Slice users for page 1
+                const paginatedUsers = newUsers.slice(0, assignPerPage);
+                setAssignUsers(paginatedUsers);
+                
                 setAssignUsersMeta({
                     current_page: 1,
-                    last_page: 1,
+                    last_page: lastPage,
                     per_page: assignPerPage,
-                    total: data.users?.length || 0,
+                    total: total,
+                    from: from,
+                    to: to,
+                    links: generatePaginationLinks(1, lastPage),
                 });
             }
         } catch (error: any) {
@@ -317,9 +371,11 @@ export default function AdminUserGroupsIndex() {
         setAssignModalOpen(false);
         setAssigningGroup(null);
         setAssignUsers([]);
+        setAllAssignUsers([]);
         setAssignSelectedIds([]);
         setAssignSearchTerm('');
         setAssignCurrentPage(1);
+        setIsClientSidePagination(false);
         setAssignUsersMeta({
             current_page: 1,
             last_page: 1,
@@ -329,48 +385,78 @@ export default function AdminUserGroupsIndex() {
     };
 
     // Load assign users with pagination
-    const loadAssignUsers = async (page: number = assignCurrentPage, search?: string) => {
+    const loadAssignUsers = async (page: number, search?: string) => {
         if (!assigningGroup) return;
         setAssignLoading(true);
         try {
             const response = await adminService.getAssignUsers(
                 assigningGroup.id,
-                search || assignSearchTerm || undefined,
+                search !== undefined ? search : (assignSearchTerm || undefined),
                 page,
                 assignPerPage
             );
             const data = response.data;
-            setAssignUsers(data.users || []);
+            let newUsers = data.users || [];
+            
+            // Sort users: selected users first
+            const selectedIds = data.selectedUserIds || [];
+            newUsers = [...newUsers].sort((a, b) => {
+                const aSelected = selectedIds.includes(a.id) || a.selected || false;
+                const bSelected = selectedIds.includes(b.id) || b.selected || false;
+                if (aSelected && !bSelected) return -1;
+                if (!aSelected && bSelected) return 1;
+                return 0;
+            });
+            
+            setAssignUsers(newUsers);
+            setAssignSelectedIds(selectedIds);
+            
             // Handle pagination metadata
             if (data.meta) {
+                const currentPage = data.meta.current_page || data.meta.page || page;
+                const lastPage = data.meta.last_page || data.meta.lastPage || 1;
+                const perPage = data.meta.per_page || data.meta.perPage || assignPerPage;
+                const total = data.meta.total || 0;
+                
+                // Calculate from and to if not provided
+                const from = data.meta.from ?? (total > 0 ? (currentPage - 1) * perPage + 1 : 0);
+                const to = data.meta.to ?? Math.min(currentPage * perPage, total);
+                
                 setAssignUsersMeta({
-                    current_page: data.meta.current_page || data.meta.page || page,
-                    last_page: data.meta.last_page || data.meta.lastPage || 1,
-                    per_page: data.meta.per_page || data.meta.perPage || assignPerPage,
-                    total: data.meta.total || 0,
-                    from: data.meta.from,
-                    to: data.meta.to,
-                    links: data.meta.links || generatePaginationLinks(data.meta.current_page || data.meta.page || page, data.meta.last_page || data.meta.lastPage || 1),
+                    current_page: currentPage,
+                    last_page: lastPage,
+                    per_page: perPage,
+                    total: total,
+                    from: from,
+                    to: to,
+                    links: data.meta.links || generatePaginationLinks(currentPage, lastPage),
                 });
             } else {
-                // Fallback if no meta provided
+                // Client-side pagination fallback - backend returned all users
+                setIsClientSidePagination(true);
+                setAllAssignUsers(newUsers);
+                
+                const total = newUsers.length;
+                const lastPage = total > 0 ? Math.ceil(total / assignPerPage) : 1;
+                const from = total > 0 ? (page - 1) * assignPerPage + 1 : 0;
+                const to = Math.min(page * assignPerPage, total);
+                
+                // Slice users for current page
+                const startIndex = (page - 1) * assignPerPage;
+                const endIndex = startIndex + assignPerPage;
+                const paginatedUsers = newUsers.slice(startIndex, endIndex);
+                setAssignUsers(paginatedUsers);
+                
                 setAssignUsersMeta({
                     current_page: page,
-                    last_page: 1,
+                    last_page: lastPage,
                     per_page: assignPerPage,
-                    total: data.users?.length || 0,
+                    total: total,
+                    from: from,
+                    to: to,
+                    links: generatePaginationLinks(page, lastPage),
                 });
             }
-            // Preserve selections
-            setAssignSelectedIds((prev) => {
-                const newIds = [...prev];
-                data.selectedUserIds?.forEach((id: number) => {
-                    if (!newIds.includes(id)) {
-                        newIds.push(id);
-                    }
-                });
-                return newIds;
-            });
         } catch (error: any) {
             console.error('Failed to load users:', error);
             toastError(error.response?.data?.message || 'Failed to load users. Please try again.');
@@ -423,8 +509,40 @@ export default function AdminUserGroupsIndex() {
     };
 
     const handleAssignPageChange = (page: number) => {
+        if (page === assignCurrentPage) return;
         setAssignCurrentPage(page);
+        
+        if (isClientSidePagination && allAssignUsers.length > 0) {
+            // Client-side pagination - slice existing data
+            const startIndex = (page - 1) * assignPerPage;
+            const endIndex = startIndex + assignPerPage;
+            const paginatedUsers = allAssignUsers.slice(startIndex, endIndex);
+            setAssignUsers(paginatedUsers);
+            
+            const total = allAssignUsers.length;
+            const lastPage = Math.ceil(total / assignPerPage) || 1;
+            const from = total > 0 ? (page - 1) * assignPerPage + 1 : 0;
+            const to = Math.min(page * assignPerPage, total);
+            
+            setAssignUsersMeta({
+                current_page: page,
+                last_page: lastPage,
+                per_page: assignPerPage,
+                total: total,
+                from: from,
+                to: to,
+                links: generatePaginationLinks(page, lastPage),
+            });
+            
+            // Scroll table to top
+            const tableContainer = document.querySelector('[data-user-table-container]');
+            if (tableContainer) {
+                tableContainer.scrollTop = 0;
+            }
+        } else {
+            // Backend pagination - fetch new data
         loadAssignUsers(page, assignSearchTerm || undefined);
+        }
     };
 
     const handleAssignSubmit = async (e: React.FormEvent) => {
@@ -814,8 +932,9 @@ export default function AdminUserGroupsIndex() {
                         </div>
                     </div>
 
-                    <div className="min-h-0 flex-1 px-6 py-4">
-                        <form onSubmit={handleAssignSubmit} className="space-y-4">
+                    <form onSubmit={handleAssignSubmit} className="flex min-h-0 flex-1 flex-col">
+                        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                            <div className="space-y-4">
                             {/* Search and Filters */}
                             <div className="flex items-center gap-3">
                                 <div className="flex-1">
@@ -874,10 +993,11 @@ export default function AdminUserGroupsIndex() {
                                 </div>
                             ) : (
                                 <div className="overflow-hidden rounded-2xl border border-slate-200">
+                                        <div className="overflow-x-auto" data-user-table-container>
                                     <table className="min-w-full divide-y divide-slate-200 text-sm">
-                                        <thead className="bg-slate-50 text-xs text-slate-500">
+                                                <thead className="bg-slate-50 text-xs text-slate-500 sticky top-0 z-10">
                                             <tr>
-                                                <th className="px-4 py-3 text-left">
+                                                        <th className="px-4 py-3 text-left bg-slate-50">
                                                     <input
                                                         type="checkbox"
                                                         checked={allVisibleSelected}
@@ -892,8 +1012,8 @@ export default function AdminUserGroupsIndex() {
                                                         aria-label="Select all visible users"
                                                     />
                                                 </th>
-                                                <th className="px-4 py-3 text-left">Name</th>
-                                                <th className="px-4 py-3 text-left">Email</th>
+                                                        <th className="px-4 py-3 text-left bg-slate-50">Name</th>
+                                                        <th className="px-4 py-3 text-left bg-slate-50">Email</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 bg-white">
@@ -927,18 +1047,21 @@ export default function AdminUserGroupsIndex() {
                                         </tbody>
                                     </table>
                                 </div>
-                            )}
-
-                            {/* Pagination */}
-                            <div className="border-t border-slate-200 pt-4">
+                                        {/* Pagination inside table container */}
+                                        <div className="border-t border-slate-200 bg-white px-4 py-3">
                                 <Pagination
                                     meta={assignUsersMeta}
                                     onPageChange={handleAssignPageChange}
                                 />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             </div>
 
-                            {/* Action Buttons */}
-                            <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
+                        {/* Footer with Action Buttons */}
+                        <div className="flex-shrink-0 border-t border-slate-200 bg-white px-6 py-4">
+                            <div className="flex items-center justify-end gap-3">
                                 <button
                                     type="button"
                                     onClick={closeAssignModal}
@@ -954,8 +1077,8 @@ export default function AdminUserGroupsIndex() {
                                     {assignProcessing ? 'Saving...' : 'Save assignments'}
                                 </button>
                             </div>
+                            </div>
                         </form>
-                    </div>
                 </div>
             </Modal>
         </>

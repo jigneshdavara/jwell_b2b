@@ -695,6 +695,9 @@ export class ProductDetailResponseDto {
     titleline: string | null;
     brand_id: number;
     category_id: number;
+    brand?: { id: number; name: string } | null;
+    category?: { id: number; name: string } | null;
+    variants_count?: number;
     subcategory_ids: number[];
     style_ids: number[];
     catalog_ids: number[];

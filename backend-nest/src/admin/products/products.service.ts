@@ -16,6 +16,18 @@ import { join } from 'path';
 // Type for product with all relations included
 type ProductWithRelations = Prisma.productsGetPayload<{
     include: {
+        brands: {
+            select: {
+                id: true;
+                name: true;
+            };
+        };
+        categories: {
+            select: {
+                id: true;
+                name: true;
+            };
+        };
         product_medias: true;
         catalog_products: {
             include: {
@@ -228,6 +240,18 @@ export class ProductsService {
         const product = await this.prisma.products.findUnique({
             where: { id: BigInt(id) },
             include: {
+                brands: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                categories: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
                 product_medias: {
                     orderBy: { display_order: 'asc' },
                 },
@@ -417,6 +441,18 @@ export class ProductsService {
                         : undefined,
                 },
                 include: {
+                    brands: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                    categories: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
                     product_medias: {
                         orderBy: { display_order: 'asc' },
                     },
@@ -704,6 +740,18 @@ export class ProductsService {
             where: { id: BigInt(id) },
             data: updateData,
             include: {
+                brands: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+                categories: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
                 product_medias: {
                     orderBy: { display_order: 'asc' },
                 },
@@ -746,6 +794,18 @@ export class ProductsService {
             const reloadedProduct = await this.prisma.products.findUnique({
                 where: { id: BigInt(id) },
                 include: {
+                    brands: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                    categories: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
                     product_medias: {
                         orderBy: { display_order: 'asc' },
                     },
@@ -926,6 +986,19 @@ export class ProductsService {
             titleline: product.titleline,
             brand_id: Number(product.brand_id),
             category_id: Number(product.category_id),
+            brand: product.brands
+                ? {
+                      id: Number(product.brands.id),
+                      name: product.brands.name,
+                  }
+                : null,
+            category: product.categories
+                ? {
+                      id: Number(product.categories.id),
+                      name: product.categories.name,
+                  }
+                : null,
+            variants_count: product.product_variants?.length || 0,
             subcategory_ids: (product.subcategory_ids as number[]) || [],
             style_ids: (product.style_ids as number[]) || [],
             catalog_ids: product.catalog_products
