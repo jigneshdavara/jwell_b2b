@@ -2430,7 +2430,6 @@ export default function AdminProductEdit() {
 
             // Handle making_charge_types (must be array)
             const selectedTypes = formState.making_charge_types || [];
-            payload.making_charge_types = Array.isArray(selectedTypes) ? selectedTypes : [];
 
             if (selectedTypes.includes('fixed')) {
                 const makingChargeValue = formState.making_charge_amount;
@@ -2490,13 +2489,7 @@ export default function AdminProductEdit() {
             
             // Ensure making_charge_amount is a number (default to 0)
             if (payload.making_charge_amount === undefined) payload.making_charge_amount = 0;
-
-            // Handle category_ids (subcategory_ids) - must be array
-            if (formState.subcategory_ids && Array.isArray(formState.subcategory_ids) && formState.subcategory_ids.length > 0) {
-                payload.category_ids = formState.subcategory_ids;
-            } else {
-                payload.category_ids = [];
-            }
+            
             delete payload.subcategory_ids;
 
             // Use variants for submission (from generatedMatrixVariants if available, otherwise newly generated)
@@ -2836,10 +2829,8 @@ export default function AdminProductEdit() {
         if (payload.gender) appendToFormData('gender', payload.gender);
         
         // Array fields (must be arrays, even if empty)
-        appendToFormData('category_ids', payload.category_ids || []);
         appendToFormData('style_ids', payload.style_ids || []);
         appendToFormData('catalog_ids', payload.catalog_ids || []);
-        appendToFormData('making_charge_types', payload.making_charge_types || []);
         
         // Number fields
         if (payload.making_charge_amount !== undefined) {

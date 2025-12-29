@@ -1,70 +1,218 @@
 import {
+    ConflictException,
     Injectable,
     NotFoundException,
-    BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
     CreateProductDto,
     UpdateProductDto,
-    ProductFilterDto,
+    ProductDetailResponseDto,
 } from './dto/product.dto';
-import { ProductVariantsService } from './product-variants/product-variants.service';
-import * as fs from 'fs';
-import * as path from 'path';
+import { Prisma } from '@prisma/client';
+
+// Type for product with all relations included
+type ProductWithRelations = Prisma.productsGetPayload<{
+    include: {
+        product_medias: true;
+        catalog_products: {
+            include: {
+                catalogs: true;
+            };
+        };
+        product_variants: {
+            include: {
+                product_variant_metals: {
+                    include: {
+                        metals: true;
+                        metal_purities: true;
+                        metal_tones: true;
+                    };
+                };
+                product_variant_diamonds: {
+                    include: {
+                        diamonds: true;
+                    };
+                };
+            };
+        };
+    };
+}>;
 
 @Injectable()
 export class ProductsService {
-    constructor(
-        private prisma: PrismaService,
-        private variantSync: ProductVariantsService,
-    ) {}
+    constructor(private prisma: PrismaService) {}
 
-    async findAll(filters: ProductFilterDto) {
-        const page = parseInt(filters.page || '1');
-        const perPage = parseInt(filters.per_page || '10');
+    async getOptions() {
+        const [
+            brands,
+            categories,
+            sizes,
+            metals,
+            metalPurities,
+            metalTones,
+            diamonds,
+        ] = await Promise.all([
+            this.prisma.brands.findMany({
+                where: { is_active: true },
+                select: { id: true, name: true, code: true },
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+            }),
+            this.prisma.categories.findMany({
+                where: { is_active: true },
+                select: { id: true, name: true, code: true, parent_id: true },
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+            }),
+            this.prisma.sizes.findMany({
+                where: { is_active: true },
+                select: { id: true, name: true, code: true },
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+            }),
+            this.prisma.metals.findMany({
+                where: { is_active: true },
+                select: { id: true, name: true, code: true },
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+            }),
+            this.prisma.metal_purities.findMany({
+                where: { is_active: true },
+                select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    metal_id: true,
+                },
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+            }),
+            this.prisma.metal_tones.findMany({
+                where: { is_active: true },
+                select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    metal_id: true,
+                },
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+            }),
+            this.prisma.diamonds.findMany({
+                where: { is_active: true },
+                select: {
+                    id: true,
+                    name: true,
+                    price: true,
+                    diamond_type_id: true,
+                    diamond_clarity_id: true,
+                    diamond_color_id: true,
+                    diamond_shape_id: true,
+                },
+                orderBy: { name: 'asc' },
+            }),
+        ]);
+
+        return {
+            brands: brands.map((b) => ({
+                id: Number(b.id),
+                name: b.name,
+                code: b.code,
+            })),
+            categories: categories.map((c) => ({
+                id: Number(c.id),
+                name: c.name,
+                code: c.code,
+                parent_id: c.parent_id ? Number(c.parent_id) : null,
+            })),
+            sizes: sizes.map((s) => ({
+                id: Number(s.id),
+                name: s.name,
+                code: s.code,
+            })),
+            metals: metals.map((m) => ({
+                id: Number(m.id),
+                name: m.name,
+                code: m.code,
+            })),
+            metal_purities: metalPurities.map((mp) => ({
+                id: Number(mp.id),
+                name: mp.name,
+                code: mp.code,
+                metal_id: Number(mp.metal_id),
+            })),
+            metal_tones: metalTones.map((mt) => ({
+                id: Number(mt.id),
+                name: mt.name,
+                code: mt.code,
+                metal_id: Number(mt.metal_id),
+            })),
+            diamonds: diamonds.map((d) => ({
+                id: Number(d.id),
+                name: d.name,
+                price: d.price ? Number(d.price) : null,
+                diamond_type_id: d.diamond_type_id
+                    ? Number(d.diamond_type_id)
+                    : null,
+                diamond_clarity_id: d.diamond_clarity_id
+                    ? Number(d.diamond_clarity_id)
+                    : null,
+                diamond_color_id: d.diamond_color_id
+                    ? Number(d.diamond_color_id)
+                    : null,
+                diamond_shape_id: d.diamond_shape_id
+                    ? Number(d.diamond_shape_id)
+                    : null,
+            })),
+        };
+    }
+
+    async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
-
-        const where: any = {};
-
-        if (filters.search) {
-            where.OR = [
-                { sku: { contains: filters.search, mode: 'insensitive' } },
-                { name: { contains: filters.search, mode: 'insensitive' } },
-            ];
-        }
-
-        if (filters.status) {
-            where.is_active = filters.status === 'active';
-        }
-
         const [items, total] = await Promise.all([
             this.prisma.products.findMany({
-                where,
                 skip,
                 take: perPage,
                 include: {
-                    brands: { select: { id: true, name: true } },
-                    categories: { select: { id: true, name: true } },
-                    _count: { select: { product_variants: true } },
+                    brands: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                    categories: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                    product_medias: {
+                        orderBy: { display_order: 'asc' },
+                    },
+                    catalog_products: {
+                        include: {
+                            catalogs: true,
+                        },
+                    },
+                    product_variants: {
+                        include: {
+                            product_variant_metals: {
+                                include: {
+                                    metals: true,
+                                    metal_purities: true,
+                                    metal_tones: true,
+                                },
+                            },
+                            product_variant_diamonds: {
+                                include: {
+                                    diamonds: true,
+                                },
+                            },
+                        },
+                    },
                 },
-                orderBy: { updated_at: 'desc' },
+                orderBy: { created_at: 'desc' },
             }),
-            this.prisma.products.count({ where }),
+            this.prisma.products.count(),
         ]);
 
-        const formattedItems = items.map((product) => ({
-            id: product.id,
-            sku: product.sku,
-            name: product.name,
-            is_active: product.is_active,
-            brand: product.brands,
-            category: product.categories,
-            variants_count: product._count.product_variants,
-        }));
-
         return {
-            items: formattedItems,
+            items: items.map((item) => this.formatProductResponse(item)),
             meta: {
                 total,
                 page,
@@ -74,22 +222,19 @@ export class ProductsService {
         };
     }
 
-    async findOne(id: number) {
+    async findOne(id: number): Promise<ProductDetailResponseDto> {
         const product = await this.prisma.products.findUnique({
             where: { id: BigInt(id) },
             include: {
-                brands: true,
-                categories: {
+                product_medias: {
+                    orderBy: { display_order: 'asc' },
+                },
+                catalog_products: {
                     include: {
-                        category_sizes: {
-                            include: { sizes: true },
-                        },
+                        catalogs: true,
                     },
                 },
-                catalog_products: { select: { catalog_id: true } },
-                product_medias: { orderBy: { display_order: 'asc' } },
                 product_variants: {
-                    orderBy: [{ is_default: 'desc' }, { label: 'asc' }],
                     include: {
                         product_variant_metals: {
                             include: {
@@ -97,11 +242,14 @@ export class ProductsService {
                                 metal_purities: true,
                                 metal_tones: true,
                             },
+                            orderBy: { display_order: 'asc' },
                         },
                         product_variant_diamonds: {
-                            include: { diamonds: true },
+                            include: {
+                                diamonds: true,
+                            },
+                            orderBy: { display_order: 'asc' },
                         },
-                        sizes: true,
                     },
                 },
             },
@@ -111,747 +259,676 @@ export class ProductsService {
             throw new NotFoundException('Product not found');
         }
 
-        return this.formatProductForEdit(product);
+        return this.formatProductResponse(product);
     }
 
-    async create(dto: CreateProductDto, mediaFiles?: Express.Multer.File[]) {
-        return await this.prisma.$transaction(async (tx) => {
-            const {
-                variants,
-                catalog_ids,
-                category_ids,
-                style_ids,
-                making_charge_types,
-                ...productData
-            } = dto;
-
-            const product = await tx.products.create({
-                data: {
-                    name: productData.name,
-                    titleline: productData.titleline,
-                    brand_id: BigInt(productData.brand_id),
-                    category_id: BigInt(productData.category_id),
-                    sku: productData.sku,
-                    description: productData.description,
-                    collection: productData.collection,
-                    producttype: productData.producttype,
-                    gender: productData.gender,
-                    making_charge_amount: productData.making_charge_amount,
-                    making_charge_percentage:
-                        productData.making_charge_percentage,
-                    is_active: productData.is_active ?? true,
-                    subcategory_ids: category_ids || [],
-                    style_ids: style_ids || [],
-                    metadata: {
-                        ...(productData.metadata || {}),
-                        making_charge_types: making_charge_types || [],
-                    },
-                    created_at: new Date(),
-                    updated_at: new Date(),
-                },
-            });
-
-            await this.variantSync.sync(product.id, variants, tx);
-
-            if (catalog_ids && catalog_ids.length > 0) {
-                await tx.catalog_products.createMany({
-                    data: catalog_ids.map((id) => ({
-                        product_id: product.id,
-                        catalog_id: BigInt(id),
-                    })),
-                });
-            }
-
-            if (mediaFiles && mediaFiles.length > 0) {
-                await this.syncMedia(product.id, mediaFiles, [], tx);
-            }
-
-            return product;
-        });
-    }
-
-    async update(
-        id: number,
-        dto: UpdateProductDto,
-        mediaFiles?: Express.Multer.File[],
-    ) {
-        const productRecord = await this.prisma.products.findUnique({
-            where: { id: BigInt(id) },
-        });
-        if (!productRecord) throw new NotFoundException('Product not found');
-
-        return await this.prisma.$transaction(async (tx) => {
-            const {
-                variants,
-                catalog_ids,
-                category_ids,
-                style_ids,
-                making_charge_types,
-                removed_media_ids,
-                ...productData
-            } = dto;
-
-            const product = await tx.products.update({
-                where: { id: BigInt(id) },
-                data: {
-                    name: productData.name,
-                    titleline: productData.titleline,
-                    brand_id: BigInt(productData.brand_id),
-                    category_id: BigInt(productData.category_id),
-                    sku: productData.sku,
-                    description: productData.description,
-                    collection: productData.collection,
-                    producttype: productData.producttype,
-                    gender: productData.gender,
-                    making_charge_amount: productData.making_charge_amount,
-                    making_charge_percentage:
-                        productData.making_charge_percentage,
-                    is_active: productData.is_active,
-                    subcategory_ids: category_ids || [],
-                    style_ids: style_ids || [],
-                    metadata: {
-                        ...(productData.metadata || {}),
-                        making_charge_types: making_charge_types || [],
-                    },
-                    updated_at: new Date(),
-                },
-            });
-
-            await this.variantSync.sync(product.id, variants, tx);
-
-            // Sync catalogs
-            await tx.catalog_products.deleteMany({
-                where: { product_id: product.id },
-            });
-            if (catalog_ids && catalog_ids.length > 0) {
-                await tx.catalog_products.createMany({
-                    data: catalog_ids.map((cid) => ({
-                        product_id: product.id,
-                        catalog_id: BigInt(cid),
-                    })),
-                });
-            }
-
-            // Sync media
-            await this.syncMedia(
-                product.id,
-                mediaFiles || [],
-                removed_media_ids || [],
-                tx,
-            );
-
-            return product;
-        });
-    }
-
-    async remove(id: number) {
-        const product = await this.prisma.products.findUnique({
-            where: { id: BigInt(id) },
-            include: { product_medias: true },
-        });
-        if (!product) throw new NotFoundException('Product not found');
-
-        // Delete media files
-        for (const media of product.product_medias) {
-            this.deleteMediaFile(media);
-        }
-
-        return await this.prisma.products.delete({
-            where: { id: BigInt(id) },
-        });
-    }
-
-    async bulkDestroy(ids: number[]) {
-        const bigIntIds = ids.map((id) => BigInt(id));
-        const products = await this.prisma.products.findMany({
-            where: { id: { in: bigIntIds } },
-            include: { product_medias: true },
-        });
-
-        for (const product of products) {
-            for (const media of product.product_medias) {
-                this.deleteMediaFile(media);
-            }
-        }
-
-        return await this.prisma.products.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
-    }
-
-    async bulkStatus(ids: number[], action: string) {
-        const isActive = action === 'activate';
-        return await this.prisma.products.updateMany({
-            where: { id: { in: ids.map((id) => BigInt(id)) } },
-            data: { is_active: isActive, updated_at: new Date() },
-        });
-    }
-
-    async copy(id: number) {
-        const product = await this.prisma.products.findUnique({
-            where: { id: BigInt(id) },
-            include: {
-                product_variants: {
-                    include: {
-                        product_variant_metals: true,
-                        product_variant_diamonds: true,
-                    },
-                },
-                product_medias: true,
-                catalog_products: true,
-            },
-        });
-
-        if (!product) throw new NotFoundException('Product not found');
-
-        return await this.prisma.$transaction(async (tx) => {
-            const newSku = await this.generateProductSku(product.sku, tx);
-
-            const replica = await tx.products.create({
-                data: {
-                    name: `${product.name} (Copy)`,
-                    sku: newSku,
-                    titleline: product.titleline,
-                    brand_id: product.brand_id,
-                    category_id: product.category_id,
-                    subcategory_ids: product.subcategory_ids || [],
-                    style_ids: product.style_ids || [],
-                    collection: product.collection,
-                    producttype: product.producttype,
-                    gender: product.gender,
-                    description: product.description,
-                    making_charge_amount: product.making_charge_amount,
-                    making_charge_percentage: product.making_charge_percentage,
-                    is_active: false,
-                    metadata: product.metadata || {},
-                    created_at: new Date(),
-                    updated_at: new Date(),
-                },
-            });
-
-            // Duplicate variants
-            for (const variant of product.product_variants) {
-                const variantAttributes = {
-                    product_id: replica.id,
-                    sku: variant.sku
-                        ? await this.generateVariantSku(variant.sku, tx)
-                        : null,
-                    label: variant.label,
-                    size_id: variant.size_id,
-                    inventory_quantity: variant.inventory_quantity,
-                    is_default: variant.is_default,
-                    metadata: variant.metadata || {},
-                    created_at: new Date(),
-                    updated_at: new Date(),
-                };
-
-                const newVariant = await tx.product_variants.create({
-                    data: variantAttributes,
-                });
-
-                // Metals
-                await tx.product_variant_metals.createMany({
-                    data: variant.product_variant_metals.map((m) => ({
-                        product_variant_id: newVariant.id,
-                        metal_id: m.metal_id,
-                        metal_purity_id: m.metal_purity_id,
-                        metal_tone_id: m.metal_tone_id,
-                        metal_weight: m.metal_weight,
-                        metadata: m.metadata || {},
-                        display_order: m.display_order,
-                        created_at: new Date(),
-                        updated_at: new Date(),
-                    })),
-                });
-
-                // Diamonds
-                await tx.product_variant_diamonds.createMany({
-                    data: variant.product_variant_diamonds.map((d) => ({
-                        product_variant_id: newVariant.id,
-                        diamond_id: d.diamond_id,
-                        diamonds_count: d.diamonds_count,
-                        metadata: d.metadata || {},
-                        display_order: d.display_order,
-                        created_at: new Date(),
-                        updated_at: new Date(),
-                    })),
-                });
-            }
-
-            // Duplicate media records (files remain the same)
-            await tx.product_medias.createMany({
-                data: product.product_medias.map((m) => ({
-                    product_id: replica.id,
-                    type: m.type,
-                    url: m.url,
-                    display_order: m.display_order,
-                    metadata: m.metadata || {},
-                    created_at: new Date(),
-                    updated_at: new Date(),
-                })),
-            });
-
-            // Catalogs
-            await tx.catalog_products.createMany({
-                data: product.catalog_products.map((cp) => ({
-                    product_id: replica.id,
-                    catalog_id: cp.catalog_id,
-                })),
-            });
-
-            return replica;
-        });
-    }
-
-    async getFormOptions() {
-        const [
-            brands,
-            categories, // Now includes sizes and styles
-            catalogs,
-            diamonds,
-            metals,
-            metalPurities,
-            metalTones,
-            sizes,
-            userGroups,
-        ] = await Promise.all([
-            this.prisma.brands.findMany({
-                where: { is_active: true },
-                orderBy: { name: 'asc' },
-            }),
-            this.prisma.categories.findMany({
-                where: { is_active: true },
-                include: {
-                    category_sizes: {
-                        include: {
-                            sizes: true,
-                        },
-                    },
-                    category_styles: {
-                        include: {
-                            styles: true,
-                        },
-                    },
-                },
-                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
-            }),
-            this.prisma.catalogs.findMany({
-                where: { is_active: true },
-                orderBy: { name: 'asc' },
-            }),
-            this.prisma.diamonds.findMany({
-                where: { is_active: true },
-                orderBy: { name: 'asc' },
-            }),
-            this.prisma.metals.findMany({
-                where: { is_active: true },
-                orderBy: { name: 'asc' },
-            }),
-            this.prisma.metal_purities.findMany({
-                where: { is_active: true },
-                include: { metals: true },
-                orderBy: { name: 'asc' },
-            }),
-            this.prisma.metal_tones.findMany({
-                where: { is_active: true },
-                include: { metals: true },
-                orderBy: { name: 'asc' },
-            }),
-            this.prisma.sizes.findMany({
-                where: { is_active: true },
-                orderBy: { name: 'asc' },
-            }),
-            this.prisma.user_groups.findMany({
-                where: { is_active: true },
-                orderBy: { name: 'asc' },
-            }),
-        ]);
-
-        // Separate parent categories (for variant matrix generation) with sizes and styles
-        // Filter active sizes/styles and sort them
-        const parentCategories = categories
-            .filter((cat: any) => !cat.parent_id)
-            .map((cat: any) => {
-                // Debug: Log raw category data
-                console.log(
-                    `Backend: Processing category "${cat.name}" (ID: ${Number(cat.id)})`,
-                );
-                console.log(
-                    `  - category_sizes count: ${(cat.category_sizes || []).length}`,
-                );
-                console.log(
-                    `  - category_styles count: ${(cat.category_styles || []).length}`,
-                );
-
-                // Extract sizes from category_sizes pivot table
-                // category_sizes is an array, each item has a sizes relation
-                const rawSizes = (cat.category_sizes || [])
-                    .map((cs: any) => {
-                        if (Number(cat.id) === 2) {
-                            console.log(`  - category_size entry for cat 2:`, {
-                                id: cs.id,
-                                size_id: cs.size_id,
-                                sizes: cs.sizes,
-                                sizes_is_active: cs.sizes?.is_active,
-                                sizes_name: cs.sizes?.name,
-                            });
-                        }
-                        if (!cs.sizes) {
-                            console.warn(
-                                `Category ${cat.id}: category_size ${cs.id} has no sizes relation!`,
-                            );
-                            return null;
-                        }
-                        return cs.sizes;
-                    })
-                    .filter((s: any) => {
-                        if (s === null || s === undefined) {
-                            if (Number(cat.id) === 2) {
-                                console.log(
-                                    `  - Filtered out null/undefined size`,
-                                );
-                            }
-                            return false;
-                        }
-                        // Temporarily include all sizes to debug - remove is_active check
-                        const isActive = s.is_active === true;
-                        if (!isActive) {
-                            if (Number(cat.id) === 2) {
-                                console.log(`  - Size is inactive:`, {
-                                    id: s.id,
-                                    name: s.name,
-                                    is_active: s.is_active,
-                                });
-                            }
-                            // Still include inactive for now to see if that's the issue
-                            // return false;
-                        }
-                        return true; // Include all sizes for debugging
-                    });
-
-                console.log(`  - Raw sizes after filter: ${rawSizes.length}`);
-
-                const sizes = rawSizes
-                    .sort((a: any, b: any) =>
-                        (a.name || '').localeCompare(b.name || ''),
-                    )
-                    .map((s: any) => ({
-                        id: Number(s.id),
-                        name: s.name,
-                        value: s.value || s.name,
-                    }));
-
-                // Extract styles from category_styles pivot table
-                // category_styles is an array, each item has a styles relation
-                const rawStyles = (cat.category_styles || [])
-                    .map((cs: any) => {
-                        if (Number(cat.id) === 2) {
-                            console.log(`  - category_style entry for cat 2:`, {
-                                id: cs.id,
-                                style_id: cs.style_id,
-                                styles: cs.styles,
-                                styles_is_active: cs.styles?.is_active,
-                                styles_name: cs.styles?.name,
-                            });
-                        }
-                        if (!cs.styles) {
-                            console.warn(
-                                `Category ${cat.id}: category_style ${cs.id} has no styles relation!`,
-                            );
-                            return null;
-                        }
-                        return cs.styles;
-                    })
-                    .filter((s: any) => {
-                        if (s === null || s === undefined) {
-                            if (Number(cat.id) === 2) {
-                                console.log(
-                                    `  - Filtered out null/undefined style`,
-                                );
-                            }
-                            return false;
-                        }
-                        // Temporarily include all styles to debug - remove is_active check
-                        const isActive = s.is_active === true;
-                        if (!isActive) {
-                            if (Number(cat.id) === 2) {
-                                console.log(`  - Style is inactive:`, {
-                                    id: s.id,
-                                    name: s.name,
-                                    is_active: s.is_active,
-                                });
-                            }
-                            // Still include inactive for now to see if that's the issue
-                            // return false;
-                        }
-                        return true; // Include all styles for debugging
-                    });
-
-                console.log(`  - Raw styles after filter: ${rawStyles.length}`);
-
-                const styles = rawStyles
-                    .sort((a: any, b: any) => {
-                        if (a.display_order !== b.display_order) {
-                            return (
-                                (a.display_order || 0) - (b.display_order || 0)
-                            );
-                        }
-                        return (a.name || '').localeCompare(b.name || '');
-                    })
-                    .map((s: any) => ({
-                        id: Number(s.id),
-                        name: s.name,
-                    }));
-
-                // Debug: Log final result
-                console.log(
-                    `Backend: Category "${cat.name}" (ID: ${Number(cat.id)}) - Final Sizes: ${sizes.length}, Final Styles: ${styles.length}`,
-                );
-
-                return {
-                    id: Number(cat.id),
-                    name: cat.name,
-                    sizes,
-                    styles,
-                };
-            });
-
-        return {
-            brands,
-            categories: categories.map((cat: any) => ({
-                id: Number(cat.id),
-                name: cat.name,
-                parent_id: cat.parent_id ? Number(cat.parent_id) : null,
-            })),
-            parentCategories, // Include parent categories with sizes and styles for variant matrix
-            catalogs,
-            diamonds,
-            metals,
-            metalPurities,
-            metalTones,
-            sizes,
-            userGroups,
-        };
-    }
-
-    private async syncMedia(
-        productId: bigint,
-        uploads: Express.Multer.File[],
-        removedIds: number[],
-        tx: any,
-    ) {
-        if (removedIds.length > 0) {
-            const mediaToDelete = await tx.product_medias.findMany({
-                where: { id: { in: removedIds.map((id) => BigInt(id)) } },
-            });
-            for (const m of mediaToDelete) {
-                this.deleteMediaFile(m);
-            }
-            await tx.product_medias.deleteMany({
-                where: { id: { in: removedIds.map((id) => BigInt(id)) } },
-            });
-        }
-
-        if (uploads.length === 0) return;
-
-        const maxDisplayOrder = await tx.product_medias.aggregate({
-            where: { product_id: productId },
-            _max: { display_order: true },
-        });
-
-        let displayOrder = (maxDisplayOrder._max.display_order ?? -1) + 1;
-
-        for (const file of uploads) {
-            const type = file.mimetype.startsWith('video/') ? 'video' : 'image';
-            await tx.product_medias.create({
-                data: {
-                    product_id: productId,
-                    type,
-                    url: `/storage/products/${file.filename}`,
-                    display_order: displayOrder++,
-                    metadata: {
-                        original_name: file.originalname,
-                        size: file.size,
-                        mime_type: file.mimetype,
-                        storage_path: `products/${file.filename}`,
-                    },
-                    created_at: new Date(),
-                    updated_at: new Date(),
-                },
-            });
-        }
-    }
-
-    private deleteMediaFile(media: any) {
-        const storagePath = media.metadata?.storage_path;
-        if (storagePath) {
-            const fullPath = path.join(
-                process.cwd(),
-                'public/storage',
-                storagePath,
-            );
-            if (fs.existsSync(fullPath)) {
-                try {
-                    fs.unlinkSync(fullPath);
-                } catch (err) {
-                    console.error(
-                        `Failed to delete media file: ${fullPath}`,
-                        err,
+    async create(dto: CreateProductDto, mediaFiles: string[] = []) {
+        // Validate variants have at least one metal (required)
+        if (dto.variants && dto.variants.length > 0) {
+            for (const variant of dto.variants) {
+                if (!variant.metals || variant.metals.length === 0) {
+                    throw new ConflictException(
+                        `Variant "${variant.label || variant.sku || 'Unknown'}" must have at least one metal. Metals are required for all variants.`,
                     );
                 }
             }
         }
-    }
 
-    private async generateProductSku(
-        baseSku: string,
-        prisma: any,
-    ): Promise<string> {
-        let sku = baseSku;
-        let exists = true;
-        while (exists) {
-            const random = Math.random()
-                .toString(36)
-                .substring(2, 6)
-                .toUpperCase();
-            sku = `${baseSku}-${random}`;
-            const found = await prisma.products.findUnique({ where: { sku } });
-            if (!found) exists = false;
-        }
-        return sku;
-    }
-
-    private async generateVariantSku(
-        baseSku: string,
-        prisma: any,
-    ): Promise<string> {
-        let sku = baseSku;
-        let exists = true;
-        while (exists) {
-            const random = Math.random()
-                .toString(36)
-                .substring(2, 5)
-                .toUpperCase();
-            sku = `${baseSku}-${random}`;
-            const found = await prisma.product_variants.findUnique({
-                where: { sku },
+        // Use transaction to ensure atomicity
+        return await this.prisma.$transaction(async (tx) => {
+            // Check if SKU already exists
+            const existingBySku = await tx.products.findUnique({
+                where: { sku: dto.sku },
             });
-            if (!found) exists = false;
-        }
-        return sku;
+
+            if (existingBySku) {
+                throw new ConflictException(
+                    'Product with this SKU already exists',
+                );
+            }
+
+            // Validate brand and category exist
+            const [brand, category] = await Promise.all([
+                tx.brands.findUnique({
+                    where: { id: BigInt(dto.brand_id) },
+                }),
+                tx.categories.findUnique({
+                    where: { id: BigInt(dto.category_id) },
+                }),
+            ]);
+
+            if (!brand) {
+                throw new NotFoundException('Brand not found');
+            }
+
+            if (!category) {
+                throw new NotFoundException('Category not found');
+            }
+
+            // Create product with nested relations
+            // Note: product_medias, product_variants, product_variant_metals, and product_variant_diamonds
+            // are stored in separate tables with foreign keys to products/product_variants
+            // Prisma's nested create automatically creates records in these related tables
+            const product = await tx.products.create({
+                data: {
+                    // Product table fields
+                    name: dto.name,
+                    sku: dto.sku,
+                    titleline: dto.titleline,
+                    brand_id: BigInt(dto.brand_id),
+                    category_id: BigInt(dto.category_id),
+                    subcategory_ids: dto.subcategory_ids || [],
+                    style_ids:
+                        dto.style_ids && dto.style_ids.length > 0
+                            ? (dto.style_ids as Prisma.InputJsonValue)
+                            : Prisma.JsonNull,
+                    description: dto.description,
+                    collection: dto.collection,
+                    producttype: dto.producttype,
+                    gender: dto.gender,
+                    making_charge_amount: dto.making_charge_amount
+                        ? dto.making_charge_amount
+                        : null,
+                    making_charge_percentage: dto.making_charge_percentage
+                        ? dto.making_charge_percentage
+                        : null,
+                    is_active: dto.is_active ?? true,
+                    metadata: (dto.metadata || {}) as Prisma.InputJsonValue,
+                    // Connect catalogs (many-to-many relationship)
+                    catalog_products:
+                        dto.catalog_ids && dto.catalog_ids.length > 0
+                            ? {
+                                  create: dto.catalog_ids.map((catalogId) => ({
+                                      catalog_id: BigInt(catalogId),
+                                  })),
+                              }
+                            : undefined,
+                    // Create records in product_medias table (separate table)
+                    // Merge uploaded files with DTO media
+                    product_medias: this.buildMediaData(dto.media, mediaFiles),
+                    // Create records in product_variants table (separate table)
+                    product_variants: dto.variants
+                        ? {
+                              create: dto.variants.map((variant) => ({
+                                  sku: variant.sku,
+                                  label: variant.label,
+                                  size_id: variant.size_id
+                                      ? BigInt(variant.size_id)
+                                      : null,
+                                  inventory_quantity:
+                                      variant.inventory_quantity,
+                                  is_default: variant.is_default ?? false,
+                                  metadata: (variant.metadata ||
+                                      {}) as Prisma.InputJsonValue,
+                                  // Create records in product_variant_metals table (separate table)
+                                  product_variant_metals: variant.metals
+                                      ? {
+                                            create: variant.metals.map(
+                                                (metal, metalIndex) => ({
+                                                    metal_id: BigInt(
+                                                        metal.metal_id,
+                                                    ),
+                                                    metal_purity_id:
+                                                        metal.metal_purity_id
+                                                            ? BigInt(
+                                                                  metal.metal_purity_id,
+                                                              )
+                                                            : null,
+                                                    metal_tone_id:
+                                                        metal.metal_tone_id
+                                                            ? BigInt(
+                                                                  metal.metal_tone_id,
+                                                              )
+                                                            : null,
+                                                    metal_weight:
+                                                        metal.metal_weight,
+                                                    metadata: (metal.metadata ||
+                                                        {}) as Prisma.InputJsonValue,
+                                                    display_order: metalIndex,
+                                                }),
+                                            ),
+                                        }
+                                      : undefined,
+                                  // Create records in product_variant_diamonds table (separate table)
+                                  product_variant_diamonds: variant.diamonds
+                                      ? {
+                                            create: variant.diamonds.map(
+                                                (diamond, diamondIndex) => ({
+                                                    diamond_id:
+                                                        diamond.diamond_id
+                                                            ? BigInt(
+                                                                  diamond.diamond_id,
+                                                              )
+                                                            : null,
+                                                    diamonds_count:
+                                                        diamond.diamonds_count,
+                                                    metadata:
+                                                        (diamond.metadata ||
+                                                            {}) as Prisma.InputJsonValue,
+                                                    display_order: diamondIndex,
+                                                }),
+                                            ),
+                                        }
+                                      : undefined,
+                              })),
+                          }
+                        : undefined,
+                },
+                include: {
+                    product_medias: {
+                        orderBy: { display_order: 'asc' },
+                    },
+                    catalog_products: {
+                        include: {
+                            catalogs: true,
+                        },
+                    },
+                    product_variants: {
+                        include: {
+                            product_variant_metals: {
+                                include: {
+                                    metals: true,
+                                    metal_purities: true,
+                                    metal_tones: true,
+                                },
+                                orderBy: { display_order: 'asc' },
+                            },
+                            product_variant_diamonds: {
+                                include: {
+                                    diamonds: true,
+                                },
+                                orderBy: { display_order: 'asc' },
+                            },
+                        },
+                    },
+                },
+            });
+
+            return {
+                success: true,
+                message: 'Product created successfully',
+                data: this.formatProductResponse(product),
+            };
+        });
     }
 
-    private formatProductForEdit(product: any) {
-        const metadata = product.metadata || {};
+    async update(id: number, dto: UpdateProductDto, mediaFiles: string[] = []) {
+        const product = await this.prisma.products.findUnique({
+            where: { id: BigInt(id) },
+        });
 
-        // Format category with sizes
-        const category = product.categories
-            ? {
-                  id: Number(product.categories.id),
-                  name: product.categories.name,
-                  sizes:
-                      product.categories.category_sizes?.map((cs: any) => ({
-                          id: Number(cs.sizes.id),
-                          name: cs.sizes.name,
-                          value: cs.sizes.value || cs.sizes.name,
-                      })) || [],
-              }
-            : null;
+        if (!product) {
+            throw new NotFoundException('Product not found');
+        }
+
+        // Check SKU uniqueness if being updated
+        if (dto.sku && dto.sku !== product.sku) {
+            const existing = await this.prisma.products.findUnique({
+                where: { sku: dto.sku },
+            });
+            if (existing) {
+                throw new ConflictException(
+                    'Product with this SKU already exists',
+                );
+            }
+        }
+
+        // Validate brand and category if being updated
+        if (dto.brand_id) {
+            const brand = await this.prisma.brands.findUnique({
+                where: { id: BigInt(dto.brand_id) },
+            });
+            if (!brand) {
+                throw new NotFoundException('Brand not found');
+            }
+        }
+
+        if (dto.category_id) {
+            const category = await this.prisma.categories.findUnique({
+                where: { id: BigInt(dto.category_id) },
+            });
+            if (!category) {
+                throw new NotFoundException('Category not found');
+            }
+        }
+
+        // Prepare update data
+        const updateData: {
+            name?: string;
+            sku?: string;
+            titleline?: string | null;
+            description?: string | null;
+            collection?: string | null;
+            producttype?: string | null;
+            gender?: string | null;
+            making_charge_amount?: number | null;
+            making_charge_percentage?: number | null;
+            is_active?: boolean;
+            metadata?: any;
+            brand_id?: bigint;
+            category_id?: bigint;
+            subcategory_ids?: number[];
+            style_ids?: any;
+            product_medias?: any;
+            product_variants?: any;
+        } = {};
+
+        if (dto.name !== undefined) updateData.name = dto.name;
+        if (dto.sku !== undefined) updateData.sku = dto.sku;
+        if (dto.titleline !== undefined) updateData.titleline = dto.titleline;
+        if (dto.description !== undefined)
+            updateData.description = dto.description;
+        if (dto.collection !== undefined)
+            updateData.collection = dto.collection;
+        if (dto.producttype !== undefined)
+            updateData.producttype = dto.producttype;
+        if (dto.gender !== undefined) updateData.gender = dto.gender;
+        if (dto.making_charge_amount !== undefined)
+            updateData.making_charge_amount = dto.making_charge_amount;
+        if (dto.making_charge_percentage !== undefined)
+            updateData.making_charge_percentage = dto.making_charge_percentage;
+        if (dto.is_active !== undefined) updateData.is_active = dto.is_active;
+        if (dto.metadata !== undefined)
+            updateData.metadata = dto.metadata as Prisma.InputJsonValue;
+
+        if (dto.brand_id !== undefined) {
+            updateData.brand_id = BigInt(dto.brand_id);
+        }
+
+        if (dto.category_id !== undefined) {
+            updateData.category_id = BigInt(dto.category_id);
+        }
+
+        if (dto.subcategory_ids !== undefined) {
+            updateData.subcategory_ids = dto.subcategory_ids;
+        }
+
+        if (dto.style_ids !== undefined) {
+            updateData.style_ids =
+                dto.style_ids && dto.style_ids.length > 0
+                    ? (dto.style_ids as Prisma.InputJsonValue)
+                    : Prisma.JsonNull;
+        }
+
+        // Handle catalog updates (delete all and recreate)
+        // Note: catalog_products is a many-to-many relationship, handle separately
+        let catalogIdsToConnect: bigint[] = [];
+        if (dto.catalog_ids !== undefined) {
+            await this.prisma.catalog_products.deleteMany({
+                where: { product_id: BigInt(id) },
+            });
+            if (dto.catalog_ids && dto.catalog_ids.length > 0) {
+                catalogIdsToConnect = dto.catalog_ids.map((id) => BigInt(id));
+            }
+        }
+
+        // Handle media updates (delete all and recreate)
+        // Note: product_medias is a separate table, so we delete existing records and create new ones
+        if (dto.media !== undefined || mediaFiles.length > 0) {
+            await this.prisma.product_medias.deleteMany({
+                where: { product_id: BigInt(id) },
+            });
+            const mediaData = this.buildMediaData(dto.media, mediaFiles);
+            if (mediaData) {
+                updateData.product_medias = mediaData;
+            }
+        }
+
+        // Handle variants updates (delete all and recreate)
+        // Note: product_variants, product_variant_metals, and product_variant_diamonds
+        // are separate tables, so we delete existing records and create new ones
+        if (dto.variants !== undefined) {
+            // First, get all variant IDs to delete related metals and diamonds
+            const variants = await this.prisma.product_variants.findMany({
+                where: { product_id: BigInt(id) },
+                select: { id: true },
+            });
+
+            const variantIds = variants.map((v) => v.id);
+
+            // Delete records from product_variant_metals and product_variant_diamonds tables
+            if (variantIds.length > 0) {
+                await Promise.all([
+                    this.prisma.product_variant_metals.deleteMany({
+                        where: { product_variant_id: { in: variantIds } },
+                    }),
+                    this.prisma.product_variant_diamonds.deleteMany({
+                        where: { product_variant_id: { in: variantIds } },
+                    }),
+                ]);
+            }
+
+            // Delete records from product_variants table
+            await this.prisma.product_variants.deleteMany({
+                where: { product_id: BigInt(id) },
+            });
+
+            if (dto.variants && dto.variants.length > 0) {
+                updateData.product_variants = {
+                    create: dto.variants.map((variant) => ({
+                        sku: variant.sku,
+                        label: variant.label,
+                        size_id: variant.size_id
+                            ? BigInt(variant.size_id)
+                            : null,
+                        inventory_quantity: variant.inventory_quantity,
+                        is_default: variant.is_default ?? false,
+                        metadata: (variant.metadata ||
+                            {}) as Prisma.InputJsonValue,
+                        product_variant_metals: variant.metals
+                            ? {
+                                  create: variant.metals.map((metal) => ({
+                                      metal_id: BigInt(metal.metal_id),
+                                      metal_purity_id: metal.metal_purity_id
+                                          ? BigInt(metal.metal_purity_id)
+                                          : null,
+                                      metal_tone_id: metal.metal_tone_id
+                                          ? BigInt(metal.metal_tone_id)
+                                          : null,
+                                      metal_weight: metal.metal_weight,
+                                      metadata: (metal.metadata ||
+                                          {}) as Prisma.InputJsonValue,
+                                      display_order: 0,
+                                  })),
+                              }
+                            : undefined,
+                        product_variant_diamonds: variant.diamonds
+                            ? {
+                                  create: variant.diamonds.map((diamond) => ({
+                                      diamond_id: diamond.diamond_id
+                                          ? BigInt(diamond.diamond_id)
+                                          : null,
+                                      diamonds_count: diamond.diamonds_count,
+                                      metadata: (diamond.metadata ||
+                                          {}) as Prisma.InputJsonValue,
+                                      display_order: 0,
+                                  })),
+                              }
+                            : undefined,
+                    })),
+                };
+            }
+        }
+
+        const updatedProduct = await this.prisma.products.update({
+            where: { id: BigInt(id) },
+            data: updateData,
+            include: {
+                product_medias: {
+                    orderBy: { display_order: 'asc' },
+                },
+                catalog_products: {
+                    include: {
+                        catalogs: true,
+                    },
+                },
+                product_variants: {
+                    include: {
+                        product_variant_metals: {
+                            include: {
+                                metals: true,
+                                metal_purities: true,
+                                metal_tones: true,
+                            },
+                            orderBy: { display_order: 'asc' },
+                        },
+                        product_variant_diamonds: {
+                            include: {
+                                diamonds: true,
+                            },
+                            orderBy: { display_order: 'asc' },
+                        },
+                    },
+                },
+            },
+        });
+
+        // Create catalog_products records if needed
+        if (catalogIdsToConnect.length > 0) {
+            await this.prisma.catalog_products.createMany({
+                data: catalogIdsToConnect.map((catalogId) => ({
+                    product_id: BigInt(id),
+                    catalog_id: catalogId,
+                })),
+                skipDuplicates: true,
+            });
+            // Reload product with updated catalog_products
+            const reloadedProduct = await this.prisma.products.findUnique({
+                where: { id: BigInt(id) },
+                include: {
+                    product_medias: {
+                        orderBy: { display_order: 'asc' },
+                    },
+                    catalog_products: {
+                        include: {
+                            catalogs: true,
+                        },
+                    },
+                    product_variants: {
+                        include: {
+                            product_variant_metals: {
+                                include: {
+                                    metals: true,
+                                    metal_purities: true,
+                                    metal_tones: true,
+                                },
+                                orderBy: { display_order: 'asc' },
+                            },
+                            product_variant_diamonds: {
+                                include: {
+                                    diamonds: true,
+                                },
+                                orderBy: { display_order: 'asc' },
+                            },
+                        },
+                    },
+                },
+            });
+
+            return {
+                success: true,
+                message: 'Product updated successfully',
+                data: this.formatProductResponse(reloadedProduct!),
+            };
+        }
 
         return {
+            success: true,
+            message: 'Product updated successfully',
+            data: this.formatProductResponse(updatedProduct),
+        };
+    }
+
+    async remove(id: number) {
+        // Verify product exists (throws NotFoundException if not found)
+        await this.findOne(id);
+
+        // Delete related data from separate tables
+        // Note: These are separate tables with foreign keys, so we delete explicitly
+        // (Cascade delete should handle this, but we're being explicit for clarity)
+        const variants = await this.prisma.product_variants.findMany({
+            where: { product_id: BigInt(id) },
+            select: { id: true },
+        });
+
+        const variantIds = variants.map((v) => v.id);
+
+        // Delete from product_variant_metals and product_variant_diamonds tables
+        if (variantIds.length > 0) {
+            await Promise.all([
+                this.prisma.product_variant_metals.deleteMany({
+                    where: { product_variant_id: { in: variantIds } },
+                }),
+                this.prisma.product_variant_diamonds.deleteMany({
+                    where: { product_variant_id: { in: variantIds } },
+                }),
+            ]);
+        }
+
+        // Delete from product_variants table (product_medias will cascade delete)
+        // Finally delete from products table
+        await this.prisma.products.delete({
+            where: { id: BigInt(id) },
+        });
+
+        return { success: true, message: 'Product deleted successfully' };
+    }
+
+    async bulkRemove(ids: number[]) {
+        const bigIntIds = ids.map((id) => BigInt(id));
+
+        // Get all variants for these products from product_variants table
+        const variants = await this.prisma.product_variants.findMany({
+            where: { product_id: { in: bigIntIds } },
+            select: { id: true },
+        });
+
+        const variantIds = variants.map((v) => v.id);
+
+        // Delete from product_variant_metals and product_variant_diamonds tables
+        if (variantIds.length > 0) {
+            await Promise.all([
+                this.prisma.product_variant_metals.deleteMany({
+                    where: { product_variant_id: { in: variantIds } },
+                }),
+                this.prisma.product_variant_diamonds.deleteMany({
+                    where: { product_variant_id: { in: variantIds } },
+                }),
+            ]);
+        }
+
+        // Delete from products table (cascade will handle product_medias and product_variants)
+        await this.prisma.products.deleteMany({
+            where: { id: { in: bigIntIds } },
+        });
+
+        return {
+            success: true,
+            message: 'Products deleted successfully',
+        };
+    }
+
+    private buildMediaData(
+        dtoMedia?: Array<{
+            type: string;
+            url: string;
+            display_order: number;
+            metadata?: Record<string, unknown>;
+        }>,
+        uploadedFiles: string[] = [],
+    ):
+        | {
+              create: Array<{
+                  type: string;
+                  url: string;
+                  display_order: number;
+                  metadata: Prisma.InputJsonValue;
+              }>;
+          }
+        | undefined {
+        const mediaItems: Array<{
+            type: string;
+            url: string;
+            display_order: number;
+            metadata: Prisma.InputJsonValue;
+        }> = [];
+
+        // Add uploaded files first
+        uploadedFiles.forEach((filePath, index) => {
+            mediaItems.push({
+                type: 'image',
+                url: `/${filePath}`, // Add leading slash for URL
+                display_order: index,
+                metadata: {} as Prisma.InputJsonValue,
+            });
+        });
+
+        // Add DTO media (if any) after uploaded files
+        if (dtoMedia && dtoMedia.length > 0) {
+            dtoMedia.forEach((media, index) => {
+                // Skip if URL is already in uploaded files
+                if (!uploadedFiles.some((file) => media.url.includes(file))) {
+                    mediaItems.push({
+                        type: media.type || 'image',
+                        url: media.url,
+                        display_order: uploadedFiles.length + index,
+                        metadata: (media.metadata ||
+                            {}) as Prisma.InputJsonValue,
+                    });
+                }
+            });
+        }
+
+        return mediaItems.length > 0
+            ? {
+                  create: mediaItems,
+              }
+            : undefined;
+    }
+
+    private formatProductResponse(
+        product: ProductWithRelations,
+    ): ProductDetailResponseDto {
+        return {
             id: Number(product.id),
-            sku: product.sku,
             name: product.name,
+            sku: product.sku,
             titleline: product.titleline,
             brand_id: Number(product.brand_id),
             category_id: Number(product.category_id),
+            subcategory_ids: (product.subcategory_ids as number[]) || [],
+            style_ids: (product.style_ids as number[]) || [],
+            catalog_ids: product.catalog_products
+                ? product.catalog_products.map((cp) => Number(cp.catalog_id))
+                : [],
             description: product.description,
             collection: product.collection,
             producttype: product.producttype,
             gender: product.gender,
-            making_charge_amount: product.making_charge_amount,
-            making_charge_percentage: product.making_charge_percentage,
-            making_charge_types: metadata.making_charge_types || [],
+            making_charge_amount: product.making_charge_amount
+                ? Number(product.making_charge_amount)
+                : null,
+            making_charge_percentage: product.making_charge_percentage
+                ? Number(product.making_charge_percentage)
+                : null,
             is_active: product.is_active,
-            metadata: metadata,
-            style_ids: (product.style_ids || []).map((id: bigint) =>
-                Number(id),
-            ),
-            category_ids: (product.subcategory_ids || []).map((id: bigint) =>
-                Number(id),
-            ),
-            catalog_ids: product.catalog_products.map((cp: any) =>
-                Number(cp.catalog_id),
-            ),
-            category: category,
-            media: product.product_medias.map((m: any) => ({
-                id: Number(m.id),
-                type: m.type,
-                url: m.url,
-                display_order: m.display_order,
-                metadata: m.metadata || {},
+            metadata: (product.metadata as Record<string, unknown>) || {},
+            media: product.product_medias.map((media) => ({
+                id: Number(media.id),
+                type: media.type,
+                url: media.url,
+                display_order: media.display_order,
+                metadata: (media.metadata as Record<string, unknown>) || {},
             })),
-            variants: product.product_variants.map((v: any) => ({
-                id: Number(v.id),
-                sku: v.sku,
-                label: v.label,
-                size_id: v.size_id ? Number(v.size_id) : null,
-                inventory_quantity: v.inventory_quantity
-                    ? Number(v.inventory_quantity)
-                    : 0,
-                is_default: v.is_default,
-                metadata: v.metadata || {},
-                metals: v.product_variant_metals.map((m: any) => ({
-                    id: Number(m.id),
-                    metal_id: Number(m.metal_id),
-                    metal_purity_id: m.metal_purity_id
-                        ? Number(m.metal_purity_id)
+            variants: product.product_variants.map((variant) => ({
+                id: Number(variant.id),
+                sku: variant.sku,
+                label: variant.label,
+                size_id: variant.size_id ? Number(variant.size_id) : null,
+                inventory_quantity: variant.inventory_quantity,
+                is_default: variant.is_default,
+                metadata: (variant.metadata as Record<string, unknown>) || {},
+                metals: variant.product_variant_metals.map((metal) => ({
+                    id: Number(metal.id),
+                    metal_id: Number(metal.metal_id),
+                    metal_purity_id: metal.metal_purity_id
+                        ? Number(metal.metal_purity_id)
                         : null,
-                    metal_tone_id: m.metal_tone_id
-                        ? Number(m.metal_tone_id)
+                    metal_tone_id: metal.metal_tone_id
+                        ? Number(metal.metal_tone_id)
                         : null,
-                    metal_weight: m.metal_weight ? Number(m.metal_weight) : 0,
-                    metadata: m.metadata || {},
-                    metal: m.metals
-                        ? {
-                              id: Number(m.metals.id),
-                              name: m.metals.name,
-                          }
-                        : null,
-                    metal_purity: m.metal_purities
-                        ? {
-                              id: Number(m.metal_purities.id),
-                              name: m.metal_purities.name,
-                          }
-                        : null,
-                    metal_tone: m.metal_tones
-                        ? {
-                              id: Number(m.metal_tones.id),
-                              name: m.metal_tones.name,
-                          }
-                        : null,
+                    metal_weight: Number(metal.metal_weight),
+                    metadata: (metal.metadata as Record<string, unknown>) || {},
                 })),
-                diamonds: v.product_variant_diamonds.map((d: any) => ({
-                    id: Number(d.id),
-                    diamond_id: d.diamond_id ? Number(d.diamond_id) : null,
-                    diamonds_count: d.diamonds_count
-                        ? Number(d.diamonds_count)
-                        : 0,
-                    metadata: d.metadata || {},
-                    diamond: d.diamonds
-                        ? {
-                              id: Number(d.diamonds.id),
-                              name: d.diamonds.name,
-                          }
+                diamonds: variant.product_variant_diamonds.map((diamond) => ({
+                    id: Number(diamond.id),
+                    diamond_id: diamond.diamond_id
+                        ? Number(diamond.diamond_id)
                         : null,
+                    diamonds_count: diamond.diamonds_count ?? 0,
+                    metadata:
+                        (diamond.metadata as Record<string, unknown>) || {},
                 })),
-                size: v.sizes
-                    ? {
-                          id: Number(v.sizes.id),
-                          name: v.sizes.name,
-                          value: v.sizes.value || v.sizes.name,
-                      }
-                    : null,
             })),
         };
     }
