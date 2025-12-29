@@ -1115,78 +1115,73 @@ export default function AdminProductEdit() {
                 const sizesData = options.sizes || [];
                 setSizes(sizesData.map((s: any) => ({ id: Number(s.id), name: s.name || '' })));
                 
-                // Fetch category-sizes relationships for each parent category
-                // Since NestJS backend doesn't include sizes in parentCategories, we need to fetch them
-                try {
-                    const categorySizesAndStylesPromises = mappedParentCategories.map(async (cat: { id: number; name: string; sizes: Array<{ id: number; name: string; value?: string }>; styles: Array<{ id: number; name: string }> }) => {
-                        try {
-                            // Try to get category with sizes and styles from a separate endpoint
-                            const categoryResponse = await adminService.getCategory(cat.id);
-                            const categoryData = categoryResponse.data;
+                // Optimize: Fetch all categories at once using getCategories API instead of individual getCategory calls
+                // Check which categories need sizes/styles
+                const categoriesNeedingDetails = mappedParentCategories.filter((cat: { id: number; name: string; sizes: Array<{ id: number; name: string; value?: string }>; styles: Array<{ id: number; name: string }> }) => 
+                    (!cat.sizes || cat.sizes.length === 0) || (!cat.styles || cat.styles.length === 0)
+                );
+                
+                // If we have categories that need details, fetch all categories at once
+                if (categoriesNeedingDetails.length > 0) {
+                    try {
+                        // Fetch all categories with a high limit - this includes sizes and styles for each category
+                        const allCategoriesResponse = await adminService.getCategories(1, 1000);
+                        const allCategoriesItems = allCategoriesResponse.data?.data?.items || allCategoriesResponse.data?.items || [];
+                        
+                        // Create a map of category ID to category data with sizes/styles from the response
+                        const categoryDetailsMap = new Map<number, { sizes: Array<{ id: number; name: string; value?: string }>; styles: Array<{ id: number; name: string }> }>();
+                        
+                        // Extract sizes and styles from the getCategories response
+                        allCategoriesItems.forEach((categoryItem: any) => {
+                            const categoryId = Number(categoryItem.id);
                             
-                            // Check if sizes are in the response
+                            // Extract sizes
                             let categorySizes: Array<{ id: number; name: string; value?: string }> = [];
-                            
-                            if (categoryData?.sizes && Array.isArray(categoryData.sizes)) {
-                                categorySizes = categoryData.sizes.map((s: { id: number | string; name?: string; value?: string }) => ({
+                            if (categoryItem?.sizes && Array.isArray(categoryItem.sizes)) {
+                                categorySizes = categoryItem.sizes.map((s: { id: number | string; name?: string; value?: string }) => ({
                                     id: typeof s.id === 'number' ? s.id : Number(s.id),
                                     name: s.name || s.value || '',
                                     value: s.value || s.name || '',
                                 }));
-                            } else if (categoryData?.category_sizes && Array.isArray(categoryData.category_sizes)) {
-                                // Handle nested category_sizes relationship
-                                categorySizes = categoryData.category_sizes
-                                    .map((cs: { size?: { id: number | string; name?: string; value?: string }; sizes?: { id: number | string; name?: string; value?: string } }) => {
-                                        const size = cs.size || cs.sizes;
-                                        if (size) {
-                                            return {
-                                                id: typeof size.id === 'number' ? size.id : Number(size.id),
-                                                name: size.name || size.value || '',
-                                                value: size.value || size.name || '',
-                                            };
-                                        }
-                                        return null;
-                                    })
-                                    .filter((s: { id: number; name: string; value?: string } | null): s is { id: number; name: string; value?: string } => s !== null);
                             }
                             
-                            // Check if styles are in the response
+                            // Extract styles
                             let categoryStyles: Array<{ id: number; name: string }> = [];
-                            
-                            if (categoryData?.styles && Array.isArray(categoryData.styles)) {
-                                categoryStyles = categoryData.styles.map((s: { id: number | string; name?: string }) => ({
+                            if (categoryItem?.styles && Array.isArray(categoryItem.styles)) {
+                                categoryStyles = categoryItem.styles.map((s: { id: number | string; name?: string }) => ({
                                     id: typeof s.id === 'number' ? s.id : Number(s.id),
                                     name: s.name || '',
                                 }));
-                            } else if (categoryData?.category_styles && Array.isArray(categoryData.category_styles)) {
-                                // Handle nested category_styles relationship
-                                categoryStyles = categoryData.category_styles
-                                    .map((cs: { style?: { id: number | string; name?: string }; styles?: { id: number | string; name?: string } }) => {
-                                        const style = cs.style || cs.styles;
-                                        if (style) {
-                                            return {
-                                                id: typeof style.id === 'number' ? style.id : Number(style.id),
-                                                name: style.name || '',
-                                            };
-                                        }
-                                        return null;
-                                    })
-                                    .filter((s: { id: number; name: string } | null): s is { id: number; name: string } => s !== null);
                             }
                             
-                            return { ...cat, sizes: categorySizes, styles: categoryStyles };
-                        } catch (error) {
-                            console.error(`Failed to fetch sizes/styles for category ${cat.id}:`, error);
-                            return cat; // Return category without sizes/styles if fetch fails
-                        }
-                    });
-                    
-                    const categoriesWithSizesAndStyles = await Promise.all(categorySizesAndStylesPromises);
-                    setParentCategories(categoriesWithSizesAndStyles);
-                    console.log('Updated parentCategories with sizes and styles from API:', categoriesWithSizesAndStyles);
-                } catch (error) {
-                    console.error('Failed to fetch category sizes:', error);
-                    // Continue with categories without sizes if fetch fails
+                            if (categorySizes.length > 0 || categoryStyles.length > 0) {
+                                categoryDetailsMap.set(categoryId, { sizes: categorySizes, styles: categoryStyles });
+                            }
+                        });
+                        
+                        // Update parentCategories with fetched sizes/styles from the single API call
+                        const updatedParentCategories = mappedParentCategories.map((cat: { id: number; name: string; sizes: Array<{ id: number; name: string; value?: string }>; styles: Array<{ id: number; name: string }> }) => {
+                            const details = categoryDetailsMap.get(cat.id);
+                            if (details) {
+                                return {
+                                    ...cat,
+                                    sizes: details.sizes.length > 0 ? details.sizes : cat.sizes,
+                                    styles: details.styles.length > 0 ? details.styles : cat.styles,
+                                };
+                            }
+                            return cat;
+                        });
+                        
+                        setParentCategories(updatedParentCategories);
+                        console.log('Updated parentCategories with sizes and styles from single getCategories API call:', updatedParentCategories);
+                    } catch (error) {
+                        console.error('Failed to fetch category sizes/styles:', error);
+                        // Continue with categories without sizes if fetch fails
+                        setParentCategories(mappedParentCategories);
+                    }
+                } else {
+                    // All categories already have sizes/styles, no need to fetch
+                    setParentCategories(mappedParentCategories);
                 }
                 
                 // Load product if editing
