@@ -3,7 +3,6 @@ import {
     Get,
     Post,
     Body,
-    Put,
     Param,
     Delete,
     Query,
@@ -11,7 +10,7 @@ import {
     ParseIntPipe,
     Request,
 } from '@nestjs/common';
-import { QuotationsService } from '../../quotations/quotations.service';
+import { QuotationsService } from './quotations.service';
 import {
     QuotationFilterDto,
     ApproveQuotationDto,
@@ -30,12 +29,12 @@ export class AdminQuotationsController {
 
     @Get()
     findAll(@Query() filters: QuotationFilterDto) {
-        return this.quotationsService.findAllAdmin(filters);
+        return this.quotationsService.findAll(filters);
     }
 
     @Get(':id')
     findOne(@Param('id', ParseIntPipe) id: number) {
-        return this.quotationsService.findOneAdmin(id);
+        return this.quotationsService.findOne(id);
     }
 
     @Post(':id/approve')
@@ -58,13 +57,12 @@ export class AdminQuotationsController {
     message(
         @Param('id', ParseIntPipe) id: number,
         @Body() dto: StoreQuotationMessageDto,
-        @Request() req,
+        @Request() req: { user: { userId: string | number } },
     ) {
         return this.quotationsService.addMessage(
             id,
             dto.message,
-            BigInt(req.user.userId),
-            'admin',
+            BigInt(req.user?.userId || 0),
         );
     }
 
@@ -81,7 +79,7 @@ export class AdminQuotationsController {
         @Param('id', ParseIntPipe) id: number,
         @Body() dto: AddQuotationItemDto,
     ) {
-        return this.quotationsService.addItemAdmin(id, dto);
+        return this.quotationsService.addItem(id, dto);
     }
 
     @Post(':id/update-product')
@@ -89,7 +87,7 @@ export class AdminQuotationsController {
         @Param('id', ParseIntPipe) id: number,
         @Body() dto: UpdateQuotationProductDto,
     ) {
-        return this.quotationsService.updateProductAdmin(id, dto);
+        return this.quotationsService.updateProduct(id, dto);
     }
 
     @Delete(':id')
