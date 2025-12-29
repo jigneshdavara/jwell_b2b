@@ -3093,7 +3093,25 @@ export default function AdminProductEdit() {
                 // Update existing product
                 await adminService.updateProduct(product.id, formData);
                 alert('Product updated successfully!');
-                router.push(`/admin/products/${product.id}/edit`);
+                
+                // Refresh the page data to show updated product (including removed images)
+                router.refresh();
+                
+                // Also manually reload product data to ensure UI updates immediately
+                try {
+                    const productResponse = await adminService.getProduct(product.id);
+                    const productData = productResponse.data;
+                    setProduct(productData);
+                    
+                    // Clear removed media IDs from form state since they've been processed
+                    setDataField('removed_media_ids', []);
+                    // Clear media uploads from form state since they've been processed
+                    setDataField('media_uploads', []);
+                } catch (reloadError) {
+                    console.error('Failed to reload product after update:', reloadError);
+                    // If manual reload fails, still refresh the router
+                    router.push(`/admin/products/${product.id}/edit`);
+                }
             } else {
                 // Create new product
                 const response = await adminService.createProduct(formData);
