@@ -496,17 +496,6 @@ export class CreateProductDto {
 
 // Update Product DTO
 export class UpdateProductDto {
-    @IsInt()
-    @IsOptional()
-    @Transform(({ value }) => {
-        if (value === '' || value === null || value === undefined) {
-            return undefined;
-        }
-        const parsed = parseInt(value, 10);
-        return isNaN(parsed) ? undefined : parsed;
-    })
-    id?: number;
-
     @IsString()
     @IsOptional()
     @MaxLength(191)
@@ -634,6 +623,18 @@ export class UpdateProductDto {
     @Type(() => UpdateProductMediaDto)
     @IsOptional()
     media?: UpdateProductMediaDto[];
+
+    @IsArray()
+    @IsInt({ each: true })
+    @IsOptional()
+    @Transform(({ value }) => {
+        if (!value) return undefined;
+        if (Array.isArray(value)) {
+            return value.map((v) => parseInt(v));
+        }
+        return [parseInt(value)];
+    })
+    removed_media_ids?: number[];
 
     @IsOptional()
     @IsArray()

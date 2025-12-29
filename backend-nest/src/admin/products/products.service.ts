@@ -10,6 +10,8 @@ import {
     ProductDetailResponseDto,
 } from './dto/product.dto';
 import { Prisma } from '@prisma/client';
+import { unlink } from 'fs/promises';
+import { join } from 'path';
 
 // Type for product with all relations included
 type ProductWithRelations = Prisma.productsGetPayload<{
@@ -560,6 +562,54 @@ export class ProductsService {
             if (dto.catalog_ids && dto.catalog_ids.length > 0) {
                 catalogIdsToConnect = dto.catalog_ids.map((id) => BigInt(id));
             }
+        }
+
+        // Handle removed media IDs - delete from database and storage
+        if (dto.removed_media_ids && dto.removed_media_ids.length > 0) {
+            const mediaToRemove = await this.prisma.product_medias.findMany({
+                where: {
+                    id: {
+                        in: dto.removed_media_ids.map((id) => BigInt(id)),
+                    },
+                    product_id: BigInt(id), // Ensure media belongs to this product
+                },
+            });
+
+            // Delete files from storage
+            for (const media of mediaToRemove) {
+                if (media.url) {
+                    try {
+                        // URL format: storage/products/filename or /storage/products/filename
+                        const filePath = media.url.startsWith('/')
+                            ? media.url.substring(1)
+                            : media.url;
+                        const fullPath = join(
+                            process.cwd(),
+                            'public',
+                            filePath,
+                        );
+                        await unlink(fullPath).catch(() => {
+                            // Ignore errors if file doesn't exist
+                        });
+                    } catch (error) {
+                        // Log error but continue with deletion
+                        console.error(
+                            `Failed to delete media file: ${media.url}`,
+                            error,
+                        );
+                    }
+                }
+            }
+
+            // Delete from database
+            await this.prisma.product_medias.deleteMany({
+                where: {
+                    id: {
+                        in: dto.removed_media_ids.map((id) => BigInt(id)),
+                    },
+                    product_id: BigInt(id),
+                },
+            });
         }
 
         // Handle media updates (delete all and recreate)
