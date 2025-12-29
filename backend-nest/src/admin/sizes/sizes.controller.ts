@@ -22,10 +22,10 @@ export class SizesController {
 
     @Get()
     findAll(
-        @Query('page') page: string = '1',
-        @Query('per_page') perPage: string = '10',
+        @Query('page') page: number = 1,
+        @Query('per_page') perPage: number = 10,
     ) {
-        return this.sizesService.findAll(+page, +perPage);
+        return this.sizesService.findAll(page, perPage);
     }
 
     @Get(':id')
