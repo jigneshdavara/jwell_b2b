@@ -7,6 +7,7 @@ import CustomerHeader from '@/components/shared/CustomerHeader';
 import CustomerFooter from '@/components/shared/CustomerFooter';
 import { route } from '@/utils/route';
 import { homeService } from '@/services/homeService';
+import { authService } from '@/services/authService';
 import { formatCurrency, formatNumber, prettifyKey } from '@/utils/formatting';
 import type { HomePageProps } from '@/types';
 
@@ -57,12 +58,12 @@ export default function HomeIndex() {
             return tokenService.hasToken();
         };
 
-        // If authenticated, redirect immediately (like Laravel)
+        // If authenticated, check user type and redirect to appropriate dashboard
         // Use a small delay to prevent redirect loop if user just logged out
-        checkAuth().then((isAuth) => {
+        checkAuth().then(async (isAuth) => {
             if (isAuth && !redirecting) {
                 // Small delay to ensure logout redirect completes first
-                setTimeout(() => {
+                setTimeout(async () => {
                     // Double-check token still exists and we're not logging out
                     if (typeof window === 'undefined') return;
                     
@@ -74,8 +75,28 @@ export default function HomeIndex() {
                     // 2. Not already redirecting
                     // 3. Not in the middle of logout
                     if (tokenService.hasToken() && !redirecting && !stillLoggingOut) {
-                        setRedirecting(true);
-                        router.push(route('dashboard'));
+                        try {
+                            // Fetch user data to determine user type
+                            const userResponse = await authService.me();
+                            const user = userResponse.data;
+                            const userType = (user?.type || '').toLowerCase();
+                            
+                            setRedirecting(true);
+                            
+                            // Redirect based on user type
+                            if (['admin', 'super-admin'].includes(userType)) {
+                                router.push(route('admin.dashboard'));
+                            } else if (userType === 'production') {
+                                router.push(route('production.dashboard'));
+                            } else {
+                                // Customer (retailer, wholesaler, sales) or default
+                                router.push(route('dashboard'));
+                            }
+                        } catch (error) {
+                            // If fetching user fails, redirect to login
+                            console.error('Failed to fetch user data:', error);
+                            router.push(route('login'));
+                        }
                     }
                 }, 300);
             }
