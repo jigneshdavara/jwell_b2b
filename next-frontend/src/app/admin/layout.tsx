@@ -12,6 +12,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Initialize with only the active group open (accordion behavior)
   const getInitialOpenGroups = () => {
@@ -51,6 +52,23 @@ export default function AdminLayout({
     setOpenNavGroups(newState);
   }, [pathname]);
 
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  // Prevent body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen]);
+
   const isMatch = (pattern: string) => {
     if (pattern.endsWith("*")) {
       return pathname.startsWith(pattern.slice(0, -1));
@@ -58,20 +76,67 @@ export default function AdminLayout({
     return pathname === pattern;
   };
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+  };
+
   return (
     <div className="flex min-h-screen bg-slate-100">
-      <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-slate-200 bg-white/95 px-4 py-6 shadow-lg shadow-slate-900/5 lg:flex">
-        <div className="flex items-center gap-3 px-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
-            EL
+      {/* Overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
+          onClick={closeSidebar}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 flex-shrink-0 flex-col border-r border-slate-200 bg-white/95 px-3 py-4 shadow-xl shadow-slate-900/10 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:px-4 lg:py-6 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Mobile close button */}
+        <div className="mb-4 flex items-center justify-between lg:mb-0">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-xs font-semibold text-white sm:h-10 sm:w-10 sm:text-sm">
+              EL
+            </div>
+            <div className="hidden sm:block">
+              <p className="text-xs font-semibold text-slate-900 sm:text-sm">Elvee Admin</p>
+              <p className="text-[10px] text-slate-400 sm:text-xs">Production & Retail Ops</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Elvee Admin</p>
-            <p className="text-xs text-slate-400">Production & Retail Ops</p>
-          </div>
+          <button
+            onClick={closeSidebar}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 lg:hidden"
+            aria-label="Close menu"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        <nav className="mt-8 space-y-3 text-sm">
+        {/* Mobile logo text (shown when sidebar is collapsed on mobile) */}
+        <div className="mb-4 sm:hidden">
+          <p className="text-xs font-semibold text-slate-900">Elvee Admin</p>
+          <p className="text-[10px] text-slate-400">Production & Retail Ops</p>
+        </div>
+
+        <nav className="mt-4 space-y-2 text-sm lg:mt-8 lg:space-y-3">
           {adminNavigation.map((item) => {
             if (item.children) {
               const anyActive = item.children.some((child) => isMatch(child.match));
@@ -100,18 +165,18 @@ export default function AdminLayout({
                   <button
                     type="button"
                     onClick={toggleGroup}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
+                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.15em] transition sm:rounded-xl sm:px-3 sm:text-[11px] sm:tracking-[0.18em] ${
                       isOpen ? 'bg-slate-100 text-slate-700' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
                     }`}
                     aria-expanded={isOpen}
                   >
-                    <span className="flex items-center gap-2">
-                      {icon}
+                    <span className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="text-xs sm:text-sm">{icon}</span>
                       <span className={anyActive ? 'text-slate-600' : undefined}>{item.label}</span>
                     </span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className={`h-3 w-3 transition-transform ${isOpen ? 'rotate-0' : '-rotate-90'}`}
+                      className={`h-3 w-3 transition-transform sm:h-3.5 sm:w-3.5 ${isOpen ? 'rotate-0' : '-rotate-90'}`}
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -120,14 +185,15 @@ export default function AdminLayout({
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
                     </svg>
                   </button>
-                  <div className={`space-y-1 pl-2 ${isOpen ? 'mt-2' : 'hidden'}`}>
+                  <div className={`space-y-1 pl-1 sm:pl-2 ${isOpen ? 'mt-1.5 sm:mt-2' : 'hidden'}`}>
                     {item.children.map((child) => {
                       const isActive = isMatch(child.match);
                       return (
                         <Link
                           key={child.href}
                           href={child.href}
-                          className={`ml-3 flex items-center gap-2 rounded-xl px-3 py-2 font-medium transition ${
+                          onClick={closeSidebar}
+                          className={`ml-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition sm:ml-3 sm:gap-2 sm:rounded-xl sm:px-3 sm:py-2 ${
                             isActive
                               ? 'bg-slate-900 text-white shadow shadow-slate-900/20'
                               : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
@@ -149,13 +215,14 @@ export default function AdminLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2 font-medium transition ${
+                onClick={closeSidebar}
+                className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium transition sm:gap-3 sm:rounded-xl sm:px-3 ${
                   isActive
                     ? 'bg-slate-900 text-white shadow shadow-slate-900/20'
                     : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
-                {icon}
+                <span className="text-sm sm:text-base">{icon}</span>
                 <span>{item.label}</span>
               </Link>
             );
@@ -163,11 +230,11 @@ export default function AdminLayout({
         </nav>
       </aside>
 
-      <div className="flex w-full flex-col">
-        <AdminHeader />
+      <div className="flex w-full flex-col lg:ml-0">
+        <AdminHeader onMenuClick={toggleSidebar} />
         
-        <main className="flex-1 px-4 py-6 lg:px-8">
-          <div className="mx-auto max-w-7xl space-y-6">{children}</div>
+        <main className="flex-1 px-2 py-4 sm:px-2 sm:py-6 lg:px-6">
+          <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">{children}</div>
         </main>
       </div>
     </div>
