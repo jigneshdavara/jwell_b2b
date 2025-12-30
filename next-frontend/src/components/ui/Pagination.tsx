@@ -135,81 +135,81 @@ export default function Pagination({ meta, onPageChange, className = "" }: Pagin
     const mobileLinks = generateMobileLinks();
 
     const renderLink = (link: typeof links[0], index: number, isMobile: boolean = false) => {
-        const cleanLabel = link.label
-            .replace('&laquo;', '«')
-            .replace('&raquo;', '»')
-            .replace(/&nbsp;/g, ' ')
-            .trim();
+                    const cleanLabel = link.label
+                        .replace('&laquo;', '«')
+                        .replace('&raquo;', '»')
+                        .replace(/&nbsp;/g, ' ')
+                        .trim();
 
         const isPreviousOrNext = cleanLabel.includes('Previous') || cleanLabel.includes('Next') || cleanLabel === '«' || cleanLabel === '»';
         const isEllipsis = cleanLabel === '...';
 
-        // Active page link (current page) - not clickable
-        if (link.active) {
-            return (
-                <span
+                    // Active page link (current page) - not clickable
+                    if (link.active) {
+                        return (
+                            <span
                     key={`${link.label}-${index}-${isMobile ? 'mobile' : 'desktop'}`}
                     className={`rounded-full font-semibold bg-elvee-blue text-white shadow shadow-elvee-blue/25 cursor-default ${
                         isMobile 
                             ? 'px-2 py-1 text-xs min-w-[28px]' 
                             : 'px-2.5 py-1 text-xs sm:px-3 sm:text-sm'
                     }`}
-                >
-                    {cleanLabel}
-                </span>
-            );
-        }
+                            >
+                                {cleanLabel}
+                            </span>
+                        );
+                    }
 
-        // Disabled link (no URL) - Previous/Next when at boundaries, or ellipsis
-        if (!link.url) {
-            return (
-                <span 
+                    // Disabled link (no URL) - Previous/Next when at boundaries, or ellipsis
+                    if (!link.url) {
+                        return (
+                            <span 
                     key={`${link.label}-${index}-${isMobile ? 'mobile' : 'desktop'}`} 
-                    className={isPreviousOrNext 
+                                className={isPreviousOrNext 
                         ? `py-1 text-xs text-slate-400 cursor-not-allowed ${!isMobile ? 'sm:text-sm' : ''}` 
                         : isEllipsis
                         ? `px-1.5 py-1 text-xs text-slate-400 cursor-not-allowed ${!isMobile ? 'sm:px-2 sm:text-sm' : ''}`
                         : `rounded-full px-2 py-1 text-xs text-slate-400 cursor-not-allowed ${!isMobile ? 'sm:px-3 sm:text-sm' : ''}`
+                                }
+                            >
+                                {cleanLabel}
+                            </span>
+                        );
                     }
-                >
-                    {cleanLabel}
-                </span>
-            );
-        }
 
         // Previous/Next links - button styling
-        if (isPreviousOrNext) {
-            return (
-                <button
+                    if (isPreviousOrNext) {
+                        return (
+                            <button
                     key={`${link.label}-${index}-${isMobile ? 'mobile' : 'desktop'}`}
-                    type="button"
-                    onClick={() => handleLinkClick(link.url)}
+                                type="button"
+                                onClick={() => handleLinkClick(link.url)}
                     className={`rounded-full font-semibold bg-white border border-slate-200 text-elvee-blue transition hover:bg-elvee-blue hover:text-white hover:border-elvee-blue focus:outline-none focus:ring-2 focus:ring-feather-gold ${
                         isMobile
                             ? 'px-2 py-1 text-xs min-w-[28px] focus:ring-offset-0'
                             : 'px-2.5 py-1 text-xs focus:ring-offset-1 sm:px-3 sm:text-sm sm:focus:ring-offset-2'
                     }`}
-                >
-                    {cleanLabel}
-                </button>
-            );
-        }
+                            >
+                                {cleanLabel}
+                            </button>
+                        );
+                    }
 
-        // Clickable page number link - button styling
-        return (
-            <button
+                    // Clickable page number link - button styling
+                    return (
+                        <button
                 key={`${link.label}-${index}-${isMobile ? 'mobile' : 'desktop'}`}
-                type="button"
-                onClick={() => handleLinkClick(link.url)}
+                            type="button"
+                            onClick={() => handleLinkClick(link.url)}
                 className={`rounded-full font-semibold bg-white border border-slate-200 text-elvee-blue transition hover:bg-elvee-blue hover:text-white hover:border-elvee-blue focus:outline-none focus:ring-2 focus:ring-feather-gold ${
                     isMobile
                         ? 'px-2 py-1 text-xs min-w-[28px] focus:ring-offset-0'
                         : 'px-2.5 py-1 text-xs focus:ring-offset-1 sm:px-3 sm:text-sm sm:focus:ring-offset-2'
                 }`}
-            >
-                {cleanLabel}
-            </button>
-        );
+                        >
+                            {cleanLabel}
+                        </button>
+                    );
     };
 
     return (

@@ -373,17 +373,17 @@ export default function AdminDiamondShapeSizesIndex() {
                     </div>
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
-                            <thead className="bg-slate-50 text-xs text-slate-500">
-                                <tr>
+                        <thead className="bg-slate-50 text-xs text-slate-500">
+                            <tr>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3">
-                                        <input
-                                            type="checkbox"
-                                            checked={allSelected}
-                                            onChange={toggleSelectAll}
+                                    <input
+                                        type="checkbox"
+                                        checked={allSelected}
+                                        onChange={toggleSelectAll}
                                             className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                            aria-label="Select all diamond shape sizes"
-                                        />
-                                    </th>
+                                        aria-label="Select all diamond shape sizes"
+                                    />
+                                </th>
                                     <th className="px-3 py-2 text-left hidden md:table-cell sm:px-5 sm:py-3">Type</th>
                                     <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Shape</th>
                                     <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Size</th>
@@ -391,9 +391,9 @@ export default function AdminDiamondShapeSizesIndex() {
                                     <th className="px-3 py-2 text-left sm:px-5 sm:py-3">CTW</th>
                                     <th className="px-3 py-2 text-left hidden lg:table-cell sm:px-5 sm:py-3">Order</th>
                                     <th className="px-3 py-2 text-right sm:px-5 sm:py-3">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 bg-white">
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
                                 {sizes.data.length === 0 ? (
                                     <tr>
                                         <td colSpan={8} className="px-3 py-4 sm:px-5 sm:py-6 text-center text-xs sm:text-sm text-slate-500">
@@ -402,16 +402,16 @@ export default function AdminDiamondShapeSizesIndex() {
                                     </tr>
                                 ) : (
                                     sizes.data.map((size) => (
-                                        <tr key={size.id} className="hover:bg-slate-50">
+                                <tr key={size.id} className="hover:bg-slate-50">
                                             <td className="px-3 py-2 sm:px-5 sm:py-3">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedSizes.includes(size.id)}
-                                                    onChange={() => toggleSelection(size.id)}
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedSizes.includes(size.id)}
+                                            onChange={() => toggleSelection(size.id)}
                                                     className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                    aria-label={`Select diamond shape size ${size.size}`}
-                                                />
-                                            </td>
+                                            aria-label={`Select diamond shape size ${size.size}`}
+                                        />
+                                    </td>
                                             <td className="px-3 py-2 text-slate-700 hidden md:table-cell sm:px-5 sm:py-3">{size.type ? size.type.name : '-'}</td>
                                             <td className="px-3 py-2 font-semibold text-slate-900 sm:px-5 sm:py-3">
                                                 <span className="text-xs sm:text-sm">{size.shape?.name || '-'}</span>
@@ -424,38 +424,38 @@ export default function AdminDiamondShapeSizesIndex() {
                                             </td>
                                             <td className="px-3 py-2 text-slate-500 sm:px-5 sm:py-3">
                                                 <span className="text-xs sm:text-sm">{typeof size.ctw === 'number' ? size.ctw.toFixed(3) : (parseFloat(String(size.ctw)) || 0).toFixed(3)}</span>
-                                            </td>
+                                    </td>
                                             <td className="px-3 py-2 text-slate-500 hidden lg:table-cell sm:px-5 sm:py-3">{size.display_order}</td>
                                             <td className="px-3 py-2 text-right sm:px-5 sm:py-3">
                                                 <div className="flex justify-end gap-1.5 sm:gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openEditModal(size)}
+                                            <button
+                                                type="button"
+                                                onClick={() => openEditModal(size)}
                                                         className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-                                                        title="Edit size"
-                                                    >
+                                                title="Edit size"
+                                            >
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
-                                                        </svg>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => deleteSize(size)}
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => deleteSize(size)}
                                                         className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
-                                                        title="Delete size"
-                                                    >
+                                                title="Delete size"
+                                            >
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
-                                                        </svg>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
                                     ))
-                                )}
-                            </tbody>
-                        </table>
+                            )}
+                        </tbody>
+                    </table>
                     </div>
                 </div>
 
