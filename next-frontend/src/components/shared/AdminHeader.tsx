@@ -65,16 +65,16 @@ export const AdminHeader = ({ onMenuClick }: AdminHeaderProps) => {
 
         {/* Flash Messages */}
         <div className="flex flex-col gap-1.5 sm:gap-2">
-          {flash?.success && (
+        {flash?.success && (
             <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 sm:px-4 sm:py-1 sm:text-xs">
-              {flash.success}
-            </span>
-          )}
-          {flash?.error && (
+            {flash.success}
+          </span>
+        )}
+        {flash?.error && (
             <span className="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-600 sm:px-4 sm:py-1 sm:text-xs">
-              {flash.error}
-            </span>
-          )}
+            {flash.error}
+          </span>
+        )}
         </div>
       </div>
       
