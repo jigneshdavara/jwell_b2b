@@ -312,95 +312,95 @@ export default function AdminBrandsPage() {
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
                         <thead className="bg-slate-50 text-[10px] uppercase tracking-[0.2em] text-slate-500 sm:text-xs sm:tracking-[0.3em]">
-                            <tr>
+                        <tr>
                                 <th className="px-3 py-2 sm:px-5 sm:py-3">
-                                    <input
-                                        type="checkbox"
-                                        checked={allSelected}
-                                        onChange={toggleSelectAll}
+                                <input
+                                    type="checkbox"
+                                    checked={allSelected}
+                                    onChange={toggleSelectAll}
                                         className="h-3.5 w-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500 sm:h-4 sm:w-4"
-                                    />
-                                </th>
+                                />
+                            </th>
                                 <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Code</th>
                                 <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Name</th>
                                 <th className="hidden px-3 py-2 text-left sm:table-cell sm:px-5 sm:py-3">Order</th>
                                 <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Status</th>
                                 <th className="px-3 py-2 text-right sm:px-5 sm:py-3">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                            {brands.data.map((brand) => (
-                                <tr key={brand.id} className="hover:bg-slate-50 transition-colors">
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                        {brands.data.map((brand) => (
+                            <tr key={brand.id} className="hover:bg-slate-50 transition-colors">
                                     <td className="px-3 py-2 sm:px-5 sm:py-3">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedBrands.includes(brand.id)}
-                                            onChange={() => toggleSelection(brand.id)}
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedBrands.includes(brand.id)}
+                                        onChange={() => toggleSelection(brand.id)}
                                             className="h-3.5 w-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500 sm:h-4 sm:w-4"
-                                        />
-                                    </td>
+                                    />
+                                </td>
                                     <td className="px-3 py-2 text-slate-700 sm:px-5 sm:py-3">{brand.code || '-'}</td>
                                     <td className="px-3 py-2 font-semibold text-slate-900 sm:px-5 sm:py-3">
                                         <div className="flex flex-col gap-0.5 sm:gap-1">
                                             <span className="text-xs sm:text-sm">{brand.name}</span>
                                             {brand.description && <span className="text-[10px] font-normal text-slate-500 sm:text-xs">{brand.description}</span>}
-                                        </div>
-                                    </td>
+                                    </div>
+                                </td>
                                     <td className="hidden px-3 py-2 text-slate-500 sm:table-cell sm:px-5 sm:py-3">{brand.display_order}</td>
                                     <td className="px-3 py-2 sm:px-5 sm:py-3">
-                                        <span
+                                    <span
                                             className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold sm:px-3 sm:py-1 sm:text-xs ${
-                                                brand.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                                            }`}
-                                        >
-                                            {brand.is_active ? 'Active' : 'Archived'}
-                                        </span>
-                                    </td>
+                                            brand.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                                        }`}
+                                    >
+                                        {brand.is_active ? 'Active' : 'Archived'}
+                                    </span>
+                                </td>
                                     <td className="px-3 py-2 text-right sm:px-5 sm:py-3">
                                         <div className="flex justify-end gap-1 sm:gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => openEditModal(brand)}
+                                        <button
+                                            type="button"
+                                            onClick={() => openEditModal(brand)}
                                                 className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900 sm:h-8 sm:w-8"
-                                                title="Edit brand"
-                                            >
+                                            title="Edit brand"
+                                        >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
-                                                </svg>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleBrand(brand)}
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleBrand(brand)}
                                                 className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600 sm:h-8 sm:w-8"
-                                                title={brand.is_active ? 'Pause brand' : 'Activate brand'}
-                                            >
-                                                {brand.is_active ? (
+                                            title={brand.is_active ? 'Pause brand' : 'Activate brand'}
+                                        >
+                                            {brand.is_active ? (
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
-                                                    </svg>
-                                                ) : (
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
-                                                    </svg>
-                                                )}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setDeleteConfirm(brand)}
-                                                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 sm:h-8 sm:w-8"
-                                                title="Delete brand"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
                                                 </svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                            ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setDeleteConfirm(brand)}
+                                                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 sm:h-8 sm:w-8"
+                                            title="Delete brand"
+                                        >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
                 </div>
             </div>
 

@@ -247,7 +247,7 @@ export default function AdminCategoriesPage() {
                 <Menu.Item>
                     {({ active, close }) => (
                         <div
-                            className={`flex items-center gap-1 rounded-lg transition-colors pl-3 ${
+                            className={`flex items-center gap-1 rounded-lg transition-colors pl-2 sm:pl-3 ${
                                 isSelected
                                     ? 'bg-sky-50 text-sky-700'
                                     : active
@@ -255,9 +255,9 @@ export default function AdminCategoriesPage() {
                                     : 'text-slate-700'
                             }`}
                         >
-                            <div className="flex items-center" style={{ width: `${level * 20}px` }}>
+                            <div className="flex items-center" style={{ width: `${level * 16}px` }}>
                                 {level > 0 && (
-                                    <div className="w-px h-6 bg-slate-200 mr-2"></div>
+                                    <div className="w-px h-5 sm:h-6 bg-slate-200 mr-1.5 sm:mr-2"></div>
                                 )}
                             </div>
 
@@ -268,11 +268,11 @@ export default function AdminCategoriesPage() {
                                         e.stopPropagation();
                                         toggleNode(node.id);
                                     }}
-                                    className="flex items-center justify-center w-5 h-5 rounded hover:bg-slate-200 transition-colors flex-shrink-0"
+                                    className="flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 rounded hover:bg-slate-200 transition-colors flex-shrink-0"
                                 >
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
-                                        className={`h-3 w-3 text-slate-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                                        className={`h-2.5 w-2.5 sm:h-3 sm:w-3 text-slate-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                                         viewBox="0 0 24 24"
                                         fill="none"
                                         stroke="currentColor"
@@ -282,10 +282,10 @@ export default function AdminCategoriesPage() {
                                     </svg>
                                 </button>
                             ) : (
-                                <div className="w-5 h-5 flex-shrink-0"></div>
+                                <div className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"></div>
                             )}
                             <div
-                                className={`flex-1 py-2 cursor-pointer rounded ${
+                                className={`flex-1 py-1.5 sm:py-2 cursor-pointer rounded ${
                                     isSelected ? 'font-medium' : ''
                                 }`}
                                 onClick={(e) => {
@@ -295,7 +295,7 @@ export default function AdminCategoriesPage() {
                                     closeMenu?.();
                                 }}
                             >
-                                <span className="text-sm">{node.name}</span>
+                                <span className="text-xs sm:text-sm">{node.name}</span>
                             </div>
                         </div>
                     )}
@@ -534,18 +534,18 @@ export default function AdminCategoriesPage() {
     if (loading && !data.data.length) return null;
 
     return (
-        <div className="space-y-8">
-            <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+        <div className="space-y-4 px-2 py-4 sm:space-y-6 sm:px-6 sm:py-6 lg:space-y-8 lg:px-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                 <div>
-                    <h1 className="text-2xl font-semibold text-slate-900">Categories</h1>
-                    <p className="mt-2 text-sm text-slate-500">Manage product categories for catalogue organization.</p>
+                    <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">Categories</h1>
+                    <p className="mt-2 text-xs sm:text-sm text-slate-500">Manage product categories for catalogue organization.</p>
                 </div>
                 <button
                     type="button"
                     onClick={openCreateModal}
-                    className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
                     </svg>
                     New category
@@ -553,22 +553,22 @@ export default function AdminCategoriesPage() {
             </div>
 
             <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 px-3 py-3 sm:px-5 sm:py-4 text-xs sm:text-sm">
                     <div className="font-semibold text-slate-700">Categories ({data.meta.total})</div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500">
                         <span>{selectedCategories.length} selected</span>
                         <button
                             type="button"
                             onClick={() => setBulkDeleteConfirm(true)}
                             disabled={selectedCategories.length === 0}
-                            className="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="inline-flex items-center rounded-full border border-rose-200 px-2.5 py-1 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
                         >
                             Bulk delete
                         </button>
                         <select value={perPage} onChange={(e) => {
                             setPerPage(Number(e.target.value));
                             setCurrentPage(1);
-                        }} className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:ring-0">
+                        }} className="rounded-full border border-slate-200 px-2.5 py-1 text-xs focus:ring-0 sm:px-3">
                             <option value={10}>10</option>
                             <option value={25}>25</option>
                             <option value={50}>50</option>
@@ -576,53 +576,55 @@ export default function AdminCategoriesPage() {
                         </select>
                     </div>
                 </div>
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
-                        <tr>
-                            <th className="px-5 py-3">
-                                <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold" />
-                            </th>
-                            <th className="px-5 py-3 text-left">Code</th>
-                            <th className="px-5 py-3 text-left">Name</th>
-                            <th className="px-5 py-3 text-left">Parent</th>
-                            <th className="px-5 py-3 text-left">Order</th>
-                            <th className="px-5 py-3 text-left">Status</th>
-                            <th className="px-5 py-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                        {data.data.map((category) => (
-                            <tr key={category.id} className="hover:bg-slate-50 transition-colors">
-                                <td className="px-5 py-3">
-                                    <input type="checkbox" checked={selectedCategories.includes(category.id)} onChange={() => toggleSelection(category.id)} className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold" />
-                                </td>
-                                <td className="px-5 py-3 text-slate-700">{category.code || '-'}</td>
-                                <td className="px-5 py-3 font-semibold text-slate-900">
-                                    <div className="flex flex-col gap-1">
-                                        <span>{category.name}</span>
-                                        {category.description && <span className="text-xs text-slate-500 font-normal">{category.description}</span>}
-                                    </div>
-                                </td>
-                                <td className="px-5 py-3 text-slate-500">{category.parent?.name ?? '—'}</td>
-                                <td className="px-5 py-3 text-slate-500">{category.display_order}</td>
-                                <td className="px-5 py-3">
-                                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${category.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                                        {category.is_active ? 'Active' : 'Archived'}
-                                    </span>
-                                </td>
-                                <td className="px-5 py-3 text-right">
-                                    <div className="flex justify-end gap-2">
-                                        <button onClick={() => openEditModal(category)} className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"><svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M16.862 4.487l1.687-1.688a1.875 1.125 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
-                                        <button onClick={() => toggleActivation(category)} className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600">
-                                            {category.is_active ? <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M15.75 5.25v13.5m-7.5-13.5v13.5" strokeLinecap="round" strokeLinejoin="round" /></svg> : <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                                        </button>
-                                        <button onClick={() => setDeleteConfirm(category)} className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"><svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M14.74 9l-.34 9m-4.74-9l.34 9m9.96-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
-                                    </div>
-                                </td>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
+                        <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
+                            <tr>
+                                <th className="px-3 py-2 sm:px-5 sm:py-3">
+                                    <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold" />
+                                </th>
+                                <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Code</th>
+                                <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Name</th>
+                                <th className="px-3 py-2 text-left hidden md:table-cell sm:px-5 sm:py-3">Parent</th>
+                                <th className="px-3 py-2 text-left hidden lg:table-cell sm:px-5 sm:py-3">Order</th>
+                                <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Status</th>
+                                <th className="px-3 py-2 text-right sm:px-5 sm:py-3">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                            {data.data.map((category) => (
+                                <tr key={category.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-3 py-2 sm:px-5 sm:py-3">
+                                        <input type="checkbox" checked={selectedCategories.includes(category.id)} onChange={() => toggleSelection(category.id)} className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold" />
+                                    </td>
+                                    <td className="px-3 py-2 text-slate-700 sm:px-5 sm:py-3">{category.code || '-'}</td>
+                                    <td className="px-3 py-2 font-semibold text-slate-900 sm:px-5 sm:py-3">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-xs sm:text-sm">{category.name}</span>
+                                            {category.description && <span className="text-[10px] sm:text-xs text-slate-500 font-normal">{category.description}</span>}
+                                        </div>
+                                    </td>
+                                    <td className="px-3 py-2 text-slate-500 hidden md:table-cell sm:px-5 sm:py-3">{category.parent?.name ?? '—'}</td>
+                                    <td className="px-3 py-2 text-slate-500 hidden lg:table-cell sm:px-5 sm:py-3">{category.display_order}</td>
+                                    <td className="px-3 py-2 sm:px-5 sm:py-3">
+                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:px-3 sm:py-1 sm:text-xs font-semibold ${category.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                            {category.is_active ? 'Active' : 'Archived'}
+                                        </span>
+                                    </td>
+                                    <td className="px-3 py-2 text-right sm:px-5 sm:py-3">
+                                        <div className="flex justify-end gap-1.5 sm:gap-2">
+                                            <button onClick={() => openEditModal(category)} className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"><svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M16.862 4.487l1.687-1.688a1.875 1.125 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
+                                            <button onClick={() => toggleActivation(category)} className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600">
+                                                {category.is_active ? <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M15.75 5.25v13.5m-7.5-13.5v13.5" strokeLinecap="round" strokeLinejoin="round" /></svg> : <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                                            </button>
+                                            <button onClick={() => setDeleteConfirm(category)} className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"><svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M14.74 9l-.34 9m-4.74-9l.34 9m9.96-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <Pagination 
@@ -632,19 +634,19 @@ export default function AdminCategoriesPage() {
 
             <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">
                 <div className="flex min-h-0 flex-col">
-                    <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-semibold text-slate-900">{editingCategory ? `Edit category: ${editingCategory.name}` : 'Create new category'}</h2>
-                            <div className="flex items-center gap-3">
-                                <button onClick={resetForm} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900">Cancel</button>
-                                <button type="submit" form="category-form" disabled={loading} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60">{editingCategory ? 'Update category' : 'Create category'}</button>
+                    <div className="flex-shrink-0 border-b border-slate-200 px-3 py-2.5 sm:px-6 sm:py-4">
+                        <div className="flex items-center justify-between gap-2">
+                            <h2 className="text-sm sm:text-base lg:text-xl font-semibold text-slate-900 truncate">{editingCategory ? `Edit category: ${editingCategory.name}` : 'Create new category'}</h2>
+                            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                                <button onClick={resetForm} className="rounded-full border border-slate-300 px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900">Cancel</button>
+                                <button type="submit" form="category-form" disabled={loading} className="rounded-full bg-slate-900 px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60">{editingCategory ? 'Update' : 'Create'}</button>
                                 <button
                                     type="button"
                                     onClick={resetForm}
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                                    className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
                                     aria-label="Close modal"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
@@ -652,15 +654,15 @@ export default function AdminCategoriesPage() {
                         </div>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                        <form onSubmit={handleSubmit} className="space-y-6" id="category-form">
-                            <div className="grid gap-6 lg:grid-cols-2">
-                                <div className="space-y-6">
-                                    <div className="grid gap-4">
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                    <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
+                        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" id="category-form">
+                            <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+                                <div className="space-y-4 sm:space-y-6">
+                                    <div className="grid gap-3 sm:gap-4">
+                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                             <span>Parent Category</span>
                                             <Menu as="div" className="relative">
-                                                <Menu.Button className="w-full min-h-[44px] rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-left text-sm">
+                                                <Menu.Button className="w-full min-h-[44px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-left text-xs sm:text-sm">
                                                     <div className="flex items-center justify-between">
                                                         <span className={formState.parent_id === '' ? 'text-slate-500' : 'text-slate-900'}>
                                                             {getSelectedCategoryName()}
@@ -678,12 +680,12 @@ export default function AdminCategoriesPage() {
                                                     leaveFrom="transform opacity-100 scale-100"
                                                     leaveTo="transform opacity-0 scale-95"
                                                 >
-                                                    <Menu.Items className="absolute z-50 mt-2 w-full max-h-80 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                    <Menu.Items className="absolute z-50 mt-2 w-full max-h-80 overflow-y-auto rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                                         <div className="p-2">
                                                             <Menu.Item>
                                                                 {({ active, close }) => (
                                                                     <div
-                                                                        className={`flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-colors ${
+                                                                        className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 cursor-pointer transition-colors ${
                                                                             formState.parent_id === ''
                                                                                 ? 'bg-sky-50 text-sky-700 font-medium'
                                                                                 : active
@@ -698,8 +700,8 @@ export default function AdminCategoriesPage() {
                                                                             }
                                                                         }}
                                                                     >
-                                                                        <div className="w-5 h-5"></div>
-                                                                        <span className="text-sm">None (Top Level)</span>
+                                                                        <div className="w-4 h-4 sm:w-5 sm:h-5"></div>
+                                                                        <span className="text-xs sm:text-sm">None (Top Level)</span>
                                                                     </div>
                                                                 )}
                                                             </Menu.Item>
@@ -711,27 +713,27 @@ export default function AdminCategoriesPage() {
                                                 </Transition>
                                             </Menu>
                                         </label>
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                             <span>Code</span>
                                             <input
                                                 type="text"
                                                 value={formState.code}
                                                 onChange={(e) => setFormState(prev => ({ ...prev, code: e.target.value }))}
-                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                                 placeholder="e.g., RNG, NKL"
                                             />
                                         </label>
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                             <span>Name</span>
                                             <input
                                                 type="text"
                                                 value={formState.name}
                                                 onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                                 required
                                             />
                                         </label>
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                             <span>Display order</span>
                                             <input
                                                 type="number"
@@ -750,27 +752,27 @@ export default function AdminCategoriesPage() {
                                                         e.target.select();
                                                     }
                                                 }}
-                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                                 min={0}
                                             />
                                         </label>
-                                        <label className="flex flex-col gap-3 text-sm text-slate-600">
+                                        <label className="flex flex-col gap-3 text-xs sm:text-sm text-slate-600">
                                             <span>Cover Image</span>
                                             <input
                                                 ref={fileInputRef}
                                                 type="file"
                                                 accept="image/*"
                                                 onChange={handleCoverChange}
-                                                className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-700"
+                                                className="w-full cursor-pointer rounded-xl sm:rounded-2xl border border-dashed border-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm file:mr-2 sm:file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 sm:file:px-4 sm:file:py-2 file:text-xs sm:file:text-sm file:font-semibold file:text-white hover:file:bg-slate-700"
                                             />
                                             {coverPreview && coverObjectUrl && (
-                                                <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
+                                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
                                                     <img
                                                         src={coverPreview}
                                                         alt="Cover preview"
-                                                        className="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
+                                                        className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg sm:rounded-xl object-cover ring-1 ring-slate-200"
                                                     />
-                                                    <div className="flex flex-col gap-2">
+                                                    <div className="flex flex-col gap-2 flex-1 min-w-0">
                                                         <span className="text-xs text-slate-500">
                                                             {editingCategory
                                                                 ? 'This preview will replace the existing category image once saved.'
@@ -779,7 +781,7 @@ export default function AdminCategoriesPage() {
                                                         <button
                                                             type="button"
                                                             onClick={removeCoverImageHandler}
-                                                            className="self-start rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                                            className="self-start rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-4"
                                                         >
                                                             Remove selected image
                                                         </button>
@@ -787,20 +789,20 @@ export default function AdminCategoriesPage() {
                                                 </div>
                                             )}
                                             {coverPreview && !coverObjectUrl && editingCategory?.cover_image_url && !removeCoverImage && (
-                                                <div className="flex items-center gap-4 rounded-2xl border border-slate-200 p-4">
+                                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 rounded-xl sm:rounded-2xl border border-slate-200 p-3 sm:p-4">
                                                     <img
                                                         src={coverPreview}
                                                         alt="Current cover"
-                                                        className="h-20 w-20 rounded-xl object-cover ring-1 ring-slate-200"
+                                                        className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg sm:rounded-xl object-cover ring-1 ring-slate-200"
                                                     />
-                                                    <div className="flex flex-col gap-2">
+                                                    <div className="flex flex-col gap-2 flex-1 min-w-0">
                                                         <span className="text-xs text-slate-500">
                                                             Current category image. Upload a new file to replace it.
                                                         </span>
                                                         <button
                                                             type="button"
                                                             onClick={removeCoverImageHandler}
-                                                            className="self-start rounded-full border border-slate-300 px-4 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                                            className="self-start rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-4"
                                                         >
                                                             Remove image
                                                         </button>
@@ -810,7 +812,7 @@ export default function AdminCategoriesPage() {
                                         </label>
                                     </div>
 
-                                    <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                                    <label className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
                                         <input
                                             type="checkbox"
                                             checked={formState.is_active}
@@ -821,8 +823,8 @@ export default function AdminCategoriesPage() {
                                     </label>
                                 </div>
 
-                                <div className="space-y-6">
-                                    <div className="flex flex-col gap-2 text-sm text-slate-600">
+                                <div className="space-y-4 sm:space-y-6">
+                                    <div className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                         <div className="flex items-center justify-between">
                                             <span>Styles</span>
                                             {formState.style_ids && formState.style_ids.length > 0 && (
@@ -837,7 +839,7 @@ export default function AdminCategoriesPage() {
                                         </div>
                                         {styles && styles.length > 0 ? (
                                             <Menu as="div" className="relative">
-                                                <Menu.Button className="w-full min-h-[44px] rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-left text-sm">
+                                                <Menu.Button className="w-full min-h-[44px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-left text-xs sm:text-sm">
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         {formState.style_ids && formState.style_ids.length > 0 ? (
                                                             formState.style_ids.map((styleId) => {
@@ -846,7 +848,7 @@ export default function AdminCategoriesPage() {
                                                                 return (
                                                                     <span
                                                                         key={styleId}
-                                                                        className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700"
+                                                                        className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-xs font-medium text-sky-700"
                                                                     >
                                                                         {style.name}
                                                                         <span
@@ -866,7 +868,7 @@ export default function AdminCategoriesPage() {
                                                                             }}
                                                                             className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
                                                                         >
-                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                                                             </svg>
                                                                         </span>
@@ -874,9 +876,9 @@ export default function AdminCategoriesPage() {
                                                                 );
                                                             })
                                                         ) : (
-                                                            <span className="text-slate-400">Select styles</span>
+                                                            <span className="text-xs sm:text-sm text-slate-400">Select styles</span>
                                                         )}
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="ml-auto h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="ml-auto h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                                                         </svg>
                                                     </div>
@@ -889,14 +891,14 @@ export default function AdminCategoriesPage() {
                                                     leaveFrom="transform opacity-100 scale-100"
                                                     leaveTo="transform opacity-0 scale-95"
                                                 >
-                                                    <Menu.Items className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                    <Menu.Items className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                                         <div className="p-2 border-b border-slate-200">
                                                             <input
                                                                 type="text"
                                                                 value={styleSearchQuery}
                                                                 onChange={(e) => setStyleSearchQuery(e.target.value)}
                                                                 placeholder="Search styles..."
-                                                                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                                className="w-full rounded-lg sm:rounded-xl border border-slate-300 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                                 onClick={(e) => e.stopPropagation()}
                                                             />
                                                         </div>
@@ -911,7 +913,7 @@ export default function AdminCategoriesPage() {
                                                                         <Menu.Item key={style.id}>
                                                                             {({ active }) => (
                                                                                 <div
-                                                                                    className={`flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer ${
+                                                                                    className={`flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 cursor-pointer ${
                                                                                         active ? 'bg-slate-50' : ''
                                                                                     }`}
                                                                                     onClick={(e) => {
@@ -942,7 +944,7 @@ export default function AdminCategoriesPage() {
                                                                                         className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                                                                         onClick={(e) => e.stopPropagation()}
                                                                                     />
-                                                                                    <span className="text-sm text-slate-700">{style.name}</span>
+                                                                                    <span className="text-xs sm:text-sm text-slate-700">{style.name}</span>
                                                                                 </div>
                                                                             )}
                                                                         </Menu.Item>
@@ -951,20 +953,20 @@ export default function AdminCategoriesPage() {
                                                             {styles.filter((style) =>
                                                                 style.name.toLowerCase().includes(styleSearchQuery.toLowerCase())
                                                             ).length === 0 && (
-                                                                <div className="px-3 py-2 text-sm text-slate-400 text-center">No styles found</div>
+                                                                <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm text-slate-400 text-center">No styles found</div>
                                                             )}
                                                         </div>
                                                     </Menu.Items>
                                                 </Transition>
                                             </Menu>
                                         ) : (
-                                            <div className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-400">
+                                            <div className="rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-400">
                                                 No styles available. Create styles first in the Styles section.
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="flex flex-col gap-2 text-sm text-slate-600">
+                                    <div className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                         <div className="flex items-center justify-between">
                                             <span>Sizes</span>
                                             {formState.size_ids && formState.size_ids.length > 0 && (
@@ -979,7 +981,7 @@ export default function AdminCategoriesPage() {
                                         </div>
                                         {sizes && sizes.length > 0 ? (
                                             <Menu as="div" className="relative">
-                                                <Menu.Button className="w-full min-h-[44px] rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-left text-sm">
+                                                <Menu.Button className="w-full min-h-[44px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-left text-xs sm:text-sm">
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         {formState.size_ids && formState.size_ids.length > 0 ? (
                                                             formState.size_ids.map((sizeId) => {
@@ -988,7 +990,7 @@ export default function AdminCategoriesPage() {
                                                                 return (
                                                                     <span
                                                                         key={sizeId}
-                                                                        className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700"
+                                                                        className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-xs font-medium text-sky-700"
                                                                     >
                                                                         {size.name}
                                                                         <span
@@ -1008,7 +1010,7 @@ export default function AdminCategoriesPage() {
                                                                             }}
                                                                             className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
                                                                         >
-                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                                                             </svg>
                                                                         </span>
@@ -1031,14 +1033,14 @@ export default function AdminCategoriesPage() {
                                                     leaveFrom="transform opacity-100 scale-100"
                                                     leaveTo="transform opacity-0 scale-95"
                                                 >
-                                                    <Menu.Items className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                    <Menu.Items className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                                         <div className="p-2 border-b border-slate-200">
                                                             <input
                                                                 type="text"
                                                                 value={sizeSearchQuery}
                                                                 onChange={(e) => setSizeSearchQuery(e.target.value)}
                                                                 placeholder="Search sizes..."
-                                                                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                                className="w-full rounded-lg sm:rounded-xl border border-slate-300 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                                 onClick={(e) => e.stopPropagation()}
                                                             />
                                                         </div>
@@ -1053,7 +1055,7 @@ export default function AdminCategoriesPage() {
                                                                         <Menu.Item key={size.id}>
                                                                             {({ active }) => (
                                                                                 <div
-                                                                                    className={`flex items-center gap-3 rounded-xl px-3 py-2 cursor-pointer ${
+                                                                                    className={`flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 cursor-pointer ${
                                                                                         active ? 'bg-slate-50' : ''
                                                                                     }`}
                                                                                     onClick={(e) => {
@@ -1084,7 +1086,7 @@ export default function AdminCategoriesPage() {
                                                                                         className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                                                                         onClick={(e) => e.stopPropagation()}
                                                                                     />
-                                                                                    <span className="text-sm text-slate-700">{size.name}</span>
+                                                                                    <span className="text-xs sm:text-sm text-slate-700">{size.name}</span>
                                                                                 </div>
                                                                             )}
                                                                         </Menu.Item>
@@ -1093,25 +1095,25 @@ export default function AdminCategoriesPage() {
                                                             {sizes.filter((size) =>
                                                                 size.name.toLowerCase().includes(sizeSearchQuery.toLowerCase())
                                                             ).length === 0 && (
-                                                                <div className="px-3 py-2 text-sm text-slate-400 text-center">No sizes found</div>
+                                                                <div className="px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm text-slate-400 text-center">No sizes found</div>
                                                             )}
                                                         </div>
                                                     </Menu.Items>
                                                 </Transition>
                                             </Menu>
                                         ) : (
-                                            <div className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-400">
+                                            <div className="rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-400">
                                                 No sizes available. Create sizes first in the Sizes section.
                                             </div>
                                         )}
                                     </div>
 
-                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                    <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                         <span>Description</span>
                                         <textarea
                                             value={formState.description}
                                             onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                                            className="min-h-[200px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                            className="min-h-[140px] sm:min-h-[160px] lg:min-h-[200px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                             placeholder="Optional notes for team (e.g. usage, category)."
                                         />
                                     </label>
