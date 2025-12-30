@@ -61,7 +61,15 @@ export class OnboardingKycController {
     @UseInterceptors(
         FileInterceptor('document_file', {
             storage: diskStorage({
-                destination: './uploads/kyc',
+                destination: (req: any, file, cb) => {
+                    // req.user is attached by JwtAuthGuard before this runs
+                    const userId = BigInt(req.user?.userId || req.user?.sub);
+                    const dir = `./public/storage/kyc/${userId}`;
+                    if (!existsSync(dir)) {
+                        fs.mkdirSync(dir, { recursive: true });
+                    }
+                    cb(null, dir);
+                },
                 filename: (req, file, cb) => {
                     const randomName = Array(32)
                         .fill(null)
@@ -103,20 +111,8 @@ export class OnboardingKycController {
         }
 
         const userId = BigInt(req.user.userId);
-        const relativePath = `kyc/${userId}/${file.filename}`;
-        const fullPath = file.path;
-
-        // Ensure directory exists
-        const dir = `./uploads/kyc/${userId}`;
-        if (!existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-
-        // Move file to user-specific directory
-        const targetPath = join(dir, file.filename);
-        if (file.path !== targetPath) {
-            fs.renameSync(file.path, targetPath);
-        }
+        // Store path relative to public directory (storage/kyc/{userId}/{filename})
+        const relativePath = `storage/kyc/${userId}/${file.filename}`;
 
         return this.kycService.uploadOnboardingDocument(
             userId,
@@ -159,14 +155,17 @@ export class OnboardingKycController {
             );
         }
 
-        if (
-            !document.file_path ||
-            !existsSync(`./uploads/${document.file_path}`)
-        ) {
+        if (!document.file_path) {
             throw new NotFoundException('Document file not found');
         }
 
-        const filePath = join(process.cwd(), 'uploads', document.file_path);
+        // file_path is stored as storage/kyc/{userId}/{filename}
+        const filePath = join(process.cwd(), 'public', document.file_path);
+
+        if (!existsSync(filePath)) {
+            throw new NotFoundException('Document file not found');
+        }
+
         const fileName = `${document.type}-${filePath.split('/').pop()}`;
 
         res.download(filePath, fileName);

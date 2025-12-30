@@ -204,5 +204,10 @@ export const frontendService = {
   async deleteProfile(password: string) {
     return await apiClient.delete('/profile', { data: { password } });
   },
+
+  // Settings
+  async getPublicSettings() {
+    return await apiClient.get('/settings/public');
+  },
 };
 

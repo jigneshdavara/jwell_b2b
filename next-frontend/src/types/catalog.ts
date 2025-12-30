@@ -57,10 +57,10 @@ export type CatalogFacets = {
         metal: { id: number; name: string } | null 
     }>;
     diamondOptions: {
-        types: Array<{ id: number; name: string }>;
-        shapes: Array<{ id: number; name: string }>;
-        colors: Array<{ id: number; name: string }>;
-        clarities: Array<{ id: number; name: string }>;
+        types: Array<{ id: number; code: string; name: string }>;
+        shapes: Array<{ id: number; name: string; diamond_type_id: number | null }>;
+        colors: Array<{ id: number; name: string; diamond_type_id: number | null }>;
+        clarities: Array<{ id: number; name: string; diamond_type_id: number | null }>;
     };
 };
 

@@ -222,6 +222,46 @@ export default function KycOnboardingPage() {
         }
     };
 
+    const handleDownloadDocument = async (documentId: number | string) => {
+        try {
+            const blob = await kycService.downloadDocument(documentId);
+            // Get the document to determine filename
+            const doc = documents.find((d) => d.id === documentId);
+            
+            // Determine file extension from blob type or file_path
+            let extension = 'pdf'; // default
+            if (doc?.file_path) {
+                const match = doc.file_path.match(/\.(pdf|png|jpg|jpeg)$/i);
+                if (match) {
+                    extension = match[1].toLowerCase();
+                }
+            } else if (blob.type) {
+                if (blob.type.includes('pdf')) extension = 'pdf';
+                else if (blob.type.includes('png')) extension = 'png';
+                else if (blob.type.includes('jpeg') || blob.type.includes('jpg')) extension = 'jpg';
+            }
+            
+            const filename = doc 
+                ? `${doc.type}-${documentId}.${extension}`
+                : `document-${documentId}.${extension}`;
+            
+            // Create a temporary URL for the blob
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            
+            // Cleanup
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (e: any) {
+            console.error('Failed to download document:', e);
+            toastError(e.response?.data?.message || 'Failed to download document');
+        }
+    };
+
     const formatTimestamp = (value?: string | null) => {
         if (!value) return '';
         return new Date(value).toLocaleString('en-IN', {
@@ -601,15 +641,13 @@ export default function KycOnboardingPage() {
                                                 View file
                                             </a>
                                         )}
-                                        {document.download_url && (
-                                            <a
-                                                href={document.download_url}
-                                                download
-                                                className="text-slate-500 hover:text-slate-700"
-                                            >
-                                                Download
-                                            </a>
-                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDownloadDocument(document.id)}
+                                            className="text-slate-500 hover:text-slate-700"
+                                        >
+                                            Download
+                                        </button>
                                         <button
                                             type="button"
                                             onClick={() => handleDeleteDocument(document.id)}

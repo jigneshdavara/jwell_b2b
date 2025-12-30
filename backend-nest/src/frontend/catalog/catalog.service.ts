@@ -104,39 +104,28 @@ export class CatalogService {
                 const diamondConditions: any[] = [];
                 for (const filter of diamondFilters) {
                     const [group, id] = filter.split(':');
-                    const diamondId = parseInt(id);
-                    if (diamondId > 0) {
+                    const parsedId = parseInt(id);
+                    if (!isNaN(parsedId) && parsedId > 0) {
+                        const diamondId = BigInt(parsedId);
                         switch (group) {
                             case 'shape':
                                 diamondConditions.push({
-                                    product_variant_diamonds: {
-                                        some: {
-                                            diamonds: {
-                                                diamond_shape_id: diamondId,
-                                            },
-                                        },
+                                    diamonds: {
+                                        diamond_shape_id: diamondId,
                                     },
                                 });
                                 break;
                             case 'color':
                                 diamondConditions.push({
-                                    product_variant_diamonds: {
-                                        some: {
-                                            diamonds: {
-                                                diamond_color_id: diamondId,
-                                            },
-                                        },
+                                    diamonds: {
+                                        diamond_color_id: diamondId,
                                     },
                                 });
                                 break;
                             case 'clarity':
                                 diamondConditions.push({
-                                    product_variant_diamonds: {
-                                        some: {
-                                            diamonds: {
-                                                diamond_clarity_id: diamondId,
-                                            },
-                                        },
+                                    diamonds: {
+                                        diamond_clarity_id: diamondId,
                                     },
                                 });
                                 break;
@@ -144,7 +133,18 @@ export class CatalogService {
                     }
                 }
                 if (diamondConditions.length > 0) {
-                    where.OR = [...(where.OR || []), ...diamondConditions];
+                    // Combine with existing product_variants filter if present
+                    const existingVariantFilter = where.product_variants?.some;
+                    where.product_variants = {
+                        some: {
+                            ...(existingVariantFilter || {}),
+                            product_variant_diamonds: {
+                                some: {
+                                    OR: diamondConditions,
+                                },
+                            },
+                        },
+                    };
                 }
             }
         }
@@ -841,6 +841,7 @@ export class CatalogService {
             metals,
             metalPurities,
             metalTones,
+            diamondTypes,
             diamondShapes,
             diamondColors,
             diamondClarities,
@@ -883,22 +884,32 @@ export class CatalogService {
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
 
+            // Diamond Types
+            this.prisma.diamond_types.findMany({
+                where: { is_active: true },
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+                select: { id: true, code: true, name: true },
+            }),
+
             // Diamond Shapes
             this.prisma.diamond_shapes.findMany({
-                orderBy: { name: 'asc' },
-                select: { id: true, name: true },
+                where: { is_active: true },
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+                select: { id: true, name: true, diamond_type_id: true },
             }),
 
             // Diamond Colors
             this.prisma.diamond_colors.findMany({
-                orderBy: { name: 'asc' },
-                select: { id: true, name: true },
+                where: { is_active: true },
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+                select: { id: true, name: true, diamond_type_id: true },
             }),
 
             // Diamond Clarities
             this.prisma.diamond_clarities.findMany({
-                orderBy: { name: 'asc' },
-                select: { id: true, name: true },
+                where: { is_active: true },
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+                select: { id: true, name: true, diamond_type_id: true },
             }),
 
             // Brands
@@ -942,18 +953,25 @@ export class CatalogService {
                     : null,
             })),
             diamondOptions: {
-                types: [], // DiamondType not in schema
+                types: diamondTypes.map((t) => ({
+                    id: t.id,
+                    code: t.code,
+                    name: t.name,
+                })),
                 shapes: diamondShapes.map((s) => ({
                     id: s.id,
                     name: s.name,
+                    diamond_type_id: s.diamond_type_id,
                 })),
                 colors: diamondColors.map((c) => ({
                     id: c.id,
                     name: c.name,
+                    diamond_type_id: c.diamond_type_id,
                 })),
                 clarities: diamondClarities.map((c) => ({
                     id: c.id,
                     name: c.name,
+                    diamond_type_id: c.diamond_type_id,
                 })),
             },
             brands: brands.map((b) => b.name),
