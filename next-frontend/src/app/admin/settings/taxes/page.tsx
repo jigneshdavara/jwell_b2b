@@ -5,6 +5,7 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
 import { useEffect, useState } from 'react';
 import { adminService } from '@/services/adminService';
+import { toastError } from '@/utils/toast';
 
 type TaxRow = {
     id: number;
@@ -243,7 +244,7 @@ export default function AdminTaxesIndex() {
                 await loadTaxes(meta.current_page, perPage);
             } catch (error: any) {
                 console.error('Failed to delete tax:', error);
-                alert(error.response?.data?.message || 'Failed to delete tax. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete tax. Please try again.');
             }
         }
     };

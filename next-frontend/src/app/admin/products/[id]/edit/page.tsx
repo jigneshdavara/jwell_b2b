@@ -6,6 +6,7 @@ import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef,
 import { generateVariantMatrix as generateVariantMatrixUtil } from '@/utils/variantMatrixGenerator';
 import { useParams, useRouter } from 'next/navigation';
 import { adminService } from '@/services/adminService';
+import { toastSuccess, toastError } from '@/utils/toast';
 
 type VariantMetalForm = {
     id?: number;
@@ -3092,7 +3093,7 @@ export default function AdminProductEdit() {
             if (product?.id) {
                 // Update existing product
                 await adminService.updateProduct(product.id, formData);
-                alert('Product updated successfully!');
+                toastSuccess('Product updated successfully!');
                 
                 // Refresh the page data to show updated product (including removed images)
                 router.refresh();
@@ -3116,7 +3117,7 @@ export default function AdminProductEdit() {
                 // Create new product
                 const response = await adminService.createProduct(formData);
                 const newProductId = response.data.id;
-                alert('Product created successfully!');
+                toastSuccess('Product created successfully!');
                 router.push(`/admin/products/${newProductId}/edit`);
             }
         } catch (error: any) {
@@ -3124,7 +3125,7 @@ export default function AdminProductEdit() {
             if (error.response?.data?.errors) {
                 setErrors(error.response.data.errors);
             } else {
-                alert(error.response?.data?.message || 'Failed to save product. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to save product. Please try again.');
             }
         } finally {
             setProcessing(false);

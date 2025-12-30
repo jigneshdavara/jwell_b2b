@@ -4,6 +4,7 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
 import { useEffect, useMemo, useState } from 'react';
 import { adminService } from '@/services/adminService';
+import { toastError } from '@/utils/toast';
 
 type OrderStatusRow = {
     id: number;
@@ -150,7 +151,7 @@ export default function AdminOrderStatusesIndex() {
             await loadStatuses();
         } catch (error: any) {
             console.error('Failed to toggle status:', error);
-            alert(error.response?.data?.message || 'Failed to update status');
+            toastError(error.response?.data?.message || 'Failed to update status');
         }
     };
 
@@ -167,7 +168,7 @@ export default function AdminOrderStatusesIndex() {
             await loadStatuses();
         } catch (error: any) {
             console.error('Failed to set default status:', error);
-            alert(error.response?.data?.message || 'Failed to set default status');
+            toastError(error.response?.data?.message || 'Failed to set default status');
         }
     };
 
@@ -183,7 +184,7 @@ export default function AdminOrderStatusesIndex() {
                 await loadStatuses();
             } catch (error: any) {
                 console.error('Failed to delete status:', error);
-                alert(error.response?.data?.message || 'Failed to delete status');
+                toastError(error.response?.data?.message || 'Failed to delete status');
             }
         }
     };
@@ -224,7 +225,7 @@ export default function AdminOrderStatusesIndex() {
             await loadStatuses();
         } catch (error: any) {
             console.error('Failed to delete statuses:', error);
-            alert(error.response?.data?.message || 'Failed to delete statuses');
+            toastError(error.response?.data?.message || 'Failed to delete statuses');
         }
     };
 

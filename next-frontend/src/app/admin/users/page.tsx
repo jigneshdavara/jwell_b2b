@@ -6,6 +6,7 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { adminService } from '@/services/adminService';
 import Link from 'next/link';
 import { route } from '@/utils/route';
+import { toastError } from '@/utils/toast';
 
 type AdminUserRow = {
     id: number;
@@ -183,7 +184,7 @@ export default function AdminUsersIndex() {
             await loadUsers();
         } catch (error: any) {
             console.error('Failed to delete customers:', error);
-            alert(error.response?.data?.message || 'Failed to delete customers. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to delete customers. Please try again.');
         } finally {
             setProcessing(false);
         }
@@ -199,7 +200,7 @@ export default function AdminUsersIndex() {
             await loadUsers();
         } catch (error: any) {
             console.error('Failed to update customer group:', error);
-            alert(error.response?.data?.message || 'Failed to update customer group. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update customer group. Please try again.');
         } finally {
             setProcessing(false);
         }
@@ -218,7 +219,7 @@ export default function AdminUsersIndex() {
                 await loadUsers();
             } catch (error: any) {
                 console.error('Failed to delete customer:', error);
-                alert(error.response?.data?.message || 'Failed to delete customer. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete customer. Please try again.');
             } finally {
                 setProcessing(false);
             }
@@ -231,7 +232,7 @@ export default function AdminUsersIndex() {
             await loadUsers();
         } catch (error: any) {
             console.error('Failed to toggle status:', error);
-            alert(error.response?.data?.message || 'Failed to toggle status. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to toggle status. Please try again.');
         }
     };
 

@@ -7,6 +7,7 @@ import { Head } from '@/components/Head';
 import { useEffect, useState } from 'react';
 import { adminService } from '@/services/adminService';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
+import { toastError } from '@/utils/toast';
 
 type SizeRow = {
     id: number;
@@ -128,7 +129,7 @@ export default function AdminSizesIndex() {
             await loadSizes();
         } catch (error: any) {
             console.error('Failed to save size:', error);
-            alert(error.response?.data?.message || 'Failed to save size. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to save size. Please try again.');
         } finally {
             setProcessing(false);
         }
@@ -146,7 +147,7 @@ export default function AdminSizesIndex() {
             await loadSizes();
         } catch (error: any) {
             console.error('Failed to toggle size status:', error);
-            alert(error.response?.data?.message || 'Failed to update size. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update size. Please try again.');
         }
     };
 
@@ -175,7 +176,7 @@ export default function AdminSizesIndex() {
             await loadSizes();
         } catch (error: any) {
             console.error('Failed to delete sizes:', error);
-            alert(error.response?.data?.message || 'Failed to delete sizes. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to delete sizes. Please try again.');
         }
     };
 
@@ -187,7 +188,7 @@ export default function AdminSizesIndex() {
                 await loadSizes();
             } catch (error: any) {
                 console.error('Failed to delete size:', error);
-                alert(error.response?.data?.message || 'Failed to delete size. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete size. Please try again.');
             }
         }
     };

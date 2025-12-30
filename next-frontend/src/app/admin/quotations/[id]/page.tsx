@@ -7,6 +7,7 @@ import { adminService } from '@/services/adminService';
 import { useRouter } from 'next/navigation';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import { toastError, toastWarning } from '@/utils/toast';
 
 type RelatedQuotation = {
     id: string | number;
@@ -261,7 +262,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         } catch (error: any) {
             console.error('Failed to remove item:', error);
             const errorMessage = error.response?.data?.message || error.message || 'Failed to remove item';
-            alert(errorMessage);
+            toastError(errorMessage);
             // Keep modal open if there's an error so user can retry
         } finally {
             setRemoveItemProcessing(false);
@@ -290,7 +291,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
             await loadQuotation();
         } catch (error: any) {
             console.error('Failed to perform action:', error);
-            alert(error.response?.data?.message || 'Failed to perform action');
+            toastError(error.response?.data?.message || 'Failed to perform action');
         } finally {
             setActionProcessing(false);
         }
@@ -307,7 +308,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
             await loadQuotation();
         } catch (error: any) {
             console.error('Failed to send message:', error);
-            alert(error.response?.data?.message || 'Failed to send message');
+            toastError(error.response?.data?.message || 'Failed to send message');
         } finally {
             setMessageProcessing(false);
         }
@@ -715,7 +716,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     const handleChangeProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!changeProductModalOpen || !selectedProduct || !changeProductVariantId) {
-            alert('Please select a product and complete customization');
+            toastWarning('Please select a product and complete customization');
             return;
         }
 
@@ -734,7 +735,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
             await loadQuotation();
         } catch (error: any) {
             console.error('Failed to update product:', error);
-            alert(error.response?.data?.message || 'Failed to update product');
+            toastError(error.response?.data?.message || 'Failed to update product');
         } finally {
             setChangeProductProcessing(false);
         }
@@ -787,7 +788,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     const handleAddItem = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!addItemSelectedProduct || !addItemVariantId) {
-            alert('Please select a product and complete customization');
+            toastWarning('Please select a product and complete customization');
             return;
         }
 
@@ -803,7 +804,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
             await loadQuotation();
         } catch (error: any) {
             console.error('Failed to add item:', error);
-            alert(error.response?.data?.message || 'Failed to add item');
+            toastError(error.response?.data?.message || 'Failed to add item');
         } finally {
             setAddItemProcessing(false);
         }

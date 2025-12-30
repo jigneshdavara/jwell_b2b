@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useMemo, useState, use, useEffect } from 'react';
 import { adminService } from '@/services/adminService';
 import { useRouter } from 'next/navigation';
+import { toastError } from '@/utils/toast';
 
 type OrderItem = {
     id: number;
@@ -230,7 +231,7 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
             await loadOrder();
         } catch (error: any) {
             console.error('Failed to update order status:', error);
-            alert(error.response?.data?.message || 'Failed to update order status');
+            toastError(error.response?.data?.message || 'Failed to update order status');
         } finally {
             setProcessing(false);
         }

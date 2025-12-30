@@ -4,6 +4,7 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
 import { useEffect, useMemo, useState } from 'react';
 import { adminService } from '@/services/adminService';
+import { toastError } from '@/utils/toast';
 
 type OfferConstraints = {
     min_order_total?: number | null;
@@ -211,7 +212,7 @@ export default function AdminOffersIndex() {
             await loadOffers();
         } catch (error: any) {
             console.error('Failed to save offer:', error);
-            alert(error.response?.data?.message || 'Failed to save offer. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to save offer. Please try again.');
         } finally {
             setProcessing(false);
         }
@@ -233,7 +234,7 @@ export default function AdminOffersIndex() {
             await loadOffers();
         } catch (error: any) {
             console.error('Failed to toggle offer:', error);
-            alert(error.response?.data?.message || 'Failed to update offer. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update offer. Please try again.');
         }
     };
 
@@ -249,7 +250,7 @@ export default function AdminOffersIndex() {
                 await loadOffers();
             } catch (error: any) {
                 console.error('Failed to delete offer:', error);
-                alert(error.response?.data?.message || 'Failed to delete offer. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete offer. Please try again.');
             }
         }
     };

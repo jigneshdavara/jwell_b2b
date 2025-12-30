@@ -6,6 +6,7 @@ import { adminService } from '@/services/adminService';
 import Link from 'next/link';
 import { Head } from '@/components/Head';
 import Modal from '@/components/ui/Modal';
+import { toastError, toastWarning } from '@/utils/toast';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-slate-100 text-slate-700',
@@ -92,7 +93,7 @@ export default function AdminKycReviewPage() {
             await fetchKycDetails(); // Reload data
         } catch (e: any) {
             console.error('Failed to update KYC status:', e);
-            alert(e.response?.data?.message || 'Failed to update KYC status');
+            toastError(e.response?.data?.message || 'Failed to update KYC status');
         } finally {
             setProcessing(false);
         }
@@ -109,7 +110,7 @@ export default function AdminKycReviewPage() {
             await fetchKycDetails(); // Reload data
         } catch (e: any) {
             console.error('Failed to send message:', e);
-            alert(e.response?.data?.message || 'Failed to send message');
+            toastError(e.response?.data?.message || 'Failed to send message');
         } finally {
             setMessageProcessing(false);
         }
@@ -121,7 +122,7 @@ export default function AdminKycReviewPage() {
             await fetchKycDetails(); // Reload data
         } catch (e: any) {
             console.error('Failed to toggle comments:', e);
-            alert(e.response?.data?.message || 'Failed to update settings');
+            toastError(e.response?.data?.message || 'Failed to update settings');
         }
     };
 
@@ -144,7 +145,7 @@ export default function AdminKycReviewPage() {
         e.preventDefault();
         if (!documentModalOpen || !documentAction) return;
         if (documentAction === 'reject' && !documentRemarks.trim()) {
-            alert('Rejection reason is required');
+            toastWarning('Rejection reason is required');
             return;
         }
 
@@ -160,7 +161,7 @@ export default function AdminKycReviewPage() {
             await fetchKycDetails(); // Reload data
         } catch (e: any) {
             console.error('Failed to update document status:', e);
-            alert(e.response?.data?.message || 'Failed to update document status');
+            toastError(e.response?.data?.message || 'Failed to update document status');
         } finally {
             setDocumentProcessing(false);
         }

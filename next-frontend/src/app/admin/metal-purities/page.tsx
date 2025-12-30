@@ -7,6 +7,7 @@ import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
+import { toastError } from '@/utils/toast';
 
 type MetalPurityRow = {
     id: number;
@@ -156,7 +157,7 @@ export default function AdminMetalPuritiesIndex() {
             await loadPurities();
         } catch (error: any) {
             console.error('Failed to save metal purity:', error);
-            alert(error.response?.data?.message || 'Failed to save metal purity. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to save metal purity. Please try again.');
         } finally {
             setProcessing(false);
         }
@@ -175,7 +176,7 @@ export default function AdminMetalPuritiesIndex() {
             await loadPurities();
         } catch (error: any) {
             console.error('Failed to toggle metal purity status:', error);
-            alert(error.response?.data?.message || 'Failed to update metal purity. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update metal purity. Please try again.');
         }
     };
 
@@ -204,7 +205,7 @@ export default function AdminMetalPuritiesIndex() {
             await loadPurities();
         } catch (error: any) {
             console.error('Failed to delete metal purities:', error);
-            alert(error.response?.data?.message || 'Failed to delete metal purities. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to delete metal purities. Please try again.');
         }
     };
 
@@ -216,7 +217,7 @@ export default function AdminMetalPuritiesIndex() {
                 await loadPurities();
             } catch (error: any) {
                 console.error('Failed to delete metal purity:', error);
-                alert(error.response?.data?.message || 'Failed to delete metal purity. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete metal purity. Please try again.');
             }
         }
     };

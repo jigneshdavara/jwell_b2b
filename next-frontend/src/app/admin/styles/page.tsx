@@ -7,6 +7,7 @@ import { Head } from '@/components/Head';
 import { useEffect, useState } from 'react';
 import { adminService } from '@/services/adminService';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
+import { toastError } from '@/utils/toast';
 
 type StyleRow = {
     id: number;
@@ -128,7 +129,7 @@ export default function AdminStylesIndex() {
             await loadStyles();
         } catch (error: any) {
             console.error('Failed to save style:', error);
-            alert(error.response?.data?.message || 'Failed to save style. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to save style. Please try again.');
         } finally {
             setProcessing(false);
         }
@@ -146,7 +147,7 @@ export default function AdminStylesIndex() {
             await loadStyles();
         } catch (error: any) {
             console.error('Failed to toggle style status:', error);
-            alert(error.response?.data?.message || 'Failed to update style. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update style. Please try again.');
         }
     };
 
@@ -175,7 +176,7 @@ export default function AdminStylesIndex() {
             await loadStyles();
         } catch (error: any) {
             console.error('Failed to delete styles:', error);
-            alert(error.response?.data?.message || 'Failed to delete styles. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to delete styles. Please try again.');
         }
     };
 
@@ -187,7 +188,7 @@ export default function AdminStylesIndex() {
                 await loadStyles();
             } catch (error: any) {
                 console.error('Failed to delete style:', error);
-                alert(error.response?.data?.message || 'Failed to delete style. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete style. Please try again.');
             }
         }
     };

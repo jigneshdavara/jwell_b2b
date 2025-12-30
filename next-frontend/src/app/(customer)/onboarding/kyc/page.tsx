@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { kycService } from '@/services/kycService';
 import { route } from '@/utils/route';
 import InputError from '@/components/ui/InputError';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { checkKycStatus, fetchKycDocuments } from '@/store/slices/kycSlice';
 import { toastSuccess, toastError } from '@/utils/toast';
@@ -50,6 +51,7 @@ export default function KycOnboardingPage() {
     const [newMessage, setNewMessage] = useState('');
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [deleteDocumentId, setDeleteDocumentId] = useState<number | string | null>(null);
 
     const fetchData = async () => {
         try {
@@ -201,11 +203,16 @@ export default function KycOnboardingPage() {
         }
     };
 
-    const handleDeleteDocument = async (documentId: number | string) => {
-        if (!confirm('Are you sure you want to delete this document?')) return;
+    const handleDeleteDocument = (documentId: number | string) => {
+        setDeleteDocumentId(documentId);
+    };
+
+    const confirmDeleteDocument = async () => {
+        if (!deleteDocumentId) return;
         try {
-            await kycService.deleteDocument(Number(documentId));
+            await kycService.deleteDocument(Number(deleteDocumentId));
             toastSuccess('Document deleted successfully');
+            setDeleteDocumentId(null);
             await fetchData();
             // Refresh KYC state in RTK
             dispatch(checkKycStatus());
@@ -625,6 +632,16 @@ export default function KycOnboardingPage() {
                     </div>
                 </aside>
             </section>
+
+            <ConfirmationModal
+                show={deleteDocumentId !== null}
+                onClose={() => setDeleteDocumentId(null)}
+                onConfirm={confirmDeleteDocument}
+                title="Delete Document"
+                message="Are you sure you want to delete this document? This action cannot be undone."
+                confirmText="Delete"
+                variant="danger"
+            />
         </div>
     );
 }

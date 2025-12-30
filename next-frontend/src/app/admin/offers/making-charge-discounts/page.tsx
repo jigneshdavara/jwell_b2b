@@ -4,6 +4,7 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
 import { useEffect, useMemo, useState } from 'react';
 import { adminService } from '@/services/adminService';
+import { toastError } from '@/utils/toast';
 
 type DiscountRow = {
     id: number;
@@ -206,7 +207,7 @@ export default function AdminMakingChargeDiscountsIndex() {
             await loadDiscounts();
         } catch (error: any) {
             console.error('Failed to save making charge discount:', error);
-            alert(error.response?.data?.message || 'Failed to save discount. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to save discount. Please try again.');
         } finally {
             setProcessing(false);
         }
@@ -232,7 +233,7 @@ export default function AdminMakingChargeDiscountsIndex() {
             await loadDiscounts();
         } catch (error: any) {
             console.error('Failed to toggle discount:', error);
-            alert(error.response?.data?.message || 'Failed to update discount. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update discount. Please try again.');
         }
     };
 
@@ -248,7 +249,7 @@ export default function AdminMakingChargeDiscountsIndex() {
                 await loadDiscounts();
             } catch (error: any) {
                 console.error('Failed to delete making charge discount:', error);
-                alert(error.response?.data?.message || 'Failed to delete discount. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete discount. Please try again.');
             }
         }
     };
@@ -287,7 +288,7 @@ export default function AdminMakingChargeDiscountsIndex() {
             await loadDiscounts();
         } catch (error: any) {
             console.error('Failed to bulk delete discounts:', error);
-            alert(error.response?.data?.message || 'Failed to delete discounts. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to delete discounts. Please try again.');
         }
     };
 

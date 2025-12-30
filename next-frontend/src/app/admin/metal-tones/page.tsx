@@ -7,6 +7,7 @@ import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
+import { toastError } from '@/utils/toast';
 
 type MetalToneRow = {
     id: number;
@@ -156,7 +157,7 @@ export default function AdminMetalTonesIndex() {
             await loadTones();
         } catch (error: any) {
             console.error('Failed to save metal tone:', error);
-            alert(error.response?.data?.message || 'Failed to save metal tone. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to save metal tone. Please try again.');
         } finally {
             setProcessing(false);
         }
@@ -175,7 +176,7 @@ export default function AdminMetalTonesIndex() {
             await loadTones();
         } catch (error: any) {
             console.error('Failed to toggle metal tone status:', error);
-            alert(error.response?.data?.message || 'Failed to update metal tone. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update metal tone. Please try again.');
         }
     };
 
@@ -204,7 +205,7 @@ export default function AdminMetalTonesIndex() {
             await loadTones();
         } catch (error: any) {
             console.error('Failed to delete metal tones:', error);
-            alert(error.response?.data?.message || 'Failed to delete metal tones. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to delete metal tones. Please try again.');
         }
     };
 
@@ -216,7 +217,7 @@ export default function AdminMetalTonesIndex() {
                 await loadTones();
             } catch (error: any) {
                 console.error('Failed to delete metal tone:', error);
-                alert(error.response?.data?.message || 'Failed to delete metal tone. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete metal tone. Please try again.');
             }
         }
     };

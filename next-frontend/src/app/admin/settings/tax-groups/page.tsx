@@ -5,6 +5,7 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
 import { useEffect, useState } from 'react';
 import { adminService } from '@/services/adminService';
+import { toastError } from '@/utils/toast';
 
 type TaxGroupRow = {
     id: number;
@@ -201,7 +202,7 @@ export default function AdminTaxGroupsIndex() {
             await loadTaxGroups(meta.current_page, perPage);
         } catch (error: any) {
             console.error('Failed to toggle tax group:', error);
-            alert(error.response?.data?.message || 'Failed to update tax group. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update tax group. Please try again.');
         }
     };
 
@@ -217,7 +218,7 @@ export default function AdminTaxGroupsIndex() {
                 await loadTaxGroups(meta.current_page, perPage);
             } catch (error: any) {
                 console.error('Failed to delete tax group:', error);
-                alert(error.response?.data?.message || 'Failed to delete tax group. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete tax group. Please try again.');
             }
         }
     };
