@@ -21,7 +21,18 @@ type Product = {
 export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>({
-    products: { data: [], meta: {}, links: [] },
+    products: { 
+      data: [], 
+      meta: { 
+        current_page: 1, 
+        last_page: 1, 
+        total: 0, 
+        per_page: 5,
+        from: 0,
+        to: 0,
+        links: []
+      } 
+    },
     brands: {},
     categories: [],
     filters: {},
@@ -64,10 +75,28 @@ export default function AdminProductsPage() {
 
       const response = await adminService.getProducts(filters);
       const productsData = response.data.items || response.data.data || [];
-      const meta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: filterState.per_page };
+      const rawMeta = response.data.meta || {};
+      
+      // Map backend response (camelCase) to frontend format (snake_case)
+      const meta = {
+        current_page: rawMeta.current_page || rawMeta.page || 1,
+        last_page: rawMeta.last_page || rawMeta.lastPage || (rawMeta.total && rawMeta.perPage ? Math.ceil(rawMeta.total / rawMeta.perPage) : 1),
+        total: rawMeta.total || 0,
+        per_page: rawMeta.per_page || rawMeta.perPage || filterState.per_page,
+        from: rawMeta.from,
+        to: rawMeta.to,
+        links: rawMeta.links,
+      };
+
+      // Calculate last_page if not provided but we have total and per_page
+      if (!meta.last_page && meta.total > 0 && meta.per_page > 0) {
+        meta.last_page = Math.ceil(meta.total / meta.per_page);
+      }
 
       // Generate pagination links using common utility
-      const links = generatePaginationLinks(meta.current_page || 1, meta.last_page || 1);
+      const currentPage = meta.current_page;
+      const lastPage = meta.last_page;
+      const links = meta.links || generatePaginationLinks(currentPage, lastPage);
 
       // Fetch brands and categories for filters
       const [brandsResponse, categoriesResponse] = await Promise.all([
@@ -84,13 +113,13 @@ export default function AdminProductsPage() {
         products: {
           data: productsData,
           meta: {
-            current_page: meta.current_page || 1,
-            last_page: meta.last_page || 1,
-            total: meta.total || 0,
-            per_page: meta.per_page || filterState.per_page,
-            from: meta.from ?? (meta.current_page > 1 ? (meta.current_page - 1) * meta.per_page + 1 : 1),
+            current_page: meta.current_page,
+            last_page: meta.last_page,
+            total: meta.total,
+            per_page: meta.per_page,
+            from: meta.from ?? (meta.current_page > 1 ? (meta.current_page - 1) * meta.per_page + 1 : (meta.total > 0 ? 1 : 0)),
             to: meta.to ?? Math.min(meta.current_page * meta.per_page, meta.total),
-            links: meta.links || links,
+            links: links,
           },
         },
         brands: brandsMap,
