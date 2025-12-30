@@ -292,12 +292,12 @@ export default function AdminProductsPage() {
                 value={filterState.search}
                 onChange={(event) => applyFilters({ search: event.target.value })}
                 placeholder="Search SKU or name"
-                className="rounded-2xl border border-slate-200 px-4 py-2"
+                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
               />
               <select
                 value={filterState.brand}
                 onChange={(event) => applyFilters({ brand: event.target.value })}
-                className="rounded-2xl border border-slate-200 px-4 py-2"
+                className="rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
               >
                 <option value="all">All brands</option>
                 {Object.entries(data.brands).map(([id, name]: any) => (
@@ -311,7 +311,7 @@ export default function AdminProductsPage() {
                 onChange={(event) =>
                   applyFilters({ category: event.target.value })
                 }
-                className="rounded-2xl border border-slate-200 px-4 py-2"
+                className="rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
               >
                 <option value="all">All categories</option>
                 {data.categories.map((category: any) => (
@@ -323,7 +323,7 @@ export default function AdminProductsPage() {
               <select
                 value={filterState.status}
                 onChange={(event) => applyFilters({ status: event.target.value })}
-                className="rounded-2xl border border-slate-200 px-4 py-2"
+                className="rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
               >
                 <option value="all">All statuses</option>
                 <option value="active">Active</option>

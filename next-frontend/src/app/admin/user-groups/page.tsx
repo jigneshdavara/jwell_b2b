@@ -807,7 +807,7 @@ export default function AdminUserGroupsIndex() {
                                                 type="text"
                                                 value={formState.name}
                                                 onChange={(event) => setFormState({ ...formState, name: event.target.value })}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 required
                                             />
                                             {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
@@ -818,7 +818,7 @@ export default function AdminUserGroupsIndex() {
                                                 type="text"
                                                 value={formState.code}
                                                 onChange={(event) => setFormState({ ...formState, code: event.target.value.toUpperCase() })}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 font-mono text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 font-mono text-sm"
                                                 placeholder="e.g., VIP, DORMANT"
                                             />
                                             {errors.code && <span className="text-xs text-rose-500">{errors.code}</span>}
@@ -848,7 +848,7 @@ export default function AdminUserGroupsIndex() {
                                                         e.target.select();
                                                     }
                                                 }}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 min={0}
                                             />
                                             {errors.display_order && <span className="text-xs text-rose-500">{errors.display_order}</span>}
@@ -872,7 +872,7 @@ export default function AdminUserGroupsIndex() {
                                         <textarea
                                             value={formState.description}
                                             onChange={(event) => setFormState({ ...formState, description: event.target.value })}
-                                            className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="min-h-[200px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                             placeholder="Optional notes (e.g. perks, outreach cadence)."
                                         />
                                         {errors.description && <span className="text-xs text-rose-500">{errors.description}</span>}
@@ -949,7 +949,7 @@ export default function AdminUserGroupsIndex() {
                                             }
                                         }}
                                         placeholder="Search name or email..."
-                                        className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                     />
                                 </div>
                                 <button

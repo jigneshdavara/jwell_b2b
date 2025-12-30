@@ -660,7 +660,7 @@ export default function AdminCategoriesPage() {
                                         <label className="flex flex-col gap-2 text-sm text-slate-600">
                                             <span>Parent Category</span>
                                             <Menu as="div" className="relative">
-                                                <Menu.Button className="w-full min-h-[44px] rounded-2xl border border-slate-300 bg-white px-4 py-2 text-left text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200">
+                                                <Menu.Button className="w-full min-h-[44px] rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-left text-sm">
                                                     <div className="flex items-center justify-between">
                                                         <span className={formState.parent_id === '' ? 'text-slate-500' : 'text-slate-900'}>
                                                             {getSelectedCategoryName()}
@@ -717,7 +717,7 @@ export default function AdminCategoriesPage() {
                                                 type="text"
                                                 value={formState.code}
                                                 onChange={(e) => setFormState(prev => ({ ...prev, code: e.target.value }))}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 placeholder="e.g., RNG, NKL"
                                             />
                                         </label>
@@ -727,7 +727,7 @@ export default function AdminCategoriesPage() {
                                                 type="text"
                                                 value={formState.name}
                                                 onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 required
                                             />
                                         </label>
@@ -750,7 +750,7 @@ export default function AdminCategoriesPage() {
                                                         e.target.select();
                                                     }
                                                 }}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 min={0}
                                             />
                                         </label>
@@ -837,7 +837,7 @@ export default function AdminCategoriesPage() {
                                         </div>
                                         {styles && styles.length > 0 ? (
                                             <Menu as="div" className="relative">
-                                                <Menu.Button className="w-full min-h-[44px] rounded-2xl border border-slate-300 bg-white px-4 py-2 text-left text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200">
+                                                <Menu.Button className="w-full min-h-[44px] rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-left text-sm">
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         {formState.style_ids && formState.style_ids.length > 0 ? (
                                                             formState.style_ids.map((styleId) => {
@@ -979,7 +979,7 @@ export default function AdminCategoriesPage() {
                                         </div>
                                         {sizes && sizes.length > 0 ? (
                                             <Menu as="div" className="relative">
-                                                <Menu.Button className="w-full min-h-[44px] rounded-2xl border border-slate-300 bg-white px-4 py-2 text-left text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200">
+                                                <Menu.Button className="w-full min-h-[44px] rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-left text-sm">
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         {formState.size_ids && formState.size_ids.length > 0 ? (
                                                             formState.size_ids.map((sizeId) => {
@@ -1111,7 +1111,7 @@ export default function AdminCategoriesPage() {
                                         <textarea
                                             value={formState.description}
                                             onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                                            className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="min-h-[200px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                             placeholder="Optional notes for team (e.g. usage, category)."
                                         />
                                     </label>

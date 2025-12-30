@@ -5,6 +5,7 @@ import {
     useImperativeHandle,
     useRef,
 } from 'react';
+import { inputBaseClasses } from '@/utils/inputStyles';
 
 export default forwardRef(function TextInput(
     {
@@ -31,10 +32,7 @@ export default forwardRef(function TextInput(
         <input
             {...props}
             type={type}
-            className={
-                'w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 ' +
-                className
-            }
+            className={`${inputBaseClasses} ${className}`}
             ref={localRef}
         />
     );

@@ -435,7 +435,7 @@ export default function AdminMetalPuritiesIndex() {
                                                 <select
                                                     value={formData.metal_id}
                                                     onChange={(e) => setFormData({ ...formData, metal_id: e.target.value })}
-                                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                     required
                                                 >
                                                     <option value="">Select a metal</option>
@@ -452,7 +452,7 @@ export default function AdminMetalPuritiesIndex() {
                                                     type="text"
                                                     value={formData.code}
                                                     onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                     placeholder="e.g., 18K, 22K, 925"
                                                     required
                                                 />
@@ -463,7 +463,7 @@ export default function AdminMetalPuritiesIndex() {
                                                     type="text"
                                                     value={formData.name}
                                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                     placeholder="e.g. 18K, 22K, 925"
                                                     required
                                                 />
@@ -487,7 +487,7 @@ export default function AdminMetalPuritiesIndex() {
                                                             e.target.select();
                                                         }
                                                     }}
-                                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                     min={0}
                                                     required
                                                 />
@@ -511,7 +511,7 @@ export default function AdminMetalPuritiesIndex() {
                                             <textarea
                                                 value={formData.description}
                                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                                className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="min-h-[200px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 placeholder="Optional notes for team (e.g. usage, category)."
                                             />
                                         </label>

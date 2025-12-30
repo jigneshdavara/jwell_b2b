@@ -311,7 +311,7 @@ export default function KycOnboardingPage() {
                                     type="text"
                                     value={profileData.business_name || ''}
                                     onChange={(e) => setProfileData({...profileData, business_name: e.target.value})}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                     required
                                 />
                                 <InputError message={errors.business_name} />
@@ -322,7 +322,7 @@ export default function KycOnboardingPage() {
                                     type="text"
                                     value={profileData.business_website || ''}
                                     onChange={(e) => setProfileData({...profileData, business_website: e.target.value})}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                     placeholder="https://example.com"
                                 />
                                 <InputError message={errors.business_website} />
@@ -333,7 +333,7 @@ export default function KycOnboardingPage() {
                                     type="text"
                                     value={profileData.gst_number || ''}
                                     onChange={(e) => setProfileData({...profileData, gst_number: e.target.value.toUpperCase()})}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                     placeholder="Optional"
                                 />
                                 <InputError message={errors.gst_number} />
@@ -344,7 +344,7 @@ export default function KycOnboardingPage() {
                                     type="text"
                                     value={profileData.pan_number || ''}
                                     onChange={(e) => setProfileData({...profileData, pan_number: e.target.value.toUpperCase()})}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                     placeholder="Optional"
                                 />
                                 <InputError message={errors.pan_number} />
@@ -355,7 +355,7 @@ export default function KycOnboardingPage() {
                                     type="text"
                                     value={profileData.registration_number || ''}
                                     onChange={(e) => setProfileData({...profileData, registration_number: e.target.value})}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                     placeholder="MSME / CIN"
                                 />
                                 <InputError message={errors.registration_number} />
@@ -366,7 +366,7 @@ export default function KycOnboardingPage() {
                                     type="text"
                                     value={profileData.contact_name || ''}
                                     onChange={(e) => setProfileData({...profileData, contact_name: e.target.value})}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 />
                                 <InputError message={errors.contact_name} />
                             </label>
@@ -376,7 +376,7 @@ export default function KycOnboardingPage() {
                                     type="text"
                                     value={profileData.contact_phone || ''}
                                     onChange={(e) => setProfileData({...profileData, contact_phone: e.target.value})}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 />
                                 <InputError message={errors.contact_phone} />
                             </label>
@@ -388,7 +388,7 @@ export default function KycOnboardingPage() {
                                     type="text"
                                     value={profileData.address_line1 || ''}
                                     onChange={(e) => setProfileData({...profileData, address_line1: e.target.value})}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 />
                                 <InputError message={errors.address_line1} />
                             </label>
@@ -398,7 +398,7 @@ export default function KycOnboardingPage() {
                                     type="text"
                                     value={profileData.address_line2 || ''}
                                     onChange={(e) => setProfileData({...profileData, address_line2: e.target.value})}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 />
                                 <InputError message={errors.address_line2} />
                             </label>
@@ -408,7 +408,7 @@ export default function KycOnboardingPage() {
                                     type="text"
                                     value={profileData.city || ''}
                                     onChange={(e) => setProfileData({...profileData, city: e.target.value})}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 />
                                 <InputError message={errors.city} />
                             </label>
@@ -418,7 +418,7 @@ export default function KycOnboardingPage() {
                                     type="text"
                                     value={profileData.state || ''}
                                     onChange={(e) => setProfileData({...profileData, state: e.target.value})}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 />
                                 <InputError message={errors.state} />
                             </label>
@@ -428,7 +428,7 @@ export default function KycOnboardingPage() {
                                     type="text"
                                     value={profileData.postal_code || ''}
                                     onChange={(e) => setProfileData({...profileData, postal_code: e.target.value})}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 />
                                 <InputError message={errors.postal_code} />
                             </label>
@@ -438,7 +438,7 @@ export default function KycOnboardingPage() {
                                     type="text"
                                     value={profileData.country || 'India'}
                                     onChange={(e) => setProfileData({...profileData, country: e.target.value})}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 />
                                 <InputError message={errors.country} />
                             </label>
@@ -465,7 +465,7 @@ export default function KycOnboardingPage() {
                                 <select
                                     value={documentType}
                                     onChange={(e) => setDocumentType(e.target.value)}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 capitalize focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 capitalize"
                                 >
                                     {documentTypes.map((type) => (
                                         <option key={type} value={type}>
@@ -482,7 +482,7 @@ export default function KycOnboardingPage() {
                                     type="file"
                                     accept="application/pdf,image/jpeg,image/png"
                                     onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                     required
                                 />
                                 <InputError message={errors.document_file} />
@@ -538,7 +538,7 @@ export default function KycOnboardingPage() {
                                     <textarea
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
-                                        className="min-h-[90px] rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="min-h-[90px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                         placeholder="Share the update or clarification you have for the compliance team."
                                         disabled={processing}
                                     />

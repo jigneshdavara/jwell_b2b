@@ -430,10 +430,10 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
                     disabled={!parentCategoryId}
-                    className={`w-full rounded-2xl border ${
-                        error ? 'border-rose-300' : 'border-slate-200'
-                    } bg-white px-4 py-2.5 text-left focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 transition-all ${
-                        isOpen ? 'border-sky-400 ring-2 ring-sky-200' : ''
+                    className={`w-full rounded-xl border ${
+                        error ? 'border-rose-300' : 'border-slate-300'
+                    } bg-white text-slate-900 shadow-sm px-4 py-2.5 text-left focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 transition-all ${
+                        isOpen ? 'border-slate-900 ring-2 ring-slate-900/20' : ''
                     } ${
                         !parentCategoryId ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
@@ -586,10 +586,10 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full rounded-2xl border ${
-                        error ? 'border-rose-300' : 'border-slate-200'
-                    } bg-white px-4 py-2.5 text-left focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 transition-all ${
-                        isOpen ? 'border-sky-400 ring-2 ring-sky-200' : ''
+                    className={`w-full rounded-xl border ${
+                        error ? 'border-rose-300' : 'border-slate-300'
+                    } bg-white text-slate-900 shadow-sm px-4 py-2.5 text-left focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 transition-all ${
+                        isOpen ? 'border-slate-900 ring-2 ring-slate-900/20' : ''
                     }`}
                 >
                     <div className="flex items-center justify-between gap-2">
@@ -808,10 +808,10 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full rounded-2xl border ${
-                        error ? 'border-rose-300' : 'border-slate-200'
-                    } bg-white px-4 py-2.5 text-left focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 transition-all ${
-                        isOpen ? 'border-sky-400 ring-2 ring-sky-200' : ''
+                    className={`w-full rounded-xl border ${
+                        error ? 'border-rose-300' : 'border-slate-300'
+                    } bg-white text-slate-900 shadow-sm px-4 py-2.5 text-left focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 transition-all ${
+                        isOpen ? 'border-slate-900 ring-2 ring-slate-900/20' : ''
                     }`}
                 >
                     <div className="flex items-center justify-between gap-2">
@@ -3255,7 +3255,7 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.sku}
                                         onChange={(event) => setDataField('sku', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                         placeholder="Enter SKU"
                                     />
                                     {errors.sku && <span className="text-xs text-rose-500">{errors.sku}</span>}
@@ -3266,7 +3266,7 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.name}
                                         onChange={(event) => setDataField('name', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                         placeholder="Enter product name"
                                     />
                                     {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
@@ -3277,7 +3277,7 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.producttype}
                                         onChange={(event) => setDataField('producttype', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                         placeholder="Enter product type"
                                     />
                                     {errors.producttype && <span className="text-xs text-rose-500">{errors.producttype}</span>}
@@ -3288,7 +3288,7 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.titleline}
                                         onChange={(event) => setDataField('titleline', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                         placeholder="Enter product title line"
                                     />
                                     {errors.titleline && <span className="text-xs text-rose-500">{errors.titleline}</span>}
@@ -3299,7 +3299,7 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.collection}
                                         onChange={(event) => setDataField('collection', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                         placeholder="Enter collection name"
                                     />
                                     {errors.collection && <span className="text-xs text-rose-500">{errors.collection}</span>}
@@ -3310,7 +3310,7 @@ export default function AdminProductEdit() {
                                     <select
                                         value={data.gender}
                                         onChange={(event) => setDataField('gender', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                     >
                                         <option value="">Select gender</option>
                                         <option value="Men">Men</option>
@@ -3328,7 +3328,7 @@ export default function AdminProductEdit() {
                                     <select
                                         value={data.brand_id}
                                         onChange={(event) => setDataField('brand_id', event.target.value)}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                     >
                                         <option value="">Select brand</option>
                                         {Object.entries(brands).map(([id, name]) => (
@@ -3351,7 +3351,7 @@ export default function AdminProductEdit() {
                                             setDataField('selected_sizes', []);
                                             setDataField('all_sizes_available', undefined);
                                         }}
-                                        className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                     >
                                         <option value="">Select category</option>
                                         {(parentCategories || []).map((category) => (
@@ -3461,7 +3461,7 @@ export default function AdminProductEdit() {
                                             min="0"
                                             value={data.making_charge_amount}
                                             onChange={(event) => setDataField('making_charge_amount', event.target.value)}
-                                            className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                             placeholder="Enter fixed making charge"
                                         />
                                         {errors.making_charge_amount && <span className="text-xs text-rose-500">{errors.making_charge_amount}</span>}
@@ -3477,7 +3477,7 @@ export default function AdminProductEdit() {
                                             max="100"
                                             value={data.making_charge_percentage}
                                             onChange={(event) => setDataField('making_charge_percentage', event.target.value)}
-                                            className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                             placeholder="Enter percentage (e.g., 10 for 10%)"
                                         />
                                         <span className="text-xs text-slate-500">Percentage will be calculated on metal cost</span>

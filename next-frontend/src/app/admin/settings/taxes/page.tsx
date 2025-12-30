@@ -446,7 +446,7 @@ export default function AdminTaxesIndex() {
                                         <select
                                             value={formData.tax_group_id}
                                             onChange={(e) => setFormData({ ...formData, tax_group_id: e.target.value })}
-                                            className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                             required
                                         >
                                             <option value="">Select a tax group</option>
@@ -467,7 +467,7 @@ export default function AdminTaxesIndex() {
                                             type="text"
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                             required
                                         />
                                         {errors.name && <p className="mt-1 text-xs text-rose-500">{errors.name}</p>}
@@ -481,7 +481,7 @@ export default function AdminTaxesIndex() {
                                             type="text"
                                             value={formData.code}
                                             onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                                            className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                             required
                                         />
                                         {errors.code && <p className="mt-1 text-xs text-rose-500">{errors.code}</p>}
@@ -500,7 +500,7 @@ export default function AdminTaxesIndex() {
                                             max="100"
                                             value={formData.rate}
                                             onChange={(e) => setFormData({ ...formData, rate: parseFloat(e.target.value) || 0 })}
-                                            className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                             required
                                         />
                                         {errors.rate && <p className="mt-1 text-xs text-rose-500">{errors.rate}</p>}
@@ -512,7 +512,7 @@ export default function AdminTaxesIndex() {
                                             value={formData.description}
                                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                             rows={4}
-                                            className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                         />
                                         {errors.description && <p className="mt-1 text-xs text-rose-500">{errors.description}</p>}
                                     </div>

@@ -291,7 +291,7 @@ export default function AdminOffersIndex() {
                                 type="text"
                                 value={formData.code}
                                 onChange={(event) => setFormData({ ...formData, code: event.target.value.toUpperCase() })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 uppercase focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 uppercase"
                                 placeholder="SUMMER25"
                                 required
                             />
@@ -302,7 +302,7 @@ export default function AdminOffersIndex() {
                                 type="text"
                                 value={formData.name}
                                 onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 required
                             />
                         </label>
@@ -311,7 +311,7 @@ export default function AdminOffersIndex() {
                             <select
                                 value={formData.type}
                                 onChange={(event) => setFormData({ ...formData, type: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                             >
                                 {offerTypes.map((type) => (
                                     <option key={type} value={type}>
@@ -327,7 +327,7 @@ export default function AdminOffersIndex() {
                                 step="0.01"
                                 value={formData.value}
                                 onChange={(event) => setFormData({ ...formData, value: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 required
                             />
                         </label>
@@ -338,7 +338,7 @@ export default function AdminOffersIndex() {
                         <textarea
                             value={formData.description}
                             onChange={(event) => setFormData({ ...formData, description: event.target.value })}
-                            className="min-h-[100px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                            className="min-h-[100px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                             placeholder="Optional copy for team reference"
                         />
                     </label>
@@ -351,13 +351,13 @@ export default function AdminOffersIndex() {
                                     type="date"
                                     value={formData.starts_at}
                                     onChange={(event) => setFormData({ ...formData, starts_at: event.target.value })}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 />
                                 <input
                                     type="date"
                                     value={formData.ends_at}
                                     onChange={(event) => setFormData({ ...formData, ends_at: event.target.value })}
-                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 />
                             </div>
                         </label>
@@ -368,7 +368,7 @@ export default function AdminOffersIndex() {
                                 step="0.01"
                                 value={formData.min_order_total}
                                 onChange={(event) => setFormData({ ...formData, min_order_total: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 placeholder="Optional"
                             />
                         </label>

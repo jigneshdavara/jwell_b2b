@@ -288,7 +288,7 @@ export default function AdminOrderStatusesIndex() {
                                 type="text"
                                 value={formData.name}
                                 onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 required
                             />
                             {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
@@ -299,7 +299,7 @@ export default function AdminOrderStatusesIndex() {
                                 type="text"
                                 value={formData.code}
                                 onChange={(event) => setFormData({ ...formData, code: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 required
                             />
                             {errors.code && <span className="text-xs text-rose-500">{errors.code}</span>}
@@ -323,7 +323,7 @@ export default function AdminOrderStatusesIndex() {
                                         e.target.select();
                                     }
                                 }}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 min={0}
                             />
                             {errors.display_order && <span className="text-xs text-rose-500">{errors.display_order}</span>}
@@ -344,7 +344,7 @@ export default function AdminOrderStatusesIndex() {
                                     type="text"
                                     value={formData.color}
                                     onChange={(event) => setFormData({ ...formData, color: event.target.value })}
-                                    className="flex-1 rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="flex-1 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                     placeholder="#64748b"
                                     maxLength={7}
                                 />

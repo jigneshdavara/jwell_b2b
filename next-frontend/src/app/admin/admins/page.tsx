@@ -344,7 +344,7 @@ export default function AdminAdminsIndex() {
                                 value={newUser.name}
                                 onChange={(event) => setNewUser((prev) => ({ ...prev, name: event.target.value }))}
                                 required
-                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                             />
                             {errors?.name && <span className="text-xs text-rose-500">{errors.name}</span>}
                         </label>
@@ -355,7 +355,7 @@ export default function AdminAdminsIndex() {
                                 value={newUser.email}
                                 onChange={(event) => setNewUser((prev) => ({ ...prev, email: event.target.value }))}
                                 required
-                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                             />
                             {errors?.email && <span className="text-xs text-rose-500">{errors.email}</span>}
                         </label>
@@ -366,7 +366,7 @@ export default function AdminAdminsIndex() {
                                 value={newUser.password}
                                 onChange={(event) => setNewUser((prev) => ({ ...prev, password: event.target.value }))}
                                 required={!editingUser}
-                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 minLength={8}
                             />
                             {errors?.password && <span className="text-xs text-rose-500">{errors.password}</span>}
@@ -386,7 +386,7 @@ export default function AdminAdminsIndex() {
                                     setNewUser((prev) => ({ ...prev, password_confirmation: event.target.value }))
                                 }
                                 required={!editingUser}
-                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 minLength={8}
                             />
                         </label>
@@ -401,7 +401,7 @@ export default function AdminAdminsIndex() {
                                         admin_group_id: event.target.value === 'super-admin' ? '' : prev.admin_group_id,
                                     }))
                                 }
-                                className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 disabled={editingUser?.type === 'super-admin'}
                             >
                                 {availableTypes.map((option) => (
@@ -424,7 +424,7 @@ export default function AdminAdminsIndex() {
                                     onChange={(event) =>
                                         setNewUser((prev) => ({ ...prev, admin_group_id: event.target.value }))
                                     }
-                                    className="rounded-2xl border border-slate-200 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 >
                                     <option value="">Admin (no restrictions)</option>
                                     {adminGroups.map((group) => (

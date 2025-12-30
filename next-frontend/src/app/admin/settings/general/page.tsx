@@ -293,7 +293,7 @@ export default function AdminGeneralSettingsIndex() {
                                     type="email"
                                     value={formData.admin_email}
                                     onChange={(e) => setFormData({ ...formData, admin_email: e.target.value })}
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                 />
                                 {errors.admin_email && <p className="mt-1 text-xs text-rose-500">{errors.admin_email}</p>}
                             </div>
@@ -303,7 +303,7 @@ export default function AdminGeneralSettingsIndex() {
                                     type="text"
                                     value={formData.company_name}
                                     onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                 />
                                 {errors.company_name && <p className="mt-1 text-xs text-rose-500">{errors.company_name}</p>}
                             </div>
@@ -313,7 +313,7 @@ export default function AdminGeneralSettingsIndex() {
                                     type="text"
                                     value={formData.company_address}
                                     onChange={(e) => setFormData({ ...formData, company_address: e.target.value })}
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                 />
                                 {errors.company_address && <p className="mt-1 text-xs text-rose-500">{errors.company_address}</p>}
                             </div>
@@ -323,7 +323,7 @@ export default function AdminGeneralSettingsIndex() {
                                     type="text"
                                     value={formData.company_city}
                                     onChange={(e) => setFormData({ ...formData, company_city: e.target.value })}
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                 />
                                 {errors.company_city && <p className="mt-1 text-xs text-rose-500">{errors.company_city}</p>}
                             </div>
@@ -333,7 +333,7 @@ export default function AdminGeneralSettingsIndex() {
                                     type="text"
                                     value={formData.company_state}
                                     onChange={(e) => setFormData({ ...formData, company_state: e.target.value })}
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                 />
                                 {errors.company_state && <p className="mt-1 text-xs text-rose-500">{errors.company_state}</p>}
                             </div>
@@ -343,7 +343,7 @@ export default function AdminGeneralSettingsIndex() {
                                     type="text"
                                     value={formData.company_pincode}
                                     onChange={(e) => setFormData({ ...formData, company_pincode: e.target.value })}
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                 />
                                 {errors.company_pincode && <p className="mt-1 text-xs text-rose-500">{errors.company_pincode}</p>}
                             </div>
@@ -353,7 +353,7 @@ export default function AdminGeneralSettingsIndex() {
                                     type="text"
                                     value={formData.company_phone}
                                     onChange={(e) => setFormData({ ...formData, company_phone: e.target.value })}
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                 />
                                 {errors.company_phone && <p className="mt-1 text-xs text-rose-500">{errors.company_phone}</p>}
                             </div>
@@ -363,7 +363,7 @@ export default function AdminGeneralSettingsIndex() {
                                     type="email"
                                     value={formData.company_email}
                                     onChange={(e) => setFormData({ ...formData, company_email: e.target.value })}
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                 />
                                 {errors.company_email && <p className="mt-1 text-xs text-rose-500">{errors.company_email}</p>}
                             </div>
@@ -373,7 +373,7 @@ export default function AdminGeneralSettingsIndex() {
                                     type="text"
                                     value={formData.company_gstin}
                                     onChange={(e) => setFormData({ ...formData, company_gstin: e.target.value })}
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                 />
                                 {errors.company_gstin && <p className="mt-1 text-xs text-rose-500">{errors.company_gstin}</p>}
                             </div>
@@ -470,7 +470,7 @@ export default function AdminGeneralSettingsIndex() {
                                     type="text"
                                     value={formData.app_name}
                                     onChange={(e) => setFormData({ ...formData, app_name: e.target.value })}
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                 />
                                 {errors.app_name && <p className="mt-1 text-xs text-rose-500">{errors.app_name}</p>}
                             </div>
@@ -479,7 +479,7 @@ export default function AdminGeneralSettingsIndex() {
                                 <select
                                     value={formData.app_timezone}
                                     onChange={(e) => setFormData({ ...formData, app_timezone: e.target.value })}
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                 >
                                     {timezones.map((tz) => (
                                         <option key={tz} value={tz}>
@@ -494,7 +494,7 @@ export default function AdminGeneralSettingsIndex() {
                                 <select
                                     value={formData.app_currency}
                                     onChange={(e) => setFormData({ ...formData, app_currency: e.target.value })}
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                 >
                                     {currencies.map((curr) => (
                                         <option key={curr} value={curr}>

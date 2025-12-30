@@ -334,7 +334,7 @@ export default function AdminMakingChargeDiscountsIndex() {
                                 type="text"
                                 value={formData.name}
                                 onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 required
                             />
                         </label>
@@ -344,7 +344,7 @@ export default function AdminMakingChargeDiscountsIndex() {
                             <select
                                 value={formData.discount_type}
                                 onChange={(event) => setFormData({ ...formData, discount_type: event.target.value as 'percentage' | 'fixed' })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                             >
                                 {discountTypes.map((type) => (
                                     <option key={type} value={type}>
@@ -361,7 +361,7 @@ export default function AdminMakingChargeDiscountsIndex() {
                                 step="0.01"
                                 value={formData.value}
                                 onChange={(event) => setFormData({ ...formData, value: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 required
                             />
                         </label>
@@ -373,7 +373,7 @@ export default function AdminMakingChargeDiscountsIndex() {
                                 step="0.01"
                                 value={formData.min_cart_total}
                                 onChange={(event) => setFormData({ ...formData, min_cart_total: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 placeholder="Optional threshold"
                             />
                         </label>
@@ -385,7 +385,7 @@ export default function AdminMakingChargeDiscountsIndex() {
                             <select
                                 value={formData.brand_id}
                                 onChange={(event) => setFormData({ ...formData, brand_id: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                             >
                                 <option value="">All brands</option>
                                 {brands.map((brand) => (
@@ -400,7 +400,7 @@ export default function AdminMakingChargeDiscountsIndex() {
                             <select
                                 value={formData.category_id}
                                 onChange={(event) => setFormData({ ...formData, category_id: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                             >
                                 <option value="">All categories</option>
                                 {categories.map((category) => (
@@ -415,7 +415,7 @@ export default function AdminMakingChargeDiscountsIndex() {
                             <select
                                 value={formData.user_group_id}
                                 onChange={(event) => setFormData({ ...formData, user_group_id: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                             >
                                 <option value="">All customer groups</option>
                                 {userGroups.map((group) => (
@@ -465,7 +465,7 @@ export default function AdminMakingChargeDiscountsIndex() {
                                 type="date"
                                 value={formData.starts_at}
                                 onChange={(event) => setFormData({ ...formData, starts_at: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                             />
                         </label>
                         <label className="flex flex-col gap-2 text-sm text-slate-600">
@@ -474,7 +474,7 @@ export default function AdminMakingChargeDiscountsIndex() {
                                 type="date"
                                 value={formData.ends_at}
                                 onChange={(event) => setFormData({ ...formData, ends_at: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                             />
                         </label>
                     </div>
