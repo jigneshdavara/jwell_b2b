@@ -97,46 +97,50 @@ export default function AdminLayout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 flex-shrink-0 flex-col border-r border-slate-200 bg-white/95 px-3 py-4 shadow-xl shadow-slate-900/10 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:px-4 lg:py-6 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 flex-shrink-0 flex flex-col border-r border-slate-200 bg-white/95 shadow-xl shadow-slate-900/10 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Mobile close button */}
-        <div className="mb-4 flex items-center justify-between lg:mb-0">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-xs font-semibold text-white sm:h-10 sm:w-10 sm:text-sm">
-              EL
+        {/* Header section - fixed at top */}
+        <div className="flex-shrink-0 px-3 py-4 lg:px-4 lg:py-6">
+          {/* Mobile close button */}
+          <div className="mb-4 flex items-center justify-between lg:mb-0">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-xs font-semibold text-white sm:h-10 sm:w-10 sm:text-sm">
+                EL
+              </div>
+              <div className="hidden sm:block">
+                <p className="text-xs font-semibold text-slate-900 sm:text-sm">Elvee Admin</p>
+                <p className="text-[10px] text-slate-400 sm:text-xs">Production & Retail Ops</p>
+              </div>
             </div>
-            <div className="hidden sm:block">
-              <p className="text-xs font-semibold text-slate-900 sm:text-sm">Elvee Admin</p>
-              <p className="text-[10px] text-slate-400 sm:text-xs">Production & Retail Ops</p>
-            </div>
-          </div>
-          <button
-            onClick={closeSidebar}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 lg:hidden"
-            aria-label="Close menu"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
+            <button
+              onClick={closeSidebar}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 lg:hidden"
+              aria-label="Close menu"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Mobile logo text (shown when sidebar is collapsed on mobile) */}
+          <div className="mb-4 sm:hidden">
+            <p className="text-xs font-semibold text-slate-900">Elvee Admin</p>
+            <p className="text-[10px] text-slate-400">Production & Retail Ops</p>
+          </div>
         </div>
 
-        {/* Mobile logo text (shown when sidebar is collapsed on mobile) */}
-        <div className="mb-4 sm:hidden">
-          <p className="text-xs font-semibold text-slate-900">Elvee Admin</p>
-          <p className="text-[10px] text-slate-400">Production & Retail Ops</p>
-        </div>
-
-        <nav className="mt-4 space-y-2 text-sm lg:mt-8 lg:space-y-3">
+        {/* Navigation - scrollable */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-0 space-y-2 text-sm lg:px-4 lg:pb-6 lg:pt-0 lg:space-y-3">
           {adminNavigation.map((item) => {
             if (item.children) {
               const anyActive = item.children.some((child) => isMatch(child.match));

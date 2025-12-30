@@ -6,7 +6,7 @@ import {
     Transition,
     TransitionChild,
 } from '@headlessui/react';
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, ReactNode } from 'react';
 
 export default function Modal({
     children,
@@ -44,7 +44,7 @@ export default function Modal({
             <Dialog
                 as="div"
                 id="modal"
-                className="fixed inset-0 z-50 flex transform items-center overflow-y-auto px-4 py-6 transition-all sm:px-0"
+                className="fixed inset-0 z-50 flex transform items-center justify-center overflow-y-auto px-2 py-2 transition-all sm:px-4 sm:py-6 lg:px-0"
                 onClose={close}
             >
                 <TransitionChild
@@ -60,15 +60,16 @@ export default function Modal({
 
                 <TransitionChild
                     enter="ease-out duration-300"
-                    enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    enterTo="opacity-100 translate-y-0 sm:scale-100"
+                    enterFrom="opacity-0 scale-95"
+                    enterTo="opacity-100 scale-100"
                     leave="ease-in duration-200"
-                    leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                    leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    leaveFrom="opacity-100 scale-100"
+                    leaveTo="opacity-0 scale-95"
                 >
                     <DialogPanel
-                        className={`mb-6 transform overflow-hidden rounded-lg bg-white shadow-xl transition-all sm:mx-auto sm:w-full sm:max-h-[95vh] sm:flex sm:flex-col ${maxWidthClass}`}
+                        className={`w-full transform overflow-hidden rounded-xl bg-white shadow-xl transition-all mx-auto mb-6 max-h-[95vh] flex flex-col sm:rounded-lg ${maxWidthClass}`}
                     >
+                        {/* @ts-expect-error - Headless UI DialogPanel typing issue with ReactNode */}
                         {children}
                     </DialogPanel>
                 </TransitionChild>
