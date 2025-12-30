@@ -6,6 +6,7 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { adminService } from '@/services/adminService';
 import Link from 'next/link';
 import { route } from '@/utils/route';
+import { toastError } from '@/utils/toast';
 
 type AdminUserRow = {
     id: number;
@@ -183,7 +184,7 @@ export default function AdminUsersIndex() {
             await loadUsers();
         } catch (error: any) {
             console.error('Failed to delete customers:', error);
-            alert(error.response?.data?.message || 'Failed to delete customers. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to delete customers. Please try again.');
         } finally {
             setProcessing(false);
         }
@@ -199,7 +200,7 @@ export default function AdminUsersIndex() {
             await loadUsers();
         } catch (error: any) {
             console.error('Failed to update customer group:', error);
-            alert(error.response?.data?.message || 'Failed to update customer group. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to update customer group. Please try again.');
         } finally {
             setProcessing(false);
         }
@@ -218,7 +219,7 @@ export default function AdminUsersIndex() {
                 await loadUsers();
             } catch (error: any) {
                 console.error('Failed to delete customer:', error);
-                alert(error.response?.data?.message || 'Failed to delete customer. Please try again.');
+                toastError(error.response?.data?.message || 'Failed to delete customer. Please try again.');
             } finally {
                 setProcessing(false);
             }
@@ -231,7 +232,7 @@ export default function AdminUsersIndex() {
             await loadUsers();
         } catch (error: any) {
             console.error('Failed to toggle status:', error);
-            alert(error.response?.data?.message || 'Failed to toggle status. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to toggle status. Please try again.');
         }
     };
 
@@ -254,7 +255,7 @@ export default function AdminUsersIndex() {
                                     value={search}
                                     onChange={(event) => setSearch(event.target.value)}
                                     placeholder="Jane Doe or jane@studio.com"
-                                    className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                 />
                                 <button
                                     type="button"
@@ -270,7 +271,7 @@ export default function AdminUsersIndex() {
                             <select
                                 value={groupFilter}
                                 onChange={(event) => setGroupFilter(event.target.value)}
-                                className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                             >
                                 <option value="">All groups</option>
                                 {customerGroups.map((group) => (

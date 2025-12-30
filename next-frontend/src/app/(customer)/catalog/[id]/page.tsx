@@ -578,7 +578,7 @@ export default function CatalogShowPage() {
                                     rows={4}
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
-                                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                                     placeholder="List required scope: hallmarking, hallmark packaging, diamond certification, delivery deadlines…"
                                 />
                                 {validationErrors.notes && (

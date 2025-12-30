@@ -503,7 +503,7 @@ export default function AdminDiamondShapeSizesIndex() {
                                             <select
                                                 value={formData.diamond_type_id === '' ? '' : String(formData.diamond_type_id)}
                                                 onChange={(event) => setFormData({ ...formData, diamond_type_id: event.target.value === '' ? '' : Number(event.target.value) })}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 required
                                             >
                                                 <option value="">Select type</option>
@@ -520,7 +520,7 @@ export default function AdminDiamondShapeSizesIndex() {
                                             <select
                                                 value={formData.diamond_shape_id === '' ? '' : String(formData.diamond_shape_id)}
                                                 onChange={(event) => setFormData({ ...formData, diamond_shape_id: event.target.value === '' ? '' : Number(event.target.value) })}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 required
                                             >
                                                 <option value="">Select a shape</option>
@@ -538,7 +538,7 @@ export default function AdminDiamondShapeSizesIndex() {
                                                 type="text"
                                                 value={formData.size}
                                                 onChange={(event) => setFormData({ ...formData, size: event.target.value })}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 placeholder="e.g., 1.00, 2.00x3.00"
                                                 required
                                             />
@@ -550,7 +550,7 @@ export default function AdminDiamondShapeSizesIndex() {
                                                 type="text"
                                                 value={formData.secondary_size}
                                                 onChange={(event) => setFormData({ ...formData, secondary_size: event.target.value })}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 placeholder="e.g., (S), (T)"
                                             />
                                             {formErrors.secondary_size && <span className="text-xs text-rose-500">{formErrors.secondary_size}</span>}
@@ -562,7 +562,7 @@ export default function AdminDiamondShapeSizesIndex() {
                                                 step="0.001"
                                                 value={formData.ctw === '' ? '' : formData.ctw}
                                                 onChange={(event) => setFormData({ ...formData, ctw: event.target.value === '' ? '' : Number(event.target.value) })}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 min={0}
                                                 required
                                             />
@@ -587,7 +587,7 @@ export default function AdminDiamondShapeSizesIndex() {
                                                         e.target.select();
                                                     }
                                                 }}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 min={0}
                                                 required
                                             />
@@ -602,7 +602,7 @@ export default function AdminDiamondShapeSizesIndex() {
                                         <textarea
                                             value={formData.description}
                                             onChange={(event) => setFormData({ ...formData, description: event.target.value })}
-                                            className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="min-h-[200px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                             placeholder="Optional notes for team."
                                         />
                                         {formErrors.description && <span className="text-xs text-rose-500">{formErrors.description}</span>}

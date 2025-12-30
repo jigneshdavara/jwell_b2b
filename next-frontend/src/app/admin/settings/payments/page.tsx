@@ -96,7 +96,7 @@ export default function AdminPaymentSettings() {
                                 type="text"
                                 value={formData.publishable_key}
                                 onChange={(event) => setFormData({ ...formData, publishable_key: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 placeholder="pk_test_..."
                                 required
                             />
@@ -108,7 +108,7 @@ export default function AdminPaymentSettings() {
                                 type="password"
                                 value={formData.secret_key}
                                 onChange={(event) => setFormData({ ...formData, secret_key: event.target.value })}
-                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 placeholder="sk_test_..."
                                 required
                             />
@@ -121,7 +121,7 @@ export default function AdminPaymentSettings() {
                             type="text"
                             value={formData.webhook_secret}
                             onChange={(event) => setFormData({ ...formData, webhook_secret: event.target.value })}
-                            className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                            className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                             placeholder="whsec_... optional"
                         />
                         {errors.webhook_secret && <p className="mt-1 text-xs text-rose-500">{errors.webhook_secret}</p>}

@@ -7,6 +7,7 @@ import { adminService } from '@/services/adminService';
 import { useRouter } from 'next/navigation';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import { toastError, toastWarning } from '@/utils/toast';
 
 type RelatedQuotation = {
     id: string | number;
@@ -261,7 +262,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         } catch (error: any) {
             console.error('Failed to remove item:', error);
             const errorMessage = error.response?.data?.message || error.message || 'Failed to remove item';
-            alert(errorMessage);
+            toastError(errorMessage);
             // Keep modal open if there's an error so user can retry
         } finally {
             setRemoveItemProcessing(false);
@@ -290,7 +291,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
             await loadQuotation();
         } catch (error: any) {
             console.error('Failed to perform action:', error);
-            alert(error.response?.data?.message || 'Failed to perform action');
+            toastError(error.response?.data?.message || 'Failed to perform action');
         } finally {
             setActionProcessing(false);
         }
@@ -307,7 +308,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
             await loadQuotation();
         } catch (error: any) {
             console.error('Failed to send message:', error);
-            alert(error.response?.data?.message || 'Failed to send message');
+            toastError(error.response?.data?.message || 'Failed to send message');
         } finally {
             setMessageProcessing(false);
         }
@@ -715,7 +716,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     const handleChangeProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!changeProductModalOpen || !selectedProduct || !changeProductVariantId) {
-            alert('Please select a product and complete customization');
+            toastWarning('Please select a product and complete customization');
             return;
         }
 
@@ -734,7 +735,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
             await loadQuotation();
         } catch (error: any) {
             console.error('Failed to update product:', error);
-            alert(error.response?.data?.message || 'Failed to update product');
+            toastError(error.response?.data?.message || 'Failed to update product');
         } finally {
             setChangeProductProcessing(false);
         }
@@ -787,7 +788,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     const handleAddItem = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!addItemSelectedProduct || !addItemVariantId) {
-            alert('Please select a product and complete customization');
+            toastWarning('Please select a product and complete customization');
             return;
         }
 
@@ -803,7 +804,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
             await loadQuotation();
         } catch (error: any) {
             console.error('Failed to add item:', error);
-            alert(error.response?.data?.message || 'Failed to add item');
+            toastError(error.response?.data?.message || 'Failed to add item');
         } finally {
             setAddItemProcessing(false);
         }
@@ -1166,7 +1167,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                         <textarea
                                             value={messageText}
                                             onChange={(e) => setMessageText(e.target.value)}
-                                            className="min-h-[100px] rounded-2xl border border-slate-200 px-4 py-3 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="min-h-[100px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-3"
                                             placeholder="Request more information or share updates with the client..."
                                             disabled={messageProcessing}
                                         />
@@ -1210,7 +1211,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                         <select
                                             value={actionType}
                                             onChange={(e) => setActionType(e.target.value as any)}
-                                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                         >
                                             <option value="">Select an action...</option>
                                             {(quotation.status === 'pending' || quotation.status === 'customer_confirmed') && (
@@ -1231,7 +1232,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                             value={actionNotes}
                                             onChange={(e) => setActionNotes(e.target.value)}
                                             rows={4}
-                                            className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                             placeholder={
                                                 actionType === 'approve' ? 'Add internal notes...' :
                                                 actionType === 'reject' ? 'Add reason for rejection...' :
@@ -1426,7 +1427,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                     setIsManualSearch(true);
                                 }}
                                 placeholder="Type product name or SKU..."
-                                className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                             />
                             {searchResults.length > 0 && (
                                 <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white">
@@ -1462,7 +1463,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                 onChange={(e) => {
                                                     setChangeProductMetalId(Number(e.target.value) || '');
                                                 }}
-                                                className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                             >
                                                 <option value="">Select Metal</option>
                                                 {changeProductAvailableMetals.map(([id, name]) => (
@@ -1481,7 +1482,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                     onChange={(e) => {
                                                         setChangeProductPurityId(Number(e.target.value) || '');
                                                     }}
-                                                    className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                                 >
                                                     <option value="">Select Purity</option>
                                                     {changeProductAvailablePurities.map(([id, name]) => (
@@ -1501,7 +1502,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                     onChange={(e) => {
                                                         setChangeProductToneId(Number(e.target.value) || '');
                                                     }}
-                                                    className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                                 >
                                                     <option value="">Select Tone</option>
                                                     {changeProductAvailableTones.map(([id, name]) => (
@@ -1519,7 +1520,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                 <select
                                                     value={changeProductSize}
                                                     onChange={(e) => setChangeProductSize(e.target.value)}
-                                                    className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                                 >
                                                     <option value="">Select Size</option>
                                                     {changeProductAvailableSizes.map((s) => (
@@ -1540,7 +1541,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                         value={changeProductQuantity}
                                         onChange={(e) => setChangeProductQuantity(parseInt(e.target.value) || 1)}
                                         min={1}
-                                        className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                     />
                                 </div>
 
@@ -1551,7 +1552,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                         onChange={(e) => setChangeProductNotes(e.target.value)}
                                         placeholder="Add notes about this change..."
                                         rows={3}
-                                        className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                     />
                                 </div>
                             </>
@@ -1613,7 +1614,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                     setIsManualAddItemSearch(true);
                                 }}
                                 placeholder="Type product name or SKU..."
-                                className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                             />
                             {addItemSearchResults.length > 0 && (
                                 <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white">
@@ -1652,7 +1653,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                     setAddItemToneId('');
                                                     setAddItemSize('');
                                                 }}
-                                                className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                             >
                                                 <option value="">Select Metal</option>
                                                 {addItemAvailableMetals.map(([id, name]) => (
@@ -1673,7 +1674,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                         setAddItemToneId('');
                                                         setAddItemSize('');
                                                     }}
-                                                    className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                                 >
                                                     <option value="">Select Purity</option>
                                                     {addItemAvailablePurities.map(([id, name]) => (
@@ -1694,7 +1695,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                         setAddItemToneId(Number(e.target.value) || '');
                                                         setAddItemSize('');
                                                     }}
-                                                    className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                                 >
                                                     <option value="">Select Tone</option>
                                                     {addItemAvailableTones.map(([id, name]) => (
@@ -1712,7 +1713,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                 <select
                                                     value={addItemSize}
                                                     onChange={(e) => setAddItemSize(e.target.value)}
-                                                    className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                                 >
                                                     <option value="">Select Size</option>
                                                     {addItemAvailableSizes.map((s) => (
@@ -1733,7 +1734,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                         value={addItemQuantity}
                                         onChange={(e) => setAddItemQuantity(parseInt(e.target.value) || 1)}
                                         min={1}
-                                        className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                     />
                                 </div>
 
@@ -1744,7 +1745,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                         onChange={(e) => setAddItemNotes(e.target.value)}
                                         placeholder="Add notes about this item..."
                                         rows={3}
-                                        className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                     />
                                 </div>
                             </>

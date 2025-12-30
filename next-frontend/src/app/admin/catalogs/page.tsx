@@ -548,7 +548,7 @@ export default function AdminCatalogsIndex() {
                                                     type="text"
                                                     value={formState.code}
                                                     onChange={(e) => setFormState({ ...formState, code: e.target.value })}
-                                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                     placeholder="e.g., CAT001"
                                                     required
                                                 />
@@ -559,7 +559,7 @@ export default function AdminCatalogsIndex() {
                                                     type="text"
                                                     value={formState.name}
                                                     onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                     required
                                                 />
                                             </label>
@@ -582,7 +582,7 @@ export default function AdminCatalogsIndex() {
                                                             e.target.select();
                                                         }
                                                     }}
-                                                    className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                     min={0}
                                                     required
                                                 />
@@ -606,7 +606,7 @@ export default function AdminCatalogsIndex() {
                                             <textarea
                                                 value={formState.description}
                                                 onChange={(e) => setFormState({ ...formState, description: e.target.value })}
-                                                className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="min-h-[200px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 placeholder="Optional description for this catalog."
                                             />
                                         </label>
@@ -679,7 +679,7 @@ export default function AdminCatalogsIndex() {
                                                 }
                                             }}
                                             placeholder="Search name or SKU..."
-                                            className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                         />
                                     </div>
                                     <button

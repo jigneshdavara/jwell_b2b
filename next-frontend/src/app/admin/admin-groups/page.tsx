@@ -744,7 +744,7 @@ export default function AdminAdminGroupsPage() {
                                                 type="text"
                                                 value={formState.name}
                                                 onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 required
                                             />
                                         </label>
@@ -754,7 +754,7 @@ export default function AdminAdminGroupsPage() {
                                                 type="text"
                                                 value={formState.code}
                                                 onChange={(e) => setFormState(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 font-mono text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 font-mono text-sm"
                                                 placeholder="e.g., ADMIN, MANAGER"
                                             />
                                         </label>
@@ -783,7 +783,7 @@ export default function AdminAdminGroupsPage() {
                                                         e.target.select();
                                                     }
                                                 }}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 min={0}
                                             />
                                         </label>
@@ -804,7 +804,7 @@ export default function AdminAdminGroupsPage() {
                                         <textarea
                                             value={formState.description}
                                             onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                                            className="min-h-[120px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="min-h-[120px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                             placeholder="Optional notes for internal reference."
                                         />
                                     </label>
@@ -900,7 +900,7 @@ export default function AdminAdminGroupsPage() {
                                             }
                                         }}
                                         placeholder="Search name or email..."
-                                        className="w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                     />
                                 </div>
                                 <button

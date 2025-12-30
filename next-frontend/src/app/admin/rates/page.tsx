@@ -527,7 +527,7 @@ export default function AdminRatesIndex() {
                                                     step="0.01"
                                                     value={rate.price_per_gram}
                                                     onChange={(event) => setRateField(metal, index, 'price_per_gram', event.target.value)}
-                                                    className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-800 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm font-medium"
                                                     placeholder="0.00"
                                                 />
                                             </label>
@@ -694,7 +694,7 @@ export default function AdminRatesIndex() {
                             <select
                                 value={selectedMetal}
                                 onChange={(e) => setSelectedMetal(e.target.value)}
-                                className="w-full max-w-xs rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                className="w-full max-w-xs rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
                             >
                                 <option value="all">All Metals</option>
                                 {availableMetals.map((metal) => (

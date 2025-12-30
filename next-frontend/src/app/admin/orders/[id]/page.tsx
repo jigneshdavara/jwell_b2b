@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useMemo, useState, use, useEffect } from 'react';
 import { adminService } from '@/services/adminService';
 import { useRouter } from 'next/navigation';
+import { toastError } from '@/utils/toast';
 
 type OrderItem = {
     id: number;
@@ -230,7 +231,7 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
             await loadOrder();
         } catch (error: any) {
             console.error('Failed to update order status:', error);
-            alert(error.response?.data?.message || 'Failed to update order status');
+            toastError(error.response?.data?.message || 'Failed to update order status');
         } finally {
             setProcessing(false);
         }
@@ -441,7 +442,7 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
                                     <label className="flex flex-col gap-2 text-sm text-slate-600">
                                         <span className="font-semibold text-slate-800">Workflow stage</span>
                                         <select
-                                            className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                            className="rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                             value={statusData.status}
                                             onChange={(event) => setStatusData({ ...statusData, status: event.target.value })}
                                         >
@@ -455,7 +456,7 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
                                     <label className="flex flex-col gap-2 text-sm text-slate-600">
                                         <span className="font-semibold text-slate-800">Operator note</span>
                                         <textarea
-                                            className="min-h-[100px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                            className="min-h-[100px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                             value={statusData.meta.comment}
                                             onChange={(event) => setStatusData({ ...statusData, meta: { ...statusData.meta, comment: event.target.value } })}
                                             placeholder="Optional note shared with production & support"

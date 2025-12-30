@@ -634,7 +634,7 @@ export default function AdminDiamondsPage() {
                                                 type="text"
                                                 value={formState.code}
                                                 onChange={(e) => setFormState(prev => ({ ...prev, code: e.target.value }))}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 required
                                                 maxLength={191}
                                                 placeholder="e.g., DIAMOND-001"
@@ -646,7 +646,7 @@ export default function AdminDiamondsPage() {
                                             <select
                                                 value={formState.diamond_type_id || ''}
                                                 onChange={(e) => handleTypeChange(e.target.value ? Number(e.target.value) : null)}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 required
                                             >
                                                 <option value="">Select type</option>
@@ -665,7 +665,7 @@ export default function AdminDiamondsPage() {
                                                 onChange={(e) => setFormState(prev => ({ ...prev, diamond_clarity_id: e.target.value ? Number(e.target.value) : null }))}
                                                 disabled={!formState.diamond_type_id || loadingFilters}
                                                 required
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                             >
                                                 <option value="">{loadingFilters ? 'Loading...' : formState.diamond_type_id ? 'Select clarity' : 'Select type first'}</option>
                                                 {filteredClarities.map((clarity) => (
@@ -683,7 +683,7 @@ export default function AdminDiamondsPage() {
                                                 onChange={(e) => setFormState(prev => ({ ...prev, diamond_color_id: e.target.value ? Number(e.target.value) : null }))}
                                                 disabled={!formState.diamond_type_id || loadingFilters}
                                                 required
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                             >
                                                 <option value="">{loadingFilters ? 'Loading...' : formState.diamond_type_id ? 'Select color' : 'Select type first'}</option>
                                                 {filteredColors.map((color) => (
@@ -701,7 +701,7 @@ export default function AdminDiamondsPage() {
                                                 onChange={(e) => handleShapeChange(e.target.value ? Number(e.target.value) : null)}
                                                 disabled={!formState.diamond_type_id || loadingFilters}
                                                 required
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                             >
                                                 <option value="">{loadingFilters ? 'Loading...' : formState.diamond_type_id ? 'Select shape' : 'Select type first'}</option>
                                                 {filteredShapes.map((shape) => (
@@ -719,7 +719,7 @@ export default function AdminDiamondsPage() {
                                                 onChange={(e) => setFormState(prev => ({ ...prev, diamond_shape_size_id: e.target.value ? Number(e.target.value) : null }))}
                                                 disabled={!formState.diamond_shape_id || loadingShapeSizes}
                                                 required
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                             >
                                                 <option value="">{loadingShapeSizes ? 'Loading...' : formState.diamond_shape_id ? 'Select size' : 'Select shape first'}</option>
                                                 {shapeSizes.map((size) => (
@@ -737,7 +737,7 @@ export default function AdminDiamondsPage() {
                                                 step="0.01"
                                                 value={formState.price === '' ? '' : formState.price}
                                                 onChange={(e) => setFormState(prev => ({ ...prev, price: e.target.value === '' ? '' : Number(e.target.value) }))}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 min={0}
                                                 required
                                             />
@@ -750,7 +750,7 @@ export default function AdminDiamondsPage() {
                                                 step="0.001"
                                                 value={formState.weight === '' || formState.weight === null || formState.weight === undefined ? '' : String(formState.weight)}
                                                 onChange={(e) => setFormState(prev => ({ ...prev, weight: e.target.value === '' ? '' : Number(e.target.value) }))}
-                                                className="rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                                 min={0}
                                                 required
                                                 placeholder="e.g., 1.500"
@@ -775,7 +775,7 @@ export default function AdminDiamondsPage() {
                                         <textarea
                                             value={formState.description}
                                             onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                                            className="min-h-[200px] rounded-2xl border border-slate-300 px-4 py-2 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                            className="min-h-[200px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                             placeholder="Optional notes for team."
                                         />
                                         {formErrors.description && <span className="text-xs text-rose-500">{formErrors.description}</span>}

@@ -491,7 +491,7 @@ export default function JobworkPage() {
                     <label className="flex flex-col gap-2 text-sm text-slate-600">
                       <span>Reference design summary *</span>
                       <textarea
-                        className="min-h-[120px] rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                        className="min-h-[120px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
                         value={form.reference_design}
                         onChange={(event) =>
                           setForm((prev) => ({
@@ -511,7 +511,7 @@ export default function JobworkPage() {
                     <label className="flex flex-col gap-2 text-sm text-slate-600">
                       <span>Reference media URLs (one per line)</span>
                       <textarea
-                        className="min-h-[120px] rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                        className="min-h-[120px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
                         value={referenceMediaInput}
                         onChange={(event) =>
                           setReferenceMediaInput(event.target.value)
@@ -530,7 +530,7 @@ export default function JobworkPage() {
                 <label className="flex flex-col gap-2 text-sm text-slate-600">
                   <span>Supply Type</span>
                   <select
-                    className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
                     value={form.type}
                     onChange={(event) =>
                       setForm((prev) => ({
@@ -552,7 +552,7 @@ export default function JobworkPage() {
                   <label className="flex flex-col gap-2 text-sm text-slate-600">
                     <span>Metal *</span>
                     <select
-                      className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
                       value={form.metal_id}
                       onChange={(event) => {
                         const metalId =
@@ -593,7 +593,7 @@ export default function JobworkPage() {
                   <label className="flex flex-col gap-2 text-sm text-slate-600">
                     <span>Purity</span>
                     <select
-                      className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 disabled:bg-slate-50 disabled:text-slate-400"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
                       value={form.metal_purity_id}
                       onChange={(event) => {
                         const purityId =
@@ -635,7 +635,7 @@ export default function JobworkPage() {
                   <label className="flex flex-col gap-2 text-sm text-slate-600">
                     <span>Tone</span>
                     <select
-                      className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 disabled:bg-slate-50 disabled:text-slate-400"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
                       value={form.metal_tone_id}
                       onChange={(event) => {
                         const toneId =
@@ -672,7 +672,7 @@ export default function JobworkPage() {
                     <span>Diamond / Stone quality</span>
                     <input
                       type="text"
-                      className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
                       value={form.diamond_quality}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -687,7 +687,7 @@ export default function JobworkPage() {
                     <input
                       type="number"
                       min={1}
-                      className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
                       value={form.quantity}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -707,7 +707,7 @@ export default function JobworkPage() {
                 <label className="flex flex-col gap-2 text-sm text-slate-600">
                   <span>Special instructions</span>
                   <textarea
-                    className="min-h-[100px] rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                    className="min-h-[100px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
                     value={form.special_instructions}
                     onChange={(event) =>
                       setForm((prev) => ({
@@ -723,7 +723,7 @@ export default function JobworkPage() {
                     <span>Delivery deadline</span>
                     <input
                       type="date"
-                      className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
                       value={form.delivery_deadline}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -743,7 +743,7 @@ export default function JobworkPage() {
                     <input
                       type="number"
                       step="0.01"
-                      className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
                       value={form.wastage_percentage}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -758,7 +758,7 @@ export default function JobworkPage() {
                     <input
                       type="number"
                       step="0.01"
-                      className="rounded-2xl border border-slate-200 px-4 py-2.5 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
                       value={form.manufacturing_charge}
                       onChange={(event) =>
                         setForm((prev) => ({

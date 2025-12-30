@@ -6,6 +6,7 @@ import { adminService } from '@/services/adminService';
 import Link from 'next/link';
 import { Head } from '@/components/Head';
 import Modal from '@/components/ui/Modal';
+import { toastError, toastWarning } from '@/utils/toast';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-slate-100 text-slate-700',
@@ -92,7 +93,7 @@ export default function AdminKycReviewPage() {
             await fetchKycDetails(); // Reload data
         } catch (e: any) {
             console.error('Failed to update KYC status:', e);
-            alert(e.response?.data?.message || 'Failed to update KYC status');
+            toastError(e.response?.data?.message || 'Failed to update KYC status');
         } finally {
             setProcessing(false);
         }
@@ -109,7 +110,7 @@ export default function AdminKycReviewPage() {
             await fetchKycDetails(); // Reload data
         } catch (e: any) {
             console.error('Failed to send message:', e);
-            alert(e.response?.data?.message || 'Failed to send message');
+            toastError(e.response?.data?.message || 'Failed to send message');
         } finally {
             setMessageProcessing(false);
         }
@@ -121,7 +122,7 @@ export default function AdminKycReviewPage() {
             await fetchKycDetails(); // Reload data
         } catch (e: any) {
             console.error('Failed to toggle comments:', e);
-            alert(e.response?.data?.message || 'Failed to update settings');
+            toastError(e.response?.data?.message || 'Failed to update settings');
         }
     };
 
@@ -144,7 +145,7 @@ export default function AdminKycReviewPage() {
         e.preventDefault();
         if (!documentModalOpen || !documentAction) return;
         if (documentAction === 'reject' && !documentRemarks.trim()) {
-            alert('Rejection reason is required');
+            toastWarning('Rejection reason is required');
             return;
         }
 
@@ -160,7 +161,7 @@ export default function AdminKycReviewPage() {
             await fetchKycDetails(); // Reload data
         } catch (e: any) {
             console.error('Failed to update document status:', e);
-            alert(e.response?.data?.message || 'Failed to update document status');
+            toastError(e.response?.data?.message || 'Failed to update document status');
         } finally {
             setDocumentProcessing(false);
         }
@@ -440,7 +441,7 @@ export default function AdminKycReviewPage() {
                     <label className="flex flex-col gap-2 text-sm text-slate-600">
                         <span className="font-semibold text-slate-800">Status</span>
                         <select
-                            className="rounded-xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                            className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                             value={status}
                             onChange={(e) => setStatus(e.target.value)}
                         >
@@ -454,7 +455,7 @@ export default function AdminKycReviewPage() {
                     <label className="flex flex-col gap-2 text-sm text-slate-600">
                         <span className="font-semibold text-slate-800">Internal Notes</span>
                         <textarea
-                            className="min-h-[100px] rounded-xl border border-slate-200 px-4 py-2 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                            className="min-h-[100px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                             value={remarks}
                             onChange={(e) => setRemarks(e.target.value)}
                             placeholder="Add internal notes (optional)"
@@ -537,7 +538,7 @@ export default function AdminKycReviewPage() {
                         <textarea
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
-                            className="min-h-[90px] rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                            className="min-h-[90px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                             placeholder="Share clarifications, request missing documents, or confirm approval."
                             disabled={messageProcessing}
                         />
@@ -602,7 +603,7 @@ export default function AdminKycReviewPage() {
                                 <textarea
                                     value={documentRemarks}
                                     onChange={(e) => setDocumentRemarks(e.target.value)}
-                                    className="w-full min-h-[120px] rounded-xl border border-slate-200 px-4 py-2 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="w-full min-h-[120px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
                                     placeholder={
                                         documentAction === 'approve'
                                             ? 'Add any notes about this approval...'
