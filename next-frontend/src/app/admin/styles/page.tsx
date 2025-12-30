@@ -252,104 +252,104 @@ export default function AdminStylesIndex() {
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
-                                <thead className="bg-slate-50 text-xs text-slate-500">
-                                    <tr>
+                            <thead className="bg-slate-50 text-xs text-slate-500">
+                                <tr>
                                         <th className="px-3 py-2 sm:px-5 sm:py-3">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedStyles.length === styles.data.length && styles.data.length > 0}
-                                                onChange={toggleSelectAll}
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedStyles.length === styles.data.length && styles.data.length > 0}
+                                            onChange={toggleSelectAll}
                                                 className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                aria-label="Select all styles"
-                                            />
-                                        </th>
+                                            aria-label="Select all styles"
+                                        />
+                                    </th>
                                         <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Code</th>
                                         <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Name</th>
                                         <th className="px-3 py-2 text-left hidden lg:table-cell sm:px-5 sm:py-3">Order</th>
                                         <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Status</th>
                                         <th className="px-3 py-2 text-right sm:px-5 sm:py-3">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
-                                    {styles.data.length === 0 ? (
-                                        <tr>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {styles.data.length === 0 ? (
+                                    <tr>
                                             <td colSpan={6} className="px-3 py-4 sm:px-5 sm:py-6 text-center text-xs sm:text-sm text-slate-500">
-                                                No styles defined yet.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        styles.data.map((style) => (
-                                            <tr key={style.id} className="hover:bg-slate-50">
+                                            No styles defined yet.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    styles.data.map((style) => (
+                                        <tr key={style.id} className="hover:bg-slate-50">
                                                 <td className="px-3 py-2 sm:px-5 sm:py-3">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedStyles.includes(style.id)}
-                                                        onChange={() => toggleSelection(style.id)}
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedStyles.includes(style.id)}
+                                                    onChange={() => toggleSelection(style.id)}
                                                         className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                        aria-label={`Select style ${style.name}`}
-                                                    />
-                                                </td>
+                                                    aria-label={`Select style ${style.name}`}
+                                                />
+                                            </td>
                                                 <td className="px-3 py-2 text-slate-700 sm:px-5 sm:py-3">{style.code || '-'}</td>
                                                 <td className="px-3 py-2 font-semibold text-slate-900 sm:px-5 sm:py-3">
-                                                    <div className="flex flex-col gap-1">
+                                                <div className="flex flex-col gap-1">
                                                         <span className="text-xs sm:text-sm">{style.name}</span>
                                                         {style.description && <span className="text-[10px] sm:text-xs text-slate-500">{style.description}</span>}
-                                                    </div>
-                                                </td>
+                                                </div>
+                                            </td>
                                                 <td className="px-3 py-2 text-slate-500 hidden lg:table-cell sm:px-5 sm:py-3">{style.display_order}</td>
                                                 <td className="px-3 py-2 sm:px-5 sm:py-3">
                                                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:px-3 sm:py-1 sm:text-xs font-semibold ${
-                                                        style.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                                                    }`}>
-                                                        {style.is_active ? 'Active' : 'Archived'}
-                                                    </span>
-                                                </td>
+                                                    style.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                                                }`}>
+                                                    {style.is_active ? 'Active' : 'Archived'}
+                                                </span>
+                                            </td>
                                                 <td className="px-3 py-2 text-right sm:px-5 sm:py-3">
                                                     <div className="flex justify-end gap-1.5 sm:gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => openEditModal(style)}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEditModal(style)}
                                                             className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-                                                            title="Edit style"
-                                                        >
+                                                        title="Edit style"
+                                                    >
                                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
-                                                            </svg>
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => toggleStyle(style)}
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
+                                                        </svg>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleStyle(style)}
                                                             className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600"
-                                                            title={style.is_active ? 'Pause style' : 'Activate style'}
-                                                        >
-                                                            {style.is_active ? (
+                                                        title={style.is_active ? 'Pause style' : 'Activate style'}
+                                                    >
+                                                        {style.is_active ? (
                                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
-                                                                </svg>
-                                                            ) : (
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
-                                                                </svg>
-                                                            )}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDeleteConfirm(style)}
-                                                            className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
-                                                            title="Delete style"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
                                                             </svg>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                                                        ) : (
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setDeleteConfirm(style)}
+                                                            className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                                                        title="Delete style"
+                                                    >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                         </div>
                     )}
                 </div>

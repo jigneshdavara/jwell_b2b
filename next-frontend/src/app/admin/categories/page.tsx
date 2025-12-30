@@ -578,52 +578,52 @@ export default function AdminCategoriesPage() {
                 </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
-                        <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
-                            <tr>
+                    <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
+                        <tr>
                                 <th className="px-3 py-2 sm:px-5 sm:py-3">
                                     <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold" />
-                                </th>
+                            </th>
                                 <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Code</th>
                                 <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Name</th>
                                 <th className="px-3 py-2 text-left hidden md:table-cell sm:px-5 sm:py-3">Parent</th>
                                 <th className="px-3 py-2 text-left hidden lg:table-cell sm:px-5 sm:py-3">Order</th>
                                 <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Status</th>
                                 <th className="px-3 py-2 text-right sm:px-5 sm:py-3">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                            {data.data.map((category) => (
-                                <tr key={category.id} className="hover:bg-slate-50 transition-colors">
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                        {data.data.map((category) => (
+                            <tr key={category.id} className="hover:bg-slate-50 transition-colors">
                                     <td className="px-3 py-2 sm:px-5 sm:py-3">
                                         <input type="checkbox" checked={selectedCategories.includes(category.id)} onChange={() => toggleSelection(category.id)} className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold" />
-                                    </td>
+                                </td>
                                     <td className="px-3 py-2 text-slate-700 sm:px-5 sm:py-3">{category.code || '-'}</td>
                                     <td className="px-3 py-2 font-semibold text-slate-900 sm:px-5 sm:py-3">
-                                        <div className="flex flex-col gap-1">
+                                    <div className="flex flex-col gap-1">
                                             <span className="text-xs sm:text-sm">{category.name}</span>
                                             {category.description && <span className="text-[10px] sm:text-xs text-slate-500 font-normal">{category.description}</span>}
-                                        </div>
-                                    </td>
+                                    </div>
+                                </td>
                                     <td className="px-3 py-2 text-slate-500 hidden md:table-cell sm:px-5 sm:py-3">{category.parent?.name ?? '—'}</td>
                                     <td className="px-3 py-2 text-slate-500 hidden lg:table-cell sm:px-5 sm:py-3">{category.display_order}</td>
                                     <td className="px-3 py-2 sm:px-5 sm:py-3">
                                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:px-3 sm:py-1 sm:text-xs font-semibold ${category.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                                            {category.is_active ? 'Active' : 'Archived'}
-                                        </span>
-                                    </td>
+                                        {category.is_active ? 'Active' : 'Archived'}
+                                    </span>
+                                </td>
                                     <td className="px-3 py-2 text-right sm:px-5 sm:py-3">
                                         <div className="flex justify-end gap-1.5 sm:gap-2">
                                             <button onClick={() => openEditModal(category)} className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"><svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M16.862 4.487l1.687-1.688a1.875 1.125 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
                                             <button onClick={() => toggleActivation(category)} className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600">
                                                 {category.is_active ? <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M15.75 5.25v13.5m-7.5-13.5v13.5" strokeLinecap="round" strokeLinejoin="round" /></svg> : <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                                            </button>
+                                        </button>
                                             <button onClick={() => setDeleteConfirm(category)} className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"><svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path d="M14.74 9l-.34 9m-4.74-9l.34 9m9.96-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
                 </div>
             </div>
 
