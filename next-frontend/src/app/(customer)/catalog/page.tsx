@@ -384,9 +384,6 @@ export default function CatalogPage() {
                 
                 // Refresh wishlist to ensure count is accurate
                 await refreshWishlist();
-                
-                // Show toast
-                toastSuccess('Removed from wishlist.');
             } else {
                 // Add to wishlist
                 await frontendService.addToWishlist({
@@ -399,9 +396,6 @@ export default function CatalogPage() {
                 
                 // Refresh wishlist to ensure count is accurate
                 await refreshWishlist();
-                
-                // Show toast (same as Laravel)
-                toastSuccess('Saved to your wishlist.');
             }
         } catch (error: any) {
             console.error('Error toggling wishlist:', error);

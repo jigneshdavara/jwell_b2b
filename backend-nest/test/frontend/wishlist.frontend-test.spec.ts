@@ -188,8 +188,8 @@ describe('Frontend Wishlist (e2e)', () => {
                 })
                 .expect(201);
 
-            expect(response.body).toHaveProperty('message');
-            expect(response.body.message).toBe('Saved to your wishlist.');
+            expect(response.body).toHaveProperty('success');
+            expect(response.body.success).toBe(true);
         });
 
         it('should add item with variant to wishlist', async () => {
@@ -202,7 +202,8 @@ describe('Frontend Wishlist (e2e)', () => {
                 })
                 .expect(201);
 
-            expect(response.body.message).toBe('Saved to your wishlist.');
+            expect(response.body).toHaveProperty('success');
+            expect(response.body.success).toBe(true);
         });
 
         it('should not add duplicate item', async () => {
@@ -331,7 +332,7 @@ describe('Frontend Wishlist (e2e)', () => {
                 .set('Authorization', `Bearer ${authToken}`)
                 .expect(200);
 
-            expect(response.body.message).toBe('Removed from wishlist.');
+            expect(response.body.success).toBe(true);
         });
 
         it('should return 404 for non-existent item', async () => {
@@ -400,9 +401,8 @@ describe('Frontend Wishlist (e2e)', () => {
                 .send({ quantity: 1 })
                 .expect(200);
 
-            expect(response.body.message).toBe('Moved to your quotation list.');
+            expect(response.body.success).toBe(true);
 
-            // Verify item was removed from wishlist
             const wishlistResponse = await request(app.getHttpServer())
                 .get('/api/wishlist')
                 .set('Authorization', `Bearer ${authToken}`)
@@ -471,7 +471,7 @@ describe('Frontend Wishlist (e2e)', () => {
                 .set('Authorization', `Bearer ${authToken}`)
                 .expect(200);
 
-            expect(response.body.message).toBe('Removed from wishlist.');
+            expect(response.body.success).toBe(true);
         });
 
         it('should remove item by product and variant', async () => {
@@ -508,7 +508,7 @@ describe('Frontend Wishlist (e2e)', () => {
                 })
                 .expect(200);
 
-            expect(response.body.message).toBe('Removed from wishlist.');
+            expect(response.body.success).toBe(true);
         });
 
         it('should return 404 for non-existent product', async () => {

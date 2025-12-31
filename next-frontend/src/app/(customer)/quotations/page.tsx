@@ -117,7 +117,6 @@ export default function QuotationsPage() {
             await frontendService.deleteQuotation(cancelConfirm.quotationId);
             setQuotations(prev => prev.filter(q => q.id !== cancelConfirm.quotationId));
             setCancelConfirm({ show: false, quotationId: null });
-            toastSuccess('Quotation cancelled successfully.');
         } catch (error: any) {
             console.error('Failed to cancel quotation:', error);
             toastError(error.response?.data?.message || 'Failed to cancel quotation');
