@@ -1,12 +1,43 @@
+'use client';
+
 import Link from 'next/link';
 import { cn } from '@/utils/cn';
+import { useEffect, useState } from 'react';
+import { frontendService } from '@/services/frontendService';
 
 type CustomerFooterProps = {
     className?: string;
 };
 
+type PublicSettings = {
+    phone: string;
+    email: string;
+    address: string;
+    studio_hours: string;
+};
+
 export default function CustomerFooter({ className }: CustomerFooterProps) {
     const currentYear = new Date().getFullYear();
+    const [settings, setSettings] = useState<PublicSettings | null>(null);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await frontendService.getPublicSettings();
+                setSettings(response.data);
+            } catch (error) {
+                console.error('Failed to load footer settings:', error);
+                // Use defaults if fetch fails
+                setSettings({
+                    phone: '+91 99888 77665',
+                    email: 'hello@elvee.in',
+                    address: 'Elvee, SEZ Jewellery Park, Mumbai',
+                    studio_hours: 'Mon-Sat, 10:00 - 19:00 IST',
+                });
+            }
+        };
+        fetchSettings();
+    }, []);
 
     const quickLinks = [
         { label: 'Explore catalogue', href: '/catalog' },
@@ -22,11 +53,24 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
         { label: 'Returns & refurbishing', href: '/support/returns' },
     ];
 
+    // Default values if settings haven't loaded yet
+    const defaultSettings: PublicSettings = {
+        phone: '+91 99888 77665',
+        email: 'hello@elvee.in',
+        address: 'Elvee, SEZ Jewellery Park, Mumbai',
+        studio_hours: 'Mon-Sat, 10:00 - 19:00 IST',
+    };
+
+    const currentSettings = settings || defaultSettings;
+
+    // Build phone href (remove spaces and special chars for tel: link)
+    const phoneHref = `tel:${currentSettings.phone.replace(/[\s\-()]/g, '')}`;
+
     const companyDetails = [
         {
             label: 'Call us',
-            value: '+91 99888 77665',
-            href: 'tel:+919988877665',
+            value: currentSettings.phone,
+            href: phoneHref,
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-feather-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 4.5 9 11.25m0 0 3-3m-3 3 6.75 6.75M10.5 21h.008v.008H10.5z" />
@@ -35,8 +79,8 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
         },
         {
             label: 'Email',
-            value: 'hello@elvee.in',
-            href: 'mailto:hello@elvee.in',
+            value: currentSettings.email,
+            href: `mailto:${currentSettings.email}`,
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-feather-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12.75v4.5a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 17.25v-4.5m18 0V6.75A2.25 2.25 0 0 0 18.75 4.5H5.25A2.25 2.25 0 0 0 3 6.75v6m18 0L12 12l-9 1.5" />
@@ -45,7 +89,7 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
         },
         {
             label: 'Studio hours',
-            value: 'Mon-Sat, 10:00 - 19:00 IST',
+            value: currentSettings.studio_hours,
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-feather-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -54,7 +98,7 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
         },
         {
             label: 'Flagship atelier',
-            value: 'Elvee, SEZ Jewellery Park, Mumbai',
+            value: currentSettings.address,
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-feather-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm-3-7.5a9 9 0 0 0-9 9c0 7.5 9 12 9 12s9-4.5 9-12a9 9 0 0 0-9-9Z" />

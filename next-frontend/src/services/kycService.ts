@@ -47,5 +47,12 @@ export const kycService = {
   async updateStatus(id: string, status: string, remarks: string) {
     return await apiClient.patch(`/kyc/${id}/status`, { status, remarks });
   },
+
+  async downloadDocument(id: number | string): Promise<Blob> {
+    const response = await apiClient.get(`/onboarding/kyc/documents/${id}/download`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };
 

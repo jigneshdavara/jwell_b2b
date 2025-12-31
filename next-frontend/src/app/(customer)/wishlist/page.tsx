@@ -114,8 +114,6 @@ export default function WishlistPage() {
       
       // Refresh wishlist count
       refreshWishlist();
-      
-      toastSuccess('Removed from wishlist.');
     } catch (err: any) {
       console.error('Error removing item:', err);
       toastError(err.response?.data?.message || 'Failed to remove item. Please try again.');
@@ -160,8 +158,6 @@ export default function WishlistPage() {
       
       // Refresh cart count (item was moved to cart)
       refreshCart();
-      
-      toastSuccess('Moved to your quotation list.');
     } catch (err: any) {
       console.error('Error moving to cart:', err);
       toastError(err.response?.data?.message || 'Failed to move item to cart. Please try again.');

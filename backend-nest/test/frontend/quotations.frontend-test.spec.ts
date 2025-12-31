@@ -608,8 +608,8 @@ describe('Frontend Quotations (e2e)', () => {
                 .set('Authorization', `Bearer ${authToken}`)
                 .expect(200);
 
-            expect(response.body.message).toBe(
-                'Quotation cancelled successfully.',
+            expect(response.body.success).toBe(
+                true,
             );
 
             // Verify deleted

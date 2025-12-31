@@ -50,6 +50,7 @@ import { FrontendOrdersModule } from './frontend/orders/orders.module';
 import { HomeModule } from './frontend/home/home.module';
 import { ProfileModule } from './frontend/profile/profile.module';
 import { NavigationModule } from './frontend/navigation/navigation.module';
+import { SettingsModule } from './frontend/settings/settings.module';
 import { MailModule } from './common/mail/mail.module';
 
 @Module({
@@ -104,6 +105,7 @@ import { MailModule } from './common/mail/mail.module';
         HomeModule,
         ProfileModule,
         NavigationModule,
+        SettingsModule,
     ],
     controllers: [AppController],
     providers: [AppService],

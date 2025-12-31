@@ -55,6 +55,11 @@ export class UpdateGeneralSettingsDto {
     company_gstin?: string;
 
     @IsString()
+    @IsOptional()
+    @MaxLength(100)
+    studio_hours?: string;
+
+    @IsString()
     @IsNotEmpty()
     @MaxLength(100)
     app_name: string;

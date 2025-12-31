@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { jobworkService } from "@/services/jobworkService";
 
 type PrefillProduct = {
   id: number;

@@ -68,7 +68,7 @@ export class WishlistController {
             dto.configuration,
         );
 
-        return { message: 'Saved to your wishlist.' };
+        return { success: true };
     }
 
     @Delete('items/:id')
@@ -76,7 +76,7 @@ export class WishlistController {
     async destroy(@Request() req, @Param('id', ParseIntPipe) id: number) {
         const userId = BigInt(req.user.userId);
         await this.wishlistService.removeItem(userId, BigInt(id));
-        return { message: 'Removed from wishlist.' };
+        return { success: true };
     }
 
     @Post('items/:id/move-to-cart')
@@ -89,7 +89,7 @@ export class WishlistController {
         const userId = BigInt(req.user.userId);
         const quantity = dto.quantity || 1;
         await this.wishlistService.moveToCart(userId, BigInt(id), quantity);
-        return { message: 'Moved to your quotation list.' };
+        return { success: true };
     }
 
     @Delete('product/:id')
@@ -118,6 +118,6 @@ export class WishlistController {
                 : undefined,
         );
 
-        return { message: 'Removed from wishlist.' };
+        return { success: true };
     }
 }

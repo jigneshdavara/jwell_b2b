@@ -706,7 +706,7 @@ export class FrontendQuotationsService {
         });
 
         return {
-            message: 'Quotation cancelled successfully.',
+            success: true,
         };
     }
 

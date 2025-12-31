@@ -108,7 +108,7 @@ export default function HomeIndex() {
                 const response = await homeService.getHomeData();
                 if (response.data) {
                     // Convert spotlight IDs from string to number for consistency
-                    const spotlight = response.data.spotlight.map((item) => ({
+                    const spotlight = response.data.spotlight.map((item: any) => ({
                         ...item,
                         id: typeof item.id === 'string' ? parseInt(item.id, 10) : item.id,
                     }));

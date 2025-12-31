@@ -60,6 +60,8 @@ export default function CatalogPage() {
         price: false,
     });
 
+    const [selectedDiamondTypes, setSelectedDiamondTypes] = useState<number[]>([]);
+
     const loaderRef = useRef<HTMLDivElement | null>(null);
 
     // Helper function to get media URL
@@ -197,18 +199,25 @@ export default function CatalogPage() {
                                 slug: c.slug || null,
                             })),
                             diamondOptions: {
-                                types: apiData.facets?.diamondOptions?.types || [],
+                                types: (apiData.facets?.diamondOptions?.types || []).map((t: any) => ({
+                                    id: Number(t.id),
+                                    code: t.code,
+                                    name: t.name,
+                                })),
                                 shapes: (apiData.facets?.diamondOptions?.shapes || []).map((s: any) => ({
                                     id: Number(s.id),
                                     name: s.name,
+                                    diamond_type_id: s.diamond_type_id ? Number(s.diamond_type_id) : null,
                                 })),
                                 colors: (apiData.facets?.diamondOptions?.colors || []).map((c: any) => ({
                                     id: Number(c.id),
                                     name: c.name,
+                                    diamond_type_id: c.diamond_type_id ? Number(c.diamond_type_id) : null,
                                 })),
                                 clarities: (apiData.facets?.diamondOptions?.clarities || []).map((c: any) => ({
                                     id: Number(c.id),
                                     name: c.name,
+                                    diamond_type_id: c.diamond_type_id ? Number(c.diamond_type_id) : null,
                                 })),
                             },
                         },
@@ -375,9 +384,6 @@ export default function CatalogPage() {
                 
                 // Refresh wishlist to ensure count is accurate
                 await refreshWishlist();
-                
-                // Show toast
-                toastSuccess('Removed from wishlist.');
             } else {
                 // Add to wishlist
                 await frontendService.addToWishlist({
@@ -390,9 +396,6 @@ export default function CatalogPage() {
                 
                 // Refresh wishlist to ensure count is accurate
                 await refreshWishlist();
-                
-                // Show toast (same as Laravel)
-                toastSuccess('Saved to your wishlist.');
             }
         } catch (error: any) {
             console.error('Error toggling wishlist:', error);
@@ -638,7 +641,7 @@ export default function CatalogPage() {
                     <div className="flex flex-wrap gap-2 text-xs">
                         {activeFilters.map(({ key, label, valueLabel, value }) => (
                         <button
-                            key={`${key}-${valueLabel}`}
+                            key={`${key}-${value}`}
                             onClick={() => {
                                 if (['brand', 'metal', 'metal_purity', 'metal_tone', 'category', 'catalog', 'diamond'].includes(key)) {
                                     const existing = Array.isArray(filters[key]) ? (filters[key] as string[]) : [];
@@ -970,46 +973,184 @@ export default function CatalogPage() {
                             </button>
                             {!collapsedFilters.diamond && (
                                 <div className="mt-3 space-y-4 text-sm">
-                                    {[
-                                        { title: 'Shapes', kind: 'shape', options: facets.diamondOptions.shapes },
-                                        { title: 'Colors', kind: 'color', options: facets.diamondOptions.colors },
-                                        { title: 'Clarities', kind: 'clarity', options: facets.diamondOptions.clarities },
-                                    ].map(({ title, kind, options }) => (
-                                        <div key={kind}>
-                                            <p className="text-xs font-semibold text-slate-500">{title}</p>
-                                            <div className="mt-2 space-y-1.5">
-                                                {options.map((option) => {
-                                                    const value = `${kind}:${option.id}`;
-                                                    const selected = filters.diamond.includes(value);
-                                                    return (
-                                                        <label
-                                                            key={value}
-                                                            className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
-                                                                selected ? 'text-slate-900' : 'text-slate-600'
-                                                            }`}
-                                                        >
-                                                            <input
-                                                                type="checkbox"
-                                                                className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
-                                                                checked={selected}
-                                                                onChange={(event) => {
-                                                                    const list = [...filters.diamond];
-                                                                    if (event.target.checked) {
-                                                                        if (!list.includes(value)) list.push(value);
-                                                                    } else {
-                                                                        const index = list.indexOf(value);
-                                                                        if (index >= 0) list.splice(index, 1);
-                                                                    }
-                                                                    applyFilter('diamond', list.length ? list : undefined);
-                                                                }}
-                                                            />
-                                                            <span>{option.name}</span>
-                                                        </label>
-                                                    );
-                                                })}
-                                            </div>
+                                    {/* Step 1: Select Diamond Types */}
+                                    <div>
+                                        <p className="mb-2 text-xs font-semibold text-slate-500">Diamond Types</p>
+                                        <div className="space-y-1.5">
+                                            {facets.diamondOptions.types.map((type) => {
+                                                const isSelected = selectedDiamondTypes.includes(type.id);
+                                                return (
+                                                    <label
+                                                        key={type.id}
+                                                        className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                            isSelected ? 'text-slate-900' : 'text-slate-600'
+                                                        }`}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                                            checked={isSelected}
+                                                            onChange={(event) => {
+                                                                if (event.target.checked) {
+                                                                    setSelectedDiamondTypes([...selectedDiamondTypes, type.id]);
+                                                                } else {
+                                                                    setSelectedDiamondTypes(
+                                                                        selectedDiamondTypes.filter((id) => id !== type.id)
+                                                                    );
+                                                                }
+                                                            }}
+                                                        />
+                                                        <span>{type.name}</span>
+                                                    </label>
+                                                );
+                                            })}
                                         </div>
-                                    ))}
+                                    </div>
+
+                                    {/* Step 2: Show options for selected types */}
+                                    {selectedDiamondTypes.length > 0 && (
+                                        <>
+                                            {selectedDiamondTypes.map((typeId) => {
+                                                const type = facets.diamondOptions.types.find((t) => t.id === typeId);
+                                                if (!type) return null;
+
+                                                // Filter options by selected type
+                                                const typeShapes = facets.diamondOptions.shapes.filter(
+                                                    (s) => s.diamond_type_id === typeId
+                                                );
+                                                const typeColors = facets.diamondOptions.colors.filter(
+                                                    (c) => c.diamond_type_id === typeId
+                                                );
+                                                const typeClarities = facets.diamondOptions.clarities.filter(
+                                                    (c) => c.diamond_type_id === typeId
+                                                );
+
+                                                return (
+                                                    <div key={typeId} className="space-y-4">
+                                                        {/* Shapes */}
+                                                        {typeShapes.length > 0 && (
+                                                            <div>
+                                                                <p className="mb-2 text-xs font-semibold text-slate-500">
+                                                                    {type.name} - Shapes
+                                                                </p>
+                                                                <div className="space-y-1.5">
+                                                                    {typeShapes.map((option) => {
+                                                                        const value = `shape:${option.id}`;
+                                                                        const selected = filters.diamond.includes(value);
+                                                                        return (
+                                                                            <label
+                                                                                key={`shape-${option.id}`}
+                                                                                className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                                                    selected ? 'text-slate-900' : 'text-slate-600'
+                                                                                }`}
+                                                                            >
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                                                                    checked={selected}
+                                                                                    onChange={(event) => {
+                                                                                        const list = [...filters.diamond];
+                                                                                        if (event.target.checked) {
+                                                                                            if (!list.includes(value)) list.push(value);
+                                                                                        } else {
+                                                                                            const index = list.indexOf(value);
+                                                                                            if (index >= 0) list.splice(index, 1);
+                                                                                        }
+                                                                                        applyFilter('diamond', list.length ? list : undefined);
+                                                                                    }}
+                                                                                />
+                                                                                <span>{option.name}</span>
+                                                                            </label>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Colors */}
+                                                        {typeColors.length > 0 && (
+                                                            <div>
+                                                                <p className="mb-2 text-xs font-semibold text-slate-500">
+                                                                    {type.name} - Colors
+                                                                </p>
+                                                                <div className="space-y-1.5">
+                                                                    {typeColors.map((option) => {
+                                                                        const value = `color:${option.id}`;
+                                                                        const selected = filters.diamond.includes(value);
+                                                                        return (
+                                                                            <label
+                                                                                key={`color-${option.id}`}
+                                                                                className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                                                    selected ? 'text-slate-900' : 'text-slate-600'
+                                                                                }`}
+                                                                            >
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                                                                    checked={selected}
+                                                                                    onChange={(event) => {
+                                                                                        const list = [...filters.diamond];
+                                                                                        if (event.target.checked) {
+                                                                                            if (!list.includes(value)) list.push(value);
+                                                                                        } else {
+                                                                                            const index = list.indexOf(value);
+                                                                                            if (index >= 0) list.splice(index, 1);
+                                                                                        }
+                                                                                        applyFilter('diamond', list.length ? list : undefined);
+                                                                                    }}
+                                                                                />
+                                                                                <span>{option.name}</span>
+                                                                            </label>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Clarities */}
+                                                        {typeClarities.length > 0 && (
+                                                            <div>
+                                                                <p className="mb-2 text-xs font-semibold text-slate-500">
+                                                                    {type.name} - Clarities
+                                                                </p>
+                                                                <div className="space-y-1.5">
+                                                                    {typeClarities.map((option) => {
+                                                                        const value = `clarity:${option.id}`;
+                                                                        const selected = filters.diamond.includes(value);
+                                                                        return (
+                                                                            <label
+                                                                                key={`clarity-${option.id}`}
+                                                                                className={`flex items-center gap-2.5 py-1.5 text-sm transition ${
+                                                                                    selected ? 'text-slate-900' : 'text-slate-600'
+                                                                                }`}
+                                                                            >
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    className="h-4 w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
+                                                                                    checked={selected}
+                                                                                    onChange={(event) => {
+                                                                                        const list = [...filters.diamond];
+                                                                                        if (event.target.checked) {
+                                                                                            if (!list.includes(value)) list.push(value);
+                                                                                        } else {
+                                                                                            const index = list.indexOf(value);
+                                                                                            if (index >= 0) list.splice(index, 1);
+                                                                                        }
+                                                                                        applyFilter('diamond', list.length ? list : undefined);
+                                                                                    }}
+                                                                                />
+                                                                                <span>{option.name}</span>
+                                                                            </label>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>

@@ -13,7 +13,7 @@ type OrderStatusRow = {
     color: string;
     is_default: boolean;
     is_active: boolean;
-    display_order: number;
+    display_order: number | null;
 };
 
 export default function AdminOrderStatusesIndex() {
@@ -24,7 +24,14 @@ export default function AdminOrderStatusesIndex() {
     const [deleteConfirm, setDeleteConfirm] = useState<OrderStatusRow | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        name: string;
+        code: string;
+        color: string;
+        is_default: boolean;
+        is_active: boolean;
+        display_order: number | null;
+    }>({
         name: '',
         code: '',
         color: '#64748b',
@@ -109,7 +116,7 @@ export default function AdminOrderStatusesIndex() {
                     color: formData.color,
                     is_default: formData.is_default,
                     is_active: formData.is_active,
-                    display_order: formData.display_order,
+                    display_order: formData.display_order ?? 0,
                 });
             } else {
                 await adminService.createOrderStatus({
@@ -118,7 +125,7 @@ export default function AdminOrderStatusesIndex() {
                     color: formData.color,
                     is_default: formData.is_default,
                     is_active: formData.is_active,
-                    display_order: formData.display_order,
+                    display_order: formData.display_order ?? 0,
                 });
             }
             resetForm();
@@ -146,7 +153,7 @@ export default function AdminOrderStatusesIndex() {
                 color: status.color,
                 is_default: status.is_default,
                 is_active: !status.is_active,
-                display_order: status.display_order,
+                display_order: status.display_order ?? 0,
             });
             await loadStatuses();
         } catch (error: any) {
@@ -163,7 +170,7 @@ export default function AdminOrderStatusesIndex() {
                 color: status.color,
                 is_default: true,
                 is_active: status.is_active,
-                display_order: status.display_order,
+                display_order: status.display_order ?? 0,
             });
             await loadStatuses();
         } catch (error: any) {
@@ -308,20 +315,10 @@ export default function AdminOrderStatusesIndex() {
                             <span>Display Order</span>
                             <input
                                 type="number"
-                                value={formData.display_order}
+                                value={formData.display_order ?? ''}
                                 onChange={(event) => {
                                     const value = event.target.value;
-                                    setFormData({ ...formData, display_order: value === '' ? '' : Number(value) });
-                                }}
-                                onBlur={(e) => {
-                                    if (e.target.value === '') {
-                                        setFormData({ ...formData, display_order: 0 });
-                                    }
-                                }}
-                                onFocus={(e) => {
-                                    if (e.target.value === '0') {
-                                        e.target.select();
-                                    }
+                                    setFormData({ ...formData, display_order: value === '' ? null : Number(value) });
                                 }}
                                 className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
                                 min={0}

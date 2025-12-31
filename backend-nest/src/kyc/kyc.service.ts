@@ -232,7 +232,7 @@ export class KycService {
                 type: doc.type,
                 status: doc.status,
                 remarks: doc.remarks,
-                url: doc.file_path ? `/uploads/${doc.file_path}` : null,
+                url: doc.file_path ? `/${doc.file_path}` : null,
                 download_url: `/api/onboarding/kyc/documents/${doc.id}/download`,
                 uploaded_at: doc.created_at?.toISOString(),
             })),
@@ -349,8 +349,9 @@ export class KycService {
             }
 
             // Delete file if exists
+            // file_path is stored as storage/kyc/{userId}/{filename}
             if (document.file_path) {
-                const filePath = `./uploads/${document.file_path}`;
+                const filePath = `./public/${document.file_path}`;
                 if (existsSync(filePath)) {
                     fs.unlinkSync(filePath);
                 }
