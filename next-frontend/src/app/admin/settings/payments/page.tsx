@@ -76,10 +76,10 @@ export default function AdminPaymentSettings() {
         <>
             <Head title="Payment Gateway" />
 
-            <div className="space-y-8">
-                <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                    <h1 className="text-2xl font-semibold text-slate-900">Payment gateway</h1>
-                    <p className="mt-2 text-sm text-slate-500">
+            <div className="space-y-6 px-1 py-4 sm:space-y-8 sm:px-6 sm:py-6 lg:px-8">
+                <div className="rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                    <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">Payment gateway</h1>
+                    <p className="mt-1.5 text-xs sm:text-sm text-slate-500">
                         Manage Stripe credentials for the demo environment. Rotate keys periodically and keep webhook secrets in sync
                         with Stripe Dashboard.
                     </p>
@@ -87,51 +87,51 @@ export default function AdminPaymentSettings() {
 
                 <form
                     onSubmit={submit}
-                    className="max-w-3xl space-y-6 rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80"
+                    className="max-w-3xl space-y-4 sm:space-y-6 rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80"
                 >
-                    <div className="grid gap-6 md:grid-cols-2">
-                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                    <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
+                        <label className="flex flex-col gap-1.5 text-xs sm:text-sm text-slate-600">
                             <span className="font-semibold text-slate-800">Stripe publishable key</span>
                             <input
                                 type="text"
                                 value={formData.publishable_key}
                                 onChange={(event) => setFormData({ ...formData, publishable_key: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                 placeholder="pk_test_..."
                                 required
                             />
-                            {errors.publishable_key && <p className="mt-1 text-xs text-rose-500">{errors.publishable_key}</p>}
+                            {errors.publishable_key && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.publishable_key}</p>}
                         </label>
-                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                        <label className="flex flex-col gap-1.5 text-xs sm:text-sm text-slate-600">
                             <span className="font-semibold text-slate-800">Stripe secret key</span>
                             <input
                                 type="password"
                                 value={formData.secret_key}
                                 onChange={(event) => setFormData({ ...formData, secret_key: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                 placeholder="sk_test_..."
                                 required
                             />
-                            {errors.secret_key && <p className="mt-1 text-xs text-rose-500">{errors.secret_key}</p>}
+                            {errors.secret_key && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.secret_key}</p>}
                         </label>
                     </div>
-                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                    <label className="flex flex-col gap-1.5 text-xs sm:text-sm text-slate-600">
                         <span className="font-semibold text-slate-800">Webhook signing secret</span>
                         <input
                             type="text"
                             value={formData.webhook_secret}
                             onChange={(event) => setFormData({ ...formData, webhook_secret: event.target.value })}
-                            className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                            className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm"
                             placeholder="whsec_... optional"
                         />
-                        {errors.webhook_secret && <p className="mt-1 text-xs text-rose-500">{errors.webhook_secret}</p>}
+                        {errors.webhook_secret && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.webhook_secret}</p>}
                     </label>
-                    <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                    <label className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-slate-200 px-3 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm text-slate-600">
                         <input
                             type="checkbox"
                             checked={formData.is_active}
                             onChange={(event) => setFormData({ ...formData, is_active: event.target.checked })}
-                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                            className="h-3.5 w-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500 sm:h-4 sm:w-4"
                         />
                         <span>Enable this gateway for checkout</span>
                     </label>
@@ -139,7 +139,7 @@ export default function AdminPaymentSettings() {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="rounded-full bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="rounded-full bg-sky-600 px-4 py-1.5 text-xs font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60 sm:px-5 sm:py-2 sm:text-sm"
                         >
                             {processing ? 'Saving...' : 'Save configuration'}
                         </button>

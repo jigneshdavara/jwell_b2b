@@ -384,115 +384,115 @@ export default function AdminCatalogsIndex() {
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
                                 <thead className="bg-slate-50 text-[10px] sm:text-xs text-slate-500">
-                                    <tr>
+                                <tr>
                                         <th className="px-2 py-2 sm:px-5 sm:py-3">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedCatalogs.length === catalogs.data.length && catalogs.data.length > 0}
-                                                onChange={toggleSelectAll}
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedCatalogs.length === catalogs.data.length && catalogs.data.length > 0}
+                                            onChange={toggleSelectAll}
                                                 className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                aria-label="Select all catalogs"
-                                            />
-                                        </th>
+                                            aria-label="Select all catalogs"
+                                        />
+                                    </th>
                                         <th className="px-2 py-2 sm:px-5 sm:py-3 text-left">Code</th>
                                         <th className="px-2 py-2 sm:px-5 sm:py-3 text-left">Name</th>
                                         <th className="px-2 py-2 sm:px-5 sm:py-3 text-left hidden md:table-cell">Products</th>
                                         <th className="px-2 py-2 sm:px-5 sm:py-3 text-left hidden lg:table-cell">Order</th>
                                         <th className="px-2 py-2 sm:px-5 sm:py-3 text-left">Status</th>
                                         <th className="px-2 py-2 sm:px-5 sm:py-3 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
-                                    {catalogs.data.length === 0 ? (
-                                        <tr>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {catalogs.data.length === 0 ? (
+                                    <tr>
                                             <td colSpan={7} className="px-2 py-4 sm:px-5 sm:py-6 text-center text-[10px] sm:text-xs lg:text-sm text-slate-500">
-                                                No catalogs defined yet.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        catalogs.data.map((catalog) => (
-                                            <tr key={catalog.id} className="hover:bg-slate-50">
+                                            No catalogs defined yet.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    catalogs.data.map((catalog) => (
+                                        <tr key={catalog.id} className="hover:bg-slate-50">
                                                 <td className="px-2 py-2 sm:px-5 sm:py-3">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedCatalogs.includes(catalog.id)}
-                                                        onChange={() => toggleSelection(catalog.id)}
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedCatalogs.includes(catalog.id)}
+                                                    onChange={() => toggleSelection(catalog.id)}
                                                         className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                        aria-label={`Select catalog ${catalog.name}`}
-                                                    />
-                                                </td>
+                                                    aria-label={`Select catalog ${catalog.name}`}
+                                                />
+                                            </td>
                                                 <td className="px-2 py-2 sm:px-5 sm:py-3 text-xs sm:text-sm text-slate-700">{catalog.code || '-'}</td>
                                                 <td className="px-2 py-2 sm:px-5 sm:py-3 font-semibold text-xs sm:text-sm text-slate-900">
                                                     <div className="flex flex-col gap-0.5 sm:gap-1">
-                                                        <span>{catalog.name}</span>
+                                                    <span>{catalog.name}</span>
                                                         {catalog.description && <span className="text-[10px] sm:text-xs text-slate-500">{catalog.description}</span>}
-                                                    </div>
-                                                </td>
+                                                </div>
+                                            </td>
                                                 <td className="px-2 py-2 sm:px-5 sm:py-3 text-xs sm:text-sm text-slate-500 hidden md:table-cell">{catalog.products_count}</td>
                                                 <td className="px-2 py-2 sm:px-5 sm:py-3 text-xs sm:text-sm text-slate-500 hidden lg:table-cell">{catalog.display_order}</td>
                                                 <td className="px-2 py-2 sm:px-5 sm:py-3">
                                                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold ${
-                                                        catalog.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                                                    }`}>
-                                                        {catalog.is_active ? 'Active' : 'Archived'}
-                                                    </span>
-                                                </td>
+                                                    catalog.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                                                }`}>
+                                                    {catalog.is_active ? 'Active' : 'Archived'}
+                                                </span>
+                                            </td>
                                                 <td className="px-2 py-2 sm:px-5 sm:py-3 text-right">
                                                     <div className="flex justify-end gap-1 sm:gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => openAssignModal(catalog)}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openAssignModal(catalog)}
                                                             className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-sky-200 hover:text-sky-600"
-                                                            title="Assign products"
-                                                        >
+                                                        title="Assign products"
+                                                    >
                                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                                                            </svg>
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => openEditModal(catalog)}
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                                        </svg>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEditModal(catalog)}
                                                             className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-                                                            title="Edit catalog"
-                                                        >
+                                                        title="Edit catalog"
+                                                    >
                                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
-                                                            </svg>
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => toggleCatalog(catalog)}
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
+                                                        </svg>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleCatalog(catalog)}
                                                             className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600"
-                                                            title={catalog.is_active ? 'Pause catalog' : 'Activate catalog'}
-                                                        >
-                                                            {catalog.is_active ? (
+                                                        title={catalog.is_active ? 'Pause catalog' : 'Activate catalog'}
+                                                    >
+                                                        {catalog.is_active ? (
                                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
-                                                                </svg>
-                                                            ) : (
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
-                                                                </svg>
-                                                            )}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDeleteConfirm(catalog)}
-                                                            className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
-                                                            title="Delete catalog"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
                                                             </svg>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                                                        ) : (
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setDeleteConfirm(catalog)}
+                                                            className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                                                        title="Delete catalog"
+                                                    >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                         </div>
                     )}
                 </div>

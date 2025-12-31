@@ -276,143 +276,143 @@ export default function AdminGeneralSettingsIndex() {
     return (
         <>
             <Head title="General Settings" />
-            <div className="space-y-8">
-                <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                    <h1 className="text-2xl font-semibold text-slate-900">General Settings</h1>
-                    <p className="mt-2 text-sm text-slate-500">Manage your application's general settings and branding.</p>
+            <div className="space-y-6 px-1 py-4 sm:space-y-8 sm:px-6 sm:py-6 lg:px-8">
+                <div className="rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                    <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">General Settings</h1>
+                    <p className="mt-1.5 text-xs sm:text-sm text-slate-500">Manage your application's general settings and branding.</p>
                 </div>
 
-                <form onSubmit={submit} className="space-y-6">
+                <form onSubmit={submit} className="space-y-4 sm:space-y-6">
                     {/* Company Information */}
-                    <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                        <h2 className="mb-6 text-lg font-semibold text-slate-900">Company Information</h2>
-                        <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                        <h2 className="mb-4 sm:mb-6 text-base sm:text-lg font-semibold text-slate-900">Company Information</h2>
+                        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">Admin Email <span className="text-rose-500">*</span></label>
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Admin Email <span className="text-rose-500">*</span></label>
                                 <input
                                     type="email"
                                     value={formData.admin_email}
                                     onChange={(e) => setFormData({ ...formData, admin_email: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                                 />
-                                {errors.admin_email && <p className="mt-1 text-xs text-rose-500">{errors.admin_email}</p>}
+                                {errors.admin_email && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.admin_email}</p>}
                             </div>
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">Company Name <span className="text-rose-500">*</span></label>
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Company Name <span className="text-rose-500">*</span></label>
                                 <input
                                     type="text"
                                     value={formData.company_name}
                                     onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                                 />
-                                {errors.company_name && <p className="mt-1 text-xs text-rose-500">{errors.company_name}</p>}
+                                {errors.company_name && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_name}</p>}
                             </div>
                             <div className="lg:col-span-2">
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">Company Address</label>
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Company Address</label>
                                 <input
                                     type="text"
                                     value={formData.company_address}
                                     onChange={(e) => setFormData({ ...formData, company_address: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                                 />
-                                {errors.company_address && <p className="mt-1 text-xs text-rose-500">{errors.company_address}</p>}
+                                {errors.company_address && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_address}</p>}
                             </div>
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">City</label>
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">City</label>
                                 <input
                                     type="text"
                                     value={formData.company_city}
                                     onChange={(e) => setFormData({ ...formData, company_city: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                                 />
-                                {errors.company_city && <p className="mt-1 text-xs text-rose-500">{errors.company_city}</p>}
+                                {errors.company_city && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_city}</p>}
                             </div>
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">State</label>
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">State</label>
                                 <input
                                     type="text"
                                     value={formData.company_state}
                                     onChange={(e) => setFormData({ ...formData, company_state: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                                 />
-                                {errors.company_state && <p className="mt-1 text-xs text-rose-500">{errors.company_state}</p>}
+                                {errors.company_state && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_state}</p>}
                             </div>
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">Pincode</label>
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Pincode</label>
                                 <input
                                     type="text"
                                     value={formData.company_pincode}
                                     onChange={(e) => setFormData({ ...formData, company_pincode: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                                 />
-                                {errors.company_pincode && <p className="mt-1 text-xs text-rose-500">{errors.company_pincode}</p>}
+                                {errors.company_pincode && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_pincode}</p>}
                             </div>
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">Phone</label>
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Phone</label>
                                 <input
                                     type="text"
                                     value={formData.company_phone}
                                     onChange={(e) => setFormData({ ...formData, company_phone: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                                 />
-                                {errors.company_phone && <p className="mt-1 text-xs text-rose-500">{errors.company_phone}</p>}
+                                {errors.company_phone && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_phone}</p>}
                             </div>
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">Email</label>
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Email</label>
                                 <input
                                     type="email"
                                     value={formData.company_email}
                                     onChange={(e) => setFormData({ ...formData, company_email: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                                 />
-                                {errors.company_email && <p className="mt-1 text-xs text-rose-500">{errors.company_email}</p>}
+                                {errors.company_email && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_email}</p>}
                             </div>
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">GSTIN</label>
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">GSTIN</label>
                                 <input
                                     type="text"
                                     value={formData.company_gstin}
                                     onChange={(e) => setFormData({ ...formData, company_gstin: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                                 />
-                                {errors.company_gstin && <p className="mt-1 text-xs text-rose-500">{errors.company_gstin}</p>}
+                                {errors.company_gstin && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_gstin}</p>}
                             </div>
                         </div>
                     </div>
 
                     {/* Branding */}
-                    <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                        <h2 className="mb-6 text-lg font-semibold text-slate-900">Branding</h2>
-                        <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                        <h2 className="mb-4 sm:mb-6 text-base sm:text-lg font-semibold text-slate-900">Branding</h2>
+                        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">Logo</label>
-                                <div className="space-y-3">
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Logo</label>
+                                <div className="space-y-2 sm:space-y-3">
                                     <input
                                         ref={logoInputRef}
                                         type="file"
                                         accept="image/*"
                                         onChange={handleLogoChange}
-                                        className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-700"
+                                        className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-3 py-2 text-xs file:mr-2 file:rounded-full file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-slate-700 sm:px-4 sm:py-3 sm:text-sm sm:file:mr-4 sm:file:px-4 sm:file:py-2 sm:file:text-sm"
                                     />
                                     {logoPreview && logoObjectUrl && (
-                                        <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                            <img src={logoPreview} alt="Logo preview" className="h-16 w-auto object-contain" />
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                                            <img src={logoPreview} alt="Logo preview" className="h-12 w-auto object-contain sm:h-16" />
                                             <button
                                                 type="button"
                                                 onClick={removeLogoHandler}
-                                                className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50"
+                                                className="rounded-full border border-rose-200 px-3 py-1 text-[10px] font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 sm:text-xs"
                                             >
                                                 Remove selected image
                                             </button>
                                         </div>
                                     )}
                                     {logoPreview && !logoObjectUrl && settings.logo_url && !removeLogo && (
-                                        <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                            <img src={logoPreview} alt="Current logo" className="h-16 w-auto object-contain" />
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                                            <img src={logoPreview} alt="Current logo" className="h-12 w-auto object-contain sm:h-16" />
                                             <button
                                                 type="button"
                                                 onClick={removeLogoHandler}
-                                                className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50"
+                                                className="rounded-full border border-rose-200 px-3 py-1 text-[10px] font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 sm:text-xs"
                                             >
                                                 Remove image
                                             </button>
@@ -422,34 +422,34 @@ export default function AdminGeneralSettingsIndex() {
                             </div>
 
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">Favicon</label>
-                                <div className="space-y-3">
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Favicon</label>
+                                <div className="space-y-2 sm:space-y-3">
                                     <input
                                         ref={faviconInputRef}
                                         type="file"
                                         accept="image/*"
                                         onChange={handleFaviconChange}
-                                        className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-700"
+                                        className="w-full cursor-pointer rounded-2xl border border-dashed border-slate-300 px-3 py-2 text-xs file:mr-2 file:rounded-full file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-slate-700 sm:px-4 sm:py-3 sm:text-sm sm:file:mr-4 sm:file:px-4 sm:file:py-2 sm:file:text-sm"
                                     />
                                     {faviconPreview && faviconObjectUrl && (
-                                        <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                            <img src={faviconPreview} alt="Favicon preview" className="h-8 w-8 object-contain" />
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                                            <img src={faviconPreview} alt="Favicon preview" className="h-6 w-6 object-contain sm:h-8 sm:w-8" />
                                             <button
                                                 type="button"
                                                 onClick={removeFaviconHandler}
-                                                className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50"
+                                                className="rounded-full border border-rose-200 px-3 py-1 text-[10px] font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 sm:text-xs"
                                             >
                                                 Remove selected image
                                             </button>
                                         </div>
                                     )}
                                     {faviconPreview && !faviconObjectUrl && settings.favicon_url && !removeFavicon && (
-                                        <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                            <img src={faviconPreview} alt="Current favicon" className="h-8 w-8 object-contain" />
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                                            <img src={faviconPreview} alt="Current favicon" className="h-6 w-6 object-contain sm:h-8 sm:w-8" />
                                             <button
                                                 type="button"
                                                 onClick={removeFaviconHandler}
-                                                className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50"
+                                                className="rounded-full border border-rose-200 px-3 py-1 text-[10px] font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 sm:text-xs"
                                             >
                                                 Remove image
                                             </button>
@@ -461,25 +461,25 @@ export default function AdminGeneralSettingsIndex() {
                     </div>
 
                     {/* Application Settings */}
-                    <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                        <h2 className="mb-6 text-lg font-semibold text-slate-900">Application Settings</h2>
-                        <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                        <h2 className="mb-4 sm:mb-6 text-base sm:text-lg font-semibold text-slate-900">Application Settings</h2>
+                        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">App Name <span className="text-rose-500">*</span></label>
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">App Name <span className="text-rose-500">*</span></label>
                                 <input
                                     type="text"
                                     value={formData.app_name}
                                     onChange={(e) => setFormData({ ...formData, app_name: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                                 />
-                                {errors.app_name && <p className="mt-1 text-xs text-rose-500">{errors.app_name}</p>}
+                                {errors.app_name && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.app_name}</p>}
                             </div>
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">Timezone <span className="text-rose-500">*</span></label>
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Timezone <span className="text-rose-500">*</span></label>
                                 <select
                                     value={formData.app_timezone}
                                     onChange={(e) => setFormData({ ...formData, app_timezone: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                                 >
                                     {timezones.map((tz) => (
                                         <option key={tz} value={tz}>
@@ -487,14 +487,14 @@ export default function AdminGeneralSettingsIndex() {
                                         </option>
                                     ))}
                                 </select>
-                                {errors.app_timezone && <p className="mt-1 text-xs text-rose-500">{errors.app_timezone}</p>}
+                                {errors.app_timezone && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.app_timezone}</p>}
                             </div>
                             <div>
-                                <label className="mb-2 block text-sm font-semibold text-slate-700">Currency <span className="text-rose-500">*</span></label>
+                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Currency <span className="text-rose-500">*</span></label>
                                 <select
                                     value={formData.app_currency}
                                     onChange={(e) => setFormData({ ...formData, app_currency: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
+                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                                 >
                                     {currencies.map((curr) => (
                                         <option key={curr} value={curr}>
@@ -502,22 +502,22 @@ export default function AdminGeneralSettingsIndex() {
                                         </option>
                                     ))}
                                 </select>
-                                {errors.app_currency && <p className="mt-1 text-xs text-rose-500">{errors.app_currency}</p>}
+                                {errors.app_currency && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.app_currency}</p>}
                             </div>
                         </div>
                     </div>
 
                     {errors.general && (
-                        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+                        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 sm:p-4 text-xs sm:text-sm text-rose-900">
                             {errors.general}
                         </div>
                     )}
 
-                    <div className="flex justify-end gap-4">
+                    <div className="flex justify-end gap-2 sm:gap-4">
                         <button
                             type="submit"
                             disabled={processing}
-                            className="rounded-full bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-full bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50 sm:px-6 sm:py-2.5 sm:text-sm"
                         >
                             {processing ? 'Saving...' : 'Save Settings'}
                         </button>

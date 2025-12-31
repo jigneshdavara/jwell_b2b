@@ -843,13 +843,13 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         <>
             <Head title={`Quotation #${resolvedParams.id}`} />
 
-            <div className="space-y-8">
-                <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                    <div className="flex items-center justify-between">
-                        <h1 className="text-2xl font-semibold text-slate-900">Quotation #{resolvedParams.id}</h1>
+            <div className="space-y-6 sm:space-y-8 px-1 py-4 sm:px-6 sm:py-6 lg:px-8">
+                <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/80">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">Quotation #{resolvedParams.id}</h1>
                         <Link
                             href="/admin/quotations"
-                            className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                            className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-4 sm:py-2 sm:text-sm"
                         >
                             Back to list
                         </Link>
@@ -858,28 +858,28 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
                 <div className="space-y-6">
                     {/* Header Section */}
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                        <div className="grid gap-8 md:grid-cols-3">
+                    <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/80">
+                        <div className="grid gap-4 sm:gap-6 md:gap-8 md:grid-cols-3">
                             <div>
-                                <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">From</h3>
-                                <p className="mt-3 text-lg font-semibold text-slate-900">Elvee</p>
-                                <p className="mt-1 text-sm text-slate-600">123 Business Street</p>
-                                <p className="text-sm text-slate-600">Mumbai, Maharashtra 400001</p>
+                                <h3 className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">From</h3>
+                                <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Elvee</p>
+                                <p className="mt-1 text-xs sm:text-sm text-slate-600">123 Business Street</p>
+                                <p className="text-xs sm:text-sm text-slate-600">Mumbai, Maharashtra 400001</p>
                             </div>
                             <div>
-                                <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Bill To</h3>
-                                <p className="mt-3 text-lg font-semibold text-slate-900">{quotation.user?.name ?? 'Unknown'}</p>
-                                <p className="mt-1 text-sm text-slate-600">{quotation.user?.email ?? '—'}</p>
+                                <h3 className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Bill To</h3>
+                                <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">{quotation.user?.name ?? 'Unknown'}</p>
+                                <p className="mt-1 text-xs sm:text-sm text-slate-600 break-words">{quotation.user?.email ?? '—'}</p>
                             </div>
-                            <div className="text-right">
-                                <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Quotation Details</h3>
-                                <p className="mt-3 text-lg font-semibold text-slate-900">#{resolvedParams.id}</p>
-                                <p className="mt-1 text-sm text-slate-500">
+                            <div className="text-left sm:text-right">
+                                <h3 className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Quotation Details</h3>
+                                <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">#{resolvedParams.id}</p>
+                                <p className="mt-1 text-xs sm:text-sm text-slate-500">
                                     Date: <span className="font-semibold text-slate-900">{quotation.created_at && formatDate(quotation.created_at)}</span>
                                 </p>
-                                <div className="mt-3 flex justify-end gap-2">
+                                <div className="mt-2 sm:mt-3 flex sm:justify-end gap-2">
                                     <span
-                                        className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${
+                                        className={`inline-flex items-center rounded-full px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold ${
                                             statusBadge[quotation.status] ?? 'bg-slate-200 text-slate-700'
                                         }`}
                                     >
@@ -891,29 +891,29 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                     </div>
 
                     {/* Products Table - Invoice Style */}
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                        <div className="mb-4 flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-slate-900">Items</h2>
+                    <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/80">
+                        <div className="mb-3 sm:mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <h2 className="text-base sm:text-lg font-semibold text-slate-900">Items</h2>
                             <button
                                 type="button"
                                 onClick={openAddItemModal}
-                                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
+                                className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 sm:px-4 sm:py-2 sm:text-sm"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5 sm:h-4 sm:w-4">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                                 </svg>
                                 Add Item
                             </button>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
+                            <table className="w-full text-xs sm:text-sm">
                                 <thead className="border-b-2 border-slate-200 bg-slate-50">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Item</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Unit Price</th>
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Qty</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Total</th>
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Actions</th>
+                                        <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Item</th>
+                                        <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Unit Price</th>
+                                        <th className="px-3 py-2 text-center text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Qty</th>
+                                        <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Total</th>
+                                        <th className="px-3 py-2 text-center text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -928,32 +928,32 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                         
                                         return (
                                             <tr key={item.id} className="hover:bg-slate-50/50 transition">
-                                                <td className="px-4 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        {item.product.media?.[0] && (
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4">
+                                                    <div className="flex items-center gap-2 sm:gap-3">
+                                                        {item.product.media?.[0] && getMediaUrl(item.product.media[0].url) && (
                                                             <img
-                                                                src={getMediaUrl(item.product.media[0].url)}
+                                                                src={getMediaUrl(item.product.media[0].url)!}
                                                                 alt={item.product.media[0].alt || item.product.name}
-                                                                className="h-12 w-12 rounded-lg object-cover shadow-sm"
+                                                                className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg object-cover shadow-sm"
                                                             />
                                                         )}
                                                         <div className="min-w-0 flex-1">
-                                                            <p className="text-sm font-semibold text-slate-900">{item.product.name}</p>
-                                                            <p className="text-xs text-slate-400">SKU {item.product.sku}</p>
+                                                            <p className="text-xs sm:text-sm font-semibold text-slate-900">{item.product.name}</p>
+                                                            <p className="text-[10px] sm:text-xs text-slate-400">SKU {item.product.sku}</p>
                                                             {variantLabel && (
-                                                                <p className="mt-0.5 text-xs font-medium text-slate-500">
+                                                                <p className="mt-0.5 text-[10px] sm:text-xs font-medium text-slate-500">
                                                                     {variantLabel}
                                                                 </p>
                                                             )}
                                                             {item.notes && (
-                                                                <p className="mt-1 text-xs text-slate-500 italic">Note: {item.notes}</p>
+                                                                <p className="mt-1 text-[10px] sm:text-xs text-slate-500 italic">Note: {item.notes}</p>
                                                             )}
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-4 text-right">
-                                                    <div className="text-sm font-semibold text-slate-900">₹ {unitPrice.toLocaleString('en-IN')}</div>
-                                                    <div className="text-xs text-slate-400">
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-right">
+                                                    <div className="text-xs sm:text-sm font-semibold text-slate-900">₹ {unitPrice.toLocaleString('en-IN')}</div>
+                                                    <div className="text-[10px] sm:text-xs text-slate-400">
                                                         {metalCost > 0 && `Metal: ₹ ${metalCost.toLocaleString('en-IN')}`}
                                                         {metalCost > 0 && (diamondCost > 0 || makingCharge > 0) && ' + '}
                                                         {diamondCost > 0 && `Diamond: ₹ ${diamondCost.toLocaleString('en-IN')}`}
@@ -961,31 +961,31 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                         {makingCharge > 0 && `Making: ₹ ${makingCharge.toLocaleString('en-IN')}`}
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-4 text-center">
-                                                    <span className="font-semibold text-slate-900">{item.quantity}</span>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-center">
+                                                    <span className="font-semibold text-slate-900 text-xs sm:text-sm">{item.quantity}</span>
                                                 </td>
-                                                <td className="px-4 py-4 text-right">
-                                                    <div className="text-sm font-semibold text-slate-900">₹ {lineTotal.toLocaleString('en-IN')}</div>
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-right">
+                                                    <div className="text-xs sm:text-sm font-semibold text-slate-900">₹ {lineTotal.toLocaleString('en-IN')}</div>
                                                 </td>
-                                                <td className="px-4 py-4">
-                                                    <div className="flex items-center justify-center gap-2">
+                                                <td className="px-3 py-3 sm:px-4 sm:py-4">
+                                                    <div className="flex items-center justify-center gap-1 sm:gap-2">
                                                         <button
                                                             type="button"
                                                             onClick={() => setProductDetailsModalOpen(item)}
-                                                            className="inline-flex items-center gap-1 rounded-full border border-elvee-blue/30 px-2.5 py-1.5 text-[10px] font-semibold text-elvee-blue transition hover:border-elvee-blue hover:bg-elvee-blue/5"
+                                                            className="inline-flex items-center gap-0.5 sm:gap-1 rounded-full border border-elvee-blue/30 px-1.5 py-1 text-[10px] font-semibold text-elvee-blue transition hover:border-elvee-blue hover:bg-elvee-blue/5 sm:px-2.5 sm:py-1.5"
                                                             title="View product details"
                                                         >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-2.5 w-2.5 sm:h-3 sm:w-3">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                                                             </svg>
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => openChangeModal(item)}
-                                                            className="inline-flex items-center gap-1 rounded-full border border-slate-300 px-2.5 py-1.5 text-[10px] font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                                                            className="inline-flex items-center gap-0.5 sm:gap-1 rounded-full border border-slate-300 px-1.5 py-1 text-[10px] font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 sm:px-2.5 sm:py-1.5"
                                                             title="Change product"
                                                         >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-2.5 w-2.5 sm:h-3 sm:w-3">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                                                             </svg>
                                                         </button>
@@ -994,10 +994,10 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                             onClick={() => {
                                                                 setRemoveItemConfirm({ show: true, itemId: item.id });
                                                             }}
-                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-600 transition hover:border-rose-300 hover:bg-rose-50"
+                                                            className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-rose-200 text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 sm:h-7 sm:w-7 md:h-8 md:w-8"
                                                             title="Remove item"
                                                         >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
                                                             </svg>
                                                         </button>
@@ -1024,28 +1024,28 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                         return (
                                             <>
                                                 <tr>
-                                                    <td colSpan={4} className="px-4 py-2 text-right text-sm text-slate-600">
+                                                    <td colSpan={4} className="px-3 py-2 text-right text-xs sm:text-sm text-slate-600 sm:px-4">
                                                         Subtotal
                                                     </td>
-                                                    <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
+                                                    <td className="px-3 py-2 text-right text-xs sm:text-sm font-semibold text-slate-900 sm:px-4">
                                                         ₹ {subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </td>
                                                     <td></td>
                                                 </tr>
                                                 <tr>
-                                                    <td colSpan={4} className="px-4 py-2 text-right text-sm text-slate-600">
+                                                    <td colSpan={4} className="px-3 py-2 text-right text-xs sm:text-sm text-slate-600 sm:px-4">
                                                         GST ({taxRate}%)
                                                     </td>
-                                                    <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
+                                                    <td className="px-3 py-2 text-right text-xs sm:text-sm font-semibold text-slate-900 sm:px-4">
                                                         ₹ {tax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </td>
                                                     <td></td>
                                                 </tr>
                                                 <tr className="border-t-2 border-slate-300">
-                                                    <td colSpan={4} className="px-4 py-3 text-right text-base font-bold text-slate-900">
+                                                    <td colSpan={4} className="px-3 py-2.5 sm:py-3 text-right text-sm sm:text-base font-bold text-slate-900 sm:px-4">
                                                         Grand Total
                                                     </td>
-                                                    <td className="px-4 py-3 text-right text-lg font-bold text-slate-900">
+                                                    <td className="px-3 py-2.5 sm:py-3 text-right text-base sm:text-lg font-bold text-slate-900 sm:px-4">
                                                         ₹ {grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </td>
                                                     <td></td>
@@ -1059,40 +1059,40 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                     </div>
 
                     {/* Timeline and Conversation Section */}
-                    <div className="grid gap-6 lg:grid-cols-2">
-                        <div className="space-y-6">
+                    <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+                        <div className="space-y-4 sm:space-y-6">
                             {/* Linked Order */}
                             {quotation.order && (
-                                <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                                    <h2 className="text-lg font-semibold text-slate-900">Linked Order</h2>
-                                    <div className="mt-4 space-y-4">
-                                        <div className="grid gap-4 sm:grid-cols-2">
-                                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Order Reference</p>
+                                <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/80">
+                                    <h2 className="text-base sm:text-lg font-semibold text-slate-900">Linked Order</h2>
+                                    <div className="mt-3 sm:mt-4 space-y-3 sm:space-y-4">
+                                        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
+                                                <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Order Reference</p>
                                                 <Link
                                                     href={`/admin/orders/${quotation.order.id}`}
-                                                    className="mt-1 text-base font-semibold text-sky-600 hover:text-sky-500"
+                                                    className="mt-1 text-sm sm:text-base font-semibold text-sky-600 hover:text-sky-500 break-words"
                                                 >
                                                     {quotation.order.reference}
                                                 </Link>
                                             </div>
-                                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Status</p>
-                                                <p className="mt-1 text-base font-semibold text-slate-900">{quotation.order.status.replace(/_/g, ' ')}</p>
+                                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
+                                                <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Status</p>
+                                                <p className="mt-1 text-sm sm:text-base font-semibold text-slate-900">{quotation.order.status.replace(/_/g, ' ')}</p>
                                             </div>
                                         </div>
-                                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 sm:col-span-2">
-                                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Total Amount</p>
-                                            <p className="mt-1 text-xl font-semibold text-slate-900">₹ {quotation.order.total_amount.toLocaleString('en-IN')}</p>
+                                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3 sm:col-span-2">
+                                            <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Total Amount</p>
+                                            <p className="mt-1 text-base sm:text-lg lg:text-xl font-semibold text-slate-900">₹ {quotation.order.total_amount.toLocaleString('en-IN')}</p>
                                         </div>
                                         {quotation.order.history && quotation.order.history.length > 0 && (
-                                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                                <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Status Timeline</h3>
-                                                <div className="mt-3 space-y-2">
+                                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
+                                                <h3 className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Status Timeline</h3>
+                                                <div className="mt-2 sm:mt-3 space-y-1.5 sm:space-y-2">
                                                     {quotation.order.history.map((entry) => (
-                                                        <div key={entry.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2">
-                                                            <span className="text-sm font-semibold text-slate-700">{entry.status.replace(/_/g, ' ')}</span>
-                                                            <span className="text-xs text-slate-400">{formatDate(entry.created_at)}</span>
+                                                        <div key={entry.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 sm:px-3 sm:py-2">
+                                                            <span className="text-xs sm:text-sm font-semibold text-slate-700">{entry.status.replace(/_/g, ' ')}</span>
+                                                            <span className="text-[10px] sm:text-xs text-slate-400">{formatDate(entry.created_at)}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -1103,33 +1103,33 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                             )}
 
                             {/* Quotation Timeline */}
-                            <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                                <h2 className="text-lg font-semibold text-slate-900">Quotation Timeline</h2>
-                                <div className="mt-4 space-y-3">
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/80">
+                                <h2 className="text-base sm:text-lg font-semibold text-slate-900">Quotation Timeline</h2>
+                                <div className="mt-3 sm:mt-4 space-y-2 sm:space-y-3">
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Created</p>
-                                                <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(quotation.created_at)}</p>
+                                                <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Created</p>
+                                                <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-900">{formatDate(quotation.created_at)}</p>
                                             </div>
                                         </div>
                                     </div>
                                     {quotation.approved_at && (
-                                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 sm:px-4 sm:py-3">
                                             <div className="flex items-center justify-between">
                                                 <div>
-                                                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Approved</p>
-                                                    <p className="mt-1 text-sm font-semibold text-emerald-900">{formatDate(quotation.approved_at)}</p>
+                                                    <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Approved</p>
+                                                    <p className="mt-1 text-xs sm:text-sm font-semibold text-emerald-900">{formatDate(quotation.approved_at)}</p>
                                                 </div>
                                             </div>
                                         </div>
                                     )}
                                     {quotation.updated_at && quotation.updated_at !== quotation.created_at && (
-                                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
                                             <div className="flex items-center justify-between">
                                                 <div>
-                                                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Last Updated</p>
-                                                    <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(quotation.updated_at)}</p>
+                                                    <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Last Updated</p>
+                                                    <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-900">{formatDate(quotation.updated_at)}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -1138,36 +1138,36 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                             </div>
 
                             {/* Conversation */}
-                            <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                                <h2 className="text-lg font-semibold text-slate-900">Conversation</h2>
-                                <div className="mt-4 max-h-96 space-y-3 overflow-y-auto pr-2 text-sm text-slate-600">
+                            <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/80">
+                                <h2 className="text-base sm:text-lg font-semibold text-slate-900">Conversation</h2>
+                                <div className="mt-3 sm:mt-4 max-h-64 sm:max-h-96 space-y-2 sm:space-y-3 overflow-y-auto pr-1 sm:pr-2 text-xs sm:text-sm text-slate-600">
                                     {(!quotation.messages || quotation.messages.length === 0) && (
-                                        <p className="text-xs text-slate-400">No messages yet. Start by sending the customer a note below.</p>
+                                        <p className="text-[10px] sm:text-xs text-slate-400">No messages yet. Start by sending the customer a note below.</p>
                                     )}
                                     {quotation.messages && quotation.messages.map((message) => (
                                         <div
                                             key={message.id}
-                                            className={`flex flex-col gap-2 rounded-2xl border px-4 py-3 ${
+                                            className={`flex flex-col gap-1.5 sm:gap-2 rounded-2xl border px-3 py-2 sm:px-4 sm:py-3 ${
                                                 message.sender === 'admin'
                                                     ? 'border-slate-200 bg-slate-50'
                                                     : 'border-sky-200 bg-sky-50'
                                             }`}
                                         >
-                                            <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.25em] text-slate-400">
+                                            <div className="flex items-center justify-between text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-slate-400">
                                                 <span className="font-semibold">{message.sender === 'admin' ? (message.author ?? 'Admin') : 'Customer'}</span>
                                                 <span>{formatDate(message.created_at)}</span>
                                             </div>
-                                            <p className="whitespace-pre-line text-sm text-slate-700">{message.message}</p>
+                                            <p className="whitespace-pre-line text-xs sm:text-sm text-slate-700">{message.message}</p>
                                         </div>
                                     ))}
                                 </div>
-                                <form onSubmit={handleSendMessage} className="mt-4 space-y-3 text-sm text-slate-600">
-                                    <label className="flex flex-col gap-2">
-                                        <span className="text-xs font-semibold text-slate-800">Send Message</span>
+                                <form onSubmit={handleSendMessage} className="mt-3 sm:mt-4 space-y-2 sm:space-y-3 text-xs sm:text-sm text-slate-600">
+                                    <label className="flex flex-col gap-1.5 sm:gap-2">
+                                        <span className="text-[10px] sm:text-xs font-semibold text-slate-800">Send Message</span>
                                         <textarea
                                             value={messageText}
                                             onChange={(e) => setMessageText(e.target.value)}
-                                            className="min-h-[100px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-3"
+                                            className="min-h-[80px] sm:min-h-[100px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm"
                                             placeholder="Request more information or share updates with the client..."
                                             disabled={messageProcessing}
                                         />
@@ -1176,7 +1176,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                         <button
                                             type="submit"
                                             disabled={messageProcessing || !messageText.trim()}
-                                            className="rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                            className="rounded-full bg-sky-600 px-3 py-1.5 text-[10px] font-semibold text-white shadow-sky-600/30 transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:py-2 sm:text-xs"
                                         >
                                             {messageProcessing ? 'Sending…' : 'Send message'}
                                         </button>
@@ -1185,33 +1185,33 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                             </div>
                         </div>
 
-                        <aside className="space-y-6">
+                        <aside className="space-y-4 sm:space-y-6">
                             {/* Admin Notes */}
                             {quotation.admin_notes && (
-                                <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                                    <h2 className="text-lg font-semibold text-slate-900">Admin Notes</h2>
-                                    <p className="mt-3 whitespace-pre-line text-sm text-slate-600">{quotation.admin_notes}</p>
+                                <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/80">
+                                    <h2 className="text-base sm:text-lg font-semibold text-slate-900">Admin Notes</h2>
+                                    <p className="mt-2 sm:mt-3 whitespace-pre-line text-xs sm:text-sm text-slate-600">{quotation.admin_notes}</p>
                                 </div>
                             )}
 
                             {/* Actions */}
-                            <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                                <h2 className="mb-4 text-lg font-semibold text-slate-900">Actions</h2>
+                            <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/80">
+                                <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-slate-900">Actions</h2>
                                 
                                 {hasChanges && (
-                                    <div className="mb-4 rounded-xl border-2 border-amber-400 bg-amber-50 p-3">
-                                        <p className="text-sm font-semibold text-amber-800">Changes detected</p>
-                                        <p className="mt-1 text-xs text-amber-700">Product or quantity has been modified. Request customer confirmation to save changes.</p>
+                                    <div className="mb-3 sm:mb-4 rounded-xl border-2 border-amber-400 bg-amber-50 p-2.5 sm:p-3">
+                                        <p className="text-xs sm:text-sm font-semibold text-amber-800">Changes detected</p>
+                                        <p className="mt-1 text-[10px] sm:text-xs text-amber-700">Product or quantity has been modified. Request customer confirmation to save changes.</p>
                                     </div>
                                 )}
                                 
-                                <form onSubmit={handleAction} className="space-y-4">
+                                <form onSubmit={handleAction} className="space-y-3 sm:space-y-4">
                                     <div>
-                                        <label className="mb-2 block text-sm font-semibold text-slate-700">Action</label>
+                                        <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Action</label>
                                         <select
                                             value={actionType}
                                             onChange={(e) => setActionType(e.target.value as any)}
-                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                         >
                                             <option value="">Select an action...</option>
                                             {(quotation.status === 'pending' || quotation.status === 'customer_confirmed') && (
@@ -1225,14 +1225,14 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                     </div>
 
                                     <div>
-                                        <label className="mb-2 block text-sm font-semibold text-slate-700">
+                                        <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">
                                             {actionType === 'approve' ? 'Internal Notes' : actionType === 'reject' ? 'Reason / Feedback' : 'Notes'}
                                         </label>
                                         <textarea
                                             value={actionNotes}
                                             onChange={(e) => setActionNotes(e.target.value)}
                                             rows={4}
-                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                            className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                             placeholder={
                                                 actionType === 'approve' ? 'Add internal notes...' :
                                                 actionType === 'reject' ? 'Add reason for rejection...' :
@@ -1245,7 +1245,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                     <button
                                         type="submit"
                                         disabled={!actionType || actionProcessing}
-                                        className={`w-full rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg transition disabled:cursor-not-allowed disabled:opacity-70 ${
+                                        className={`w-full rounded-full px-3 py-1.5 text-xs font-semibold text-white shadow-lg transition disabled:cursor-not-allowed disabled:opacity-70 sm:px-4 sm:py-2 sm:text-sm ${
                                             actionType === 'approve' ? 'bg-emerald-600 shadow-emerald-600/30 hover:bg-emerald-500' :
                                             actionType === 'reject' ? 'bg-rose-600 shadow-rose-600/30 hover:bg-rose-500' :
                                             hasChanges ? 'bg-amber-600 shadow-amber-600/30 hover:bg-amber-500' :
@@ -1273,36 +1273,36 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                     maxWidth="4xl"
                 >
                     <div className="flex min-h-0 flex-col">
-                        <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-slate-900">Product Details</h3>
+                        <div className="flex-shrink-0 border-b border-slate-200 px-4 py-2.5 sm:px-6 sm:py-4">
+                            <div className="flex items-center justify-between gap-2">
+                                <h3 className="text-base sm:text-lg font-semibold text-slate-900">Product Details</h3>
                                 <button
                                     type="button"
                                     onClick={() => setProductDetailsModalOpen(null)}
                                     className="text-slate-400 hover:text-slate-600"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 sm:h-5 sm:w-5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
-                        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                            <div className="space-y-6">
+                        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
+                            <div className="space-y-4 sm:space-y-6">
                                 {/* Product Image and Basic Info */}
-                                <div className="flex gap-6">
-                                    {productDetailsModalOpen.product.media?.[0] && (
+                                <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
+                                    {productDetailsModalOpen.product.media?.[0] && getMediaUrl(productDetailsModalOpen.product.media[0].url) && (
                                         <img
-                                            src={getMediaUrl(productDetailsModalOpen.product.media[0].url)}
+                                            src={getMediaUrl(productDetailsModalOpen.product.media[0].url)!}
                                             alt={productDetailsModalOpen.product.media[0].alt || productDetailsModalOpen.product.name}
-                                            className="h-32 w-32 rounded-lg object-cover shadow-lg"
+                                            className="h-24 w-24 sm:h-32 sm:w-32 rounded-lg object-cover shadow-lg mx-auto sm:mx-0"
                                         />
                                     )}
-                                    <div className="flex-1">
-                                        <h4 className="text-xl font-semibold text-slate-900">{productDetailsModalOpen.product.name}</h4>
-                                        <p className="mt-1 text-sm text-slate-500">SKU: {productDetailsModalOpen.product.sku}</p>
-                                        <div className="mt-3 flex gap-2">
-                                            <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                                    <div className="flex-1 text-center sm:text-left">
+                                        <h4 className="text-base sm:text-lg md:text-xl font-semibold text-slate-900">{productDetailsModalOpen.product.name}</h4>
+                                        <p className="mt-1 text-xs sm:text-sm text-slate-500">SKU: {productDetailsModalOpen.product.sku}</p>
+                                        <div className="mt-2 sm:mt-3 flex justify-center sm:justify-start gap-2">
+                                            <span className="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-1 text-[10px] sm:text-xs font-semibold text-slate-700">
                                                 Qty: {productDetailsModalOpen.quantity}
                                             </span>
                                         </div>
@@ -1311,9 +1311,9 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
                                 {/* Pricing */}
                                 {productDetailsModalOpen.price_breakdown && (
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                <h5 className="mb-3 text-sm font-semibold text-slate-700">Pricing</h5>
-                                <div className="space-y-2 text-sm">
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                                <h5 className="mb-2 sm:mb-3 text-xs sm:text-sm font-semibold text-slate-700">Pricing</h5>
+                                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                                     {(() => {
                                         const priceBreakdown = productDetailsModalOpen.price_breakdown || {};
                                         const metalCost = Number(priceBreakdown.metal) || 0;
@@ -1324,27 +1324,27 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                         return (
                                             <>
                                                 {metalCost > 0 && (
-                                                    <div className="flex justify-between">
+                                                    <div className="flex justify-between gap-2">
                                                         <span className="text-slate-600">Metal:</span>
-                                                        <span className="font-semibold text-slate-900">₹ {metalCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        <span className="font-semibold text-slate-900 text-right">₹ {metalCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                     </div>
                                                 )}
                                                 {diamondCost > 0 && (
-                                                    <div className="flex justify-between">
+                                                    <div className="flex justify-between gap-2">
                                                         <span className="text-slate-600">Diamond:</span>
-                                                        <span className="font-semibold text-slate-900">₹ {diamondCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        <span className="font-semibold text-slate-900 text-right">₹ {diamondCost.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                     </div>
                                                 )}
                                                 {makingCharge > 0 && (
-                                                    <div className="flex justify-between">
+                                                    <div className="flex justify-between gap-2">
                                                         <span className="text-slate-600">Making Charge:</span>
-                                                        <span className="font-semibold text-slate-900">₹ {makingCharge.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                                        <span className="font-semibold text-slate-900 text-right">₹ {makingCharge.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                                     </div>
                                                 )}
-                                                <div className="border-t border-slate-300 pt-2">
-                                                    <div className="flex justify-between">
+                                                <div className="border-t border-slate-300 pt-2 mt-2">
+                                                    <div className="flex justify-between gap-2">
                                                         <span className="font-semibold text-slate-900">Unit Price:</span>
-                                                        <span className="font-semibold text-slate-900">
+                                                        <span className="font-semibold text-slate-900 text-right">
                                                             ₹ {total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                         </span>
                                                     </div>
@@ -1358,20 +1358,20 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
                                 {/* Selected Variant */}
                                 {productDetailsModalOpen.variant && (
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                <h5 className="mb-3 text-sm font-semibold text-slate-700">Selected Variant</h5>
-                                <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between">
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                                <h5 className="mb-2 sm:mb-3 text-xs sm:text-sm font-semibold text-slate-700">Selected Variant</h5>
+                                <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0">
                                         <span className="text-slate-600">Label:</span>
-                                        <span className="font-semibold text-slate-900">{productDetailsModalOpen.variant.label}</span>
+                                        <span className="font-semibold text-slate-900 break-words sm:text-right">{productDetailsModalOpen.variant.label}</span>
                                     </div>
                                     {productDetailsModalOpen.variant.metadata && Object.keys(productDetailsModalOpen.variant.metadata).length > 0 && (
-                                        <div className="mt-3 space-y-1">
-                                            <p className="text-xs font-semibold text-slate-500">Variant Details:</p>
+                                        <div className="mt-2 sm:mt-3 space-y-1">
+                                            <p className="text-[10px] sm:text-xs font-semibold text-slate-500">Variant Details:</p>
                                             {Object.entries(productDetailsModalOpen.variant.metadata).map(([key, value]) => (
-                                                <div key={key} className="flex justify-between text-xs">
+                                                <div key={key} className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-0 text-xs">
                                                     <span className="text-slate-600">{key.replace(/_/g, ' ')}:</span>
-                                                    <span className="font-medium text-slate-900">{String(value)}</span>
+                                                    <span className="font-medium text-slate-900 break-words sm:text-right">{String(value)}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -1382,9 +1382,9 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
                                 {/* Notes */}
                                 {productDetailsModalOpen.notes && (
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Notes</h5>
-                                        <p className="whitespace-pre-line text-sm text-slate-700">{productDetailsModalOpen.notes}</p>
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                                        <h5 className="mb-2 sm:mb-3 text-xs sm:text-sm font-semibold text-slate-700">Notes</h5>
+                                        <p className="whitespace-pre-line text-xs sm:text-sm text-slate-700">{productDetailsModalOpen.notes}</p>
                                     </div>
                                 )}
                             </div>
@@ -1401,24 +1401,24 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                     maxWidth="4xl"
                 >
                     <div className="flex min-h-0 flex-col">
-                        <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-slate-900">Change Product</h3>
+                        <div className="flex-shrink-0 border-b border-slate-200 px-4 py-2.5 sm:px-6 sm:py-4">
+                            <div className="flex items-center justify-between gap-2">
+                                <h3 className="text-base sm:text-lg font-semibold text-slate-900">Change Product</h3>
                                 <button
                                     type="button"
                                     onClick={closeChangeModal}
                                     className="text-slate-400 hover:text-slate-600"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 sm:h-5 sm:w-5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
-                        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                            <form onSubmit={handleChangeProduct} className="space-y-4">
+                        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
+                            <form onSubmit={handleChangeProduct} className="space-y-3 sm:space-y-4">
                                 <div>
-                                    <label className="mb-2 block text-sm font-semibold text-slate-700">Search Product</label>
+                                    <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Search Product</label>
                             <input
                                 type="text"
                                 value={productSearch}
@@ -1427,7 +1427,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                     setIsManualSearch(true);
                                 }}
                                 placeholder="Type product name or SKU..."
-                                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                             />
                             {searchResults.length > 0 && (
                                 <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white">
@@ -1436,10 +1436,10 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                             key={product.id}
                                             type="button"
                                             onClick={() => selectProduct(product)}
-                                            className="w-full px-4 py-2 text-left text-sm transition hover:bg-slate-50"
+                                            className="w-full px-3 py-2 text-left text-xs transition hover:bg-slate-50 sm:px-4 sm:text-sm"
                                         >
                                             <div className="font-semibold text-slate-900">{product.name}</div>
-                                            <div className="text-xs text-slate-400">SKU {product.sku}</div>
+                                            <div className="text-[10px] sm:text-xs text-slate-400">SKU {product.sku}</div>
                                         </button>
                                     ))}
                                 </div>
@@ -1448,22 +1448,22 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
                         {selectedProduct && (
                             <>
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Selected Product</p>
-                                    <p className="mt-1 text-sm font-semibold text-slate-900">{selectedProduct.name}</p>
-                                    <p className="text-xs text-slate-400">SKU {selectedProduct.sku}</p>
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
+                                    <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Selected Product</p>
+                                    <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-900">{selectedProduct.name}</p>
+                                    <p className="text-[10px] sm:text-xs text-slate-400">SKU {selectedProduct.sku}</p>
                                 </div>
 
                                 {selectedProduct.variants.length > 0 && (
-                                    <div className="space-y-4">
+                                    <div className="space-y-3 sm:space-y-4">
                                         <div>
-                                            <label className="mb-2 block text-sm font-semibold text-slate-700">Metal</label>
+                                            <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Metal</label>
                                             <select
                                                 value={changeProductMetalId}
                                                 onChange={(e) => {
                                                     setChangeProductMetalId(Number(e.target.value) || '');
                                                 }}
-                                                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                             >
                                                 <option value="">Select Metal</option>
                                                 {changeProductAvailableMetals.map(([id, name]) => (
@@ -1476,13 +1476,13 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
                                         {changeProductMetalId && (
                                             <div>
-                                                <label className="mb-2 block text-sm font-semibold text-slate-700">Purity</label>
+                                                <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Purity</label>
                                                 <select
                                                     value={changeProductPurityId}
                                                     onChange={(e) => {
                                                         setChangeProductPurityId(Number(e.target.value) || '');
                                                     }}
-                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                                 >
                                                     <option value="">Select Purity</option>
                                                     {changeProductAvailablePurities.map(([id, name]) => (
@@ -1496,13 +1496,13 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
                                         {changeProductPurityId && (
                                             <div>
-                                                <label className="mb-2 block text-sm font-semibold text-slate-700">Tone</label>
+                                                <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Tone</label>
                                                 <select
                                                     value={changeProductToneId}
                                                     onChange={(e) => {
                                                         setChangeProductToneId(Number(e.target.value) || '');
                                                     }}
-                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                                 >
                                                     <option value="">Select Tone</option>
                                                     {changeProductAvailableTones.map(([id, name]) => (
@@ -1516,11 +1516,11 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
                                         {changeProductAvailableSizes.length > 0 && changeProductToneId && (
                                             <div>
-                                                <label className="mb-2 block text-sm font-semibold text-slate-700">Size</label>
+                                                <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Size</label>
                                                 <select
                                                     value={changeProductSize}
                                                     onChange={(e) => setChangeProductSize(e.target.value)}
-                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                                 >
                                                     <option value="">Select Size</option>
                                                     {changeProductAvailableSizes.map((s) => (
@@ -1535,41 +1535,41 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                 )}
 
                                 <div>
-                                    <label className="mb-2 block text-sm font-semibold text-slate-700">Quantity</label>
+                                    <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Quantity</label>
                                     <input
                                         type="number"
                                         value={changeProductQuantity}
                                         onChange={(e) => setChangeProductQuantity(parseInt(e.target.value) || 1)}
                                         min={1}
-                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="mb-2 block text-sm font-semibold text-slate-700">Notes (optional)</label>
+                                    <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Notes (optional)</label>
                                     <textarea
                                         value={changeProductNotes}
                                         onChange={(e) => setChangeProductNotes(e.target.value)}
                                         placeholder="Add notes about this change..."
                                         rows={3}
-                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                     />
                                 </div>
                             </>
                         )}
 
-                        <div className="flex justify-end gap-3 pt-4">
+                        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4">
                             <button
                                 type="button"
                                 onClick={closeChangeModal}
-                                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-4 sm:py-2 sm:text-sm"
                             >
                                 Cancel
                             </button>
                                 <button
                                     type="submit"
                                     disabled={changeProductProcessing || !selectedProduct || !changeProductVariantId}
-                                    className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
+                                    className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70 sm:px-4 sm:py-2 sm:text-sm"
                                 >
                                     {changeProductProcessing ? 'Updating...' : 'Update Product'}
                                 </button>
@@ -1588,24 +1588,24 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                     maxWidth="4xl"
                 >
                     <div className="flex min-h-0 flex-col">
-                        <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-slate-900">Add Item</h3>
+                        <div className="flex-shrink-0 border-b border-slate-200 px-4 py-2.5 sm:px-6 sm:py-4">
+                            <div className="flex items-center justify-between gap-2">
+                                <h3 className="text-base sm:text-lg font-semibold text-slate-900">Add Item</h3>
                                 <button
                                     type="button"
                                     onClick={closeAddItemModal}
                                     className="text-slate-400 hover:text-slate-600"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 sm:h-5 sm:w-5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
-                        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                            <form onSubmit={handleAddItem} className="space-y-4">
+                        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
+                            <form onSubmit={handleAddItem} className="space-y-3 sm:space-y-4">
                                 <div>
-                                    <label className="mb-2 block text-sm font-semibold text-slate-700">Search Product</label>
+                                    <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Search Product</label>
                             <input
                                 type="text"
                                 value={addItemProductSearch}
@@ -1614,7 +1614,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                     setIsManualAddItemSearch(true);
                                 }}
                                 placeholder="Type product name or SKU..."
-                                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                             />
                             {addItemSearchResults.length > 0 && (
                                 <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white">
@@ -1623,10 +1623,10 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                             key={product.id}
                                             type="button"
                                             onClick={() => selectAddItemProduct(product)}
-                                            className="w-full px-4 py-2 text-left text-sm transition hover:bg-slate-50"
+                                            className="w-full px-3 py-2 text-left text-xs transition hover:bg-slate-50 sm:px-4 sm:text-sm"
                                         >
                                             <div className="font-semibold text-slate-900">{product.name}</div>
-                                            <div className="text-xs text-slate-400">SKU {product.sku}</div>
+                                            <div className="text-[10px] sm:text-xs text-slate-400">SKU {product.sku}</div>
                                         </button>
                                     ))}
                                 </div>
@@ -1635,16 +1635,16 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
                         {addItemSelectedProduct && (
                             <>
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Selected Product</p>
-                                    <p className="mt-1 text-sm font-semibold text-slate-900">{addItemSelectedProduct.name}</p>
-                                    <p className="text-xs text-slate-400">SKU {addItemSelectedProduct.sku}</p>
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
+                                    <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Selected Product</p>
+                                    <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-900">{addItemSelectedProduct.name}</p>
+                                    <p className="text-[10px] sm:text-xs text-slate-400">SKU {addItemSelectedProduct.sku}</p>
                                 </div>
 
                                 {addItemSelectedProduct.variants.length > 0 && (
-                                    <div className="space-y-4">
+                                    <div className="space-y-3 sm:space-y-4">
                                         <div>
-                                            <label className="mb-2 block text-sm font-semibold text-slate-700">Metal</label>
+                                            <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Metal</label>
                                             <select
                                                 value={addItemMetalId}
                                                 onChange={(e) => {
@@ -1653,7 +1653,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                     setAddItemToneId('');
                                                     setAddItemSize('');
                                                 }}
-                                                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                             >
                                                 <option value="">Select Metal</option>
                                                 {addItemAvailableMetals.map(([id, name]) => (
@@ -1666,7 +1666,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
                                         {addItemMetalId && (
                                             <div>
-                                                <label className="mb-2 block text-sm font-semibold text-slate-700">Purity</label>
+                                                <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Purity</label>
                                                 <select
                                                     value={addItemPurityId}
                                                     onChange={(e) => {
@@ -1674,7 +1674,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                         setAddItemToneId('');
                                                         setAddItemSize('');
                                                     }}
-                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                                 >
                                                     <option value="">Select Purity</option>
                                                     {addItemAvailablePurities.map(([id, name]) => (
@@ -1688,14 +1688,14 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
                                         {addItemPurityId && (
                                             <div>
-                                                <label className="mb-2 block text-sm font-semibold text-slate-700">Tone</label>
+                                                <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Tone</label>
                                                 <select
                                                     value={addItemToneId}
                                                     onChange={(e) => {
                                                         setAddItemToneId(Number(e.target.value) || '');
                                                         setAddItemSize('');
                                                     }}
-                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                                 >
                                                     <option value="">Select Tone</option>
                                                     {addItemAvailableTones.map(([id, name]) => (
@@ -1709,11 +1709,11 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
                                         {addItemAvailableSizes.length > 0 && addItemToneId && (
                                             <div>
-                                                <label className="mb-2 block text-sm font-semibold text-slate-700">Size</label>
+                                                <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Size</label>
                                                 <select
                                                     value={addItemSize}
                                                     onChange={(e) => setAddItemSize(e.target.value)}
-                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                                 >
                                                     <option value="">Select Size</option>
                                                     {addItemAvailableSizes.map((s) => (
@@ -1728,41 +1728,41 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                 )}
 
                                 <div>
-                                    <label className="mb-2 block text-sm font-semibold text-slate-700">Quantity</label>
+                                    <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Quantity</label>
                                     <input
                                         type="number"
                                         value={addItemQuantity}
                                         onChange={(e) => setAddItemQuantity(parseInt(e.target.value) || 1)}
                                         min={1}
-                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="mb-2 block text-sm font-semibold text-slate-700">Notes (optional)</label>
+                                    <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Notes (optional)</label>
                                     <textarea
                                         value={addItemNotes}
                                         onChange={(e) => setAddItemNotes(e.target.value)}
                                         placeholder="Add notes about this item..."
                                         rows={3}
-                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                     />
                                 </div>
                             </>
                         )}
 
-                        <div className="flex justify-end gap-3 pt-4">
+                        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4">
                             <button
                                 type="button"
                                 onClick={closeAddItemModal}
-                                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-4 sm:py-2 sm:text-sm"
                             >
                                 Cancel
                             </button>
                                 <button
                                     type="submit"
                                     disabled={addItemProcessing || !addItemSelectedProduct || !addItemVariantId}
-                                    className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70"
+                                    className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-70 sm:px-4 sm:py-2 sm:text-sm"
                                 >
                                     {addItemProcessing ? 'Adding...' : 'Add Item'}
                                 </button>
