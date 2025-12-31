@@ -16,6 +16,7 @@ type UserGroupRow = {
     description?: string | null;
     is_active: boolean;
     display_order: number;
+    user_count?: number;
 };
 
 type User = {
@@ -106,6 +107,7 @@ export default function AdminUserGroupsIndex() {
                     description: item.description,
                     is_active: item.is_active,
                     display_order: item.display_order || 0,
+                    user_count: item.user_count || 0,
                 })),
                 meta: {
                     current_page: responseMeta.current_page || responseMeta.page || currentPage,
@@ -629,6 +631,7 @@ export default function AdminUserGroupsIndex() {
                                 <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Name</th>
                                 <th className="px-3 py-2 text-left sm:px-5 sm:py-3 hidden sm:table-cell">Code</th>
                                 <th className="px-3 py-2 text-left sm:px-5 sm:py-3 hidden md:table-cell">Order</th>
+                                <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Users</th>
                                 <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Status</th>
                                 <th className="px-3 py-2 text-right sm:px-5 sm:py-3">Actions</th>
                             </tr>
@@ -636,13 +639,13 @@ export default function AdminUserGroupsIndex() {
                         <tbody className="divide-y divide-slate-100 bg-white">
                             {loading && groups.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-3 py-3 text-center text-xs sm:text-sm text-slate-500 sm:px-5 sm:py-6">
+                                    <td colSpan={7} className="px-3 py-3 text-center text-xs sm:text-sm text-slate-500 sm:px-5 sm:py-6">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : groups.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-3 py-3 text-center text-xs sm:text-sm text-slate-500 sm:px-5 sm:py-6">
+                                    <td colSpan={7} className="px-3 py-3 text-center text-xs sm:text-sm text-slate-500 sm:px-5 sm:py-6">
                                         No customer groups defined yet.
                                     </td>
                                 </tr>
@@ -666,6 +669,9 @@ export default function AdminUserGroupsIndex() {
                                         </td>
                                         <td className="px-3 py-2 text-slate-500 font-mono text-[10px] sm:text-sm sm:px-5 sm:py-3 hidden sm:table-cell">{group.code}</td>
                                         <td className="px-3 py-2 text-slate-500 text-xs sm:text-sm sm:px-5 sm:py-3 hidden md:table-cell">{group.display_order}</td>
+                                        <td className="px-3 py-2 text-slate-500 text-xs sm:text-sm sm:px-5 sm:py-3">
+                                            {group.user_count || 0}
+                                        </td>
                                         <td className="px-3 py-2 sm:px-5 sm:py-3">
                                             <span
                                                 className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-semibold ${
@@ -1031,12 +1037,14 @@ export default function AdminUserGroupsIndex() {
                                     </table>
                                 </div>
                                         {/* Pagination inside table container */}
-                                        <div className="border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3">
-                                <Pagination
-                                    meta={assignUsersMeta}
-                                    onPageChange={handleAssignPageChange}
-                                />
-                                        </div>
+                                        {assignUsersMeta.last_page > 1 && (
+                                            <div className="border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3">
+                                                <Pagination
+                                                    meta={assignUsersMeta}
+                                                    onPageChange={handleAssignPageChange}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

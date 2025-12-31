@@ -27,7 +27,21 @@ export class CreateBrandDto {
 
     @IsBoolean()
     @IsOptional()
-    @Transform(({ value }) => value === 'true' || value === true)
+    @Transform(({ key, obj }) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const rawValue = obj[key];
+        console.log('rawValue', rawValue, typeof rawValue);
+
+        if (typeof rawValue === 'string') {
+            return rawValue === 'true';
+        }
+
+        if (typeof rawValue === 'boolean') {
+            return rawValue;
+        }
+
+        return true;
+    })
     is_active?: boolean;
 
     @IsInt()
@@ -54,7 +68,21 @@ export class UpdateBrandDto {
 
     @IsBoolean()
     @IsOptional()
-    @Transform(({ value }) => value === 'true' || value === true)
+    @Transform(({ key, obj }) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const rawValue = obj[key];
+        console.log('rawValue', rawValue, typeof rawValue);
+
+        if (typeof rawValue === 'string') {
+            return rawValue === 'true';
+        }
+
+        if (typeof rawValue === 'boolean') {
+            return rawValue;
+        }
+
+        return true;
+    })
     is_active?: boolean;
 
     @IsInt()

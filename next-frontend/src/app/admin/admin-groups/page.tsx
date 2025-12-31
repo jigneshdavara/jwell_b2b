@@ -16,6 +16,7 @@ type AdminGroupRow = {
     is_active: boolean;
     display_order: number;
     features?: string[];
+    admin_count?: number;
 };
 
 type Admin = {
@@ -115,6 +116,7 @@ export default function AdminAdminGroupsPage() {
                     is_active: item.is_active,
                     display_order: item.display_order || 0,
                     features: item.features || [],
+                    admin_count: item.admin_count || 0,
                 })),
                 meta: {
                     current_page: responseMeta.current_page || responseMeta.page || currentPage,
@@ -603,6 +605,7 @@ export default function AdminAdminGroupsPage() {
                                 <th className="px-3 py-2 sm:px-5 sm:py-3 text-left">Name</th>
                                 <th className="px-3 py-2 sm:px-5 sm:py-3 text-left hidden md:table-cell">Code</th>
                                 <th className="px-3 py-2 sm:px-5 sm:py-3 text-left hidden lg:table-cell">Order</th>
+                                <th className="px-3 py-2 sm:px-5 sm:py-3 text-left">Admins</th>
                                 <th className="px-3 py-2 sm:px-5 sm:py-3 text-left">Status</th>
                                 <th className="px-3 py-2 sm:px-5 sm:py-3 text-right">Actions</th>
                         </tr>
@@ -626,6 +629,9 @@ export default function AdminAdminGroupsPage() {
                                 </td>
                                     <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 font-mono text-xs sm:text-sm hidden md:table-cell">{group.code}</td>
                                     <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 text-xs sm:text-sm hidden lg:table-cell">{group.display_order}</td>
+                                    <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 text-xs sm:text-sm">
+                                        {group.admin_count || 0}
+                                    </td>
                                     <td className="px-3 py-2 sm:px-5 sm:py-3">
                                     <span
                                             className={`inline-flex items-center rounded-full px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold ${
@@ -1004,12 +1010,14 @@ export default function AdminAdminGroupsPage() {
                                     </table>
                                 </div>
                                         {/* Pagination inside table container */}
-                                        <div className="border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3">
-                                <Pagination
-                                    meta={assignAdminsMeta}
-                                    onPageChange={handleAssignPageChange}
-                                />
-                                        </div>
+                                        {assignAdminsMeta.last_page > 1 && (
+                                            <div className="border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3">
+                                                <Pagination
+                                                    meta={assignAdminsMeta}
+                                                    onPageChange={handleAssignPageChange}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
