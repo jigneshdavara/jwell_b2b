@@ -258,10 +258,10 @@ function SubcategoryTreeRenderer({ nodes, selectedIds, onToggle, level }: Subcat
                         <button
                             type="button"
                             onClick={() => onToggle(node.id)}
-                            className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${bgColorClass}`}
+                            className={`w-full flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 text-left transition-colors ${bgColorClass}`}
                         >
                             <div
-                                className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
+                                className={`flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded border-2 transition-all ${
                                     isSelected
                                         ? 'border-sky-500 bg-sky-500'
                                         : 'border-slate-300'
@@ -281,7 +281,7 @@ function SubcategoryTreeRenderer({ nodes, selectedIds, onToggle, level }: Subcat
                             </div>
 
                             <div className="flex-1 min-w-0">
-                                <span className={`text-sm font-medium truncate ${textColorClass}`}>
+                                <span className={`text-xs sm:text-sm font-medium truncate ${textColorClass}`}>
                                     {node.name}
                                 </span>
                             </div>
@@ -416,11 +416,11 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
     }, [parentCategoryId, getAllDescendantIds, selectedIds, onChange]);
 
     return (
-        <label className="flex flex-col gap-2 text-sm text-slate-600">
+        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
             <div className="flex items-center justify-between">
                 <span>Subcategories</span>
                 {selectedIds.length > 0 && (
-                    <span className="text-xs font-medium text-sky-600">
+                    <span className="text-[10px] sm:text-xs font-medium text-sky-600">
                         {selectedIds.length} selected
                     </span>
                 )}
@@ -430,9 +430,9 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
                     disabled={!parentCategoryId}
-                    className={`w-full rounded-xl border ${
+                    className={`w-full rounded-lg sm:rounded-xl border ${
                         error ? 'border-rose-300' : 'border-slate-300'
-                    } bg-white text-slate-900 shadow-sm px-4 py-2.5 text-left focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 transition-all ${
+                    } bg-white text-slate-900 shadow-sm px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm text-left focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 transition-all ${
                         isOpen ? 'border-slate-900 ring-2 ring-slate-900/20' : ''
                     } ${
                         !parentCategoryId ? 'opacity-50 cursor-not-allowed' : ''
@@ -441,9 +441,9 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                     <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-h-[20px] flex flex-wrap gap-1.5">
                             {!parentCategoryId ? (
-                                <span className="text-slate-400">Select parent category first</span>
+                                <span className="text-xs sm:text-sm text-slate-400">Select parent category first</span>
                             ) : selectedIds.length === 0 ? (
-                                <span className="text-slate-400">Select subcategories...</span>
+                                <span className="text-xs sm:text-sm text-slate-400">Select subcategories...</span>
                             ) : (
                                 selectedSubcategories.map((subcategory) => (
                                     <span
@@ -482,7 +482,7 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                             )}
                         </div>
                         <svg
-                            className={`ml-2 h-5 w-5 text-slate-400 transition-transform flex-shrink-0 ${
+                            className={`ml-2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400 transition-transform flex-shrink-0 ${
                                 isOpen ? 'rotate-180' : ''
                             }`}
                             fill="none"
@@ -495,10 +495,10 @@ function SubcategoryMultiSelect({ subcategories, selectedIds, parentCategoryId, 
                 </button>
 
                 {isOpen && parentCategoryId && (
-                    <div className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
+                    <div className="absolute z-50 mt-2 w-full rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
                         <div className="max-h-64 overflow-y-auto p-2">
                             {availableSubcategories.length === 0 ? (
-                                <div className="px-3 py-6 text-center text-sm text-slate-400">
+                                <div className="px-2.5 py-4 sm:px-3 sm:py-6 text-center text-xs sm:text-sm text-slate-400">
                                     No subcategories available
                                 </div>
                             ) : (
@@ -573,11 +573,11 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
     };
 
     return (
-        <label className="flex flex-col gap-2 text-sm text-slate-600">
+        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
             <div className="flex items-center justify-between">
                 <span>Catalogs</span>
                 {selectedIds.length > 0 && (
-                    <span className="text-xs font-medium text-sky-600">
+                    <span className="text-[10px] sm:text-xs font-medium text-sky-600">
                         {selectedIds.length} selected
                     </span>
                 )}
@@ -586,16 +586,16 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full rounded-xl border ${
+                    className={`w-full rounded-lg sm:rounded-xl border ${
                         error ? 'border-rose-300' : 'border-slate-300'
-                    } bg-white text-slate-900 shadow-sm px-4 py-2.5 text-left focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 transition-all ${
+                    } bg-white text-slate-900 shadow-sm px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm text-left focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 transition-all ${
                         isOpen ? 'border-slate-900 ring-2 ring-slate-900/20' : ''
                     }`}
                 >
                     <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-h-[20px] flex flex-wrap gap-1.5">
                             {selectedIds.length === 0 ? (
-                                <span className="text-slate-400">Select catalogs...</span>
+                                <span className="text-xs sm:text-sm text-slate-400">Select catalogs...</span>
                             ) : (
                                 selectedCatalogs.map((catalog) => (
                                     <span
@@ -634,7 +634,7 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                             )}
                         </div>
                         <svg
-                            className={`ml-2 h-5 w-5 text-slate-400 transition-transform flex-shrink-0 ${
+                            className={`ml-2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400 transition-transform flex-shrink-0 ${
                                 isOpen ? 'rotate-180' : ''
                             }`}
                             fill="none"
@@ -647,12 +647,12 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                 </button>
 
                 {isOpen && (
-                    <div className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
+                    <div className="absolute z-50 mt-2 w-full rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
                         {catalogs.length > 5 && (
-                            <div className="border-b border-slate-100 p-3">
+                            <div className="border-b border-slate-100 p-2 sm:p-3">
                                 <div className="relative">
                                     <svg
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+                                        className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400"
                                         fill="none"
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"
@@ -664,7 +664,7 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         placeholder="Search catalogs..."
-                                        className="w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="w-full rounded-lg sm:rounded-xl border border-slate-200 bg-white pl-8 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 text-xs sm:text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                         onClick={(e) => e.stopPropagation()}
                                     />
                                 </div>
@@ -673,7 +673,7 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
 
                         <div className="max-h-64 overflow-y-auto p-2">
                             {filteredCatalogs.length === 0 ? (
-                                <div className="px-3 py-6 text-center text-sm text-slate-400">
+                                <div className="px-2.5 py-4 sm:px-3 sm:py-6 text-center text-xs sm:text-sm text-slate-400">
                                     {searchTerm ? 'No catalogs found' : 'No catalogs available'}
                                 </div>
                             ) : (
@@ -685,14 +685,14 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                                 key={catalog.id}
                                                 type="button"
                                                 onClick={() => toggleCatalog(catalog.id)}
-                                                className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                                                className={`w-full flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 text-left transition-colors ${
                                                     isSelected
                                                         ? 'bg-sky-50 text-sky-700'
                                                         : 'text-slate-700 hover:bg-slate-50'
                                                 }`}
                                             >
                                                 <div
-                                                    className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
+                                                    className={`flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded border-2 transition-all ${
                                                         isSelected
                                                             ? 'border-sky-500 bg-sky-500'
                                                             : 'border-slate-300'
@@ -700,7 +700,7 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                                 >
                                                     {isSelected && (
                                                         <svg
-                                                            className="h-3.5 w-3.5 text-white"
+                                                            className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white"
                                                             fill="none"
                                                             viewBox="0 0 24 24"
                                                             stroke="currentColor"
@@ -712,14 +712,14 @@ function CatalogMultiSelect({ catalogs, selectedIds, onChange, error }: CatalogM
                                                 </div>
 
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`text-sm font-medium truncate ${
+                                                    <div className="flex items-center gap-1.5 sm:gap-2">
+                                                        <span className={`text-xs sm:text-sm font-medium truncate ${
                                                             isSelected ? 'text-sky-900' : 'text-slate-900'
                                                         }`}>
                                                             {catalog.name}
                                                         </span>
                                                         {catalog.code && (
-                                                            <span className={`text-xs font-mono ${
+                                                            <span className={`text-[10px] sm:text-xs font-mono ${
                                                                 isSelected ? 'text-sky-600' : 'text-slate-500'
                                                             }`}>
                                                                 ({catalog.code})
@@ -795,11 +795,11 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
     };
 
     return (
-        <label className="flex flex-col gap-2 text-sm text-slate-600">
+        <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
             <div className="flex items-center justify-between">
                 <span>Style</span>
                 {selectedIds.length > 0 && (
-                    <span className="text-xs font-medium text-sky-600">
+                    <span className="text-[10px] sm:text-xs font-medium text-sky-600">
                         {selectedIds.length} selected
                     </span>
                 )}
@@ -808,16 +808,16 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`w-full rounded-xl border ${
+                    className={`w-full rounded-lg sm:rounded-xl border ${
                         error ? 'border-rose-300' : 'border-slate-300'
-                    } bg-white text-slate-900 shadow-sm px-4 py-2.5 text-left focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 transition-all ${
+                    } bg-white text-slate-900 shadow-sm px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm text-left focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 transition-all ${
                         isOpen ? 'border-slate-900 ring-2 ring-slate-900/20' : ''
                     }`}
                 >
                     <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-h-[20px] flex flex-wrap gap-1.5">
                             {selectedIds.length === 0 ? (
-                                <span className="text-slate-400">Select styles...</span>
+                                <span className="text-xs sm:text-sm text-slate-400">Select styles...</span>
                             ) : (
                                 selectedStyles.map((style) => (
                                     <span
@@ -856,7 +856,7 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                             )}
                         </div>
                         <svg
-                            className={`ml-2 h-5 w-5 text-slate-400 transition-transform flex-shrink-0 ${
+                            className={`ml-2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400 transition-transform flex-shrink-0 ${
                                 isOpen ? 'rotate-180' : ''
                             }`}
                             fill="none"
@@ -869,12 +869,12 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                 </button>
 
                 {isOpen && (
-                    <div className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
+                    <div className="absolute z-50 mt-2 w-full rounded-xl sm:rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 max-h-80 overflow-hidden">
                         {styles.length > 5 && (
-                            <div className="border-b border-slate-100 p-3">
+                            <div className="border-b border-slate-100 p-2 sm:p-3">
                                 <div className="relative">
                                     <svg
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+                                        className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400"
                                         fill="none"
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"
@@ -886,7 +886,7 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                                         placeholder="Search styles..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                        className="w-full rounded-lg border border-slate-200 bg-white pl-8 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                         onClick={(e) => e.stopPropagation()}
                                     />
                                 </div>
@@ -895,7 +895,7 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
 
                         <div className="max-h-64 overflow-y-auto p-2">
                             {filteredStyles.length === 0 ? (
-                                <div className="px-3 py-6 text-center text-sm text-slate-400">
+                                <div className="px-2.5 py-4 sm:px-3 sm:py-6 text-center text-xs sm:text-sm text-slate-400">
                                     {searchTerm ? 'No styles found' : 'No styles available'}
                                 </div>
                             ) : (
@@ -907,14 +907,14 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                                                 key={style.id}
                                                 type="button"
                                                 onClick={() => toggleStyle(style.id)}
-                                                className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                                                className={`w-full flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-2 sm:px-3 sm:py-2.5 text-left transition-colors ${
                                                     isSelected
                                                         ? 'bg-sky-50 text-sky-700'
                                                         : 'text-slate-700 hover:bg-slate-50'
                                                 }`}
                                             >
                                                 <div
-                                                    className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-all ${
+                                                    className={`flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded border-2 transition-all ${
                                                         isSelected
                                                             ? 'border-sky-500 bg-sky-500'
                                                             : 'border-slate-300'
@@ -922,7 +922,7 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                                                 >
                                                     {isSelected && (
                                                         <svg
-                                                            className="h-3.5 w-3.5 text-white"
+                                                            className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white"
                                                             fill="none"
                                                             viewBox="0 0 24 24"
                                                             stroke="currentColor"
@@ -934,7 +934,7 @@ function StyleMultiSelect({ styles, selectedIds, onChange, error }: StyleMultiSe
                                                 </div>
 
                                                 <div className="flex-1 min-w-0">
-                                                    <span className={`text-sm font-medium truncate ${
+                                                    <span className={`text-xs sm:text-sm font-medium truncate ${
                                                         isSelected ? 'text-sky-900' : 'text-slate-900'
                                                     }`}>
                                                         {style.name}
@@ -3226,91 +3226,91 @@ export default function AdminProductEdit() {
         <>
             <Head title={product?.id ? `Edit ${product.name}` : 'New Product'} />
 
-            <form onSubmit={submit} className="space-y-10">
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
-                    <div className="flex flex-col gap-4 border-b border-slate-100 pb-6 sm:flex-row sm:items-center sm:justify-between">
+            <form onSubmit={submit} className="space-y-4 px-2 py-4 sm:space-y-6 sm:px-6 sm:py-6 lg:space-y-10 lg:px-8">
+                <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10">
+                    <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 sm:pb-6 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <h1 className="text-2xl font-semibold text-slate-900">
+                            <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">
                                 {product?.id ? 'Update product' : 'Create product'}
                             </h1>
-                            <p className="mt-1 text-sm text-slate-500">
+                            <p className="mt-1 text-xs sm:text-sm text-slate-500">
                                 Define product master information and atelier references.
                             </p>
                         </div>
                         <button
                             type="submit"
                             disabled={processing}
-                            className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 sm:px-5 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {processing ? 'Saving…' : product?.id ? 'Save changes' : 'Create product'}
                         </button>
                     </div>
 
-                    <div className="mt-6 space-y-6">
-                        <div className="grid gap-6 lg:grid-cols-2">
-                            <div className="space-y-4">
-                                <label className="flex flex-col gap-2 text-sm text-slate-600">
+                    <div className="mt-4 sm:mt-6 space-y-4 sm:space-y-6">
+                        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+                            <div className="space-y-3 sm:space-y-4">
+                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                     <span>SKU *</span>
                                     <input
                                         type="text"
                                         value={data.sku}
                                         onChange={(event) => setDataField('sku', event.target.value)}
-                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                         placeholder="Enter SKU"
                                     />
                                     {errors.sku && <span className="text-xs text-rose-500">{errors.sku}</span>}
                                 </label>
-                                <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                     <span>Product name *</span>
                                     <input
                                         type="text"
                                         value={data.name}
                                         onChange={(event) => setDataField('name', event.target.value)}
-                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                         placeholder="Enter product name"
                                     />
                                     {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
                                 </label>
-                                <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                     <span>Product Type *</span>
                                     <input
                                         type="text"
                                         value={data.producttype}
                                         onChange={(event) => setDataField('producttype', event.target.value)}
-                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                         placeholder="Enter product type"
                                     />
                                     {errors.producttype && <span className="text-xs text-rose-500">{errors.producttype}</span>}
                                 </label>
-                                <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                     <span>Title Line *</span>
                                     <input
                                         type="text"
                                         value={data.titleline}
                                         onChange={(event) => setDataField('titleline', event.target.value)}
-                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                         placeholder="Enter product title line"
                                     />
                                     {errors.titleline && <span className="text-xs text-rose-500">{errors.titleline}</span>}
                                 </label>
-                                <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                     <span>Collection *</span>
                                     <input
                                         type="text"
                                         value={data.collection}
                                         onChange={(event) => setDataField('collection', event.target.value)}
-                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                         placeholder="Enter collection name"
                                     />
                                     {errors.collection && <span className="text-xs text-rose-500">{errors.collection}</span>}
                                 </label>
 
-                                <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                     <span>Gender *</span>
                                     <select
                                         value={data.gender}
                                         onChange={(event) => setDataField('gender', event.target.value)}
-                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                     >
                                         <option value="">Select gender</option>
                                         <option value="Men">Men</option>
@@ -3328,7 +3328,7 @@ export default function AdminProductEdit() {
                                     <select
                                         value={data.brand_id}
                                         onChange={(event) => setDataField('brand_id', event.target.value)}
-                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                     >
                                         <option value="">Select brand</option>
                                         {Object.entries(brands).map(([id, name]) => (
@@ -3339,7 +3339,7 @@ export default function AdminProductEdit() {
                                     </select>
                                     {errors.brand_id && <span className="text-xs text-rose-500">{errors.brand_id}</span>}
                                 </label>
-                                <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
                                     <span>Category *</span>
                                     <select
                                         value={data.category_id}
@@ -3351,7 +3351,7 @@ export default function AdminProductEdit() {
                                             setDataField('selected_sizes', []);
                                             setDataField('all_sizes_available', undefined);
                                         }}
-                                        className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                     >
                                         <option value="">Select category</option>
                                         {(parentCategories || []).map((category) => (
@@ -3410,8 +3410,8 @@ export default function AdminProductEdit() {
                                     error={errors.catalog_ids}
                                 />
 
-                                <div className="flex flex-col gap-2 text-sm text-slate-600">
-                                    <span className="mb-2 block">Making Charge *</span>
+                                <div className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
+                                    <span className="mb-2 block text-xs sm:text-sm">Making Charge *</span>
                                     <div className="flex gap-6">
                                         <label className="flex items-center gap-3 cursor-pointer">
                                             <input
@@ -3427,7 +3427,7 @@ export default function AdminProductEdit() {
                                                 }}
                                                 className="h-5 w-5 rounded border-slate-300 text-elvee-blue focus:ring-2 focus:ring-elvee-blue focus:ring-offset-0"
                                             />
-                                            <span className="text-sm font-medium text-slate-700">Fixed Amount</span>
+                                            <span className="text-xs sm:text-sm font-medium text-slate-700">Fixed Amount</span>
                                         </label>
                                         <label className="flex items-center gap-3 cursor-pointer">
                                             <input
@@ -3443,7 +3443,7 @@ export default function AdminProductEdit() {
                                                 }}
                                                 className="h-5 w-5 rounded border-slate-300 text-elvee-blue focus:ring-2 focus:ring-elvee-blue focus:ring-offset-0"
                                             />
-                                            <span className="text-sm font-medium text-slate-700">Percentage</span>
+                                            <span className="text-xs sm:text-sm font-medium text-slate-700">Percentage</span>
                                         </label>
                                     </div>
                                 </div>
@@ -3453,23 +3453,23 @@ export default function AdminProductEdit() {
                                     </div>
                                 )}
                                 {(data.making_charge_types?.includes('fixed') ?? false) && (
-                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                        <span>Making Charge (₹) {(data.making_charge_types?.includes('percentage') ?? false) ? '' : '*'}</span>
+                                    <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
+                                        <span className="text-xs sm:text-sm">Making Charge (₹) {(data.making_charge_types?.includes('percentage') ?? false) ? '' : '*'}</span>
                                         <input
                                             type="number"
                                             step="0.01"
                                             min="0"
                                             value={data.making_charge_amount}
                                             onChange={(event) => setDataField('making_charge_amount', event.target.value)}
-                                            className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                            className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                             placeholder="Enter fixed making charge"
                                         />
                                         {errors.making_charge_amount && <span className="text-xs text-rose-500">{errors.making_charge_amount}</span>}
                                     </label>
                                 )}
                                 {(data.making_charge_types?.includes('percentage') ?? false) && (
-                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
-                                        <span>Making Charge Percentage (%) {(data.making_charge_types?.includes('fixed') ?? false) ? '' : '*'}</span>
+                                    <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
+                                        <span className="text-xs sm:text-sm">Making Charge Percentage (%) {(data.making_charge_types?.includes('fixed') ?? false) ? '' : '*'}</span>
                                         <input
                                             type="number"
                                             step="0.01"
@@ -3477,7 +3477,7 @@ export default function AdminProductEdit() {
                                             max="100"
                                             value={data.making_charge_percentage}
                                             onChange={(event) => setDataField('making_charge_percentage', event.target.value)}
-                                            className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                            className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                             placeholder="Enter percentage (e.g., 10 for 10%)"
                                         />
                                         <span className="text-xs text-slate-500">Percentage will be calculated on metal cost</span>
@@ -3494,11 +3494,11 @@ export default function AdminProductEdit() {
                     </div>
                 </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
-                    <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10">
+                    <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:pb-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                            <h2 className="text-xl font-semibold text-slate-900">Product description</h2>
-                            <p className="text-sm text-slate-500">
+                            <h2 className="text-lg sm:text-xl font-semibold text-slate-900">Product description</h2>
+                            <p className="text-xs sm:text-sm text-slate-500">
                                 Provide merchandising copy, craftsmanship details, and any atelier notes for this SKU.
                             </p>
                         </div>
@@ -3508,18 +3508,18 @@ export default function AdminProductEdit() {
                         <RichTextEditor
                             value={localDescription}
                             onChange={handleDescriptionChange}
-                            className="overflow-hidden rounded-3xl border border-slate-200"
+                            className="overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200"
                             placeholder="Detail the design notes, materials, finish, and atelier craftsmanship."
                         />
                         {errors.description && <span className="mt-2 block text-xs text-rose-500">{errors.description}</span>}
                     </div>
                 </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
-                <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10">
+                <div className="flex flex-col gap-3 sm:gap-4 border-b border-slate-100 pb-3 sm:pb-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <h2 className="text-xl font-semibold text-slate-900">Product media</h2>
-                        <p className="text-sm text-slate-500">
+                        <h2 className="text-lg sm:text-xl font-semibold text-slate-900">Product media</h2>
+                        <p className="text-xs sm:text-sm text-slate-500">
                             Upload product images or videos for catalogue displays. You can also remove outdated media assets.
                         </p>
                     </div>
@@ -3527,7 +3527,7 @@ export default function AdminProductEdit() {
 
                 <div className="mt-6 space-y-6">
                     <div>
-                        <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Current media</h3>
+                        <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Current media</h3>
                         <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {currentMedia.length > 0 ? (
                                 currentMedia.map((mediaItem) => (
@@ -3560,8 +3560,8 @@ export default function AdminProductEdit() {
                                                     }}
                                                 />
                                             )}
-                                            <div className="flex items-center justify-between px-4 py-3 text-xs text-slate-500">
-                                                <span className="rounded-full bg-white/70 px-3 py-1 font-semibold text-slate-700">
+                                            <div className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 text-xs text-slate-500">
+                                                <span className="rounded-full bg-white/70 px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold text-slate-700">
                                                     {mediaItem.type.toUpperCase()}
                                                 </span>
                                                 <button
@@ -3583,15 +3583,15 @@ export default function AdminProductEdit() {
                     </div>
 
                     <div>
-                        <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Upload new files</h3>
-                        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-slate-500 transition hover:border-slate-400 hover:bg-slate-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                        <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Upload new files</h3>
+                        <label className="mt-3 flex cursor-pointer flex-col items-center justify-center gap-2 sm:gap-3 rounded-2xl sm:rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 sm:px-6 sm:py-10 text-center text-slate-500 transition hover:border-slate-400 hover:bg-slate-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 014-4h10a4 4 0 014 4v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l5-5m0 0l5 5m-5-5v12" />
                             </svg>
                             <div>
-                                <p className="text-sm font-semibold text-slate-700">Click to upload</p>
-                                <p className="mt-1 text-xs text-slate-400">JPEG, PNG, WebP, MP4 up to 50MB each. You can select multiple files at once.</p>
+                                <p className="text-xs sm:text-sm font-semibold text-slate-700">Click to upload</p>
+                                <p className="mt-1 text-[10px] sm:text-xs text-slate-400">JPEG, PNG, WebP, MP4 up to 50MB each. You can select multiple files at once.</p>
                             </div>
                             <input
                                 type="file"
@@ -3634,11 +3634,11 @@ export default function AdminProductEdit() {
                 </div>
             </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-900/10">
-                    <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10">
+                    <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:pb-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                            <h2 className="text-xl font-semibold text-slate-900">Variant configuration</h2>
-                            <p className="text-sm text-slate-500">
+                            <h2 className="text-lg sm:text-xl font-semibold text-slate-900">Variant configuration</h2>
+                            <p className="text-xs sm:text-sm text-slate-500">
                                 Decide whether this product uses a single price or multiple combinations across metals and diamonds.
                             </p>
                         </div>
@@ -3703,9 +3703,9 @@ export default function AdminProductEdit() {
                                     allCategorySizeIds.every((id: number) => selectedSizes.includes(id));
                                 
                                 return (
-                                    <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+                                    <div className="space-y-3 sm:space-y-4 rounded-2xl border border-slate-200 p-3 sm:p-4">
                                         <div>
-                                            <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Sizes</h3>
+                                            <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Sizes</h3>
                                             <p className="text-xs text-slate-500">
                                                 This category "{selectedCategory?.name || product?.category?.name}" has {categorySizes.length} sizes available. 
                                                 Select sizes to include in your product variants.
@@ -3714,7 +3714,7 @@ export default function AdminProductEdit() {
 
                                         <div className="rounded-xl border border-slate-200 bg-white p-4">
                                             <div className="mb-4 flex items-center justify-between">
-                                                <h4 className="text-sm font-semibold text-slate-900">Select Sizes</h4>
+                                                <h4 className="text-xs sm:text-sm font-semibold text-slate-900">Select Sizes</h4>
                                                 {/* {selectedSizes.length > 0 && (
                                                     <span className="text-xs font-medium text-sky-600">
                                                         {selectedSizes.length} size{selectedSizes.length !== 1 ? 's' : ''} selected
@@ -3722,9 +3722,9 @@ export default function AdminProductEdit() {
                                                 )} */}
                                             </div>
                                             
-                                            <div className="mb-4">
-                                                <div className="flex items-center justify-end gap-4 flex-wrap">
-                                                    <label className="inline-flex items-center gap-2 cursor-pointer hover:text-sky-600 transition-colors">
+                                            <div className="mb-3 sm:mb-4">
+                                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-start sm:justify-end gap-2 sm:gap-4">
+                                                    <label className="inline-flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:text-sky-600 transition-colors">
                                                         <input
                                                             type="checkbox"
                                                             checked={data.show_all_variants_by_size === true}
@@ -3734,13 +3734,13 @@ export default function AdminProductEdit() {
                                                                     show_all_variants_by_size: e.target.checked ? true : false,
                                                                 }));
                                                             }}
-                                                            className="h-4 w-4 rounded border-2 border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-0 cursor-pointer"
+                                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-2 border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-0 cursor-pointer flex-shrink-0"
                                                         />
-                                                        <span className="text-sm font-semibold text-slate-700 hover:text-sky-600 whitespace-nowrap">
+                                                        <span className="text-xs sm:text-sm font-semibold text-slate-700 hover:text-sky-600 whitespace-nowrap">
                                                             Show all variants
                                                         </span>
                                                     </label>
-                                                    <label className="inline-flex items-center gap-2 cursor-pointer hover:text-sky-600 transition-colors">
+                                                    <label className="inline-flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:text-sky-600 transition-colors">
                                                         <input
                                                             type="checkbox"
                                                             checked={allSizesSelected}
@@ -3761,9 +3761,9 @@ export default function AdminProductEdit() {
                                                                     };
                                                                 });
                                                             }}
-                                                            className="h-4 w-4 rounded border-2 border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-0 cursor-pointer"
+                                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-2 border-slate-300 text-sky-600 focus:ring-2 focus:ring-sky-500 focus:ring-offset-0 cursor-pointer flex-shrink-0"
                                                         />
-                                                        <span className="text-sm font-semibold text-slate-700 hover:text-sky-600 whitespace-nowrap">
+                                                        <span className="text-xs sm:text-sm font-semibold text-slate-700 hover:text-sky-600 whitespace-nowrap">
                                                             Select all sizes
                                                         </span>
                                                     </label>
@@ -3778,7 +3778,7 @@ export default function AdminProductEdit() {
                                                         <label
                                                             key={sizeId || size.name}
                                                             className={`
-                                                                inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                                inline-flex items-center justify-center rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer
                                                                 ${isSizeSelected
                                                                     ? 'bg-sky-600 text-white shadow-sm'
                                                                     : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
@@ -3821,20 +3821,20 @@ export default function AdminProductEdit() {
                                 );
                             })()}
 
-                            <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+                            <div className="space-y-3 sm:space-y-4 rounded-2xl border border-slate-200 p-3 sm:p-4">
                                 <div>
-                                    <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Metals</h3>
+                                    <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Metals</h3>
                                     <p className="text-xs text-slate-500">Select metals that can be used in your product variants.</p>
                                 </div>
 
-                                <div className="flex flex-wrap gap-3">
+                                <div className="flex flex-wrap gap-2 sm:gap-3">
                                     {metals.map((metal) => {
                                         const isSelected = (data.selected_metals || []).includes(metal.id);
                                         return (
                                             <label
                                                 key={metal.id}
                                                 className={`
-                                                    inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                    inline-flex items-center justify-center rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer
                                                     ${isSelected
                                                         ? 'bg-sky-600 text-white shadow-sm'
                                                         : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
@@ -3898,7 +3898,7 @@ export default function AdminProductEdit() {
                                         return (
                                             <div key={metal.id} className="rounded-xl border border-slate-200 bg-white p-4">
                                                 <div className="mb-4 flex items-center justify-between">
-                                                    <h4 className="text-sm font-semibold text-slate-900">Metal: {metal.name}</h4>
+                                                    <h4 className="text-xs sm:text-sm font-semibold text-slate-900">Metal: {metal.name}</h4>
                                                     {/* {variantCount > 0 && (
                                                         <span className="text-xs font-medium text-sky-600">
                                                             {variantCount} variant{variantCount !== 1 ? 's' : ''} for this metal
@@ -3910,14 +3910,14 @@ export default function AdminProductEdit() {
                                                     <p className="mb-3 text-xs text-slate-600">
                                                         Choose all purities in which this design is available for {metal.name}.
                                                     </p>
-                                                    <div className="flex flex-wrap gap-3">
+                                                    <div className="flex flex-wrap gap-2 sm:gap-3">
                                                         {availablePurities.map((purity) => {
                                                             const isPuritySelected = metalConfig.purities.includes(purity.id);
                                                             return (
                                                                 <label
                                                                     key={purity.id}
                                                                     className={`
-                                                                        inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                                        inline-flex items-center justify-center rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer
                                                                         ${isPuritySelected
                                                                             ? 'bg-sky-600 text-white shadow-sm'
                                                                             : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
@@ -3966,14 +3966,14 @@ export default function AdminProductEdit() {
                                                     <p className="mb-3 text-xs text-slate-600">
                                                         Choose all tones in which this design is available for {metal.name}.
                                                     </p>
-                                                    <div className="flex flex-wrap gap-3">
+                                                    <div className="flex flex-wrap gap-2 sm:gap-3">
                                                         {availableTones.map((tone) => {
                                                             const isToneSelected = metalConfig.tones.includes(tone.id);
                                                             return (
                                                                 <label
                                                                     key={tone.id}
                                                                     className={`
-                                                                        inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer
+                                                                        inline-flex items-center justify-center rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all cursor-pointer
                                                                         ${isToneSelected
                                                                             ? 'bg-sky-600 text-white shadow-sm'
                                                                             : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
@@ -4047,16 +4047,16 @@ export default function AdminProductEdit() {
                                 )}
                             </div>
 
-                            <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
-                                <div className="flex items-center justify-between">
+                            <div className="space-y-3 sm:space-y-4 rounded-2xl border border-slate-200 p-3 sm:p-4">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                     <div>
-                                        <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Diamonds</h3>
+                                        <h3 className="text-xs sm:text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Diamonds</h3>
                                         <p className="text-xs text-slate-500">Select diamonds and specify counts for your product variants.</p>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={addDiamondSelection}
-                                        className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-sky-400 hover:bg-sky-50"
+                                        className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full border border-slate-300 bg-white px-2.5 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs font-semibold text-slate-700 transition hover:border-sky-400 hover:bg-sky-50"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
@@ -4072,13 +4072,13 @@ export default function AdminProductEdit() {
                                             const hasError = isDiamondSelected && isCountEmpty;
                                             
                                             return (
-                                                <div key={index} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
-                                                    <div className="flex-1">
+                                                <div key={index} className="flex items-start gap-2 sm:gap-3 rounded-lg sm:rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3">
+                                                    <div className="flex-1 min-w-0">
                                                         <label className="mb-1 block text-xs font-semibold text-slate-600">Diamond</label>
                                                         <select
                                                             value={selection.diamond_id === '' ? '' : selection.diamond_id}
                                                             onChange={(e) => updateDiamondSelection(index, 'diamond_id', e.target.value === '' ? '' : Number(e.target.value))}
-                                                            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                            className="w-full rounded-lg sm:rounded-xl border border-slate-200 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                         >
                                                             <option value="">Select diamond</option>
                                                             {diamonds.map((diamond) => (
@@ -4088,7 +4088,7 @@ export default function AdminProductEdit() {
                                                             ))}
                                                         </select>
                                                     </div>
-                                                    <div className="w-32">
+                                                    <div className="w-10 sm:w-24 flex-shrink-0">
                                                         <label className="mb-1 block text-xs font-semibold text-slate-600">
                                                             Count
                                                             {isDiamondSelected && <span className="ml-1 text-rose-500">*</span>}
@@ -4100,7 +4100,7 @@ export default function AdminProductEdit() {
                                                             required={isDiamondSelected}
                                                             value={selection.count}
                                                             onChange={(e) => updateDiamondSelection(index, 'count', e.target.value)}
-                                                            className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                                                            className={`w-full rounded-lg sm:rounded-xl border px-2 py-1 sm:px-2.5 sm:py-1.5 text-xs sm:text-sm focus:outline-none focus:ring-2 ${
                                                                 hasError
                                                                     ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-rose-200'
                                                                     : 'border-slate-200 focus:border-sky-400 focus:ring-sky-200'
@@ -4108,16 +4108,16 @@ export default function AdminProductEdit() {
                                                             placeholder={isDiamondSelected ? "Required" : "0"}
                                                         />
                                                         {hasError && (
-                                                            <span className="mt-1 block text-xs text-rose-500">Count is required</span>
+                                                            <span className="mt-1 block text-[10px] sm:text-xs text-rose-500">Count is required</span>
                                                         )}
                                                     </div>
                                                     <button
                                                         type="button"
                                                         onClick={() => removeDiamondSelection(index)}
-                                                        className="mt-6 rounded-full border border-rose-200 p-2 text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
+                                                        className="mt-6 rounded-full border border-rose-200 p-1 sm:p-1.5 text-rose-600 transition hover:border-rose-300 hover:text-rose-700 flex-shrink-0"
                                                         aria-label="Remove diamond"
                                                     >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                                         </svg>
                                                     </button>
@@ -4133,7 +4133,7 @@ export default function AdminProductEdit() {
                                 <button
                                     type="button"
                                     onClick={generateVariantMatrix}
-                                    className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
+                                    className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full bg-slate-900 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
@@ -4144,18 +4144,18 @@ export default function AdminProductEdit() {
                         </div>
                     </div>
 
-                <div className="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                    <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-center lg:justify-between">
+                <div className="rounded-2xl sm:rounded-3xl bg-white p-3 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                    <div className="flex flex-col gap-3 sm:gap-4 border-b border-slate-200 pb-4 sm:pb-6 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                            <h2 className="text-2xl font-semibold text-slate-900">Variant Matrix</h2>
-                            <p className="mt-2 text-sm text-slate-500">
+                            <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-slate-900">Variant Matrix</h2>
+                            <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-xs lg:text-sm text-slate-500">
                                 Configure product variants with metals and diamonds. The default variant powers the customer catalogue card pricing.
                             </p>
                         </div>
                             {/* <button
                                 type="button"
                                 onClick={generateVariantMatrix}
-                                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
+                                className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full bg-slate-900 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
@@ -4165,22 +4165,22 @@ export default function AdminProductEdit() {
                         </div>
 
 
-                        <div className="mt-8 overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                        <div className="mt-4 sm:mt-8 overflow-hidden rounded-2xl sm:rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                                    <thead className="bg-slate-50 text-xs text-slate-500">
+                                <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
+                                    <thead className="bg-slate-50 text-[10px] sm:text-xs text-slate-500">
                                         <tr>
-                                            <th className="px-5 py-3 text-left min-w-[150px]">SKU</th>
-                                            <th className="px-5 py-3 text-left min-w-[300px]">Variant Label</th>
-                                            <th className="px-5 py-3 text-left min-w-[150px]">Metal</th>
-                                            <th className="px-5 py-3 text-left min-w-[120px]">Purity</th>
-                                            <th className="px-5 py-3 text-left min-w-[120px]">Tone</th>
-                                            <th className="px-5 py-3 text-left min-w-[120px]">Weight (g)</th>
-                                            <th className="px-5 py-3 text-left min-w-[120px]">Size</th>
-                                            <th className="px-5 py-3 text-left">Inventory Quantity</th>
-                                            <th className="px-5 py-3 text-left">Status</th>
-                                            <th className="px-5 py-3 text-left">Default</th>
-                                            <th className="px-5 py-3 text-right">Actions</th>
+                                            <th className="px-2 py-2 sm:px-5 sm:py-3 text-left min-w-[120px] sm:min-w-[150px]">SKU</th>
+                                            <th className="px-2 py-2 sm:px-5 sm:py-3 text-left min-w-[200px] sm:min-w-[300px]">Variant Label</th>
+                                            <th className="px-2 py-2 sm:px-5 sm:py-3 text-left min-w-[100px] sm:min-w-[150px]">Metal</th>
+                                            <th className="px-2 py-2 sm:px-5 sm:py-3 text-left min-w-[80px] sm:min-w-[120px]">Purity</th>
+                                            <th className="px-2 py-2 sm:px-5 sm:py-3 text-left min-w-[80px] sm:min-w-[120px]">Tone</th>
+                                            <th className="px-2 py-2 sm:px-5 sm:py-3 text-left min-w-[80px] sm:min-w-[120px]">Weight (g)</th>
+                                            <th className="px-2 py-2 sm:px-5 sm:py-3 text-left min-w-[80px] sm:min-w-[120px]">Size</th>
+                                            <th className="px-2 py-2 sm:px-5 sm:py-3 text-left min-w-[100px]">Inventory</th>
+                                            <th className="px-2 py-2 sm:px-5 sm:py-3 text-left min-w-[70px]">Status</th>
+                                            <th className="px-2 py-2 sm:px-5 sm:py-3 text-left min-w-[70px]">Default</th>
+                                            <th className="px-2 py-2 sm:px-5 sm:py-3 text-right min-w-[60px]">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 bg-white">
@@ -4397,47 +4397,47 @@ export default function AdminProductEdit() {
                                         <tr
                                             className={`hover:bg-slate-50 ${variantStatus === 'disabled' ? 'opacity-70' : ''} ${variant.is_default ? 'bg-sky-50/30' : ''}`}
                                         >
-                                            <td className="px-5 py-3 align-middle min-w-[150px]">
+                                            <td className="px-2 py-2 sm:px-5 sm:py-3 align-middle min-w-[120px] sm:min-w-[150px]">
                                                 <input
                                                     type="text"
                                                     value={variant.sku}
                                                     onChange={(event) => updateVariant(index, 'sku', event.target.value)}
-                                                    className="w-full min-w-[120px] rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="w-full min-w-[100px] sm:min-w-[120px] rounded-lg sm:rounded-xl border border-slate-200 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                     placeholder="Variant SKU"
                                                 />
                                                 {errors[`variants.${index}.sku`] && (
-                                                    <p className="mt-1 text-xs text-rose-500">{errors[`variants.${index}.sku`]}</p>
+                                                    <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-rose-500">{errors[`variants.${index}.sku`]}</p>
                                                 )}
                                             </td>
-                                            <td className="px-5 py-3 align-middle min-w-[300px]">
+                                            <td className="px-2 py-2 sm:px-5 sm:py-3 align-middle min-w-[200px] sm:min-w-[300px]">
                                                 <input
                                                     type="text"
                                                     value={variant.label}
                                                     onChange={(event) => updateVariant(index, 'label', event.target.value)}
-                                                    className="w-full min-w-[280px] rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                                                    className="w-full min-w-[180px] sm:min-w-[280px] rounded-lg sm:rounded-xl border border-slate-200 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                     placeholder="Display label"
                                                 />
                                                 {errors[`variants.${index}.label`] && (
-                                                    <p className="mt-1 text-xs text-rose-500">{errors[`variants.${index}.label`]}</p>
+                                                    <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-rose-500">{errors[`variants.${index}.label`]}</p>
                                                 )}
                                             </td>
-                                            <td className="px-5 py-3 align-middle text-slate-700">
-                                                <div className="min-w-[150px]">
-                                                    <span className="text-sm font-semibold text-slate-800">{metalDisplay}</span>
+                                            <td className="px-2 py-2 sm:px-5 sm:py-3 align-middle text-slate-700">
+                                                <div className="min-w-[100px] sm:min-w-[150px]">
+                                                    <span className="text-xs sm:text-sm font-semibold text-slate-800">{metalDisplay}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-3 align-middle text-slate-700">
-                                                <div className="min-w-[120px]">
-                                                    <span className="text-sm text-slate-700">{purityDisplay}</span>
+                                            <td className="px-2 py-2 sm:px-5 sm:py-3 align-middle text-slate-700">
+                                                <div className="min-w-[80px] sm:min-w-[120px]">
+                                                    <span className="text-xs sm:text-sm text-slate-700">{purityDisplay}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-3 align-middle text-slate-700">
-                                                <div className="min-w-[120px]">
-                                                    <span className="text-sm text-slate-700">{toneDisplay}</span>
+                                            <td className="px-2 py-2 sm:px-5 sm:py-3 align-middle text-slate-700">
+                                                <div className="min-w-[80px] sm:min-w-[120px]">
+                                                    <span className="text-xs sm:text-sm text-slate-700">{toneDisplay}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-3 align-middle text-slate-700">
-                                                <div className="flex flex-col gap-1 min-w-[120px]">
+                                            <td className="px-2 py-2 sm:px-5 sm:py-3 align-middle text-slate-700">
+                                                <div className="flex flex-col gap-1 min-w-[80px] sm:min-w-[120px]">
                                                     {variantMetals.length > 0 ? (
                                                         variantMetals.map((metal, metalIndex) => {
                                                             const weight = metal.metal_weight || '';
@@ -4453,7 +4453,7 @@ export default function AdminProductEdit() {
                                                                             const value = e.target.value;
                                                                             updateMetalInVariant(index, metalIndex, 'metal_weight', value);
                                                                         }}
-                                                                        className={`w-full rounded-xl border px-3 py-1.5 text-sm text-slate-700 transition-colors ${
+                                                                        className={`w-full rounded-lg sm:rounded-xl border px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm text-slate-700 transition-colors ${
                                                                             (!weight || weight === '')
                                                                                 ? 'border-rose-300 bg-rose-50 text-rose-500 focus:border-rose-400 focus:bg-white'
                                                                                 : 'border-slate-200 bg-white focus:border-sky-400'
@@ -4461,26 +4461,26 @@ export default function AdminProductEdit() {
                                                                         placeholder="0.000"
                                                                     />
                                                                     {(!weight || weight === '') && (
-                                                                        <span className="text-[10px] text-rose-500">Required</span>
+                                                                        <span className="text-[9px] sm:text-[10px] text-rose-500">Required</span>
                                                                     )}
                                                                 </div>
                                                             );
                                                         })
                                                     ) : (
-                                                        <span className="text-sm text-slate-400">—</span>
+                                                        <span className="text-xs sm:text-sm text-slate-400">—</span>
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-3 align-middle text-slate-700">
-                                                <div className="min-w-[120px]">
+                                            <td className="px-2 py-2 sm:px-5 sm:py-3 align-middle text-slate-700">
+                                                <div className="min-w-[80px] sm:min-w-[120px]">
                                                     {group && group.length > 1 ? (
-                                                        <span className="text-sm text-slate-500 italic">All selected sizes</span>
+                                                        <span className="text-xs sm:text-sm text-slate-500 italic">All selected sizes</span>
                                                     ) : (
-                                                        <span className="text-sm text-slate-700">{sizeDisplay}</span>
+                                                        <span className="text-xs sm:text-sm text-slate-700">{sizeDisplay}</span>
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-3 align-middle text-slate-700">
+                                            <td className="px-2 py-2 sm:px-5 sm:py-3 align-middle text-slate-700">
                                                 <div className="flex flex-col gap-1">
                                                     <input
                                                         type="number"
@@ -4499,7 +4499,7 @@ export default function AdminProductEdit() {
                                                                 }
                                                             }
                                                         }}
-                                                        className={`w-full min-w-[100px] rounded-xl border px-3 py-1.5 text-sm text-slate-700 transition-colors ${
+                                                        className={`w-full min-w-[80px] sm:min-w-[100px] rounded-lg sm:rounded-xl border px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm text-slate-700 transition-colors ${
                                                             (variant.inventory_quantity === undefined || variant.inventory_quantity === null || variant.inventory_quantity === '')
                                                                 ? 'border-rose-300 bg-rose-50 text-rose-500 focus:border-rose-400 focus:bg-white'
                                                                 : 'border-slate-200 bg-white focus:border-sky-400'
@@ -4507,11 +4507,11 @@ export default function AdminProductEdit() {
                                                         placeholder="0"
                                                     />
                                                     {(variant.inventory_quantity === undefined || variant.inventory_quantity === null || variant.inventory_quantity === '') && (
-                                                        <span className="text-[10px] text-rose-500">Required</span>
+                                                        <span className="text-[9px] sm:text-[10px] text-rose-500">Required</span>
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-3 text-slate-700">
+                                            <td className="px-2 py-2 sm:px-5 sm:py-3 text-slate-700">
                                                 <select
                                                     value={variantStatus}
                                                     onChange={(event) =>
@@ -4519,7 +4519,7 @@ export default function AdminProductEdit() {
                                                             status: event.target.value,
                                                         })
                                                     }
-                                                    className={`rounded-xl border px-3 py-1.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 ${
+                                                    className={`rounded-lg sm:rounded-xl border px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 ${
                                                         variantStatus === 'enabled'
                                                             ? 'border-emerald-300 bg-emerald-50'
                                                             : 'border-amber-300 bg-amber-50'
@@ -4534,28 +4534,28 @@ export default function AdminProductEdit() {
                                                     <option value="disabled">Disabled</option>
                                                 </select>
                                             </td>
-                                            <td className="px-5 py-3 text-slate-700">
-                                                <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                                            <td className="px-2 py-2 sm:px-5 sm:py-3 text-slate-700">
+                                                <label className="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
                                                     <input
                                                         type="radio"
                                                         name="default-variant-table"
                                                         checked={variant.is_default}
                                                         onChange={() => markDefault(index)}
-                                                        className="h-4 w-4 text-sky-600 focus:ring-sky-500"
+                                                        className="h-3 w-3 sm:h-4 sm:w-4 text-sky-600 focus:ring-sky-500"
                                                     />
-                                                    <span>{variant.is_default ? 'Default' : 'Set default'}</span>
+                                                    <span className="whitespace-nowrap">{variant.is_default ? 'Default' : 'Set default'}</span>
                                                 </label>
                                             </td>
-                                            <td className="px-5 py-3 text-right">
-                                                <div className="flex items-center justify-end gap-2">
+                                            <td className="px-2 py-2 sm:px-5 sm:py-3 text-right">
+                                                <div className="flex items-center justify-end gap-1.5 sm:gap-2">
                                                     <button
                                                         type="button"
                                                         onClick={() => removeVariant(index, variant)}
-                                                        className="inline-flex items-center justify-center rounded-full border border-rose-200 p-1.5 text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
+                                                        className="inline-flex items-center justify-center rounded-full border border-rose-200 p-1 sm:p-1.5 text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
                                                         aria-label="Remove variant"
                                                         title="Remove Variant"
                                                     >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-4 w-4">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-3 w-3 sm:h-4 sm:w-4">
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12m-9 3v6m6-6v6M10 4h4a1 1 0 0 1 1 1v1H9V5a1 1 0 0 1 1-1Z" />
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 7h14l-.8 11.2A2 2 0 0 1 16.2 20H7.8a2 2 0 0 1-1.99-1.8L5 7Z" />
                                                         </svg>
@@ -4616,7 +4616,7 @@ export default function AdminProductEdit() {
                                                                                             const value = e.target.value;
                                                                                             updateMetalInVariant(index, metalIndex, 'metal_weight', value);
                                                                                         }}
-                                                                                        className={`rounded-xl border-2 px-3 py-2 text-sm font-medium transition-colors ${
+                                                                                        className={`rounded-lg sm:rounded-xl border-2 px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium transition-colors ${
                                                                                             !metal.metal_weight
                                                                                                 ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:bg-white'
                                                                                                 : 'border-slate-200 bg-white focus:border-sky-400'
@@ -4712,7 +4712,7 @@ export default function AdminProductEdit() {
                                     <tr>
                                         <td
                                             colSpan={17}
-                                            className="px-5 py-6 text-center text-xs uppercase tracking-[0.1em] text-slate-400"
+                                            className="px-2 py-4 sm:px-5 sm:py-6 text-center text-[10px] sm:text-xs uppercase tracking-[0.1em] text-slate-400"
                                         >
                                             No variants configured. Generate matrix to create variants.
                                         </td>

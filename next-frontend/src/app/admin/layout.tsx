@@ -237,7 +237,7 @@ export default function AdminLayout({
       <div className="flex w-full flex-col lg:ml-0">
         <AdminHeader onMenuClick={toggleSidebar} />
         
-        <main className="flex-1 px-2 py-4 sm:px-2 sm:py-6 lg:px-6">
+        <main className="flex-1 px-0.5 py-4 sm:px-2 sm:py-6 lg:px-6">
           <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">{children}</div>
         </main>
       </div>

@@ -566,20 +566,20 @@ export default function AdminUserGroupsIndex() {
         <>
             <Head title="Customer groups" />
 
-            <div className="space-y-8">
-                <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+            <div className="space-y-6 sm:space-y-8 px-1 py-4 sm:px-6 sm:py-6 lg:px-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div>
-                        <h1 className="text-2xl font-semibold text-slate-900">Customer groups</h1>
-                        <p className="mt-2 text-sm text-slate-500">
+                        <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">Customer groups</h1>
+                        <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-slate-500">
                             Organise customers by engagement plans (e.g. VIP, Dormant) to target messaging and benefits.
                         </p>
                     </div>
                     <button
                         type="button"
                         onClick={openCreateModal}
-                        className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
+                        className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-slate-900 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 mt-3 sm:mt-0"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
                         </svg>
                         New group
@@ -587,24 +587,24 @@ export default function AdminUserGroupsIndex() {
                 </div>
 
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                    <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
-                        <div className="font-semibold text-slate-700">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border-b border-slate-200 px-4 py-2.5 sm:py-3 text-xs sm:text-sm sm:px-5 sm:py-4">
+                        <div className="font-semibold text-slate-700 text-xs sm:text-sm">
                             Groups ({groups.meta.total})
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-500">
                             <span>{selectedGroups.length} selected</span>
                             <button
                                 type="button"
                                 onClick={bulkDelete}
                                 disabled={selectedGroups.length === 0}
-                                className="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                className="inline-flex items-center rounded-full border border-rose-200 px-2.5 py-1 font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 text-[10px] sm:text-xs"
                             >
                                 Bulk delete
                             </button>
                             <select
                                 value={perPage}
                                 onChange={handlePerPageChange}
-                                className="rounded-full border border-slate-200 px-3 py-1 text-xs"
+                                className="rounded-full border border-slate-200 px-2 py-1 text-[10px] sm:px-3 sm:text-xs"
                             >
                                 <option value={10}>10</option>
                                 <option value={25}>25</option>
@@ -613,86 +613,87 @@ export default function AdminUserGroupsIndex() {
                             </select>
                         </div>
                     </div>
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                        <thead className="bg-slate-50 text-xs text-slate-500">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
+                        <thead className="bg-slate-50 text-[10px] sm:text-xs uppercase tracking-[0.3em] text-slate-500">
                             <tr>
-                                <th className="px-5 py-3">
+                                <th className="px-3 py-2 sm:px-5 sm:py-3">
                                     <input
                                         type="checkbox"
                                         checked={allSelected}
                                         onChange={toggleSelectAll}
-                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                         aria-label="Select all customer groups"
                                     />
                                 </th>
-                                <th className="px-5 py-3 text-left">Name</th>
-                                <th className="px-5 py-3 text-left">Code</th>
-                                <th className="px-5 py-3 text-left">Order</th>
-                                <th className="px-5 py-3 text-left">Status</th>
-                                <th className="px-5 py-3 text-right">Actions</th>
+                                <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Name</th>
+                                <th className="px-3 py-2 text-left sm:px-5 sm:py-3 hidden sm:table-cell">Code</th>
+                                <th className="px-3 py-2 text-left sm:px-5 sm:py-3 hidden md:table-cell">Order</th>
+                                <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Status</th>
+                                <th className="px-3 py-2 text-right sm:px-5 sm:py-3">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
                             {loading && groups.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-5 py-6 text-center text-sm text-slate-500">
+                                    <td colSpan={6} className="px-3 py-3 text-center text-xs sm:text-sm text-slate-500 sm:px-5 sm:py-6">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : groups.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-5 py-6 text-center text-sm text-slate-500">
+                                    <td colSpan={6} className="px-3 py-3 text-center text-xs sm:text-sm text-slate-500 sm:px-5 sm:py-6">
                                         No customer groups defined yet.
                                     </td>
                                 </tr>
                             ) : (
                                 groups.data.map((group) => (
-                                    <tr key={group.id} className="hover:bg-slate-50">
-                                        <td className="px-5 py-3">
+                                    <tr key={group.id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-3 py-2 sm:px-5 sm:py-3">
                                             <input
                                                 type="checkbox"
                                                 checked={selectedGroups.includes(group.id)}
                                                 onChange={() => toggleSelection(group.id)}
-                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                                 aria-label={`Select customer group ${group.name}`}
                                             />
                                         </td>
-                                        <td className="px-5 py-3 font-semibold text-slate-900">
-                                            <div className="flex flex-col gap-1">
+                                        <td className="px-3 py-2 font-semibold text-slate-900 text-xs sm:text-sm sm:px-5 sm:py-3">
+                                            <div className="flex flex-col gap-0.5 sm:gap-1">
                                                 <span>{group.name}</span>
-                                                {group.description && <span className="text-xs text-slate-500">{group.description}</span>}
+                                                {group.description && <span className="text-[10px] sm:text-xs font-normal text-slate-500">{group.description}</span>}
                                             </div>
                                         </td>
-                                        <td className="px-5 py-3 text-slate-500">{group.code}</td>
-                                        <td className="px-5 py-3 text-slate-500">{group.display_order}</td>
-                                        <td className="px-5 py-3">
+                                        <td className="px-3 py-2 text-slate-500 font-mono text-[10px] sm:text-sm sm:px-5 sm:py-3 hidden sm:table-cell">{group.code}</td>
+                                        <td className="px-3 py-2 text-slate-500 text-xs sm:text-sm sm:px-5 sm:py-3 hidden md:table-cell">{group.display_order}</td>
+                                        <td className="px-3 py-2 sm:px-5 sm:py-3">
                                             <span
-                                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-semibold ${
                                                     group.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
                                                 }`}
                                             >
                                                 {group.is_active ? 'Active' : 'Archived'}
                                             </span>
                                         </td>
-                                        <td className="px-5 py-3 text-right">
-                                            <div className="flex justify-end gap-2">
+                                        <td className="px-3 py-2 text-right sm:px-5 sm:py-3">
+                                            <div className="flex justify-end gap-1 sm:gap-2">
                                                 <button
                                                     type="button"
                                                     onClick={() => openAssignModal(group)}
-                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-sky-200 hover:text-sky-600"
+                                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-sky-200 hover:text-sky-600 sm:h-7 sm:w-7 md:h-8 md:w-8"
                                                     title="Assign users"
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                                     </svg>
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => openEditModal(group)}
-                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+                                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900 sm:h-7 sm:w-7 md:h-8 md:w-8"
                                                     title="Edit group"
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
                                                     </svg>
@@ -700,15 +701,15 @@ export default function AdminUserGroupsIndex() {
                                                 <button
                                                     type="button"
                                                     onClick={() => toggleGroup(group)}
-                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600"
+                                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600 sm:h-7 sm:w-7 md:h-8 md:w-8"
                                                     title={group.is_active ? 'Pause group' : 'Activate group'}
                                                 >
                                                     {group.is_active ? (
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
                                                         </svg>
                                                     ) : (
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
                                                         </svg>
                                                     )}
@@ -716,10 +717,10 @@ export default function AdminUserGroupsIndex() {
                                                 <button
                                                     type="button"
                                                     onClick={() => deleteGroup(group)}
-                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 sm:h-7 sm:w-7 md:h-8 md:w-8"
                                                     title="Delete group"
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
                                                     </svg>
                                                 </button>
@@ -730,47 +731,29 @@ export default function AdminUserGroupsIndex() {
                             )}
                         </tbody>
                     </table>
+                    </div>
                 </div>
 
                 {groups.meta.last_page > 1 && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                        <div>
-                            Showing {groups.meta.from ?? 0} to {groups.meta.to ?? 0} of {groups.meta.total} entries
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            {Array.from({ length: groups.meta.last_page }).map((_, index) => {
-                                const page = index + 1;
-                                const active = page === groups.meta.current_page;
-                                return (
-                                    <button
-                                        key={page}
-                                        type="button"
-                                        onClick={() => changePage(page)}
-                                        className={`rounded-full px-3 py-1 text-sm font-semibold transition ${
-                                            active ? 'bg-sky-600 text-white shadow shadow-sky-600/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                        }`}
-                                    >
-                                        {page}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
+                    <Pagination
+                        meta={groups.meta}
+                        onPageChange={changePage}
+                    />
                 )}
             </div>
 
             <Modal show={modalOpen} onClose={resetForm} maxWidth="5xl">
                 <div className="flex min-h-0 flex-col">
-                    <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-semibold text-slate-900">
+                    <div className="flex-shrink-0 border-b border-slate-200 px-4 py-2.5 sm:py-3 sm:px-6 sm:py-4">
+                        <div className="flex items-center justify-between gap-2">
+                            <h2 className="text-base sm:text-lg md:text-xl font-semibold text-slate-900">
                                 {editingGroup ? `Edit customer group: ${editingGroup.name}` : 'Create new customer group'}
                             </h2>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
                                 <button
                                     type="button"
                                     onClick={resetForm}
-                                    className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                    className="rounded-full border border-slate-300 px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-3 sm:py-1.5 sm:text-sm md:px-4 md:py-2"
                                 >
                                     Cancel
                                 </button>
@@ -778,17 +761,17 @@ export default function AdminUserGroupsIndex() {
                                     type="submit"
                                     form="group-form"
                                     disabled={processing}
-                                    className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="rounded-full bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-sm md:px-4 md:py-2"
                                 >
                                     {editingGroup ? 'Update customer group' : 'Create customer group'}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={resetForm}
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600 sm:h-7 sm:w-7 md:h-8 md:w-8"
                                     aria-label="Close modal"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
@@ -796,34 +779,34 @@ export default function AdminUserGroupsIndex() {
                         </div>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                        <form onSubmit={submit} className="space-y-6" id="group-form">
-                            <div className="grid gap-6 lg:grid-cols-2">
-                                <div className="space-y-6">
-                                    <div className="grid gap-4">
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
+                        <form onSubmit={submit} className="space-y-4 sm:space-y-6" id="group-form">
+                            <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+                                <div className="space-y-4 sm:space-y-6">
+                                    <div className="grid gap-3 sm:gap-4">
+                                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
                                             <span>Name</span>
                                             <input
                                                 type="text"
                                                 value={formState.name}
                                                 onChange={(event) => setFormState({ ...formState, name: event.target.value })}
-                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                                 required
                                             />
-                                            {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
+                                            {errors.name && <span className="text-[10px] sm:text-xs text-rose-500">{errors.name}</span>}
                                         </label>
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
                                             <span>Code</span>
                                             <input
                                                 type="text"
                                                 value={formState.code}
                                                 onChange={(event) => setFormState({ ...formState, code: event.target.value.toUpperCase() })}
-                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 font-mono text-sm"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs font-mono sm:px-4 sm:py-2 sm:text-sm"
                                                 placeholder="e.g., VIP, DORMANT"
                                             />
-                                            {errors.code && <span className="text-xs text-rose-500">{errors.code}</span>}
+                                            {errors.code && <span className="text-[10px] sm:text-xs text-rose-500">{errors.code}</span>}
                                         </label>
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
                                             <span>Display order</span>
                                             <input
                                                 type="number"
@@ -848,34 +831,34 @@ export default function AdminUserGroupsIndex() {
                                                         e.target.select();
                                                     }
                                                 }}
-                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                                 min={0}
                                             />
-                                            {errors.display_order && <span className="text-xs text-rose-500">{errors.display_order}</span>}
+                                            {errors.display_order && <span className="text-[10px] sm:text-xs text-rose-500">{errors.display_order}</span>}
                                         </label>
                                     </div>
 
-                                    <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                                    <label className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-slate-200 px-3 py-2 text-xs sm:text-sm text-slate-600 sm:px-4 sm:py-3">
                                         <input
                                             type="checkbox"
                                             checked={formState.is_active}
                                             onChange={(event) => setFormState({ ...formState, is_active: event.target.checked })}
-                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                         />
                                         Active for selection
                                     </label>
                                 </div>
 
-                                <div className="space-y-6">
-                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                <div className="space-y-4 sm:space-y-6">
+                                    <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
                                         <span>Description</span>
                                         <textarea
                                             value={formState.description}
                                             onChange={(event) => setFormState({ ...formState, description: event.target.value })}
-                                            className="min-h-[200px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                            className="min-h-[120px] sm:min-h-[200px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                             placeholder="Optional notes (e.g. perks, outreach cadence)."
                                         />
-                                        {errors.description && <span className="text-xs text-rose-500">{errors.description}</span>}
+                                        {errors.description && <span className="text-[10px] sm:text-xs text-rose-500">{errors.description}</span>}
                                     </label>
                                 </div>
                             </div>
@@ -909,23 +892,23 @@ export default function AdminUserGroupsIndex() {
             {/* Assign Users Modal */}
             <Modal show={assignModalOpen} onClose={closeAssignModal} maxWidth="6xl">
                 <div className="flex min-h-0 flex-col">
-                    <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
-                        <div className="flex items-center justify-between">
+                    <div className="flex-shrink-0 border-b border-slate-200 px-4 py-2.5 sm:py-3 sm:px-6 sm:py-4">
+                        <div className="flex items-center justify-between gap-2">
                             <div>
-                                <h2 className="text-xl font-semibold text-slate-900">
+                                <h2 className="text-base sm:text-lg md:text-xl font-semibold text-slate-900">
                                     Assign users to {assigningGroup?.name}!
                                 </h2>
-                                <p className="mt-1 text-sm text-slate-500">
+                                <p className="mt-1 text-xs sm:text-sm text-slate-500">
                                     Select one or more users. Use filters to narrow the list, then save to sync assignments.
                                 </p>
                             </div>
                             <button
                                 type="button"
                                 onClick={closeAssignModal}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                                className="inline-flex h-6 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600 sm:h-7 sm:w-7 md:h-8 md:w-8"
                                 aria-label="Close modal"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
@@ -933,11 +916,11 @@ export default function AdminUserGroupsIndex() {
                     </div>
 
                     <form onSubmit={handleAssignSubmit} className="flex min-h-0 flex-1 flex-col">
-                        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
                             <div className="space-y-4">
                             {/* Search and Filters */}
-                            <div className="flex items-center gap-3">
-                                <div className="flex-1">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                                <div className="flex-1 w-full">
                                     <input
                                         type="text"
                                         value={assignSearchTerm}
@@ -949,38 +932,38 @@ export default function AdminUserGroupsIndex() {
                                             }
                                         }}
                                         placeholder="Search name or email..."
-                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                     />
                                 </div>
                                 <button
                                     type="button"
                                     onClick={handleAssignSearch}
                                     disabled={assignLoading}
-                                    className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 w-full sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
                                 >
                                     {assignLoading ? 'Searching...' : 'Search'}
                                 </button>
                             </div>
 
                             {/* Select All / Deselect All */}
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                     <button
                                         type="button"
                                         onClick={selectAllVisible}
-                                        className="rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                        className="rounded-full border border-slate-300 px-2.5 py-1 text-[10px] font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-3 sm:py-1.5 sm:text-xs"
                                     >
                                         Select all visible
                                     </button>
                                     <button
                                         type="button"
                                         onClick={deselectAllVisible}
-                                        className="rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                        className="rounded-full border border-slate-300 px-2.5 py-1 text-[10px] font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-3 sm:py-1.5 sm:text-xs"
                                     >
                                         Deselect all visible
                                     </button>
                                 </div>
-                                <div className="text-sm text-slate-600">
+                                <div className="text-xs sm:text-sm text-slate-600">
                                     <span className="font-semibold">{visibleSelectedCount}</span> selected /{' '}
                                     <span className="font-semibold">{filteredAssignUsers.length}</span> visible
                                 </div>
@@ -994,10 +977,10 @@ export default function AdminUserGroupsIndex() {
                             ) : (
                                 <div className="overflow-hidden rounded-2xl border border-slate-200">
                                         <div className="overflow-x-auto" data-user-table-container>
-                                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                                                <thead className="bg-slate-50 text-xs text-slate-500 sticky top-0 z-10">
+                                    <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
+                                                <thead className="bg-slate-50 text-[10px] sm:text-xs text-slate-500 sticky top-0 z-10">
                                             <tr>
-                                                        <th className="px-4 py-3 text-left bg-slate-50">
+                                                        <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">
                                                     <input
                                                         type="checkbox"
                                                         checked={allVisibleSelected}
@@ -1008,12 +991,12 @@ export default function AdminUserGroupsIndex() {
                                                                 selectAllVisible();
                                                             }
                                                         }}
-                                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                        className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                                         aria-label="Select all visible users"
                                                     />
                                                 </th>
-                                                        <th className="px-4 py-3 text-left bg-slate-50">Name</th>
-                                                        <th className="px-4 py-3 text-left bg-slate-50">Email</th>
+                                                        <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">Name</th>
+                                                        <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">Email</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 bg-white">
@@ -1021,25 +1004,25 @@ export default function AdminUserGroupsIndex() {
                                                 const isSelected = assignSelectedIds.includes(user.id);
                                                 return (
                                                     <tr key={user.id} className="hover:bg-slate-50">
-                                                        <td className="px-4 py-3">
+                                                        <td className="px-3 py-2 sm:px-4 sm:py-3">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={isSelected}
                                                                 onChange={() => toggleAssignUser(user.id)}
-                                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                                className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                                                 aria-label={`Select ${user.name}`}
                                                             />
                                                         </td>
-                                                        <td className="px-4 py-3 font-medium text-slate-900">
+                                                        <td className="px-3 py-2 font-medium text-slate-900 text-xs sm:text-sm sm:px-4 sm:py-3">
                                                             {user.name}
                                                         </td>
-                                                        <td className="px-4 py-3 text-slate-600">{user.email}</td>
+                                                        <td className="px-3 py-2 text-slate-600 text-xs sm:text-sm sm:px-4 sm:py-3">{user.email}</td>
                                                     </tr>
                                                 );
                                             })}
                                             {filteredAssignUsers.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={3} className="px-4 py-6 text-center text-sm text-slate-500">
+                                                    <td colSpan={3} className="px-3 py-3 text-center text-xs sm:text-sm text-slate-500 sm:px-4 sm:py-6">
                                                         No users found matching your search.
                                                     </td>
                                                 </tr>
@@ -1048,7 +1031,7 @@ export default function AdminUserGroupsIndex() {
                                     </table>
                                 </div>
                                         {/* Pagination inside table container */}
-                                        <div className="border-t border-slate-200 bg-white px-4 py-3">
+                                        <div className="border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3">
                                 <Pagination
                                     meta={assignUsersMeta}
                                     onPageChange={handleAssignPageChange}
@@ -1060,19 +1043,19 @@ export default function AdminUserGroupsIndex() {
                             </div>
 
                         {/* Footer with Action Buttons */}
-                        <div className="flex-shrink-0 border-t border-slate-200 bg-white px-6 py-4">
-                            <div className="flex items-center justify-end gap-3">
+                        <div className="flex-shrink-0 border-t border-slate-200 bg-white px-4 py-2.5 sm:py-3 sm:px-6 sm:py-4">
+                            <div className="flex items-center justify-end gap-1.5 sm:gap-2 md:gap-3">
                                 <button
                                     type="button"
                                     onClick={closeAssignModal}
-                                    className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                    className="rounded-full border border-slate-300 px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-3 sm:py-1.5 sm:text-sm md:px-4 md:py-2"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={assignProcessing}
-                                    className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="rounded-full bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-sm md:px-4 md:py-2"
                                 >
                                     {assignProcessing ? 'Saving...' : 'Save assignments'}
                                 </button>
