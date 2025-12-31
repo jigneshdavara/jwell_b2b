@@ -908,13 +908,13 @@ export default function CartPage() {
                     if (!selectedItem) return null;
                     
                     return (
-                        <div className="space-y-4 p-6">
+                        <div className="space-y-3 p-4 sm:space-y-4 sm:p-6">
                             <div>
-                                <h3 className="text-lg font-semibold text-slate-900">Notes for {selectedItem.name}</h3>
-                                <p className="mt-1 text-xs text-slate-500">SKU {selectedItem.sku}</p>
+                                <h3 className="text-sm font-semibold text-slate-900 sm:text-base lg:text-lg">Notes for {selectedItem.name}</h3>
+                                <p className="mt-0.5 text-[10px] text-slate-500 sm:mt-1 sm:text-xs">SKU {selectedItem.sku}</p>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700">Notes</label>
+                                <label className="block text-xs font-medium text-slate-700 sm:text-sm">Notes</label>
                                 <textarea
                                     value={notesValue[selectedItem.id] || ''}
                                     onChange={(e) =>
@@ -923,23 +923,23 @@ export default function CartPage() {
                                             [selectedItem.id]: e.target.value,
                                         }))
                                     }
-                                    className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                    className="mt-1.5 w-full rounded-lg border border-slate-200 px-2.5 py-2 text-xs text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 sm:mt-2 sm:rounded-xl sm:px-3 sm:py-2 sm:text-sm"
                                     placeholder="Share expectations or deadlines..."
-                                    rows={5}
+                                    rows={4}
                                 />
                             </div>
-                            <div className="flex justify-end gap-3">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setNotesModalOpen(null)}
-                                    className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                                    className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 sm:w-auto sm:text-sm"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => saveNotes(selectedItem)}
-                                    className="inline-flex items-center justify-center rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
+                                    className="inline-flex w-full items-center justify-center rounded-full bg-elvee-blue px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy sm:w-auto sm:px-5 sm:text-sm"
                                 >
                                     Save notes
                                 </button>
@@ -953,39 +953,39 @@ export default function CartPage() {
             {productDetailsModalOpen && (
                 <Modal show={true} onClose={() => setProductDetailsModalOpen(null)} maxWidth="lg">
                     <div className="flex min-h-0 flex-col">
-                        <div className="flex-shrink-0 border-b border-slate-200 px-5 py-3">
+                        <div className="flex-shrink-0 border-b border-slate-200 px-3 py-2.5 sm:px-5 sm:py-3">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-base font-semibold text-slate-900">Quick View</h3>
+                                <h3 className="text-sm font-semibold text-slate-900 sm:text-base">Quick View</h3>
                                 <button
                                     type="button"
                                     onClick={() => setProductDetailsModalOpen(null)}
                                     className="text-slate-400 transition hover:text-slate-600"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 sm:h-5 sm:w-5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
-                        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-                            <div className="space-y-4">
+                        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-5 sm:py-4">
+                            <div className="space-y-3 sm:space-y-4">
                                 {/* Product Image and Basic Info - Compact */}
-                                <div className="flex gap-4">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                                     {productDetailsModalOpen.thumbnail && (
                                         <img
                                             src={productDetailsModalOpen.thumbnail}
                                             alt={productDetailsModalOpen.name}
-                                            className="h-24 w-24 flex-shrink-0 rounded-lg object-cover shadow-md"
+                                            className="h-20 w-20 flex-shrink-0 rounded-lg object-cover shadow-md sm:h-24 sm:w-24"
                                         />
                                     )}
                                     <div className="min-w-0 flex-1">
-                                        <h4 className="text-lg font-semibold text-slate-900">{productDetailsModalOpen.name}</h4>
-                                        <p className="mt-0.5 text-xs text-slate-500">SKU: {productDetailsModalOpen.sku}</p>
+                                        <h4 className="text-sm font-semibold text-slate-900 sm:text-base lg:text-lg">{productDetailsModalOpen.name}</h4>
+                                        <p className="mt-0.5 text-[10px] text-slate-500 sm:text-xs">SKU: {productDetailsModalOpen.sku}</p>
                                         {productDetailsModalOpen.variant_label && (
-                                            <p className="mt-1 text-xs font-medium text-slate-600">{productDetailsModalOpen.variant_label}</p>
+                                            <p className="mt-1 text-[10px] font-medium text-slate-600 sm:text-xs">{productDetailsModalOpen.variant_label}</p>
                                         )}
                                         <div className="mt-2 flex flex-wrap gap-1.5">
-                                            <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                                            <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700 sm:text-xs">
                                                 Qty: {productDetailsModalOpen.quantity}
                                             </span>
                                         </div>
@@ -993,9 +993,9 @@ export default function CartPage() {
                                 </div>
 
                                 {/* Compact Price Breakdown */}
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                    <h5 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-700">Price Breakdown</h5>
-                                    <div className="space-y-1.5 text-xs">
+                                <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 sm:rounded-xl sm:p-3">
+                                    <h5 className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 sm:mb-2 sm:text-xs">Price Breakdown</h5>
+                                    <div className="space-y-1 text-[10px] sm:space-y-1.5 sm:text-xs">
                                         {(() => {
                                             const priceBreakdown = productDetailsModalOpen.price_breakdown || {};
                                             const metalCost = Number(priceBreakdown.metal) || 0;
@@ -1006,7 +1006,7 @@ export default function CartPage() {
 
                                             return (
                                                 <>
-                                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                                    <div className="space-y-0.5 sm:space-y-1">
                                                         {metalCost > 0 && (
                                                             <div className="flex justify-between">
                                                                 <span className="text-slate-600">Metal:</span>
@@ -1026,13 +1026,13 @@ export default function CartPage() {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div className="border-t border-slate-300 pt-1.5 mt-1.5">
+                                                    <div className="border-t border-slate-300 pt-1 mt-1 sm:pt-1.5 sm:mt-1.5">
                                                         <div className="flex justify-between">
                                                             <span className="font-semibold text-slate-900">Unit Price:</span>
                                                             <span className="font-semibold text-slate-900">{formatter.format(unitTotal)}</span>
                                                         </div>
                                                         {productDetailsModalOpen.quantity > 1 && (
-                                                            <div className="mt-0.5 flex justify-between text-xs text-slate-500">
+                                                            <div className="mt-0.5 flex justify-between text-[10px] text-slate-500 sm:text-xs">
                                                                 <span>{productDetailsModalOpen.quantity} × {formatter.format(unitTotal)}</span>
                                                                 <span className="font-semibold text-slate-700">= {formatter.format(lineTotal)}</span>
                                                             </div>
@@ -1045,20 +1045,20 @@ export default function CartPage() {
                                 </div>
 
                                 {/* Compact Info Grid */}
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                     {/* Variant Info */}
                                     {productDetailsModalOpen.variant_label && (
-                                        <div className="rounded-lg border border-slate-200 bg-white p-2.5">
-                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Variant</p>
-                                            <p className="mt-1 text-sm font-semibold text-slate-900">{productDetailsModalOpen.variant_label}</p>
+                                        <div className="rounded-lg border border-slate-200 bg-white p-2 sm:p-2.5">
+                                            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide sm:text-xs">Variant</p>
+                                            <p className="mt-1 text-xs font-semibold text-slate-900 sm:text-sm">{productDetailsModalOpen.variant_label}</p>
                                         </div>
                                     )}
 
                                     {/* Inventory Info */}
                                     {productDetailsModalOpen.inventory_quantity !== null && productDetailsModalOpen.inventory_quantity !== undefined && (
-                                        <div className="rounded-lg border border-slate-200 bg-white p-2.5">
-                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Stock</p>
-                                            <p className={`mt-1 text-sm font-semibold ${productDetailsModalOpen.inventory_quantity > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                        <div className="rounded-lg border border-slate-200 bg-white p-2 sm:p-2.5">
+                                            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide sm:text-xs">Stock</p>
+                                            <p className={`mt-1 text-xs font-semibold sm:text-sm ${productDetailsModalOpen.inventory_quantity > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                                                 {productDetailsModalOpen.inventory_quantity} {productDetailsModalOpen.inventory_quantity === 1 ? 'item' : 'items'}
                                             </p>
                                         </div>
@@ -1067,9 +1067,9 @@ export default function CartPage() {
 
                                 {/* Notes - Compact */}
                                 {productDetailsModalOpen.configuration?.notes && (
-                                    <div className="rounded-lg border border-slate-200 bg-white p-2.5">
-                                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Notes</p>
-                                        <p className="text-xs text-slate-700 line-clamp-3">{productDetailsModalOpen.configuration.notes}</p>
+                                    <div className="rounded-lg border border-slate-200 bg-white p-2 sm:p-2.5">
+                                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1 sm:mb-1.5 sm:text-xs">Notes</p>
+                                        <p className="text-[10px] text-slate-700 line-clamp-3 sm:text-xs">{productDetailsModalOpen.configuration.notes}</p>
                                     </div>
                                 )}
                             </div>

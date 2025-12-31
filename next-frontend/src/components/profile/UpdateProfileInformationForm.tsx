@@ -111,26 +111,26 @@ export default function UpdateProfileInformationForm({
 
     return (
         <section className={className}>
-            <header className="flex flex-col gap-2">
-                <h2 className="text-xl font-semibold text-slate-900">
+            <header className="flex flex-col gap-1.5 sm:gap-2">
+                <h2 className="text-base font-semibold text-slate-900 sm:text-lg lg:text-xl">
                     Partner contact details
                 </h2>
 
-                <p className="text-sm text-slate-500">
+                <p className="text-xs text-slate-500 sm:text-sm">
                     Keep your storefront information current so our operations team can connect instantly when orders
                     move through production.
                 </p>
             </header>
 
 
-            <form onSubmit={submit} className="mt-6 space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
+            <form onSubmit={submit} className="mt-4 space-y-4 sm:mt-6 sm:space-y-6">
+                <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
                     <div>
                         <InputLabel htmlFor="name" value="Full name" />
 
                         <TextInput
                             id="name"
-                            className="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                            className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base"
                             value={data.name}
                             onChange={(e) => setData({ ...data, name: e.target.value })}
                             required
@@ -138,7 +138,7 @@ export default function UpdateProfileInformationForm({
                             autoComplete="name"
                         />
 
-                        <InputError className="mt-2" message={errors.name} />
+                        <InputError className="mt-1.5 sm:mt-2" message={errors.name} />
                     </div>
 
                     <div>
@@ -146,32 +146,32 @@ export default function UpdateProfileInformationForm({
 
                         <TextInput
                             id="phone"
-                            className="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                            className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base"
                             value={data.phone}
                             onChange={(e) => setData({ ...data, phone: e.target.value })}
                             autoComplete="tel"
                             placeholder="e.g. +91 98765 43210"
                         />
 
-                        <InputError className="mt-2" message={errors.phone} />
+                        <InputError className="mt-1.5 sm:mt-2" message={errors.phone} />
                     </div>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
                     <div>
                         <InputLabel htmlFor="email" value="Work email" />
 
                         <TextInput
                             id="email"
                             type="email"
-                            className="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                            className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base"
                             value={data.email}
                             onChange={(e) => setData({ ...data, email: e.target.value })}
                             required
                             autoComplete="username"
                         />
 
-                        <InputError className="mt-2" message={errors.email} />
+                        <InputError className="mt-1.5 sm:mt-2" message={errors.email} />
                     </div>
 
                     <div>
@@ -181,7 +181,7 @@ export default function UpdateProfileInformationForm({
                             id="preferred_language"
                             value={data.preferred_language}
                             onChange={(event) => setData({ ...data, preferred_language: event.target.value })}
-                            className="mt-2 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                            className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base"
                         >
                             {languageOptions.map((option) => (
                                 <option key={option.value} value={option.value}>
@@ -190,12 +190,12 @@ export default function UpdateProfileInformationForm({
                             ))}
                         </select>
 
-                        <InputError className="mt-2" message={errors.preferred_language} />
+                        <InputError className="mt-1.5 sm:mt-2" message={errors.preferred_language} />
                     </div>
                 </div>
 
                 {mustVerifyEmail && user?.email_verified_at === null && (
-                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm">
                         <p>
                             Your email address is unverified.{' '}
                             <button
@@ -209,13 +209,13 @@ export default function UpdateProfileInformationForm({
                         </p>
 
                         {(status === 'verification-link-sent' || verificationStatus === 'verification-link-sent') && (
-                            <div className="mt-2 font-semibold">A new verification link has been sent to your inbox.</div>
+                            <div className="mt-1.5 text-xs font-semibold sm:mt-2 sm:text-sm">A new verification link has been sent to your inbox.</div>
                         )}
                     </div>
                 )}
 
-                <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Save updates</PrimaryButton>
+                <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
+                    <PrimaryButton disabled={processing} className="w-full sm:w-auto">Save updates</PrimaryButton>
 
                     <Transition
                         show={recentlySuccessful}
@@ -224,7 +224,7 @@ export default function UpdateProfileInformationForm({
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-slate-500">Saved.</p>
+                        <p className="text-xs text-slate-500 sm:text-sm">Saved.</p>
                     </Transition>
                 </div>
             </form>

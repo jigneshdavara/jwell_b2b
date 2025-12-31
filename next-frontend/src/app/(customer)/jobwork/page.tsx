@@ -825,58 +825,58 @@ export default function JobworkPage() {
           </form>
         </section>
 
-        <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">
+        <section className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-sm font-semibold text-slate-900 sm:text-base lg:text-lg">
               Recent jobwork briefs
             </h2>
-            <span className="text-xs text-slate-500">
+            <span className="text-[10px] text-slate-500 sm:text-xs">
               Showing latest {data.jobworks.length}
             </span>
           </div>
 
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
+          <div className="mt-3 overflow-x-auto sm:mt-4">
+            <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
+              <thead className="bg-slate-50 text-[10px] font-semibold text-slate-500 sm:text-xs">
                 <tr>
-                  <th className="px-4 py-3 text-left">Reference</th>
-                  <th className="px-4 py-3 text-left">Design</th>
-                  <th className="px-4 py-3 text-left">Mode</th>
-                  <th className="px-4 py-3 text-left">Qty</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Delivery</th>
-                  <th className="px-4 py-3 text-left">Created</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Reference</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Design</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Mode</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Qty</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Status</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Delivery</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Created</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {data.jobworks.map((jobwork: any) => (
                   <tr key={jobwork.id}>
-                    <td className="px-4 py-3 font-semibold text-slate-800">
+                    <td className="px-2 py-2 font-semibold text-slate-800 sm:px-4 sm:py-3">
                       {jobwork.reference}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-2 py-2 text-slate-600 sm:px-4 sm:py-3">
                       {jobwork.product ?? "Custom"}
                       {jobwork.variant ? (
-                        <span className="block text-xs text-slate-400">
+                        <span className="block text-[10px] text-slate-400 sm:text-xs">
                           {jobwork.variant}
                         </span>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3 capitalize text-slate-500">
+                    <td className="px-2 py-2 capitalize text-slate-500 sm:px-4 sm:py-3">
                       {jobwork.submission_mode}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-2 py-2 text-slate-600 sm:px-4 sm:py-3">
                       {jobwork.quantity}
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <td className="px-2 py-2 sm:px-4 sm:py-3">
+                      <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 sm:px-3 sm:py-1 sm:text-xs">
                         {jobwork.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-500">
+                    <td className="px-2 py-2 text-slate-500 sm:px-4 sm:py-3">
                       {jobwork.delivery_deadline ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-slate-500">
+                    <td className="px-2 py-2 text-slate-500 sm:px-4 sm:py-3">
                       {jobwork.created_at}
                     </td>
                   </tr>
@@ -885,7 +885,7 @@ export default function JobworkPage() {
                   <tr>
                     <td
                       colSpan={7}
-                      className="px-4 py-6 text-center text-sm text-slate-500"
+                      className="px-2 py-4 text-center text-xs text-slate-500 sm:px-4 sm:py-6 sm:text-sm"
                     >
                       No jobwork requests yet. Submit your first brief above.
                     </td>

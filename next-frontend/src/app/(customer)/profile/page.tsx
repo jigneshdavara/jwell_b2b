@@ -104,7 +104,7 @@ export default function ProfilePage() {
 
                 <aside className="space-y-6 sm:space-y-8">
                     <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-rose-200/60 sm:rounded-3xl sm:p-6 lg:p-8">
-                        <h2 className="text-base font-semibold text-slate-900 sm:text-lg">Danger zone</h2>
+                        <h2 className="text-sm font-semibold text-slate-900 sm:text-base lg:text-lg">Danger zone</h2>
                         <p className="mt-1 text-xs text-slate-500 sm:mt-2 sm:text-sm">
                             Need to deactivate your access? Deleting an account will remove saved carts and jobwork drafts. This
                             action cannot be undone.
@@ -115,23 +115,23 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6 lg:p-8">
-                        <h3 className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 sm:text-sm">Account metrics</h3>
+                        <h3 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500 sm:text-xs lg:text-sm">Account metrics</h3>
                         <dl className="mt-3 space-y-2 text-xs text-slate-700 sm:mt-4 sm:space-y-3 sm:text-sm">
-                            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 sm:rounded-2xl sm:px-4 sm:py-3">
-                                <dt className="font-medium text-slate-500">Email</dt>
-                                <dd className="text-slate-800 break-all text-right ml-2">{user.email}</dd>
+                            <div className="flex flex-col gap-1 rounded-xl bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:rounded-2xl sm:px-4 sm:py-3 sm:gap-2">
+                                <dt className="font-medium text-slate-500 text-[10px] sm:text-xs">Email</dt>
+                                <dd className="text-slate-800 break-all text-right text-[10px] sm:text-xs sm:text-left">{user.email}</dd>
                             </div>
-                            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 sm:rounded-2xl sm:px-4 sm:py-3">
-                                <dt className="font-medium text-slate-500">Phone</dt>
-                                <dd className="text-slate-800">{user.phone ?? '—'}</dd>
+                            <div className="flex flex-col gap-1 rounded-xl bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:rounded-2xl sm:px-4 sm:py-3 sm:gap-2">
+                                <dt className="font-medium text-slate-500 text-[10px] sm:text-xs">Phone</dt>
+                                <dd className="text-slate-800 text-right text-[10px] sm:text-xs sm:text-left">{user.phone ?? '—'}</dd>
                             </div>
-                            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 sm:rounded-2xl sm:px-4 sm:py-3">
-                                <dt className="font-medium text-slate-500">Preferred language</dt>
-                                <dd className="text-slate-800">{(user.preferred_language ?? 'en').toUpperCase()}</dd>
+                            <div className="flex flex-col gap-1 rounded-xl bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:rounded-2xl sm:px-4 sm:py-3 sm:gap-2">
+                                <dt className="font-medium text-slate-500 text-[10px] sm:text-xs">Preferred language</dt>
+                                <dd className="text-slate-800 text-right text-[10px] sm:text-xs sm:text-left">{(user.preferred_language ?? 'en').toUpperCase()}</dd>
                             </div>
-                            <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 sm:rounded-2xl sm:px-4 sm:py-3">
-                                <dt className="font-medium text-slate-500">Credit limit</dt>
-                                <dd className="text-slate-800">₹ {Number(user.credit_limit ?? 0).toLocaleString('en-IN')}</dd>
+                            <div className="flex flex-col gap-1 rounded-xl bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:rounded-2xl sm:px-4 sm:py-3 sm:gap-2">
+                                <dt className="font-medium text-slate-500 text-[10px] sm:text-xs">Credit limit</dt>
+                                <dd className="text-slate-800 text-right text-[10px] sm:text-xs sm:text-left">₹ {Number(user.credit_limit ?? 0).toLocaleString('en-IN')}</dd>
                             </div>
                         </dl>
                     </div>

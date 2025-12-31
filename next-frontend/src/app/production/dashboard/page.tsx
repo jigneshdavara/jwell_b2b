@@ -30,29 +30,29 @@ export default function ProductionDashboardOverview() {
   }
 
   return (
-    <div className="space-y-8">
-        <div className="rounded-3xl border border-slate-800/60 bg-slate-900/60 p-6 shadow-xl shadow-slate-950/40">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+        <div className="rounded-2xl border border-slate-800/60 bg-slate-900/60 p-4 shadow-xl shadow-slate-950/40 sm:rounded-3xl sm:p-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.4em] text-slate-400">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 sm:tracking-[0.4em] sm:text-xs">
                 Ops Console
               </p>
-              <h1 className="mt-2 text-3xl font-semibold text-white">
+              <h1 className="mt-1.5 text-xl font-semibold text-white sm:mt-2 sm:text-2xl lg:text-3xl">
                 Production Control Room
               </h1>
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-1.5 text-xs text-slate-400 sm:mt-2 sm:text-sm">
                 Track throughput, QC queues, and dispatch readiness in real
                 time.
               </p>
             </div>
             <a
               href="mailto:production@elvee.in"
-              className="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-slate-700 px-3 py-1.5 text-[10px] font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white sm:mt-0 sm:gap-2 sm:px-4 sm:py-2 sm:text-xs"
             >
               Escalate an issue
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
+                className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -68,17 +68,17 @@ export default function ProductionDashboardOverview() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
           {Object.entries(metrics).map(([key, value]) => (
             <div
               key={key}
-              className="rounded-2xl border border-slate-800/60 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/50"
+              className="rounded-xl border border-slate-800/60 bg-slate-900/70 p-4 shadow-lg shadow-slate-950/50 sm:rounded-2xl sm:p-5"
             >
-              <p className="text-xs uppercase tracking-[0.35em] text-slate-400">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400 sm:tracking-[0.35em] sm:text-xs">
                 {labels[key] ?? key.replace(/_/g, " ")}
               </p>
-              <p className="mt-4 text-4xl font-semibold text-white">{value}</p>
-              <p className="mt-3 text-xs text-slate-500">Live feed synced</p>
+              <p className="mt-3 text-2xl font-semibold text-white sm:mt-4 sm:text-3xl lg:text-4xl">{value}</p>
+              <p className="mt-2 text-[10px] text-slate-500 sm:mt-3 sm:text-xs">Live feed synced</p>
             </div>
           ))}
         </div>

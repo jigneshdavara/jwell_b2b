@@ -165,74 +165,74 @@ export default function OrderShowPage() {
 
   return (
     <>
-      <div className="space-y-10">
-        <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-          <div className="flex items-center justify-between">
+      <div className="space-y-6 sm:space-y-8 lg:space-y-10">
+        <header className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-semibold text-slate-900">
+              <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl lg:text-3xl">
                 Order {order.reference}
               </h1>
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 sm:mt-2 sm:text-sm">
                 View order details and track fulfilment
               </p>
             </div>
             <Link
               href={route('frontend.orders.index')}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
             >
               Back to list
             </Link>
           </div>
         </header>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Invoice Header */}
-          <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-            <div className="grid gap-8 md:grid-cols-3">
+          <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+            <div className="grid gap-6 sm:gap-8 md:grid-cols-3">
               {/* Company Details */}
               <div>
-                <h3 className="text-xs font-semibold text-slate-400">From</h3>
-                <p className="mt-3 text-lg font-semibold text-slate-900">
+                <h3 className="text-[10px] font-semibold text-slate-400 sm:text-xs">From</h3>
+                <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">
                   Elvee
                 </p>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-xs text-slate-600 sm:text-sm">
                   123 Business Street
                 </p>
-                <p className="text-sm text-slate-600">
+                <p className="text-xs text-slate-600 sm:text-sm">
                   Mumbai, Maharashtra 400001
                 </p>
-                <p className="mt-2 text-sm text-slate-600">
+                <p className="mt-1.5 text-xs text-slate-600 sm:mt-2 sm:text-sm">
                   Phone: +91 98765 43210
                 </p>
-                <p className="text-sm text-slate-600">Email: info@elvee.com</p>
-                <p className="mt-2 text-sm text-slate-600">
+                <p className="text-xs text-slate-600 sm:text-sm">Email: info@elvee.com</p>
+                <p className="mt-1.5 text-xs text-slate-600 sm:mt-2 sm:text-sm">
                   GSTIN: 27AAAAA0000A1Z5
                 </p>
               </div>
               {/* Bill To */}
               <div>
-                <h3 className="text-xs font-semibold text-slate-400">Bill To</h3>
-                <p className="mt-3 text-lg font-semibold text-slate-900">
+                <h3 className="text-[10px] font-semibold text-slate-400 sm:text-xs">Bill To</h3>
+                <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">
                   Your Account
                 </p>
               </div>
               {/* Order Details */}
-              <div className="text-right">
-                <h3 className="text-xs font-semibold text-slate-400">
+              <div className="text-left sm:text-right">
+                <h3 className="text-[10px] font-semibold text-slate-400 sm:text-xs">
                   Order Details
                 </h3>
-                <p className="mt-3 text-lg font-semibold text-slate-900">
+                <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">
                   {order.reference}
                 </p>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-xs text-slate-500 sm:text-sm">
                   Date:{" "}
                   <span className="font-semibold text-slate-900">
                     {formatDate(order.created_at)}
                   </span>
                 </p>
-                <div className="mt-3 flex justify-end gap-2">
+                <div className="mt-2 flex justify-start gap-2 sm:mt-3 sm:justify-end">
                   <span
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold sm:px-3 sm:py-1 sm:text-xs ${
                       statusColors[order.status] ?? "bg-slate-200 text-slate-700"
                     }`}
                   >
@@ -244,25 +244,25 @@ export default function OrderShowPage() {
           </div>
 
           {/* Products Table - Invoice Style */}
-          <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-            <h2 className="mb-4 text-lg font-semibold text-slate-900">Items</h2>
+          <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+            <h2 className="mb-3 text-base font-semibold text-slate-900 sm:mb-4 sm:text-lg">Items</h2>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-xs sm:text-sm">
                 <thead className="border-b-2 border-slate-200 bg-slate-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">
+                    <th className="px-2 py-2 text-left text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">
                       Item
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">
+                    <th className="px-2 py-2 text-right text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">
                       Unit Price
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">
+                    <th className="px-2 py-2 text-center text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">
                       Qty
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">
+                    <th className="px-2 py-2 text-right text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">
                       Total
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">
+                    <th className="px-2 py-2 text-center text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">
                       Actions
                     </th>
                   </tr>
@@ -270,13 +270,13 @@ export default function OrderShowPage() {
                 <tbody className="divide-y divide-slate-100">
                   {order.items.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50/50 transition">
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
+                      <td className="px-2 py-3 sm:px-4 sm:py-4">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           {item.product?.media?.[0] && (
                             <img
                               src={getMediaUrl(item.product.media[0].url)}
                               alt={item.product.media[0].alt}
-                              className="h-12 w-12 rounded-lg object-cover shadow-sm"
+                              className="h-10 w-10 flex-shrink-0 rounded-lg object-cover shadow-sm sm:h-12 sm:w-12"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
                               }}
@@ -285,37 +285,37 @@ export default function OrderShowPage() {
                           <div className="min-w-0 flex-1">
                             <Link
                               href={route('frontend.catalog.show', item.product?.id ?? item.id)}
-                              className="text-sm font-semibold text-slate-900 hover:text-feather-gold transition"
+                              className="text-xs font-semibold text-slate-900 hover:text-feather-gold transition sm:text-sm"
                             >
                               {item.name}
                             </Link>
-                            <p className="text-xs text-slate-400">
+                            <p className="text-[10px] text-slate-400 sm:text-xs">
                               SKU {item.sku}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="text-sm font-semibold text-slate-900">
+                      <td className="px-2 py-3 text-right sm:px-4 sm:py-4">
+                        <div className="text-xs font-semibold text-slate-900 sm:text-sm">
                           {formatCurrency(item.unit_price)}
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-center">
-                        <span className="font-semibold text-slate-900">
+                      <td className="px-2 py-3 text-center sm:px-4 sm:py-4">
+                        <span className="text-xs font-semibold text-slate-900 sm:text-sm">
                           {item.quantity}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="text-sm font-semibold text-slate-900">
+                      <td className="px-2 py-3 text-right sm:px-4 sm:py-4">
+                        <div className="text-xs font-semibold text-slate-900 sm:text-sm">
                           {formatCurrency(item.total_price)}
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-2 py-3 sm:px-4 sm:py-4">
                         <div className="flex items-center justify-center">
                           <button
                             type="button"
                             onClick={() => setProductDetailsModalOpen(item)}
-                            className="inline-flex items-center gap-1 rounded-full border border-elvee-blue/30 px-2.5 py-1.5 text-[10px] font-semibold text-elvee-blue transition hover:border-elvee-blue hover:bg-elvee-blue/5"
+                            className="inline-flex items-center gap-0.5 rounded-full border border-elvee-blue/30 px-2 py-1 text-[9px] font-semibold text-elvee-blue transition hover:border-elvee-blue hover:bg-elvee-blue/5 sm:gap-1 sm:px-2.5 sm:py-1.5 sm:text-[10px]"
                             title="View product details"
                           >
                             <svg
@@ -324,7 +324,7 @@ export default function OrderShowPage() {
                               fill="none"
                               stroke="currentColor"
                               strokeWidth={2}
-                              className="h-3 w-3"
+                              className="h-2.5 w-2.5 sm:h-3 sm:w-3"
                             >
                               <path
                                 strokeLinecap="round"
@@ -342,12 +342,12 @@ export default function OrderShowPage() {
                   <tr>
                     <td
                       colSpan={2}
-                      className="px-4 py-2 text-right text-sm text-slate-600"
+                      className="px-2 py-1.5 text-right text-xs text-slate-600 sm:px-4 sm:py-2 sm:text-sm"
                     >
                       Subtotal
                     </td>
-                    <td className="px-4 py-2"></td>
-                    <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
+                    <td className="px-2 py-1.5 sm:px-4 sm:py-2"></td>
+                    <td className="px-2 py-1.5 text-right text-xs font-semibold text-slate-900 sm:px-4 sm:py-2 sm:text-sm">
                       {formatCurrency(order.subtotal_amount)}
                     </td>
                   </tr>
@@ -355,12 +355,12 @@ export default function OrderShowPage() {
                     <tr>
                       <td
                         colSpan={2}
-                        className="px-4 py-2 text-right text-sm text-slate-600"
+                        className="px-2 py-1.5 text-right text-xs text-slate-600 sm:px-4 sm:py-2 sm:text-sm"
                       >
                         Discount
                       </td>
-                      <td className="px-4 py-2"></td>
-                      <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
+                      <td className="px-2 py-1.5 sm:px-4 sm:py-2"></td>
+                      <td className="px-2 py-1.5 text-right text-xs font-semibold text-slate-900 sm:px-4 sm:py-2 sm:text-sm">
                         -{formatCurrency(order.discount_amount)}
                       </td>
                     </tr>
@@ -368,60 +368,60 @@ export default function OrderShowPage() {
                   <tr>
                     <td
                       colSpan={2}
-                      className="px-4 py-2 text-right text-sm text-slate-600"
+                      className="px-2 py-1.5 text-right text-xs text-slate-600 sm:px-4 sm:py-2 sm:text-sm"
                     >
                       Tax (GST)
                     </td>
-                    <td className="px-4 py-2"></td>
-                    <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
+                    <td className="px-2 py-1.5 sm:px-4 sm:py-2"></td>
+                    <td className="px-2 py-1.5 text-right text-xs font-semibold text-slate-900 sm:px-4 sm:py-2 sm:text-sm">
                       {formatCurrency(order.tax_amount)}
                     </td>
                   </tr>
                   <tr className="border-t-2 border-slate-300">
                     <td
                       colSpan={2}
-                      className="px-4 py-3 text-right text-base font-bold text-slate-900"
+                      className="px-2 py-2 text-right text-sm font-bold text-slate-900 sm:px-4 sm:py-3 sm:text-base"
                     >
                       Grand Total
                     </td>
-                    <td className="px-4 py-3"></td>
-                    <td className="px-4 py-3 text-right text-lg font-bold text-slate-900">
+                    <td className="px-2 py-2 sm:px-4 sm:py-3"></td>
+                    <td className="px-2 py-2 text-right text-base font-bold text-slate-900 sm:px-4 sm:py-3 sm:text-lg">
                       {formatCurrency(order.total_amount)}
                     </td>
-                    <td className="px-4 py-3"></td>
+                    <td className="px-2 py-2 sm:px-4 sm:py-3"></td>
                   </tr>
                 </tfoot>
               </table>
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="space-y-6">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+            <div className="space-y-4 sm:space-y-6">
               {/* Payments */}
-              <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                <h2 className="text-lg font-semibold text-slate-900">
+              <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+                <h2 className="text-base font-semibold text-slate-900 sm:text-lg">
                   Payments
                 </h2>
-                <div className="mt-4 space-y-3 text-sm text-slate-600">
+                <div className="mt-3 space-y-2 text-xs text-slate-600 sm:mt-4 sm:space-y-3 sm:text-sm">
                   {order.payments.length === 0 && (
-                    <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">
+                    <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-[10px] text-slate-500 sm:rounded-2xl sm:p-6 sm:text-xs">
                       No payments recorded yet.
                     </p>
                   )}
                   {order.payments.map((payment) => (
                     <div
                       key={payment.id}
-                      className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3"
+                      className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3"
                     >
                       <div>
-                        <p className="text-sm font-semibold text-slate-800">
+                        <p className="text-xs font-semibold text-slate-800 sm:text-sm">
                           {payment.status}
                         </p>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-[10px] text-slate-400 sm:text-xs">
                           {formatDate(payment.created_at)}
                         </p>
                       </div>
-                      <span className="text-sm font-semibold text-slate-900">
+                      <span className="text-xs font-semibold text-slate-900 sm:text-sm">
                         {formatCurrency(payment.amount)}
                       </span>
                     </div>
@@ -429,37 +429,37 @@ export default function OrderShowPage() {
                 </div>
                 {(order.status === "pending_payment" ||
                   order.status === "payment_failed") && (
-                  <div className="mt-4 flex justify-end">
+                  <div className="mt-3 flex justify-end sm:mt-4">
                     <Link
                       href={route('frontend.orders.pay', order.id)}
-                      className="rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
+                      className="rounded-full bg-elvee-blue px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy sm:px-4 sm:py-2 sm:text-sm"
                     >
                       Proceed to payment
                     </Link>
                   </div>
                 )}
                 {order.status === "payment_failed" && (
-                  <p className="mt-2 text-xs text-rose-500">
+                  <p className="mt-1.5 text-[10px] text-rose-500 sm:mt-2 sm:text-xs">
                     Previous attempt failed. Please retry the payment.
                   </p>
                 )}
               </div>
 
               {/* Status History */}
-              <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                <h2 className="text-lg font-semibold text-slate-900">
+              <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+                <h2 className="text-base font-semibold text-slate-900 sm:text-lg">
                   Status History
                 </h2>
-                <div className="mt-4 space-y-3 text-sm text-slate-600">
+                <div className="mt-3 space-y-2 text-xs text-slate-600 sm:mt-4 sm:space-y-3 sm:text-sm">
                   {order.status_history.map((entry) => (
                     <div
                       key={entry.id}
-                      className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3"
+                      className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3"
                     >
-                      <span className="font-semibold text-slate-800">
+                      <span className="text-xs font-semibold text-slate-800 sm:text-sm">
                         {entry.status.replace(/_/g, " ")}
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-[10px] text-slate-400 sm:text-xs">
                         {formatDate(entry.created_at)}
                       </span>
                     </div>
@@ -468,33 +468,33 @@ export default function OrderShowPage() {
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Order Timeline */}
-              <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                <h2 className="text-lg font-semibold text-slate-900">
+              <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+                <h2 className="text-base font-semibold text-slate-900 sm:text-lg">
                   Order Timeline
                 </h2>
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="mt-3 space-y-2 sm:mt-4 sm:space-y-3">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs font-semibold text-slate-400">
+                        <p className="text-[10px] font-semibold text-slate-400 sm:text-xs">
                           Created
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-slate-900">
+                        <p className="mt-0.5 text-xs font-semibold text-slate-900 sm:mt-1 sm:text-sm">
                           {formatDate(order.created_at)}
                         </p>
                       </div>
                     </div>
                   </div>
                   {order.updated_at && order.updated_at !== order.created_at && (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-xs font-semibold text-slate-400">
+                          <p className="text-[10px] font-semibold text-slate-400 sm:text-xs">
                             Last Updated
                           </p>
-                          <p className="mt-1 text-sm font-semibold text-slate-900">
+                          <p className="mt-0.5 text-xs font-semibold text-slate-900 sm:mt-1 sm:text-sm">
                             {formatDate(order.updated_at)}
                           </p>
                         </div>
@@ -506,40 +506,40 @@ export default function OrderShowPage() {
 
               {/* Linked Quotations */}
               {order.quotations && order.quotations.length > 0 && (
-                <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                  <h2 className="text-lg font-semibold text-slate-900">
+                <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+                  <h2 className="text-base font-semibold text-slate-900 sm:text-lg">
                     Source Quotations
                   </h2>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-0.5 text-[10px] text-slate-500 sm:mt-1 sm:text-xs">
                     This order was created from the following quotations
                   </p>
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-3 space-y-2 sm:mt-4 sm:space-y-3">
                     {order.quotations.map((quotation) => (
                       <Link
                         key={quotation.id}
                         href={route('frontend.quotations.show', { id: quotation.id })}
-                        className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-elvee-blue/50 hover:bg-elvee-blue/5"
+                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-elvee-blue/50 hover:bg-elvee-blue/5 sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-3"
                       >
                         {quotation.product?.media?.[0] && (
                           <img
                             src={getMediaUrl(quotation.product.media[0].url)}
                             alt={quotation.product.media[0].alt}
-                            className="h-10 w-10 rounded-lg object-cover"
+                            className="h-8 w-8 flex-shrink-0 rounded-lg object-cover sm:h-10 sm:w-10"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}
                           />
                         )}
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-slate-900">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-slate-900 sm:text-sm">
                             Quotation #{quotation.id}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-[10px] text-slate-500 sm:text-xs">
                             {quotation.product?.name ?? "Product"}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-slate-500">
+                          <p className="text-[10px] text-slate-500 sm:text-xs">
                             Qty: {quotation.quantity}
                           </p>
                         </div>
@@ -561,9 +561,9 @@ export default function OrderShowPage() {
           maxWidth="4xl"
         >
           <div className="flex min-h-0 flex-col">
-            <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
+            <div className="flex-shrink-0 border-b border-slate-200 px-3 py-2.5 sm:px-6 sm:py-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-sm font-semibold text-slate-900 sm:text-base lg:text-lg">
                   Product Details
                 </h3>
                 <button
@@ -577,7 +577,7 @@ export default function OrderShowPage() {
                     fill="none"
                     stroke="currentColor"
                     strokeWidth={2}
-                    className="h-5 w-5"
+                    className="h-4 w-4 sm:h-5 sm:w-5"
                   >
                     <path
                       strokeLinecap="round"
@@ -588,29 +588,29 @@ export default function OrderShowPage() {
                 </button>
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-              <div className="space-y-6">
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Product Image and Basic Info */}
-                <div className="flex gap-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:gap-6">
                   {productDetailsModalOpen.product?.media?.[0] && (
                     <img
                       src={getMediaUrl(productDetailsModalOpen.product.media[0].url)}
                       alt={productDetailsModalOpen.product.media[0].alt}
-                      className="h-32 w-32 rounded-lg object-cover shadow-lg"
+                      className="h-24 w-24 flex-shrink-0 rounded-lg object-cover shadow-lg sm:h-32 sm:w-32"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
                       }}
                     />
                   )}
-                  <div className="flex-1">
-                    <h4 className="text-xl font-semibold text-slate-900">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-semibold text-slate-900 break-words sm:text-base lg:text-xl">
                       {productDetailsModalOpen.name}
                     </h4>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-0.5 text-[10px] text-slate-500 sm:mt-1 sm:text-xs lg:text-sm">
                       SKU: {productDetailsModalOpen.sku}
                     </p>
-                    <div className="mt-3 flex gap-2">
-                      <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                    <div className="mt-2 flex gap-2 sm:mt-3">
+                      <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700 sm:px-3 sm:py-1 sm:text-xs">
                         Qty: {productDetailsModalOpen.quantity}
                       </span>
                     </div>
@@ -618,11 +618,11 @@ export default function OrderShowPage() {
                 </div>
 
                 {/* Pricing */}
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <h5 className="mb-3 text-sm font-semibold text-slate-700">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:rounded-2xl sm:p-4">
+                  <h5 className="mb-2 text-xs font-semibold text-slate-700 sm:mb-3 sm:text-sm">
                     Pricing
                   </h5>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-1.5 text-xs sm:space-y-2 sm:text-sm">
                     {(() => {
                       // Use stored price breakdown from order if available
                       const priceBreakdown =
@@ -638,35 +638,35 @@ export default function OrderShowPage() {
                       return (
                         <>
                           {metalCost > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-slate-600">Metal:</span>
-                              <span className="font-semibold text-slate-900">
+                            <div className="flex justify-between gap-2">
+                              <span className="text-slate-600 flex-shrink-0">Metal:</span>
+                              <span className="font-semibold text-slate-900 text-right break-words">
                                 {formatCurrency(metalCost)}
                               </span>
                             </div>
                           )}
                           {diamondCost > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-slate-600">Diamond:</span>
-                              <span className="font-semibold text-slate-900">
+                            <div className="flex justify-between gap-2">
+                              <span className="text-slate-600 flex-shrink-0">Diamond:</span>
+                              <span className="font-semibold text-slate-900 text-right break-words">
                                 {formatCurrency(diamondCost)}
                               </span>
                             </div>
                           )}
                           {makingCharge > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-slate-600">
+                            <div className="flex justify-between gap-2">
+                              <span className="text-slate-600 flex-shrink-0">
                                 Making Charge:
                               </span>
-                              <span className="font-semibold text-slate-900">
+                              <span className="font-semibold text-slate-900 text-right break-words">
                                 {formatCurrency(makingCharge)}
                               </span>
                             </div>
                           )}
                           {discount > 0 && (
-                            <div className="flex justify-between text-rose-600">
-                              <span>Discount:</span>
-                              <span className="font-semibold">
+                            <div className="flex justify-between gap-2 text-rose-600">
+                              <span className="flex-shrink-0">Discount:</span>
+                              <span className="font-semibold text-right break-words">
                                 -{formatCurrency(discount)}
                               </span>
                             </div>
@@ -674,22 +674,22 @@ export default function OrderShowPage() {
                         </>
                       );
                     })()}
-                    <div className="border-t border-slate-300 pt-2">
-                      <div className="flex justify-between">
-                        <span className="font-semibold text-slate-900">
+                    <div className="border-t border-slate-300 pt-1.5 sm:pt-2">
+                      <div className="flex justify-between gap-2">
+                        <span className="font-semibold text-slate-900 flex-shrink-0">
                           Unit Price:
                         </span>
-                        <span className="font-semibold text-slate-900">
+                        <span className="font-semibold text-slate-900 text-right break-words">
                           {formatCurrency(
                             productDetailsModalOpen.unit_price
                           )}
                         </span>
                       </div>
-                      <div className="flex justify-between mt-2">
-                        <span className="font-semibold text-slate-900">
+                      <div className="flex justify-between gap-2 mt-1.5 sm:mt-2">
+                        <span className="font-semibold text-slate-900 flex-shrink-0">
                           Total Price:
                         </span>
-                        <span className="font-semibold text-slate-900">
+                        <span className="font-semibold text-slate-900 text-right break-words">
                           {formatCurrency(
                             productDetailsModalOpen.total_price
                           )}
@@ -703,31 +703,36 @@ export default function OrderShowPage() {
                 {productDetailsModalOpen.configuration &&
                   Object.keys(productDetailsModalOpen.configuration).length >
                     0 && (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <h5 className="mb-3 text-sm font-semibold text-slate-700">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:rounded-2xl sm:p-4">
+                      <h5 className="mb-2 text-xs font-semibold text-slate-700 sm:mb-3 sm:text-sm">
                         Configuration
                       </h5>
-                      <div className="space-y-2 text-sm">
+                      <div className="space-y-1.5 text-xs sm:space-y-2 sm:text-sm">
                         {Object.entries(
                           productDetailsModalOpen.configuration
-                        ).map(([key, value]) => (
-                          <div key={key} className="flex justify-between">
-                            <span className="text-slate-600">
-                              {key.replace(/_/g, " ")}:
-                            </span>
-                            <span className="font-semibold text-slate-900">
-                              {value === null ||
-                              value === undefined ||
-                              value === ""
-                                ? "—"
-                                : typeof value === "boolean"
-                                ? value
-                                  ? "Yes"
-                                  : "No"
-                                : String(value)}
-                            </span>
-                          </div>
-                        ))}
+                        ).map(([key, value]) => {
+                          let displayValue: string;
+                          if (value === null || value === undefined || value === "") {
+                            displayValue = "—";
+                          } else if (typeof value === "boolean") {
+                            displayValue = value ? "Yes" : "No";
+                          } else if (typeof value === "object") {
+                            displayValue = JSON.stringify(value);
+                          } else {
+                            displayValue = String(value);
+                          }
+                          
+                          return (
+                            <div key={key} className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-2">
+                              <span className="text-slate-600 min-w-0 flex-shrink-0">
+                                {key.replace(/_/g, " ")}:
+                              </span>
+                              <span className="font-semibold text-slate-900 break-words text-right sm:text-left">
+                                {displayValue}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -735,32 +740,35 @@ export default function OrderShowPage() {
                 {/* Metadata */}
                 {productDetailsModalOpen.metadata &&
                   Object.keys(productDetailsModalOpen.metadata).length > 0 && (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <h5 className="mb-3 text-sm font-semibold text-slate-700">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:rounded-2xl sm:p-4">
+                      <h5 className="mb-2 text-xs font-semibold text-slate-700 sm:mb-3 sm:text-sm">
                         Additional Information
                       </h5>
-                      <div className="space-y-2 text-sm">
+                      <div className="space-y-1.5 text-xs sm:space-y-2 sm:text-sm">
                         {Object.entries(productDetailsModalOpen.metadata).map(
-                          ([key, value]) => (
-                            <div key={key} className="flex justify-between">
-                              <span className="text-slate-600">
-                                {key.replace(/_/g, " ")}:
-                              </span>
-                              <span className="font-semibold text-slate-900">
-                                {value === null ||
-                                value === undefined ||
-                                value === ""
-                                  ? "—"
-                                  : typeof value === "boolean"
-                                  ? value
-                                    ? "Yes"
-                                    : "No"
-                                  : typeof value === "object"
-                                  ? JSON.stringify(value)
-                                  : String(value)}
-                              </span>
-                            </div>
-                          )
+                          ([key, value]) => {
+                            let displayValue: string;
+                            if (value === null || value === undefined || value === "") {
+                              displayValue = "—";
+                            } else if (typeof value === "boolean") {
+                              displayValue = value ? "Yes" : "No";
+                            } else if (typeof value === "object") {
+                              displayValue = JSON.stringify(value);
+                            } else {
+                              displayValue = String(value);
+                            }
+                            
+                            return (
+                              <div key={key} className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-2">
+                                <span className="text-slate-600 min-w-0 flex-shrink-0">
+                                  {key.replace(/_/g, " ")}:
+                                </span>
+                                <span className="font-semibold text-slate-900 break-words text-right sm:text-left">
+                                  {displayValue}
+                                </span>
+                              </div>
+                            );
+                          }
                         )}
                       </div>
                     </div>

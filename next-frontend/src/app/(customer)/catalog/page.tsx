@@ -687,14 +687,15 @@ export default function CatalogPage() {
                             <button
                                 type="button"
                                 onClick={() => setCollapsedFilters((prev) => ({ ...prev, categories: !prev.categories }))}
-                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                             >
                                 <span>Categories</span>
                                 <svg
-                                    className={`h-4 w-4 transition-transform ${collapsedFilters.categories ? '' : 'rotate-180'}`}
+                                    className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.categories ? '' : 'rotate-180'}`}
                                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    strokeWidth={2.5}
                                 >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                 </svg>
                             </button>
                             {!collapsedFilters.categories && (
@@ -732,14 +733,15 @@ export default function CatalogPage() {
                             <button
                                 type="button"
                                 onClick={() => setCollapsedFilters((prev) => ({ ...prev, catalogs: !prev.catalogs }))}
-                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                             >
                                 <span>Catalogs</span>
                                 <svg
-                                    className={`h-4 w-4 transition-transform ${collapsedFilters.catalogs ? '' : 'rotate-180'}`}
+                                    className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.catalogs ? '' : 'rotate-180'}`}
                                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    strokeWidth={2.5}
                                 >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                 </svg>
                             </button>
                             {!collapsedFilters.catalogs && (
@@ -777,14 +779,15 @@ export default function CatalogPage() {
                             <button
                                 type="button"
                                 onClick={() => setCollapsedFilters((prev) => ({ ...prev, brands: !prev.brands }))}
-                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                             >
                                 <span>Brands</span>
                                 <svg
-                                    className={`h-4 w-4 transition-transform ${collapsedFilters.brands ? '' : 'rotate-180'}`}
+                                    className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.brands ? '' : 'rotate-180'}`}
                                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    strokeWidth={2.5}
                                 >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                 </svg>
                             </button>
                             {!collapsedFilters.brands && (
@@ -826,14 +829,15 @@ export default function CatalogPage() {
                             <button
                                 type="button"
                                 onClick={() => setCollapsedFilters((prev) => ({ ...prev, metals: !prev.metals }))}
-                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                             >
                                 <span>Metals</span>
                                 <svg
-                                    className={`h-4 w-4 transition-transform ${collapsedFilters.metals ? '' : 'rotate-180'}`}
+                                    className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.metals ? '' : 'rotate-180'}`}
                                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    strokeWidth={2.5}
                                 >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                 </svg>
                             </button>
                             {!collapsedFilters.metals && (
@@ -875,14 +879,15 @@ export default function CatalogPage() {
                             <button
                                 type="button"
                                 onClick={() => setCollapsedFilters((prev) => ({ ...prev, metalPurities: !prev.metalPurities }))}
-                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                             >
                                 <span>Metal purities</span>
                                 <svg
-                                    className={`h-4 w-4 transition-transform ${collapsedFilters.metalPurities ? '' : 'rotate-180'}`}
+                                    className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.metalPurities ? '' : 'rotate-180'}`}
                                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    strokeWidth={2.5}
                                 >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                 </svg>
                             </button>
                             {!collapsedFilters.metalPurities && (
@@ -924,14 +929,15 @@ export default function CatalogPage() {
                             <button
                                 type="button"
                                 onClick={() => setCollapsedFilters((prev) => ({ ...prev, metalTones: !prev.metalTones }))}
-                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                             >
                                 <span>Metal tones</span>
                                 <svg
-                                    className={`h-4 w-4 transition-transform ${collapsedFilters.metalTones ? '' : 'rotate-180'}`}
+                                    className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.metalTones ? '' : 'rotate-180'}`}
                                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    strokeWidth={2.5}
                                 >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                 </svg>
                             </button>
                             {!collapsedFilters.metalTones && (
@@ -973,14 +979,15 @@ export default function CatalogPage() {
                             <button
                                 type="button"
                                 onClick={() => setCollapsedFilters((prev) => ({ ...prev, diamond: !prev.diamond }))}
-                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                             >
                                 <span>Diamond</span>
                                 <svg
-                                    className={`h-4 w-4 transition-transform ${collapsedFilters.diamond ? '' : 'rotate-180'}`}
+                                    className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.diamond ? '' : 'rotate-180'}`}
                                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    strokeWidth={2.5}
                                 >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                 </svg>
                             </button>
                             {!collapsedFilters.diamond && (
@@ -1172,14 +1179,15 @@ export default function CatalogPage() {
                             <button
                                 type="button"
                                 onClick={() => setCollapsedFilters((prev) => ({ ...prev, price: !prev.price }))}
-                                className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                             >
                                 <span>Price range (₹)</span>
                                 <svg
-                                    className={`h-4 w-4 transition-transform ${collapsedFilters.price ? '' : 'rotate-180'}`}
+                                    className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.price ? '' : 'rotate-180'}`}
                                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    strokeWidth={2.5}
                                 >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                 </svg>
                             </button>
                             {!collapsedFilters.price && (
@@ -1267,14 +1275,15 @@ export default function CatalogPage() {
                                     <button
                                         type="button"
                                         onClick={() => setCollapsedFilters((prev) => ({ ...prev, categories: !prev.categories }))}
-                                        className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                        className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                                     >
                                         <span>Categories</span>
                                         <svg
-                                            className={`h-4 w-4 transition-transform ${collapsedFilters.categories ? '' : 'rotate-180'}`}
+                                            className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.categories ? '' : 'rotate-180'}`}
                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            strokeWidth={2.5}
                                         >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7-7" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                         </svg>
                                     </button>
                                     {!collapsedFilters.categories && (
@@ -1312,14 +1321,15 @@ export default function CatalogPage() {
                                     <button
                                         type="button"
                                         onClick={() => setCollapsedFilters((prev) => ({ ...prev, catalogs: !prev.catalogs }))}
-                                        className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                        className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                                     >
                                         <span>Catalogs</span>
                                         <svg
-                                            className={`h-4 w-4 transition-transform ${collapsedFilters.catalogs ? '' : 'rotate-180'}`}
+                                            className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.catalogs ? '' : 'rotate-180'}`}
                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            strokeWidth={2.5}
                                         >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7-7" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                         </svg>
                                     </button>
                                     {!collapsedFilters.catalogs && (
@@ -1357,14 +1367,15 @@ export default function CatalogPage() {
                                     <button
                                         type="button"
                                         onClick={() => setCollapsedFilters((prev) => ({ ...prev, brands: !prev.brands }))}
-                                        className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                        className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                                     >
                                         <span>Brands</span>
                                         <svg
-                                            className={`h-4 w-4 transition-transform ${collapsedFilters.brands ? '' : 'rotate-180'}`}
+                                            className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.brands ? '' : 'rotate-180'}`}
                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            strokeWidth={2.5}
                                         >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7-7" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                         </svg>
                                     </button>
                                     {!collapsedFilters.brands && (
@@ -1406,14 +1417,15 @@ export default function CatalogPage() {
                                     <button
                                         type="button"
                                         onClick={() => setCollapsedFilters((prev) => ({ ...prev, metals: !prev.metals }))}
-                                        className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                        className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                                     >
                                         <span>Metals</span>
                                         <svg
-                                            className={`h-4 w-4 transition-transform ${collapsedFilters.metals ? '' : 'rotate-180'}`}
+                                            className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.metals ? '' : 'rotate-180'}`}
                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            strokeWidth={2.5}
                                         >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7-7" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                         </svg>
                                     </button>
                                     {!collapsedFilters.metals && (
@@ -1455,14 +1467,15 @@ export default function CatalogPage() {
                                     <button
                                         type="button"
                                         onClick={() => setCollapsedFilters((prev) => ({ ...prev, metalPurities: !prev.metalPurities }))}
-                                        className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                        className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                                     >
                                         <span>Metal purities</span>
                                         <svg
-                                            className={`h-4 w-4 transition-transform ${collapsedFilters.metalPurities ? '' : 'rotate-180'}`}
+                                            className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.metalPurities ? '' : 'rotate-180'}`}
                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            strokeWidth={2.5}
                                         >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7-7" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                         </svg>
                                     </button>
                                     {!collapsedFilters.metalPurities && (
@@ -1504,14 +1517,15 @@ export default function CatalogPage() {
                                     <button
                                         type="button"
                                         onClick={() => setCollapsedFilters((prev) => ({ ...prev, metalTones: !prev.metalTones }))}
-                                        className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                        className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                                     >
                                         <span>Metal tones</span>
                                         <svg
-                                            className={`h-4 w-4 transition-transform ${collapsedFilters.metalTones ? '' : 'rotate-180'}`}
+                                            className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.metalTones ? '' : 'rotate-180'}`}
                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            strokeWidth={2.5}
                                         >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7-7" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                         </svg>
                                     </button>
                                     {!collapsedFilters.metalTones && (
@@ -1553,14 +1567,15 @@ export default function CatalogPage() {
                                     <button
                                         type="button"
                                         onClick={() => setCollapsedFilters((prev) => ({ ...prev, diamond: !prev.diamond }))}
-                                        className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                        className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                                     >
                                         <span>Diamond</span>
                                         <svg
-                                            className={`h-4 w-4 transition-transform ${collapsedFilters.diamond ? '' : 'rotate-180'}`}
+                                            className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.diamond ? '' : 'rotate-180'}`}
                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            strokeWidth={2.5}
                                         >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7-7" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                         </svg>
                                     </button>
                                     {!collapsedFilters.diamond && (
@@ -1752,14 +1767,15 @@ export default function CatalogPage() {
                                     <button
                                         type="button"
                                         onClick={() => setCollapsedFilters((prev) => ({ ...prev, price: !prev.price }))}
-                                        className="flex w-full items-center justify-between text-sm font-semibold text-slate-800"
+                                        className="flex w-full items-center justify-between text-xs font-semibold text-slate-800 sm:text-sm"
                                     >
                                         <span>Price range (₹)</span>
                                         <svg
-                                            className={`h-4 w-4 transition-transform ${collapsedFilters.price ? '' : 'rotate-180'}`}
+                                            className={`h-3.5 w-3.5 text-slate-500 transition-transform sm:h-4 sm:w-4 ${collapsedFilters.price ? '' : 'rotate-180'}`}
                                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            strokeWidth={2.5}
                                         >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7-7" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                         </svg>
                                     </button>
                                     {!collapsedFilters.price && (
