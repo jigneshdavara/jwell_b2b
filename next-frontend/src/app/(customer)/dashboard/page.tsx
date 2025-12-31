@@ -110,19 +110,19 @@ export default function DashboardPage() {
     // Show loading while checking KYC or loading dashboard
     if (checkingKyc || loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />
+            <div className="flex items-center justify-center py-12 sm:py-20">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent sm:h-12 sm:w-12" />
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center py-20">
-                <p className="text-red-600 mb-4">{error}</p>
+            <div className="flex flex-col items-center justify-center py-12 sm:py-20">
+                <p className="mb-3 text-sm text-red-600 sm:mb-4 sm:text-base">{error}</p>
                 <button
                     onClick={loadDashboard}
-                    className="rounded-full bg-elvee-blue px-6 py-2 text-sm font-semibold text-white transition hover:bg-navy"
+                    className="rounded-full bg-elvee-blue px-5 py-1.5 text-xs font-semibold text-white transition hover:bg-navy sm:px-6 sm:py-2 sm:text-sm"
                 >
                     Retry
                 </button>
@@ -154,61 +154,61 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="space-y-10">
-            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-elvee-blue via-navy to-ink text-white shadow-2xl">
+        <div className="space-y-6 sm:space-y-8 lg:space-y-10">
+            <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-elvee-blue via-navy to-ink text-white shadow-2xl">
                 <div className="absolute inset-0">
                     <div className="absolute -left-28 -top-28 h-72 w-72 rounded-full bg-feather-gold/20 blur-3xl" />
                     <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-rose-500/20 blur-3xl" />
                 </div>
-                <div className="relative z-10 grid gap-8 px-6 py-10 lg:grid-cols-[1.8fr_1fr] lg:px-12 lg:py-14">
-                    <div className="space-y-6">
-                        <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white/80">
+                <div className="relative z-10 grid gap-4 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 lg:grid-cols-[1.8fr_1fr] lg:gap-8 lg:px-12 lg:py-14">
+                    <div className="space-y-4 sm:space-y-5 lg:space-y-6">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-semibold text-white/80 sm:gap-2 sm:px-4 sm:py-2 sm:text-xs">
                             Wholesale cockpit
                         </span>
-                        <h1 className="text-3xl font-semibold leading-tight lg:text-4xl">
+                        <h1 className="text-xl font-semibold leading-tight sm:text-2xl lg:text-3xl xl:text-4xl">
                             Welcome back to Elvee. Track operations and curate assortments just like a premium ecommerce backend.
                         </h1>
-                        <p className="text-sm text-white/70 lg:text-base">
+                        <p className="text-xs text-white/70 sm:text-sm lg:text-base">
                             Start with ready-to-purchase drops, monitor jobwork in motion, keep dues in check, and move shortlisted pieces straight into quotations.
                         </p>
-                        <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                             <Link
                                 href={route('frontend.catalog.index')}
-                                className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-slate-900/20 transition hover:bg-white/90"
+                                className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-slate-900 shadow-lg shadow-slate-900/20 transition hover:bg-white/90 sm:gap-2 sm:px-6 sm:py-2 sm:text-sm"
                             >
                                 Browse catalogue
                             </Link>
                             <Link
                                 href={route('frontend.wishlist.index')}
-                                className="inline-flex items-center gap-2 rounded-full border border-white/40 px-6 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-white/40 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 sm:gap-2 sm:px-6 sm:py-2 sm:text-sm"
                             >
                                 View wishlist
                             </Link>
                             <a
                                 href="mailto:support@elvee.in"
-                                className="inline-flex items-center gap-2 rounded-full border border-white/20 px-6 py-2 text-sm font-semibold text-white/80 transition hover:border-white hover:text-white"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-white/20 px-4 py-1.5 text-xs font-semibold text-white/80 transition hover:border-white hover:text-white sm:gap-2 sm:px-6 sm:py-2 sm:text-sm"
                             >
                                 Relationship manager
                             </a>
                         </div>
                     </div>
-                    <div className="rounded-3xl border border-white/15 bg-white/10 p-6 backdrop-blur">
-                        <p className="text-xs font-semibold text-white/60">
+                    <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur sm:rounded-3xl sm:p-6">
+                        <p className="text-[10px] font-semibold text-white/60 sm:text-xs">
                             Live metrics
                         </p>
-                        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                        <div className="mt-3 grid gap-3 sm:mt-5 sm:grid-cols-2 sm:gap-4">
                             {statEntries.length === 0 && (
-                                <div className="rounded-2xl border border-white/20 bg-white/5 p-4 text-sm text-white/70">
+                                <div className="rounded-xl border border-white/20 bg-white/5 p-3 text-xs text-white/70 sm:rounded-2xl sm:p-4 sm:text-sm">
                                     Metrics sync as soon as orders or jobwork start flowing in.
                                 </div>
                             )}
                             {statEntries.map(([key, value]) => (
-                                <div key={key} className="rounded-2xl border border-white/15 bg-white/5 p-4">
-                                    <p className="text-xs text-white/60">
+                                <div key={key} className="rounded-xl border border-white/15 bg-white/5 p-3 sm:rounded-2xl sm:p-4">
+                                    <p className="text-[10px] text-white/60 sm:text-xs">
                                         {titleMap[key] ?? key.replace(/_/g, ' ')}
                                     </p>
-                                    <p className="mt-2 text-3xl font-semibold text-white">{value}</p>
-                                    <p className="mt-1 text-[11px] text-white/50">
+                                    <p className="mt-1.5 text-2xl font-semibold text-white sm:mt-2 sm:text-3xl">{value}</p>
+                                    <p className="mt-0.5 text-[10px] text-white/50 sm:mt-1 sm:text-[11px]">
                                         Updated {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                                     </p>
                                 </div>
@@ -218,13 +218,13 @@ export default function DashboardPage() {
                 </div>
             </section>
 
-            <div className="grid gap-8 xl:grid-cols-[2fr_1fr]">
-                <section className="space-y-6">
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                        <div className="flex items-center justify-between">
+            <div className="grid gap-6 sm:gap-8 xl:grid-cols-[2fr_1fr]">
+                <section className="space-y-4 sm:space-y-6">
+                    <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/80 sm:rounded-3xl sm:p-6">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h2 className="text-lg font-semibold text-slate-900">New arrivals for your shelves</h2>
-                                <p className="text-sm text-slate-500">
+                                <h2 className="text-base font-semibold text-slate-900 sm:text-lg">New arrivals for your shelves</h2>
+                                <p className="mt-1 text-xs text-slate-500 sm:text-sm">
                                     Freshly activated designs curated for trade partners. Shortlist and request quotations instantly.
                                 </p>
                             </div>
@@ -235,17 +235,17 @@ export default function DashboardPage() {
                                 View all
                             </Link>
                         </div>
-                        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        <div className="mt-4 grid gap-3 sm:mt-6 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
                             {recentProducts.map((product) => {
                                 const productLink = route('frontend.catalog.show', { product: product.id });
                                 const thumbnailUrl = getMediaUrl(product.thumbnail);
                                 return (
                                     <article
                                         key={product.id}
-                                        className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md transition hover:-translate-y-1 hover:shadow-xl"
+                                        className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md transition hover:-translate-y-1 hover:shadow-xl sm:rounded-3xl"
                                     >
                                         <Link href={productLink} className="block">
-                                            <div className="relative h-44 w-full overflow-hidden">
+                                            <div className="relative h-32 w-full overflow-hidden sm:h-44">
                                                 {thumbnailUrl ? (
                                                     <>
                                                         <img
@@ -262,42 +262,42 @@ export default function DashboardPage() {
                                                     </>
                                                 ) : (
                                                     <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
-                                                        <span className="text-xs text-white/70">
+                                                        <span className="text-[10px] text-white/70 sm:text-xs">
                                                             {product.catalog ?? 'Signature drop'}
                                                         </span>
-                                                        <span className="mt-2 text-lg font-semibold">
+                                                        <span className="mt-1.5 text-sm font-semibold sm:mt-2 sm:text-lg">
                                                             {product.brand ?? 'Elvee Atelier'}
                                                         </span>
                                                     </div>
                                                 )}
-                                                <div className="absolute left-4 bottom-4 flex flex-col text-white">
-                                                    <span className="text-xs text-white/70">
+                                                <div className="absolute left-3 bottom-3 flex flex-col text-white sm:left-4 sm:bottom-4">
+                                                    <span className="text-[10px] text-white/70 sm:text-xs">
                                                         {product.catalog ?? 'Featured'}
                                                     </span>
-                                                    <span className="text-sm font-semibold">
+                                                    <span className="text-xs font-semibold sm:text-sm">
                                                         {product.brand ?? 'Elvee Atelier'}
                                                     </span>
                                                 </div>
                                             </div>
                                         </Link>
-                                        <div className="space-y-3 p-5">
+                                        <div className="space-y-2 p-3 sm:space-y-3 sm:p-5">
                                             <Link
                                                 href={productLink}
-                                                className="text-base font-semibold text-slate-900 transition hover:text-feather-gold"
+                                                className="text-sm font-semibold text-slate-900 transition hover:text-feather-gold sm:text-base"
                                             >
                                                 {product.name}
                                             </Link>
-                                            <p className="text-xs text-slate-400">SKU {product.sku}</p>
-                                            <div className="flex items-center justify-between">
+                                            <p className="text-[10px] text-slate-400 sm:text-xs">SKU {product.sku}</p>
+                                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                                 <div>
-                                                    <p className="text-xs text-slate-400">Price</p>
-                                                    <p className="text-lg font-semibold text-slate-900">
+                                                    <p className="text-[10px] text-slate-400 sm:text-xs">Price</p>
+                                                    <p className="text-base font-semibold text-slate-900 sm:text-lg">
                                                         {currencyFormatter.format(product.price_total)}
                                                     </p>
                                                 </div>
                                                 <Link
                                                     href={productLink}
-                                                    className="rounded-full bg-elvee-blue px-4 py-2 text-xs font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy"
+                                                    className="inline-flex w-fit items-center justify-center rounded-full bg-elvee-blue px-2.5 py-1.5 text-[10px] font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy active:scale-[0.98] sm:px-4 sm:py-2 sm:text-xs"
                                                 >
                                                     View product
                                                 </Link>
@@ -307,32 +307,32 @@ export default function DashboardPage() {
                                 );
                             })}
                             {recentProducts.length === 0 && (
-                                <div className="col-span-full rounded-3xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+                                <div className="col-span-full rounded-2xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500 sm:rounded-3xl sm:p-8 sm:text-sm">
                                     We are syncing fresh designs for you. Explore catalogues in the meantime.
                                 </div>
                             )}
                         </div>
                     </div>
                 </section>
-                <aside className="space-y-6">
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                        <h2 className="text-lg font-semibold text-slate-900">Curated catalogues</h2>
-                        <p className="text-xs text-slate-400">Tailored for wholesale edits</p>
-                        <div className="mt-4 space-y-3">
+                <aside className="space-y-4 sm:space-y-6">
+                    <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/80 sm:rounded-3xl sm:p-6">
+                        <h2 className="text-base font-semibold text-slate-900 sm:text-lg">Curated catalogues</h2>
+                        <p className="mt-0.5 text-[10px] text-slate-400 sm:text-xs">Tailored for wholesale edits</p>
+                        <div className="mt-3 space-y-2 sm:mt-4 sm:space-y-3">
                             {featuredCatalogs.map((catalog) => (
                                 <Link
                                     key={catalog.id}
                                     href={route('frontend.catalog.index', { catalog: catalog.slug ?? catalog.id })}
-                                    className="flex items-start justify-between rounded-2xl border border-slate-200 p-4 transition hover:border-feather-gold/50 hover:bg-feather-gold/5"
+                                    className="flex items-start justify-between rounded-xl border border-slate-200 p-3 transition hover:border-feather-gold/50 hover:bg-feather-gold/5 sm:rounded-2xl sm:p-4"
                                 >
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-800">{catalog.name}</p>
-                                        <p className="mt-1 text-xs text-slate-500">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-semibold text-slate-800 sm:text-sm">{catalog.name}</p>
+                                        <p className="mt-0.5 text-[10px] text-slate-500 sm:mt-1 sm:text-xs">
                                             {catalog.description
                                                 ? catalog.description.slice(0, 90)
                                                 : 'A focused selection of ready-to-list designs.'}
                                         </p>
-                                        <span className="mt-2 inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-500">
+                                        <span className="mt-1.5 inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 sm:mt-2 sm:px-3 sm:py-1 sm:text-[11px]">
                                             {catalog.products_count} designs
                                         </span>
                                     </div>
@@ -342,14 +342,14 @@ export default function DashboardPage() {
                                         fill="none"
                                         stroke="currentColor"
                                         strokeWidth={1.5}
-                                        className="mt-1 h-4 w-4 text-slate-400"
+                                        className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-slate-400 sm:mt-1 sm:h-4 sm:w-4"
                                     >
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                     </svg>
                                 </Link>
                             ))}
                             {featuredCatalogs.length === 0 && (
-                                <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+                                <p className="rounded-xl border border-dashed border-slate-300 p-3 text-xs text-slate-500 sm:rounded-2xl sm:p-4 sm:text-sm">
                                     Build catalogues in admin to surface curated assortments here.
                                 </p>
                             )}

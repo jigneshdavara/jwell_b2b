@@ -255,31 +255,31 @@ export default function JobworkPage() {
   }
 
   return (
-    <div className="space-y-10">
-        <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-6 sm:space-y-8 lg:space-y-10">
+        <section className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+          <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h1 className="text-3xl font-semibold text-slate-900">
+              <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl lg:text-3xl">
                 Create a production brief
               </h1>
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-1 text-xs text-slate-500 sm:mt-2 sm:text-sm">
                 Share modification requirements for catalogue pieces or submit
                 brand-new concepts. Our production concierge will revert with
                 quotes and timelines.
               </p>
             </div>
-            <div className="flex items-center gap-3 text-sm text-slate-500">
-              <span className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 font-medium text-slate-700">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 sm:gap-3 sm:text-sm">
+              <span className="inline-flex items-center rounded-full border border-slate-200 px-2.5 py-1 font-medium text-slate-700 sm:px-3 sm:py-1">
                 Current requests: {data.jobworks.length}
               </span>
               <Link
                 href="/catalog"
-                className="inline-flex items-center gap-2 rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
+                className="inline-flex items-center gap-1.5 rounded-full bg-elvee-blue px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
               >
                 Browse catalogue
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+                  className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -296,8 +296,8 @@ export default function JobworkPage() {
           </div>
         </section>
 
-        <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-          <div className="flex flex-wrap gap-2">
+        <section className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {submitModes.map((option) => {
               const disabled = !data.prefillProduct && option.value === "catalogue";
 
@@ -307,7 +307,7 @@ export default function JobworkPage() {
                   type="button"
                   onClick={() => !disabled && setMode(option.value)}
                   disabled={disabled}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition sm:px-4 sm:py-2 sm:text-sm ${
                     mode === option.value
                       ? "bg-slate-900 text-white shadow-slate-900/30"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -318,30 +318,30 @@ export default function JobworkPage() {
               );
             })}
           </div>
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-2 text-[10px] text-slate-500 sm:mt-3 sm:text-xs">
             {submitModes.find((option) => option.value === mode)?.helper}
             {!data.prefillProduct && mode === "catalogue" && (
-              <span className="ml-2 font-semibold text-amber-600">
+              <span className="ml-1.5 font-semibold text-amber-600 sm:ml-2">
                 Select a catalogue design first from Browse Catalogue.
               </span>
             )}
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <div className="space-y-4">
+          <form onSubmit={handleSubmit} className="mt-4 space-y-4 sm:mt-6 sm:space-y-6">
+            <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+              <div className="space-y-3 sm:space-y-4">
                 {mode === "catalogue" && data.prefillProduct ? (
-                  <div className="space-y-4 rounded-2xl border border-slate-200 p-4">
+                  <div className="space-y-3 rounded-xl border border-slate-200 p-3 sm:space-y-4 sm:rounded-2xl sm:p-4">
                     <div>
-                      <p className="text-xs text-slate-400">Design selected</p>
-                      <h2 className="mt-1 text-lg font-semibold text-slate-900">
+                      <p className="text-[10px] text-slate-400 sm:text-xs">Design selected</p>
+                      <h2 className="mt-0.5 text-base font-semibold text-slate-900 sm:mt-1 sm:text-lg">
                         {data.prefillProduct.name}
                       </h2>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[10px] text-slate-500 sm:text-xs">
                         SKU {data.prefillProduct.sku}
                       </p>
                     </div>
-                    <div className="grid gap-3 text-sm text-slate-600 md:grid-cols-2">
+                    <div className="grid gap-2 text-xs text-slate-600 sm:gap-3 sm:text-sm md:grid-cols-2">
                       <div>
                         <p className="font-medium text-slate-500">Base value</p>
                         <p className="text-slate-900">
@@ -432,11 +432,11 @@ export default function JobworkPage() {
                     </div>
 
                     {data.prefillProduct.variants.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-slate-600">
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <p className="text-xs font-medium text-slate-600 sm:text-sm">
                           Select variant
                         </p>
-                        <div className="grid gap-2">
+                        <div className="grid gap-1.5 sm:gap-2">
                           {data.prefillProduct.variants.map((variant: any) => {
                             const isSelected =
                               form.product_variant_id === variant.id;
@@ -444,7 +444,7 @@ export default function JobworkPage() {
                             return (
                               <label
                                 key={variant.id}
-                                className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 text-sm transition ${
+                                className={`flex cursor-pointer items-center justify-between rounded-xl border px-3 py-2 text-xs transition sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm ${
                                   isSelected
                                     ? "border-feather-gold bg-feather-gold/10 text-slate-900"
                                     : "border-slate-200 bg-white text-slate-600 hover:border-feather-gold/50"
@@ -474,23 +474,23 @@ export default function JobworkPage() {
                     )}
 
                     {estimatedAmount !== null && (
-                      <div className="rounded-xl bg-slate-900 px-4 py-3 text-sm text-white">
-                        <p className="text-xs text-white/70">Estimated total</p>
-                        <p className="mt-1 text-lg font-semibold">
+                      <div className="rounded-lg bg-slate-900 px-3 py-2 text-xs text-white sm:rounded-xl sm:px-4 sm:py-3 sm:text-sm">
+                        <p className="text-[10px] text-white/70 sm:text-xs">Estimated total</p>
+                        <p className="mt-0.5 text-base font-semibold sm:mt-1 sm:text-lg">
                           ₹ {estimatedAmount.toLocaleString("en-IN")}
                         </p>
-                        <p className="text-xs text-white/70">
+                        <p className="text-[10px] text-white/70 sm:text-xs">
                           Final value subject to labour & offer adjustments.
                         </p>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                  <div className="space-y-3 sm:space-y-4">
+                    <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
                       <span>Reference design summary *</span>
                       <textarea
-                        className="min-h-[120px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
+                        className="min-h-[100px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:min-h-[120px] sm:px-4 sm:py-2.5 sm:text-sm"
                         value={form.reference_design}
                         onChange={(event) =>
                           setForm((prev) => ({
@@ -507,10 +507,10 @@ export default function JobworkPage() {
                       )}
                     </label>
 
-                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                    <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
                       <span>Reference media URLs (one per line)</span>
                       <textarea
-                        className="min-h-[120px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
+                        className="min-h-[100px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:min-h-[120px] sm:px-4 sm:py-2.5 sm:text-sm"
                         value={referenceMediaInput}
                         onChange={(event) =>
                           setReferenceMediaInput(event.target.value)
@@ -526,10 +526,10 @@ export default function JobworkPage() {
                   </div>
                 )}
 
-                <label className="flex flex-col gap-2 text-sm text-slate-600">
+                <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
                   <span>Supply Type</span>
                   <select
-                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
+                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                     value={form.type}
                     onChange={(event) =>
                       setForm((prev) => ({
@@ -547,11 +547,11 @@ export default function JobworkPage() {
                   </select>
                 </label>
 
-                <div className="grid gap-4 md:grid-cols-3">
-                  <label className="flex flex-col gap-2 text-sm text-slate-600">
+                <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
+                  <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
                     <span>Metal *</span>
                     <select
-                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                       value={form.metal_id}
                       onChange={(event) => {
                         const metalId =
@@ -589,10 +589,10 @@ export default function JobworkPage() {
                       </span>
                     )}
                   </label>
-                  <label className="flex flex-col gap-2 text-sm text-slate-600">
+                  <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
                     <span>Purity</span>
                     <select
-                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                       value={form.metal_purity_id}
                       onChange={(event) => {
                         const purityId =
@@ -631,10 +631,10 @@ export default function JobworkPage() {
                       </span>
                     )}
                   </label>
-                  <label className="flex flex-col gap-2 text-sm text-slate-600">
+                  <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
                     <span>Tone</span>
                     <select
-                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                       value={form.metal_tone_id}
                       onChange={(event) => {
                         const toneId =
@@ -666,12 +666,12 @@ export default function JobworkPage() {
                   </label>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="flex flex-col gap-2 text-sm text-slate-600">
+                <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+                  <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
                     <span>Diamond / Stone quality</span>
                     <input
                       type="text"
-                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                       value={form.diamond_quality}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -681,12 +681,12 @@ export default function JobworkPage() {
                       }
                     />
                   </label>
-                  <label className="flex flex-col gap-2 text-sm text-slate-600">
+                  <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
                     <span>Quantity</span>
                     <input
                       type="number"
                       min={1}
-                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                       value={form.quantity}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -703,10 +703,10 @@ export default function JobworkPage() {
                   </label>
                 </div>
 
-                <label className="flex flex-col gap-2 text-sm text-slate-600">
+                <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
                   <span>Special instructions</span>
                   <textarea
-                    className="min-h-[100px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
+                    className="min-h-[80px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:min-h-[100px] sm:px-4 sm:py-2.5 sm:text-sm"
                     value={form.special_instructions}
                     onChange={(event) =>
                       setForm((prev) => ({
@@ -717,12 +717,12 @@ export default function JobworkPage() {
                   />
                 </label>
 
-                <div className="grid gap-4 md:grid-cols-3">
-                  <label className="flex flex-col gap-2 text-sm text-slate-600">
+                <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
+                  <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
                     <span>Delivery deadline</span>
                     <input
                       type="date"
-                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                       value={form.delivery_deadline}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -737,12 +737,12 @@ export default function JobworkPage() {
                       </span>
                     )}
                   </label>
-                  <label className="flex flex-col gap-2 text-sm text-slate-600">
+                  <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
                     <span>Wastage %</span>
                     <input
                       type="number"
                       step="0.01"
-                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                       value={form.wastage_percentage}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -752,12 +752,12 @@ export default function JobworkPage() {
                       }
                     />
                   </label>
-                  <label className="flex flex-col gap-2 text-sm text-slate-600">
+                  <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
                     <span>Manufacturing charge (₹)</span>
                     <input
                       type="number"
                       step="0.01"
-                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5"
+                      className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
                       value={form.manufacturing_charge}
                       onChange={(event) =>
                         setForm((prev) => ({
@@ -770,30 +770,30 @@ export default function JobworkPage() {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-slate-200 p-4">
-                  <h3 className="text-sm font-semibold text-slate-800">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="rounded-xl border border-slate-200 p-3 sm:rounded-2xl sm:p-4">
+                  <h3 className="text-xs font-semibold text-slate-800 sm:text-sm">
                     Active offer playbook
                   </h3>
-                  <ul className="mt-3 space-y-3 text-sm text-slate-600">
+                  <ul className="mt-2 space-y-2 text-xs text-slate-600 sm:mt-3 sm:space-y-3 sm:text-sm">
                     {data.offers.length ? (
                       data.offers.map((offer: any) => (
-                        <li key={offer.code} className="rounded-xl bg-slate-50 p-3">
+                        <li key={offer.code} className="rounded-lg bg-slate-50 p-2.5 sm:rounded-xl sm:p-3">
                           <div className="flex items-center justify-between">
-                            <span className="font-semibold text-slate-800">
+                            <span className="text-xs font-semibold text-slate-800 sm:text-sm">
                               {offer.name}
                             </span>
-                            <span className="text-xs text-slate-500">
+                            <span className="text-[10px] text-slate-500 sm:text-xs">
                               {offer.code}
                             </span>
                           </div>
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className="mt-0.5 text-[10px] text-slate-500 sm:mt-1 sm:text-xs">
                             {offer.description}
                           </p>
                         </li>
                       ))
                     ) : (
-                      <li className="text-xs text-slate-500">
+                      <li className="text-[10px] text-slate-500 sm:text-xs">
                         No active offers configured.
                       </li>
                     )}
@@ -801,13 +801,13 @@ export default function JobworkPage() {
                 </div>
 
                 {data.prefillProduct && data.prefillProduct.media.length > 0 && (
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-2 sm:gap-3 md:grid-cols-2">
                     {data.prefillProduct.media.map((media: any) => (
                       <img
                         key={media.url}
                         src={media.url}
                         alt={media.alt}
-                        className="h-36 w-full rounded-2xl object-cover shadow"
+                        className="h-28 w-full rounded-xl object-cover shadow sm:h-36 sm:rounded-2xl"
                       />
                     ))}
                   </div>
@@ -816,7 +816,7 @@ export default function JobworkPage() {
                 <button
                   type="submit"
                   disabled={processing}
-                  className="w-full rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-full bg-elvee-blue px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:py-2 sm:text-sm"
                 >
                   {processing ? "Submitting…" : "Submit jobwork request"}
                 </button>
@@ -825,58 +825,58 @@ export default function JobworkPage() {
           </form>
         </section>
 
-        <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">
+        <section className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-sm font-semibold text-slate-900 sm:text-base lg:text-lg">
               Recent jobwork briefs
             </h2>
-            <span className="text-xs text-slate-500">
+            <span className="text-[10px] text-slate-500 sm:text-xs">
               Showing latest {data.jobworks.length}
             </span>
           </div>
 
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
+          <div className="mt-3 overflow-x-auto sm:mt-4">
+            <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
+              <thead className="bg-slate-50 text-[10px] font-semibold text-slate-500 sm:text-xs">
                 <tr>
-                  <th className="px-4 py-3 text-left">Reference</th>
-                  <th className="px-4 py-3 text-left">Design</th>
-                  <th className="px-4 py-3 text-left">Mode</th>
-                  <th className="px-4 py-3 text-left">Qty</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Delivery</th>
-                  <th className="px-4 py-3 text-left">Created</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Reference</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Design</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Mode</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Qty</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Status</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Delivery</th>
+                  <th className="px-2 py-2 text-left sm:px-4 sm:py-3">Created</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {data.jobworks.map((jobwork: any) => (
                   <tr key={jobwork.id}>
-                    <td className="px-4 py-3 font-semibold text-slate-800">
+                    <td className="px-2 py-2 font-semibold text-slate-800 sm:px-4 sm:py-3">
                       {jobwork.reference}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-2 py-2 text-slate-600 sm:px-4 sm:py-3">
                       {jobwork.product ?? "Custom"}
                       {jobwork.variant ? (
-                        <span className="block text-xs text-slate-400">
+                        <span className="block text-[10px] text-slate-400 sm:text-xs">
                           {jobwork.variant}
                         </span>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3 capitalize text-slate-500">
+                    <td className="px-2 py-2 capitalize text-slate-500 sm:px-4 sm:py-3">
                       {jobwork.submission_mode}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-2 py-2 text-slate-600 sm:px-4 sm:py-3">
                       {jobwork.quantity}
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <td className="px-2 py-2 sm:px-4 sm:py-3">
+                      <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 sm:px-3 sm:py-1 sm:text-xs">
                         {jobwork.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-500">
+                    <td className="px-2 py-2 text-slate-500 sm:px-4 sm:py-3">
                       {jobwork.delivery_deadline ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-slate-500">
+                    <td className="px-2 py-2 text-slate-500 sm:px-4 sm:py-3">
                       {jobwork.created_at}
                     </td>
                   </tr>
@@ -885,7 +885,7 @@ export default function JobworkPage() {
                   <tr>
                     <td
                       colSpan={7}
-                      className="px-4 py-6 text-center text-sm text-slate-500"
+                      className="px-2 py-4 text-center text-xs text-slate-500 sm:px-4 sm:py-6 sm:text-sm"
                     >
                       No jobwork requests yet. Submit your first brief above.
                     </td>

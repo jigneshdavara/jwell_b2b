@@ -329,18 +329,18 @@ export default function QuotationDetailPage() {
     return (
         <>
 
-            <div className="space-y-10">
-                <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                    <div className="flex items-center justify-between">
+            <div className="space-y-6 sm:space-y-8 lg:space-y-10">
+                <header className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <h1 className="text-3xl font-semibold text-slate-900">Quotation #{quotation.id}</h1>
-                            <p className="mt-2 text-sm text-slate-500">
+                            <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl lg:text-3xl">Quotation #{quotation.id}</h1>
+                            <p className="mt-1 text-xs text-slate-500 sm:mt-2 sm:text-sm">
                                 View quotation details and manage your response
                             </p>
                         </div>
                         <Link
                             href={route('frontend.quotations.index')}
-                            className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
                         >
                             Back to list
                         </Link>
@@ -349,34 +349,34 @@ export default function QuotationDetailPage() {
 
                 <div className="space-y-6">
                     {/* Invoice Header */}
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                        <div className="grid gap-8 md:grid-cols-3">
+                    <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+                        <div className="grid gap-6 sm:gap-8 md:grid-cols-3">
                             {/* Company Details */}
                             <div>
-                                <h3 className="text-xs font-semibold text-slate-400">From</h3>
-                                <p className="mt-3 text-lg font-semibold text-slate-900">Elvee</p>
-                                <p className="mt-1 text-sm text-slate-600">123 Business Street</p>
-                                <p className="text-sm text-slate-600">Mumbai, Maharashtra 400001</p>
-                                <p className="mt-2 text-sm text-slate-600">Phone: +91 98765 43210</p>
-                                <p className="text-sm text-slate-600">Email: info@elvee.com</p>
-                                <p className="mt-2 text-sm text-slate-600">GSTIN: 27AAAAA0000A1Z5</p>
+                                <h3 className="text-[10px] font-semibold text-slate-400 sm:text-xs">From</h3>
+                                <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">Elvee</p>
+                                <p className="mt-1 text-xs text-slate-600 sm:text-sm">123 Business Street</p>
+                                <p className="text-xs text-slate-600 sm:text-sm">Mumbai, Maharashtra 400001</p>
+                                <p className="mt-1.5 text-xs text-slate-600 sm:mt-2 sm:text-sm">Phone: +91 98765 43210</p>
+                                <p className="text-xs text-slate-600 sm:text-sm">Email: info@elvee.com</p>
+                                <p className="mt-1.5 text-xs text-slate-600 sm:mt-2 sm:text-sm">GSTIN: 27AAAAA0000A1Z5</p>
                             </div>
                             {/* Bill To */}
                             <div>
-                                <h3 className="text-xs font-semibold text-slate-400">Bill To</h3>
-                                <p className="mt-3 text-lg font-semibold text-slate-900">{quotation.user?.name ?? 'Unknown'}</p>
-                                <p className="mt-1 text-sm text-slate-600">{quotation.user?.email ?? '—'}</p>
+                                <h3 className="text-[10px] font-semibold text-slate-400 sm:text-xs">Bill To</h3>
+                                <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">{quotation.user?.name ?? 'Unknown'}</p>
+                                <p className="mt-1 text-xs text-slate-600 sm:text-sm">{quotation.user?.email ?? '—'}</p>
                             </div>
                             {/* Quotation Details */}
-                            <div className="text-right">
-                                <h3 className="text-xs font-semibold text-slate-400">Quotation Details</h3>
-                                <p className="mt-3 text-lg font-semibold text-slate-900">#{quotation.id}</p>
-                                <p className="mt-1 text-sm text-slate-500">
+                            <div className="text-left sm:text-right">
+                                <h3 className="text-[10px] font-semibold text-slate-400 sm:text-xs">Quotation Details</h3>
+                                <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">#{quotation.id}</p>
+                                <p className="mt-1 text-xs text-slate-500 sm:text-sm">
                                     Date: <span className="font-semibold text-slate-900">{formatDate(quotation.created_at)}</span>
                                 </p>
-                                <div className="mt-3 flex justify-end gap-2">
+                                <div className="mt-2 flex justify-start gap-2 sm:mt-3 sm:justify-end">
                                     <span
-                                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold sm:px-3 sm:py-1 sm:text-xs ${
                                             statusBadge[quotation.status] ?? 'bg-slate-200 text-slate-700'
                                         }`}
                                     >
@@ -388,17 +388,17 @@ export default function QuotationDetailPage() {
                     </div>
 
                     {/* Products Table - Invoice Style */}
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                        <h2 className="mb-4 text-lg font-semibold text-slate-900">Items</h2>
+                    <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+                        <h2 className="mb-3 text-base font-semibold text-slate-900 sm:mb-4 sm:text-lg">Items</h2>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
+                            <table className="w-full text-xs sm:text-sm">
                                 <thead className="border-b-2 border-slate-200 bg-slate-50">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Item</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Unit Price</th>
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Qty</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Total</th>
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Actions</th>
+                                        <th className="px-2 py-2 text-left text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Item</th>
+                                        <th className="px-2 py-2 text-right text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Unit Price</th>
+                                        <th className="px-2 py-2 text-center text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Qty</th>
+                                        <th className="px-2 py-2 text-right text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Total</th>
+                                        <th className="px-2 py-2 text-center text-[10px] font-semibold text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -411,30 +411,30 @@ export default function QuotationDetailPage() {
                                         const lineTotal = unitPrice * (Number(item.quantity) || 0);
                                         return (
                                             <tr key={item.id} className="hover:bg-slate-50/50 transition">
-                                                <td className="px-4 py-4">
-                                                    <div className="flex items-center gap-3">
+                                                <td className="px-2 py-3 sm:px-4 sm:py-4">
+                                                    <div className="flex items-center gap-2 sm:gap-3">
                                                         {item.product.media?.[0] && (
                                                             <img
                                                                 src={item.product.media[0].url}
                                                                 alt={item.product.media[0].alt}
-                                                                className="h-12 w-12 rounded-lg object-cover shadow-sm"
+                                                                className="h-10 w-10 flex-shrink-0 rounded-lg object-cover shadow-sm sm:h-12 sm:w-12"
                                                             />
                                                         )}
                                                         <div className="min-w-0 flex-1">
-                                                            <p className="text-sm font-semibold text-slate-900">{item.product.name}</p>
-                                                            <p className="text-xs text-slate-400">SKU {item.product.sku}</p>
+                                                            <p className="text-xs font-semibold text-slate-900 sm:text-sm">{item.product.name}</p>
+                                                            <p className="text-[10px] text-slate-400 sm:text-xs">SKU {item.product.sku}</p>
                                                             {item.variant && (
-                                                                <p className="mt-0.5 text-xs font-medium text-slate-500">{item.variant.label}</p>
+                                                                <p className="mt-0.5 text-[10px] font-medium text-slate-500 sm:text-xs">{item.variant.label}</p>
                                                             )}
                                                             {item.notes && (
-                                                                <p className="mt-1 text-xs text-slate-500 italic">Note: {item.notes}</p>
+                                                                <p className="mt-1 text-[10px] text-slate-500 italic sm:text-xs">Note: {item.notes}</p>
                                                             )}
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-4 text-right">
-                                                    <div className="text-sm font-semibold text-slate-900">{currencyFormatter.format(unitPrice)}</div>
-                                                    <div className="text-xs text-slate-400">
+                                                <td className="px-2 py-3 text-right sm:px-4 sm:py-4">
+                                                    <div className="text-xs font-semibold text-slate-900 sm:text-sm">{currencyFormatter.format(unitPrice)}</div>
+                                                    <div className="text-[10px] text-slate-400 sm:text-xs">
                                                         {metalCost > 0 && `Metal: ${currencyFormatter.format(metalCost)}`}
                                                         {metalCost > 0 && (diamondCost > 0 || makingCharge > 0) && ' + '}
                                                         {diamondCost > 0 && `Diamond: ${currencyFormatter.format(diamondCost)}`}
@@ -442,21 +442,21 @@ export default function QuotationDetailPage() {
                                                         {makingCharge > 0 && `Making: ${currencyFormatter.format(makingCharge)}`}
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-4 text-center">
-                                                    <span className="font-semibold text-slate-900">{item.quantity}</span>
+                                                <td className="px-2 py-3 text-center sm:px-4 sm:py-4">
+                                                    <span className="text-xs font-semibold text-slate-900 sm:text-sm">{item.quantity}</span>
                                                 </td>
-                                                <td className="px-4 py-4 text-right">
-                                                    <div className="text-sm font-semibold text-slate-900">{currencyFormatter.format(lineTotal)}</div>
+                                                <td className="px-2 py-3 text-right sm:px-4 sm:py-4">
+                                                    <div className="text-xs font-semibold text-slate-900 sm:text-sm">{currencyFormatter.format(lineTotal)}</div>
                                                 </td>
-                                                <td className="px-4 py-4">
+                                                <td className="px-2 py-3 sm:px-4 sm:py-4">
                                                     <div className="flex items-center justify-center">
                                                         <button
                                                             type="button"
                                                             onClick={() => setProductDetailsModalOpen(item)}
-                                                            className="inline-flex items-center gap-1 rounded-full border border-elvee-blue/30 px-2.5 py-1.5 text-[10px] font-semibold text-elvee-blue transition hover:border-elvee-blue hover:bg-elvee-blue/5"
+                                                            className="inline-flex items-center gap-0.5 rounded-full border border-elvee-blue/30 px-2 py-1 text-[9px] font-semibold text-elvee-blue transition hover:border-elvee-blue hover:bg-elvee-blue/5 sm:gap-1 sm:px-2.5 sm:py-1.5 sm:text-[10px]"
                                                             title="View product details"
                                                         >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-2.5 w-2.5 sm:h-3 sm:w-3">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                                                             </svg>
                                                         </button>
@@ -492,29 +492,29 @@ export default function QuotationDetailPage() {
                                         return (
                                             <>
                                                 <tr>
-                                                    <td colSpan={3} className="px-4 py-2 text-right text-sm text-slate-600">
+                                                    <td colSpan={3} className="px-2 py-1.5 text-right text-xs text-slate-600 sm:px-4 sm:py-2 sm:text-sm">
                                                         Subtotal
                                                     </td>
-                                                    <td className="px-4 py-2"></td>
-                                                    <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
+                                                    <td className="px-2 py-1.5 sm:px-4 sm:py-2"></td>
+                                                    <td className="px-2 py-1.5 text-right text-xs font-semibold text-slate-900 sm:px-4 sm:py-2 sm:text-sm">
                                                         {currencyFormatter.format(subtotal)}
                                                     </td>
                                                 </tr>
                                                 <tr>
-                                                    <td colSpan={3} className="px-4 py-2 text-right text-sm text-slate-600">
+                                                    <td colSpan={3} className="px-2 py-1.5 text-right text-xs text-slate-600 sm:px-4 sm:py-2 sm:text-sm">
                                                         GST ({taxRate}%)
                                                     </td>
-                                                    <td className="px-4 py-2"></td>
-                                                    <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
+                                                    <td className="px-2 py-1.5 sm:px-4 sm:py-2"></td>
+                                                    <td className="px-2 py-1.5 text-right text-xs font-semibold text-slate-900 sm:px-4 sm:py-2 sm:text-sm">
                                                         {currencyFormatter.format(tax)}
                                                     </td>
                                                 </tr>
                                                 <tr className="border-t-2 border-slate-300">
-                                                    <td colSpan={3} className="px-4 py-3 text-right text-base font-bold text-slate-900">
+                                                    <td colSpan={3} className="px-2 py-2 text-right text-sm font-bold text-slate-900 sm:px-4 sm:py-3 sm:text-base">
                                                         Grand Total
                                                     </td>
-                                                    <td className="px-4 py-3"></td>
-                                                    <td className="px-4 py-3 text-right text-lg font-bold text-slate-900">
+                                                    <td className="px-2 py-2 sm:px-4 sm:py-3"></td>
+                                                    <td className="px-2 py-2 text-right text-base font-bold text-slate-900 sm:px-4 sm:py-3 sm:text-lg">
                                                         {currencyFormatter.format(grandTotal)}
                                                     </td>
                                                 </tr>
@@ -528,37 +528,37 @@ export default function QuotationDetailPage() {
 
                     {/* Customer Confirmation Section */}
                     {quotation.status === 'pending_customer_confirmation' && (
-                        <div className="rounded-3xl border-2 border-amber-400 bg-amber-50 p-6 shadow-xl">
+                        <div className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-4 shadow-xl sm:rounded-3xl sm:p-6">
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                    <h3 className="text-lg font-semibold text-amber-900">Action Required</h3>
-                                    <p className="mt-2 text-sm text-amber-800">
+                                    <h3 className="text-sm font-semibold text-amber-900 sm:text-base lg:text-lg">Action Required</h3>
+                                    <p className="mt-1.5 text-xs text-amber-800 sm:mt-2 sm:text-sm">
                                         The admin has made changes to this quotation. Please review and confirm or decline the updated quotation.
                                     </p>
                                     {quotation.admin_notes && (
-                                        <div className="mt-4 rounded-xl bg-white p-4">
-                                            <p className="text-xs font-semibold text-amber-700">Admin Notes:</p>
-                                            <p className="mt-1 text-sm text-amber-900 whitespace-pre-line">{quotation.admin_notes}</p>
+                                        <div className="mt-3 rounded-lg bg-white p-3 sm:mt-4 sm:rounded-xl sm:p-4">
+                                            <p className="text-[10px] font-semibold text-amber-700 sm:text-xs">Admin Notes:</p>
+                                            <p className="mt-1 text-xs text-amber-900 whitespace-pre-line sm:text-sm">{quotation.admin_notes}</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
-                            <div className="mt-6 flex flex-wrap gap-3">
-                                <form onSubmit={submitConfirm} className="flex-1 min-w-[200px]">
+                            <div className="mt-4 flex flex-col gap-3 sm:mt-6 sm:flex-row sm:flex-wrap">
+                                <form onSubmit={submitConfirm} className="flex-1 min-w-0">
                                     <button
                                         type="submit"
                                         disabled={submitting}
-                                        className="w-full rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/30 transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="w-full rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-emerald-600/30 transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60 sm:px-6 sm:py-3 sm:text-sm"
                                     >
                                         {submitting ? 'Processing...' : 'Approve Changes'}
                                     </button>
                                 </form>
-                                <form onSubmit={submitDecline} className="flex-1 min-w-[200px]">
-                                    <div className="space-y-3">
+                                <form onSubmit={submitDecline} className="flex-1 min-w-0">
+                                    <div className="space-y-2 sm:space-y-3">
                                         <textarea
                                             value={declineNotes}
                                             onChange={(e) => setDeclineNotes(e.target.value)}
-                                            className="w-full rounded-xl border border-amber-300 px-4 py-2 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                                            className="w-full rounded-lg border border-amber-300 px-3 py-2 text-xs focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200 sm:rounded-xl sm:px-4 sm:text-sm"
                                             placeholder="Reason for declining (optional)"
                                             rows={3}
                                             disabled={submitting}
@@ -566,7 +566,7 @@ export default function QuotationDetailPage() {
                                         <button
                                             type="submit"
                                             disabled={submitting}
-                                            className="w-full rounded-full bg-rose-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-600/30 transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
+                                            className="w-full rounded-full bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-rose-600/30 transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60 sm:px-6 sm:py-3 sm:text-sm"
                                         >
                                             {submitting ? 'Processing...' : 'Decline Changes'}
                                         </button>
@@ -576,39 +576,39 @@ export default function QuotationDetailPage() {
                         </div>
                     )}
 
-                    <div className="grid gap-6 lg:grid-cols-2">
-                        <div className="space-y-6">
+                    <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+                        <div className="space-y-4 sm:space-y-6">
                             {quotation.order && (
-                                <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                                    <h2 className="text-lg font-semibold text-slate-900">Linked Order</h2>
-                                    <div className="mt-4 space-y-4">
-                                        <div className="grid gap-4 sm:grid-cols-2">
-                                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                                <p className="text-xs font-semibold text-slate-400">Order Reference</p>
+                                <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+                                    <h2 className="text-base font-semibold text-slate-900 sm:text-lg">Linked Order</h2>
+                                    <div className="mt-3 space-y-3 sm:mt-4 sm:space-y-4">
+                                        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
+                                                <p className="text-[10px] font-semibold text-slate-400 sm:text-xs">Order Reference</p>
                                                 <Link
                                                     href={route('frontend.orders.show', quotation.order!.id)}
-                                                    className="mt-1 text-base font-semibold text-elvee-blue hover:text-feather-gold transition"
+                                                    className="mt-0.5 text-xs font-semibold text-elvee-blue hover:text-feather-gold transition sm:mt-1 sm:text-sm lg:text-base"
                                                 >
                                                     {quotation.order.reference}
                                                 </Link>
                                             </div>
-                                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                                <p className="text-xs font-semibold text-slate-400">Status</p>
-                                                <p className="mt-1 text-base font-semibold text-slate-900">{quotation.order.status.replace(/_/g, ' ')}</p>
+                                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
+                                                <p className="text-[10px] font-semibold text-slate-400 sm:text-xs">Status</p>
+                                                <p className="mt-0.5 text-xs font-semibold text-slate-900 sm:mt-1 sm:text-sm lg:text-base">{quotation.order.status.replace(/_/g, ' ')}</p>
                                             </div>
-                                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 sm:col-span-2">
-                                                <p className="text-xs font-semibold text-slate-400">Total Amount</p>
-                                                <p className="mt-1 text-xl font-semibold text-slate-900">{currencyFormatter.format(quotation.order.total_amount)}</p>
+                                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:col-span-2 sm:rounded-2xl sm:px-4 sm:py-3">
+                                                <p className="text-[10px] font-semibold text-slate-400 sm:text-xs">Total Amount</p>
+                                                <p className="mt-0.5 text-base font-semibold text-slate-900 sm:mt-1 sm:text-lg lg:text-xl">{currencyFormatter.format(quotation.order.total_amount)}</p>
                                             </div>
                                         </div>
                                         {quotation.order?.history?.length ? (
-                                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                                <h3 className="text-xs font-semibold text-slate-400">Status Timeline</h3>
-                                                <div className="mt-3 space-y-2">
+                                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
+                                                <h3 className="text-[10px] font-semibold text-slate-400 sm:text-xs">Status Timeline</h3>
+                                                <div className="mt-2 space-y-1.5 sm:mt-3 sm:space-y-2">
                                                     {quotation.order.history.map((entry) => (
-                                                        <div key={entry.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2">
-                                                            <span className="text-sm font-semibold text-slate-700">{entry.status.replace(/_/g, ' ')}</span>
-                                                            <span className="text-xs text-slate-400">{formatDate(entry.created_at)}</span>
+                                                        <div key={entry.id} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 sm:rounded-xl sm:px-3 sm:py-2">
+                                                            <span className="text-xs font-semibold text-slate-700 sm:text-sm">{entry.status.replace(/_/g, ' ')}</span>
+                                                            <span className="text-[10px] text-slate-400 sm:text-xs">{formatDate(entry.created_at)}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -618,33 +618,33 @@ export default function QuotationDetailPage() {
                                 </div>
                             )}
 
-                            <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                                <h2 className="text-lg font-semibold text-slate-900">Quotation Timeline</h2>
-                                <div className="mt-4 space-y-3">
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+                                <h2 className="text-base font-semibold text-slate-900 sm:text-lg">Quotation Timeline</h2>
+                                <div className="mt-3 space-y-2 sm:mt-4 sm:space-y-3">
+                                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-xs font-semibold text-slate-400">Created</p>
-                                                <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(quotation.created_at)}</p>
+                                                <p className="text-[10px] font-semibold text-slate-400 sm:text-xs">Created</p>
+                                                <p className="mt-0.5 text-xs font-semibold text-slate-900 sm:mt-1 sm:text-sm">{formatDate(quotation.created_at)}</p>
                                             </div>
                                         </div>
                                     </div>
                                     {quotation.approved_at && (
-                                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
                                             <div className="flex items-center justify-between">
                                                 <div>
-                                                    <p className="text-xs font-semibold text-emerald-600">Approved</p>
-                                                    <p className="mt-1 text-sm font-semibold text-emerald-900">{formatDate(quotation.approved_at)}</p>
+                                                    <p className="text-[10px] font-semibold text-emerald-600 sm:text-xs">Approved</p>
+                                                    <p className="mt-0.5 text-xs font-semibold text-emerald-900 sm:mt-1 sm:text-sm">{formatDate(quotation.approved_at)}</p>
                                                 </div>
                                             </div>
                                         </div>
                                     )}
                                     {quotation.updated_at && quotation.updated_at !== quotation.created_at && (
-                                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
                                             <div className="flex items-center justify-between">
                                                 <div>
-                                                    <p className="text-xs font-semibold text-slate-400">Last Updated</p>
-                                                    <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(quotation.updated_at)}</p>
+                                                    <p className="text-[10px] font-semibold text-slate-400 sm:text-xs">Last Updated</p>
+                                                    <p className="mt-0.5 text-xs font-semibold text-slate-900 sm:mt-1 sm:text-sm">{formatDate(quotation.updated_at)}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -654,59 +654,59 @@ export default function QuotationDetailPage() {
 
                         </div>
 
-                        <div className="space-y-6">
+                        <div className="space-y-4 sm:space-y-6">
                             {/* Notes */}
-                            <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                                <h2 className="text-lg font-semibold text-slate-900">Notes</h2>
-                                <div className="mt-4 space-y-4">
+                            <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+                                <h2 className="text-base font-semibold text-slate-900 sm:text-lg">Notes</h2>
+                                <div className="mt-3 space-y-3 sm:mt-4 sm:space-y-4">
                                     {quotation.notes && (
-                                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                            <p className="text-xs font-semibold text-slate-400">Your Notes</p>
-                                            <p className="mt-2 whitespace-pre-line text-sm text-slate-700">{quotation.notes}</p>
+                                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 sm:rounded-2xl sm:p-4">
+                                            <p className="text-[10px] font-semibold text-slate-400 sm:text-xs">Your Notes</p>
+                                            <p className="mt-1.5 whitespace-pre-line text-xs text-slate-700 sm:mt-2 sm:text-sm">{quotation.notes}</p>
                                         </div>
                                     )}
                                     {quotation.admin_notes && (
-                                        <div className="rounded-2xl border border-elvee-blue/30 bg-elvee-blue/5 p-4">
-                                            <p className="text-xs font-semibold text-elvee-blue">Admin Response</p>
-                                            <p className="mt-2 whitespace-pre-line text-sm text-slate-700">{quotation.admin_notes}</p>
+                                        <div className="rounded-xl border border-elvee-blue/30 bg-elvee-blue/5 p-3 sm:rounded-2xl sm:p-4">
+                                            <p className="text-[10px] font-semibold text-elvee-blue sm:text-xs">Admin Response</p>
+                                            <p className="mt-1.5 whitespace-pre-line text-xs text-slate-700 sm:mt-2 sm:text-sm">{quotation.admin_notes}</p>
                                         </div>
                                     )}
                                     {!quotation.notes && !quotation.admin_notes && (
-                                        <p className="text-sm text-slate-400">No notes available</p>
+                                        <p className="text-xs text-slate-400 sm:text-sm">No notes available</p>
                                     )}
                                 </div>
                             </div>
 
                             {/* Conversation */}
-                            <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                                <h2 className="text-lg font-semibold text-slate-900">Conversation</h2>
-                                <div className="mt-4 space-y-3 max-h-96 overflow-y-auto pr-2 text-sm text-slate-600">
+                            <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+                                <h2 className="text-base font-semibold text-slate-900 sm:text-lg">Conversation</h2>
+                                <div className="mt-3 space-y-2 max-h-80 overflow-y-auto pr-1 text-xs text-slate-600 sm:mt-4 sm:space-y-3 sm:max-h-96 sm:pr-2 sm:text-sm">
                                     {quotation.messages.length === 0 && (
-                                        <p className="text-xs text-slate-400">No messages yet. Start the conversation below.</p>
+                                        <p className="text-[10px] text-slate-400 sm:text-xs">No messages yet. Start the conversation below.</p>
                                     )}
                                     {quotation.messages.map((message) => (
                                         <div
                                             key={message.id}
-                                            className={`flex flex-col gap-2 rounded-2xl border px-4 py-3 ${
+                                            className={`flex flex-col gap-1.5 rounded-xl border px-3 py-2 sm:gap-2 sm:rounded-2xl sm:px-4 sm:py-3 ${
                                                 message.sender === 'admin'
                                                     ? 'border-elvee-blue/30 bg-elvee-blue/5'
                                                     : 'border-slate-200 bg-slate-50'
                                             }`}
                                         >
-                                            <div className="flex items-center justify-between text-xs text-slate-400">
+                                            <div className="flex items-center justify-between text-[10px] text-slate-400 sm:text-xs">
                                                 <span className="font-semibold">{message.sender === 'admin' ? (message.author ?? 'Admin') : 'You'}</span>
                                                 <span>{formatDate(message.created_at)}</span>
                                             </div>
-                                            <p className="whitespace-pre-line text-sm text-slate-700">{message.message}</p>
+                                            <p className="whitespace-pre-line text-xs text-slate-700 sm:text-sm">{message.message}</p>
                                         </div>
                                     ))}
                                 </div>
                                 {quotation.status !== 'rejected' && (
-                                    <form onSubmit={submitMessage} className="mt-4 space-y-2">
+                                    <form onSubmit={submitMessage} className="mt-3 space-y-2 sm:mt-4">
                                         <textarea
                                             value={message}
                                             onChange={(event) => setMessage(event.target.value)}
-                                            className="w-full min-h-[90px] rounded-2xl border border-slate-200 px-3 py-2 text-sm focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                            className="w-full min-h-[70px] rounded-xl border border-slate-200 px-2.5 py-2 text-xs focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 sm:min-h-[90px] sm:rounded-2xl sm:px-3 sm:text-sm"
                                             placeholder="Share more details or ask a question..."
                                             disabled={submitting}
                                         />
@@ -714,7 +714,7 @@ export default function QuotationDetailPage() {
                                             <button
                                                 type="submit"
                                                 disabled={submitting || !message.trim()}
-                                                className="rounded-full bg-elvee-blue px-4 py-2 text-xs font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
+                                                className="rounded-full bg-elvee-blue px-3 py-1.5 text-[10px] font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:py-2 sm:text-xs"
                                             >
                                                 {submitting ? 'Sending…' : 'Send message'}
                                             </button>
@@ -731,36 +731,36 @@ export default function QuotationDetailPage() {
             {productDetailsModalOpen && (
                 <Modal show={true} onClose={() => setProductDetailsModalOpen(null)} maxWidth="4xl">
                     <div className="flex min-h-0 flex-col">
-                        <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
+                        <div className="flex-shrink-0 border-b border-slate-200 px-3 py-2.5 sm:px-6 sm:py-4">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-slate-900">Product Details</h3>
+                                <h3 className="text-sm font-semibold text-slate-900 sm:text-base lg:text-lg">Product Details</h3>
                                 <button
                                     type="button"
                                     onClick={() => setProductDetailsModalOpen(null)}
                                     className="text-slate-400 hover:text-slate-600"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 sm:h-5 sm:w-5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
-                        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                            <div className="space-y-6">
+                        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
+                            <div className="space-y-4 sm:space-y-6">
                                 {/* Product Image and Basic Info */}
-                                <div className="flex gap-6">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:gap-6">
                                     {productDetailsModalOpen.product.media?.[0] && (
                                         <img
                                             src={productDetailsModalOpen.product.media[0].url}
                                             alt={productDetailsModalOpen.product.media[0].alt}
-                                            className="h-32 w-32 rounded-lg object-cover shadow-lg"
+                                            className="h-24 w-24 flex-shrink-0 rounded-lg object-cover shadow-lg sm:h-32 sm:w-32"
                                         />
                                     )}
                                     <div className="flex-1">
-                                        <h4 className="text-xl font-semibold text-slate-900">{productDetailsModalOpen.product.name}</h4>
-                                        <p className="mt-1 text-sm text-slate-500">SKU: {productDetailsModalOpen.product.sku}</p>
-                                        <div className="mt-3 flex gap-2">
-                                            <span className="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                                        <h4 className="text-sm font-semibold text-slate-900 sm:text-base lg:text-xl">{productDetailsModalOpen.product.name}</h4>
+                                        <p className="mt-0.5 text-[10px] text-slate-500 sm:mt-1 sm:text-xs lg:text-sm">SKU: {productDetailsModalOpen.product.sku}</p>
+                                        <div className="mt-2 flex gap-2 sm:mt-3">
+                                            <span className="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700 sm:px-3 sm:py-1 sm:text-xs">
                                                 Qty: {productDetailsModalOpen.quantity}
                                             </span>
                                         </div>
@@ -768,9 +768,9 @@ export default function QuotationDetailPage() {
                                 </div>
 
                                 {/* Pricing */}
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                    <h5 className="mb-3 text-sm font-semibold text-slate-700">Pricing</h5>
-                                    <div className="space-y-2 text-sm">
+                                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:rounded-2xl sm:p-4">
+                                    <h5 className="mb-2 text-xs font-semibold text-slate-700 sm:mb-3 sm:text-sm">Pricing</h5>
+                                    <div className="space-y-1 text-xs sm:space-y-2 sm:text-sm">
                                         {(() => {
                                             const priceBreakdown = productDetailsModalOpen.price_breakdown || {};
                                             const metalCost = Number(priceBreakdown.metal) || 0;
@@ -798,7 +798,7 @@ export default function QuotationDetailPage() {
                                                             <span className="font-semibold text-slate-900">{currencyFormatter.format(makingCharge)}</span>
                                                         </div>
                                                     )}
-                                                    <div className="border-t border-slate-300 pt-2">
+                                                    <div className="border-t border-slate-300 pt-1.5 sm:pt-2">
                                                         <div className="flex justify-between">
                                                             <span className="font-semibold text-slate-900">Unit Price:</span>
                                                             <span className="font-semibold text-slate-900">
@@ -815,18 +815,18 @@ export default function QuotationDetailPage() {
 
                                 {/* Selected Variant */}
                                 {productDetailsModalOpen.variant && (
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Selected Variant</h5>
-                                        <div className="space-y-2 text-sm">
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:rounded-2xl sm:p-4">
+                                        <h5 className="mb-2 text-xs font-semibold text-slate-700 sm:mb-3 sm:text-sm">Selected Variant</h5>
+                                        <div className="space-y-1 text-xs sm:space-y-2 sm:text-sm">
                                             <div className="flex justify-between">
                                                 <span className="text-slate-600">Label:</span>
                                                 <span className="font-semibold text-slate-900">{productDetailsModalOpen.variant.label}</span>
                                             </div>
                                             {productDetailsModalOpen.variant.metadata && Object.keys(productDetailsModalOpen.variant.metadata).length > 0 && (
-                                                <div className="mt-3 space-y-1">
-                                                    <p className="text-xs font-semibold text-slate-500">Variant Details:</p>
+                                                <div className="mt-2 space-y-0.5 sm:mt-3 sm:space-y-1">
+                                                    <p className="text-[10px] font-semibold text-slate-500 sm:text-xs">Variant Details:</p>
                                                     {Object.entries(productDetailsModalOpen.variant.metadata).map(([key, value]) => (
-                                                        <div key={key} className="flex justify-between text-xs">
+                                                        <div key={key} className="flex justify-between text-[10px] sm:text-xs">
                                                             <span className="text-slate-600">{key.replace(/_/g, ' ')}:</span>
                                                             <span className="font-medium text-slate-900">{String(value)}</span>
                                                         </div>
@@ -840,9 +840,9 @@ export default function QuotationDetailPage() {
 
                                 {/* Notes */}
                                 {productDetailsModalOpen.notes && (
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                        <h5 className="mb-3 text-sm font-semibold text-slate-700">Notes</h5>
-                                        <p className="text-sm text-slate-700 whitespace-pre-line">{productDetailsModalOpen.notes}</p>
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 sm:rounded-2xl sm:p-4">
+                                        <h5 className="mb-2 text-xs font-semibold text-slate-700 sm:mb-3 sm:text-sm">Notes</h5>
+                                        <p className="text-xs text-slate-700 whitespace-pre-line sm:text-sm">{productDetailsModalOpen.notes}</p>
                                     </div>
                                 )}
                             </div>

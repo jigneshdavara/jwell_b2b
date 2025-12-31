@@ -181,20 +181,20 @@ export default function WishlistPage() {
   }
 
   return (
-      <div className="space-y-10">
+      <div className="space-y-6 sm:space-y-8 lg:space-y-10">
 
-        <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <header className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+          <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h1 className="text-3xl font-semibold text-slate-900">Wishlist</h1>
-              <p className="mt-2 text-sm text-slate-500">
+              <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl lg:text-3xl">Wishlist</h1>
+              <p className="mt-1 text-xs text-slate-500 sm:mt-2 sm:text-sm">
                 Keep track of designs you love and move them to the quotation list when you&apos;re ready.
               </p>
             </div>
             {!isEmpty && (
               <Link
                 href={route('frontend.catalog.index')}
-                className="inline-flex items-center gap-2 rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
+                className="inline-flex items-center justify-center gap-1.5 rounded-full bg-elvee-blue px-4 py-1.5 text-xs font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy sm:gap-2 sm:px-5 sm:py-2 sm:text-sm"
               >
                 Browse more products
               </Link>
@@ -202,31 +202,31 @@ export default function WishlistPage() {
           </div>
         </header>
 
-        <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+        <section className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
           {error ? (
-            <div className="flex flex-col items-center justify-center gap-4 py-16 text-sm text-rose-600">
-              <p>{error}</p>
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-xs text-rose-600 sm:gap-4 sm:py-16 sm:text-sm">
+              <p className="text-center">{error}</p>
               <button
                 onClick={loadWishlistData}
-                className="rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
+                className="rounded-full bg-elvee-blue px-4 py-1.5 text-xs font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy sm:px-5 sm:py-2 sm:text-sm"
               >
                 Try again
               </button>
             </div>
           ) : isEmpty ? (
-            <div className="flex flex-col items-center justify-center gap-4 py-16 text-sm text-slate-500">
-              <p>
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-xs text-slate-500 sm:gap-4 sm:py-16 sm:text-sm">
+              <p className="text-center">
                 Your wishlist is empty. Add favourites while browsing the catalogue.
               </p>
               <Link
                 href={route('frontend.catalog.index')}
-                className="rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
+                className="rounded-full bg-elvee-blue px-4 py-1.5 text-xs font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy sm:px-5 sm:py-2 sm:text-sm"
               >
                 Explore catalogue
               </Link>
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:gap-6 lg:grid-cols-3 xl:grid-cols-4">
               {items.map((item) => {
                 const itemId = typeof item.id === 'string' ? parseInt(item.id) : item.id;
                 const productId = typeof item.product_id === 'string' ? parseInt(item.product_id) : item.product_id;
@@ -237,7 +237,7 @@ export default function WishlistPage() {
                 return (
                   <article
                     key={itemId}
-                    className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-lg"
+                    className="group flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-lg sm:rounded-2xl"
                   >
                     <Link
                       href={route('frontend.catalog.show', productId)}
@@ -256,7 +256,7 @@ export default function WishlistPage() {
                             if (parent) {
                               parent.innerHTML = `
                                 <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
-                                  <span class="text-lg font-semibold">${item.name ?? 'Product'}</span>
+                                  <span class="text-sm font-semibold sm:text-lg">${item.name ?? 'Product'}</span>
                                 </div>
                               `;
                             }
@@ -264,36 +264,36 @@ export default function WishlistPage() {
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
-                          <span className="text-lg font-semibold">
+                          <span className="text-sm font-semibold sm:text-lg">
                             {item.name ?? "Product"}
                           </span>
                         </div>
                       )}
                     </Link>
-                    <div className="flex flex-1 flex-col p-4">
+                    <div className="flex flex-1 flex-col p-3 sm:p-4">
                       <div className="flex-1">
                         <Link href={route('frontend.catalog.show', productId)} className="block">
-                          <h3 className="text-base font-semibold text-slate-900 transition hover:text-feather-gold line-clamp-2">
+                          <h3 className="text-sm font-semibold text-slate-900 transition hover:text-feather-gold line-clamp-2 sm:text-base">
                             {item.name}
                           </h3>
                         </Link>
                         {item.variant_label && (
-                          <p className="mt-1 text-xs font-medium text-slate-400">
+                          <p className="mt-0.5 text-[10px] font-medium text-slate-400 sm:mt-1 sm:text-xs">
                             {item.variant_label}
                           </p>
                         )}
                         {item.sku && (
-                          <p className="mt-1 text-xs text-slate-400">
+                          <p className="mt-0.5 text-[10px] text-slate-400 sm:mt-1 sm:text-xs">
                             SKU {item.sku}
                           </p>
                         )}
                       </div>
-                      <div className="mt-4 flex items-center gap-2">
+                      <div className="mt-3 flex items-center gap-1.5 sm:mt-4 sm:gap-2">
                         <button
                           type="button"
                           onClick={() => moveToCart(item)}
                           disabled={isBusy}
-                          className="flex-1 rounded-lg bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-elvee-blue/30 transition hover:bg-navy disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 rounded-lg bg-elvee-blue px-3 py-1.5 text-[10px] font-semibold text-white shadow-sm shadow-elvee-blue/30 transition hover:bg-navy disabled:opacity-50 disabled:cursor-not-allowed sm:px-4 sm:py-2 sm:text-xs lg:text-sm"
                         >
                           {isBusy ? 'Moving...' : 'Move to quotations'}
                         </button>
@@ -301,7 +301,7 @@ export default function WishlistPage() {
                           type="button"
                           onClick={() => removeItem(item)}
                           disabled={isBusy}
-                          className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 disabled:cursor-not-allowed sm:h-10 sm:w-10"
                           aria-label="Remove from wishlist"
                         >
                           <svg
@@ -310,7 +310,7 @@ export default function WishlistPage() {
                             fill="none"
                             stroke="currentColor"
                             strokeWidth={1.5}
-                            className="h-4 w-4"
+                            className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                           >
                             <path
                               strokeLinecap="round"

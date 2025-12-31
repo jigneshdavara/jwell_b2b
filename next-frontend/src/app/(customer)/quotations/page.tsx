@@ -125,8 +125,8 @@ export default function QuotationsPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />
+            <div className="flex items-center justify-center py-12 sm:py-20">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent sm:h-12 sm:w-12" />
             </div>
         );
     }
@@ -134,19 +134,19 @@ export default function QuotationsPage() {
     return (
         <>
 
-            <div className="space-y-10">
+            <div className="space-y-6 sm:space-y-8 lg:space-y-10">
                 <Head title="Quotation requests" />
-                <header className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <header className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
+                    <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                            <h1 className="text-3xl font-semibold text-slate-900">Quotation requests</h1>
-                            <p className="mt-2 text-sm text-slate-500">
+                            <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl lg:text-3xl">Quotation requests</h1>
+                            <p className="mt-1 text-xs text-slate-500 sm:mt-2 sm:text-sm">
                                 Track jewellery purchase and jobwork quotations. We'll notify you as soon as our merchandising desk replies.
                             </p>
                         </div>
                         <Link
                             href={route('frontend.catalog.index')}
-                            className="inline-flex items-center gap-2 rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
+                            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-elvee-blue px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
                         >
                             Browse catalogue
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -156,13 +156,13 @@ export default function QuotationsPage() {
                     </div>
                 </header>
 
-                <section className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                <section className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
                     {quotations.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center space-y-4 py-16 text-sm text-slate-500">
-                            <p>No quotation requests yet.</p>
+                        <div className="flex flex-col items-center justify-center space-y-3 py-12 text-center sm:py-16">
+                            <p className="text-xs text-slate-500 sm:text-sm">No quotation requests yet.</p>
                             <Link
                                 href={route('frontend.catalog.index')}
-                                className="rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy"
+                                className="rounded-full bg-elvee-blue px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy sm:px-4 sm:py-2 sm:text-sm"
                             >
                                 Start a quotation
                             </Link>
@@ -172,13 +172,13 @@ export default function QuotationsPage() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-slate-200">
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Quotation #</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Product</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">SKU</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Status</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Quantity</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600">Date</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600">Actions</th>
+                                        <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Quotation #</th>
+                                        <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Product</th>
+                                        <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 sm:table-cell">SKU</th>
+                                        <th className="px-2 py-2 text-left text-[10px] font-semibold uppercase text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Status</th>
+                                        <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 lg:table-cell">Quantity</th>
+                                        <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 md:table-cell">Date</th>
+                                        <th className="px-2 py-2 text-right text-[10px] font-semibold uppercase text-slate-600 sm:px-4 sm:py-3 sm:text-xs">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -190,56 +190,57 @@ export default function QuotationsPage() {
 
                                         return (
                                             <tr key={quotation.id} className="hover:bg-slate-50">
-                                                <td className="px-4 py-4">
+                                                <td className="px-2 py-3 sm:px-4 sm:py-4">
                                                     <Link
                                                         href={route('frontend.quotations.show', { id: quotation.id })}
-                                                        className="text-sm font-semibold text-elvee-blue hover:text-feather-gold transition"
+                                                        className="text-xs font-semibold text-elvee-blue hover:text-feather-gold transition sm:text-sm"
                                                     >
                                                         #{quotation.id}
                                                     </Link>
                                                 </td>
-                                                <td className="px-4 py-4">
-                                                    <div className="flex items-center gap-3">
+                                                <td className="px-2 py-3 sm:px-4 sm:py-4">
+                                                    <div className="flex items-center gap-2 sm:gap-3">
                                                         {quotation.product.thumbnail && (
                                                             <img
                                                                 src={quotation.product.thumbnail}
                                                                 alt={quotation.product.name}
-                                                                className="h-12 w-12 rounded-lg object-cover"
+                                                                className="h-10 w-10 flex-shrink-0 rounded-lg object-cover sm:h-12 sm:w-12"
                                                                 onError={(e) => {
                                                                     (e.target as HTMLImageElement).style.display = 'none';
                                                                 }}
                                                             />
                                                         )}
-                                                        <div>
-                                                            <p className="text-sm font-semibold text-slate-900">{quotation.product.name}</p>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-xs font-semibold text-slate-900 truncate sm:text-sm">{quotation.product.name}</p>
+                                                            <p className="text-[10px] text-slate-500 sm:hidden">SKU {quotation.product.sku}</p>
                                                             {quotation.products && quotation.products.length > 1 && (
-                                                                <p className="text-xs text-slate-500">+{quotation.products.length - 1} more product{quotation.products.length - 1 !== 1 ? 's' : ''}</p>
+                                                                <p className="mt-0.5 text-[10px] text-slate-500 sm:text-xs">+{quotation.products.length - 1} more product{quotation.products.length - 1 !== 1 ? 's' : ''}</p>
                                                             )}
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-4">
-                                                    <p className="text-sm text-slate-600">{quotation.product.sku}</p>
+                                                <td className="hidden px-4 py-4 sm:table-cell">
+                                                    <p className="text-xs text-slate-600 sm:text-sm">{quotation.product.sku}</p>
                                                 </td>
-                                                <td className="px-4 py-4">
-                                                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusMeta.style}`}>
+                                                <td className="px-2 py-3 sm:px-4 sm:py-4">
+                                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold sm:px-3 sm:py-1 sm:text-xs ${statusMeta.style}`}>
                                                         {statusMeta.label}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-4">
-                                                    <p className="text-sm text-slate-900">{quotation.quantity}</p>
+                                                <td className="hidden px-4 py-4 lg:table-cell">
+                                                    <p className="text-xs text-slate-900 sm:text-sm">{quotation.quantity}</p>
                                                 </td>
-                                                <td className="px-4 py-4">
-                                                    <p className="text-sm text-slate-600">{formatDate(quotation.created_at)}</p>
+                                                <td className="hidden px-4 py-4 md:table-cell">
+                                                    <p className="text-xs text-slate-600 sm:text-sm">{formatDate(quotation.created_at)}</p>
                                                 </td>
-                                                <td className="px-4 py-4">
-                                                    <div className="flex items-center justify-end gap-2">
+                                                <td className="px-2 py-3 sm:px-4 sm:py-4">
+                                                    <div className="flex items-center justify-end gap-1.5 sm:gap-2">
                                                         <Link
                                                             href={route('frontend.quotations.show', { id: quotation.id })}
-                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:border-elvee-blue hover:bg-elvee-blue/5 hover:text-elvee-blue"
+                                                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:border-elvee-blue hover:bg-elvee-blue/5 hover:text-elvee-blue sm:h-8 sm:w-8"
                                                             title="View details"
                                                         >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                             </svg>
@@ -248,10 +249,10 @@ export default function QuotationsPage() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setCancelConfirm({ show: true, quotationId: quotation.id })}
-                                                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-300 text-rose-600 transition hover:border-rose-400 hover:bg-rose-50"
+                                                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-rose-300 text-rose-600 transition hover:border-rose-400 hover:bg-rose-50 sm:h-8 sm:w-8"
                                                                 title="Cancel quotation"
                                                             >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                                 </svg>
                                                             </button>

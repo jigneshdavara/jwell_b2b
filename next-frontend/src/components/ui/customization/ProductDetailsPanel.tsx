@@ -192,13 +192,13 @@ export default function ProductDetailsPanel({
     }, [selectedConfig]);
 
     return (
-        <div className="mt-6 space-y-4">
+        <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
             {/* Tabs */}
             <div className="flex border-b border-[#0E244D]/20">
                 <button
                     type="button"
                     onClick={() => setActiveTab('details')}
-                    className={`px-4 py-2 text-sm font-semibold transition-colors ${
+                    className={`px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                         activeTab === 'details'
                             ? 'text-[#0E244D] border-b-2 border-[#0E244D]'
                             : 'text-gray-500 hover:text-[#0E244D]'
@@ -209,7 +209,7 @@ export default function ProductDetailsPanel({
                 <button
                     type="button"
                     onClick={() => setActiveTab('price')}
-                    className={`px-4 py-2 text-sm font-semibold transition-colors ${
+                    className={`px-3 py-1.5 text-xs font-semibold transition-colors sm:px-4 sm:py-2 sm:text-sm ${
                         activeTab === 'price'
                             ? 'text-[#0E244D] border-b-2 border-[#0E244D]'
                             : 'text-gray-500 hover:text-[#0E244D]'
@@ -221,20 +221,20 @@ export default function ProductDetailsPanel({
 
             {/* Product Details Tab */}
             {activeTab === 'details' && (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                     {/* Metal Details Accordion - All metals in one dropdown with separate portions */}
                     {selectedConfig && (
-                        <div className="rounded-2xl bg-white border border-[#0E244D]/10 shadow-sm overflow-hidden">
+                        <div className="rounded-xl bg-white border border-[#0E244D]/10 shadow-sm overflow-hidden sm:rounded-2xl">
                             <button
                                 type="button"
                                 onClick={() => toggleSection('metal')}
-                                className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-[#F8F5F0]/50 transition-colors"
+                                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[#F8F5F0]/50 transition-colors active:bg-[#F8F5F0]/70 sm:px-6 sm:py-4"
                             >
-                                <h3 className="text-base font-semibold text-[#0E244D]">
+                                <h3 className="text-sm font-semibold text-[#0E244D] sm:text-base">
                                     Metal Details
                                 </h3>
                                 <svg
-                                    className={`w-5 h-5 text-[#0E244D] transition-transform ${
+                                    className={`h-4 w-4 text-[#0E244D] transition-transform sm:h-5 sm:w-5 ${
                                         expandedSections.has('metal') ? 'rotate-180' : ''
                                     }`}
                                     fill="none"
@@ -250,50 +250,50 @@ export default function ProductDetailsPanel({
                                 </svg>
                             </button>
                             {expandedSections.has('metal') && (
-                                <div className="px-6 pb-6 space-y-6">
+                                <div className="px-4 pb-4 space-y-4 sm:px-6 sm:pb-6 sm:space-y-6">
                                     {individualMetalData.length > 0 ? (
                                         individualMetalData.map((metalData, index) => (
                                             <div
                                                 key={metalData.id}
                                                 className={
                                                     index > 0
-                                                        ? 'pt-6 border-t border-gray-200'
+                                                        ? 'pt-4 border-t border-gray-200 sm:pt-6'
                                                         : ''
                                                 }
                                             >
-                                                <h4 className="text-sm font-semibold text-[#0E244D] mb-4">
+                                                <h4 className="text-sm font-semibold text-[#0E244D] mb-3 sm:text-base sm:mb-4">
                                                     {metalData.title}
                                                 </h4>
-                                                <div className="grid grid-cols-2 gap-4">
+                                                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                                                     <div>
-                                                        <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                        <div className="text-xs uppercase tracking-wide text-gray-500 mb-1.5 sm:text-sm sm:mb-2">
                                                             Karatage
                                                         </div>
-                                                        <div className="text-lg font-semibold text-[#0E244D]">
+                                                        <div className="text-sm font-semibold text-[#0E244D] sm:text-base lg:text-lg">
                                                             {metalData.karatage}
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                        <div className="text-xs uppercase tracking-wide text-gray-500 mb-1.5 sm:text-sm sm:mb-2">
                                                             Material Colour
                                                         </div>
-                                                        <div className="text-lg font-semibold text-[#0E244D]">
+                                                        <div className="text-sm font-semibold text-[#0E244D] sm:text-base lg:text-lg">
                                                             {metalData.materialColour}
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                        <div className="text-xs uppercase tracking-wide text-gray-500 mb-1.5 sm:text-sm sm:mb-2">
                                                             Gross Metal Weight
                                                         </div>
-                                                        <div className="text-lg font-semibold text-[#0E244D]">
+                                                        <div className="text-sm font-semibold text-[#0E244D] sm:text-base lg:text-lg">
                                                             {metalData.grossMetalWeight}
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                        <div className="text-xs uppercase tracking-wide text-gray-500 mb-1.5 sm:text-sm sm:mb-2">
                                                             Metal
                                                         </div>
-                                                        <div className="text-lg font-semibold text-[#0E244D]">
+                                                        <div className="text-sm font-semibold text-[#0E244D] sm:text-base lg:text-lg">
                                                             {metalData.metal}
                                                         </div>
                                                     </div>
@@ -301,7 +301,7 @@ export default function ProductDetailsPanel({
                                             </div>
                                         ))
                                     ) : (
-                                        <div className="text-sm text-gray-500">
+                                        <div className="text-sm text-gray-500 sm:text-base">
                                             No metal details available for this configuration.
                                         </div>
                                     )}
@@ -312,17 +312,17 @@ export default function ProductDetailsPanel({
 
                     {/* Diamond Details Accordion */}
                     {selectedConfig && (
-                        <div className="rounded-2xl bg-white border border-[#0E244D]/10 shadow-sm overflow-hidden">
+                        <div className="rounded-xl bg-white border border-[#0E244D]/10 shadow-sm overflow-hidden sm:rounded-2xl">
                             <button
                                 type="button"
                                 onClick={() => toggleSection('diamond')}
-                                className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-[#F8F5F0]/50 transition-colors"
+                                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[#F8F5F0]/50 transition-colors active:bg-[#F8F5F0]/70 sm:px-6 sm:py-4"
                             >
-                                <h3 className="text-base font-semibold text-[#0E244D]">
+                                <h3 className="text-sm font-semibold text-[#0E244D] sm:text-base">
                                     Diamond Details
                                 </h3>
                                 <svg
-                                    className={`w-5 h-5 text-[#0E244D] transition-transform ${
+                                    className={`h-4 w-4 text-[#0E244D] transition-transform sm:h-5 sm:w-5 ${
                                         expandedSections.has('diamond') ? 'rotate-180' : ''
                                     }`}
                                     fill="none"
@@ -338,7 +338,7 @@ export default function ProductDetailsPanel({
                                 </svg>
                             </button>
                             {expandedSections.has('diamond') && (
-                                <div className="px-6 pb-6 space-y-6">
+                                <div className="px-4 pb-4 space-y-4 sm:px-6 sm:pb-6 sm:space-y-6">
                                     {individualDiamondData.length > 0 ? (
                                         <>
                                             {individualDiamondData.map((diamondData, index) => (
@@ -346,40 +346,40 @@ export default function ProductDetailsPanel({
                                                     key={diamondData.id}
                                                     className={
                                                         index > 0
-                                                            ? 'pt-6 border-t border-gray-200'
+                                                            ? 'pt-4 border-t border-gray-200 sm:pt-6'
                                                             : ''
                                                     }
                                                 >
-                                                    <div className="grid grid-cols-2 gap-4">
+                                                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
                                                         <div>
-                                                            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                            <div className="text-xs uppercase tracking-wide text-gray-500 mb-1.5 sm:text-sm sm:mb-2">
                                                                 Diamond Quality
                                                             </div>
-                                                            <div className="text-lg font-semibold text-[#0E244D]">
+                                                            <div className="text-sm font-semibold text-[#0E244D] sm:text-base lg:text-lg">
                                                                 {diamondData.diamondQuality}
                                                             </div>
                                                         </div>
                                                         <div>
-                                                            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                            <div className="text-xs uppercase tracking-wide text-gray-500 mb-1.5 sm:text-sm sm:mb-2">
                                                                 Diamond Shape
                                                             </div>
-                                                            <div className="text-lg font-semibold text-[#0E244D]">
+                                                            <div className="text-sm font-semibold text-[#0E244D] sm:text-base lg:text-lg">
                                                                 {diamondData.diamondShape}
                                                             </div>
                                                         </div>
                                                         <div>
-                                                            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                            <div className="text-xs uppercase tracking-wide text-gray-500 mb-1.5 sm:text-sm sm:mb-2">
                                                                 Carat Weight
                                                             </div>
-                                                            <div className="text-lg font-semibold text-[#0E244D]">
+                                                            <div className="text-sm font-semibold text-[#0E244D] sm:text-base lg:text-lg">
                                                                 {diamondData.caratWeight}
                                                             </div>
                                                         </div>
                                                         <div>
-                                                            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                            <div className="text-xs uppercase tracking-wide text-gray-500 mb-1.5 sm:text-sm sm:mb-2">
                                                                 Number of Diamonds
                                                             </div>
-                                                            <div className="text-lg font-semibold text-[#0E244D]">
+                                                            <div className="text-sm font-semibold text-[#0E244D] sm:text-base lg:text-lg">
                                                                 {diamondData.numberOfDiamonds}
                                                             </div>
                                                         </div>
@@ -387,21 +387,21 @@ export default function ProductDetailsPanel({
                                                 </div>
                                             ))}
                                             {diamondAggregates && individualDiamondData.length > 1 && (
-                                                <div className="pt-6 border-t-2 border-gray-300">
-                                                    <div className="grid grid-cols-2 gap-4">
+                                                <div className="pt-4 border-t-2 border-gray-300 sm:pt-6">
+                                                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
                                                         <div>
-                                                            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                            <div className="text-xs uppercase tracking-wide text-gray-500 mb-1.5 sm:text-sm sm:mb-2">
                                                                 Total Carat Weight
                                                             </div>
-                                                            <div className="text-lg font-semibold text-[#0E244D]">
+                                                            <div className="text-sm font-semibold text-[#0E244D] sm:text-base lg:text-lg">
                                                                 {diamondAggregates.totalCaratWeight}
                                                             </div>
                                                         </div>
                                                         <div>
-                                                            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                                                            <div className="text-xs uppercase tracking-wide text-gray-500 mb-1.5 sm:text-sm sm:mb-2">
                                                                 Total Number of Diamonds
                                                             </div>
-                                                            <div className="text-lg font-semibold text-[#0E244D]">
+                                                            <div className="text-sm font-semibold text-[#0E244D] sm:text-base lg:text-lg">
                                                                 {diamondAggregates.numberOfDiamonds}
                                                             </div>
                                                         </div>
@@ -410,7 +410,7 @@ export default function ProductDetailsPanel({
                                             )}
                                         </>
                                     ) : (
-                                        <div className="text-sm text-gray-500">
+                                        <div className="text-sm text-gray-500 sm:text-base">
                                             No diamond details available for this configuration.
                                         </div>
                                     )}
@@ -420,17 +420,17 @@ export default function ProductDetailsPanel({
                     )}
 
                     {/* General Details Accordion */}
-                    <div className="rounded-2xl bg-white border border-[#0E244D]/10 shadow-sm overflow-hidden">
+                    <div className="rounded-xl bg-white border border-[#0E244D]/10 shadow-sm overflow-hidden sm:rounded-2xl">
                         <button
                             type="button"
                             onClick={() => toggleSection('general')}
-                            className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-[#F8F5F0]/50 transition-colors"
+                            className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[#F8F5F0]/50 transition-colors active:bg-[#F8F5F0]/70 sm:px-6 sm:py-4"
                         >
-                            <h3 className="text-base font-semibold text-[#0E244D]">
+                            <h3 className="text-sm font-semibold text-[#0E244D] sm:text-base">
                                 General Details
                             </h3>
                             <svg
-                                className={`w-5 h-5 text-[#0E244D] transition-transform ${
+                                className={`h-4 w-4 text-[#0E244D] transition-transform sm:h-5 sm:w-5 ${
                                     expandedSections.has('general') ? 'rotate-180' : ''
                                 }`}
                                 fill="none"
@@ -446,8 +446,8 @@ export default function ProductDetailsPanel({
                             </svg>
                         </button>
                         {expandedSections.has('general') && (
-                            <div className="px-6 pb-6">
-                                <div className="text-sm text-gray-600">
+                            <div className="px-4 pb-4 sm:px-6 sm:pb-6">
+                                <div className="text-sm text-gray-600 sm:text-base">
                                     General product information will be displayed here.
                                 </div>
                             </div>
@@ -456,17 +456,17 @@ export default function ProductDetailsPanel({
 
                     {/* Description Accordion */}
                     {productDescription && (
-                        <div className="rounded-2xl bg-white border border-[#0E244D]/10 shadow-sm overflow-hidden">
+                        <div className="rounded-xl bg-white border border-[#0E244D]/10 shadow-sm overflow-hidden sm:rounded-2xl">
                             <button
                                 type="button"
                                 onClick={() => toggleSection('description')}
-                                className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-[#F8F5F0]/50 transition-colors"
+                                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[#F8F5F0]/50 transition-colors active:bg-[#F8F5F0]/70 sm:px-6 sm:py-4"
                             >
-                                <h3 className="text-base font-semibold text-[#0E244D]">
+                                <h3 className="text-sm font-semibold text-[#0E244D] sm:text-base">
                                     Description
                                 </h3>
                                 <svg
-                                    className={`w-5 h-5 text-[#0E244D] transition-transform ${
+                                    className={`h-4 w-4 text-[#0E244D] transition-transform sm:h-5 sm:w-5 ${
                                         expandedSections.has('description') ? 'rotate-180' : ''
                                     }`}
                                     fill="none"
@@ -482,9 +482,9 @@ export default function ProductDetailsPanel({
                                 </svg>
                             </button>
                             {expandedSections.has('description') && (
-                                <div className="px-6 pb-6">
+                                <div className="px-4 pb-4 sm:px-6 sm:pb-6">
                                     <div 
-                                        className="text-sm text-gray-700 leading-relaxed"
+                                        className="text-sm text-gray-700 leading-relaxed sm:text-base"
                                         dangerouslySetInnerHTML={{ __html: productDescription || '' }}
                                     />
                                 </div>
@@ -496,39 +496,39 @@ export default function ProductDetailsPanel({
 
             {/* Price Breakup Tab */}
             {activeTab === 'price' && selectedConfig && (
-                <div className="rounded-2xl bg-white border border-[#0E244D]/10 shadow-sm p-6">
-                    <h3 className="text-base font-semibold text-[#0E244D] mb-4">
+                <div className="rounded-xl bg-white border border-[#0E244D]/10 shadow-sm p-4 sm:rounded-2xl sm:p-6">
+                    <h3 className="text-base font-semibold text-[#0E244D] mb-3 sm:text-lg sm:mb-4">
                         Price Breakdown
                     </h3>
-                    <div className="space-y-3">
+                    <div className="space-y-2.5 sm:space-y-3">
                         {selectedConfig.price_breakup.metal > 0 && (
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-600">Metal</span>
-                                <span className="text-sm font-semibold text-[#0E244D]">
+                                <span className="text-sm text-gray-600 sm:text-base">Metal</span>
+                                <span className="text-sm font-semibold text-[#0E244D] sm:text-base">
                                     ₹{selectedConfig.price_breakup.metal.toLocaleString('en-IN')}
                                 </span>
                             </div>
                         )}
                         {selectedConfig.price_breakup.diamond > 0 && (
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-600">Diamond</span>
-                                <span className="text-sm font-semibold text-[#0E244D]">
+                                <span className="text-sm text-gray-600 sm:text-base">Diamond</span>
+                                <span className="text-sm font-semibold text-[#0E244D] sm:text-base">
                                     ₹{selectedConfig.price_breakup.diamond.toLocaleString('en-IN')}
                                 </span>
                             </div>
                         )}
                         <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-600">Making Charge</span>
-                            <span className="text-sm font-semibold text-[#0E244D]">
+                            <span className="text-sm text-gray-600 sm:text-base">Making Charge</span>
+                            <span className="text-sm font-semibold text-[#0E244D] sm:text-base">
                                 ₹{selectedConfig.price_breakup.making.toLocaleString('en-IN')}
                             </span>
                         </div>
-                        <div className="border-t border-gray-200 pt-3 mt-3">
+                        <div className="border-t border-gray-200 pt-2.5 mt-2.5 sm:pt-3 sm:mt-3">
                             <div className="flex justify-between items-center">
-                                <span className="text-base font-semibold text-[#0E244D]">
+                                <span className="text-base font-semibold text-[#0E244D] sm:text-lg">
                                     Total
                                 </span>
-                                <span className="text-lg font-bold text-[#0E244D]">
+                                <span className="text-lg font-bold text-[#0E244D] sm:text-xl">
                                     ₹{selectedConfig.price_total.toLocaleString('en-IN')}
                                 </span>
                             </div>

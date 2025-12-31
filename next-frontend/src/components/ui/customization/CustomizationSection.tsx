@@ -336,12 +336,12 @@ export default function CustomizationSection({
 
     /* ---------- UI ---------- */
     return (
-        <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-[#0E244D]">
+        <div className="w-full space-y-3 sm:space-y-4">
+            <h3 className="text-base font-semibold text-[#0E244D] sm:text-lg">
                 Customization
             </h3>
 
-            <div>
+            <div className="w-full">
                 <select
                     value={metalId === "" ? "" : metalId}
                     onChange={(e) => {
@@ -391,7 +391,7 @@ export default function CustomizationSection({
                             });
                         }
                     }}
-                    className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 ${
+                    className={`w-full rounded-xl border px-3 py-2 text-xs font-medium transition-all focus:outline-none focus:ring-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-sm ${
                         validationErrors?.metal
                             ? "border-rose-300 bg-rose-50 text-rose-700 focus:border-rose-400 focus:ring-rose-400/20"
                             : "border-elvee-blue/20 bg-white text-elvee-blue focus:border-feather-gold focus:ring-feather-gold/20 hover:border-elvee-blue/40"
@@ -522,7 +522,7 @@ export default function CustomizationSection({
                             });
                         }
                     }}
-                    className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 ${
+                    className={`w-full rounded-xl border px-3 py-2 text-xs font-medium transition-all focus:outline-none focus:ring-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-sm ${
                         validationErrors?.purity
                             ? "border-rose-300 bg-rose-50 text-rose-700 focus:border-rose-400 focus:ring-rose-400/20"
                             : "border-elvee-blue/20 bg-white text-elvee-blue focus:border-feather-gold focus:ring-feather-gold/20 hover:border-elvee-blue/40"
@@ -641,7 +641,7 @@ export default function CustomizationSection({
                             });
                         }
                     }}
-                    className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 ${
+                    className={`w-full rounded-xl border px-3 py-2 text-xs font-medium transition-all focus:outline-none focus:ring-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-sm ${
                         validationErrors?.tone
                             ? "border-rose-300 bg-rose-50 text-rose-700 focus:border-rose-400 focus:ring-rose-400/20"
                             : "border-elvee-blue/20 bg-white text-elvee-blue focus:border-feather-gold focus:ring-feather-gold/20 hover:border-elvee-blue/40"
@@ -664,7 +664,7 @@ export default function CustomizationSection({
             </div>
 
             {hasSize && (
-                <div>
+                <div className="w-full">
                     <select
                         value={size}
                         onChange={(e) => {
@@ -769,7 +769,7 @@ export default function CustomizationSection({
                                 });
                             }
                         }}
-                        className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 ${
+                        className={`w-full rounded-xl border px-3 py-2 text-xs font-medium transition-all focus:outline-none focus:ring-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-sm ${
                             validationErrors?.size
                                 ? "border-rose-300 bg-rose-50 text-rose-700 focus:border-rose-400 focus:ring-rose-400/20"
                                 : "border-elvee-blue/20 bg-white text-elvee-blue focus:border-feather-gold focus:ring-feather-gold/20 hover:border-elvee-blue/40"
