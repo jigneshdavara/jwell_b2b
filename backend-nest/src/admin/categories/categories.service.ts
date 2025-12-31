@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    ConflictException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 import * as fs from 'fs';
@@ -130,10 +134,32 @@ export class CategoriesService {
     }
 
     async create(dto: CreateCategoryDto, coverImage?: string) {
+        const parentId = dto.parent_id ? BigInt(dto.parent_id) : null;
+
+        // Check for duplicate category name within the same parent context
+        const existingCategory = await this.prisma.categories.findFirst({
+            where: {
+                name: dto.name,
+                parent_id: parentId,
+            },
+        });
+
+        if (existingCategory) {
+            if (parentId === null) {
+                throw new ConflictException(
+                    'A root category with this name already exists',
+                );
+            } else {
+                throw new ConflictException(
+                    'A category with this name already exists under the selected parent',
+                );
+            }
+        }
+
         await this.prisma.$transaction(async (tx) => {
             const category = await tx.categories.create({
                 data: {
-                    parent_id: dto.parent_id ? BigInt(dto.parent_id) : null,
+                    parent_id: parentId,
                     code: dto.code,
                     name: dto.name,
                     description: dto.description,
@@ -172,6 +198,49 @@ export class CategoriesService {
             where: { id: categoryId },
         });
         if (!category) throw new NotFoundException('Category not found');
+
+        // Determine the parent_id that will be used (either from dto or existing)
+        const newParentId =
+            dto.parent_id !== undefined
+                ? dto.parent_id
+                    ? BigInt(dto.parent_id)
+                    : null
+                : category.parent_id;
+
+        // Check for duplicate category name if name or parent_id is being changed
+        if (dto.name !== undefined || dto.parent_id !== undefined) {
+            const nameToCheck = dto.name ?? category.name;
+            const nameChanged =
+                dto.name !== undefined && dto.name !== category.name;
+            const parentChanged =
+                dto.parent_id !== undefined &&
+                newParentId?.toString() !== category.parent_id?.toString();
+
+            // Only check for duplicates if name or parent changed
+            if (nameChanged || parentChanged) {
+                const existingCategory = await this.prisma.categories.findFirst(
+                    {
+                        where: {
+                            name: nameToCheck,
+                            parent_id: newParentId,
+                            id: { not: categoryId }, // Exclude current category
+                        },
+                    },
+                );
+
+                if (existingCategory) {
+                    if (newParentId === null) {
+                        throw new ConflictException(
+                            'A root category with this name already exists',
+                        );
+                    } else {
+                        throw new ConflictException(
+                            'A category with this name already exists under the selected parent',
+                        );
+                    }
+                }
+            }
+        }
 
         const updateData: {
             parent_id?: bigint | null;

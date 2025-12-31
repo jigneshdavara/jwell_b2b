@@ -49,6 +49,7 @@ export default function AdminCategoriesPage() {
         meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }
     });
     const [currentPage, setCurrentPage] = useState(1);
+    const [fullCategoryTree, setFullCategoryTree] = useState<CategoryTreeNode[]>([]);
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null);
@@ -109,12 +110,27 @@ export default function AdminCategoriesPage() {
         }
     };
 
+    // Convert backend tree format to frontend format
+    const convertTree = (nodes: any[]): CategoryTreeNode[] => {
+        return nodes.map((node: any) => ({
+            id: Number(node.id),
+            name: node.name,
+            parent_id: node.parent_id ? Number(node.parent_id) : null,
+            children: node.children ? convertTree(node.children) : [],
+        }));
+    };
+
     const loadCategories = async () => {
         setLoading(true);
         try {
             const response = await adminService.getCategories(currentPage, perPage);
             const items = response.data.items || response.data.data || [];
             const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
+
+            // Store full category tree from API (contains all categories, not just paginated)
+            if (response.data.categoryTree) {
+                setFullCategoryTree(convertTree(response.data.categoryTree));
+            }
 
             setData({
                 data: items.map((item: any) => ({
@@ -157,8 +173,13 @@ export default function AdminCategoriesPage() {
         setSelectedCategories(prev => prev.includes(id) ? prev.filter(catId => catId !== id) : [...prev, id]);
     };
 
-    // Build category tree from flat list
+    // Use full category tree from API (contains all categories)
+    // Fallback to building from paginated data if API tree not available
     const categoryTree = useMemo(() => {
+        if (fullCategoryTree.length > 0) {
+            return fullCategoryTree;
+        }
+        // Fallback: build tree from paginated data (only shows categories on current page)
         const buildTree = (categories: CategoryRow[], parentId: number | null = null): CategoryTreeNode[] => {
             return categories
                 .filter(cat => cat.parent_id === parentId)
@@ -170,7 +191,7 @@ export default function AdminCategoriesPage() {
                 }));
         };
         return buildTree(data.data);
-    }, [data.data]);
+    }, [fullCategoryTree, data.data]);
 
     // Filter tree to exclude editing category and its descendants
     const availableCategoryTree = useMemo(() => {
