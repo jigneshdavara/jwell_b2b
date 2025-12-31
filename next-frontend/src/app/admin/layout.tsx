@@ -118,7 +118,7 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-100">
+    <div className="flex h-screen overflow-hidden bg-slate-100">
       {/* Overlay for mobile */}
       {sidebarOpen && (
         <div
@@ -130,7 +130,7 @@ export default function AdminLayout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 flex-shrink-0 flex flex-col border-r border-slate-200 bg-white/95 shadow-xl shadow-slate-900/10 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 flex-shrink-0 flex flex-col border-r border-slate-200 bg-white/95 shadow-xl shadow-slate-900/10 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:h-screen ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -173,7 +173,7 @@ export default function AdminLayout({
         </div>
 
         {/* Navigation - scrollable */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-0 space-y-2 text-sm lg:px-4 lg:pb-6 lg:pt-0 lg:space-y-3">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-0 space-y-2 text-sm lg:px-4 lg:pb-6 lg:pt-0 lg:space-y-3 scrollbar-hide">
           {adminNavigation.map((item) => {
             if (item.children) {
               const anyActive = item.children.some((child) => isMatch(child.match));
@@ -267,10 +267,12 @@ export default function AdminLayout({
         </nav>
       </aside>
 
-      <div className="flex w-full flex-col lg:ml-0">
-        <AdminHeader onMenuClick={toggleSidebar} />
+      <div className="flex w-full flex-col lg:ml-0 h-screen overflow-hidden">
+        <div className="flex-shrink-0">
+          <AdminHeader onMenuClick={toggleSidebar} />
+        </div>
         
-        <main className="flex-1 px-0.5 py-4 sm:px-2 sm:py-6 lg:px-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden px-0.5 py-4 sm:px-2 sm:py-6 lg:px-6 scrollbar-hide">
           <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">{children}</div>
         </main>
       </div>

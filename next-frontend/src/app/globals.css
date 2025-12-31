@@ -139,6 +139,43 @@ a:hover {
     scrollbar-width: none;  /* Firefox */
 }
 
+/* Custom Scrollbar Styling */
+.scrollbar-thin {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: rgb(203 213 225) transparent; /* slate-300 */
+}
+
+.scrollbar-thin:hover {
+    scrollbar-color: rgb(148 163 184) transparent; /* slate-400 */
+}
+
+/* Webkit scrollbar (Chrome, Safari, Edge) */
+.scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(203 213 225); /* slate-300 */
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+}
+
+.scrollbar-thin:hover::-webkit-scrollbar-thumb {
+    background-color: rgb(148 163 184); /* slate-400 */
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(148 163 184); /* slate-400 */
+}
+
 /* Responsive Toast Styles */
 @media (max-width: 640px) {
     .Toastify__toast-container {
