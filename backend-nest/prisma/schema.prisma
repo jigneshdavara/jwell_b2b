@@ -412,8 +412,8 @@ model metal_tones {
 
 model metals {
   id                     BigInt                   @id @default(autoincrement())
-  code                   String                   @db.VarChar(191)
-  name                   String                   @db.VarChar(191)
+  code                   String                   @unique(map: "metals_code_unique") @db.VarChar(191)
+  name                   String                   @unique(map: "metals_name_unique") @db.VarChar(191)
   description            String?
   display_order          Int                      @default(0)
   is_active              Boolean                  @default(true)
@@ -423,7 +423,6 @@ model metals {
   metal_tones            metal_tones[]
   product_variant_metals product_variant_metals[]
 
-  @@index([code], map: "metals_code_index")
   @@index([display_order], map: "metals_display_order_index")
 }
 
@@ -713,8 +712,8 @@ model settings {
 
 model sizes {
   id               BigInt             @id @default(autoincrement())
-  code             String?            @db.VarChar(191)
-  name             String             @db.VarChar(191)
+  code             String?            @unique(map: "sizes_code_unique") @db.VarChar(191)
+  name             String             @unique(map: "sizes_name_unique") @db.VarChar(191)
   description      String?
   display_order    Int                @default(0)
   is_active        Boolean            @default(true)
@@ -723,14 +722,13 @@ model sizes {
   category_sizes   category_sizes[]
   product_variants product_variants[]
 
-  @@index([code], map: "sizes_code_index")
   @@index([display_order], map: "sizes_display_order_index")
 }
 
 model styles {
   id              BigInt            @id @default(autoincrement())
-  code            String?           @db.VarChar(191)
-  name            String            @db.VarChar(191)
+  code            String?           @unique(map: "styles_code_unique") @db.VarChar(191)
+  name            String            @unique(map: "styles_name_unique") @db.VarChar(191)
   description     String?
   display_order   Int               @default(0)
   is_active       Boolean           @default(true)
@@ -738,7 +736,6 @@ model styles {
   updated_at      DateTime?         @updatedAt @db.Timestamptz(0)
   category_styles category_styles[]
 
-  @@index([code], map: "styles_code_index")
   @@index([display_order], map: "styles_display_order_index")
 }
 

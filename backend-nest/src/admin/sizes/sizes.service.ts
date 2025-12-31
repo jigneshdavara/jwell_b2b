@@ -1,4 +1,5 @@
 import {
+    ConflictException,
     Injectable,
     NotFoundException,
     BadRequestException,
@@ -49,6 +50,21 @@ export class SizesService {
     }
 
     async create(dto: CreateSizeDto) {
+        const [existingByName, existingByCode] = await Promise.all([
+            this.prisma.sizes.findUnique({
+                where: { name: dto.name },
+            }),
+            this.prisma.sizes.findUnique({
+                where: { code: dto.code },
+            }),
+        ]);
+        if (existingByName) {
+            throw new ConflictException('Size with this name already exists');
+        }
+        if (existingByCode) {
+            throw new ConflictException('Size with this code already exists');
+        }
+
         await this.prisma.sizes.create({
             data: {
                 code: dto.code,
@@ -65,12 +81,29 @@ export class SizesService {
     }
 
     async update(id: number, dto: UpdateSizeDto) {
-        const existing = await this.prisma.sizes.findUnique({
-            where: { id: BigInt(id) },
-        });
-        if (!existing) {
-            throw new NotFoundException('Size not found');
+        const existing = await this.findOne(id);
+
+        if (dto.name && dto.name !== existing.name) {
+            const existingByName = await this.prisma.sizes.findUnique({
+                where: { name: dto.name },
+            });
+            if (existingByName) {
+                throw new ConflictException(
+                    'Size with this name already exists',
+                );
+            }
         }
+        if (dto.code && dto.code !== existing.code) {
+            const existingByCode = await this.prisma.sizes.findUnique({
+                where: { code: dto.code },
+            });
+            if (existingByCode) {
+                throw new ConflictException(
+                    'Size with this code already exists',
+                );
+            }
+        }
+
         await this.prisma.sizes.update({
             where: { id: BigInt(id) },
             data: {

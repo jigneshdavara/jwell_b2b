@@ -2,6 +2,7 @@ import {
     Injectable,
     NotFoundException,
     BadRequestException,
+    ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateStyleDto, UpdateStyleDto } from './dto/style.dto';
@@ -49,6 +50,21 @@ export class StylesService {
     }
 
     async create(dto: CreateStyleDto) {
+        const [existingByName, existingByCode] = await Promise.all([
+            this.prisma.styles.findUnique({
+                where: { name: dto.name },
+            }),
+            this.prisma.styles.findUnique({
+                where: { code: dto.code },
+            }),
+        ]);
+        if (existingByName) {
+            throw new ConflictException('Style with this name already exists');
+        }
+        if (existingByCode) {
+            throw new ConflictException('Style with this code already exists');
+        }
+
         await this.prisma.styles.create({
             data: {
                 code: dto.code,
@@ -65,12 +81,29 @@ export class StylesService {
     }
 
     async update(id: number, dto: UpdateStyleDto) {
-        const existing = await this.prisma.styles.findUnique({
-            where: { id: BigInt(id) },
-        });
-        if (!existing) {
-            throw new NotFoundException('Style not found');
+        const existing = await this.findOne(id);
+
+        if (dto.name && dto.name !== existing.name) {
+            const existingByName = await this.prisma.styles.findUnique({
+                where: { name: dto.name },
+            });
+            if (existingByName) {
+                throw new ConflictException(
+                    'Style with this name already exists',
+                );
+            }
         }
+        if (dto.code && dto.code !== existing.code) {
+            const existingByCode = await this.prisma.styles.findUnique({
+                where: { code: dto.code },
+            });
+            if (existingByCode) {
+                throw new ConflictException(
+                    'Style with this code already exists',
+                );
+            }
+        }
+
         await this.prisma.styles.update({
             where: { id: BigInt(id) },
             data: {
