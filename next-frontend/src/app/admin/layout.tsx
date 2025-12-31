@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { AdminHeader } from "@/components/shared/AdminHeader";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,17 +14,62 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
+  // Collect all match patterns from navigation (memoized since adminNavigation is constant)
+  const allPatterns = useMemo(() => {
+    const patterns: string[] = [];
+    adminNavigation.forEach((item) => {
+      if (item.match) {
+        patterns.push(item.match);
+      }
+      if (item.children) {
+        item.children.forEach((child) => {
+          patterns.push(child.match);
+        });
+      }
+    });
+    return patterns;
+  }, []);
+
+  const isMatch = (pattern: string) => {
+    // Exact match takes priority
+    if (pathname === pattern) {
+      return true;
+    }
+    
+    // For wildcard patterns, check if this is the most specific match
+    if (pattern.endsWith("*")) {
+      const basePath = pattern.slice(0, -1);
+      if (!pathname.startsWith(basePath)) {
+        return false;
+      }
+      
+      // Check if there's a more specific pattern that also matches
+      // (e.g., if we're on /admin/orders/statuses, /admin/orders* should not match
+      // if /admin/orders/statuses* exists and matches)
+      const moreSpecificPattern = allPatterns.find(p => {
+        if (p === pattern) return false; // Don't compare with itself
+        if (p.endsWith("*")) {
+          const pBase = p.slice(0, -1);
+          // More specific means: pBase is longer than basePath and pathname starts with pBase
+          return pBase.length > basePath.length && pBase.startsWith(basePath) && pathname.startsWith(pBase);
+        }
+        // Exact match is always more specific than wildcard
+        return pathname === p;
+      });
+      
+      // Only match if there's no more specific pattern
+      return !moreSpecificPattern;
+    }
+    
+    return false;
+  };
+
   // Initialize with only the active group open (accordion behavior)
   const getInitialOpenGroups = () => {
     const initial: Record<string, boolean> = {};
     adminNavigation.forEach((item) => {
       if (item.children) {
-        const anyActive = item.children.some((child) => {
-          if (child.match.endsWith("*")) {
-            return pathname.startsWith(child.match.slice(0, -1));
-          }
-          return pathname === child.match;
-        });
+        const anyActive = item.children.some((child) => isMatch(child.match));
         // Only set to true if this group has an active child (accordion: only one open)
         initial[item.label] = anyActive;
       }
@@ -39,12 +84,7 @@ export default function AdminLayout({
     const newState: Record<string, boolean> = {};
     adminNavigation.forEach((item) => {
       if (item.children) {
-        const anyActive = item.children.some((child) => {
-          if (child.match.endsWith("*")) {
-            return pathname.startsWith(child.match.slice(0, -1));
-          }
-          return pathname === child.match;
-        });
+        const anyActive = item.children.some((child) => isMatch(child.match));
         // Only open the group that has an active child
         newState[item.label] = anyActive;
       }
@@ -68,13 +108,6 @@ export default function AdminLayout({
       document.body.style.overflow = '';
     };
   }, [sidebarOpen]);
-
-  const isMatch = (pattern: string) => {
-    if (pattern.endsWith("*")) {
-      return pathname.startsWith(pattern.slice(0, -1));
-    }
-    return pathname === pattern;
-  };
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -169,7 +202,7 @@ export default function AdminLayout({
                   <button
                     type="button"
                     onClick={toggleGroup}
-                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.15em] transition sm:rounded-xl sm:px-3 sm:text-[11px] sm:tracking-[0.18em] ${
+                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.15em] transition sm:rounded-xl sm:px-3 sm:text-[11px] sm:tracking-[0.18em] lg:text-[12px] ${
                       isOpen ? 'bg-slate-100 text-slate-700' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
                     }`}
                     aria-expanded={isOpen}
@@ -197,7 +230,7 @@ export default function AdminLayout({
                           key={child.href}
                           href={child.href}
                           onClick={closeSidebar}
-                          className={`ml-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition sm:ml-3 sm:gap-2 sm:rounded-xl sm:px-3 sm:py-2 ${
+                          className={`ml-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition sm:ml-3 sm:gap-2 sm:rounded-xl sm:px-3 sm:py-2 lg:text-[12px] ${
                             isActive
                               ? 'bg-slate-900 text-white shadow shadow-slate-900/20'
                               : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
@@ -220,13 +253,13 @@ export default function AdminLayout({
                 key={item.href}
                 href={item.href}
                 onClick={closeSidebar}
-                className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium transition sm:gap-3 sm:rounded-xl sm:px-3 ${
+                className={`flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium transition sm:gap-3 sm:rounded-xl sm:px-3 lg:text-[12px] ${
                   isActive
                     ? 'bg-slate-900 text-white shadow shadow-slate-900/20'
                     : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
-                <span className="text-sm sm:text-base">{icon}</span>
+                <span className="text-sm sm:text-base lg:text-[12px]">{icon}</span>
                 <span>{item.label}</span>
               </Link>
             );
