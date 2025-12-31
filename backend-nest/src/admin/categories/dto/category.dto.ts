@@ -34,7 +34,20 @@ export class CreateCategoryDto {
 
     @IsBoolean()
     @IsOptional()
-    @Transform(({ value }) => value === 'true' || value === true)
+    @Transform(({ key, obj }) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const rawValue = obj[key];
+
+        if (typeof rawValue === 'string') {
+            return rawValue === 'true';
+        }
+
+        if (typeof rawValue === 'boolean') {
+            return rawValue;
+        }
+
+        return true;
+    })
     is_active?: boolean;
 
     @IsInt()
@@ -102,7 +115,20 @@ export class UpdateCategoryDto {
 
     @IsBoolean()
     @IsOptional()
-    @Transform(({ value }) => value === 'true' || value === true)
+    @Transform(({ key, obj }) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        const rawValue = obj[key];
+
+        if (typeof rawValue === 'string') {
+            return rawValue === 'true';
+        }
+
+        if (typeof rawValue === 'boolean') {
+            return rawValue;
+        }
+
+        return true;
+    })
     is_active?: boolean;
 
     @IsInt()

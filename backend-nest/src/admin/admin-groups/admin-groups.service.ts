@@ -20,16 +20,29 @@ export class AdminGroupsService {
                 skip,
                 take: perPage,
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+                include: {
+                    _count: {
+                        select: {
+                            admins: true,
+                        },
+                    },
+                },
             }),
             this.prisma.admin_groups.count(),
         ]);
 
         return {
-            items: items.map((group) => ({
-                ...group,
-                id: Number(group.id),
-                features: Array.isArray(group.features) ? group.features : [],
-            })),
+            items: items.map((group) => {
+                const { _count, ...groupData } = group;
+                return {
+                    ...groupData,
+                    id: Number(groupData.id),
+                    features: Array.isArray(groupData.features)
+                        ? groupData.features
+                        : [],
+                    admin_count: _count.admins,
+                };
+            }),
             meta: {
                 total,
                 page,

@@ -17,12 +17,25 @@ export class UserGroupsService {
                 skip,
                 take: perPage,
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+                include: {
+                    _count: {
+                        select: {
+                            users: true,
+                        },
+                    },
+                },
             }),
             this.prisma.user_groups.count(),
         ]);
 
         return {
-            items,
+            items: items.map((group) => {
+                const { _count, ...groupData } = group;
+                return {
+                    ...groupData,
+                    user_count: _count.users,
+                };
+            }),
             meta: {
                 total,
                 page,
