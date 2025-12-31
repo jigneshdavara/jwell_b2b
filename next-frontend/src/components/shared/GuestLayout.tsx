@@ -30,7 +30,7 @@ export default function GuestLayout({ children }: { children: React.ReactNode })
                     <div className="absolute -right-10 bottom-10 h-52 w-52 rounded-full bg-warm-gold/20 blur-3xl" />
                 </div>
 
-                <div className="relative z-10 mx-auto flex min-h-[75vh] w-full max-w-6xl flex-col px-6 py-12 lg:px-10 lg:py-16">
+                <div className="relative z-10 mx-auto flex min-h-[75vh] w-full max-w-6xl flex-col px-1 py-8 sm:px-6 sm:py-12 lg:px-10 lg:py-16">
                     <div className="flex-1">{children}</div>
                 </div>
             </div>

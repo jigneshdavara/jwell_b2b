@@ -235,54 +235,54 @@ export default function HomeIndex() {
                     <div className="absolute -right-10 bottom-0 h-64 w-64 rounded-full bg-elvee-blue/10 blur-3xl" />
                 </div>
 
-                <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-16 px-6 pb-24 pt-16 lg:flex-row lg:items-center lg:px-10">
-                    <div className="max-w-2xl space-y-8">
-                        <p className="inline-flex items-center gap-2 rounded-full bg-feather-gold/10 px-4 py-1 text-xs font-semibold tracking-[0.3em] text-feather-gold">
+                <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-8 px-1 pb-12 pt-8 sm:gap-12 sm:px-6 sm:pb-16 sm:pt-12 lg:flex-row lg:items-center lg:gap-16 lg:px-10 lg:pb-24 lg:pt-16">
+                    <div className="max-w-2xl space-y-6 sm:space-y-8">
+                        <p className="inline-flex items-center gap-2 rounded-full bg-feather-gold/10 px-3 py-1 text-[10px] font-semibold tracking-[0.3em] text-feather-gold sm:px-4 sm:text-xs">
                             ELVEE SUITE
                         </p>
-                        <h1 className="text-4xl font-semibold text-elvee-blue sm:text-5xl lg:text-6xl">
+                        <h1 className="text-2xl font-semibold text-elvee-blue sm:text-4xl lg:text-5xl xl:text-6xl">
                             White-glove commerce for luxury retailers & wholesale partners.
                         </h1>
-                        <p className="text-base text-ink/80">
+                        <p className="text-sm text-ink/80 sm:text-base">
                             Present elevated collections, lock live rates, manage jobwork, and keep every retail partner informed without leaving one secure platform.
                         </p>
 
-                        <div className="flex flex-wrap gap-4">
-                            <Link href={route('login')} className="btn-primary gap-2">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
+                            <Link href={route('login')} className="btn-primary gap-2 text-xs sm:text-sm">
                                 <span>Sign in to your workspace</span>
                                 <ArrowRightIcon />
                             </Link>
-                            <Link href={route('register')} className="btn-secondary gap-2">
+                            <Link href={route('register')} className="btn-secondary gap-2 text-xs sm:text-sm">
                                 <SparkIcon />
                                 <span>Request partner access</span>
                             </Link>
                         </div>
 
-                        <div className="grid gap-4 pt-8 sm:grid-cols-2">
+                        <div className="grid gap-3 pt-6 sm:grid-cols-2 sm:gap-4 sm:pt-8">
                             {Object.entries(stats).map(([key, value]) => (
-                                <div key={key} className="rounded-2xl border border-elvee-blue/10 bg-white/80 p-5 shadow-lg shadow-elvee-blue/5">
-                                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/60">{prettifyKey(key)}</p>
-                                    <p className="mt-3 text-3xl font-semibold text-elvee-blue">{formatNumber(value)}</p>
+                                <div key={key} className="rounded-2xl border border-elvee-blue/10 bg-white/80 p-4 shadow-lg shadow-elvee-blue/5 sm:p-5">
+                                    <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-ink/60 sm:text-xs">{prettifyKey(key)}</p>
+                                    <p className="mt-2 text-2xl font-semibold text-elvee-blue sm:mt-3 sm:text-3xl">{formatNumber(value)}</p>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    <div className="w-full max-w-xl space-y-6 rounded-3xl bg-white p-8 shadow-2xl shadow-elvee-blue/10 ring-1 ring-elvee-blue/10">
-                        <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-ink/60">Featured Drops</h2>
-                        <div className="space-y-4">
+                    <div className="w-full max-w-xl space-y-4 rounded-3xl bg-white p-4 shadow-2xl shadow-elvee-blue/10 ring-1 ring-elvee-blue/10 sm:space-y-6 sm:p-6 lg:p-8">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/60 sm:text-sm">Featured Drops</h2>
+                        <div className="space-y-3 sm:space-y-4">
                             {spotlight.map((product) => (
-                                <div key={product.id} className="rounded-2xl border border-elvee-blue/10 bg-ivory/60 p-5 transition hover:border-feather-gold/40 hover:bg-white">
-                                    <div className="flex items-center justify-between gap-4">
-                                        <div>
-                                            <p className="text-base font-semibold text-elvee-blue">{product.name}</p>
-                                            <p className="text-xs uppercase tracking-[0.3em] text-ink/50">
+                                <div key={product.id} className="rounded-2xl border border-elvee-blue/10 bg-ivory/60 p-4 transition hover:border-feather-gold/40 hover:bg-white sm:p-5">
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold text-elvee-blue sm:text-base">{product.name}</p>
+                                            <p className="text-[10px] uppercase tracking-[0.3em] text-ink/50 sm:text-xs">
                                                 {product.brand ?? 'Signature Collection'}
                                             </p>
                                         </div>
-                                        <div className="text-right text-sm text-ink/80">
+                                        <div className="text-left text-xs text-ink/80 sm:text-right sm:text-sm">
                                             <p>{formatCurrency(product.price)}</p>
-                                            <p className="text-xs text-ink/60">
+                                            <p className="text-[10px] text-ink/60 sm:text-xs">
                                                 {(() => {
                                                     const types = product.making_charge_types || [];
                                                     const hasFixed = types.includes('fixed') && product.making_charge_amount && product.making_charge_amount > 0;
@@ -307,55 +307,55 @@ export default function HomeIndex() {
                 </div>
             </section>
 
-            <main className="space-y-24 bg-white/80 py-24">
-                <section className="mx-auto max-w-6xl px-6 lg:px-10" id="solutions">
-                    <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <main className="space-y-12 bg-white/80 py-12 sm:space-y-16 sm:py-16 lg:space-y-24 lg:py-24">
+                <section className="mx-auto max-w-6xl px-1 sm:px-6 lg:px-10" id="solutions">
+                    <div className="mb-6 flex flex-col gap-3 sm:mb-8 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-feather-gold">Who we serve</p>
-                            <h2 className="text-2xl font-semibold text-elvee-blue">Tailored workflows for each partner segment</h2>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-feather-gold sm:text-xs">Who we serve</p>
+                            <h2 className="text-xl font-semibold text-elvee-blue sm:text-2xl">Tailored workflows for each partner segment</h2>
                         </div>
-                        <div className="text-sm text-ink/70 lg:max-w-sm">
+                        <div className="text-xs text-ink/70 sm:text-sm lg:max-w-sm">
                             From retail storefronts to jobworkers, Elvee adapts onboarding, catalogues, and approvals to the way your network operates.
                         </div>
                     </div>
-                    <div className="grid gap-6 lg:grid-cols-3">
+                    <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
                         {personaHighlights.map((persona) => (
                             <div
                                 key={persona.title}
-                                className="rounded-3xl border border-elvee-blue/10 bg-white p-6 shadow-lg shadow-elvee-blue/5 transition hover:-translate-y-1 hover:shadow-2xl"
+                                className="rounded-3xl border border-elvee-blue/10 bg-white p-4 shadow-lg shadow-elvee-blue/5 transition hover:-translate-y-1 hover:shadow-2xl sm:p-6"
                             >
-                                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border border-feather-gold/40 bg-feather-gold/15">
+                                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-feather-gold/40 bg-feather-gold/15 sm:mb-4 sm:h-12 sm:w-12">
                                     {persona.icon}
                                 </div>
-                                <h3 className="text-lg font-semibold text-elvee-blue">{persona.title}</h3>
-                                <p className="mt-2 text-sm text-ink/70">{persona.detail}</p>
+                                <h3 className="text-base font-semibold text-elvee-blue sm:text-lg">{persona.title}</h3>
+                                <p className="mt-2 text-xs text-ink/70 sm:text-sm">{persona.detail}</p>
                             </div>
                         ))}
                     </div>
                 </section>
 
-                <section className="mx-auto max-w-6xl px-6 lg:px-10" id="partners">
-                    <h2 className="text-2xl font-semibold text-elvee-blue">Why partners choose Elvee</h2>
-                    <div className="mt-8 grid gap-6 md:grid-cols-3">
+                <section className="mx-auto max-w-6xl px-1 sm:px-6 lg:px-10" id="partners">
+                    <h2 className="text-xl font-semibold text-elvee-blue sm:text-2xl">Why partners choose Elvee</h2>
+                    <div className="mt-6 grid gap-4 sm:mt-8 sm:gap-6 md:grid-cols-3">
                         {features.map((feature) => (
-                            <div key={feature.title} className="rounded-3xl border border-elvee-blue/10 bg-ivory/60 p-6 shadow-inner shadow-white">
-                                <div className="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-ink/50">
+                            <div key={feature.title} className="rounded-3xl border border-elvee-blue/10 bg-ivory/60 p-4 shadow-inner shadow-white sm:p-6">
+                                <div className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-ink/50 sm:px-3 sm:text-xs">
                                     FEATURE
                                 </div>
-                                <h3 className="mt-4 text-lg font-semibold text-elvee-blue">{feature.title}</h3>
-                                <p className="mt-2 text-sm text-ink/70">{feature.description}</p>
+                                <h3 className="mt-3 text-base font-semibold text-elvee-blue sm:mt-4 sm:text-lg">{feature.title}</h3>
+                                <p className="mt-2 text-xs text-ink/70 sm:text-sm">{feature.description}</p>
                             </div>
                         ))}
                     </div>
                 </section>
 
                 {brands.length > 0 && (
-                    <section className="bg-ivory py-16">
-                        <div className="mx-auto max-w-5xl px-6 text-center lg:px-10">
-                            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-ink/60">Trusted by leading houses</p>
-                            <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-ink/70">
+                    <section className="bg-ivory py-12 sm:py-16">
+                        <div className="mx-auto max-w-5xl px-1 text-center sm:px-6 lg:px-10">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.4em] text-ink/60 sm:text-xs">Trusted by leading houses</p>
+                            <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs font-medium text-ink/70 sm:mt-8 sm:gap-6 sm:text-sm">
                                 {brands.map((brand) => (
-                                    <span key={brand} className="rounded-full border border-elvee-blue/10 bg-white px-5 py-2">
+                                    <span key={brand} className="rounded-full border border-elvee-blue/10 bg-white px-4 py-1.5 sm:px-5 sm:py-2">
                                         {brand}
                                     </span>
                                 ))}
@@ -364,30 +364,30 @@ export default function HomeIndex() {
                     </section>
                 )}
 
-                <section className="mx-auto max-w-6xl px-6 lg:px-10" id="jobwork">
-                    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-elvee-blue via-navy to-slate-900 p-10 text-white shadow-[0_25px_60px_-20px_rgba(10,30,70,0.7)]">
+                <section className="mx-auto max-w-6xl px-1 sm:px-6 lg:px-10" id="jobwork">
+                    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-elvee-blue via-navy to-slate-900 p-6 text-white shadow-[0_25px_60px_-20px_rgba(10,30,70,0.7)] sm:p-8 lg:p-10">
                         <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/2 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.15),_transparent_55%)] blur-3xl lg:block" />
-                        <div className="relative z-10 flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between">
-                            <div className="max-w-xl space-y-4">
-                                <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-feather-gold">
+                        <div className="relative z-10 flex flex-col gap-6 sm:gap-8 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
+                            <div className="max-w-xl space-y-3 sm:space-y-4">
+                                <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-feather-gold sm:px-4 sm:text-xs">
                                     Experience it live
                                 </p>
-                                <h2 className="text-3xl font-semibold leading-tight">
+                                <h2 className="text-xl font-semibold leading-tight sm:text-2xl lg:text-3xl">
                                     Bring retail partners closer with immersive catalogues, bullion controls, and production intelligence.
                                 </h2>
-                                <p className="text-sm text-white/80">
+                                <p className="text-xs text-white/80 sm:text-sm">
                                     From bullion hedging to dispatch updates, Elvee keeps every stakeholder aligned with tasteful, high-trust interfaces.
                                 </p>
-                                <div className="grid gap-4 sm:grid-cols-3">
+                                <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
                                     {[
                                         { label: 'Live demo', value: '5 mins', sub: 'Guided walkthrough' },
                                         { label: 'Avg. onboarding', value: '48 hrs', sub: 'Retail partners' },
                                         { label: 'Support', value: '24/7', sub: 'Concierge desk' },
                                     ].map((metric) => (
-                                        <div key={metric.label} className="rounded-2xl bg-white/5 p-4 text-sm">
-                                            <p className="text-xs uppercase tracking-[0.3em] text-white/70">{metric.label}</p>
-                                            <p className="mt-1 text-2xl font-semibold text-white">{metric.value}</p>
-                                            <p className="text-xs text-white/70">{metric.sub}</p>
+                                        <div key={metric.label} className="rounded-2xl bg-white/5 p-3 text-xs sm:p-4 sm:text-sm">
+                                            <p className="text-[10px] uppercase tracking-[0.3em] text-white/70 sm:text-xs">{metric.label}</p>
+                                            <p className="mt-1 text-xl font-semibold text-white sm:text-2xl">{metric.value}</p>
+                                            <p className="text-[10px] text-white/70 sm:text-xs">{metric.sub}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -395,17 +395,17 @@ export default function HomeIndex() {
                             <div className="flex flex-col gap-3 text-slate-900 lg:min-w-[320px]">
                                 <Link
                                     href={route('login')}
-                                    className="flex items-center justify-between rounded-2xl bg-white/90 px-5 py-3 text-sm font-semibold text-elvee-blue shadow-lg shadow-navy/30 transition hover:bg-white"
+                                    className="flex items-center justify-between rounded-2xl bg-white/90 px-4 py-2.5 text-xs font-semibold text-elvee-blue shadow-lg shadow-navy/30 transition hover:bg-white sm:px-5 sm:py-3 sm:text-sm"
                                 >
                                     <span>Explore the live demo</span>
-                                    <span className="rounded-full bg-elvee-blue px-2 py-1 text-xs text-white">5 min tour</span>
+                                    <span className="rounded-full bg-elvee-blue px-2 py-1 text-[10px] text-white sm:text-xs">5 min tour</span>
                                 </Link>
                                 <a
                                     href="mailto:onboarding@elvee.in"
-                                    className="flex items-center justify-between rounded-2xl border border-white/40 bg-transparent px-5 py-3 text-sm font-semibold text-white transition hover:border-feather-gold hover:text-feather-gold"
+                                    className="flex items-center justify-between rounded-2xl border border-white/40 bg-transparent px-4 py-2.5 text-xs font-semibold text-white transition hover:border-feather-gold hover:text-feather-gold sm:px-5 sm:py-3 sm:text-sm"
                                 >
                                     <span>Talk to our team</span>
-                                    <span className="rounded-full bg-white/10 px-2 py-1 text-xs text-white">Concierge</span>
+                                    <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] text-white sm:text-xs">Concierge</span>
                                 </a>
                             </div>
                         </div>

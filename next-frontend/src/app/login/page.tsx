@@ -201,24 +201,24 @@ export default function Login() {
 
     return (
         <GuestLayout>
-            <div className="mx-auto grid w-full max-w-6xl items-start gap-10 lg:grid-cols-[420px,minmax(0,1fr)]">
-                <aside className="space-y-6 rounded-3xl bg-white/85 p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 backdrop-blur">
-                    <div className="inline-flex items-center gap-2 rounded-full bg-feather-gold/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-feather-gold">
+            <div className="mx-auto grid w-full max-w-6xl items-start gap-6 px-1 sm:gap-8 sm:px-6 lg:grid-cols-[420px,minmax(0,1fr)] lg:gap-10 lg:px-10">
+                <aside className="space-y-4 rounded-3xl bg-white/85 p-4 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 backdrop-blur sm:space-y-6 sm:p-6 lg:p-8">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-feather-gold/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-feather-gold sm:px-4 sm:text-xs">
                         Wholesale & retail access
                     </div>
-                    <div className="space-y-3">
-                        <h1 className="text-3xl font-semibold text-elvee-blue">Welcome back to Elvee</h1>
-                        <p className="text-sm text-ink/80">
+                    <div className="space-y-2 sm:space-y-3">
+                        <h1 className="text-xl font-semibold text-elvee-blue sm:text-2xl lg:text-3xl">Welcome back to Elvee</h1>
+                        <p className="text-xs text-ink/80 sm:text-sm">
                             Collaborate on pricing approvals, bullion locks, and production milestones with one elegant command center.
                         </p>
                     </div>
-                    <ul className="space-y-4">
+                    <ul className="space-y-3 sm:space-y-4">
                         {experienceHighlights.map((item) => (
-                            <li key={item.title} className="flex gap-4 rounded-2xl border border-elvee-blue/10 bg-ivory/70 p-4">
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-feather-gold/40 bg-feather-gold/15">
+                            <li key={item.title} className="flex gap-3 rounded-2xl border border-elvee-blue/10 bg-ivory/70 p-3 sm:gap-4 sm:p-4">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-feather-gold/40 bg-feather-gold/15 sm:h-10 sm:w-10">
                                     {item.icon}
                                 </div>
-                                <div className="space-y-1 text-sm text-ink/80">
+                                <div className="space-y-1 text-xs text-ink/80 sm:text-sm">
                                     <p className="font-semibold text-ink">{item.title}</p>
                                     <p>{item.description}</p>
                                 </div>
@@ -227,12 +227,12 @@ export default function Login() {
                     </ul>
 
                     {status && (
-                        <div className="rounded-2xl border border-feather-gold/30 bg-feather-gold/10 px-4 py-3 text-sm font-medium text-ink">
+                        <div className="rounded-2xl border border-feather-gold/30 bg-feather-gold/10 px-3 py-2 text-xs font-medium text-ink sm:px-4 sm:py-3 sm:text-sm">
                             {status}
                         </div>
                     )}
 
-                    <p className="text-sm text-ink/70">
+                    <p className="text-xs text-ink/70 sm:text-sm">
                         New to Elvee?{' '}
                         <Link href={route('auth.register')} className="font-semibold text-elvee-blue underline decoration-feather-gold decoration-2 underline-offset-4 hover:text-feather-gold">
                             Create an account
@@ -241,20 +241,20 @@ export default function Login() {
                 </aside>
 
                 <div className="space-y-4">
-                    <div className="rounded-3xl bg-white p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10">
-                        <header className="mb-6 space-y-2">
-                            <div className="inline-flex items-center gap-2 rounded-full bg-ivory px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-elvee-blue">
+                    <div className="rounded-3xl bg-white p-4 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 sm:p-6 lg:p-8">
+                        <header className="mb-4 space-y-2 sm:mb-6">
+                            <div className="inline-flex items-center gap-2 rounded-full bg-ivory px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-elvee-blue sm:px-3 sm:text-[11px]">
                                 Secure login
                             </div>
-                            <h2 className="text-2xl font-semibold text-elvee-blue">Access your Elvee workspace</h2>
-                            <p className="text-sm text-ink/70">Choose your preferred authentication path - strong password or verified one-time passcode.</p>
+                            <h2 className="text-xl font-semibold text-elvee-blue sm:text-2xl">Access your Elvee workspace</h2>
+                            <p className="text-xs text-ink/70 sm:text-sm">Choose your preferred authentication path - strong password or verified one-time passcode.</p>
                         </header>
 
-                        <div className="mb-6 flex items-center justify-center rounded-full bg-ivory p-1 text-sm font-medium text-ink/60">
+                        <div className="mb-4 flex items-center justify-center rounded-full bg-ivory p-1 text-xs font-medium text-ink/60 sm:mb-6 sm:text-sm">
                             <button
                                 type="button"
                                 onClick={() => setMode('password')}
-                                className={`flex-1 rounded-full px-4 py-2 transition ${
+                                className={`flex-1 rounded-full px-3 py-1.5 transition sm:px-4 sm:py-2 ${
                                     mode === 'password' ? 'bg-elvee-blue text-white shadow-sm shadow-elvee-blue/40' : 'text-ink/70'
                                 }`}
                             >
@@ -263,7 +263,7 @@ export default function Login() {
                             <button
                                 type="button"
                                 onClick={() => setMode('otp')}
-                                className={`flex-1 rounded-full px-4 py-2 transition ${
+                                className={`flex-1 rounded-full px-3 py-1.5 transition sm:px-4 sm:py-2 ${
                                     mode === 'otp' ? 'bg-elvee-blue text-white shadow-sm shadow-elvee-blue/40' : 'text-ink/70'
                                 }`}
                             >
@@ -272,7 +272,7 @@ export default function Login() {
                         </div>
 
                         {mode === 'password' ? (
-                            <form onSubmit={submitPassword} className="space-y-5">
+                            <form onSubmit={submitPassword} className="space-y-4 sm:space-y-5">
                                 <div>
                                     <InputLabel htmlFor="email" value="Email" />
                                     <TextInput
@@ -302,7 +302,7 @@ export default function Login() {
                                     <InputError message={errors.password} className="mt-2" />
                                 </div>
 
-                                <div className="flex items-center justify-between text-sm">
+                                <div className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:justify-between sm:text-sm">
                                     <label className="flex items-center gap-2 text-ink/70">
                                         <Checkbox
                                             name="remember"
@@ -319,14 +319,14 @@ export default function Login() {
                                     </Link>
                                 </div>
 
-                                <PrimaryButton className="w-full gap-2" disabled={processing}>
+                                <PrimaryButton className="w-full gap-1.5 py-2 text-xs sm:gap-2 sm:py-2.5 sm:text-sm" disabled={processing}>
                                     <span>Log in</span>
                                     <ArrowRightIcon />
                                 </PrimaryButton>
                             </form>
                         ) : (
-                            <div className="space-y-6">
-                                <form onSubmit={submitOtpRequest} className="space-y-4">
+                            <div className="space-y-4 sm:space-y-6">
+                                <form onSubmit={submitOtpRequest} className="space-y-3 sm:space-y-4">
                                     <div>
                                         <InputLabel htmlFor="otp_email" value="Email" />
                                         <TextInput
@@ -341,13 +341,13 @@ export default function Login() {
                                         />
                                         <InputError message={errors.email} className="mt-2" />
                                     </div>
-                                    <PrimaryButton className="w-full gap-2" disabled={processing}>
+                                    <PrimaryButton className="w-full gap-1.5 py-2 text-xs sm:gap-2 sm:py-2.5 sm:text-sm" disabled={processing}>
                                         <span>{otpRequested ? 'Resend code' : 'Send login code'}</span>
                                         <ArrowRightIcon />
                                     </PrimaryButton>
                                 </form>
 
-                                <form onSubmit={submitOtpVerify} className="space-y-4">
+                                <form onSubmit={submitOtpVerify} className="space-y-3 sm:space-y-4">
                                     <div>
                                         <InputLabel htmlFor="otp_code" value="One-time code" />
                                         <TextInput
@@ -363,7 +363,7 @@ export default function Login() {
                                         />
                                         <InputError message={errors.code} className="mt-2" />
                                     </div>
-                                    <PrimaryButton className="w-full gap-2" disabled={processing || !otpRequested}>
+                                    <PrimaryButton className="w-full gap-1.5 py-2 text-xs sm:gap-2 sm:py-2.5 sm:text-sm" disabled={processing || !otpRequested}>
                                         <span>Log in with code</span>
                                         <ArrowRightIcon />
                                     </PrimaryButton>
@@ -371,7 +371,7 @@ export default function Login() {
                             </div>
                         )}
 
-                        <div className="mt-6 text-center text-sm text-ink/70">
+                        <div className="mt-4 text-center text-xs text-ink/70 sm:mt-6 sm:text-sm">
                             {mode === 'password' ? (
                                 <button
                                     type="button"
@@ -392,7 +392,7 @@ export default function Login() {
                         </div>
                     </div>
 
-                    <div className="rounded-2xl border border-dashed border-feather-gold/50 bg-feather-gold/5 px-6 py-4 text-center text-sm text-ink/80">
+                    <div className="rounded-2xl border border-dashed border-feather-gold/50 bg-feather-gold/5 px-4 py-3 text-center text-xs text-ink/80 sm:px-6 sm:py-4 sm:text-sm">
                         Need access for your retail or wholesale team?{' '}
                         <Link href={route('auth.register')} className="font-semibold text-elvee-blue underline decoration-feather-gold decoration-2 underline-offset-4 hover:text-feather-gold">
                             Request onboarding

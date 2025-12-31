@@ -79,8 +79,8 @@ export default function VerifyEmailPage() {
 
     return (
         <GuestLayout>
-            <div className="mx-auto max-w-md space-y-6 rounded-3xl bg-white p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10">
-                <div className="mb-4 text-sm text-slate-600">
+            <div className="mx-auto max-w-md space-y-4 rounded-3xl bg-white p-4 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 sm:space-y-6 sm:p-6 lg:p-8">
+                <div className="mb-4 text-xs text-slate-600 sm:text-sm">
                     Thanks for signing up! Before getting started, could you verify
                     your email address by clicking on the link we just emailed to
                     you? If you didn&apos;t receive the email, we will gladly send you
@@ -89,7 +89,7 @@ export default function VerifyEmailPage() {
 
                 {status && (
                     <div
-                        className={`mb-4 rounded-2xl border px-4 py-3 text-sm font-medium ${
+                        className={`mb-4 rounded-2xl border px-3 py-2 text-xs font-medium sm:px-4 sm:py-3 sm:text-sm ${
                             status.includes('sent') ||
                             status.includes('verified') ||
                             status.includes('success')
@@ -102,15 +102,15 @@ export default function VerifyEmailPage() {
                 )}
 
                 <form onSubmit={handleResend}>
-                    <div className="mt-4 flex items-center justify-between">
-                        <PrimaryButton disabled={processing}>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <PrimaryButton className="w-full sm:w-auto" disabled={processing}>
                             {processing ? 'Sending...' : 'Resend Verification Email'}
                         </PrimaryButton>
 
                         <button
                             type="button"
                             onClick={handleLogout}
-                            className="rounded-md text-sm text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-elvee-blue focus:ring-offset-2"
+                            className="rounded-md text-xs text-slate-600 underline hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-elvee-blue focus:ring-offset-2 sm:text-sm"
                         >
                             Log Out
                         </button>
