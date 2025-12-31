@@ -116,8 +116,8 @@ export default function RegisterPage() {
   };
 
   const renderAccountStep = () => (
-    <div className="space-y-6">
-      <div className="grid gap-5 md:grid-cols-2">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
         <div>
           <InputLabel htmlFor="name" value="Full name" />
           <TextInput
@@ -228,8 +228,8 @@ export default function RegisterPage() {
   );
 
   const renderBusinessStep = () => (
-    <div className="space-y-6">
-      <div className="grid gap-5 md:grid-cols-2">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
         <div>
           <InputLabel htmlFor="business_name" value="Business / store name" />
           <TextInput
@@ -332,7 +332,7 @@ export default function RegisterPage() {
           <InputError message={errors.contact_phone} className="mt-2" />
         </div>
       </div>
-      <p className="text-sm text-ink/70">
+      <p className="text-xs text-ink/70 sm:text-sm">
         Tip: Upload these documents after registration to accelerate compliance
         reviews (GST certificate, PAN, store photographs).
       </p>
@@ -340,8 +340,8 @@ export default function RegisterPage() {
   );
 
   const renderAddressStep = () => (
-    <div className="space-y-6">
-      <div className="grid gap-5 md:grid-cols-2">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
         <div className="md:col-span-2">
           <InputLabel htmlFor="address_line1" value="Address line 1" />
           <TextInput
@@ -421,7 +421,7 @@ export default function RegisterPage() {
           <InputError message={errors.country} className="mt-2" />
         </div>
       </div>
-      <p className="text-sm text-ink/70">
+      <p className="text-xs text-ink/70 sm:text-sm">
         Dispatch-ready partners receive pick-up coordination, insured
         shipments, and concierge updates.
       </p>
@@ -442,36 +442,36 @@ export default function RegisterPage() {
 
   return (
     <GuestLayout>
-      <div className="mx-auto w-full max-w-6xl gap-10 lg:grid lg:grid-cols-[380px,minmax(0,1fr)]">
-        <aside className="mb-8 space-y-6 rounded-3xl bg-white/80 p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 backdrop-blur lg:mb-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-feather-gold">
+      <div className="mx-auto w-full max-w-6xl gap-6 px-1 sm:gap-8 sm:px-6 lg:grid lg:grid-cols-[380px,minmax(0,1fr)] lg:gap-10 lg:px-10">
+        <aside className="mb-6 space-y-4 rounded-3xl bg-white/80 p-4 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 backdrop-blur sm:mb-8 sm:space-y-6 sm:p-6 lg:mb-0 lg:p-8">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-feather-gold sm:text-xs">
             Partner onboarding
           </p>
-          <h1 className="text-3xl font-semibold text-elvee-blue">
+          <h1 className="text-xl font-semibold text-elvee-blue sm:text-2xl lg:text-3xl">
             Let's introduce your jewellery house
           </h1>
-          <p className="text-sm text-ink/80">
+          <p className="text-xs text-ink/80 sm:text-sm">
             Share business credentials and addresses to unlock curated
             catalogues, bullion hedging, and wholesale jobwork in one secure
             space.
           </p>
 
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {steps.map((step, index) => {
               const isCurrent = index === currentStep;
               const isComplete = index < currentStep;
               return (
                 <div
                   key={step.title}
-                  className={`rounded-2xl border p-4 ${
+                  className={`rounded-2xl border p-3 sm:p-4 ${
                     isCurrent
                       ? "border-elvee-blue bg-white shadow-lg shadow-elvee-blue/10"
                       : "border-elvee-blue/15 bg-ivory"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <span
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold ${
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold sm:h-10 sm:w-10 sm:text-sm ${
                         isCurrent
                           ? "border-elvee-blue bg-elvee-blue text-white"
                           : isComplete
@@ -482,10 +482,10 @@ export default function RegisterPage() {
                       {index + 1}
                     </span>
                     <div>
-                      <p className="text-sm font-semibold text-elvee-blue">
+                      <p className="text-xs font-semibold text-elvee-blue sm:text-sm">
                         {step.title}
                       </p>
-                      <p className="text-xs text-ink/70">{step.description}</p>
+                      <p className="text-[10px] text-ink/70 sm:text-xs">{step.description}</p>
                     </div>
                   </div>
                 </div>
@@ -493,11 +493,11 @@ export default function RegisterPage() {
             })}
           </div>
 
-          <div className="space-y-3 rounded-2xl border border-dashed border-feather-gold/60 bg-feather-gold/5 p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-feather-gold">
+          <div className="space-y-2 rounded-2xl border border-dashed border-feather-gold/60 bg-feather-gold/5 p-4 sm:space-y-3 sm:p-5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-feather-gold sm:text-xs">
               Recommended documents
             </p>
-            <ul className="space-y-2 text-sm text-ink/80">
+            <ul className="space-y-1.5 text-xs text-ink/80 sm:space-y-2 sm:text-sm">
               {documentChecklist.map((item) => (
                 <li key={item} className="flex items-start gap-2">
                   <span className="mt-1 h-1.5 w-1.5 rounded-full bg-feather-gold" />
@@ -508,8 +508,8 @@ export default function RegisterPage() {
           </div>
         </aside>
 
-        <section className="space-y-6">
-          <div className="rounded-3xl bg-white/80 p-6 text-sm text-ink/80 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 backdrop-blur">
+        <section className="space-y-4 sm:space-y-6">
+          <div className="rounded-3xl bg-white/80 p-4 text-xs text-ink/80 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 backdrop-blur sm:p-6 sm:text-sm">
             Already registered?{" "}
             <Link
               href="/login"
@@ -521,24 +521,24 @@ export default function RegisterPage() {
 
           <form
             onSubmit={handleSubmit}
-            className="space-y-6 rounded-3xl bg-white p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10"
+            className="space-y-4 rounded-3xl bg-white p-4 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 sm:space-y-6 sm:p-6 lg:p-8"
           >
-            <header className="space-y-4 border-b border-elvee-blue/10 pb-6">
-              <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.35em] text-ink/60">
+            <header className="space-y-3 border-b border-elvee-blue/10 pb-4 sm:space-y-4 sm:pb-6">
+              <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.35em] text-ink/60 sm:gap-3 sm:text-xs">
                 <span>
                   Step {currentStep + 1} of {steps.length}
                 </span>
                 <span className="h-px flex-1 bg-elvee-blue/10" />
               </div>
               <div>
-                <h2 className="text-2xl font-semibold text-elvee-blue">
+                <h2 className="text-xl font-semibold text-elvee-blue sm:text-2xl">
                   {steps[currentStep].title}
                 </h2>
-                <p className="text-sm text-ink/70">
+                <p className="text-xs text-ink/70 sm:text-sm">
                   {steps[currentStep].description}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-3 text-xs font-semibold uppercase tracking-[0.2em]">
+              <div className="flex flex-wrap gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] sm:gap-3 sm:text-xs">
                 {steps.map((step, index) => {
                   const isCurrent = index === currentStep;
                   const isComplete = index < currentStep;
@@ -549,7 +549,7 @@ export default function RegisterPage() {
                       onClick={() =>
                         (isComplete || isCurrent) && goToStep(index)
                       }
-                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 transition ${
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition sm:gap-2 sm:px-4 sm:py-2 ${
                         isCurrent
                           ? "bg-elvee-blue text-white shadow shadow-elvee-blue/30"
                           : isComplete
@@ -559,7 +559,7 @@ export default function RegisterPage() {
                       disabled={!isCurrent && !isComplete}
                     >
                       <span
-                        className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                        className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold sm:h-6 sm:w-6 sm:text-xs ${
                           isCurrent
                             ? "bg-white text-elvee-blue"
                             : isComplete
@@ -569,7 +569,7 @@ export default function RegisterPage() {
                       >
                         {index + 1}
                       </span>
-                      {step.title}
+                      <span className="hidden sm:inline">{step.title}</span>
                     </button>
                   );
                 })}
@@ -578,25 +578,25 @@ export default function RegisterPage() {
 
             {renderStepContent()}
 
-            <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               {currentStep > 0 ? (
                 <button
                   type="button"
                   onClick={() =>
                     setCurrentStep((prev) => Math.max(prev - 1, 0))
                   }
-                  className="inline-flex items-center justify-center rounded-full border border-elvee-blue/30 px-5 py-3 text-sm font-semibold text-elvee-blue transition hover:border-feather-gold/60 hover:text-feather-gold"
+                  className="inline-flex items-center justify-center rounded-full border border-elvee-blue/30 px-4 py-2 text-xs font-semibold text-elvee-blue transition hover:border-feather-gold/60 hover:text-feather-gold sm:px-5 sm:py-3 sm:text-sm"
                 >
                   Back
                 </button>
               ) : (
-                <span className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/60">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-ink/60 sm:text-xs">
                   Start your profile
                 </span>
               )}
 
               <PrimaryButton
-                className="min-w-[200px] gap-2"
+                className="w-full gap-2 sm:min-w-[200px]"
                 disabled={processing}
               >
                 <span>{processing ? "Submitting..." : nextLabel}</span>

@@ -110,31 +110,31 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
     return (
         <footer className={cn('relative w-full overflow-hidden bg-slate-950 text-slate-200', className)}>
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(174,129,53,0.15),_transparent_45%),_radial-gradient(circle_at_bottom_right,_rgba(174,129,53,0.12),_transparent_55%)]" />
-            <div className="relative mx-auto grid w-full gap-10 px-6 py-12 lg:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))] lg:px-10 xl:px-16 2xl:px-24">
-                    <div className="space-y-4">
-                        <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-200">
+            <div className="relative mx-auto grid w-full gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))] lg:gap-10 lg:px-10 lg:py-12 xl:px-16 2xl:px-24">
+                    <div className="space-y-3 sm:space-y-4">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-200 sm:px-3 sm:text-xs">
                             Est. 1998
                         </span>
-                        <h4 className="text-2xl font-semibold text-white">Elvee B2B Jewellery</h4>
-                        <p className="text-sm leading-6 text-slate-300">
+                        <h4 className="text-xl font-semibold text-white sm:text-2xl">Elvee B2B Jewellery</h4>
+                        <p className="text-xs leading-5 text-slate-300 sm:text-sm sm:leading-6">
                             We partner with boutique retailers and private labels across India to craft bespoke fine jewellery,
                             blending responsible sourcing with award-winning design ateliers.
                         </p>
-                        <div className="flex flex-wrap gap-3 text-xs text-slate-400">
-                            <span className="rounded-full border border-white/10 px-3 py-1">Hallmark certified</span>
-                            <span className="rounded-full border border-white/10 px-3 py-1">Conflict-free diamonds</span>
-                            <span className="rounded-full border border-white/10 px-3 py-1">Just-in-time production</span>
+                        <div className="flex flex-wrap gap-2 text-[10px] text-slate-400 sm:gap-3 sm:text-xs">
+                            <span className="rounded-full border border-white/10 px-2.5 py-1 sm:px-3">Hallmark certified</span>
+                            <span className="rounded-full border border-white/10 px-2.5 py-1 sm:px-3">Conflict-free diamonds</span>
+                            <span className="rounded-full border border-white/10 px-2.5 py-1 sm:px-3">Just-in-time production</span>
                         </div>
                     </div>
 
                     <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Quick links</p>
-                        <ul className="mt-4 space-y-3 text-sm text-white">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400 sm:text-xs">Quick links</p>
+                        <ul className="mt-3 space-y-2 text-xs text-white sm:mt-4 sm:space-y-3 sm:text-sm">
                             {quickLinks.map((item) => (
                                 <li key={item.label}>
-                                    <Link href={item.href} className="inline-flex items-center gap-2 text-white transition hover:text-feather-gold">
+                                    <Link href={item.href} className="inline-flex items-center gap-1.5 text-white transition hover:text-feather-gold sm:gap-2">
                                         <span>{item.label}</span>
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 20 20" fill="currentColor">
                                             <path d="M12.293 2.293a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L14 5.414V17a1 1 0 11-2 0V5.414L8.707 7.707A1 1 0 117.293 6.293l4-4z" />
                                         </svg>
                                     </Link>
@@ -144,13 +144,13 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
                     </div>
 
                     <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Client services</p>
-                        <ul className="mt-4 space-y-3 text-sm text-white">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400 sm:text-xs">Client services</p>
+                        <ul className="mt-3 space-y-2 text-xs text-white sm:mt-4 sm:space-y-3 sm:text-sm">
                             {supportLinks.map((item) => (
                                 <li key={item.label}>
-                                    <Link href={item.href} className="inline-flex items-center gap-2 text-white transition hover:text-feather-gold">
+                                    <Link href={item.href} className="inline-flex items-center gap-1.5 text-white transition hover:text-feather-gold sm:gap-2">
                                         <span>{item.label}</span>
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 20 20" fill="currentColor">
                                             <path d="M12.293 2.293a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L14 5.414V17a1 1 0 11-2 0V5.414L8.707 7.707A1 1 0 117.293 6.293l4-4z" />
                                         </svg>
                                     </Link>
@@ -160,24 +160,24 @@ export default function CustomerFooter({ className }: CustomerFooterProps) {
                     </div>
 
                     <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Contact & studio</p>
-                        <ul className="mt-4 space-y-4 text-sm text-white">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400 sm:text-xs">Contact & studio</p>
+                        <ul className="mt-3 space-y-3 text-xs text-white sm:mt-4 sm:space-y-4 sm:text-sm">
                             {companyDetails.map((detail) => (
                                 <li key={detail.label}>
-                                    <a href={detail.href ?? '#'} className="group flex items-center gap-3 text-white transition hover:text-feather-gold">
-                                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-900">
+                                    <a href={detail.href ?? '#'} className="group flex items-center gap-2 text-white transition hover:text-feather-gold sm:gap-3">
+                                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-900 sm:h-8 sm:w-8">
                                             {detail.icon}
                                         </span>
-                                        <span className="text-sm">{detail.value}</span>
+                                        <span className="text-xs sm:text-sm">{detail.value}</span>
                                     </a>
                                 </li>
                             ))}
                         </ul>
                     </div>
                 </div>
-            <div className="relative mx-auto flex w-full flex-col gap-3 border-t border-white/10 px-6 py-6 text-xs text-white sm:flex-row sm:items-center sm:justify-between lg:px-10 xl:px-16 2xl:px-24">
+            <div className="relative mx-auto flex w-full flex-col gap-3 border-t border-white/10 px-4 py-4 text-[10px] text-white sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-6 sm:text-xs lg:px-10 xl:px-16 2xl:px-24">
                 <p>Copyright {currentYear} Elvee Jewellery Pvt. Ltd. All rights reserved.</p>
-                <div className="flex flex-wrap gap-4 text-white">
+                <div className="flex flex-wrap gap-3 text-white sm:gap-4">
                     <Link href="/privacy" className="transition hover:text-feather-gold" style={{ color: '#FFFFFF' }}>
                         Privacy policy
                     </Link>

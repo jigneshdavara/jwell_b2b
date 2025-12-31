@@ -134,37 +134,37 @@ export default function ForgotPasswordPage() {
 
   return (
     <GuestLayout>
-      <div className="mx-auto grid w-full max-w-6xl items-start gap-10 lg:grid-cols-[420px,minmax(0,1fr)]">
-        <aside className="space-y-6 rounded-3xl bg-white/85 p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 backdrop-blur">
-          <div className="inline-flex items-center gap-2 rounded-full bg-feather-gold/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-feather-gold">
+      <div className="mx-auto grid w-full max-w-6xl items-start gap-6 px-1 sm:gap-8 sm:px-6 lg:grid-cols-[420px,minmax(0,1fr)] lg:gap-10 lg:px-10">
+        <aside className="space-y-4 rounded-3xl bg-white/85 p-4 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 backdrop-blur sm:space-y-6 sm:p-6 lg:p-8">
+          <div className="inline-flex items-center gap-2 rounded-full bg-feather-gold/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-feather-gold sm:px-4 sm:text-xs">
             Account recovery
           </div>
-          <div className="space-y-3">
-            <h1 className="text-3xl font-semibold text-elvee-blue">
-              Let’s get you back in
+          <div className="space-y-2 sm:space-y-3">
+            <h1 className="text-xl font-semibold text-elvee-blue sm:text-2xl lg:text-3xl">
+              Let's get you back in
             </h1>
-            <p className="text-sm text-ink/80">
-              Enter the email tied to your Elvee workspace. We’ll send a secure
+            <p className="text-xs text-ink/80 sm:text-sm">
+              Enter the email tied to your Elvee workspace. We'll send a secure
               link so you can set a fresh password.
             </p>
           </div>
-          <ul className="space-y-4">
+          <ul className="space-y-3 sm:space-y-4">
             {recoveryHighlights.map((item) => (
               <li
                 key={item.title}
-                className="flex gap-4 rounded-2xl border border-elvee-blue/10 bg-ivory/70 p-4"
+                className="flex gap-3 rounded-2xl border border-elvee-blue/10 bg-ivory/70 p-3 sm:gap-4 sm:p-4"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-feather-gold/40 bg-feather-gold/15">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-feather-gold/40 bg-feather-gold/15 sm:h-10 sm:w-10">
                   {item.icon}
                 </div>
-                <div className="space-y-1 text-sm text-ink/80">
+                <div className="space-y-1 text-xs text-ink/80 sm:text-sm">
                   <p className="font-semibold text-ink">{item.title}</p>
                   <p>{item.description}</p>
                 </div>
               </li>
             ))}
           </ul>
-          <p className="text-sm text-ink/70">
+          <p className="text-xs text-ink/70 sm:text-sm">
             Remember your password?{" "}
             <Link
               href="/login"
@@ -176,31 +176,31 @@ export default function ForgotPasswordPage() {
         </aside>
 
         <div className="space-y-4">
-          <div className="rounded-3xl bg-white p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10">
-            <header className="mb-6 space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full bg-ivory px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-elvee-blue">
+          <div className="rounded-3xl bg-white p-4 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 sm:p-6 lg:p-8">
+            <header className="mb-4 space-y-2 sm:mb-6">
+              <div className="inline-flex items-center gap-2 rounded-full bg-ivory px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-elvee-blue sm:px-3 sm:text-[11px]">
                 Reset password
               </div>
-              <h2 className="text-2xl font-semibold text-elvee-blue">
+              <h2 className="text-xl font-semibold text-elvee-blue sm:text-2xl">
                 Receive a recovery link
               </h2>
-              <p className="text-sm text-ink/70">
-                We’ll email you a secure reset link. It expires in 30 minutes
+              <p className="text-xs text-ink/70 sm:text-sm">
+                We'll email you a secure reset link. It expires in 30 minutes
                 for your safety.
               </p>
             </header>
 
             {status && (
-              <div className="mb-4 rounded-2xl border border-feather-gold/30 bg-feather-gold/10 px-4 py-3 text-sm font-medium text-ink">
+              <div className="mb-4 rounded-2xl border border-feather-gold/30 bg-feather-gold/10 px-3 py-2 text-xs font-medium text-ink sm:px-4 sm:py-3 sm:text-sm">
                 {status}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <div>
                 <label
                   htmlFor="email"
-                  className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/60"
+                  className="text-[10px] font-semibold uppercase tracking-[0.3em] text-ink/60 sm:text-xs"
                 >
                   Work email
                 </label>
@@ -224,7 +224,7 @@ export default function ForgotPasswordPage() {
                 </span>
                 {!processing && <ArrowRightIcon />}
               </PrimaryButton>
-              <p className="text-center text-xs text-ink/60">
+              <p className="text-center text-[10px] text-ink/60 sm:text-xs">
                 Remembered your password?{" "}
                 <Link
                   href="/login"

@@ -40,14 +40,14 @@ export default function ConfirmPasswordPage() {
 
   return (
     <GuestLayout>
-      <div className="mx-auto max-w-md space-y-6 rounded-3xl bg-white p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10">
-        <div className="mb-4 text-sm text-gray-600">
+      <div className="mx-auto max-w-md space-y-4 rounded-3xl bg-white p-4 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 sm:space-y-6 sm:p-6 lg:p-8">
+        <div className="mb-4 text-xs text-gray-600 sm:text-sm">
           This is a secure area of the application. Please confirm your password
           before continuing.
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="mt-4">
+          <div>
             <InputLabel htmlFor="password" value="Password" />
 
             <TextInput
@@ -64,7 +64,7 @@ export default function ConfirmPasswordPage() {
           </div>
 
           <div className="mt-4 flex items-center justify-end">
-            <PrimaryButton className="ms-4" disabled={processing}>
+            <PrimaryButton className="w-full sm:w-auto" disabled={processing}>
               {processing ? "Confirming..." : "Confirm"}
             </PrimaryButton>
           </div>

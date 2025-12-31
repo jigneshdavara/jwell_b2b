@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
 
   return (
     <GuestLayout>
-      <form onSubmit={handleSubmit} className="mx-auto max-w-md space-y-6 rounded-3xl bg-white p-8 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10">
+      <form onSubmit={handleSubmit} className="mx-auto max-w-md space-y-4 rounded-3xl bg-white p-4 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 sm:space-y-6 sm:p-6 lg:p-8">
         <div>
           <InputLabel htmlFor="email" value="Email" />
           <TextInput
@@ -65,7 +65,7 @@ export default function ResetPasswordPage() {
           <InputError message={errors.email} className="mt-2" />
         </div>
 
-        <div className="mt-4">
+        <div>
           <InputLabel htmlFor="password" value="Password" />
           <TextInput
             id="password"
@@ -80,7 +80,7 @@ export default function ResetPasswordPage() {
           <InputError message={errors.password} className="mt-2" />
         </div>
 
-        <div className="mt-4">
+        <div>
           <InputLabel
             htmlFor="password_confirmation"
             value="Confirm Password"
@@ -101,7 +101,7 @@ export default function ResetPasswordPage() {
           />
         </div>
 
-        <div className="mt-4 flex items-center justify-end">
+        <div className="flex items-center justify-end">
           <PrimaryButton className="w-full" disabled={processing}>
             {processing ? "Resetting..." : "Reset Password"}
           </PrimaryButton>
