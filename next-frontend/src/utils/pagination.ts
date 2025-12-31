@@ -120,11 +120,19 @@ export function extractPageFromUrl(url: string | null): number | null {
         return null;
     }
     try {
-        const urlObj = new URL(url, window.location.origin);
+        // Handle both full URLs and query strings
+        let urlToParse = url;
+        if (url.startsWith('?')) {
+            // If it's just a query string, prepend the current pathname
+            urlToParse = window.location.pathname + url;
+        }
+        const urlObj = new URL(urlToParse, window.location.origin);
         const page = urlObj.searchParams.get('page');
         return page ? Number(page) : null;
     } catch {
-        return null;
+        // Fallback: try to extract page number directly from query string
+        const match = url.match(/[?&]page=(\d+)/);
+        return match ? Number(match[1]) : null;
     }
 }
 
