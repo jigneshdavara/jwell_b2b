@@ -4,6 +4,7 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { CreateUserGroupDto, UpdateUserGroupDto } from './dto/user-group.dto';
 
 @Injectable()
@@ -145,28 +146,56 @@ export class UserGroupsService {
         return { success: true, message: 'Users deleted successfully' };
     }
 
-    async getUsersForAssignment(id: number, search?: string) {
+    async getUsersForAssignment(
+        id: number,
+        page: number = 1,
+        perPage: number = 10,
+        search?: string,
+    ) {
         const group = await this.findOne(id);
         const groupId = BigInt(id);
+        const skip = (page - 1) * perPage;
 
+        // Get selected user IDs for this group
         const usersInGroup = await this.prisma.user.findMany({
             where: { user_group_id: groupId },
             select: { id: true },
         });
         const selectedUserIds = usersInGroup.map((u) => u.id.toString());
 
-        const users = await this.prisma.user.findMany({
-            where: search
-                ? {
-                      OR: [
-                          { name: { contains: search, mode: 'insensitive' } },
-                          { email: { contains: search, mode: 'insensitive' } },
-                      ],
-                  }
-                : {},
-            select: { id: true, name: true, email: true },
-            orderBy: { name: 'asc' },
-        });
+        // Build where clause
+        const whereClause: Prisma.UserWhereInput = search
+            ? {
+                  OR: [
+                      {
+                          name: {
+                              contains: search,
+                              mode: Prisma.QueryMode.insensitive,
+                          },
+                      },
+                      {
+                          email: {
+                              contains: search,
+                              mode: Prisma.QueryMode.insensitive,
+                          },
+                      },
+                  ],
+              }
+            : {};
+
+        // Get paginated users
+        const [users, total] = await Promise.all([
+            this.prisma.user.findMany({
+                where: whereClause,
+                select: { id: true, name: true, email: true },
+                orderBy: { name: 'asc' },
+                skip,
+                take: perPage,
+            }),
+            this.prisma.user.count({
+                where: whereClause,
+            }),
+        ]);
 
         return {
             group: {
@@ -180,6 +209,12 @@ export class UserGroupsService {
                 selected: selectedUserIds.includes(user.id.toString()),
             })),
             selectedUserIds: usersInGroup.map((u) => Number(u.id)),
+            meta: {
+                total,
+                page,
+                perPage,
+                lastPage: Math.ceil(total / perPage),
+            },
         };
     }
 

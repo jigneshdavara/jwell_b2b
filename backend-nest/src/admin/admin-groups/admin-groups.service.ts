@@ -4,6 +4,7 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import {
     CreateAdminGroupDto,
     UpdateAdminGroupDto,
@@ -188,28 +189,56 @@ export class AdminGroupsService {
         return { success: true, message: 'Admin groups deleted successfully' };
     }
 
-    async getAdminsForAssignment(id: number, search?: string) {
+    async getAdminsForAssignment(
+        id: number,
+        page: number = 1,
+        perPage: number = 10,
+        search?: string,
+    ) {
         const group = await this.findOne(id);
         const groupId = BigInt(id);
+        const skip = (page - 1) * perPage;
 
+        // Get selected admin IDs for this group
         const adminsInGroup = await this.prisma.admin.findMany({
             where: { admin_group_id: groupId },
             select: { id: true },
         });
         const selectedAdminIds = adminsInGroup.map((a) => a.id.toString());
 
-        const admins = await this.prisma.admin.findMany({
-            where: search
-                ? {
-                      OR: [
-                          { name: { contains: search, mode: 'insensitive' } },
-                          { email: { contains: search, mode: 'insensitive' } },
-                      ],
-                  }
-                : {},
-            select: { id: true, name: true, email: true },
-            orderBy: { name: 'asc' },
-        });
+        // Build where clause
+        const whereClause: Prisma.AdminWhereInput = search
+            ? {
+                  OR: [
+                      {
+                          name: {
+                              contains: search,
+                              mode: Prisma.QueryMode.insensitive,
+                          },
+                      },
+                      {
+                          email: {
+                              contains: search,
+                              mode: Prisma.QueryMode.insensitive,
+                          },
+                      },
+                  ],
+              }
+            : {};
+
+        // Get paginated admins
+        const [admins, total] = await Promise.all([
+            this.prisma.admin.findMany({
+                where: whereClause,
+                select: { id: true, name: true, email: true },
+                orderBy: { name: 'asc' },
+                skip,
+                take: perPage,
+            }),
+            this.prisma.admin.count({
+                where: whereClause,
+            }),
+        ]);
 
         return {
             group: {
@@ -223,6 +252,12 @@ export class AdminGroupsService {
                 selected: selectedAdminIds.includes(admin.id.toString()),
             })),
             selectedAdminIds: adminsInGroup.map((a) => Number(a.id)),
+            meta: {
+                total,
+                page,
+                perPage,
+                lastPage: Math.ceil(total / perPage),
+            },
         };
     }
 

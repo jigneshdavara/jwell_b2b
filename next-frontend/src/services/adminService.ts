@@ -74,8 +74,9 @@ export const adminService = {
   async bulkDeleteCatalogs(ids: number[]) {
     return await apiClient.delete('/admin/catalogs/bulk', { data: { ids } });
   },
-  async getAssignProducts(catalogId: number, search?: string) {
-    const params = search ? { search } : {};
+  async getAssignProducts(catalogId: number, page = 1, perPage = 10, search?: string) {
+    const params: any = { page, per_page: perPage };
+    if (search) params.search = search;
     return await apiClient.get(`/admin/catalogs/${catalogId}/assign-products`, { params });
   },
   async assignProducts(catalogId: number, productIds: number[]) {

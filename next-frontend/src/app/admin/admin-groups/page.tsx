@@ -48,6 +48,7 @@ export default function AdminAdminGroupsPage() {
     const [assignSelectedIds, setAssignSelectedIds] = useState<number[]>([]);
     const [assignSearchTerm, setAssignSearchTerm] = useState('');
     const [assignLoading, setAssignLoading] = useState(false);
+    const [assignPaginationLoading, setAssignPaginationLoading] = useState(false);
     const [assignProcessing, setAssignProcessing] = useState(false);
     const [assignCurrentPage, setAssignCurrentPage] = useState(1);
     const [assignPerPage, setAssignPerPage] = useState(5);
@@ -350,6 +351,8 @@ export default function AdminAdminGroupsPage() {
         setAssignSelectedIds([]);
         setAssignSearchTerm('');
         setAssignCurrentPage(1);
+        setAssignLoading(false);
+        setAssignPaginationLoading(false);
         setIsClientSidePagination(false);
         setAssignAdminsMeta({
             current_page: 1,
@@ -362,7 +365,17 @@ export default function AdminAdminGroupsPage() {
     // Load assign admins with pagination
     const loadAssignAdmins = async (page: number, search?: string) => {
         if (!assigningGroup) return;
-        setAssignLoading(true);
+        
+        // Only show full loading on initial load, use subtle loading for pagination
+        const isInitialLoad = page === 1 && !search && assignAdmins.length === 0;
+        const isPagination = !isInitialLoad && assignAdmins.length > 0;
+        
+        if (isInitialLoad) {
+            setAssignLoading(true);
+        } else if (isPagination) {
+            setAssignPaginationLoading(true);
+        }
+        
         try {
             const response = await adminService.getAssignAdmins(
                 assigningGroup.id,
@@ -383,7 +396,8 @@ export default function AdminAdminGroupsPage() {
                 return 0;
             });
             
-            // Handle pagination metadata
+            // Handle pagination metadata first
+            let meta: PaginationMeta;
             if (data.meta) {
                 const currentPage = data.meta.current_page || data.meta.page || page;
                 const lastPage = data.meta.last_page || data.meta.lastPage || 1;
@@ -394,11 +408,7 @@ export default function AdminAdminGroupsPage() {
                 const from = data.meta.from ?? (total > 0 ? (currentPage - 1) * perPage + 1 : 0);
                 const to = data.meta.to ?? Math.min(currentPage * perPage, total);
                 
-                setAssignAdmins(newAdmins);
-                setAssignSelectedIds(selectedIds);
-                setIsClientSidePagination(false);
-                
-                setAssignAdminsMeta({
+                meta = {
                     current_page: currentPage,
                     last_page: lastPage,
                     per_page: perPage,
@@ -406,7 +416,9 @@ export default function AdminAdminGroupsPage() {
                     from: from,
                     to: to,
                     links: data.meta.links || generatePaginationLinks(currentPage, lastPage),
-                });
+                };
+                
+                setIsClientSidePagination(false);
             } else {
                 // Client-side pagination fallback - backend returned all admins
                 setIsClientSidePagination(true);
@@ -422,9 +434,8 @@ export default function AdminAdminGroupsPage() {
                 const endIndex = startIndex + assignPerPage;
                 const paginatedAdmins = newAdmins.slice(startIndex, endIndex);
                 setAssignAdmins(paginatedAdmins);
-                setAssignSelectedIds(selectedIds);
                 
-                setAssignAdminsMeta({
+                meta = {
                     current_page: page,
                     last_page: lastPage,
                     per_page: assignPerPage,
@@ -432,12 +443,30 @@ export default function AdminAdminGroupsPage() {
                     from: from,
                     to: to,
                     links: generatePaginationLinks(page, lastPage),
-                });
+                };
             }
+            
+            // Update all state together to prevent multiple re-renders
+            setAssignCurrentPage(page);
+            setAssignAdminsMeta(meta);
+            setAssignAdmins(newAdmins);
+            setAssignSelectedIds(selectedIds);
+            
+            // Scroll table to top after state updates
+            setTimeout(() => {
+                const tableContainer = document.querySelector('[data-admin-table-container]');
+                if (tableContainer) {
+                    tableContainer.scrollTop = 0;
+                }
+            }, 0);
         } catch (error: any) {
             console.error('Failed to load admins:', error);
         } finally {
-            setAssignLoading(false);
+            if (isInitialLoad) {
+                setAssignLoading(false);
+            } else if (isPagination) {
+                setAssignPaginationLoading(false);
+            }
         }
     };
 
@@ -485,21 +514,23 @@ export default function AdminAdminGroupsPage() {
     };
 
     const handleAssignPageChange = (page: number) => {
-        if (page === assignCurrentPage) return;
-        setAssignCurrentPage(page);
+        if (page === assignCurrentPage || assignLoading || assignPaginationLoading) return;
         
         if (isClientSidePagination && allAssignAdmins.length > 0) {
             // Client-side pagination - slice existing data
+            setAssignPaginationLoading(true);
+            
             const startIndex = (page - 1) * assignPerPage;
             const endIndex = startIndex + assignPerPage;
             const paginatedAdmins = allAssignAdmins.slice(startIndex, endIndex);
-            setAssignAdmins(paginatedAdmins);
             
             const total = allAssignAdmins.length;
             const lastPage = Math.ceil(total / assignPerPage) || 1;
             const from = total > 0 ? (page - 1) * assignPerPage + 1 : 0;
             const to = Math.min(page * assignPerPage, total);
             
+            // Update state together
+            setAssignCurrentPage(page);
             setAssignAdminsMeta({
                 current_page: page,
                 last_page: lastPage,
@@ -509,15 +540,19 @@ export default function AdminAdminGroupsPage() {
                 to: to,
                 links: generatePaginationLinks(page, lastPage),
             });
+            setAssignAdmins(paginatedAdmins);
             
-            // Scroll table to top
-            const tableContainer = document.querySelector('[data-admin-table-container]');
-            if (tableContainer) {
-                tableContainer.scrollTop = 0;
-            }
+            // Scroll table to top after state updates
+            setTimeout(() => {
+                const tableContainer = document.querySelector('[data-admin-table-container]');
+                if (tableContainer) {
+                    tableContainer.scrollTop = 0;
+                }
+                setAssignPaginationLoading(false);
+            }, 0);
         } else {
             // Backend pagination - fetch new data
-        loadAssignAdmins(page, assignSearchTerm || undefined);
+            loadAssignAdmins(page, assignSearchTerm || undefined);
         }
     };
 
@@ -951,75 +986,83 @@ export default function AdminAdminGroupsPage() {
                                     <div className="h-6 w-6 sm:h-8 sm:w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
                                 </div>
                             ) : (
-                                <div className="overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200">
-                                        <div className="overflow-x-auto" data-admin-table-container>
-                                    <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
-                                                <thead className="bg-slate-50 text-[10px] sm:text-xs text-slate-500 sticky top-0 z-10">
-                                            <tr>
-                                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left bg-slate-50">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={allVisibleSelected}
-                                                        onChange={() => {
-                                                            if (allVisibleSelected) {
-                                                                deselectAllVisible();
-                                                            } else {
-                                                                selectAllVisible();
-                                                            }
-                                                        }}
-                                                        className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                        aria-label="Select all visible admins"
-                                                    />
-                                                </th>
-                                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left bg-slate-50">Name</th>
-                                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left bg-slate-50 hidden sm:table-cell">Email</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 bg-white">
-                                            {filteredAssignAdmins.map((admin) => {
-                                                const isSelected = assignSelectedIds.includes(admin.id);
-                                                return (
-                                                    <tr key={admin.id} className="hover:bg-slate-50">
-                                                        <td className="px-3 py-2 sm:px-4 sm:py-3">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isSelected}
-                                                                onChange={() => toggleAssignAdmin(admin.id)}
-                                                                className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                                aria-label={`Select ${admin.name}`}
-                                                            />
-                                                        </td>
-                                                        <td className="px-3 py-2 sm:px-4 sm:py-3 font-medium text-slate-900 text-xs sm:text-sm">
-                                                            {admin.name}
-                                                            <div className="mt-0.5 sm:hidden">
-                                                                <p className="text-[10px] text-slate-500">{admin.email}</p>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-slate-600 text-xs sm:text-sm hidden sm:table-cell">{admin.email}</td>
-                                                    </tr>
-                                                );
-                                            })}
-                                            {filteredAssignAdmins.length === 0 && (
+                                <div className="relative overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200">
+                                    {/* Subtle loading overlay for pagination */}
+                                    {assignPaginationLoading && (
+                                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                                            <div className="h-6 w-6 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
+                                        </div>
+                                    )}
+                                    <div className="overflow-x-auto" data-admin-table-container>
+                                        <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
+                                            <thead className="bg-slate-50 text-[10px] sm:text-xs text-slate-500 sticky top-0 z-10">
                                                 <tr>
-                                                    <td colSpan={3} className="px-3 py-4 sm:px-4 sm:py-6 text-center text-xs sm:text-sm text-slate-500">
-                                                        No admins found matching your search.
-                                                    </td>
+                                                    <th className="px-3 py-2 sm:px-4 sm:py-3 text-left bg-slate-50">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={allVisibleSelected}
+                                                            onChange={() => {
+                                                                if (allVisibleSelected) {
+                                                                    deselectAllVisible();
+                                                                } else {
+                                                                    selectAllVisible();
+                                                                }
+                                                            }}
+                                                            disabled={assignPaginationLoading}
+                                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            aria-label="Select all visible admins"
+                                                        />
+                                                    </th>
+                                                    <th className="px-3 py-2 sm:px-4 sm:py-3 text-left bg-slate-50">Name</th>
+                                                    <th className="px-3 py-2 sm:px-4 sm:py-3 text-left bg-slate-50 hidden sm:table-cell">Email</th>
                                                 </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                        {/* Pagination inside table container */}
-                                        {assignAdminsMeta.last_page > 1 && (
-                                            <div className="border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3">
-                                                <Pagination
-                                                    meta={assignAdminsMeta}
-                                                    onPageChange={handleAssignPageChange}
-                                                />
-                                            </div>
-                                        )}
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 bg-white">
+                                                {filteredAssignAdmins.map((admin) => {
+                                                    const isSelected = assignSelectedIds.includes(admin.id);
+                                                    return (
+                                                        <tr key={admin.id} className="hover:bg-slate-50">
+                                                            <td className="px-3 py-2 sm:px-4 sm:py-3">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={() => toggleAssignAdmin(admin.id)}
+                                                                    disabled={assignPaginationLoading}
+                                                                    className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    aria-label={`Select ${admin.name}`}
+                                                                />
+                                                            </td>
+                                                            <td className="px-3 py-2 sm:px-4 sm:py-3 font-medium text-slate-900 text-xs sm:text-sm">
+                                                                {admin.name}
+                                                                <div className="mt-0.5 sm:hidden">
+                                                                    <p className="text-[10px] text-slate-500">{admin.email}</p>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-slate-600 text-xs sm:text-sm hidden sm:table-cell">{admin.email}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {filteredAssignAdmins.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={3} className="px-3 py-4 sm:px-4 sm:py-6 text-center text-xs sm:text-sm text-slate-500">
+                                                            No admins found matching your search.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                )}
+                                    {/* Pagination inside table container */}
+                                    {assignAdminsMeta.last_page > 1 && (
+                                        <div className="border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3">
+                                            <Pagination
+                                                meta={assignAdminsMeta}
+                                                onPageChange={handleAssignPageChange}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             </div>
                             </div>
 

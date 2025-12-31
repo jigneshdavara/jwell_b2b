@@ -49,6 +49,7 @@ export default function AdminUserGroupsIndex() {
     const [assignSelectedIds, setAssignSelectedIds] = useState<number[]>([]);
     const [assignSearchTerm, setAssignSearchTerm] = useState('');
     const [assignLoading, setAssignLoading] = useState(false);
+    const [assignPaginationLoading, setAssignPaginationLoading] = useState(false);
     const [assignProcessing, setAssignProcessing] = useState(false);
     const [assignCurrentPage, setAssignCurrentPage] = useState(1);
     const [assignPerPage, setAssignPerPage] = useState(5);
@@ -377,6 +378,8 @@ export default function AdminUserGroupsIndex() {
         setAssignSelectedIds([]);
         setAssignSearchTerm('');
         setAssignCurrentPage(1);
+        setAssignLoading(false);
+        setAssignPaginationLoading(false);
         setIsClientSidePagination(false);
         setAssignUsersMeta({
             current_page: 1,
@@ -389,7 +392,17 @@ export default function AdminUserGroupsIndex() {
     // Load assign users with pagination
     const loadAssignUsers = async (page: number, search?: string) => {
         if (!assigningGroup) return;
-        setAssignLoading(true);
+        
+        // Only show full loading on initial load, use subtle loading for pagination
+        const isInitialLoad = page === 1 && !search && assignUsers.length === 0;
+        const isPagination = !isInitialLoad && assignUsers.length > 0;
+        
+        if (isInitialLoad) {
+            setAssignLoading(true);
+        } else if (isPagination) {
+            setAssignPaginationLoading(true);
+        }
+        
         try {
             const response = await adminService.getAssignUsers(
                 assigningGroup.id,
@@ -410,10 +423,8 @@ export default function AdminUserGroupsIndex() {
                 return 0;
             });
             
-            setAssignUsers(newUsers);
-            setAssignSelectedIds(selectedIds);
-            
-            // Handle pagination metadata
+            // Handle pagination metadata first
+            let meta: PaginationMeta;
             if (data.meta) {
                 const currentPage = data.meta.current_page || data.meta.page || page;
                 const lastPage = data.meta.last_page || data.meta.lastPage || 1;
@@ -424,7 +435,7 @@ export default function AdminUserGroupsIndex() {
                 const from = data.meta.from ?? (total > 0 ? (currentPage - 1) * perPage + 1 : 0);
                 const to = data.meta.to ?? Math.min(currentPage * perPage, total);
                 
-                setAssignUsersMeta({
+                meta = {
                     current_page: currentPage,
                     last_page: lastPage,
                     per_page: perPage,
@@ -432,7 +443,7 @@ export default function AdminUserGroupsIndex() {
                     from: from,
                     to: to,
                     links: data.meta.links || generatePaginationLinks(currentPage, lastPage),
-                });
+                };
             } else {
                 // Client-side pagination fallback - backend returned all users
                 setIsClientSidePagination(true);
@@ -449,7 +460,7 @@ export default function AdminUserGroupsIndex() {
                 const paginatedUsers = newUsers.slice(startIndex, endIndex);
                 setAssignUsers(paginatedUsers);
                 
-                setAssignUsersMeta({
+                meta = {
                     current_page: page,
                     last_page: lastPage,
                     per_page: assignPerPage,
@@ -457,13 +468,31 @@ export default function AdminUserGroupsIndex() {
                     from: from,
                     to: to,
                     links: generatePaginationLinks(page, lastPage),
-                });
+                };
             }
+            
+            // Update all state together to prevent multiple re-renders
+            setAssignCurrentPage(page);
+            setAssignUsersMeta(meta);
+            setAssignUsers(newUsers);
+            setAssignSelectedIds(selectedIds);
+            
+            // Scroll table to top after state updates
+            setTimeout(() => {
+                const tableContainer = document.querySelector('[data-user-table-container]');
+                if (tableContainer) {
+                    tableContainer.scrollTop = 0;
+                }
+            }, 0);
         } catch (error: any) {
             console.error('Failed to load users:', error);
             toastError(error.response?.data?.message || 'Failed to load users. Please try again.');
         } finally {
-            setAssignLoading(false);
+            if (isInitialLoad) {
+                setAssignLoading(false);
+            } else if (isPagination) {
+                setAssignPaginationLoading(false);
+            }
         }
     };
 
@@ -511,21 +540,23 @@ export default function AdminUserGroupsIndex() {
     };
 
     const handleAssignPageChange = (page: number) => {
-        if (page === assignCurrentPage) return;
-        setAssignCurrentPage(page);
+        if (page === assignCurrentPage || assignLoading || assignPaginationLoading) return;
         
         if (isClientSidePagination && allAssignUsers.length > 0) {
             // Client-side pagination - slice existing data
+            setAssignPaginationLoading(true);
+            
             const startIndex = (page - 1) * assignPerPage;
             const endIndex = startIndex + assignPerPage;
             const paginatedUsers = allAssignUsers.slice(startIndex, endIndex);
-            setAssignUsers(paginatedUsers);
             
             const total = allAssignUsers.length;
             const lastPage = Math.ceil(total / assignPerPage) || 1;
             const from = total > 0 ? (page - 1) * assignPerPage + 1 : 0;
             const to = Math.min(page * assignPerPage, total);
             
+            // Update state together
+            setAssignCurrentPage(page);
             setAssignUsersMeta({
                 current_page: page,
                 last_page: lastPage,
@@ -535,15 +566,19 @@ export default function AdminUserGroupsIndex() {
                 to: to,
                 links: generatePaginationLinks(page, lastPage),
             });
+            setAssignUsers(paginatedUsers);
             
-            // Scroll table to top
-            const tableContainer = document.querySelector('[data-user-table-container]');
-            if (tableContainer) {
-                tableContainer.scrollTop = 0;
-            }
+            // Scroll table to top after state updates
+            setTimeout(() => {
+                const tableContainer = document.querySelector('[data-user-table-container]');
+                if (tableContainer) {
+                    tableContainer.scrollTop = 0;
+                }
+                setAssignPaginationLoading(false);
+            }, 0);
         } else {
             // Backend pagination - fetch new data
-        loadAssignUsers(page, assignSearchTerm || undefined);
+            loadAssignUsers(page, assignSearchTerm || undefined);
         }
     };
 
@@ -981,72 +1016,80 @@ export default function AdminUserGroupsIndex() {
                                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
                                 </div>
                             ) : (
-                                <div className="overflow-hidden rounded-2xl border border-slate-200">
-                                        <div className="overflow-x-auto" data-user-table-container>
-                                    <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
-                                                <thead className="bg-slate-50 text-[10px] sm:text-xs text-slate-500 sticky top-0 z-10">
-                                            <tr>
-                                                        <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={allVisibleSelected}
-                                                        onChange={() => {
-                                                            if (allVisibleSelected) {
-                                                                deselectAllVisible();
-                                                            } else {
-                                                                selectAllVisible();
-                                                            }
-                                                        }}
-                                                        className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                        aria-label="Select all visible users"
-                                                    />
-                                                </th>
-                                                        <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">Name</th>
-                                                        <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">Email</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 bg-white">
-                                            {filteredAssignUsers.map((user) => {
-                                                const isSelected = assignSelectedIds.includes(user.id);
-                                                return (
-                                                    <tr key={user.id} className="hover:bg-slate-50">
-                                                        <td className="px-3 py-2 sm:px-4 sm:py-3">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isSelected}
-                                                                onChange={() => toggleAssignUser(user.id)}
-                                                                className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                                aria-label={`Select ${user.name}`}
-                                                            />
-                                                        </td>
-                                                        <td className="px-3 py-2 font-medium text-slate-900 text-xs sm:text-sm sm:px-4 sm:py-3">
-                                                            {user.name}
-                                                        </td>
-                                                        <td className="px-3 py-2 text-slate-600 text-xs sm:text-sm sm:px-4 sm:py-3">{user.email}</td>
-                                                    </tr>
-                                                );
-                                            })}
-                                            {filteredAssignUsers.length === 0 && (
+                                <div className="relative overflow-hidden rounded-2xl border border-slate-200">
+                                    {/* Subtle loading overlay for pagination */}
+                                    {assignPaginationLoading && (
+                                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                                            <div className="h-6 w-6 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
+                                        </div>
+                                    )}
+                                    <div className="overflow-x-auto" data-user-table-container>
+                                        <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
+                                            <thead className="bg-slate-50 text-[10px] sm:text-xs text-slate-500 sticky top-0 z-10">
                                                 <tr>
-                                                    <td colSpan={3} className="px-3 py-3 text-center text-xs sm:text-sm text-slate-500 sm:px-4 sm:py-6">
-                                                        No users found matching your search.
-                                                    </td>
+                                                    <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={allVisibleSelected}
+                                                            onChange={() => {
+                                                                if (allVisibleSelected) {
+                                                                    deselectAllVisible();
+                                                                } else {
+                                                                    selectAllVisible();
+                                                                }
+                                                            }}
+                                                            disabled={assignPaginationLoading}
+                                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            aria-label="Select all visible users"
+                                                        />
+                                                    </th>
+                                                    <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">Name</th>
+                                                    <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">Email</th>
                                                 </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                        {/* Pagination inside table container */}
-                                        {assignUsersMeta.last_page > 1 && (
-                                            <div className="border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3">
-                                                <Pagination
-                                                    meta={assignUsersMeta}
-                                                    onPageChange={handleAssignPageChange}
-                                                />
-                                            </div>
-                                        )}
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 bg-white">
+                                                {filteredAssignUsers.map((user) => {
+                                                    const isSelected = assignSelectedIds.includes(user.id);
+                                                    return (
+                                                        <tr key={user.id} className="hover:bg-slate-50">
+                                                            <td className="px-3 py-2 sm:px-4 sm:py-3">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={() => toggleAssignUser(user.id)}
+                                                                    disabled={assignPaginationLoading}
+                                                                    className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    aria-label={`Select ${user.name}`}
+                                                                />
+                                                            </td>
+                                                            <td className="px-3 py-2 font-medium text-slate-900 text-xs sm:text-sm sm:px-4 sm:py-3">
+                                                                {user.name}
+                                                            </td>
+                                                            <td className="px-3 py-2 text-slate-600 text-xs sm:text-sm sm:px-4 sm:py-3">{user.email}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {filteredAssignUsers.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={3} className="px-3 py-3 text-center text-xs sm:text-sm text-slate-500 sm:px-4 sm:py-6">
+                                                            No users found matching your search.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                )}
+                                    {/* Pagination inside table container */}
+                                    {assignUsersMeta.last_page > 1 && (
+                                        <div className="border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3">
+                                            <Pagination
+                                                meta={assignUsersMeta}
+                                                onPageChange={handleAssignPageChange}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             </div>
                             </div>
 

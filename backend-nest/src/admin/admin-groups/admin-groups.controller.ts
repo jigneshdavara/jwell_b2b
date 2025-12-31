@@ -59,9 +59,16 @@ export class AdminGroupsController {
     @Get(':id/assign-admins')
     getAdminsForAssignment(
         @Param('id', ParseIntPipe) id: number,
+        @Query('page') page: number = 1,
+        @Query('per_page') perPage: number = 10,
         @Query('search') search?: string,
     ) {
-        return this.adminGroupsService.getAdminsForAssignment(id, search);
+        return this.adminGroupsService.getAdminsForAssignment(
+            id,
+            page,
+            perPage,
+            search,
+        );
     }
 
     @Post(':id/assign-admins')
