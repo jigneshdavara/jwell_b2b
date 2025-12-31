@@ -591,105 +591,105 @@ export default function AdminAdminGroupsPage() {
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
                         <thead className="bg-slate-50 text-[10px] sm:text-xs uppercase tracking-[0.3em] text-slate-500">
-                            <tr>
+                        <tr>
                                 <th className="px-3 py-2 sm:px-5 sm:py-3">
-                                    <input
-                                        type="checkbox"
-                                        checked={allSelected}
-                                        onChange={toggleSelectAll}
+                                <input
+                                    type="checkbox"
+                                    checked={allSelected}
+                                    onChange={toggleSelectAll}
                                         className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                    />
-                                </th>
+                                />
+                            </th>
                                 <th className="px-3 py-2 sm:px-5 sm:py-3 text-left">Name</th>
                                 <th className="px-3 py-2 sm:px-5 sm:py-3 text-left hidden md:table-cell">Code</th>
                                 <th className="px-3 py-2 sm:px-5 sm:py-3 text-left hidden lg:table-cell">Order</th>
                                 <th className="px-3 py-2 sm:px-5 sm:py-3 text-left">Status</th>
                                 <th className="px-3 py-2 sm:px-5 sm:py-3 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                            {groups.data.map((group) => (
-                                <tr key={group.id} className="hover:bg-slate-50 transition-colors">
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                        {groups.data.map((group) => (
+                            <tr key={group.id} className="hover:bg-slate-50 transition-colors">
                                     <td className="px-3 py-2 sm:px-5 sm:py-3">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedGroups.includes(group.id)}
-                                            onChange={() => toggleSelection(group.id)}
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedGroups.includes(group.id)}
+                                        onChange={() => toggleSelection(group.id)}
                                             className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                        />
-                                    </td>
+                                    />
+                                </td>
                                     <td className="px-3 py-2 sm:px-5 sm:py-3 font-semibold text-slate-900 text-xs sm:text-sm">
                                         <div className="flex flex-col gap-0.5 sm:gap-1">
-                                            <span>{group.name}</span>
+                                        <span>{group.name}</span>
                                             {group.description && <span className="text-[10px] sm:text-xs font-normal text-slate-500">{group.description}</span>}
-                                        </div>
-                                    </td>
+                                    </div>
+                                </td>
                                     <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 font-mono text-xs sm:text-sm hidden md:table-cell">{group.code}</td>
                                     <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 text-xs sm:text-sm hidden lg:table-cell">{group.display_order}</td>
                                     <td className="px-3 py-2 sm:px-5 sm:py-3">
-                                        <span
+                                    <span
                                             className={`inline-flex items-center rounded-full px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold ${
-                                                group.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                                            }`}
-                                        >
-                                            {group.is_active ? 'Active' : 'Archived'}
-                                        </span>
-                                    </td>
+                                            group.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                                        }`}
+                                    >
+                                        {group.is_active ? 'Active' : 'Archived'}
+                                    </span>
+                                </td>
                                     <td className="px-3 py-2 sm:px-5 sm:py-3 text-right">
                                         <div className="flex justify-end gap-1 sm:gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => openAssignModal(group)}
+                                        <button
+                                            type="button"
+                                            onClick={() => openAssignModal(group)}
                                                 className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-sky-200 hover:text-sky-600"
-                                                title="Assign admins"
-                                            >
+                                            title="Assign admins"
+                                        >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                                                </svg>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => openEditModal(group)}
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => openEditModal(group)}
                                                 className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-                                                title="Edit group"
-                                            >
+                                            title="Edit group"
+                                        >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
-                                                </svg>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleActivation(group)}
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleActivation(group)}
                                                 className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600"
-                                                title={group.is_active ? 'Pause group' : 'Activate group'}
-                                            >
-                                                {group.is_active ? (
+                                            title={group.is_active ? 'Pause group' : 'Activate group'}
+                                        >
+                                            {group.is_active ? (
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
-                                                    </svg>
-                                                ) : (
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
-                                                    </svg>
-                                                )}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setDeleteConfirm(group)}
-                                                className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
-                                                title="Delete group"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
                                                 </svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                            ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setDeleteConfirm(group)}
+                                                className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                                            title="Delete group"
+                                        >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
                 </div>
             </div>
 

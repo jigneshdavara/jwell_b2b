@@ -452,50 +452,50 @@ export default function AdminAdminsIndex() {
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
                             <thead className="bg-slate-50 text-[10px] sm:text-xs uppercase tracking-[0.3em] text-slate-500">
-                                <tr>
+                            <tr>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3">
-                                        <input
-                                            type="checkbox"
-                                            checked={allSelected}
-                                            onChange={toggleSelectAll}
+                                    <input
+                                        type="checkbox"
+                                        checked={allSelected}
+                                        onChange={toggleSelectAll}
                                             className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                            aria-label="Select all users"
-                                        />
-                                    </th>
+                                        aria-label="Select all users"
+                                    />
+                                </th>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3 text-left">Name</th>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3 text-left hidden md:table-cell">Email</th>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3 text-left hidden lg:table-cell">Role</th>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3 text-left">Admin group</th>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3 text-left hidden md:table-cell">Joined</th>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                            {loading && users.data.length === 0 ? (
+                                <tr>
+                                        <td colSpan={7} className="px-3 py-4 sm:px-5 sm:py-6 text-center text-xs sm:text-sm text-slate-500">
+                                        Loading...
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 bg-white">
-                                {loading && users.data.length === 0 ? (
-                                    <tr>
+                            ) : users.data.length === 0 ? (
+                                <tr>
                                         <td colSpan={7} className="px-3 py-4 sm:px-5 sm:py-6 text-center text-xs sm:text-sm text-slate-500">
-                                            Loading...
-                                        </td>
-                                    </tr>
-                                ) : users.data.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} className="px-3 py-4 sm:px-5 sm:py-6 text-center text-xs sm:text-sm text-slate-500">
-                                            No admins found.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    users.data.map((user) => (
-                                        <tr key={user.id} className="hover:bg-slate-50">
+                                        No admins found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                users.data.map((user) => (
+                                    <tr key={user.id} className="hover:bg-slate-50">
                                             <td className="px-3 py-2 sm:px-5 sm:py-3">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedIds.includes(user.id)}
-                                                    onChange={() => toggleSelection(user)}
-                                                    disabled={isProtected(user)}
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIds.includes(user.id)}
+                                                onChange={() => toggleSelection(user)}
+                                                disabled={isProtected(user)}
                                                     className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-40"
-                                                    aria-label={`Select ${user.name}`}
-                                                />
-                                            </td>
+                                                aria-label={`Select ${user.name}`}
+                                            />
+                                        </td>
                                             <td className="px-3 py-2 sm:px-5 sm:py-3 font-medium text-slate-900 text-xs sm:text-sm">
                                                 {user.name}
                                                 <div className="mt-0.5 md:hidden">
@@ -505,45 +505,45 @@ export default function AdminAdminsIndex() {
                                             <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-600 text-xs sm:text-sm hidden md:table-cell">{user.email}</td>
                                             <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 text-xs sm:text-sm hidden lg:table-cell">{user.type_label || 'Admin'}</td>
                                             <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-600">
-                                                {isProtected(user) ? (
+                                            {isProtected(user) ? (
                                                     <span className="rounded-full bg-slate-100 px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                                        Super admin
-                                                    </span>
-                                                ) : user.admin_group ? (
+                                                    Super admin
+                                                </span>
+                                            ) : user.admin_group ? (
                                                     <span className="rounded-full bg-sky-100 px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold text-sky-700">
-                                                        {user.admin_group.name}
-                                                    </span>
-                                                ) : (
+                                                    {user.admin_group.name}
+                                                </span>
+                                            ) : (
                                                     <span className="text-slate-400 text-left text-xs sm:text-sm">—</span>
-                                                )}
-                                            </td>
+                                            )}
+                                        </td>
                                             <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 text-xs sm:text-sm hidden md:table-cell">
-                                                {user.joined_at ? new Date(user.joined_at).toLocaleDateString('en-IN') : '—'}
-                                            </td>
+                                            {user.joined_at ? new Date(user.joined_at).toLocaleDateString('en-IN') : '—'}
+                                        </td>
                                             <td className="px-3 py-2 sm:px-5 sm:py-3 text-right">
                                                 <div className="flex justify-end gap-1.5 sm:gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => editUser(user)}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => editUser(user)}
                                                         className="rounded-full border border-slate-300 px-2.5 py-1 sm:px-4 text-[10px] sm:text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => deleteUser(user)}
-                                                        disabled={isProtected(user)}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => deleteUser(user)}
+                                                    disabled={isProtected(user)}
                                                         className="rounded-full border border-rose-200 px-2.5 py-1 sm:px-4 text-[10px] sm:text-xs font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                     </div>
                 </div>
 

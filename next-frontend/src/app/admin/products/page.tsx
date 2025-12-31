@@ -431,16 +431,16 @@ export default function AdminProductsPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
               <thead className="bg-slate-50 text-[10px] sm:text-xs uppercase tracking-[0.3em] text-slate-500">
-                <tr>
+              <tr>
                   <th className="px-3 py-2 sm:px-6 sm:py-3">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={toggleSelectAll}
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
                       className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
-                      aria-label="Select all products"
-                    />
-                  </th>
+                    aria-label="Select all products"
+                  />
+                </th>
                   <th className="px-3 py-2 text-left sm:px-6 sm:py-3">SKU</th>
                   <th className="px-3 py-2 text-left sm:px-6 sm:py-3">Product</th>
                   <th className="px-3 py-2 text-left hidden md:table-cell sm:px-6 sm:py-3">Brand</th>
@@ -448,9 +448,9 @@ export default function AdminProductsPage() {
                   <th className="px-3 py-2 text-left hidden md:table-cell sm:px-6 sm:py-3">Variants</th>
                   <th className="px-3 py-2 text-left sm:px-6 sm:py-3">Status</th>
                   <th className="px-3 py-2 text-right sm:px-6 sm:py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
                 {data.products.data.length === 0 ? (
                   <tr>
                     <td
@@ -462,128 +462,128 @@ export default function AdminProductsPage() {
                   </tr>
                 ) : (
                   data.products.data.map((product: any) => (
-                    <tr key={product.id} className="hover:bg-slate-50">
+                <tr key={product.id} className="hover:bg-slate-50">
                       <td className="px-3 py-3 sm:px-6 sm:py-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedProducts.includes(product.id)}
-                          onChange={() => toggleSelection(product.id)}
+                    <input
+                      type="checkbox"
+                      checked={selectedProducts.includes(product.id)}
+                      onChange={() => toggleSelection(product.id)}
                           className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
-                          aria-label={`Select product ${product.sku}`}
-                        />
-                      </td>
+                      aria-label={`Select product ${product.sku}`}
+                    />
+                  </td>
                       <td className="px-3 py-3 font-semibold text-slate-800 sm:px-6 sm:py-4">
                         <span className="text-xs sm:text-sm">{product.sku}</span>
-                      </td>
+                  </td>
                       <td className="px-3 py-3 text-slate-700 sm:px-6 sm:py-4">
-                        <Link
-                          href={`/admin/products/${product.id}/edit`}
+                    <Link
+                      href={`/admin/products/${product.id}/edit`}
                           className="font-medium text-sky-600 hover:text-sky-500 text-xs sm:text-sm"
-                        >
-                          {product.name}
-                        </Link>
-                      </td>
+                    >
+                      {product.name}
+                    </Link>
+                  </td>
                       <td className="px-3 py-3 text-slate-500 hidden md:table-cell sm:px-6 sm:py-4">
                         <span className="text-xs sm:text-sm">{product.brand?.name ?? "—"}</span>
-                      </td>
+                  </td>
                       <td className="px-3 py-3 text-slate-500 hidden lg:table-cell sm:px-6 sm:py-4">
                         <span className="text-xs sm:text-sm">{product.category?.name ?? "—"}</span>
-                      </td>
+                  </td>
                       <td className="px-3 py-3 text-slate-500 hidden md:table-cell sm:px-6 sm:py-4">
                         <span className="text-xs sm:text-sm">{product.variants_count}</span>
-                      </td>
+                  </td>
                       <td className="px-3 py-3 sm:px-6 sm:py-4">
-                        <span
+                    <span
                           className={`inline-flex items-center rounded-full px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold ${
-                            product.is_active
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-slate-100 text-slate-500"
-                          }`}
-                        >
-                          {product.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </td>
+                        product.is_active
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {product.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </td>
                       <td className="px-3 py-3 text-right sm:px-6 sm:py-4">
                         <div className="flex justify-end gap-1.5 sm:gap-2">
-                          <Link
-                            href={`/admin/products/${product.id}/edit`}
+                      <Link
+                        href={`/admin/products/${product.id}/edit`}
                             className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-                            title="Edit product"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
+                        title="Edit product"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
                               className="h-3.5 w-3.5 sm:h-4 sm:w-4"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth={1.5}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z"
-                              />
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M13.5 6.5l4 4"
-                              />
-                            </svg>
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => duplicateProduct(product.id)}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={1.5}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M13.5 6.5l4 4"
+                          />
+                        </svg>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => duplicateProduct(product.id)}
                             className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-                            title="Duplicate product"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
+                        title="Duplicate product"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
                               className="h-3.5 w-3.5 sm:h-4 sm:w-4"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth={1.5}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M8 16h8a2 2 0 002-2V6H8a2 2 0 00-2 2v6a2 2 0 002 2z"
-                              />
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M16 16V18a2 2 0 01-2 2H6a2 2 0 01-2-2V10a2 2 0 012-2h2"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteProduct(product.id)}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={1.5}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M8 16h8a2 2 0 002-2V6H8a2 2 0 00-2 2v6a2 2 0 002 2z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M16 16V18a2 2 0 01-2 2H6a2 2 0 01-2-2V10a2 2 0 012-2h2"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteProduct(product.id)}
                             className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-                            title="Delete product"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
+                        title="Delete product"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
                               className="h-3.5 w-3.5 sm:h-4 sm:w-4"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth={1.5}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={1.5}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
                   ))
-                )}
-              </tbody>
-            </table>
+              )}
+            </tbody>
+          </table>
           </div>
         </div>
 
