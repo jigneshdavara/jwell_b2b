@@ -538,38 +538,38 @@ export default function AdminAdminGroupsPage() {
     if (loading && !groups.data.length) return null;
 
     return (
-        <div className="space-y-8">
-            <div className="flex items-center justify-between rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+        <div className="space-y-4 px-2 py-4 sm:space-y-6 sm:px-6 sm:py-6 lg:space-y-8 lg:px-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                 <div>
-                    <h1 className="text-2xl font-semibold text-slate-900">admin groups</h1>
-                    <p className="mt-2 text-sm text-slate-500">
+                    <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">admin groups</h1>
+                    <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-500">
                         Organise customers by engagement plans (e.g. VIP, Dormant) to target messaging and benefits.
                     </p>
                 </div>
                 <button
                     type="button"
                     onClick={openCreateModal}
-                    className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
+                    className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full bg-slate-900 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
                     </svg>
                     New group
                 </button>
             </div>
 
-            <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
-                <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-sm">
+            <div className="overflow-hidden rounded-2xl sm:rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 border-b border-slate-200 px-3 py-3 sm:px-5 sm:py-4 text-xs sm:text-sm">
                     <div className="font-semibold text-slate-700">
                         Groups ({groups.meta.total})
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-500">
                         <span>{selectedGroups.length} selected</span>
                         <button
                             type="button"
                             onClick={() => setBulkDeleteConfirm(true)}
                             disabled={selectedGroups.length === 0}
-                            className="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="inline-flex items-center rounded-full border border-rose-200 px-2.5 py-1 sm:px-3 font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40 text-[10px] sm:text-xs"
                         >
                             Bulk delete
                         </button>
@@ -579,7 +579,7 @@ export default function AdminAdminGroupsPage() {
                                 setPerPage(Number(e.target.value));
                                 setCurrentPage(1);
                             }}
-                            className="rounded-full border border-slate-200 px-3 py-1 text-xs focus:ring-0"
+                            className="rounded-full border border-slate-200 px-2.5 py-1 sm:px-3 text-[10px] sm:text-xs focus:ring-0"
                         >
                             <option value={10}>10</option>
                             <option value={25}>25</option>
@@ -588,107 +588,109 @@ export default function AdminAdminGroupsPage() {
                         </select>
                     </div>
                 </div>
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead className="bg-slate-50 text-xs uppercase tracking-[0.3em] text-slate-500">
-                        <tr>
-                            <th className="px-5 py-3">
-                                <input
-                                    type="checkbox"
-                                    checked={allSelected}
-                                    onChange={toggleSelectAll}
-                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                />
-                            </th>
-                            <th className="px-5 py-3 text-left">Name</th>
-                            <th className="px-5 py-3 text-left">Code</th>
-                            <th className="px-5 py-3 text-left">Order</th>
-                            <th className="px-5 py-3 text-left">Status</th>
-                            <th className="px-5 py-3 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                        {groups.data.map((group) => (
-                            <tr key={group.id} className="hover:bg-slate-50 transition-colors">
-                                <td className="px-5 py-3">
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
+                        <thead className="bg-slate-50 text-[10px] sm:text-xs uppercase tracking-[0.3em] text-slate-500">
+                            <tr>
+                                <th className="px-3 py-2 sm:px-5 sm:py-3">
                                     <input
                                         type="checkbox"
-                                        checked={selectedGroups.includes(group.id)}
-                                        onChange={() => toggleSelection(group.id)}
-                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        checked={allSelected}
+                                        onChange={toggleSelectAll}
+                                        className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                     />
-                                </td>
-                                <td className="px-5 py-3 font-semibold text-slate-900">
-                                    <div className="flex flex-col gap-1">
-                                        <span>{group.name}</span>
-                                        {group.description && <span className="text-xs font-normal text-slate-500">{group.description}</span>}
-                                    </div>
-                                </td>
-                                <td className="px-5 py-3 text-slate-500 font-mono text-sm">{group.code}</td>
-                                <td className="px-5 py-3 text-slate-500">{group.display_order}</td>
-                                <td className="px-5 py-3">
-                                    <span
-                                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                            group.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                                        }`}
-                                    >
-                                        {group.is_active ? 'Active' : 'Archived'}
-                                    </span>
-                                </td>
-                                <td className="px-5 py-3 text-right">
-                                    <div className="flex justify-end gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => openAssignModal(group)}
-                                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-sky-200 hover:text-sky-600"
-                                            title="Assign admins"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                                            </svg>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => openEditModal(group)}
-                                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-                                            title="Edit group"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
-                                            </svg>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => toggleActivation(group)}
-                                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600"
-                                            title={group.is_active ? 'Pause group' : 'Activate group'}
-                                        >
-                                            {group.is_active ? (
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
-                                                </svg>
-                                            ) : (
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
-                                                </svg>
-                                            )}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setDeleteConfirm(group)}
-                                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
-                                            title="Delete group"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </td>
+                                </th>
+                                <th className="px-3 py-2 sm:px-5 sm:py-3 text-left">Name</th>
+                                <th className="px-3 py-2 sm:px-5 sm:py-3 text-left hidden md:table-cell">Code</th>
+                                <th className="px-3 py-2 sm:px-5 sm:py-3 text-left hidden lg:table-cell">Order</th>
+                                <th className="px-3 py-2 sm:px-5 sm:py-3 text-left">Status</th>
+                                <th className="px-3 py-2 sm:px-5 sm:py-3 text-right">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                            {groups.data.map((group) => (
+                                <tr key={group.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-3 py-2 sm:px-5 sm:py-3">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedGroups.includes(group.id)}
+                                            onChange={() => toggleSelection(group.id)}
+                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        />
+                                    </td>
+                                    <td className="px-3 py-2 sm:px-5 sm:py-3 font-semibold text-slate-900 text-xs sm:text-sm">
+                                        <div className="flex flex-col gap-0.5 sm:gap-1">
+                                            <span>{group.name}</span>
+                                            {group.description && <span className="text-[10px] sm:text-xs font-normal text-slate-500">{group.description}</span>}
+                                        </div>
+                                    </td>
+                                    <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 font-mono text-xs sm:text-sm hidden md:table-cell">{group.code}</td>
+                                    <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 text-xs sm:text-sm hidden lg:table-cell">{group.display_order}</td>
+                                    <td className="px-3 py-2 sm:px-5 sm:py-3">
+                                        <span
+                                            className={`inline-flex items-center rounded-full px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold ${
+                                                group.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                                            }`}
+                                        >
+                                            {group.is_active ? 'Active' : 'Archived'}
+                                        </span>
+                                    </td>
+                                    <td className="px-3 py-2 sm:px-5 sm:py-3 text-right">
+                                        <div className="flex justify-end gap-1 sm:gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => openAssignModal(group)}
+                                                className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-sky-200 hover:text-sky-600"
+                                                title="Assign admins"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => openEditModal(group)}
+                                                className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+                                                title="Edit group"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16.5V19a1 1 0 001 1h2.5a1 1 0 00.7-.3l9.8-9.8a1 1 0 000-1.4l-2.5-2.5a1 1 0 00-1.4 0l-9.8 9.8a1 1 0 00-.3.7z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6.5l4 4" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleActivation(group)}
+                                                className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-amber-200 hover:text-amber-600"
+                                                title={group.is_active ? 'Pause group' : 'Activate group'}
+                                            >
+                                                {group.is_active ? (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setDeleteConfirm(group)}
+                                                className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                                                title="Delete group"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <Pagination 
@@ -698,16 +700,16 @@ export default function AdminAdminGroupsPage() {
 
             <Modal show={modalOpen} onClose={resetForm} maxWidth="6xl">
                 <div className="flex min-h-0 flex-col">
-                    <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-semibold text-slate-900">
+                    <div className="flex-shrink-0 border-b border-slate-200 px-3 py-3 sm:px-6 sm:py-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-slate-900 truncate">
                                 {editingGroup ? `Edit user group: ${editingGroup.name}` : 'Create new admin group'}
                             </h2>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 sm:gap-3">
                                 <button
                                     type="button"
                                     onClick={resetForm}
-                                    className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                    className="rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
                                 >
                                     Cancel
                                 </button>
@@ -715,17 +717,17 @@ export default function AdminAdminGroupsPage() {
                                     type="submit"
                                     form="group-form"
                                     disabled={loading}
-                                    className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="rounded-full bg-slate-900 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {editingGroup ? 'Update admin group' : 'Create admin group'}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={resetForm}
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                                    className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
                                     aria-label="Close modal"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
@@ -733,32 +735,32 @@ export default function AdminAdminGroupsPage() {
                         </div>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                        <form onSubmit={handleSubmit} className="space-y-6" id="group-form">
-                            <div className="grid gap-6 lg:grid-cols-2">
-                                <div className="space-y-6">
-                                    <div className="grid gap-4">
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                    <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
+                        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6" id="group-form">
+                            <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+                                <div className="space-y-4 sm:space-y-6">
+                                    <div className="grid gap-3 sm:gap-4">
+                                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
                                             <span>Name</span>
                                             <input
                                                 type="text"
                                                 value={formState.name}
                                                 onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                                 required
                                             />
                                         </label>
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
                                             <span>Code</span>
                                             <input
                                                 type="text"
                                                 value={formState.code}
                                                 onChange={(e) => setFormState(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 font-mono text-sm"
+                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 font-mono text-xs sm:text-sm"
                                                 placeholder="e.g., ADMIN, MANAGER"
                                             />
                                         </label>
-                                        <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
                                             <span>Display order</span>
                                             <input
                                                 type="number"
@@ -783,48 +785,48 @@ export default function AdminAdminGroupsPage() {
                                                         e.target.select();
                                                     }
                                                 }}
-                                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                                 min={0}
                                             />
                                         </label>
                                     </div>
-                                    <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                                    <label className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
                                         <input
                                             type="checkbox"
                                             checked={formState.is_active}
                                             onChange={(e) => setFormState(prev => ({ ...prev, is_active: e.target.checked }))}
-                                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                         />
                                         Active for assignment
                                     </label>
                                 </div>
-                                <div className="space-y-6">
-                                    <label className="flex flex-col gap-2 text-sm text-slate-600">
+                                <div className="space-y-4 sm:space-y-6">
+                                    <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
                                         <span>Description</span>
                                         <textarea
                                             value={formState.description}
                                             onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                                            className="min-h-[120px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                            className="min-h-[100px] sm:min-h-[120px] rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                             placeholder="Optional notes for internal reference."
                                         />
                                     </label>
                                 </div>
                             </div>
 
-                            <fieldset className="rounded-2xl border border-slate-200 px-4 py-4">
-                                <legend className="px-2 text-xs font-semibold text-slate-400">
+                            <fieldset className="rounded-xl sm:rounded-2xl border border-slate-200 px-3 py-3 sm:px-4 sm:py-4">
+                                <legend className="px-2 text-[10px] sm:text-xs font-semibold text-slate-400">
                                     Feature access
                                 </legend>
-                                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                <div className="mt-2 sm:mt-3 grid gap-2 sm:gap-3 grid-cols-1 md:grid-cols-2">
                                     {featureOptions.map((feature) => {
                                         const checked = formState.features.includes(feature.value);
                                         return (
-                                            <label key={feature.value} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                                            <label key={feature.value} className="flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl bg-slate-50 px-2.5 py-2 sm:px-3 text-xs sm:text-sm text-slate-600">
                                                 <input
                                                     type="checkbox"
                                                     checked={checked}
                                                     onChange={(e) => toggleFeature(feature.value, e.target.checked)}
-                                                    className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                    className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                                 />
                                                 {feature.label}
                                             </label>
@@ -860,23 +862,23 @@ export default function AdminAdminGroupsPage() {
             {/* Assign Admins Modal */}
             <Modal show={assignModalOpen} onClose={closeAssignModal} maxWidth="6xl">
                 <div className="flex min-h-0 flex-col">
-                    <div className="flex-shrink-0 border-b border-slate-200 px-6 py-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h2 className="text-xl font-semibold text-slate-900">
+                    <div className="flex-shrink-0 border-b border-slate-200 px-3 py-3 sm:px-6 sm:py-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0 flex-1">
+                                <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-slate-900 truncate">
                                     Assign admins to {assigningGroup?.name}!
                                 </h2>
-                                <p className="mt-1 text-sm text-slate-500">
+                                <p className="mt-1 text-xs sm:text-sm text-slate-500">
                                     Select one or more admins. Use filters to narrow the list, then save to sync assignments.
                                 </p>
                             </div>
                             <button
                                 type="button"
                                 onClick={closeAssignModal}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+                                className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-600 flex-shrink-0"
                                 aria-label="Close modal"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
@@ -884,10 +886,10 @@ export default function AdminAdminGroupsPage() {
                     </div>
 
                     <form onSubmit={handleAssignSubmit} className="flex min-h-0 flex-1 flex-col">
-                        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-                            <div className="space-y-4">
+                        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4">
+                            <div className="space-y-3 sm:space-y-4">
                             {/* Search and Filters */}
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                                 <div className="flex-1">
                                     <input
                                         type="text"
@@ -900,38 +902,38 @@ export default function AdminAdminGroupsPage() {
                                             }
                                         }}
                                         placeholder="Search name or email..."
-                                        className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                        className="w-full rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                     />
                                 </div>
                                 <button
                                     type="button"
                                     onClick={handleAssignSearch}
                                     disabled={assignLoading}
-                                    className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="rounded-full bg-slate-900 px-3 py-2 sm:px-4 text-xs sm:text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {assignLoading ? 'Searching...' : 'Search'}
                                 </button>
                             </div>
 
                             {/* Select All / Deselect All */}
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between gap-2 sm:gap-3">
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                     <button
                                         type="button"
                                         onClick={selectAllVisible}
-                                        className="rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                        className="rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 text-[10px] sm:text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
                                     >
                                         Select all visible
                                     </button>
                                     <button
                                         type="button"
                                         onClick={deselectAllVisible}
-                                        className="rounded-full border border-slate-300 px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                        className="rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 text-[10px] sm:text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
                                     >
                                         Deselect all visible
                                     </button>
                                 </div>
-                                <div className="text-sm text-slate-600">
+                                <div className="text-xs sm:text-sm text-slate-600 text-center sm:text-left">
                                     <span className="font-semibold">{visibleSelectedCount}</span> selected /{' '}
                                     <span className="font-semibold">{filteredAssignAdmins.length}</span> visible
                                 </div>
@@ -939,16 +941,16 @@ export default function AdminAdminGroupsPage() {
 
                             {/* Admins Table */}
                             {assignLoading ? (
-                                <div className="flex items-center justify-center py-16">
-                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
+                                <div className="flex items-center justify-center py-12 sm:py-16">
+                                    <div className="h-6 w-6 sm:h-8 sm:w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
                                 </div>
                             ) : (
-                                <div className="overflow-hidden rounded-2xl border border-slate-200">
+                                <div className="overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200">
                                         <div className="overflow-x-auto" data-admin-table-container>
-                                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                                                <thead className="bg-slate-50 text-xs text-slate-500 sticky top-0 z-10">
+                                    <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
+                                                <thead className="bg-slate-50 text-[10px] sm:text-xs text-slate-500 sticky top-0 z-10">
                                             <tr>
-                                                        <th className="px-4 py-3 text-left bg-slate-50">
+                                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left bg-slate-50">
                                                     <input
                                                         type="checkbox"
                                                         checked={allVisibleSelected}
@@ -959,12 +961,12 @@ export default function AdminAdminGroupsPage() {
                                                                 selectAllVisible();
                                                             }
                                                         }}
-                                                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                        className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                                         aria-label="Select all visible admins"
                                                     />
                                                 </th>
-                                                        <th className="px-4 py-3 text-left bg-slate-50">Name</th>
-                                                        <th className="px-4 py-3 text-left bg-slate-50">Email</th>
+                                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left bg-slate-50">Name</th>
+                                                        <th className="px-3 py-2 sm:px-4 sm:py-3 text-left bg-slate-50 hidden sm:table-cell">Email</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 bg-white">
@@ -972,25 +974,28 @@ export default function AdminAdminGroupsPage() {
                                                 const isSelected = assignSelectedIds.includes(admin.id);
                                                 return (
                                                     <tr key={admin.id} className="hover:bg-slate-50">
-                                                        <td className="px-4 py-3">
+                                                        <td className="px-3 py-2 sm:px-4 sm:py-3">
                                                             <input
                                                                 type="checkbox"
                                                                 checked={isSelected}
                                                                 onChange={() => toggleAssignAdmin(admin.id)}
-                                                                className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                                className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                                                 aria-label={`Select ${admin.name}`}
                                                             />
                                                         </td>
-                                                        <td className="px-4 py-3 font-medium text-slate-900">
+                                                        <td className="px-3 py-2 sm:px-4 sm:py-3 font-medium text-slate-900 text-xs sm:text-sm">
                                                             {admin.name}
+                                                            <div className="mt-0.5 sm:hidden">
+                                                                <p className="text-[10px] text-slate-500">{admin.email}</p>
+                                                            </div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-slate-600">{admin.email}</td>
+                                                        <td className="px-3 py-2 sm:px-4 sm:py-3 text-slate-600 text-xs sm:text-sm hidden sm:table-cell">{admin.email}</td>
                                                     </tr>
                                                 );
                                             })}
                                             {filteredAssignAdmins.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={3} className="px-4 py-6 text-center text-sm text-slate-500">
+                                                    <td colSpan={3} className="px-3 py-4 sm:px-4 sm:py-6 text-center text-xs sm:text-sm text-slate-500">
                                                         No admins found matching your search.
                                                     </td>
                                                 </tr>
@@ -999,7 +1004,7 @@ export default function AdminAdminGroupsPage() {
                                     </table>
                                 </div>
                                         {/* Pagination inside table container */}
-                                        <div className="border-t border-slate-200 bg-white px-4 py-3">
+                                        <div className="border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3">
                                 <Pagination
                                     meta={assignAdminsMeta}
                                     onPageChange={handleAssignPageChange}
@@ -1011,19 +1016,19 @@ export default function AdminAdminGroupsPage() {
                             </div>
 
                         {/* Footer with Action Buttons */}
-                        <div className="flex-shrink-0 border-t border-slate-200 bg-white px-6 py-4">
-                            <div className="flex items-center justify-end gap-3">
+                        <div className="flex-shrink-0 border-t border-slate-200 bg-white px-3 py-3 sm:px-6 sm:py-4">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-end gap-2 sm:gap-3">
                                 <button
                                     type="button"
                                     onClick={closeAssignModal}
-                                    className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                    className="rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={assignProcessing}
-                                    className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="rounded-full bg-slate-900 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {assignProcessing ? 'Saving...' : 'Save assignments'}
                                 </button>
