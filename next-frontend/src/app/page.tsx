@@ -364,7 +364,7 @@ export default function HomeIndex() {
                     </section>
                 )}
 
-                <section className="mx-auto max-w-6xl px-1 sm:px-6 lg:px-10" id="jobwork">
+                <section className="mx-auto max-w-6xl px-2 sm:px-6 lg:px-10" id="jobwork">
                     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-elvee-blue via-navy to-slate-900 p-6 text-white shadow-[0_25px_60px_-20px_rgba(10,30,70,0.7)] sm:p-8 lg:p-10">
                         <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/2 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.15),_transparent_55%)] blur-3xl lg:block" />
                         <div className="relative z-10 flex flex-col gap-6 sm:gap-8 lg:flex-row lg:items-center lg:justify-between lg:gap-10">

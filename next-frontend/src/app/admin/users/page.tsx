@@ -115,7 +115,7 @@ export default function AdminUsersIndex() {
             const lastPage = data.meta?.lastPage || data.meta?.last_page || 1;
             const total = data.meta?.total || 0;
             const perPageValue = data.meta?.perPage || data.meta?.per_page || perPage;
-            
+
             setUsers({
                 data: (data.items || []).map((item: any) => ({
                     id: Number(item.id),
@@ -447,16 +447,16 @@ export default function AdminUsersIndex() {
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
                             <thead className="bg-slate-50 text-[10px] sm:text-xs font-semibold uppercase text-slate-500">
-                                <tr>
+                            <tr>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedIds.length > 0 && selectedIds.length === users.data.length}
-                                            onChange={(event) => toggleSelectAll(event.target.checked)}
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedIds.length > 0 && selectedIds.length === users.data.length}
+                                        onChange={(event) => toggleSelectAll(event.target.checked)}
                                             className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
-                                            aria-label="Select all customers"
-                                        />
-                                    </th>
+                                        aria-label="Select all customers"
+                                    />
+                                </th>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3 text-left">Name</th>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3 text-left hidden md:table-cell">Email</th>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3 text-left hidden lg:table-cell">Type</th>
@@ -466,37 +466,37 @@ export default function AdminUsersIndex() {
                                     <th className="px-3 py-2 sm:px-5 sm:py-3 text-left hidden lg:table-cell">Docs</th>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3 text-left hidden md:table-cell">Joined</th>
                                     <th className="px-3 py-2 sm:px-5 sm:py-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                            {loading && users.data.length === 0 ? (
+                                <tr>
+                                        <td colSpan={10} className="px-3 py-4 sm:px-5 sm:py-6 text-center text-xs sm:text-sm text-slate-500">
+                                        Loading...
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 bg-white">
-                                {loading && users.data.length === 0 ? (
-                                    <tr>
+                            ) : users.data.length === 0 ? (
+                                <tr>
                                         <td colSpan={10} className="px-3 py-4 sm:px-5 sm:py-6 text-center text-xs sm:text-sm text-slate-500">
-                                            Loading...
-                                        </td>
-                                    </tr>
-                                ) : users.data.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={10} className="px-3 py-4 sm:px-5 sm:py-6 text-center text-xs sm:text-sm text-slate-500">
-                                            No customers found.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    users.data.map((user) => {
-                                        const badgeClass = statusColours[user.kyc_status] ?? 'bg-slate-100 text-slate-600';
-                                        const checked = selectedIds.includes(user.id);
+                                        No customers found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                users.data.map((user) => {
+                                    const badgeClass = statusColours[user.kyc_status] ?? 'bg-slate-100 text-slate-600';
+                                    const checked = selectedIds.includes(user.id);
 
-                                        return (
-                                            <tr key={user.id} className="hover:bg-slate-50">
+                                    return (
+                                        <tr key={user.id} className="hover:bg-slate-50">
                                                 <td className="px-3 py-2 sm:px-5 sm:py-3">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={checked}
-                                                        onChange={(event) => toggleSelect(user.id, event.target.checked)}
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={(event) => toggleSelect(user.id, event.target.checked)}
                                                         className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-elvee-blue focus:ring-feather-gold"
-                                                        aria-label={`Select ${user.name}`}
-                                                    />
-                                                </td>
+                                                    aria-label={`Select ${user.name}`}
+                                                />
+                                            </td>
                                                 <td className="px-3 py-2 sm:px-5 sm:py-3 font-medium text-slate-900 text-xs sm:text-sm">
                                                     {user.name}
                                                     <div className="mt-0.5 md:hidden">
@@ -507,80 +507,80 @@ export default function AdminUsersIndex() {
                                                 <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 text-xs sm:text-sm hidden lg:table-cell">{user.type}</td>
                                                 <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 text-xs sm:text-sm hidden md:table-cell">{user.customer_group?.name ?? '—'}</td>
                                                 <td className="px-3 py-2 sm:px-5 sm:py-3">
-                                                    <span
+                                                <span
                                                         className={`inline-flex items-center rounded-full px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold ${badgeClass}`}
-                                                    >
-                                                        {getKycStatusLabel(user.kyc_status)}
-                                                    </span>
-                                                </td>
+                                                >
+                                                    {getKycStatusLabel(user.kyc_status)}
+                                                </span>
+                                            </td>
                                                 <td className="px-3 py-2 sm:px-5 sm:py-3">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleActive(user)}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleActive(user)}
                                                         className={`inline-flex items-center rounded-full px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold transition ${
-                                                            user.is_active
-                                                                ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                                        }`}
-                                                    >
-                                                        {user.is_active ? 'Enabled' : 'Disabled'}
-                                                    </button>
-                                                </td>
+                                                        user.is_active
+                                                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                    }`}
+                                                >
+                                                    {user.is_active ? 'Enabled' : 'Disabled'}
+                                                </button>
+                                            </td>
                                                 <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 text-xs sm:text-sm hidden lg:table-cell">{user.kyc_document_count}</td>
                                                 <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 text-xs sm:text-sm hidden md:table-cell">
-                                                    {user.joined_at ? new Date(user.joined_at).toLocaleDateString('en-IN') : '—'}
-                                                </td>
+                                                {user.joined_at ? new Date(user.joined_at).toLocaleDateString('en-IN') : '—'}
+                                            </td>
                                                 <td className="px-3 py-2 sm:px-5 sm:py-3 text-right">
                                                     <div className="flex items-center justify-end gap-1.5 sm:gap-2">
-                                                        <Link
-                                                            href={`/admin/users/${user.id}/kyc`}
+                                                    <Link
+                                                        href={`/admin/users/${user.id}/kyc`}
                                                             className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
-                                                            title="Review KYC"
-                                                        >
-                                                            <svg
-                                                                xmlns="http://www.w3.org/2000/svg"
+                                                        title="Review KYC"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
                                                                 className="h-3.5 w-3.5 sm:h-4 sm:w-4"
-                                                                viewBox="0 0 24 24"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                strokeWidth={1.5}
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    d="M12 4.5l7.5 7.5-7.5 7.5m-7.5-7.5h15"
-                                                                />
-                                                            </svg>
-                                                        </Link>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => deleteCustomer(user.id)}
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth={1.5}
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                d="M12 4.5l7.5 7.5-7.5 7.5m-7.5-7.5h15"
+                                                            />
+                                                        </svg>
+                                                    </Link>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => deleteCustomer(user.id)}
                                                             className="inline-flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-rose-200 text-rose-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
-                                                            title="Delete customer"
-                                                        >
-                                                            <svg
-                                                                xmlns="http://www.w3.org/2000/svg"
+                                                        title="Delete customer"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
                                                                 className="h-3.5 w-3.5 sm:h-4 sm:w-4"
-                                                                viewBox="0 0 24 24"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                strokeWidth={1.5}
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z"
-                                                                />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth={1.5}
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                d="M6 7h12M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m1 0v12a2 2 0 01-2 2H8a2 2 0 01-2-2V7h12z"
+                                                            />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
                     </div>
                 </div>
 

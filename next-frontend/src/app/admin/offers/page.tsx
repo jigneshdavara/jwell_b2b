@@ -482,41 +482,41 @@ export default function AdminOffersIndex() {
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
                                 <thead className="bg-slate-50 text-[10px] sm:text-xs uppercase tracking-[0.3em] text-slate-500">
-                                    <tr>
+                                <tr>
                                         <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Code</th>
                                         <th className="px-3 py-2 text-left sm:px-5 sm:py-3">Name</th>
                                         <th className="px-3 py-2 text-left sm:px-5 sm:py-3 hidden md:table-cell">Type</th>
                                         <th className="px-3 py-2 text-right sm:px-5 sm:py-3">Value</th>
                                         <th className="px-3 py-2 text-center sm:px-5 sm:py-3 hidden lg:table-cell">Status</th>
                                         <th className="px-3 py-2 text-right sm:px-5 sm:py-3">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
-                                    {offers.map((offer) => (
-                                        <tr key={offer.id} className="hover:bg-slate-50">
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {offers.map((offer) => (
+                                    <tr key={offer.id} className="hover:bg-slate-50">
                                             <td className="px-3 py-2 sm:px-5 sm:py-3 font-semibold text-slate-900 text-xs sm:text-sm">{offer.code}</td>
                                             <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-600">
                                                 <div className="flex flex-col gap-0.5 sm:gap-1">
                                                     <span className="font-semibold text-slate-900 text-xs sm:text-sm">{offer.name}</span>
-                                                    {offer.description && (
+                                                {offer.description && (
                                                         <span className="text-[10px] sm:text-xs text-slate-500">{offer.description}</span>
-                                                    )}
+                                                )}
                                                     <div className="flex flex-wrap gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-slate-400">
-                                                        <span>
-                                                            {offer.constraints?.user_types?.length
-                                                                ? `Customers: ${offer.constraints.user_types
-                                                                      .map((type) => userTypeLabels[type] ?? type)
-                                                                      .join(', ')}`
-                                                                : 'Customers: All'}
-                                                        </span>
-                                                        <span>
-                                                            {offer.constraints?.user_group_ids?.length
-                                                                ? `Groups: ${offer.constraints.user_group_ids
-                                                                      .map((id) => userGroupLabels[id] ?? `#${id}`)
-                                                                      .join(', ')}`
-                                                                : 'Groups: All'}
-                                                        </span>
-                                                    </div>
+                                                    <span>
+                                                        {offer.constraints?.user_types?.length
+                                                            ? `Customers: ${offer.constraints.user_types
+                                                                  .map((type) => userTypeLabels[type] ?? type)
+                                                                  .join(', ')}`
+                                                            : 'Customers: All'}
+                                                    </span>
+                                                    <span>
+                                                        {offer.constraints?.user_group_ids?.length
+                                                            ? `Groups: ${offer.constraints.user_group_ids
+                                                                  .map((id) => userGroupLabels[id] ?? `#${id}`)
+                                                                  .join(', ')}`
+                                                            : 'Groups: All'}
+                                                    </span>
+                                                </div>
                                                     <div className="md:hidden mt-1">
                                                         <span className="text-[10px] text-slate-500">Type: </span>
                                                         <span className="text-[10px] text-slate-500 uppercase tracking-wide">{offer.type_label}</span>
@@ -531,37 +531,37 @@ export default function AdminOffersIndex() {
                                                             {offer.is_active ? 'Active' : 'Inactive'}
                                                         </span>
                                                     </div>
-                                                </div>
-                                            </td>
+                                            </div>
+                                        </td>
                                             <td className="px-3 py-2 sm:px-5 sm:py-3 text-slate-500 uppercase tracking-wide text-xs sm:text-sm hidden md:table-cell">{offer.type_label}</td>
                                             <td className="px-3 py-2 sm:px-5 sm:py-3 text-right text-slate-900 text-xs sm:text-sm">₹ {offer.value.toLocaleString('en-IN')}</td>
                                             <td className="px-3 py-2 sm:px-5 sm:py-3 text-center hidden lg:table-cell">
-                                                <span
+                                            <span
                                                     className={`inline-flex items-center rounded-full px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold ${
-                                                        offer.is_active
-                                                            ? 'bg-emerald-100 text-emerald-700'
-                                                            : 'bg-slate-100 text-slate-500'
-                                                    }`}
-                                                >
-                                                    {offer.is_active ? 'Active' : 'Inactive'}
-                                                </span>
-                                            </td>
+                                                    offer.is_active
+                                                        ? 'bg-emerald-100 text-emerald-700'
+                                                        : 'bg-slate-100 text-slate-500'
+                                                }`}
+                                            >
+                                                {offer.is_active ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </td>
                                             <td className="px-3 py-2 sm:px-5 sm:py-3 text-right">
                                                 <div className="flex justify-end gap-1 sm:gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => populateForm(offer)}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => populateForm(offer)}
                                                         className="rounded-full border border-slate-300 px-2 py-1 text-[10px] font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-3 sm:py-1.5 sm:text-xs md:px-4"
                                                         title="Edit"
-                                                    >
+                                                >
                                                         <span className="hidden sm:inline">Edit</span>
                                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3 sm:hidden">
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                                                         </svg>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleOffer(offer)}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleOffer(offer)}
                                                         className="rounded-full border border-slate-300 px-2 py-1 text-[10px] font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-3 sm:py-1.5 sm:text-xs md:px-4"
                                                         title={offer.is_active ? 'Pause' : 'Activate'}
                                                     >
@@ -573,31 +573,31 @@ export default function AdminOffersIndex() {
                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
                                                             )}
                                                         </svg>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => deleteOffer(offer)}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => deleteOffer(offer)}
                                                         className="rounded-full border border-rose-200 px-2 py-1 text-[10px] font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 sm:px-3 sm:py-1.5 sm:text-xs md:px-4"
                                                         title="Delete"
-                                                    >
+                                                >
                                                         <span className="hidden sm:inline">Delete</span>
                                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3 sm:hidden">
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                                                         </svg>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {offers.length === 0 && (
-                                        <tr>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {offers.length === 0 && (
+                                    <tr>
                                             <td colSpan={6} className="px-3 py-4 sm:px-5 sm:py-6 text-center text-xs sm:text-sm text-slate-500">
-                                                No active offers configured.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                            No active offers configured.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                         </div>
                     )}
                 </div>

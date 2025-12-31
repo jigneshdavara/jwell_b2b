@@ -54,13 +54,13 @@ function CheckoutForm({ providerReference }: { providerReference: string }) {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <PaymentElement options={{ layout: 'tabs' }} />
-            {error && <p className="text-sm text-rose-500">{error}</p>}
+            {error && <p className="text-xs text-rose-500 sm:text-sm">{error}</p>}
             <button
                 type="submit"
                 disabled={!stripe || processing}
-                className="w-full rounded-full bg-elvee-blue px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:opacity-60"
+                className="w-full rounded-full bg-elvee-blue px-4 py-1.5 text-xs font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:opacity-60 sm:px-5 sm:py-2 sm:text-sm"
             >
                 {processing ? 'Processing…' : 'Confirm payment'}
             </button>
@@ -111,8 +111,8 @@ export default function CheckoutPage() {
         return (
             <>
                 <Head title="Checkout" />
-                <div className="flex items-center justify-center py-20">
-                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent" />
+                <div className="flex items-center justify-center py-12 sm:py-20">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent sm:h-12 sm:w-12" />
                 </div>
             </>
         );
@@ -122,10 +122,10 @@ export default function CheckoutPage() {
         return (
             <>
                 <Head title="Checkout" />
-                <div className="flex items-center justify-center py-20">
+                <div className="flex items-center justify-center py-12 sm:py-20">
                     <div className="text-center">
-                        <p className="text-lg font-semibold text-slate-900">{error || 'Failed to load checkout'}</p>
-                        <Link href={route('frontend.cart.index')} className="mt-4 text-sm text-elvee-blue hover:underline">
+                        <p className="text-base font-semibold text-slate-900 sm:text-lg">{error || 'Failed to load checkout'}</p>
+                        <Link href={route('frontend.cart.index')} className="mt-3 text-xs text-elvee-blue hover:underline sm:mt-4 sm:text-sm">
                             Back to cart
                         </Link>
                     </div>
@@ -137,12 +137,12 @@ export default function CheckoutPage() {
     return (
         <>
             <Head title="Checkout" />
-            <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
-                <div className="space-y-6">
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                        <h1 className="text-2xl font-semibold text-slate-900">Secure payment</h1>
-                        <p className="mt-2 text-sm text-slate-500">Order reference <span className="font-semibold text-slate-900">{data.order.reference}</span></p>
-                        <div className="mt-6">
+            <div className="grid gap-4 sm:gap-6 lg:gap-8 lg:grid-cols-[2fr_1fr]">
+                <div className="space-y-4 sm:space-y-6">
+                    <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/80 sm:rounded-3xl sm:p-6">
+                        <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Secure payment</h1>
+                        <p className="mt-1 text-xs text-slate-500 sm:mt-2 sm:text-sm">Order reference <span className="font-semibold text-slate-900">{data.order.reference}</span></p>
+                        <div className="mt-4 sm:mt-6">
                             {stripePromise && elementOptions && (
                                 <Elements stripe={stripePromise} options={elementOptions}>
                                     <CheckoutForm providerReference={data.payment.providerReference} />
@@ -150,18 +150,18 @@ export default function CheckoutPage() {
                             )}
                         </div>
                     </div>
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                        <h2 className="text-lg font-semibold text-slate-900">Items</h2>
-                        <div className="mt-4 space-y-3 text-sm text-slate-600">
+                    <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/80 sm:rounded-3xl sm:p-6">
+                        <h2 className="text-base font-semibold text-slate-900 sm:text-lg">Items</h2>
+                        <div className="mt-3 space-y-2 text-xs text-slate-600 sm:mt-4 sm:space-y-3 sm:text-sm">
                             {data.order.items.map((item) => (
                                 <div key={item.sku} className="flex items-center justify-between">
-                                    <div>
-                                        <p className="font-medium text-slate-900">{item.name}</p>
-                                        <p className="text-xs text-slate-400">
+                                    <div className="min-w-0 flex-1 pr-2">
+                                        <p className="font-medium text-slate-900 truncate">{item.name}</p>
+                                        <p className="text-[10px] text-slate-400 sm:text-xs">
                                             {item.quantity} × {item.sku}
                                         </p>
                                     </div>
-                                    <p className="font-semibold text-slate-900">
+                                    <p className="flex-shrink-0 font-semibold text-slate-900">
                                         {formatter.format(item.line_total)}
                                     </p>
                                 </div>
@@ -169,10 +169,10 @@ export default function CheckoutPage() {
                         </div>
                     </div>
                 </div>
-                <aside className="space-y-6">
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                        <h2 className="text-lg font-semibold text-slate-900">Summary</h2>
-                        <div className="mt-4 space-y-3 text-sm text-slate-600">
+                <aside className="space-y-4 sm:space-y-6">
+                    <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/80 sm:rounded-3xl sm:p-6">
+                        <h2 className="text-base font-semibold text-slate-900 sm:text-lg">Summary</h2>
+                        <div className="mt-3 space-y-2 text-xs text-slate-600 sm:mt-4 sm:space-y-3 sm:text-sm">
                             <div className="flex items-center justify-between">
                                 <span>Subtotal</span>
                                 <span>{formatter.format(data.summary.subtotal)}</span>
@@ -189,7 +189,7 @@ export default function CheckoutPage() {
                                 <span>Shipping</span>
                                 <span>{formatter.format(data.summary.shipping)}</span>
                             </div>
-                            <div className="border-t border-slate-200 pt-3 text-base font-semibold text-slate-900">
+                            <div className="border-t border-slate-200 pt-2 text-sm font-semibold text-slate-900 sm:pt-3 sm:text-base">
                                 <div className="flex items-center justify-between">
                                     <span>Total due</span>
                                     <span>{formatter.format(data.summary.total)}</span>

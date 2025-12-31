@@ -291,194 +291,194 @@ export default function KycOnboardingPage() {
     const isApproved = user.kyc_status === 'approved';
 
     return (
-        <div className="space-y-8">
+        <div className="w-full space-y-6 sm:space-y-8">
 
-            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 p-8 text-white shadow-2xl">
+            <section className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 p-4 text-white shadow-2xl sm:rounded-3xl sm:p-6 lg:p-8">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.25),_transparent_40%),_radial-gradient(circle_at_bottom_right,_rgba(249,115,22,0.25),_transparent_45%)]" />
-                <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                <div className="relative z-10 flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                        <p className="text-xs text-white/70">Elvee onboarding</p>
-                        <h1 className="mt-2 text-3xl font-semibold">KYC verification status</h1>
-                        <p className="mt-3 max-w-2xl text-sm text-white/80">{statusInfo.description}</p>
+                        <p className="text-[10px] text-white/70 sm:text-xs">Elvee onboarding</p>
+                        <h1 className="mt-1.5 text-xl font-semibold sm:mt-2 sm:text-2xl lg:text-3xl">KYC verification status</h1>
+                        <p className="mt-2 max-w-2xl text-xs text-white/80 sm:mt-3 sm:text-sm">{statusInfo.description}</p>
                         {user.kyc_notes && (
-                            <div className="mt-4 rounded-2xl bg-white/10 p-4 text-sm text-amber-200">
+                            <div className="mt-3 rounded-xl bg-white/10 p-3 text-xs text-amber-200 sm:mt-4 sm:rounded-2xl sm:p-4 sm:text-sm">
                                 <p className="font-semibold text-amber-300">Reviewer notes</p>
-                                <p className="mt-2 whitespace-pre-line">{user.kyc_notes}</p>
+                                <p className="mt-1.5 whitespace-pre-line sm:mt-2">{user.kyc_notes}</p>
                             </div>
                         )}
                     </div>
-                    <div className="flex flex-col items-start gap-3 lg:items-end">
-                        <span className={`rounded-full px-4 py-1 text-xs font-semibold ${statusInfo.badge}`}>
+                    <div className="flex flex-col items-start gap-2 sm:gap-3 lg:items-end">
+                        <span className={`rounded-full px-3 py-1 text-[10px] font-semibold sm:px-4 sm:text-xs ${statusInfo.badge}`}>
                             {user.kyc_status === 'review' ? 'needs attention' : user.kyc_status}
                         </span>
                         {isApproved ? (
                             <button
                                 onClick={() => router.push(route('frontend.dashboard'))}
-                                className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-slate-900/20"
+                                className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-lg shadow-slate-900/20 transition active:scale-[0.98] sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
                             >
                                 Go to dashboard
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                             </button>
                         ) : (
-                            <span className="text-xs text-white/70">Access unlocks after approval</span>
+                            <span className="text-[10px] text-white/70 sm:text-xs">Access unlocks after approval</span>
                         )}
                     </div>
                 </div>
             </section>
 
-            <section className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
-                <div className="space-y-8">
+            <section className="grid w-full gap-6 sm:gap-8 lg:grid-cols-[1.4fr_1fr]">
+                <div className="w-full space-y-6 sm:space-y-8">
                     <form
                         onSubmit={handleProfileSubmit}
-                        className="space-y-5 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70"
+                        className="w-full space-y-4 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:space-y-5 sm:p-6"
                     >
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-slate-900">Business profile</h2>
+                        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                            <h2 className="text-base font-semibold text-slate-900 sm:text-lg">Business profile</h2>
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="w-full rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
                             >
                                 {processing ? 'Saving…' : 'Save changes'}
                             </button>
                         </div>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                        <div className="grid w-full grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
+                            <label className="flex w-full flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>Business / store name</span>
                                 <input
                                     type="text"
                                     value={profileData.business_name || ''}
                                     onChange={(e) => setProfileData({...profileData, business_name: e.target.value})}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                     required
                                 />
                                 <InputError message={errors.business_name} />
                             </label>
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                            <label className="flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>Website</span>
                                 <input
                                     type="text"
                                     value={profileData.business_website || ''}
                                     onChange={(e) => setProfileData({...profileData, business_website: e.target.value})}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                     placeholder="https://example.com"
                                 />
                                 <InputError message={errors.business_website} />
                             </label>
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                            <label className="flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>GST number</span>
                                 <input
                                     type="text"
                                     value={profileData.gst_number || ''}
                                     onChange={(e) => setProfileData({...profileData, gst_number: e.target.value.toUpperCase()})}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                     placeholder="Optional"
                                 />
                                 <InputError message={errors.gst_number} />
                             </label>
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                            <label className="flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>PAN</span>
                                 <input
                                     type="text"
                                     value={profileData.pan_number || ''}
                                     onChange={(e) => setProfileData({...profileData, pan_number: e.target.value.toUpperCase()})}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                     placeholder="Optional"
                                 />
                                 <InputError message={errors.pan_number} />
                             </label>
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                            <label className="flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>Registration number</span>
                                 <input
                                     type="text"
                                     value={profileData.registration_number || ''}
                                     onChange={(e) => setProfileData({...profileData, registration_number: e.target.value})}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                     placeholder="MSME / CIN"
                                 />
                                 <InputError message={errors.registration_number} />
                             </label>
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                            <label className="flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>Contact person</span>
                                 <input
                                     type="text"
                                     value={profileData.contact_name || ''}
                                     onChange={(e) => setProfileData({...profileData, contact_name: e.target.value})}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                 />
                                 <InputError message={errors.contact_name} />
                             </label>
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                            <label className="flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>Contact phone</span>
                                 <input
                                     type="text"
                                     value={profileData.contact_phone || ''}
                                     onChange={(e) => setProfileData({...profileData, contact_phone: e.target.value})}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                 />
                                 <InputError message={errors.contact_phone} />
                             </label>
                         </div>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                        <div className="grid w-full grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
+                            <label className="flex w-full flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>Address line 1</span>
                                 <input
                                     type="text"
                                     value={profileData.address_line1 || ''}
                                     onChange={(e) => setProfileData({...profileData, address_line1: e.target.value})}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                 />
                                 <InputError message={errors.address_line1} />
                             </label>
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                            <label className="flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>Address line 2</span>
                                 <input
                                     type="text"
                                     value={profileData.address_line2 || ''}
                                     onChange={(e) => setProfileData({...profileData, address_line2: e.target.value})}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                 />
                                 <InputError message={errors.address_line2} />
                             </label>
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                            <label className="flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>City</span>
                                 <input
                                     type="text"
                                     value={profileData.city || ''}
                                     onChange={(e) => setProfileData({...profileData, city: e.target.value})}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                 />
                                 <InputError message={errors.city} />
                             </label>
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                            <label className="flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>State</span>
                                 <input
                                     type="text"
                                     value={profileData.state || ''}
                                     onChange={(e) => setProfileData({...profileData, state: e.target.value})}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                 />
                                 <InputError message={errors.state} />
                             </label>
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                            <label className="flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>Postal code</span>
                                 <input
                                     type="text"
                                     value={profileData.postal_code || ''}
                                     onChange={(e) => setProfileData({...profileData, postal_code: e.target.value})}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                 />
                                 <InputError message={errors.postal_code} />
                             </label>
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                            <label className="flex flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>Country</span>
                                 <input
                                     type="text"
                                     value={profileData.country || 'India'}
                                     onChange={(e) => setProfileData({...profileData, country: e.target.value})}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                 />
                                 <InputError message={errors.country} />
                             </label>
@@ -487,25 +487,25 @@ export default function KycOnboardingPage() {
 
                     <form
                         onSubmit={handleFileUpload}
-                        className="space-y-5 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70"
+                        className="w-full space-y-4 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:space-y-5 sm:p-6"
                     >
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-slate-900">Upload supporting documents</h2>
+                        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                            <h2 className="text-base font-semibold text-slate-900 sm:text-lg">Upload supporting documents</h2>
                             <button
                                 type="submit"
                                 disabled={processing || !documentFile}
-                                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="w-full rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
                             >
                                 {processing ? 'Uploading…' : 'Upload'}
                             </button>
                         </div>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                        <div className="grid w-full grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
+                            <label className="flex w-full flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>Document type</span>
                                 <select
                                     value={documentType}
                                     onChange={(e) => setDocumentType(e.target.value)}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 capitalize"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm capitalize text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                 >
                                     {documentTypes.map((type) => (
                                         <option key={type} value={type}>
@@ -515,14 +515,14 @@ export default function KycOnboardingPage() {
                                 </select>
                                 <InputError message={errors.document_type} />
                             </label>
-                            <label className="flex flex-col gap-1 text-sm text-slate-600">
+                            <label className="flex w-full flex-col gap-1 text-xs text-slate-600 sm:text-sm">
                                 <span>Attachment (PDF/JPG/PNG, max 8MB)</span>
                                 <input
                                     id="document_file"
                                     type="file"
                                     accept="application/pdf,image/jpeg,image/png"
                                     onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4"
                                     required
                                 />
                                 <InputError message={errors.document_file} />
@@ -531,13 +531,13 @@ export default function KycOnboardingPage() {
                     </form>
                 </div>
 
-                <aside className="space-y-6">
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                <aside className="w-full space-y-4 sm:space-y-6">
+                    <div className="w-full rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
                         <h3 className="text-sm font-semibold text-slate-900">Messages from compliance</h3>
-                        <p className="mt-2 text-xs text-slate-500">
+                        <p className="mt-1.5 text-xs text-slate-500 sm:mt-2">
                             Track clarifications sent by the compliance desk. Respond when you have the requested information.
                         </p>
-                        <div className="mt-4 space-y-3 max-h-64 overflow-y-auto rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
+                        <div className="mt-3 max-h-64 space-y-2 overflow-y-auto rounded-xl bg-slate-50 p-3 text-xs text-slate-700 sm:mt-4 sm:space-y-3 sm:rounded-2xl sm:p-4 sm:text-sm">
                             {messages.length === 0 ? (
                                 <p className="text-xs text-slate-500">No messages yet. Compliance will reach out if anything is pending.</p>
                             ) : (
@@ -548,16 +548,16 @@ export default function KycOnboardingPage() {
                                             key={String(message.id)}
                                             className={`flex flex-col gap-1 ${isAdmin ? 'items-start text-left' : 'items-end text-right'}`}
                                         >
-                                            <span className="text-[11px] text-slate-400">
+                                            <span className="text-[10px] text-slate-400 sm:text-[11px]">
                                                 {isAdmin ? (message.users?.name || 'Compliance team') : 'You'}
                                                 {message.created_at ? ` · ${formatTimestamp(message.created_at)}` : ''}
                                             </span>
                                             <div
-                                                className={`max-w-full rounded-2xl px-4 py-3 text-sm ${
+                                                className={`max-w-full rounded-xl px-3 py-2 text-xs ${
                                                     isAdmin
                                                         ? 'bg-sky-100 text-sky-900 ring-1 ring-sky-200'
                                                         : 'bg-slate-900 text-white'
-                                                }`}
+                                                } sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm`}
                                             >
                                                 <p className="whitespace-pre-line">{message.message}</p>
                                             </div>
@@ -567,18 +567,18 @@ export default function KycOnboardingPage() {
                             )}
                         </div>
                         {!user.kyc_comments_enabled && (
-                            <p className="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
+                            <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2.5 text-xs text-slate-500 sm:rounded-2xl sm:px-4 sm:py-3">
                                 Replies are disabled by the compliance team. You can still review their updates above.
                             </p>
                         )}
                         {user.kyc_comments_enabled && (
-                            <form onSubmit={handleSendMessage} className="mt-4 space-y-2">
-                                <label className="flex flex-col gap-2 text-xs text-slate-600">
+                            <form onSubmit={handleSendMessage} className="mt-3 space-y-2 sm:mt-4">
+                                <label className="flex flex-col gap-1.5 text-xs text-slate-600 sm:gap-2">
                                     <span className="font-semibold text-slate-700">Send a reply</span>
                                     <textarea
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
-                                        className="min-h-[90px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2 text-sm"
+                                        className="w-full min-h-[80px] rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:min-h-[90px] sm:px-4"
                                         placeholder="Share the update or clarification you have for the compliance team."
                                         disabled={processing}
                                     />
@@ -588,7 +588,7 @@ export default function KycOnboardingPage() {
                                     <button
                                         type="submit"
                                         disabled={processing || !newMessage.trim()}
-                                        className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow shadow-slate-900/20 transition hover:bg-slate-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:py-2"
                                     >
                                         {processing ? 'Sending…' : 'Send message'}
                                     </button>
@@ -597,30 +597,30 @@ export default function KycOnboardingPage() {
                         )}
                     </div>
 
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                    <div className="w-full rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
                         <h3 className="text-sm font-semibold text-slate-700">Submitted documents</h3>
-                        <div className="mt-4 space-y-3 text-sm">
+                        <div className="mt-3 space-y-2 text-xs sm:mt-4 sm:space-y-3 sm:text-sm">
                             {documents.length === 0 && (
-                                <p className="rounded-2xl bg-slate-50 p-4 text-slate-500">
+                                <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500 sm:rounded-2xl sm:p-4 sm:text-sm">
                                     Upload your GST, PAN, trade license or store photos to speed up verification.
                                 </p>
                             )}
                             {documents.map((document) => (
                                 <div
                                     key={String(document.id)}
-                                    className="rounded-2xl border border-slate-200 p-4 shadow-sm"
+                                    className="rounded-xl border border-slate-200 p-3 shadow-sm sm:rounded-2xl sm:p-4"
                                 >
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                         <div>
-                                            <p className="font-semibold text-slate-800">
+                                            <p className="text-xs font-semibold text-slate-800 sm:text-sm">
                                                 {document.type.replace(/_/g, ' ')}
                                             </p>
-                                            <p className="text-xs text-slate-500">
+                                            <p className="mt-0.5 text-[10px] text-slate-500 sm:text-xs">
                                                 Uploaded {document.uploaded_at ? formatTimestamp(document.uploaded_at) : 'recently'}
                                             </p>
                                         </div>
                                         <span
-                                            className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                                            className={`mt-1.5 w-fit rounded-full px-2.5 py-0.5 text-[10px] font-semibold capitalize sm:mt-0 sm:px-3 sm:py-1 sm:text-xs ${
                                                 documentStatusTheme[document.status] ?? documentStatusTheme.pending
                                             }`}
                                         >
@@ -630,13 +630,13 @@ export default function KycOnboardingPage() {
                                     {document.remarks && (
                                         <p className="mt-2 text-xs text-rose-500">Remarks: {document.remarks}</p>
                                     )}
-                                    <div className="mt-3 flex items-center gap-3 text-xs font-semibold">
+                                    <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs font-semibold sm:mt-3 sm:gap-3">
                                         {document.url && (
                                             <a
                                                 href={document.url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="text-sky-600 hover:text-sky-500"
+                                                className="text-sky-600 transition hover:text-sky-500 active:scale-[0.98]"
                                             >
                                                 View file
                                             </a>
@@ -644,14 +644,14 @@ export default function KycOnboardingPage() {
                                         <button
                                             type="button"
                                             onClick={() => handleDownloadDocument(document.id)}
-                                            className="text-slate-500 hover:text-slate-700"
+                                            className="text-slate-500 transition hover:text-slate-700 active:scale-[0.98]"
                                         >
                                             Download
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => handleDeleteDocument(document.id)}
-                                            className="text-rose-500 hover:text-rose-600"
+                                            className="text-rose-500 transition hover:text-rose-600 active:scale-[0.98]"
                                         >
                                             Delete
                                         </button>
@@ -661,10 +661,10 @@ export default function KycOnboardingPage() {
                         </div>
                     </div>
 
-                    <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/70">
+                    <div className="w-full rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
                         <h3 className="text-sm font-semibold text-slate-500">Need help?</h3>
-                        <p className="mt-3 text-sm text-slate-600">
-                            Write to <a href="mailto:compliance@elvee.in" className="font-semibold text-sky-600">compliance@elvee.in</a>{' '}
+                        <p className="mt-2 text-xs text-slate-600 sm:mt-3 sm:text-sm">
+                            Write to <a href="mailto:compliance@elvee.in" className="font-semibold text-sky-600 transition hover:text-sky-500">compliance@elvee.in</a>{' '}
                             for expedited verification or assistance with additional paperwork.
                         </p>
                     </div>

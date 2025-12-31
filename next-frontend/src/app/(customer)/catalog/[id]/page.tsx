@@ -420,24 +420,24 @@ export default function CatalogShowPage() {
         <>
             <Head title={product.name} />
 
-            <div className="space-y-8">
-                <div className="grid gap-10 lg:grid-cols-[1.6fr_1fr]">
-                    <div className="space-y-6">
-                        <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
-                            <div className="mb-4">
-                                <h1 className="text-2xl font-bold text-slate-900">{product.name}</h1>
+            <div className="w-full space-y-6 sm:space-y-8">
+                <div className="grid w-full gap-6 sm:gap-8 lg:grid-cols-[1.6fr_1fr]">
+                    <div className="w-full space-y-4 sm:space-y-6">
+                        <div className="w-full rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/80 sm:rounded-3xl sm:p-6">
+                            <div className="mb-3 sm:mb-4">
+                                <h1 className="text-lg font-bold text-slate-900 sm:text-xl lg:text-2xl">{product.name}</h1>
                                 {product.brand && (
-                                    <p className="mt-1 text-sm text-slate-500">by {product.brand}</p>
+                                    <p className="mt-1 text-xs text-slate-500 sm:text-sm">by {product.brand}</p>
                                 )}
                             </div>
 
                             {hasMedia && (
-                                <div className="relative mb-6">
-                                    <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-slate-100">
+                                <div className="relative mb-4 sm:mb-6">
+                                    <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-slate-100 sm:rounded-2xl">
                                         <img
                                             src={getMediaUrl(activeMedia?.url || '')}
                                             alt={activeMedia?.alt || product.name}
-                                            className="h-full w-full cursor-pointer object-cover"
+                                            className="h-full w-full cursor-pointer object-cover transition active:scale-[0.98]"
                                             onClick={openLightbox}
                                             onError={(e) => {
                                                 (e.target as HTMLImageElement).src = '/placeholder-image.png';
@@ -445,13 +445,13 @@ export default function CatalogShowPage() {
                                         />
                                     </div>
                                     {mediaCount > 1 && (
-                                        <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+                                        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-2 sm:mt-4 sm:gap-2">
                                             {product.media?.map((media: { url: string; alt: string }, index: number) => (
                                                 <button
                                                     key={index}
                                                     type="button"
                                                     onClick={() => setActiveImageIndex(index)}
-                                                    className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border-2 transition ${
+                                                    className={`relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border-2 transition active:scale-[0.95] sm:h-20 sm:w-20 sm:rounded-xl ${
                                                         index === activeImageIndex
                                                             ? 'border-feather-gold'
                                                             : 'border-transparent hover:border-slate-300'
@@ -479,16 +479,16 @@ export default function CatalogShowPage() {
                         </div>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="w-full space-y-4 sm:space-y-6">
                         <form
                             onSubmit={submit}
-                            className="w-full space-y-5 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80"
+                            className="w-full space-y-4 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/80 sm:rounded-3xl sm:space-y-5 sm:p-6"
                         >
                             <div>
-                                <h2 className="text-lg font-semibold text-slate-900">
+                                <h2 className="text-base font-semibold text-slate-900 sm:text-lg">
                                     Request quotation
                                 </h2>
-                                <p className="text-xs text-slate-500">
+                                <p className="mt-1 text-xs text-slate-500 sm:mt-1.5">
                                     Select your configuration and our
                                     merchandising desk will share pricing
                                     shortly.
@@ -509,8 +509,8 @@ export default function CatalogShowPage() {
                                 </>
                             )}
 
-                            <label className="block space-y-1">
-                                <span className="text-xs font-semibold text-slate-600">
+                            <label className="block w-full space-y-1">
+                                <span className="text-xs font-semibold text-slate-600 sm:text-sm">
                                     Quantity
                                     {maxQuantity !== null && maxQuantity > 0 && !quantityExceedsInventory && (
                                         <span className="ml-1 font-normal text-slate-500">(Available: {maxQuantity})</span>
@@ -543,7 +543,7 @@ export default function CatalogShowPage() {
                                             setQuantity(numValue);
                                         }
                                     }}
-                                    className={`w-full rounded-2xl border px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 ${
+                                    className={`w-full rounded-xl border px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 sm:rounded-2xl sm:px-4 sm:py-2.5 ${
                                         quantityExceedsInventory && !isOutOfStock
                                             ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-rose-400/20'
                                             : 'border-slate-200 bg-white focus:border-feather-gold focus:ring-feather-gold/20'
@@ -572,13 +572,13 @@ export default function CatalogShowPage() {
                                     )}
                             </label>
 
-                            <label className="block space-y-1">
-                                <span className="text-xs font-semibold text-slate-600">Notes (optional)</span>
+                            <label className="block w-full space-y-1">
+                                <span className="text-xs font-semibold text-slate-600 sm:text-sm">Notes (optional)</span>
                                 <textarea
-                                    rows={4}
+                                    rows={3}
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-4 py-2.5 text-sm"
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4 sm:py-2.5 sm:rows-4"
                                     placeholder="List required scope: hallmarking, hallmark packaging, diamond certification, delivery deadlines…"
                                 />
                                 {validationErrors.notes && (
@@ -588,18 +588,18 @@ export default function CatalogShowPage() {
                                 )}
                             </label>
 
-                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                            <div className="w-full rounded-xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm">
                                 <p className="font-semibold text-slate-700">Estimated total</p>
                                 {selectedConfig ? (
                                     <>
-                                        <p className="mt-1 text-xl font-semibold text-slate-900">
+                                        <p className="mt-1 text-lg font-semibold text-slate-900 sm:text-xl">
                                             {currencyFormatter.format(estimatedTotal)}
                                         </p>
-                                        <p className="text-xs text-slate-500">
+                                        <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">
                                             Includes metal, diamond, and making charge. Final quotation may vary with bullion/diamond parity and labour.
                                         </p>
                                         {selectedConfig && (
-                                            <div className="mt-2 space-y-1 text-xs">
+                                            <div className="mt-2 space-y-0.5 text-[10px] sm:mt-2 sm:space-y-1 sm:text-xs">
                                                 {selectedConfig.price_breakup.metal > 0 && (
                                                     <p className="flex justify-between">
                                                         <span>Metal:</span>
@@ -626,17 +626,17 @@ export default function CatalogShowPage() {
                                         )}
                                     </>
                                 ) : (
-                                    <p className="mt-1 text-sm text-rose-600">
+                                    <p className="mt-1 text-xs text-rose-600 sm:text-sm">
                                         Please select a configuration to see pricing.
                                     </p>
                                 )}
                             </div>
 
                             {isOutOfStock && (
-                                <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                <div className="w-full rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm">
                                     <div className="flex items-start gap-2">
                                         <svg
-                                            className="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5"
+                                            className="h-4 w-4 flex-shrink-0 text-amber-600 mt-0.5 sm:h-5 sm:w-5"
                                             fill="currentColor"
                                             viewBox="0 0 20 20"
                                         >
@@ -647,8 +647,8 @@ export default function CatalogShowPage() {
                                             />
                                         </svg>
                                         <div>
-                                            <p className="font-semibold">Out of Stock</p>
-                                            <p className="text-xs mt-0.5">
+                                            <p className="text-xs font-semibold sm:text-sm">Out of Stock</p>
+                                            <p className="mt-0.5 text-[10px] sm:text-xs">
                                                 This product variant is currently out of stock. Quotation requests are not available.
                                             </p>
                                         </div>
@@ -659,7 +659,7 @@ export default function CatalogShowPage() {
                             <button
                                 type="submit"
                                 disabled={processing || invalidCombination || inventoryUnavailable}
-                                className="w-full rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
+                                className="w-full rounded-full bg-elvee-blue px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
                             >
                                 {processing
                                     ? "Submitting…"
@@ -671,17 +671,17 @@ export default function CatalogShowPage() {
             </div>
 
             {confirmOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="w-full max-w-md space-y-4 rounded-3xl bg-white p-6 shadow-2xl">
-                        <h3 className="text-lg font-semibold text-slate-900">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-2 sm:px-4">
+                    <div className="w-full max-w-md space-y-3 rounded-2xl bg-white p-4 shadow-2xl sm:space-y-4 sm:rounded-3xl sm:p-6">
+                        <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
                             Confirm quotation
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-xs text-slate-600 sm:text-sm">
                             Submit this quotation request with the selected
                             configuration? Our merchandising desk will review
                             and respond shortly.
                         </p>
-                        <div className="space-y-2 rounded-2xl bg-slate-50 p-4 text-xs text-slate-500">
+                        <div className="space-y-1.5 rounded-xl bg-slate-50 p-3 text-xs text-slate-500 sm:space-y-2 sm:rounded-2xl sm:p-4">
                             <p>
                                 <span className="font-semibold text-slate-700">
                                     Mode:
@@ -694,10 +694,10 @@ export default function CatalogShowPage() {
                                 {quantity}
                             </p>
                         </div>
-                        <div className="flex justify-end gap-3">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-3">
                             <button
                                 type="button"
-                                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                className="w-full rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
                                 onClick={() => setConfirmOpen(false)}
                                 disabled={submitting}
                             >
@@ -705,7 +705,7 @@ export default function CatalogShowPage() {
                             </button>
                             <button
                                 type="button"
-                                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:border-slate-400 hover:text-slate-900"
+                                className="w-full rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
                                 onClick={addToQuotationList}
                                 disabled={submitting}
                             >
@@ -713,7 +713,7 @@ export default function CatalogShowPage() {
                             </button>
                             <button
                                 type="button"
-                                className="rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-elvee-blue/30 hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60"
+                                className="w-full rounded-full bg-elvee-blue px-3 py-1.5 text-xs font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
                                 onClick={confirmSubmit}
                                 disabled={submitting}
                             >

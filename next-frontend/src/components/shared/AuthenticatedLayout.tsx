@@ -48,6 +48,8 @@ export default function AuthenticatedLayout({
     const openMenu = useAppSelector(selectOpenMenu);
     const language = useAppSelector(selectLanguage);
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const accountMenuRef = useRef<HTMLDivElement>(null);
+    const accountButtonRef = useRef<HTMLButtonElement>(null);
 
     // Use memoized selectors for derived state
     const isCustomer = useAppSelector(selectIsCustomer);
@@ -123,6 +125,31 @@ export default function AuthenticatedLayout({
 
         return () => window.clearTimeout(timer);
     }, [searchOpen]);
+
+    // Close account menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+            if (
+                accountMenuOpen &&
+                accountMenuRef.current &&
+                accountButtonRef.current &&
+                !accountMenuRef.current.contains(event.target as Node) &&
+                !accountButtonRef.current.contains(event.target as Node)
+            ) {
+                dispatch(setAccountMenuOpen(false));
+            }
+        };
+
+        if (accountMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [accountMenuOpen, dispatch]);
 
     const customerNav = useMemo<NavigationItem[]>(() => {
         if (!isCustomer) {
@@ -307,26 +334,16 @@ export default function AuthenticatedLayout({
                                 </div>
                             </div>
                         </div>
-                        <div className="mx-auto flex max-w-[95rem] items-center justify-between px-4 py-4">
-                            <div className="flex items-center gap-4">
-                                <button
-                                    type="button"
-                                    className="inline-flex items-center rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-slate-300 hover:text-slate-900 lg:hidden"
-                                    onClick={() => dispatch(setMobileMenuOpen(true))}
-                                    aria-label="Open navigation"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                                    </svg>
-                                </button>
-                                <Link href={route('dashboard')} className="flex items-center gap-3">
-                                    <ApplicationLogo className="h-10 w-10 text-slate-900" />
-                                    <span className="hidden text-lg font-semibold text-slate-900 sm:inline">
+                        <div className="mx-auto flex max-w-[95rem] items-center justify-between px-3 py-3 sm:px-4 sm:py-4">
+                            <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
+                                <Link href={route('dashboard')} className="flex items-center gap-2 sm:gap-3">
+                                    <ApplicationLogo className="h-8 w-8 text-slate-900 sm:h-10 sm:w-10" />
+                                    <span className="hidden text-base font-semibold text-slate-900 sm:inline sm:text-lg">
                                         Elvee
                                     </span>
                                 </Link>
                             </div>
-                            <nav className="hidden items-center gap-6 lg:flex">
+                            <nav className="hidden items-center gap-4 lg:flex lg:gap-6">
                                 {primaryNav.map((item) =>
                                     item.type === 'link' ? (
                                         <Link
@@ -424,23 +441,23 @@ export default function AuthenticatedLayout({
                                     ),
                                 )}
                             </nav>
-                            <div className="flex items-center gap-2.5 lg:gap-3">
+                            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         dispatch(setSearchTerm(''));
                                         dispatch(setSearchOpen(true));
                                     }}
-                                    className="inline-flex h-7 w-7 items-center justify-center text-slate-600 transition hover:text-slate-900"
+                                    className="inline-flex h-6 w-6 items-center justify-center text-slate-600 transition hover:text-slate-900 sm:h-7 sm:w-7"
                                     aria-label="Search"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 sm:h-5 sm:w-5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
                                     </svg>
                                 </button>
                                 <Link
                                     href={route('frontend.wishlist.index')}
-                                    className="relative inline-flex h-7 w-7 items-center justify-center text-slate-600 transition hover:text-rose-600"
+                                    className="relative inline-flex h-6 w-6 items-center justify-center text-slate-600 transition hover:text-rose-600 sm:h-7 sm:w-7"
                                     aria-label="View wishlist"
                                 >
                                     <svg
@@ -449,62 +466,86 @@ export default function AuthenticatedLayout({
                                         fill={wishlistCount > 0 ? 'currentColor' : 'none'}
                                         stroke="currentColor"
                                         strokeWidth={2}
-                                        className="h-5 w-5"
+                                        className="h-4 w-4 sm:h-5 sm:w-5"
                                     >
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 5.053 7.5 10.5 9 10.5s9-5.447 9-10.5z" />
                                     </svg>
                                     {wishlistCount > 0 && (
-                                        <span className="absolute -top-1 -right-1 inline-flex min-h-[1.2rem] min-w-[1.2rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
+                                        <span className="absolute -top-0.5 -right-0.5 inline-flex min-h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-0.5 text-[9px] font-semibold text-white sm:-top-1 sm:-right-1 sm:min-h-[1.2rem] sm:min-w-[1.2rem] sm:px-1 sm:text-[10px]">
                                             {wishlistCount}
                                         </span>
                                     )}
                                 </Link>
                                 <Link
                                     href={route('frontend.cart.index')}
-                                    className="relative inline-flex h-7 w-7 items-center justify-center text-slate-600 transition hover:text-feather-gold"
+                                    className="relative inline-flex h-6 w-6 items-center justify-center text-slate-600 transition hover:text-feather-gold sm:h-7 sm:w-7"
                                     aria-label="View cart"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 sm:h-5 sm:w-5">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18l-1.5 11.25A2.25 2.25 0 0117.265 20.5H6.735a2.25 2.25 0 01-2.235-2.25L3 7z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V5.5A2.5 2.5 0 0110.5 3h3A2.5 2.5 0 0116 5.5V7" />
                                     </svg>
                                     {cartCount > 0 && (
-                                        <span className="absolute -top-1 -right-1 inline-flex min-h-[1.2rem] min-w-[1.2rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+                                        <span className="absolute -top-0.5 -right-0.5 inline-flex min-h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-semibold text-white sm:-top-1 sm:-right-1 sm:min-h-[1.2rem] sm:min-w-[1.2rem] sm:px-1 sm:text-[10px]">
                                             {cartCount}
                                         </span>
                                     )}
                                 </Link>
-                                <div className="relative hidden lg:block">
+                                <div className="relative" ref={accountMenuRef}>
                                     <button
+                                        ref={accountButtonRef}
                                         type="button"
-                                        onMouseEnter={() => dispatch(setAccountMenuOpen(true))}
+                                        onMouseEnter={() => {
+                                            // Only auto-open on hover for desktop (not touch devices)
+                                            if (window.matchMedia('(hover: hover)').matches) {
+                                                dispatch(setAccountMenuOpen(true));
+                                            }
+                                        }}
                                         onFocus={() => dispatch(setAccountMenuOpen(true))}
-                                        onBlur={() => dispatch(setAccountMenuOpen(false))}
-                                        onClick={() => dispatch(toggleAccountMenu())}
-                                        className="inline-flex h-7 w-7 items-center justify-center text-slate-600 transition hover:text-slate-900"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            dispatch(toggleAccountMenu());
+                                        }}
+                                        className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200 sm:h-7 sm:w-7"
                                         aria-label="Account menu"
+                                        aria-expanded={accountMenuOpen}
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 sm:h-5 sm:w-5">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 12a4.5 4.5 0 100-9 4.5 4.5 0 000 9z" />
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25a7.5 7.5 0 0115 0" />
                                         </svg>
                                     </button>
                                     <div
-                                        className={`absolute right-0 mt-3 w-56 rounded-2xl border border-slate-100 bg-white p-4 shadow-xl transition ${
-                                            accountMenuOpen ? 'visible opacity-100 pointer-events-auto' : 'invisible opacity-0 pointer-events-none'
+                                        className={`absolute right-0 z-[60] mt-1.5 w-48 origin-top-right rounded-xl border border-slate-200 bg-white p-3 shadow-2xl ring-1 ring-black/5 transition-all duration-200 ease-out sm:mt-2 sm:w-56 sm:rounded-2xl sm:p-4 ${
+                                            accountMenuOpen 
+                                                ? 'visible scale-100 opacity-100 pointer-events-auto' 
+                                                : 'invisible scale-95 opacity-0 pointer-events-none'
                                         }`}
-                                        onMouseEnter={() => dispatch(setAccountMenuOpen(true))}
-                                        onMouseLeave={() => dispatch(setAccountMenuOpen(false))}
+                                        onMouseEnter={() => {
+                                            if (window.matchMedia('(hover: hover)').matches) {
+                                                dispatch(setAccountMenuOpen(true));
+                                            }
+                                        }}
+                                        onMouseLeave={() => {
+                                            if (window.matchMedia('(hover: hover)').matches) {
+                                                dispatch(setAccountMenuOpen(false));
+                                            }
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
                                     >
-                                        <p className="text-sm font-semibold text-slate-700">
+                                        <p className="text-xs font-semibold text-slate-700 sm:text-sm">
                                             Hello, {isLoggingOut ? 'there' : (user?.name?.split(' ')[0] ?? 'there')}
                                         </p>
-                                        <div className="mt-3 space-y-0.5 text-sm text-slate-600">
+                                        <div className="mt-2 space-y-0.5 text-xs text-slate-600 sm:mt-3 sm:text-sm">
                                             {accountLinks.map(({ label, href }) => (
                                                 <Link
                                                     key={label}
                                                     href={href}
-                                                    className="flex items-center justify-between px-0 py-2 font-medium text-slate-600 transition hover:text-feather-gold"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        dispatch(setAccountMenuOpen(false));
+                                                    }}
+                                                    className="flex items-center justify-between rounded-lg px-2 py-1.5 font-medium text-slate-600 transition hover:bg-slate-50 hover:text-feather-gold active:bg-slate-100 sm:px-0 sm:py-2"
                                                 >
                                                     <span>{label}</span>
                                                     <svg
@@ -513,15 +554,19 @@ export default function AuthenticatedLayout({
                                                         fill="none"
                                                         stroke="currentColor"
                                                         strokeWidth={2}
-                                                        className="h-4 w-4"
+                                                        className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                                                     >
                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                                     </svg>
                                                 </Link>
                                             ))}
                                             <button
-                                                onClick={handleLogout}
-                                                className="w-full px-0 py-2 text-left text-sm font-semibold text-rose-600 transition hover:text-rose-700"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    dispatch(setAccountMenuOpen(false));
+                                                    handleLogout();
+                                                }}
+                                                className="w-full rounded-lg px-2 py-1.5 text-left text-xs font-semibold text-rose-600 transition hover:bg-rose-50 hover:text-rose-700 active:bg-rose-100 sm:px-0 sm:py-2 sm:text-sm"
                                             >
                                                 Logout
                                             </button>
@@ -530,42 +575,116 @@ export default function AuthenticatedLayout({
                                 </div>
                                 <button
                                     type="button"
-                                    className="inline-flex items-center rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-slate-300 hover:text-slate-900 lg:hidden"
-                                    onClick={() => dispatch(setMobileMenuOpen(true))}
-                                    aria-label="Open menu"
+                                    className="inline-flex items-center rounded-full border border-slate-200 p-1.5 text-slate-600 transition hover:border-slate-300 hover:text-slate-900 sm:p-2 lg:hidden"
+                                    onClick={() => dispatch(toggleMobileMenu())}
+                                    aria-label="Toggle menu"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-5 w-5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                                    </svg>
+                                    {mobileMenuOpen ? (
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-4 w-4 sm:h-5 sm:w-5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-4 w-4 sm:h-5 sm:w-5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                                        </svg>
+                                    )}
                                 </button>
                             </div>
                         </div>
                     </header>
+                    {/* Mobile Menu Drawer */}
+                    {mobileMenuOpen && (
+                        <div className="fixed inset-0 z-50 lg:hidden">
+                            {/* Backdrop */}
+                            <div
+                                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                                onClick={() => dispatch(setMobileMenuOpen(false))}
+                            />
+                            {/* Menu Panel */}
+                            <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white shadow-2xl">
+                                <div className="flex h-full flex-col">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4">
+                                        <h2 className="text-lg font-semibold text-slate-900">Menu</h2>
+                                        <button
+                                            type="button"
+                                            onClick={() => dispatch(setMobileMenuOpen(false))}
+                                            className="inline-flex items-center justify-center rounded-full p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                                            aria-label="Close menu"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    {/* Navigation Links */}
+                                    <nav className="flex-1 overflow-y-auto px-4 py-6">
+                                        <div className="space-y-1">
+                                            {primaryNav.map((item) =>
+                                                item.type === 'link' ? (
+                                                    <Link
+                                                        key={item.label}
+                                                        href={item.href}
+                                                        onClick={() => dispatch(setMobileMenuOpen(false))}
+                                                        className={`block rounded-lg px-4 py-3 text-sm font-semibold transition ${
+                                                            item.isActive
+                                                                ? 'bg-elvee-blue/10 text-elvee-blue'
+                                                                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                                                        }`}
+                                                    >
+                                                        {item.label}
+                                                    </Link>
+                                                ) : (
+                                                    <div key={item.label} className="space-y-1">
+                                                        <div className="px-4 py-2 text-sm font-semibold text-slate-700">
+                                                            {item.label}
+                                                        </div>
+                                                        {item.items.map((subItem) => (
+                                                            <Link
+                                                                key={subItem.id}
+                                                                href={subItem.href}
+                                                                onClick={() => dispatch(setMobileMenuOpen(false))}
+                                                                className="block rounded-lg px-6 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                                                            >
+                                                                {subItem.name}
+                                                            </Link>
+                                                        ))}
+                                                    </div>
+                                                )
+                                            )}
+                                        </div>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     {searchOpen && (
-                        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/60 px-4 pt-24">
-                            <form onSubmit={handleSearchSubmit} className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl">
-                                <div className="flex items-center gap-3">
+                        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/60 px-2 pt-16 sm:px-4 sm:pt-24">
+                            <form onSubmit={handleSearchSubmit} className="w-full max-w-xl rounded-2xl bg-white p-3 shadow-2xl sm:rounded-3xl sm:p-6">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                                     <input
                                         ref={searchInputRef}
                                         type="search"
                                         value={searchTerm}
                                         onChange={(event) => dispatch(setSearchTerm(event.target.value))}
                                         placeholder="Search collections or SKU"
-                                        className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                                        className="flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 sm:rounded-2xl sm:px-4 sm:py-3"
                                     />
-                                    <button
-                                        type="submit"
-                                        className="rounded-full bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy"
-                                    >
-                                        Search
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => dispatch(setSearchOpen(false))}
-                                        className="rounded-full border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-slate-300 hover:text-slate-900"
-                                    >
-                                        Close
-                                    </button>
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                        <button
+                                            type="submit"
+                                            className="flex-1 rounded-full bg-elvee-blue px-4 py-2.5 text-xs font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy active:scale-[0.98] sm:flex-none sm:px-4 sm:py-2 sm:text-sm"
+                                        >
+                                            Search
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => dispatch(setSearchOpen(false))}
+                                            className="rounded-full border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 active:scale-[0.98] sm:px-3 sm:py-2 sm:text-sm"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
                                 </div>
                             </form>
                         </div>
@@ -653,7 +772,7 @@ export default function AuthenticatedLayout({
             )}
 
             <main className="relative z-0 flex-1">
-                <div className="mx-auto max-w-[95rem] px-4 py-10 lg:py-12">
+                <div className="mx-auto max-w-[95rem] px-2 py-10 sm:px-4 lg:py-12">
                     {children}
                 </div>
             </main>
