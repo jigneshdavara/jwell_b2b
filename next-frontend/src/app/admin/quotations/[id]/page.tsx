@@ -217,6 +217,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     // Messages state
     const [messageText, setMessageText] = useState('');
     const [messageProcessing, setMessageProcessing] = useState(false);
+    const [companySettings, setCompanySettings] = useState<any>(null);
 
     // Change Product Modal state
     const [changeProductModalOpen, setChangeProductModalOpen] = useState<RelatedQuotation | null>(null);
@@ -259,6 +260,20 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     useEffect(() => {
         loadQuotation();
     }, [resolvedParams.id]);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await adminService.getGeneralSettings();
+                if (response?.data) {
+                    setCompanySettings(response.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch company settings:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     const loadQuotation = async () => {
         try {
@@ -1050,9 +1065,46 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                         <div className="grid gap-4 sm:gap-6 md:gap-8 md:grid-cols-3">
                             <div>
                                 <h3 className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">From</h3>
-                                <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Elvee</p>
-                                <p className="mt-1 text-xs sm:text-sm text-slate-600">123 Business Street</p>
-                                <p className="text-xs sm:text-sm text-slate-600">Mumbai, Maharashtra 400001</p>
+                                {companySettings ? (
+                                    <>
+                                        <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">
+                                            {companySettings.company_name || 'Elvee'}
+                                        </p>
+                                        {companySettings.company_address && (
+                                            <p className="mt-1 text-xs sm:text-sm text-slate-600">
+                                                {companySettings.company_address}
+                                            </p>
+                                        )}
+                                        {(companySettings.company_city || companySettings.company_state || companySettings.company_pincode) && (
+                                            <p className="text-xs sm:text-sm text-slate-600">
+                                                {[companySettings.company_city, companySettings.company_state, companySettings.company_pincode]
+                                                    .filter(Boolean)
+                                                    .join(', ')}
+                                            </p>
+                                        )}
+                                        {companySettings.company_phone && (
+                                            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600">
+                                                Phone: {companySettings.company_phone}
+                                            </p>
+                                        )}
+                                        {companySettings.company_email && (
+                                            <p className="text-xs sm:text-sm text-slate-600">
+                                                Email: {companySettings.company_email}
+                                            </p>
+                                        )}
+                                        {companySettings.company_gstin && (
+                                            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600">
+                                                GSTIN: {companySettings.company_gstin}
+                                            </p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Elvee</p>
+                                        <p className="mt-1 text-xs sm:text-sm text-slate-600">123 Business Street</p>
+                                        <p className="text-xs sm:text-sm text-slate-600">Mumbai, Maharashtra 400001</p>
+                                    </>
+                                )}
                             </div>
                             <div>
                                 <h3 className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Bill To</h3>

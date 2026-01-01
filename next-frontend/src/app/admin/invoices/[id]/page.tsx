@@ -50,10 +50,25 @@ export default function AdminInvoiceDetail({ params }: { params: Promise<{ id: s
     const [loading, setLoading] = useState(true);
     const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [updating, setUpdating] = useState(false);
+    const [companySettings, setCompanySettings] = useState<any>(null);
 
     useEffect(() => {
         fetchInvoice();
     }, [resolvedParams.id]);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await adminService.getGeneralSettings();
+                if (response?.data) {
+                    setCompanySettings(response.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch company settings:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     const fetchInvoice = async () => {
         setLoading(true);
@@ -125,27 +140,27 @@ export default function AdminInvoiceDetail({ params }: { params: Promise<{ id: s
         <>
             <Head title={`Invoice ${invoice.invoice_number}`} />
 
-            <div className="space-y-4 px-2 py-4 sm:space-y-6 sm:px-6 sm:py-6 lg:space-y-8 lg:px-8">
-                <header className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-slate-900">
+            <div className="space-y-3 px-3 py-3 sm:space-y-4 sm:px-4 sm:py-4 lg:space-y-6 lg:px-6 lg:py-6">
+                <header className="rounded-xl sm:rounded-2xl lg:rounded-3xl bg-white p-3 sm:p-4 lg:p-6 shadow-xl ring-1 ring-slate-200/70">
+                    <div className="flex flex-col gap-2.5 sm:gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0 flex-1">
+                            <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-slate-900 break-words">
                                 Invoice {invoice.invoice_number}
                             </h1>
-                            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-500">
+                            <p className="mt-1 sm:mt-1.5 text-[10px] sm:text-xs md:text-sm text-slate-500 break-words">
                                 {invoice.order?.user?.name ?? 'Guest'} · {invoice.order?.user?.email ?? '—'}
                             </p>
                         </div>
-                        <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="flex flex-col w-full sm:w-auto sm:flex-row gap-2 sm:gap-2.5">
                             <PrimaryButton
                                 onClick={handleDownloadPdf}
-                                className="text-xs sm:text-sm"
+                                className="text-[10px] sm:text-xs md:text-sm w-full sm:w-auto"
                             >
                                 Download PDF
                             </PrimaryButton>
                             <Link
                                 href="/admin/invoices"
-                                className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
+                                className="inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-full border border-slate-300 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[10px] sm:text-xs md:text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 w-full sm:w-auto"
                             >
                                 Back to list
                             </Link>
@@ -153,39 +168,76 @@ export default function AdminInvoiceDetail({ params }: { params: Promise<{ id: s
                     </div>
                 </header>
 
-                <div className="space-y-4 sm:space-y-6">
+                <div className="space-y-3 sm:space-y-4 lg:space-y-6">
                     {/* Invoice Header */}
-                    <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
-                        <div className="grid gap-4 sm:gap-6 lg:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="rounded-xl sm:rounded-2xl lg:rounded-3xl bg-white p-3 sm:p-4 lg:p-6 shadow-xl ring-1 ring-slate-200/70">
+                        <div className="grid gap-6 sm:gap-8 md:grid-cols-3">
                             {/* Company Details */}
                             <div>
-                                <h3 className="text-[10px] sm:text-xs font-semibold text-slate-400">From</h3>
-                                <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Elvee</p>
-                                <p className="mt-1 text-xs sm:text-sm text-slate-600">123 Business Street</p>
-                                <p className="text-xs sm:text-sm text-slate-600">Mumbai, Maharashtra 400001</p>
-                                <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600">Phone: +91 98765 43210</p>
-                                <p className="text-xs sm:text-sm text-slate-600">Email: info@elvee.com</p>
-                                <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600">GSTIN: 27AAAAA0000A1Z5</p>
+                                <h3 className="text-[10px] font-semibold text-slate-400 sm:text-xs">From</h3>
+                                {companySettings ? (
+                                    <>
+                                        <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">
+                                            {companySettings.company_name || 'Elvee'}
+                                        </p>
+                                        {companySettings.company_address && (
+                                            <p className="mt-1 text-xs text-slate-600 sm:text-sm">
+                                                {companySettings.company_address}
+                                            </p>
+                                        )}
+                                        {(companySettings.company_city || companySettings.company_state || companySettings.company_pincode) && (
+                                            <p className="text-xs text-slate-600 sm:text-sm">
+                                                {[companySettings.company_city, companySettings.company_state, companySettings.company_pincode]
+                                                    .filter(Boolean)
+                                                    .join(', ')}
+                                            </p>
+                                        )}
+                                        {companySettings.company_phone && (
+                                            <p className="mt-1.5 text-xs text-slate-600 sm:mt-2 sm:text-sm">
+                                                Phone: {companySettings.company_phone}
+                                            </p>
+                                        )}
+                                        {companySettings.company_email && (
+                                            <p className="text-xs text-slate-600 sm:text-sm">
+                                                Email: {companySettings.company_email}
+                                            </p>
+                                        )}
+                                        {companySettings.company_gstin && (
+                                            <p className="mt-1.5 text-xs text-slate-600 sm:mt-2 sm:text-sm">
+                                                GSTIN: {companySettings.company_gstin}
+                                            </p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">Elvee</p>
+                                        <p className="mt-1 text-xs text-slate-600 sm:text-sm">123 Business Street</p>
+                                        <p className="text-xs text-slate-600 sm:text-sm">Mumbai, Maharashtra 400001</p>
+                                        <p className="mt-1.5 text-xs text-slate-600 sm:mt-2 sm:text-sm">Phone: +91 98765 43210</p>
+                                        <p className="text-xs text-slate-600 sm:text-sm">Email: info@elvee.com</p>
+                                        <p className="mt-1.5 text-xs text-slate-600 sm:mt-2 sm:text-sm">GSTIN: 27AAAAA0000A1Z5</p>
+                                    </>
+                                )}
                             </div>
                             {/* Bill To */}
                             <div>
-                                <h3 className="text-[10px] sm:text-xs font-semibold text-slate-400">Bill To</h3>
+                                <h3 className="text-[10px] font-semibold text-slate-400 sm:text-xs">Bill To</h3>
                                 {invoice.order?.user ? (
                                     <>
-                                        <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">
+                                        <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">
                                             {invoice.order.user.business_name || invoice.order.user.name}
                                         </p>
-                                        <p className="mt-1 text-xs sm:text-sm text-slate-600">{invoice.order.user.email}</p>
+                                        <p className="mt-1 text-xs text-slate-600 sm:text-sm">{invoice.order.user.email}</p>
                                         {invoice.order.user.address?.line1 && (
-                                            <p className="mt-1 text-xs sm:text-sm text-slate-600">{invoice.order.user.address.line1}</p>
+                                            <p className="mt-1 text-xs text-slate-600 sm:text-sm">{invoice.order.user.address.line1}</p>
                                         )}
                                         {invoice.order.user.address?.line2 && (
-                                            <p className="text-xs sm:text-sm text-slate-600">{invoice.order.user.address.line2}</p>
+                                            <p className="text-xs text-slate-600 sm:text-sm">{invoice.order.user.address.line2}</p>
                                         )}
                                         {(invoice.order.user.address?.city ||
                                             invoice.order.user.address?.state ||
                                             invoice.order.user.address?.postal_code) && (
-                                            <p className="text-xs sm:text-sm text-slate-600">
+                                            <p className="text-xs text-slate-600 sm:text-sm">
                                                 {[
                                                     invoice.order.user.address.city,
                                                     invoice.order.user.address.state,
@@ -196,23 +248,28 @@ export default function AdminInvoiceDetail({ params }: { params: Promise<{ id: s
                                             </p>
                                         )}
                                         {invoice.order.user.gst_number && (
-                                            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600">GST: {invoice.order.user.gst_number}</p>
+                                            <p className="mt-1.5 text-xs text-slate-600 sm:mt-2 sm:text-sm">GST: {invoice.order.user.gst_number}</p>
                                         )}
                                         {invoice.order.user.pan_number && (
-                                            <p className="text-xs sm:text-sm text-slate-600">PAN: {invoice.order.user.pan_number}</p>
+                                            <p className="text-xs text-slate-600 sm:text-sm">PAN: {invoice.order.user.pan_number}</p>
                                         )}
                                     </>
                                 ) : (
-                                    <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Unknown</p>
+                                    <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">Unknown</p>
                                 )}
                             </div>
                             {/* Invoice Details */}
                             <div className="text-left sm:text-right">
-                                <h3 className="text-[10px] sm:text-xs font-semibold text-slate-400">Invoice Details</h3>
-                                <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">{invoice.invoice_number}</p>
+                                <h3 className="text-[10px] font-semibold text-slate-400 sm:text-xs">
+                                    Invoice Details
+                                </h3>
+                                <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">
+                                    {invoice.invoice_number}
+                                </p>
                                 {invoice.order?.reference && (
-                                    <p className="mt-1 text-xs sm:text-sm text-slate-500">
-                                        Order: <Link
+                                    <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+                                        Order:{" "}
+                                        <Link
                                             href={`/admin/orders/${invoice.order.id}`}
                                             className="font-semibold text-elvee-blue hover:text-elvee-blue/80"
                                         >
@@ -220,16 +277,26 @@ export default function AdminInvoiceDetail({ params }: { params: Promise<{ id: s
                                         </Link>
                                     </p>
                                 )}
-                                <p className="mt-1 text-xs sm:text-sm text-slate-500">
-                                    Issue Date: <span className="font-semibold text-slate-900">{formatDate(invoice.issue_date)}</span>
+                                <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+                                    Issue Date:{" "}
+                                    <span className="font-semibold text-slate-900">
+                                        {formatDate(invoice.issue_date)}
+                                    </span>
                                 </p>
                                 {invoice.due_date && (
-                                    <p className="mt-1 text-xs sm:text-sm text-slate-500">
-                                        Due Date: <span className="font-semibold text-slate-900">{formatDate(invoice.due_date)}</span>
+                                    <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+                                        Due Date:{" "}
+                                        <span className="font-semibold text-slate-900">
+                                            {formatDate(invoice.due_date)}
+                                        </span>
                                     </p>
                                 )}
-                                <div className="mt-2 sm:mt-3 flex sm:justify-end gap-2">
-                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold ${statusColors[invoice.status] ?? 'bg-slate-200 text-slate-700'}`}>
+                                <div className="mt-2 flex justify-start gap-2 sm:mt-3 sm:justify-end">
+                                    <span
+                                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold sm:px-3 sm:py-1 sm:text-xs ${
+                                            statusColors[invoice.status] ?? "bg-slate-200 text-slate-700"
+                                        }`}
+                                    >
                                         {invoice.status_label}
                                     </span>
                                 </div>
@@ -239,111 +306,113 @@ export default function AdminInvoiceDetail({ params }: { params: Promise<{ id: s
 
                     {/* Products Table - Invoice Style */}
                     {invoice.order?.items && invoice.order.items.length > 0 && (
-                        <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
-                            <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-slate-900">Items</h2>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-xs sm:text-sm">
-                                    <thead className="border-b-2 border-slate-200 bg-slate-50">
-                                        <tr>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600">Item</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-right text-[10px] sm:text-xs font-semibold text-slate-600">Unit Price</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-center text-[10px] sm:text-xs font-semibold text-slate-600">Qty</th>
-                                            <th className="px-3 py-2 sm:px-4 sm:py-3 text-right text-[10px] sm:text-xs font-semibold text-slate-600">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {invoice.order.items.map((item) => (
-                                            <tr key={item.id} className="hover:bg-slate-50/50 transition">
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4">
-                                                    <div className="flex items-center gap-2 sm:gap-3">
-                                                        {item.product?.media?.[0] && getMediaUrl(item.product.media[0].url) && (
-                                                            <img
-                                                                src={getMediaUrl(item.product.media[0].url)!}
-                                                                alt={item.product.media[0].alt || item.name}
-                                                                className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg object-cover shadow-sm"
-                                                            />
-                                                        )}
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className="text-xs sm:text-sm font-semibold text-slate-900">{item.name}</p>
-                                                            {item.sku && (
-                                                                <p className="text-[10px] sm:text-xs text-slate-400">SKU {item.sku}</p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-right">
-                                                    <div className="text-xs sm:text-sm font-semibold text-slate-900">
-                                                        {currencyFormatter.format(parseFloat(item.unit_price))}
-                                                    </div>
-                                                </td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-center">
-                                                    <span className="font-semibold text-slate-900 text-xs sm:text-sm">{item.quantity}</span>
-                                                </td>
-                                                <td className="px-3 py-3 sm:px-4 sm:py-4 text-right">
-                                                    <div className="text-xs sm:text-sm font-semibold text-slate-900">
-                                                        {currencyFormatter.format(parseFloat(item.total_price))}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                    <tfoot className="border-t-2 border-slate-200 bg-slate-50">
-                                        <tr>
-                                            <td colSpan={2} className="px-3 py-2 sm:px-4 text-right text-xs sm:text-sm text-slate-600">
-                                                Subtotal
-                                            </td>
-                                            <td className="px-3 py-2 sm:px-4"></td>
-                                            <td className="px-3 py-2 sm:px-4 text-right text-xs sm:text-sm font-semibold text-slate-900">
-                                                {currencyFormatter.format(parseFloat(invoice.subtotal_amount))}
-                                            </td>
-                                        </tr>
-                                        {parseFloat(invoice.discount_amount) > 0 && (
+                        <div className="rounded-xl sm:rounded-2xl lg:rounded-3xl bg-white p-3 sm:p-4 lg:p-6 shadow-xl ring-1 ring-slate-200/70">
+                            <h2 className="mb-2 sm:mb-3 md:mb-4 text-sm sm:text-base md:text-lg font-semibold text-slate-900">Items</h2>
+                            <div className="overflow-x-auto -mx-3 sm:-mx-4 lg:-mx-6">
+                                <div className="inline-block min-w-full align-middle px-3 sm:px-4 lg:px-6">
+                                    <table className="min-w-full text-[10px] sm:text-xs md:text-sm">
+                                        <thead className="border-b-2 border-slate-200 bg-slate-50">
                                             <tr>
-                                                <td colSpan={2} className="px-3 py-2 sm:px-4 text-right text-xs sm:text-sm text-slate-600">
-                                                    Discount
+                                                <th className="px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-3 text-left text-[9px] sm:text-[10px] md:text-xs font-semibold text-slate-600">Item</th>
+                                                <th className="px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-3 text-right text-[9px] sm:text-[10px] md:text-xs font-semibold text-slate-600 whitespace-nowrap">Unit Price</th>
+                                                <th className="px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-3 text-center text-[9px] sm:text-[10px] md:text-xs font-semibold text-slate-600">Qty</th>
+                                                <th className="px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-3 text-right text-[9px] sm:text-[10px] md:text-xs font-semibold text-slate-600">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {invoice.order.items.map((item) => (
+                                                <tr key={item.id} className="hover:bg-slate-50/50 transition">
+                                                    <td className="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-4">
+                                                        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
+                                                            {item.product?.media?.[0] && getMediaUrl(item.product.media[0].url) && (
+                                                                <img
+                                                                    src={getMediaUrl(item.product.media[0].url)!}
+                                                                    alt={(item.product.media[0] as any)?.alt || item.name}
+                                                                    className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 flex-shrink-0 rounded-lg object-cover shadow-sm"
+                                                                />
+                                                            )}
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="text-[10px] sm:text-xs md:text-sm font-semibold text-slate-900 break-words">{item.name}</p>
+                                                                {item.sku && (
+                                                                    <p className="text-[9px] sm:text-[10px] md:text-xs text-slate-400 break-words">SKU {item.sku}</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-4 text-right whitespace-nowrap">
+                                                        <div className="text-[10px] sm:text-xs md:text-sm font-semibold text-slate-900">
+                                                            {currencyFormatter.format(parseFloat(item.unit_price))}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-4 text-center">
+                                                        <span className="font-semibold text-slate-900 text-[10px] sm:text-xs md:text-sm">{item.quantity}</span>
+                                                    </td>
+                                                    <td className="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-4 text-right whitespace-nowrap">
+                                                        <div className="text-[10px] sm:text-xs md:text-sm font-semibold text-slate-900">
+                                                            {currencyFormatter.format(parseFloat(item.total_price))}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                        <tfoot className="border-t-2 border-slate-200 bg-slate-50">
+                                            <tr>
+                                                <td colSpan={2} className="px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 text-right text-[10px] sm:text-xs md:text-sm text-slate-600">
+                                                    Subtotal
                                                 </td>
-                                                <td className="px-3 py-2 sm:px-4"></td>
-                                                <td className="px-3 py-2 sm:px-4 text-right text-xs sm:text-sm font-semibold text-slate-900">
-                                                    -{currencyFormatter.format(parseFloat(invoice.discount_amount))}
+                                                <td className="px-2 py-1.5 sm:px-3 sm:py-2 md:px-4"></td>
+                                                <td className="px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 text-right text-[10px] sm:text-xs md:text-sm font-semibold text-slate-900 whitespace-nowrap">
+                                                    {currencyFormatter.format(parseFloat(invoice.subtotal_amount))}
                                                 </td>
                                             </tr>
-                                        )}
-                                        <tr>
-                                            <td colSpan={2} className="px-3 py-2 sm:px-4 text-right text-xs sm:text-sm text-slate-600">
-                                                Tax (GST)
-                                            </td>
-                                            <td className="px-3 py-2 sm:px-4"></td>
-                                            <td className="px-3 py-2 sm:px-4 text-right text-xs sm:text-sm font-semibold text-slate-900">
-                                                {currencyFormatter.format(parseFloat(invoice.tax_amount))}
-                                            </td>
-                                        </tr>
-                                        <tr className="border-t-2 border-slate-300">
-                                            <td colSpan={2} className="px-3 py-2 sm:px-4 sm:py-3 text-right text-sm sm:text-base font-bold text-slate-900">
-                                                Grand Total
-                                            </td>
-                                            <td className="px-3 py-2 sm:px-4 sm:py-3"></td>
-                                            <td className="px-3 py-2 sm:px-4 sm:py-3 text-right text-base sm:text-lg font-bold text-slate-900">
-                                                {currencyFormatter.format(parseFloat(invoice.total_amount))}
-                                            </td>
-                                            <td className="px-3 py-2 sm:px-4 sm:py-3"></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                                            {parseFloat(invoice.discount_amount) > 0 && (
+                                                <tr>
+                                                    <td colSpan={2} className="px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 text-right text-[10px] sm:text-xs md:text-sm text-slate-600">
+                                                        Discount
+                                                    </td>
+                                                    <td className="px-2 py-1.5 sm:px-3 sm:py-2 md:px-4"></td>
+                                                    <td className="px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 text-right text-[10px] sm:text-xs md:text-sm font-semibold text-slate-900 whitespace-nowrap">
+                                                        -{currencyFormatter.format(parseFloat(invoice.discount_amount))}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            <tr>
+                                                <td colSpan={2} className="px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 text-right text-[10px] sm:text-xs md:text-sm text-slate-600">
+                                                    Tax (GST)
+                                                </td>
+                                                <td className="px-2 py-1.5 sm:px-3 sm:py-2 md:px-4"></td>
+                                                <td className="px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 text-right text-[10px] sm:text-xs md:text-sm font-semibold text-slate-900 whitespace-nowrap">
+                                                    {currencyFormatter.format(parseFloat(invoice.tax_amount))}
+                                                </td>
+                                            </tr>
+                                            <tr className="border-t-2 border-slate-300">
+                                                <td colSpan={2} className="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 text-right text-xs sm:text-sm md:text-base font-bold text-slate-900">
+                                                    Grand Total
+                                                </td>
+                                                <td className="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3"></td>
+                                                <td className="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3 text-right text-sm sm:text-base md:text-lg font-bold text-slate-900 whitespace-nowrap">
+                                                    {currencyFormatter.format(parseFloat(invoice.total_amount))}
+                                                </td>
+                                                <td className="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3"></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
-                        <div className="space-y-4 sm:space-y-6">
+                    <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 lg:grid-cols-2">
+                        <div className="space-y-3 sm:space-y-4 md:space-y-6">
                             {/* Status Update */}
                             {invoice.status === InvoiceStatus.DRAFT && (
-                                <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
-                                    <h2 className="text-base sm:text-lg font-semibold text-slate-900 mb-3 sm:mb-4">Update Status</h2>
-                                    <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+                                <div className="rounded-xl sm:rounded-2xl lg:rounded-3xl bg-white p-3 sm:p-4 lg:p-6 shadow-xl ring-1 ring-slate-200/70">
+                                    <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 mb-2 sm:mb-3 md:mb-4">Update Status</h2>
+                                    <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2.5">
                                         <SecondaryButton
                                             onClick={() => handleStatusUpdate(InvoiceStatus.SENT)}
                                             disabled={updating}
-                                            className="text-xs sm:text-sm"
+                                            className="text-[10px] sm:text-xs md:text-sm w-full sm:w-auto"
                                         >
                                             {updating ? 'Updating...' : 'Mark as Sent'}
                                         </SecondaryButton>
@@ -353,19 +422,19 @@ export default function AdminInvoiceDetail({ params }: { params: Promise<{ id: s
 
                             {/* Notes and Terms */}
                             {(invoice.notes || invoice.terms) && (
-                                <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
-                                    <h2 className="text-base sm:text-lg font-semibold text-slate-900">Additional Information</h2>
-                                    <div className="mt-3 sm:mt-4 space-y-3 sm:space-y-4 text-xs sm:text-sm text-slate-600">
+                                <div className="rounded-xl sm:rounded-2xl lg:rounded-3xl bg-white p-3 sm:p-4 lg:p-6 shadow-xl ring-1 ring-slate-200/70">
+                                    <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900">Additional Information</h2>
+                                    <div className="mt-2 sm:mt-3 md:mt-4 space-y-2.5 sm:space-y-3 md:space-y-4 text-[10px] sm:text-xs md:text-sm text-slate-600">
                                         {invoice.notes && (
                                             <div>
-                                                <h3 className="mb-1.5 sm:mb-2 text-xs sm:text-sm font-semibold text-slate-700 sm:text-slate-800">Notes</h3>
-                                                <p className="whitespace-pre-wrap">{invoice.notes}</p>
+                                                <h3 className="mb-1 sm:mb-1.5 md:mb-2 text-[10px] sm:text-xs md:text-sm font-semibold text-slate-700 md:text-slate-800">Notes</h3>
+                                                <p className="whitespace-pre-wrap break-words">{invoice.notes}</p>
                                             </div>
                                         )}
                                         {invoice.terms && (
                                             <div>
-                                                <h3 className="mb-1.5 sm:mb-2 text-xs sm:text-sm font-semibold text-slate-700 sm:text-slate-800">Terms</h3>
-                                                <p className="whitespace-pre-wrap">{invoice.terms}</p>
+                                                <h3 className="mb-1 sm:mb-1.5 md:mb-2 text-[10px] sm:text-xs md:text-sm font-semibold text-slate-700 md:text-slate-800">Terms</h3>
+                                                <p className="whitespace-pre-wrap break-words">{invoice.terms}</p>
                                             </div>
                                         )}
                                     </div>
@@ -373,25 +442,25 @@ export default function AdminInvoiceDetail({ params }: { params: Promise<{ id: s
                             )}
                         </div>
 
-                        <div className="space-y-4 sm:space-y-6">
+                        <div className="space-y-3 sm:space-y-4 md:space-y-6">
                             {/* Invoice Timeline */}
-                            <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
-                                <h2 className="text-base sm:text-lg font-semibold text-slate-900">Invoice Timeline</h2>
-                                <div className="mt-3 sm:mt-4 space-y-2 sm:space-y-3">
-                                    <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 sm:px-4 sm:py-3">
+                            <div className="rounded-xl sm:rounded-2xl lg:rounded-3xl bg-white p-3 sm:p-4 lg:p-6 shadow-xl ring-1 ring-slate-200/70">
+                                <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900">Invoice Timeline</h2>
+                                <div className="mt-2 sm:mt-3 md:mt-4 space-y-2 sm:space-y-2.5 md:space-y-3">
+                                    <div className="rounded-lg sm:rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 px-2.5 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3">
                                         <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="text-[10px] sm:text-xs font-semibold text-slate-400">Created</p>
-                                                <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-900">{formatDate(invoice.created_at)}</p>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-slate-400">Created</p>
+                                                <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs md:text-sm font-semibold text-slate-900 break-words">{formatDate(invoice.created_at)}</p>
                                             </div>
                                         </div>
                                     </div>
                                     {invoice.updated_at && invoice.updated_at !== invoice.created_at && (
-                                        <div className="rounded-xl sm:rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 sm:px-4 sm:py-3">
+                                        <div className="rounded-lg sm:rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 px-2.5 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-3">
                                             <div className="flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-[10px] sm:text-xs font-semibold text-slate-400">Last Updated</p>
-                                                    <p className="mt-1 text-xs sm:text-sm font-semibold text-slate-900">{formatDate(invoice.updated_at)}</p>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-slate-400">Last Updated</p>
+                                                    <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs md:text-sm font-semibold text-slate-900 break-words">{formatDate(invoice.updated_at)}</p>
                                                 </div>
                                             </div>
                                         </div>
