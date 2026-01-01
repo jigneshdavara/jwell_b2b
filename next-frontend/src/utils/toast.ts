@@ -1,12 +1,12 @@
 import { toast } from "react-toastify";
 
-// Deduplication: Track recent toasts to prevent duplicates
+// Simple deduplication: Track recent toasts to prevent duplicates
 const recentToasts = new Map<string, number>();
-const DEDUPLICATION_INTERVAL = 3000; // 3 seconds (increased from 2 to catch more duplicates)
+const DEDUPLICATION_INTERVAL = 2000; // 2 seconds
 
 /**
- * Normalize message for deduplication
- * Removes trailing punctuation and normalizes whitespace to catch similar messages
+ * Normalize message for better deduplication
+ * Removes trailing punctuation and normalizes whitespace
  */
 const normalizeMessage = (message: string): string => {
     return message
@@ -18,7 +18,7 @@ const normalizeMessage = (message: string): string => {
 
 /**
  * Show a deduplicated toast
- * Prevents the same (or similar) message from showing multiple times within 3 seconds
+ * Prevents the same or similar message from showing multiple times within 2 seconds
  */
 const showDeduplicatedToast = (
     toastFn: (message: string, options?: any) => void,
@@ -34,10 +34,10 @@ const showDeduplicatedToast = (
         return;
     }
 
-    // Show the toast
+    // Show the toast with a unique ID based on normalized message to prevent duplicates
     toastFn(message, {
         autoClose: duration || 5000,
-        position: "top-right",
+        toastId: normalizedMessage, // Use normalized message as ID to prevent duplicates
     });
 
     // Record when this message was shown (use normalized key)
@@ -48,7 +48,7 @@ const showDeduplicatedToast = (
         if (recentToasts.get(normalizedMessage) === now) {
             recentToasts.delete(normalizedMessage);
         }
-    }, DEDUPLICATION_INTERVAL + 100); // A bit longer than the interval
+    }, DEDUPLICATION_INTERVAL + 100);
 };
 
 /**
