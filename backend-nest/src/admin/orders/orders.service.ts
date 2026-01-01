@@ -312,6 +312,163 @@ export class OrdersService {
         };
     }
 
+    async getStatistics(
+        userId?: number,
+        dateFilter?: { startDate?: string; endDate?: string },
+    ) {
+        // Build where clause
+        const where: any = {};
+        if (userId) {
+            where.user_id = BigInt(userId);
+        }
+
+        // Add date filter if provided
+        if (dateFilter?.startDate || dateFilter?.endDate) {
+            where.created_at = {};
+            if (dateFilter.startDate) {
+                // Start of day
+                const startDate = new Date(dateFilter.startDate);
+                startDate.setHours(0, 0, 0, 0);
+                where.created_at.gte = startDate;
+            }
+            if (dateFilter.endDate) {
+                // End of day
+                const endDate = new Date(dateFilter.endDate);
+                endDate.setHours(23, 59, 59, 999);
+                where.created_at.lte = endDate;
+            }
+        }
+
+        // Get all orders with basic info
+        const allOrders = await this.prisma.orders.findMany({
+            where,
+            select: {
+                id: true,
+                status: true,
+                total_amount: true,
+                subtotal_amount: true,
+                tax_amount: true,
+                discount_amount: true,
+                created_at: true,
+            },
+            orderBy: {
+                created_at: 'desc',
+            },
+        });
+
+        // Calculate totals
+        const totalOrders = allOrders.length;
+        const totalRevenue = allOrders.reduce(
+            (sum, order) => sum + Number(order.total_amount),
+            0,
+        );
+        const totalSubtotal = allOrders.reduce(
+            (sum, order) => sum + Number(order.subtotal_amount),
+            0,
+        );
+        const totalTax = allOrders.reduce(
+            (sum, order) => sum + Number(order.tax_amount),
+            0,
+        );
+        const totalDiscount = allOrders.reduce(
+            (sum, order) => sum + Number(order.discount_amount),
+            0,
+        );
+        const averageOrderValue =
+            totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+        // Fetch all order statuses with colors from database
+        const orderStatuses = await this.prisma.order_statuses.findMany({
+            where: {
+                is_active: true,
+            },
+            select: {
+                code: true,
+                color: true,
+            },
+        });
+
+        // Create a map of status code to color
+        const statusColorMap = new Map<string, string>();
+        orderStatuses.forEach((status) => {
+            statusColorMap.set(status.code, status.color);
+        });
+
+        // Group by status
+        const ordersByStatus = allOrders.reduce(
+            (acc, order) => {
+                const status = order.status;
+                if (!acc[status]) {
+                    acc[status] = {
+                        status,
+                        status_label: this.formatStatusLabel(status),
+                        color: statusColorMap.get(status) || '#6B7280', // Default gray if not found
+                        count: 0,
+                        revenue: 0,
+                    };
+                }
+                acc[status].count += 1;
+                acc[status].revenue += Number(order.total_amount);
+                return acc;
+            },
+            {} as Record<
+                string,
+                {
+                    status: string;
+                    status_label: string;
+                    color: string;
+                    count: number;
+                    revenue: number;
+                }
+            >,
+        );
+
+        // Group by date (daily)
+        const ordersByDate = allOrders.reduce(
+            (acc, order) => {
+                if (!order.created_at) return acc;
+                const date = new Date(order.created_at)
+                    .toISOString()
+                    .split('T')[0];
+                if (!acc[date]) {
+                    acc[date] = {
+                        date,
+                        count: 0,
+                        revenue: 0,
+                    };
+                }
+                acc[date].count += 1;
+                acc[date].revenue += Number(order.total_amount);
+                return acc;
+            },
+            {} as Record<
+                string,
+                { date: string; count: number; revenue: number }
+            >,
+        );
+
+        // Convert to arrays and sort
+        const statusData = Object.values(ordersByStatus).sort((a, b) =>
+            a.status.localeCompare(b.status),
+        );
+        const dateData = Object.values(ordersByDate)
+            .sort((a, b) => a.date.localeCompare(b.date))
+            .slice(-30); // Last 30 days
+
+        return {
+            summary: {
+                total_orders: totalOrders,
+                total_revenue: totalRevenue.toString(),
+                total_subtotal: totalSubtotal.toString(),
+                total_tax: totalTax.toString(),
+                total_discount: totalDiscount.toString(),
+                average_order_value: averageOrderValue.toString(),
+            },
+            by_status: statusData,
+            by_date: dateData,
+        };
+    }
+
     async updateStatus(
         id: bigint,
         status: OrderStatus,
@@ -329,6 +486,322 @@ export class OrdersService {
         return {
             message: `Order status updated to ${this.formatStatusLabel(status)}.`,
         };
+    }
+
+    async exportStatisticsPDF(
+        userId?: number,
+        dateFilter?: { startDate?: string; endDate?: string },
+    ): Promise<Buffer> {
+        const statistics = await this.getStatistics(userId, dateFilter);
+        return this.generateStatisticsPDF(statistics);
+    }
+
+    private async generateStatisticsPDF(statistics: any): Promise<Buffer> {
+        const PDFDocument = require('pdfkit');
+        return new Promise((resolve, reject) => {
+            try {
+                const doc = new PDFDocument({
+                    margin: 50,
+                    size: 'A4',
+                    info: {
+                        Title: 'Order Statistics Report',
+                        Author: 'Elvee',
+                        Subject: 'Order Report',
+                    },
+                });
+                const buffers: Buffer[] = [];
+
+                doc.on('data', buffers.push.bind(buffers));
+                doc.on('end', () => {
+                    const pdfBuffer = Buffer.concat(buffers);
+                    resolve(pdfBuffer);
+                });
+                doc.on('error', reject);
+
+                // Colors
+                const primaryColor = '#0E244D';
+                const darkGray = '#1F2937';
+                const mediumGray = '#6B7280';
+
+                const hexToRgb = (hex: string) => {
+                    const result =
+                        /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                    return result
+                        ? {
+                              r: parseInt(result[1], 16),
+                              g: parseInt(result[2], 16),
+                              b: parseInt(result[3], 16),
+                          }
+                        : null;
+                };
+
+                const primaryRgb = hexToRgb(primaryColor);
+
+                // Header
+                doc.fillColor(
+                    primaryRgb
+                        ? `rgb(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b})`
+                        : '#0E244D',
+                )
+                    .fontSize(24)
+                    .font('Helvetica-Bold')
+                    .text('Order Statistics Report', 50, 50);
+
+                doc.fontSize(10)
+                    .fillColor(mediumGray)
+                    .font('Helvetica')
+                    .text(
+                        `Generated: ${new Date().toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                        })}`,
+                        400,
+                        50,
+                        { align: 'right' },
+                    );
+
+                let y = 100;
+
+                // Orders by Status
+                if (statistics.by_status && statistics.by_status.length > 0) {
+                    if (y > 650) {
+                        doc.addPage();
+                        y = 50;
+                    }
+
+                    doc.fontSize(16)
+                        .fillColor(darkGray)
+                        .font('Helvetica-Bold')
+                        .text('Orders by Status', 50, y);
+                    y += 25;
+
+                    // Table header
+                    doc.fillColor(
+                        primaryRgb
+                            ? `rgb(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b})`
+                            : '#0E244D',
+                    )
+                        .rect(50, y, 500, 25)
+                        .fill();
+
+                    doc.fillColor('#FFFFFF')
+                        .fontSize(11)
+                        .font('Helvetica-Bold')
+                        .text('Status', 60, y + 8, { width: 200 })
+                        .text('Count', 270, y + 8, {
+                            width: 100,
+                            align: 'right',
+                        })
+                        .text('Revenue', 380, y + 8, {
+                            width: 160,
+                            align: 'right',
+                        });
+
+                    y += 30;
+
+                    doc.fontSize(10).font('Helvetica').fillColor(darkGray);
+
+                    for (const item of statistics.by_status) {
+                        if (y > 680) {
+                            doc.addPage();
+                            y = 50;
+                            // Redraw header
+                            doc.fillColor(
+                                primaryRgb
+                                    ? `rgb(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b})`
+                                    : '#0E244D',
+                            )
+                                .rect(50, y, 500, 25)
+                                .fill();
+
+                            doc.fillColor('#FFFFFF')
+                                .fontSize(11)
+                                .font('Helvetica-Bold')
+                                .text('Status', 60, y + 8, { width: 200 })
+                                .text('Count', 270, y + 8, {
+                                    width: 100,
+                                    align: 'right',
+                                })
+                                .text('Revenue', 380, y + 8, {
+                                    width: 160,
+                                    align: 'right',
+                                });
+                            y += 30;
+                            doc.fontSize(10)
+                                .font('Helvetica')
+                                .fillColor(darkGray);
+                        }
+
+                        doc.text(item.status_label, 60, y, { width: 200 })
+                            .text(item.count.toString(), 270, y, {
+                                width: 100,
+                                align: 'right',
+                            })
+                            .text(
+                                `₹${item.revenue.toLocaleString('en-IN')}`,
+                                380,
+                                y,
+                                { width: 160, align: 'right' },
+                            );
+
+                        y += 20;
+                    }
+
+                    y += 20;
+                }
+
+                // Orders Over Time
+                if (statistics.by_date && statistics.by_date.length > 0) {
+                    if (y > 600) {
+                        doc.addPage();
+                        y = 50;
+                    }
+
+                    doc.fontSize(16)
+                        .fillColor(darkGray)
+                        .font('Helvetica-Bold')
+                        .text('Orders Over Time (Last 30 Days)', 50, y);
+                    y += 25;
+
+                    // Table header
+                    doc.fillColor(
+                        primaryRgb
+                            ? `rgb(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b})`
+                            : '#0E244D',
+                    )
+                        .rect(50, y, 500, 25)
+                        .fill();
+
+                    doc.fillColor('#FFFFFF')
+                        .fontSize(11)
+                        .font('Helvetica-Bold')
+                        .text('Date', 60, y + 8, { width: 150 })
+                        .text('Count', 220, y + 8, {
+                            width: 100,
+                            align: 'right',
+                        })
+                        .text('Revenue', 330, y + 8, {
+                            width: 210,
+                            align: 'right',
+                        });
+
+                    y += 30;
+
+                    doc.fontSize(10).font('Helvetica').fillColor(darkGray);
+
+                    for (const item of statistics.by_date) {
+                        if (y > 680) {
+                            doc.addPage();
+                            y = 50;
+                            // Redraw header
+                            doc.fillColor(
+                                primaryRgb
+                                    ? `rgb(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b})`
+                                    : '#0E244D',
+                            )
+                                .rect(50, y, 500, 25)
+                                .fill();
+
+                            doc.fillColor('#FFFFFF')
+                                .fontSize(11)
+                                .font('Helvetica-Bold')
+                                .text('Date', 60, y + 8, { width: 150 })
+                                .text('Count', 220, y + 8, {
+                                    width: 100,
+                                    align: 'right',
+                                })
+                                .text('Revenue', 330, y + 8, {
+                                    width: 210,
+                                    align: 'right',
+                                });
+                            y += 30;
+                            doc.fontSize(10)
+                                .font('Helvetica')
+                                .fillColor(darkGray);
+                        }
+
+                        const dateStr = new Date(item.date).toLocaleDateString(
+                            'en-IN',
+                            {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                            },
+                        );
+
+                        doc.text(dateStr, 60, y, { width: 150 })
+                            .text(item.count.toString(), 220, y, {
+                                width: 100,
+                                align: 'right',
+                            })
+                            .text(
+                                `₹${item.revenue.toLocaleString('en-IN')}`,
+                                330,
+                                y,
+                                { width: 210, align: 'right' },
+                            );
+
+                        y += 20;
+                    }
+
+                    y += 20;
+                }
+
+                // Summary Section (at the end)
+                if (y > 600) {
+                    doc.addPage();
+                    y = 50;
+                }
+
+                doc.fontSize(16)
+                    .fillColor(darkGray)
+                    .font('Helvetica-Bold')
+                    .text('Summary', 50, y);
+                y += 25;
+
+                doc.fontSize(10).font('Helvetica').fillColor(darkGray);
+                doc.text(
+                    `Total Orders: ${statistics.summary.total_orders}`,
+                    50,
+                    y,
+                );
+                y += 15;
+                doc.text(
+                    `Total Revenue: ₹${parseFloat(statistics.summary.total_revenue).toLocaleString('en-IN')}`,
+                    50,
+                    y,
+                );
+                y += 15;
+                doc.text(
+                    `Total Subtotal: ₹${parseFloat(statistics.summary.total_subtotal).toLocaleString('en-IN')}`,
+                    50,
+                    y,
+                );
+                y += 15;
+                doc.text(
+                    `Total Tax: ₹${parseFloat(statistics.summary.total_tax).toLocaleString('en-IN')}`,
+                    50,
+                    y,
+                );
+                y += 15;
+                doc.text(
+                    `Total Discount: ₹${parseFloat(statistics.summary.total_discount).toLocaleString('en-IN')}`,
+                    50,
+                    y,
+                );
+                y += 15;
+                doc.text(
+                    `Average Order Value: ₹${parseFloat(statistics.summary.average_order_value).toLocaleString('en-IN')}`,
+                    50,
+                    y,
+                );
+
+                doc.end();
+            } catch (error) {
+                reject(error);
+            }
+        });
     }
 
     private formatStatusLabel(status: string): string {

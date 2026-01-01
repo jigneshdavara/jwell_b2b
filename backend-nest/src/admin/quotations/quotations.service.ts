@@ -639,6 +639,430 @@ export class QuotationsService {
         });
     }
 
+    async getStatistics(userId?: number) {
+        // Build where clause
+        const where: any = {};
+        if (userId) {
+            where.user_id = BigInt(userId);
+        }
+
+        // Get all quotations with basic info (get unique groups)
+        const allQuotations = await this.prisma.quotations.findMany({
+            where,
+            select: {
+                id: true,
+                status: true,
+                quantity: true,
+                quotation_group_id: true,
+                created_at: true,
+                user_id: true,
+            },
+            orderBy: {
+                created_at: 'desc',
+            },
+        });
+
+        // Group by quotation_group_id to get unique quotation groups
+        const quotationGroups = new Map<string, any>();
+        for (const q of allQuotations) {
+            const groupKey =
+                q.quotation_group_id || `single_${q.id.toString()}`;
+            if (!quotationGroups.has(groupKey)) {
+                quotationGroups.set(groupKey, {
+                    id: q.id.toString(),
+                    status: q.status,
+                    quantity: q.quantity,
+                    created_at: q.created_at,
+                    user_id: q.user_id.toString(),
+                });
+            }
+        }
+
+        const uniqueQuotations = Array.from(quotationGroups.values());
+
+        // Calculate totals
+        const totalQuotations = uniqueQuotations.length;
+        const totalQuantity = uniqueQuotations.reduce(
+            (sum, q) => sum + Number(q.quantity || 0),
+            0,
+        );
+        const averageQuantity =
+            totalQuotations > 0 ? totalQuantity / totalQuotations : 0;
+
+        // Group by status
+        const quotationsByStatus = uniqueQuotations.reduce(
+            (acc, q) => {
+                const status = q.status;
+                if (!acc[status]) {
+                    acc[status] = {
+                        status,
+                        status_label: this.formatStatusLabel(status),
+                        count: 0,
+                        quantity: 0,
+                    };
+                }
+                acc[status].count += 1;
+                acc[status].quantity += Number(q.quantity || 0);
+                return acc;
+            },
+            {} as Record<
+                string,
+                {
+                    status: string;
+                    status_label: string;
+                    count: number;
+                    quantity: number;
+                }
+            >,
+        );
+
+        // Group by date (daily)
+        const quotationsByDate = uniqueQuotations.reduce(
+            (acc, q) => {
+                if (!q.created_at) return acc;
+                const date = new Date(q.created_at).toISOString().split('T')[0];
+                if (!acc[date]) {
+                    acc[date] = {
+                        date,
+                        count: 0,
+                        quantity: 0,
+                    };
+                }
+                acc[date].count += 1;
+                acc[date].quantity += Number(q.quantity || 0);
+                return acc;
+            },
+            {} as Record<
+                string,
+                { date: string; count: number; quantity: number }
+            >,
+        );
+
+        // Convert to arrays and sort
+        const statusData = Object.values(quotationsByStatus).sort(
+            (
+                a: {
+                    status: string;
+                    status_label: string;
+                    count: number;
+                    quantity: number;
+                },
+                b: {
+                    status: string;
+                    status_label: string;
+                    count: number;
+                    quantity: number;
+                },
+            ) => a.status.localeCompare(b.status),
+        );
+        const dateData = Object.values(quotationsByDate)
+            .sort(
+                (
+                    a: { date: string; count: number; quantity: number },
+                    b: { date: string; count: number; quantity: number },
+                ) => a.date.localeCompare(b.date),
+            )
+            .slice(-30); // Last 30 days
+
+        return {
+            summary: {
+                total_quotations: totalQuotations,
+                total_quantity: totalQuantity.toString(),
+                average_quantity: averageQuantity.toString(),
+            },
+            by_status: statusData,
+            by_date: dateData,
+        };
+    }
+
+    private formatStatusLabel(status: string): string {
+        return status
+            .split('_')
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
+    async exportStatisticsPDF(userId?: number): Promise<Buffer> {
+        const statistics = await this.getStatistics(userId);
+        return this.generateStatisticsPDF(statistics);
+    }
+
+    private async generateStatisticsPDF(
+        statistics: any,
+    ): Promise<Buffer> {
+        const PDFDocument = require('pdfkit');
+        return new Promise((resolve, reject) => {
+            try {
+                const doc = new PDFDocument({
+                    margin: 50,
+                    size: 'A4',
+                    info: {
+                        Title: 'Quotation Statistics Report',
+                        Author: 'Elvee',
+                        Subject: 'Quotation Report',
+                    },
+                });
+                const buffers: Buffer[] = [];
+
+                doc.on('data', buffers.push.bind(buffers));
+                doc.on('end', () => {
+                    const pdfBuffer = Buffer.concat(buffers);
+                    resolve(pdfBuffer);
+                });
+                doc.on('error', reject);
+
+                // Colors
+                const primaryColor = '#0E244D';
+                const darkGray = '#1F2937';
+                const mediumGray = '#6B7280';
+
+                const hexToRgb = (hex: string) => {
+                    const result =
+                        /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                    return result
+                        ? {
+                              r: parseInt(result[1], 16),
+                              g: parseInt(result[2], 16),
+                              b: parseInt(result[3], 16),
+                          }
+                        : null;
+                };
+
+                const primaryRgb = hexToRgb(primaryColor);
+
+                // Header
+                doc.fillColor(
+                    primaryRgb
+                        ? `rgb(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b})`
+                        : '#0E244D',
+                )
+                    .fontSize(24)
+                    .font('Helvetica-Bold')
+                    .text('Quotation Statistics Report', 50, 50);
+
+                doc.fontSize(10)
+                    .fillColor(mediumGray)
+                    .font('Helvetica')
+                    .text(
+                        `Generated: ${new Date().toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                        })}`,
+                        400,
+                        50,
+                        { align: 'right' },
+                    );
+
+                let y = 100;
+
+                // Quotations by Status
+                if (statistics.by_status && statistics.by_status.length > 0) {
+                    if (y > 650) {
+                        doc.addPage();
+                        y = 50;
+                    }
+
+                    doc.fontSize(16)
+                        .fillColor(darkGray)
+                        .font('Helvetica-Bold')
+                        .text('Quotations by Status', 50, y);
+                    y += 25;
+
+                    // Table header
+                    doc.fillColor(
+                        primaryRgb
+                            ? `rgb(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b})`
+                            : '#0E244D',
+                    )
+                        .rect(50, y, 500, 25)
+                        .fill();
+
+                    doc.fillColor('#FFFFFF')
+                        .fontSize(11)
+                        .font('Helvetica-Bold')
+                        .text('Status', 60, y + 8, { width: 200 })
+                        .text('Count', 270, y + 8, { width: 100, align: 'right' })
+                        .text('Quantity', 380, y + 8, { width: 160, align: 'right' });
+
+                    y += 30;
+
+                    doc.fontSize(10).font('Helvetica').fillColor(darkGray);
+
+                    for (const item of statistics.by_status) {
+                        if (y > 680) {
+                            doc.addPage();
+                            y = 50;
+                            // Redraw header
+                            doc.fillColor(
+                                primaryRgb
+                                    ? `rgb(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b})`
+                                    : '#0E244D',
+                            )
+                                .rect(50, y, 500, 25)
+                                .fill();
+
+                            doc.fillColor('#FFFFFF')
+                                .fontSize(11)
+                                .font('Helvetica-Bold')
+                                .text('Status', 60, y + 8, { width: 200 })
+                                .text('Count', 270, y + 8, {
+                                    width: 100,
+                                    align: 'right',
+                                })
+                                .text('Quantity', 380, y + 8, {
+                                    width: 160,
+                                    align: 'right',
+                                });
+                            y += 30;
+                            doc.fontSize(10).font('Helvetica').fillColor(darkGray);
+                        }
+
+                        doc.text(item.status_label, 60, y, { width: 200 })
+                            .text(item.count.toString(), 270, y, {
+                                width: 100,
+                                align: 'right',
+                            })
+                            .text(
+                                parseFloat(item.quantity || 0).toLocaleString('en-IN'),
+                                380,
+                                y,
+                                { width: 160, align: 'right' },
+                            );
+
+                        y += 20;
+                    }
+
+                    y += 20;
+                }
+
+                // Quotations Over Time
+                if (statistics.by_date && statistics.by_date.length > 0) {
+                    if (y > 600) {
+                        doc.addPage();
+                        y = 50;
+                    }
+
+                    doc.fontSize(16)
+                        .fillColor(darkGray)
+                        .font('Helvetica-Bold')
+                        .text('Quotations Over Time (Last 30 Days)', 50, y);
+                    y += 25;
+
+                    // Table header
+                    doc.fillColor(
+                        primaryRgb
+                            ? `rgb(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b})`
+                            : '#0E244D',
+                    )
+                        .rect(50, y, 500, 25)
+                        .fill();
+
+                    doc.fillColor('#FFFFFF')
+                        .fontSize(11)
+                        .font('Helvetica-Bold')
+                        .text('Date', 60, y + 8, { width: 150 })
+                        .text('Count', 220, y + 8, { width: 100, align: 'right' })
+                        .text('Quantity', 330, y + 8, { width: 210, align: 'right' });
+
+                    y += 30;
+
+                    doc.fontSize(10).font('Helvetica').fillColor(darkGray);
+
+                    for (const item of statistics.by_date) {
+                        if (y > 680) {
+                            doc.addPage();
+                            y = 50;
+                            // Redraw header
+                            doc.fillColor(
+                                primaryRgb
+                                    ? `rgb(${primaryRgb.r}, ${primaryRgb.g}, ${primaryRgb.b})`
+                                    : '#0E244D',
+                            )
+                                .rect(50, y, 500, 25)
+                                .fill();
+
+                            doc.fillColor('#FFFFFF')
+                                .fontSize(11)
+                                .font('Helvetica-Bold')
+                                .text('Date', 60, y + 8, { width: 150 })
+                                .text('Count', 220, y + 8, {
+                                    width: 100,
+                                    align: 'right',
+                                })
+                                .text('Quantity', 330, y + 8, {
+                                    width: 210,
+                                    align: 'right',
+                                });
+                            y += 30;
+                            doc.fontSize(10).font('Helvetica').fillColor(darkGray);
+                        }
+
+                        const dateStr = new Date(item.date).toLocaleDateString(
+                            'en-IN',
+                            {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                            },
+                        );
+
+                        doc.text(dateStr, 60, y, { width: 150 })
+                            .text(item.count.toString(), 220, y, {
+                                width: 100,
+                                align: 'right',
+                            })
+                            .text(
+                                parseFloat(item.quantity || 0).toLocaleString('en-IN'),
+                                330,
+                                y,
+                                { width: 210, align: 'right' },
+                            );
+
+                        y += 20;
+                    }
+
+                    y += 20;
+                }
+
+                // Summary Section
+                if (y > 650) {
+                    doc.addPage();
+                    y = 50;
+                }
+
+                doc.fontSize(16)
+                    .fillColor(darkGray)
+                    .font('Helvetica-Bold')
+                    .text('Summary', 50, y);
+                y += 25;
+
+                doc.fontSize(10).font('Helvetica').fillColor(darkGray);
+                doc.text(
+                    `Total Quotations: ${statistics.summary.total_quotations}`,
+                    50,
+                    y,
+                );
+                y += 15;
+                doc.text(
+                    `Total Quantity: ${parseFloat(statistics.summary.total_quantity || '0').toLocaleString('en-IN')}`,
+                    50,
+                    y,
+                );
+                y += 15;
+                doc.text(
+                    `Average Quantity: ${parseFloat(statistics.summary.average_quantity || '0').toFixed(1)}`,
+                    50,
+                    y,
+                );
+
+                doc.end();
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
     private async calculateTaxSummary(quotations: any[], user: any) {
         let totalSubtotal = 0;
         for (const q of quotations) {

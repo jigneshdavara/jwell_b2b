@@ -4,67 +4,88 @@ export class OrderStatusSeeder extends BaseSeeder {
     async run(): Promise<void> {
         const statuses = [
             {
-                name: 'Pending',
-                code: 'pending',
-                color: '#f59e0b',
+                name: 'Pending Payment',
+                code: 'pending_payment',
+                color: '#F59E0B', // Amber
                 is_default: true,
                 display_order: 0,
             },
             {
-                name: 'Processing',
-                code: 'processing',
-                color: '#3b82f6',
+                name: 'Pending',
+                code: 'pending',
+                color: '#F59E0B', // Amber
                 is_default: false,
                 display_order: 1,
             },
             {
-                name: 'Shipped',
-                code: 'shipped',
-                color: '#0ea5e9',
+                name: 'Payment Failed',
+                code: 'payment_failed',
+                color: '#EF4444', // Red/Rose
                 is_default: false,
                 display_order: 2,
             },
             {
-                name: 'Completed',
-                code: 'completed',
-                color: '#10b981',
+                name: 'Approved',
+                code: 'approved',
+                color: '#10B981', // Emerald Green
                 is_default: false,
                 display_order: 3,
             },
             {
-                name: 'Cancelled',
-                code: 'cancelled',
-                color: '#ef4444',
+                name: 'Awaiting Materials',
+                code: 'awaiting_materials',
+                color: '#6366F1', // Indigo
                 is_default: false,
                 display_order: 4,
             },
             {
-                name: 'Awaiting materials',
-                code: 'awaiting_materials',
-                color: '#6366f1',
+                name: 'In Production',
+                code: 'in_production',
+                color: '#6366F1', // Indigo
                 is_default: false,
                 display_order: 5,
             },
             {
-                name: 'Under production',
-                code: 'under_production',
-                color: '#1d4ed8',
+                name: 'Quality Check',
+                code: 'quality_check',
+                color: '#3B82F6', // Blue
                 is_default: false,
                 display_order: 6,
             },
             {
-                name: 'Pending payment',
-                code: 'pending_payment',
-                color: '#fbbf24',
+                name: 'Ready to Dispatch',
+                code: 'ready_to_dispatch',
+                color: '#8B5CF6', // Purple
                 is_default: false,
                 display_order: 7,
             },
             {
-                name: 'Paid',
-                code: 'paid',
-                color: '#22c55e',
+                name: 'Dispatched',
+                code: 'dispatched',
+                color: '#0E244D', // Elvee Blue
                 is_default: false,
                 display_order: 8,
+            },
+            {
+                name: 'Delivered',
+                code: 'delivered',
+                color: '#10B981', // Emerald Green
+                is_default: false,
+                display_order: 9,
+            },
+            {
+                name: 'Cancelled',
+                code: 'cancelled',
+                color: '#EF4444', // Red/Rose
+                is_default: false,
+                display_order: 10,
+            },
+            {
+                name: 'Paid',
+                code: 'paid',
+                color: '#10B981', // Emerald Green
+                is_default: false,
+                display_order: 11,
             },
         ];
 

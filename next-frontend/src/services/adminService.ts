@@ -412,6 +412,23 @@ export const adminService = {
   async getOrder(id: number) {
     return await apiClient.get(`/admin/orders/${id}`);
   },
+  async getOrderStatistics(userId?: number, dateFilter?: { startDate?: string; endDate?: string }) {
+    const params: any = {};
+    if (userId) params.user_id = userId;
+    if (dateFilter?.startDate) params.start_date = dateFilter.startDate;
+    if (dateFilter?.endDate) params.end_date = dateFilter.endDate;
+    return await apiClient.get('/admin/orders/report/statistics', { params });
+  },
+  async exportOrderReportPDF(userId?: number, dateFilter?: { startDate?: string; endDate?: string }) {
+    const params: any = {};
+    if (userId) params.user_id = userId;
+    if (dateFilter?.startDate) params.start_date = dateFilter.startDate;
+    if (dateFilter?.endDate) params.end_date = dateFilter.endDate;
+    return await apiClient.get('/admin/orders/report/export/pdf', {
+      params,
+      responseType: 'blob',
+    });
+  },
   async updateOrderStatus(id: number, status: string, meta?: any) {
     return await apiClient.post(`/admin/orders/${id}/status`, { status, meta });
   },
@@ -469,6 +486,17 @@ export const adminService = {
     if (filters?.customer_name) params.customer_name = filters.customer_name;
     if (filters?.customer_email) params.customer_email = filters.customer_email;
     return await apiClient.get('/admin/quotations', { params });
+  },
+  async getQuotationStatistics(userId?: number) {
+    return await apiClient.get('/admin/quotations/report/statistics', {
+      params: userId ? { user_id: userId } : {},
+    });
+  },
+  async exportQuotationReportPDF(userId?: number) {
+    return await apiClient.get('/admin/quotations/report/export/pdf', {
+      params: userId ? { user_id: userId } : {},
+      responseType: 'blob',
+    });
   },
   async getQuotation(id: number) {
     return await apiClient.get(`/admin/quotations/${id}`);

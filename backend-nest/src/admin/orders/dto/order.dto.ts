@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsObject, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsObject, IsEnum, IsDateString } from 'class-validator';
 
 // Order status enum values (matching Laravel's OrderStatus enum)
 export enum OrderStatus {
@@ -29,4 +29,14 @@ export class UpdateOrderStatusMetaDto {
     @IsString()
     @IsOptional()
     comment?: string;
+}
+
+export class OrderStatisticsFilterDto {
+    @IsDateString()
+    @IsOptional()
+    startDate?: string;
+
+    @IsDateString()
+    @IsOptional()
+    endDate?: string;
 }

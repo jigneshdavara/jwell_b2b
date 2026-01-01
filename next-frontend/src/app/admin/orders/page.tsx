@@ -107,10 +107,10 @@ export default function AdminOrdersIndex() {
             <div className="space-y-4 px-2 py-4 sm:space-y-6 sm:px-6 sm:py-6 lg:space-y-8 lg:px-8">
                 <header className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
                     <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div>
-                            <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-slate-900">Orders</h1>
-                            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-500">Track commercial orders, statuses, and fulfilment readiness.</p>
-                        </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-slate-900">Orders</h1>
+              <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-500">Track commercial orders, statuses, and fulfilment readiness.</p>
+            </div>
                     </div>
                 </header>
 
