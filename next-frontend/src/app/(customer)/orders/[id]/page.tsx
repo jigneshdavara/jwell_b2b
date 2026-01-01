@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { frontendService } from '@/services/frontendService';
+import { kycService } from '@/services/kycService';
 import { route } from '@/utils/route';
 import { formatCurrency } from '@/utils/formatting';
 import type { OrderShowItem, OrderPayment, OrderDetails } from '@/types';
@@ -45,6 +46,7 @@ export default function OrderShowPage() {
   const [invoiceExists, setInvoiceExists] = useState(false);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
   const [checkingInvoice, setCheckingInvoice] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -54,12 +56,28 @@ export default function OrderShowPage() {
           setLoading(false);
           return;
         }
-        const response = await frontendService.getOrder(orderId);
-        const orderData = response.data?.order;
+        
+        // Fetch order and KYC profile in parallel
+        const [orderResponse, kycResponse] = await Promise.all([
+          frontendService.getOrder(orderId),
+          kycService.getOnboardingData().catch(() => null), // Don't fail if profile fetch fails
+        ]);
+        
+        const orderData = orderResponse.data?.order;
         
         if (!orderData) {
           setLoading(false);
           return;
+        }
+        
+        // Set user profile if available (includes business information)
+        if (kycResponse?.data) {
+          const profileData = kycResponse.data.profile || {};
+          const userData = kycResponse.data.user || {};
+          setUserProfile({
+            ...userData,
+            ...profileData,
+          });
         }
 
         // Map backend response to frontend format
@@ -245,9 +263,49 @@ export default function OrderShowPage() {
               {/* Bill To */}
               <div>
                 <h3 className="text-[10px] font-semibold text-slate-400 sm:text-xs">Bill To</h3>
-                <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">
-                  Your Account
-                </p>
+                {userProfile ? (
+                  <>
+                    <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">
+                      {userProfile.business_name || userProfile.name || 'Your Account'}
+                    </p>
+                    {userProfile.email && (
+                      <p className="mt-1 text-xs text-slate-600 sm:text-sm">
+                        {userProfile.email}
+                      </p>
+                    )}
+                    {userProfile.address_line1 && (
+                      <p className="mt-1 text-xs text-slate-600 sm:text-sm">
+                        {userProfile.address_line1}
+                      </p>
+                    )}
+                    {userProfile.address_line2 && (
+                      <p className="text-xs text-slate-600 sm:text-sm">
+                        {userProfile.address_line2}
+                      </p>
+                    )}
+                    {(userProfile.city || userProfile.state || userProfile.postal_code) && (
+                      <p className="text-xs text-slate-600 sm:text-sm">
+                        {[userProfile.city, userProfile.state, userProfile.postal_code]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </p>
+                    )}
+                    {userProfile.phone && (
+                      <p className="mt-1.5 text-xs text-slate-600 sm:mt-2 sm:text-sm">
+                        Phone: {userProfile.phone}
+                      </p>
+                    )}
+                    {userProfile.gst_number && (
+                      <p className="mt-1.5 text-xs text-slate-600 sm:mt-2 sm:text-sm">
+                        GSTIN: {userProfile.gst_number}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">
+                    Your Account
+                  </p>
+                )}
               </div>
               {/* Order Details */}
               <div className="text-left sm:text-right">
