@@ -6,7 +6,9 @@ import Link from 'next/link';
 import { useMemo, useState, use, useEffect } from 'react';
 import { adminService } from '@/services/adminService';
 import { useRouter } from 'next/navigation';
-import { toastError } from '@/utils/toast';
+import { toastError, toastSuccess } from '@/utils/toast';
+import PrimaryButton from '@/components/ui/PrimaryButton';
+import SecondaryButton from '@/components/ui/SecondaryButton';
 
 type OrderItem = {
     id: number;
@@ -143,10 +145,54 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
         },
     });
     const [processing, setProcessing] = useState(false);
+    const [invoiceExists, setInvoiceExists] = useState<{ id: string; invoice_number: string; status: string } | null>(null);
+    const [generatingInvoice, setGeneratingInvoice] = useState(false);
 
     useEffect(() => {
         loadOrder();
+        checkInvoiceExists();
     }, [resolvedParams.id]);
+
+    const checkInvoiceExists = async () => {
+        if (!resolvedParams.id || isNaN(Number(resolvedParams.id))) {
+            return;
+        }
+        try {
+            const response = await adminService.getInvoiceByOrderId(Number(resolvedParams.id));
+            // Backend returns invoice object if exists, or { exists: false } if not
+            if (response.data && response.data.id && !response.data.exists) {
+                setInvoiceExists({
+                    id: response.data.id,
+                    invoice_number: response.data.invoice_number,
+                    status: response.data.status,
+                });
+            } else {
+                setInvoiceExists(null);
+            }
+        } catch (error) {
+            // Invoice doesn't exist or error - set to null
+            setInvoiceExists(null);
+        }
+    };
+
+    const handleGenerateInvoice = async () => {
+        if (!order) return;
+        setGeneratingInvoice(true);
+        try {
+            await adminService.createInvoice({ order_id: order.id });
+            toastSuccess('Invoice generated successfully');
+            await checkInvoiceExists();
+            // Redirect to invoice page
+            const invoiceResponse = await adminService.getInvoiceByOrderId(order.id);
+            if (invoiceResponse.data && invoiceResponse.data.id) {
+                window.location.href = `/admin/invoices/${invoiceResponse.data.id}`;
+            }
+        } catch (error: any) {
+            toastError(error.response?.data?.message || 'Failed to generate invoice');
+        } finally {
+            setGeneratingInvoice(false);
+        }
+    };
 
     const loadOrder = async () => {
         try {
@@ -290,12 +336,30 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
                                 {order.user?.name ?? 'Guest'} · {order.user?.email ?? '—'}
                             </p>
                         </div>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            {invoiceExists ? (
+                                <Link
+                                    href={`/admin/invoices/${invoiceExists.id}`}
+                                    className="inline-flex items-center justify-center gap-2 rounded-full bg-elvee-blue px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-white transition hover:bg-navy"
+                                >
+                                    View Invoice {invoiceExists.invoice_number}
+                                </Link>
+                            ) : (
+                                <PrimaryButton
+                                    onClick={handleGenerateInvoice}
+                                    disabled={generatingInvoice}
+                                    className="text-xs sm:text-sm"
+                                >
+                                    {generatingInvoice ? 'Generating...' : 'Generate Invoice'}
+                                </PrimaryButton>
+                            )}
                         <Link
                             href="/admin/orders"
                             className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
                         >
                             Back to list
                         </Link>
+                        </div>
                     </div>
                 </header>
 

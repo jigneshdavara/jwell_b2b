@@ -436,6 +436,31 @@ export const adminService = {
     return await apiClient.delete('/admin/orders/statuses/bulk', { data: { ids } });
   },
 
+  // Invoices
+  async getInvoices(filters?: { page?: number; per_page?: number; status?: string; search?: string; order_id?: number }) {
+    return await apiClient.get('/admin/invoices', { params: filters });
+  },
+  async getInvoice(id: number) {
+    return await apiClient.get(`/admin/invoices/${id}`);
+  },
+  async createInvoice(data: { order_id: number; issue_date?: string; due_date?: string; notes?: string; terms?: string; metadata?: any }) {
+    return await apiClient.post('/admin/invoices', data);
+  },
+  async updateInvoice(id: number, data: { status?: string; issue_date?: string; due_date?: string; notes?: string; terms?: string; metadata?: any }) {
+    return await apiClient.patch(`/admin/invoices/${id}`, data);
+  },
+  async deleteInvoice(id: number) {
+    return await apiClient.delete(`/admin/invoices/${id}`);
+  },
+  async downloadInvoicePdf(id: number) {
+    return await apiClient.get(`/admin/invoices/${id}/pdf`, {
+      responseType: 'blob',
+    });
+  },
+  async getInvoiceByOrderId(orderId: number) {
+    return await apiClient.get(`/admin/invoices/order/${orderId}`);
+  },
+
   // Quotations
   async getQuotations(filters?: { page?: number; order_reference?: string; customer_name?: string; customer_email?: string }) {
     const params: any = {};

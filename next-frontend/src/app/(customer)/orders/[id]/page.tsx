@@ -42,6 +42,9 @@ export default function OrderShowPage() {
   const [loading, setLoading] = useState(true);
   const [productDetailsModalOpen, setProductDetailsModalOpen] =
     useState<OrderShowItem | null>(null);
+  const [invoiceExists, setInvoiceExists] = useState(false);
+  const [invoiceId, setInvoiceId] = useState<string | null>(null);
+  const [checkingInvoice, setCheckingInvoice] = useState(false);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -124,6 +127,11 @@ export default function OrderShowPage() {
         };
         
         setOrder(mappedOrder);
+        
+        // Check if invoice exists for this order after order is loaded
+        if (mappedOrder?.reference) {
+          checkInvoiceExists(mappedOrder.reference, mappedOrder.id);
+        }
       } catch (error: any) {
         console.error('Failed to fetch order', error);
       } finally {
@@ -133,6 +141,31 @@ export default function OrderShowPage() {
 
     fetchOrder();
   }, [id]);
+
+  const checkInvoiceExists = async (orderRef: string, orderId: number) => {
+    if (!orderRef || !orderId) return;
+    setCheckingInvoice(true);
+    try {
+      const response = await frontendService.getInvoices(1, 100); // Get first 100 invoices
+      const invoices = response.data?.items || [];
+      const foundInvoice = invoices.find(
+        (inv: any) => inv.order_reference === orderRef || inv.order_id === orderId
+      );
+      if (foundInvoice) {
+        setInvoiceExists(true);
+        setInvoiceId(foundInvoice.id);
+      } else {
+        setInvoiceExists(false);
+        setInvoiceId(null);
+      }
+    } catch (error) {
+      // If error, assume no invoice
+      setInvoiceExists(false);
+      setInvoiceId(null);
+    } finally {
+      setCheckingInvoice(false);
+    }
+  };
 
   const getMediaUrl = (url: string): string => {
     if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -239,6 +272,16 @@ export default function OrderShowPage() {
                     {order.status_label}
                   </span>
                 </div>
+                {invoiceExists && !checkingInvoice && invoiceId && (
+                  <div className="mt-4 flex justify-end">
+                    <Link
+                      href={route('customer.invoices.show', { id: invoiceId })}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-elvee-blue bg-elvee-blue/10 rounded-lg hover:bg-elvee-blue/20"
+                    >
+                      View Invoice
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </div>
