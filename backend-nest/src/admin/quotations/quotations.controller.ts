@@ -9,7 +9,9 @@ import {
     UseGuards,
     ParseIntPipe,
     Request,
+    Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { QuotationsService } from './quotations.service';
 import {
     QuotationFilterDto,
@@ -30,6 +32,30 @@ export class AdminQuotationsController {
     @Get()
     findAll(@Query() filters: QuotationFilterDto) {
         return this.quotationsService.findAll(filters);
+    }
+
+    @Get('report/statistics')
+    async getStatistics(
+        @Query('user_id', new ParseIntPipe({ optional: true }))
+        userId?: number,
+    ) {
+        return this.quotationsService.getStatistics(userId);
+    }
+
+    @Get('report/export/pdf')
+    async exportPdf(
+        @Query('user_id', new ParseIntPipe({ optional: true }))
+        userId: number | undefined,
+        @Res() res: Response,
+    ) {
+        const pdfBuffer = await this.quotationsService.exportStatisticsPDF(userId);
+        const dateStr = new Date().toISOString().split('T')[0];
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="quotation-report-${dateStr}.pdf"`,
+        );
+        res.send(pdfBuffer);
     }
 
     @Get(':id')

@@ -10,7 +10,9 @@ import {
     Request,
     BadRequestException,
     NotFoundException,
+    Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { OrdersService } from './orders.service';
 import { UpdateOrderStatusDto } from './dto/order.dto';
 import { JwtAuthGuard } from '../../common/auth/guards/jwt-auth.guard';
@@ -54,6 +56,30 @@ export class OrdersController {
             userId,
             'admin',
         );
+    }
+
+    @Get('report/statistics')
+    async getStatistics(
+        @Query('user_id', new ParseIntPipe({ optional: true }))
+        userId?: number,
+    ) {
+        return this.ordersService.getStatistics(userId);
+    }
+
+    @Get('report/export/pdf')
+    async exportPdf(
+        @Query('user_id', new ParseIntPipe({ optional: true }))
+        userId: number | undefined,
+        @Res() res: Response,
+    ) {
+        const pdfBuffer = await this.ordersService.exportStatisticsPDF(userId);
+        const dateStr = new Date().toISOString().split('T')[0];
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="order-report-${dateStr}.pdf"`,
+        );
+        res.send(pdfBuffer);
     }
 
     @Get(':id')

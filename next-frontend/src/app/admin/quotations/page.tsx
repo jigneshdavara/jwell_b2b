@@ -141,11 +141,24 @@ export default function AdminQuotationsIndex() {
 
             <div className="space-y-6 sm:space-y-8 px-1 py-4 sm:px-6 sm:py-6 lg:px-8">
                 <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/80">
-                    <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">Quotation requests</h1>
-                    <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-slate-500">
-                        Review customer quotation submissions for jewellery and jobwork. Approve to convert into orders or guide production
-                        teams.
-                    </p>
+                    <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">Quotation requests</h1>
+                            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-slate-500">
+                                Review customer quotation submissions for jewellery and jobwork. Approve to convert into orders or guide production
+                                teams.
+                            </p>
+                        </div>
+                        <Link
+                            href="/admin/quotations/report"
+                            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-elvee-blue px-3 py-1.5 text-xs font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM12 12.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM13.5 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6 20.25a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM7.5 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM10.5 12a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM12 7.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM16.5 20.25a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM18 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM19.5 12a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM16.5 7.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM18 3.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                            </svg>
+                            View Report
+                        </Link>
+                    </div>
                 </div>
 
                 <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/80">
