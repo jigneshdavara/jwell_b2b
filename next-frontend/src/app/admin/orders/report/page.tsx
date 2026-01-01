@@ -66,6 +66,8 @@ export default function AdminOrdersReport() {
   // Local state for date inputs to prevent date picker from closing during typing
   const [localStartDate, setLocalStartDate] = useState<string>('');
   const [localEndDate, setLocalEndDate] = useState<string>('');
+  const [chartHeight, setChartHeight] = useState(240);
+  const [isMobile, setIsMobile] = useState(false);
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -102,6 +104,25 @@ export default function AdminOrdersReport() {
 
   useEffect(() => {
     loadUsers();
+  }, []);
+
+  // Responsive chart height and mobile detection
+  useEffect(() => {
+    const updateChartHeight = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      if (width < 640) {
+        setChartHeight(300); // Increased for better mobile visibility
+      } else if (width < 768) {
+        setChartHeight(340);
+      } else {
+        setChartHeight(380);
+      }
+    };
+
+    updateChartHeight();
+    window.addEventListener('resize', updateChartHeight);
+    return () => window.removeEventListener('resize', updateChartHeight);
   }, []);
 
   // Initialize local date state from filter state on mount (only once)
@@ -341,22 +362,22 @@ export default function AdminOrdersReport() {
         `
       }} />
 
-      <div className="space-y-4 px-2 py-4 sm:space-y-6 sm:px-6 sm:py-6 lg:space-y-8 lg:px-8">
-        <header className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
+      <div className="space-y-3 px-3 py-3 sm:space-y-4 sm:px-4 sm:py-4 md:space-y-6 md:px-6 md:py-6 lg:space-y-8 lg:px-8">
+        <header className="rounded-xl sm:rounded-2xl md:rounded-3xl bg-white p-3 sm:p-4 md:p-6 shadow-xl ring-1 ring-slate-200/70">
           <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-slate-900">Order Report</h1>
-              <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-500">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-slate-900">Order Report</h1>
+              <p className="mt-1 sm:mt-1.5 md:mt-2 text-xs sm:text-sm text-slate-500 break-words">
                 {selectedUserId
                   ? `Statistics for ${users.find((u) => u.id === selectedUserId)?.name || 'selected user'}`
                   : 'Total orders statistics and analytics.'}
               </p>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={exportToPDF}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
                   title="Export to PDF"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -366,7 +387,7 @@ export default function AdminOrdersReport() {
                 </button>
                 <button
                   onClick={exportToXLSX}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
                   title="Export to Excel"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -376,7 +397,7 @@ export default function AdminOrdersReport() {
                 </button>
                 <button
                   onClick={exportToCSV}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
                   title="Export to CSV"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -387,7 +408,7 @@ export default function AdminOrdersReport() {
               </div>
               <Link
                 href="/admin/orders"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-4 sm:py-2 sm:text-sm"
               >
                 Back to Orders
               </Link>
@@ -396,40 +417,40 @@ export default function AdminOrdersReport() {
         </header>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
+        <div className="grid gap-3 grid-cols-1 sm:gap-4 sm:grid-cols-2 lg:gap-6 lg:grid-cols-4">
+          <div className="rounded-xl sm:rounded-2xl bg-white p-4 sm:p-5 md:p-6 shadow-xl ring-1 ring-slate-200/70">
             <div className="text-xs sm:text-sm font-medium text-slate-500">Total Orders</div>
-            <div className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900">{statistics.summary.total_orders}</div>
+            <div className="mt-1.5 sm:mt-2 text-xl sm:text-2xl md:text-3xl font-bold text-slate-900">{statistics.summary.total_orders}</div>
           </div>
-          <div className="rounded-2xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
+          <div className="rounded-xl sm:rounded-2xl bg-white p-4 sm:p-5 md:p-6 shadow-xl ring-1 ring-slate-200/70">
             <div className="text-xs sm:text-sm font-medium text-slate-500">Total Revenue</div>
-            <div className="mt-2 text-2xl sm:text-3xl font-bold text-elvee-blue">
+            <div className="mt-1.5 sm:mt-2 text-xl sm:text-2xl md:text-3xl font-bold text-elvee-blue break-words">
               {formatCurrency(parseFloat(statistics.summary.total_revenue))}
             </div>
           </div>
-          <div className="rounded-2xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
+          <div className="rounded-xl sm:rounded-2xl bg-white p-4 sm:p-5 md:p-6 shadow-xl ring-1 ring-slate-200/70">
             <div className="text-xs sm:text-sm font-medium text-slate-500">Average Order Value</div>
-            <div className="mt-2 text-2xl sm:text-3xl font-bold text-feather-gold">
+            <div className="mt-1.5 sm:mt-2 text-xl sm:text-2xl md:text-3xl font-bold text-feather-gold break-words">
               {formatCurrency(parseFloat(statistics.summary.average_order_value))}
             </div>
           </div>
-          <div className="rounded-2xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
+          <div className="rounded-xl sm:rounded-2xl bg-white p-4 sm:p-5 md:p-6 shadow-xl ring-1 ring-slate-200/70">
             <div className="text-xs sm:text-sm font-medium text-slate-500">Total Tax</div>
-            <div className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900">
+            <div className="mt-1.5 sm:mt-2 text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 break-words">
               {formatCurrency(parseFloat(statistics.summary.total_tax))}
             </div>
           </div>
         </div>
 
         {/* Report Section with Toggle */}
-        <section className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
-          <div className="mb-4 flex flex-col gap-3">
+        <section className="rounded-xl sm:rounded-2xl md:rounded-3xl bg-white p-3 sm:p-4 md:p-6 shadow-xl ring-1 ring-slate-200/70">
+          <div className="mb-3 sm:mb-4 flex flex-col gap-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-base font-semibold text-slate-900 sm:text-lg">Order Statistics</h2>
+              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900">Order Statistics</h2>
               <div className="flex gap-2">
                 <button
                   onClick={() => setViewMode('graph')}
-                  className={`inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition ${
+                  className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition ${
                     viewMode === 'graph'
                       ? 'bg-elvee-blue text-white'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -453,7 +474,7 @@ export default function AdminOrdersReport() {
                 </button>
                 <button
                   onClick={() => setViewMode('table')}
-                  className={`inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition ${
+                  className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition ${
                     viewMode === 'table'
                       ? 'bg-elvee-blue text-white'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -477,16 +498,17 @@ export default function AdminOrdersReport() {
                 </button>
               </div>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-              <div className="flex items-center gap-2">
-                <label htmlFor="user-filter" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap">
+            <div className="space-y-3">
+              {/* User Filter - Full width on all screens */}
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 w-full">
+                <label htmlFor="user-filter" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap shrink-0 sm:min-w-[110px]">
                   Filter by User:
                 </label>
                 <select
                   id="user-filter"
                   value={selectedUserId || ''}
                   onChange={(e) => setSelectedUserId(e.target.value ? Number(e.target.value) : undefined)}
-                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm text-slate-900 bg-white focus:border-slate-300 focus:ring-0 outline-none transition min-w-[180px] sm:min-w-[200px]"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs sm:text-sm text-slate-900 bg-white focus:border-elvee-blue focus:ring-2 focus:ring-elvee-blue/20 outline-none transition sm:max-w-[300px]"
                   disabled={loadingUsers}
                 >
                   <option value="">All Users</option>
@@ -497,61 +519,74 @@ export default function AdminOrdersReport() {
                   ))}
                 </select>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <label htmlFor="start-date" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap">
-                  From Date:
-                </label>
-                <input
-                  id="start-date"
-                  type="date"
-                  value={localStartDate}
-                  onChange={(e) => setLocalStartDate(e.target.value)}
-                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm text-slate-900 bg-white focus:border-elvee-blue focus:ring-2 focus:ring-elvee-blue/20 outline-none transition"
-                />
-                <label htmlFor="end-date" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap">
-                  To Date:
-                </label>
-                <input
-                  id="end-date"
-                  type="date"
-                  value={localEndDate}
-                  onChange={(e) => setLocalEndDate(e.target.value)}
-                  min={localStartDate || undefined}
-                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm text-slate-900 bg-white focus:border-elvee-blue focus:ring-2 focus:ring-elvee-blue/20 outline-none transition"
-                />
-                <button
-                  onClick={handleApplyDateFilter}
-                  className="rounded-lg bg-elvee-blue px-3 py-1.5 text-xs sm:text-sm font-medium text-white hover:bg-navy transition whitespace-nowrap shadow-sm"
-                >
-                  Apply Filter
-                </button>
-                {(localStartDate || localEndDate || startDate || endDate) && (
+              
+              {/* Date Filters and Buttons */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-3 w-full">
+                {/* Date Inputs */}
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 flex-1">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <label htmlFor="start-date" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap shrink-0 sm:min-w-[75px]">
+                      From Date:
+                    </label>
+                    <input
+                      id="start-date"
+                      type="date"
+                      value={localStartDate}
+                      onChange={(e) => setLocalStartDate(e.target.value)}
+                      className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-xs sm:text-sm text-slate-900 bg-white focus:border-elvee-blue focus:ring-2 focus:ring-elvee-blue/20 outline-none transition min-w-0"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <label htmlFor="end-date" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap shrink-0 sm:min-w-[75px]">
+                      To Date:
+                    </label>
+                    <input
+                      id="end-date"
+                      type="date"
+                      value={localEndDate}
+                      onChange={(e) => setLocalEndDate(e.target.value)}
+                      min={localStartDate || undefined}
+                      className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-xs sm:text-sm text-slate-900 bg-white focus:border-elvee-blue focus:ring-2 focus:ring-elvee-blue/20 outline-none transition min-w-0"
+                    />
+                  </div>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex gap-2 w-full sm:w-auto sm:flex-shrink-0">
                   <button
-                    onClick={handleClearDateFilter}
-                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 transition whitespace-nowrap"
+                    onClick={handleApplyDateFilter}
+                    className="flex-1 sm:flex-initial rounded-lg bg-elvee-blue px-4 py-2 text-xs sm:text-sm font-medium text-white hover:bg-navy transition whitespace-nowrap shadow-sm"
                   >
-                    Clear
+                    Apply Filter
                   </button>
-                )}
+                  {(localStartDate || localEndDate || startDate || endDate) && (
+                    <button
+                      onClick={handleClearDateFilter}
+                      className="flex-1 sm:flex-initial rounded-lg border border-slate-300 px-4 py-2 text-xs sm:text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 transition whitespace-nowrap"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-8 sm:mt-10">
+          <div className="mt-6 sm:mt-8 md:mt-10">
             {viewMode === 'graph' ? (
-              <div className="space-y-10 sm:space-y-12">
+              <div className="space-y-8 sm:space-y-10 md:space-y-12">
               {/* Orders by Status Pie Chart */}
               <div>
-                <h3 className="mb-4 text-sm font-semibold text-slate-700 sm:text-base">Orders by Status</h3>
-                <ResponsiveContainer width="100%" height={350}>
+                <h3 className="mb-2 sm:mb-3 md:mb-4 text-xs sm:text-sm md:text-base font-semibold text-slate-700">Orders by Status</h3>
+                <ResponsiveContainer width="100%" height={chartHeight}>
                   <PieChart>
                     <Pie
                       data={statistics.by_status}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry: any) => `${entry.status_label}: ${entry.count}`}
-                      outerRadius={100}
+                      label={isMobile ? false : (entry: any) => `${entry.status_label}: ${entry.count}`}
+                      outerRadius={chartHeight < 280 ? 75 : chartHeight < 340 ? 85 : 95}
                       fill="#8884d8"
                       dataKey="count"
                       nameKey="status_label"
@@ -563,7 +598,8 @@ export default function AdminOrdersReport() {
                     <Tooltip />
                     <Legend 
                       formatter={(value, entry: any) => `${entry.payload.status_label} (${entry.payload.count})`}
-                      wrapperStyle={{ paddingTop: '20px' }}
+                      wrapperStyle={{ paddingTop: '16px', fontSize: '11px' }}
+                      iconSize={10}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -571,16 +607,17 @@ export default function AdminOrdersReport() {
 
               {/* Revenue by Status Bar Chart */}
               <div>
-                <h3 className="mb-4 text-sm font-semibold text-slate-700 sm:text-base">Revenue by Status</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={statistics.by_status}>
+                <h3 className="mb-2 sm:mb-3 md:mb-4 text-xs sm:text-sm md:text-base font-semibold text-slate-700">Revenue by Status</h3>
+                <ResponsiveContainer width="100%" height={chartHeight}>
+                  <BarChart data={statistics.by_status} margin={{ top: 5, right: 10, left: 5, bottom: 80 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis
                       dataKey="status_label"
                       angle={-45}
                       textAnchor="end"
                       height={100}
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 9 }}
+                      interval={0}
                     />
                     <YAxis
                       tickFormatter={(value) =>
@@ -591,12 +628,14 @@ export default function AdminOrdersReport() {
                           notation: 'compact',
                         }).format(value)
                       }
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 9 }}
+                      width={50}
                     />
                     <Tooltip
                       formatter={(value: number | undefined) => formatCurrency(value || 0)}
+                      contentStyle={{ fontSize: '12px', padding: '8px' }}
                     />
-                    <Legend />
+                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} iconSize={10} />
                     <Bar dataKey="revenue" name="Revenue" radius={[4, 4, 0, 0]}>
                       {statistics.by_status.map((entry) => (
                         <Cell key={`cell-${entry.status}`} fill={getStatusColor(entry)} />
@@ -608,9 +647,9 @@ export default function AdminOrdersReport() {
 
               {/* Orders Over Time */}
               <div>
-                <h3 className="mb-4 text-sm font-semibold text-slate-700 sm:text-base">Orders Over Time (Last 30 Days)</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={statistics.by_date}>
+                <h3 className="mb-2 sm:mb-3 md:mb-4 text-xs sm:text-sm md:text-base font-semibold text-slate-700">Orders Over Time (Last 30 Days)</h3>
+                <ResponsiveContainer width="100%" height={chartHeight}>
+                  <BarChart data={statistics.by_date} margin={{ top: 5, right: 10, left: 5, bottom: 80 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis
                       dataKey="date"
@@ -618,14 +657,15 @@ export default function AdminOrdersReport() {
                       angle={-45}
                       textAnchor="end"
                       height={100}
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: 9 }}
+                      interval={3}
                     />
                     <YAxis 
                       yAxisId="left"
                       orientation="left"
-                      tick={{ fontSize: 12 }}
-                      label={{ value: 'Order Count', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
-                      width={60}
+                      tick={{ fontSize: 9 }}
+                      label={{ value: 'Order Count', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '9px' } }}
+                      width={40}
                     />
                     <YAxis
                       yAxisId="right"
@@ -638,9 +678,9 @@ export default function AdminOrdersReport() {
                           notation: 'compact',
                         }).format(value)
                       }
-                      tick={{ fontSize: 12 }}
-                      label={{ value: 'Revenue', angle: 90, position: 'insideRight', style: { textAnchor: 'middle' } }}
-                      width={80}
+                      tick={{ fontSize: 9 }}
+                      label={{ value: 'Revenue', angle: 90, position: 'insideRight', style: { textAnchor: 'middle', fontSize: '9px' } }}
+                      width={60}
                     />
                     <Tooltip
                       labelFormatter={(value) => formatDate(value)}
@@ -650,8 +690,9 @@ export default function AdminOrdersReport() {
                         }
                         return value || 0;
                       }}
+                      contentStyle={{ fontSize: '12px', padding: '8px' }}
                     />
-                    <Legend />
+                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} iconSize={10} />
                     <Bar yAxisId="left" dataKey="count" fill="#0E244D" name="Order Count" radius={[4, 4, 0, 0]} />
                     <Bar yAxisId="right" dataKey="revenue" fill="#AE8135" name="Revenue" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -659,12 +700,13 @@ export default function AdminOrdersReport() {
               </div>
               </div>
             ) : (
-              <div className="space-y-10 sm:space-y-12">
+              <div className="space-y-8 sm:space-y-10 md:space-y-12">
               {/* Orders by Status Table */}
               <div>
-                <h3 className="mb-4 text-sm font-semibold text-slate-700 sm:text-base">Orders by Status</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs sm:text-sm">
+                <h3 className="mb-3 sm:mb-4 text-xs sm:text-sm md:text-base font-semibold text-slate-700">Orders by Status</h3>
+                <div className="overflow-x-auto -mx-3 sm:mx-0">
+                  <div className="inline-block min-w-full align-middle">
+                    <table className="w-full text-xs sm:text-sm">
                     <thead className="border-b-2 border-slate-200 bg-slate-50">
                       <tr>
                         <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-[10px] font-semibold text-slate-600 sm:text-xs">Status</th>
@@ -698,15 +740,17 @@ export default function AdminOrdersReport() {
                         </td>
                       </tr>
                     </tfoot>
-                  </table>
+                    </table>
+                  </div>
                 </div>
               </div>
 
               {/* Orders Over Time Table */}
               <div>
-                <h3 className="mb-4 text-sm font-semibold text-slate-700 sm:text-base">Orders Over Time (Last 30 Days)</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs sm:text-sm">
+                <h3 className="mb-3 sm:mb-4 text-xs sm:text-sm md:text-base font-semibold text-slate-700">Orders Over Time (Last 30 Days)</h3>
+                <div className="overflow-x-auto -mx-3 sm:mx-0">
+                  <div className="inline-block min-w-full align-middle">
+                    <table className="w-full text-xs sm:text-sm">
                     <thead className="border-b-2 border-slate-200 bg-slate-50">
                       <tr>
                         <th className="px-3 py-2 sm:px-4 sm:py-3 text-left text-[10px] font-semibold text-slate-600 sm:text-xs">Date</th>
@@ -729,7 +773,8 @@ export default function AdminOrdersReport() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                    </table>
+                  </div>
                 </div>
               </div>
               </div>
