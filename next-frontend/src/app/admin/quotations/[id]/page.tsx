@@ -19,6 +19,22 @@ type RelatedQuotation = {
         name: string;
         sku: string;
         media: Array<{ url: string; alt?: string }>;
+        variants?: Array<{
+            id: number | string;
+            label: string;
+            metadata?: Record<string, unknown> | null;
+            size_id?: number | null;
+            size?: { id: number; name: string; value?: string } | null;
+            metals?: Array<{
+                id: number;
+                metal_id: number;
+                metal_purity_id: number | null;
+                metal_tone_id: number | null;
+                metal?: { id: number; name: string } | null;
+                metal_purity?: { id: number; name: string } | null;
+                metal_tone?: { id: number; name: string } | null;
+            }>;
+        }>;
     };
     variant?: {
         id: string | number;
@@ -50,6 +66,22 @@ type QuotationDetails = {
         name: string;
         sku: string;
         media: Array<{ url: string; alt?: string }>;
+        variants?: Array<{
+            id: number | string;
+            label: string;
+            metadata?: Record<string, unknown> | null;
+            size_id?: number | null;
+            size?: { id: number; name: string; value?: string } | null;
+            metals?: Array<{
+                id: number;
+                metal_id: number;
+                metal_purity_id: number | null;
+                metal_tone_id: number | null;
+                metal?: { id: number; name: string } | null;
+                metal_purity?: { id: number; name: string } | null;
+                metal_tone?: { id: number; name: string } | null;
+            }>;
+        }>;
     };
     variant?: {
         id: string | number;
@@ -185,6 +217,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     // Messages state
     const [messageText, setMessageText] = useState('');
     const [messageProcessing, setMessageProcessing] = useState(false);
+    const [companySettings, setCompanySettings] = useState<any>(null);
 
     // Change Product Modal state
     const [changeProductModalOpen, setChangeProductModalOpen] = useState<RelatedQuotation | null>(null);
@@ -200,6 +233,14 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     const [changeProductNotes, setChangeProductNotes] = useState('');
     const [changeProductVariantId, setChangeProductVariantId] = useState<number | ''>('');
     const [changeProductProcessing, setChangeProductProcessing] = useState(false);
+    const changeProductInitializedRef = React.useRef<number | null>(null);
+    const pendingInitializationRef = React.useRef<{
+        metalId: number;
+        purityId: number | null;
+        toneId: number | null;
+        size: string;
+        variantId: number;
+    } | null>(null);
 
     // Add Item Modal state
     const [addItemModalOpen, setAddItemModalOpen] = useState(false);
@@ -219,6 +260,20 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     useEffect(() => {
         loadQuotation();
     }, [resolvedParams.id]);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await adminService.getGeneralSettings();
+                if (response?.data) {
+                    setCompanySettings(response.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch company settings:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     const loadQuotation = async () => {
         try {
@@ -534,25 +589,100 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         return [...sizes];
     }, [addItemMetalId, addItemPurityId, addItemToneId, addItemConfigurationOptions]);
 
+
+    // Initialize values when configuration options are ready (after openChangeModal sets pendingInitializationRef)
+    useEffect(() => {
+        if (!pendingInitializationRef.current || changeProductConfigurationOptions.length === 0) return;
+        
+        const pending = pendingInitializationRef.current;
+        
+        // Set metal first (always set if not already set)
+        if (changeProductMetalId !== pending.metalId) {
+            setChangeProductMetalId(pending.metalId);
+            return; // Wait for next render cycle
+        }
+        
+        // Set purity after metal is set and matches
+        if (changeProductMetalId === pending.metalId && pending.purityId && changeProductPurityId !== pending.purityId) {
+            // Check if purity exists in available options
+            const hasPurity = changeProductAvailablePurities.length > 0 && changeProductAvailablePurities.some(([id]) => Number(id) === Number(pending.purityId));
+            if (hasPurity) {
+                setChangeProductPurityId(pending.purityId);
+            } else if (changeProductAvailablePurities.length > 0) {
+                // If purities are available but our target isn't, something is wrong - clear and continue
+                console.warn('Target purity not found in available options', pending.purityId, changeProductAvailablePurities);
+            }
+            return; // Wait for next render cycle
+        }
+        
+        // Set tone after purity is set and matches
+        if (changeProductPurityId === pending.purityId && pending.toneId && changeProductToneId !== pending.toneId) {
+            // Check if tone exists in available options
+            const hasTone = changeProductAvailableTones.length > 0 && changeProductAvailableTones.some(([id]) => Number(id) === Number(pending.toneId));
+            if (hasTone) {
+                setChangeProductToneId(pending.toneId);
+            } else if (changeProductAvailableTones.length > 0) {
+                console.warn('Target tone not found in available options', pending.toneId, changeProductAvailableTones);
+            }
+            return; // Wait for next render cycle
+        }
+        
+        // Set size and variant after tone is set and matches
+        if (changeProductToneId === pending.toneId) {
+            if (pending.size && changeProductSize !== pending.size) {
+                setChangeProductSize(pending.size);
+            }
+            if (!changeProductVariantId || changeProductVariantId !== pending.variantId) {
+                setChangeProductVariantId(pending.variantId);
+            }
+            // Clear pending initialization after all values are set
+            if (changeProductSize === pending.size && changeProductVariantId === pending.variantId) {
+                pendingInitializationRef.current = null;
+                changeProductInitializedRef.current = null;
+            }
+        }
+    }, [
+        changeProductConfigurationOptions.length,
+        changeProductMetalId,
+        changeProductPurityId,
+        changeProductToneId,
+        changeProductSize,
+        changeProductVariantId,
+        changeProductAvailablePurities,
+        changeProductAvailableTones,
+    ]);
+
     // Auto-match variant for Change Product modal
     useEffect(() => {
-        // Reset dependent fields when parent changes (like Laravel)
+        // Skip if we're still initializing from modal open
+        if (!changeProductModalOpen) return;
+        
+        // Skip if we have pending initialization
+        if (pendingInitializationRef.current !== null) return;
+        
+        // Reset dependent fields when parent changes (like Laravel) - only if user is changing, not initializing
         if (!changeProductMetalId) {
-            setChangeProductPurityId('');
-            setChangeProductToneId('');
-            setChangeProductSize('');
-            setChangeProductVariantId('');
+            if (changeProductPurityId || changeProductToneId || changeProductSize) {
+                setChangeProductPurityId('');
+                setChangeProductToneId('');
+                setChangeProductSize('');
+                setChangeProductVariantId('');
+            }
             return;
         }
         if (!changeProductPurityId) {
-            setChangeProductToneId('');
-            setChangeProductSize('');
-            setChangeProductVariantId('');
+            if (changeProductToneId || changeProductSize) {
+                setChangeProductToneId('');
+                setChangeProductSize('');
+                setChangeProductVariantId('');
+            }
             return;
         }
         if (!changeProductToneId) {
-            setChangeProductSize('');
-            setChangeProductVariantId('');
+            if (changeProductSize) {
+                setChangeProductSize('');
+                setChangeProductVariantId('');
+            }
             return;
         }
         if (changeProductAvailableSizes.length > 0 && !changeProductSize) {
@@ -578,7 +708,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         } else {
             setChangeProductVariantId('');
         }
-    }, [changeProductMetalId, changeProductPurityId, changeProductToneId, changeProductSize, changeProductAvailableSizes.length, changeProductConfigurationOptions]);
+    }, [changeProductMetalId, changeProductPurityId, changeProductToneId, changeProductSize, changeProductAvailableSizes.length, changeProductConfigurationOptions, changeProductModalOpen]);
 
     // Auto-match variant for Add Item modal
     useEffect(() => {
@@ -611,42 +741,113 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         }
     }, [addItemMetalId, addItemPurityId, addItemToneId, addItemSize, addItemAvailableSizes.length, addItemConfigurationOptions]);
 
-    // Open Change Product Modal
+    // Open Change Product Modal (matching Laravel implementation)
     const openChangeModal = (item: RelatedQuotation) => {
         setChangeProductModalOpen(item);
         setIsManualSearch(false);
         setProductSearch(item.product.name);
         setChangeProductQuantity(item.quantity);
         setChangeProductNotes('');
-        setChangeProductVariantId(item.variant?.id ? Number(item.variant.id) : '');
+        setSearchResults([]);
         
-        // Initialize customization from current variant
-        if (item.variant) {
-            // We need to fetch product with variants to get full customization data
-            fetchProductWithVariants(item.product.id, (product) => {
-                setSelectedProduct(product);
-                // Try to find and set current customization
-                const currentVariant = product.variants.find(v => v.id === Number(item.variant?.id));
-                if (currentVariant?.metals && currentVariant.metals.length > 0) {
-                    const firstMetal = currentVariant.metals[0];
-                    setChangeProductMetalId(firstMetal.metal_id);
-                    setChangeProductPurityId(firstMetal.metal_purity_id ?? '');
-                    setChangeProductToneId(firstMetal.metal_tone_id ?? '');
-                    if (currentVariant.size) {
-                        setChangeProductSize(currentVariant.size.value || currentVariant.size.name);
-                    } else {
-                        setChangeProductSize('');
-                    }
-                }
+        // Use product.variants from quotation data if available (like Laravel)
+        if (item.product.variants && item.product.variants.length > 0) {
+            // Map variants to match SelectedProduct type
+            const mappedVariants = item.product.variants.map((v: any) => ({
+                id: Number(v.id),
+                label: v.label,
+                metadata: v.metadata || {},
+                size_id: v.size_id ? Number(v.size_id) : null,
+                size: v.size ? {
+                    id: Number(v.size.id),
+                    name: v.size.name,
+                    value: v.size.value || v.size.name,
+                } : null,
+                metals: (v.metals || []).map((m: any) => ({
+                    id: Number(m.id),
+                    metal_id: Number(m.metal_id),
+                    metal_purity_id: m.metal_purity?.id ? Number(m.metal_purity.id) : null,
+                    metal_tone_id: m.metal_tone?.id ? Number(m.metal_tone.id) : null,
+                    metal: m.metal ? { id: Number(m.metal.id), name: m.metal.name } : null,
+                    metal_purity: m.metal_purity ? { id: Number(m.metal_purity.id), name: m.metal_purity.name } : null,
+                    metal_tone: m.metal_tone ? { id: Number(m.metal_tone.id), name: m.metal_tone.name } : null,
+                })),
+            }));
+            
+            setSelectedProduct({
+                id: item.product.id,
+                name: item.product.name,
+                sku: item.product.sku,
+                variants: mappedVariants,
             });
-        } else {
-            fetchProductWithVariants(item.product.id, setSelectedProduct);
+            
+            // Reset values first
             setChangeProductMetalId('');
             setChangeProductPurityId('');
             setChangeProductToneId('');
             setChangeProductSize('');
+            setChangeProductVariantId('');
+            
+            // Store target values in ref for useEffect to pick up (matching Laravel's direct setting approach)
+            if (item.variant && mappedVariants.length > 0) {
+                const selectedVariant = mappedVariants.find(v => v.id === Number(item.variant?.id));
+                if (selectedVariant?.metals && selectedVariant.metals.length > 0) {
+                    const firstMetal = selectedVariant.metals[0];
+                    const quotationId = typeof item.id === 'string' ? Number(item.id) : item.id;
+                    changeProductInitializedRef.current = quotationId;
+                    
+                    // Store target values - useEffect will set them when configuration options are ready
+                    pendingInitializationRef.current = {
+                        metalId: firstMetal.metal_id,
+                        purityId: firstMetal.metal_purity_id,
+                        toneId: firstMetal.metal_tone_id,
+                        size: selectedVariant.size ? (selectedVariant.size.value || selectedVariant.size.name) : '',
+                        variantId: selectedVariant.id,
+                    };
+                } else {
+                    pendingInitializationRef.current = null;
+                    changeProductInitializedRef.current = null;
+                }
+            } else {
+                pendingInitializationRef.current = null;
+                changeProductInitializedRef.current = null;
+            }
+        } else {
+            // Fallback: Fetch product with variants if not in quotation data
+            // Reset values
+            setChangeProductMetalId('');
+            setChangeProductPurityId('');
+            setChangeProductToneId('');
+            setChangeProductSize('');
+            setChangeProductVariantId('');
+            
+            fetchProductWithVariants(item.product.id, (product) => {
+                setSelectedProduct(product);
+                if (item.variant?.id) {
+                    const currentVariant = product.variants.find(v => v.id === Number(item.variant?.id));
+                    if (currentVariant?.metals && currentVariant.metals.length > 0) {
+                        const firstMetal = currentVariant.metals[0];
+                        const quotationId = typeof item.id === 'string' ? Number(item.id) : item.id;
+                        changeProductInitializedRef.current = quotationId;
+                        
+                        // Store target values - useEffect will set them when configuration options are ready
+                        pendingInitializationRef.current = {
+                            metalId: firstMetal.metal_id,
+                            purityId: firstMetal.metal_purity_id,
+                            toneId: firstMetal.metal_tone_id,
+                            size: currentVariant.size ? (currentVariant.size.value || currentVariant.size.name) : '',
+                            variantId: currentVariant.id,
+                        };
+                    } else {
+                        pendingInitializationRef.current = null;
+                        changeProductInitializedRef.current = null;
+                    }
+                } else {
+                    pendingInitializationRef.current = null;
+                    changeProductInitializedRef.current = null;
+                }
+            });
         }
-        setSearchResults([]);
     };
 
     const closeChangeModal = () => {
@@ -661,6 +862,8 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         setChangeProductSize('');
         setChangeProductQuantity(1);
         setChangeProductNotes('');
+        changeProductInitializedRef.current = null; // Reset initialization flag
+        pendingInitializationRef.current = null; // Clear pending initialization
     };
 
     // Fetch product with variants
@@ -862,9 +1065,46 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                         <div className="grid gap-4 sm:gap-6 md:gap-8 md:grid-cols-3">
                             <div>
                                 <h3 className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">From</h3>
-                                <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Elvee</p>
-                                <p className="mt-1 text-xs sm:text-sm text-slate-600">123 Business Street</p>
-                                <p className="text-xs sm:text-sm text-slate-600">Mumbai, Maharashtra 400001</p>
+                                {companySettings ? (
+                                    <>
+                                        <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">
+                                            {companySettings.company_name || 'Elvee'}
+                                        </p>
+                                        {companySettings.company_address && (
+                                            <p className="mt-1 text-xs sm:text-sm text-slate-600">
+                                                {companySettings.company_address}
+                                            </p>
+                                        )}
+                                        {(companySettings.company_city || companySettings.company_state || companySettings.company_pincode) && (
+                                            <p className="text-xs sm:text-sm text-slate-600">
+                                                {[companySettings.company_city, companySettings.company_state, companySettings.company_pincode]
+                                                    .filter(Boolean)
+                                                    .join(', ')}
+                                            </p>
+                                        )}
+                                        {companySettings.company_phone && (
+                                            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600">
+                                                Phone: {companySettings.company_phone}
+                                            </p>
+                                        )}
+                                        {companySettings.company_email && (
+                                            <p className="text-xs sm:text-sm text-slate-600">
+                                                Email: {companySettings.company_email}
+                                            </p>
+                                        )}
+                                        {companySettings.company_gstin && (
+                                            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600">
+                                                GSTIN: {companySettings.company_gstin}
+                                            </p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Elvee</p>
+                                        <p className="mt-1 text-xs sm:text-sm text-slate-600">123 Business Street</p>
+                                        <p className="text-xs sm:text-sm text-slate-600">Mumbai, Maharashtra 400001</p>
+                                    </>
+                                )}
                             </div>
                             <div>
                                 <h3 className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Bill To</h3>
@@ -1459,15 +1699,15 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                         <div>
                                             <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Metal</label>
                                             <select
-                                                value={changeProductMetalId}
+                                                value={changeProductMetalId === '' ? '' : String(changeProductMetalId)}
                                                 onChange={(e) => {
-                                                    setChangeProductMetalId(Number(e.target.value) || '');
+                                                    setChangeProductMetalId(e.target.value === '' ? '' : Number(e.target.value));
                                                 }}
                                                 className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                             >
                                                 <option value="">Select Metal</option>
                                                 {changeProductAvailableMetals.map(([id, name]) => (
-                                                    <option key={id} value={id}>
+                                                    <option key={id} value={String(id)}>
                                                         {name}
                                                     </option>
                                                 ))}
@@ -1478,15 +1718,15 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                             <div>
                                                 <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Purity</label>
                                                 <select
-                                                    value={changeProductPurityId}
+                                                    value={changeProductPurityId === '' ? '' : String(changeProductPurityId)}
                                                     onChange={(e) => {
-                                                        setChangeProductPurityId(Number(e.target.value) || '');
+                                                        setChangeProductPurityId(e.target.value === '' ? '' : Number(e.target.value));
                                                     }}
                                                     className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                                 >
                                                     <option value="">Select Purity</option>
                                                     {changeProductAvailablePurities.map(([id, name]) => (
-                                                        <option key={id} value={id}>
+                                                        <option key={id} value={String(id)}>
                                                             {name}
                                                         </option>
                                                     ))}
@@ -1498,15 +1738,15 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                             <div>
                                                 <label className="mb-1.5 sm:mb-2 block text-xs sm:text-sm font-semibold text-slate-700">Tone</label>
                                                 <select
-                                                    value={changeProductToneId}
+                                                    value={changeProductToneId === '' ? '' : String(changeProductToneId)}
                                                     onChange={(e) => {
-                                                        setChangeProductToneId(Number(e.target.value) || '');
+                                                        setChangeProductToneId(e.target.value === '' ? '' : Number(e.target.value));
                                                     }}
                                                     className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
                                                 >
                                                     <option value="">Select Tone</option>
                                                     {changeProductAvailableTones.map(([id, name]) => (
-                                                        <option key={id} value={id}>
+                                                        <option key={id} value={String(id)}>
                                                             {name}
                                                         </option>
                                                     ))}

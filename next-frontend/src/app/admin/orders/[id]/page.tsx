@@ -147,11 +147,26 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
     const [processing, setProcessing] = useState(false);
     const [invoiceExists, setInvoiceExists] = useState<{ id: string; invoice_number: string; status: string } | null>(null);
     const [generatingInvoice, setGeneratingInvoice] = useState(false);
+    const [companySettings, setCompanySettings] = useState<any>(null);
 
     useEffect(() => {
         loadOrder();
         checkInvoiceExists();
     }, [resolvedParams.id]);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await adminService.getGeneralSettings();
+                if (response?.data) {
+                    setCompanySettings(response.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch company settings:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     const checkInvoiceExists = async () => {
         if (!resolvedParams.id || isNaN(Number(resolvedParams.id))) {
@@ -370,12 +385,49 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
                             {/* Company Details */}
                             <div>
                                 <h3 className="text-[10px] sm:text-xs font-semibold text-slate-400">From</h3>
-                                <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Elvee</p>
-                                <p className="mt-1 text-xs sm:text-sm text-slate-600">123 Business Street</p>
-                                <p className="text-xs sm:text-sm text-slate-600">Mumbai, Maharashtra 400001</p>
-                                <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600">Phone: +91 98765 43210</p>
-                                <p className="text-xs sm:text-sm text-slate-600">Email: info@elvee.com</p>
-                                <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600">GSTIN: 27AAAAA0000A1Z5</p>
+                                {companySettings ? (
+                                    <>
+                                        <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">
+                                            {companySettings.company_name || 'Elvee'}
+                                        </p>
+                                        {companySettings.company_address && (
+                                            <p className="mt-1 text-xs sm:text-sm text-slate-600">
+                                                {companySettings.company_address}
+                                            </p>
+                                        )}
+                                        {(companySettings.company_city || companySettings.company_state || companySettings.company_pincode) && (
+                                            <p className="text-xs sm:text-sm text-slate-600">
+                                                {[companySettings.company_city, companySettings.company_state, companySettings.company_pincode]
+                                                    .filter(Boolean)
+                                                    .join(', ')}
+                                            </p>
+                                        )}
+                                        {companySettings.company_phone && (
+                                            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600">
+                                                Phone: {companySettings.company_phone}
+                                            </p>
+                                        )}
+                                        {companySettings.company_email && (
+                                            <p className="text-xs sm:text-sm text-slate-600">
+                                                Email: {companySettings.company_email}
+                                            </p>
+                                        )}
+                                        {companySettings.company_gstin && (
+                                            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600">
+                                                GSTIN: {companySettings.company_gstin}
+                                            </p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">Elvee</p>
+                                        <p className="mt-1 text-xs sm:text-sm text-slate-600">123 Business Street</p>
+                                        <p className="text-xs sm:text-sm text-slate-600">Mumbai, Maharashtra 400001</p>
+                                        <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600">Phone: +91 98765 43210</p>
+                                        <p className="text-xs sm:text-sm text-slate-600">Email: info@elvee.com</p>
+                                        <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-600">GSTIN: 27AAAAA0000A1Z5</p>
+                                    </>
+                                )}
                             </div>
                             {/* Bill To */}
                             <div>
