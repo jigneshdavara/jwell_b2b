@@ -639,11 +639,29 @@ export class QuotationsService {
         });
     }
 
-    async getStatistics(userId?: number) {
+    async getStatistics(
+        userId?: number,
+        dateFilter?: { startDate?: string; endDate?: string },
+    ) {
         // Build where clause
         const where: any = {};
         if (userId) {
             where.user_id = BigInt(userId);
+        }
+
+        // Add date filter if provided
+        if (dateFilter?.startDate || dateFilter?.endDate) {
+            where.created_at = {};
+            if (dateFilter.startDate && dateFilter.startDate.trim() !== '') {
+                // Start of day - parse date string and set to start of day in local timezone
+                const startDate = new Date(dateFilter.startDate + 'T00:00:00');
+                where.created_at.gte = startDate;
+            }
+            if (dateFilter.endDate && dateFilter.endDate.trim() !== '') {
+                // End of day - parse date string and set to end of day in local timezone
+                const endDate = new Date(dateFilter.endDate + 'T23:59:59.999');
+                where.created_at.lte = endDate;
+            }
         }
 
         // Get all quotations with basic info (get unique groups)
@@ -782,8 +800,11 @@ export class QuotationsService {
             .join(' ');
     }
 
-    async exportStatisticsPDF(userId?: number): Promise<Buffer> {
-        const statistics = await this.getStatistics(userId);
+    async exportStatisticsPDF(
+        userId?: number,
+        dateFilter?: { startDate?: string; endDate?: string },
+    ): Promise<Buffer> {
+        const statistics = await this.getStatistics(userId, dateFilter);
         return this.generateStatisticsPDF(statistics);
     }
 

@@ -38,17 +38,44 @@ export class AdminQuotationsController {
     async getStatistics(
         @Query('user_id', new ParseIntPipe({ optional: true }))
         userId?: number,
+        @Query('start_date')
+        startDate?: string,
+        @Query('end_date')
+        endDate?: string,
     ) {
-        return this.quotationsService.getStatistics(userId);
+        // Filter out empty strings
+        const dateFilter: { startDate?: string; endDate?: string } = {};
+        if (startDate && startDate.trim() !== '') {
+            dateFilter.startDate = startDate;
+        }
+        if (endDate && endDate.trim() !== '') {
+            dateFilter.endDate = endDate;
+        }
+        return this.quotationsService.getStatistics(userId, Object.keys(dateFilter).length > 0 ? dateFilter : undefined);
     }
 
     @Get('report/export/pdf')
     async exportPdf(
         @Query('user_id', new ParseIntPipe({ optional: true }))
         userId: number | undefined,
+        @Query('start_date')
+        startDate?: string,
+        @Query('end_date')
+        endDate?: string,
         @Res() res: Response,
     ) {
-        const pdfBuffer = await this.quotationsService.exportStatisticsPDF(userId);
+        // Filter out empty strings
+        const dateFilter: { startDate?: string; endDate?: string } = {};
+        if (startDate && startDate.trim() !== '') {
+            dateFilter.startDate = startDate;
+        }
+        if (endDate && endDate.trim() !== '') {
+            dateFilter.endDate = endDate;
+        }
+        const pdfBuffer = await this.quotationsService.exportStatisticsPDF(
+            userId,
+            Object.keys(dateFilter).length > 0 ? dateFilter : undefined,
+        );
         const dateStr = new Date().toISOString().split('T')[0];
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(
