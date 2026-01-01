@@ -2,7 +2,7 @@
 
 import { Head } from '@/components/Head';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { adminService } from '@/services/adminService';
 import * as XLSX from 'xlsx';
 import {
@@ -70,14 +70,11 @@ export default function AdminQuotationsReport() {
   const [selectedUserId, setSelectedUserId] = useState<number | undefined>(undefined);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  useEffect(() => {
-    loadStatistics();
-  }, [selectedUserId]);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  // Local state for date inputs to prevent date picker from closing during typing
+  const [localStartDate, setLocalStartDate] = useState<string>('');
+  const [localEndDate, setLocalEndDate] = useState<string>('');
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -96,16 +93,49 @@ export default function AdminQuotationsReport() {
     }
   };
 
-  const loadStatistics = async () => {
+  const loadStatistics = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await adminService.getQuotationStatistics(selectedUserId);
+      const dateFilter = {
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      };
+      const response = await adminService.getQuotationStatistics(selectedUserId, dateFilter);
       setStatistics(response.data);
     } catch (error: any) {
       console.error('Failed to load quotation statistics:', error);
     } finally {
       setLoading(false);
     }
+  }, [selectedUserId, startDate, endDate]);
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  // Initialize local date state from filter state on mount (only once)
+  useEffect(() => {
+    setLocalStartDate(startDate);
+    setLocalEndDate(endDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load statistics when filter state changes
+  useEffect(() => {
+    loadStatistics();
+  }, [loadStatistics]);
+
+  // Apply date filter when user clicks "Apply Filter" button
+  const handleApplyDateFilter = () => {
+    setStartDate(localStartDate);
+    setEndDate(localEndDate);
+  };
+
+  const handleClearDateFilter = () => {
+    setLocalStartDate('');
+    setLocalEndDate('');
+    setStartDate('');
+    setEndDate('');
   };
 
   const formatDate = (dateString: string) => {
@@ -229,7 +259,11 @@ export default function AdminQuotationsReport() {
     if (!statistics) return;
 
     try {
-      const response = await adminService.exportQuotationReportPDF(selectedUserId);
+      const dateFilter = {
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      };
+      const response = await adminService.exportQuotationReportPDF(selectedUserId, dateFilter);
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
@@ -440,24 +474,67 @@ export default function AdminQuotationsReport() {
                 </button>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <label htmlFor="user-filter" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap">
-                Filter by User:
-              </label>
-              <select
-                id="user-filter"
-                value={selectedUserId || ''}
-                onChange={(e) => setSelectedUserId(e.target.value ? Number(e.target.value) : undefined)}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm text-slate-900 bg-white focus:border-slate-300 focus:ring-0 outline-none transition min-w-[180px] sm:min-w-[200px]"
-                disabled={loadingUsers}
-              >
-                <option value="">All Users</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name} ({user.email})
-                  </option>
-                ))}
-              </select>
+            <div className="flex flex-col gap-3 sm:gap-4">
+              {/* User Filter */}
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <label htmlFor="user-filter" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap min-w-[100px]">
+                  Filter by User:
+                </label>
+                <select
+                  id="user-filter"
+                  value={selectedUserId || ''}
+                  onChange={(e) => setSelectedUserId(e.target.value ? Number(e.target.value) : undefined)}
+                  className="flex-1 sm:flex-initial rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm text-slate-900 bg-white focus:border-slate-300 focus:ring-0 outline-none transition min-w-0 sm:min-w-[200px]"
+                  disabled={loadingUsers}
+                >
+                  <option value="">All Users</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name} ({user.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Date Filter */}
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
+                <label htmlFor="start-date" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap min-w-[80px] sm:min-w-[100px]">
+                  From Date:
+                </label>
+                <input
+                  id="start-date"
+                  type="date"
+                  value={localStartDate}
+                  onChange={(e) => setLocalStartDate(e.target.value)}
+                  className="flex-1 sm:flex-initial rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm text-slate-900 bg-white focus:border-elvee-blue focus:ring-2 focus:ring-elvee-blue/20 outline-none transition min-w-0 sm:min-w-[140px]"
+                />
+                <label htmlFor="end-date" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap min-w-[80px] sm:min-w-[100px] mt-2 sm:mt-0">
+                  To Date:
+                </label>
+                <input
+                  id="end-date"
+                  type="date"
+                  value={localEndDate}
+                  onChange={(e) => setLocalEndDate(e.target.value)}
+                  min={localStartDate || undefined}
+                  className="flex-1 sm:flex-initial rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm text-slate-900 bg-white focus:border-elvee-blue focus:ring-2 focus:ring-elvee-blue/20 outline-none transition min-w-0 sm:min-w-[140px]"
+                />
+                <div className="flex gap-2 mt-2 sm:mt-0">
+                  <button
+                    onClick={handleApplyDateFilter}
+                    className="flex-1 sm:flex-initial rounded-lg bg-elvee-blue px-4 py-1.5 text-xs sm:text-sm font-medium text-white hover:bg-navy transition whitespace-nowrap shadow-sm"
+                  >
+                    Apply Filter
+                  </button>
+                  {(localStartDate || localEndDate || startDate || endDate) && (
+                    <button
+                      onClick={handleClearDateFilter}
+                      className="flex-1 sm:flex-initial rounded-lg border border-slate-300 px-4 py-1.5 text-xs sm:text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 transition whitespace-nowrap"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

@@ -487,14 +487,20 @@ export const adminService = {
     if (filters?.customer_email) params.customer_email = filters.customer_email;
     return await apiClient.get('/admin/quotations', { params });
   },
-  async getQuotationStatistics(userId?: number) {
-    return await apiClient.get('/admin/quotations/report/statistics', {
-      params: userId ? { user_id: userId } : {},
-    });
+  async getQuotationStatistics(userId?: number, dateFilter?: { startDate?: string; endDate?: string }) {
+    const params: any = {};
+    if (userId) params.user_id = userId;
+    if (dateFilter?.startDate) params.start_date = dateFilter.startDate;
+    if (dateFilter?.endDate) params.end_date = dateFilter.endDate;
+    return await apiClient.get('/admin/quotations/report/statistics', { params });
   },
-  async exportQuotationReportPDF(userId?: number) {
+  async exportQuotationReportPDF(userId?: number, dateFilter?: { startDate?: string; endDate?: string }) {
+    const params: any = {};
+    if (userId) params.user_id = userId;
+    if (dateFilter?.startDate) params.start_date = dateFilter.startDate;
+    if (dateFilter?.endDate) params.end_date = dateFilter.endDate;
     return await apiClient.get('/admin/quotations/report/export/pdf', {
-      params: userId ? { user_id: userId } : {},
+      params,
       responseType: 'blob',
     });
   },

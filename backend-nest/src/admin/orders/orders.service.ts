@@ -325,16 +325,14 @@ export class OrdersService {
         // Add date filter if provided
         if (dateFilter?.startDate || dateFilter?.endDate) {
             where.created_at = {};
-            if (dateFilter.startDate) {
-                // Start of day
-                const startDate = new Date(dateFilter.startDate);
-                startDate.setHours(0, 0, 0, 0);
+            if (dateFilter.startDate && dateFilter.startDate.trim() !== '') {
+                // Start of day - parse date string and set to start of day in local timezone
+                const startDate = new Date(dateFilter.startDate + 'T00:00:00');
                 where.created_at.gte = startDate;
             }
-            if (dateFilter.endDate) {
-                // End of day
-                const endDate = new Date(dateFilter.endDate);
-                endDate.setHours(23, 59, 59, 999);
+            if (dateFilter.endDate && dateFilter.endDate.trim() !== '') {
+                // End of day - parse date string and set to end of day in local timezone
+                const endDate = new Date(dateFilter.endDate + 'T23:59:59.999');
                 where.created_at.lte = endDate;
             }
         }
