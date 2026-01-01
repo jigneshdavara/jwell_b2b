@@ -32,6 +32,7 @@ type StatisticsData = {
   by_status: Array<{
     status: string;
     status_label: string;
+    color: string;
     count: number;
     revenue: number;
   }>;
@@ -48,38 +49,9 @@ type User = {
   email: string;
 };
 
-// Status-based color mapping for charts - matches status colors used in orders list
-const getStatusColor = (status: string): string => {
-  const statusColorMap: Record<string, string> = {
-    // Pending states - Amber
-    pending: '#F59E0B',
-    pending_payment: '#F59E0B',
-    
-    // Failed/Cancelled - Rose/Red
-    payment_failed: '#EF4444',
-    cancelled: '#EF4444',
-    
-    // Production states - Indigo
-    awaiting_materials: '#6366F1',
-    under_production: '#6366F1',
-    in_production: '#6366F1',
-    
-    // Approved/Success states - Emerald Green
-    approved: '#10B981',
-    delivered: '#10B981',
-    paid: '#10B981',
-    
-    // Quality check - Blue
-    quality_check: '#3B82F6',
-    
-    // Ready to dispatch - Purple
-    ready_to_dispatch: '#8B5CF6',
-    
-    // Dispatched - Elvee Blue (brand color)
-    dispatched: '#0E244D',
-  };
-  
-  return statusColorMap[status.toLowerCase()] || '#6B7280'; // Default gray for unknown statuses
+// Status color function - uses colors from database (order_statuses table)
+const getStatusColor = (entry: { status: string; color?: string }): string => {
+  return entry.color || '#6B7280'; // Default gray if color not provided
 };
 
 export default function AdminOrdersReport() {
@@ -516,7 +488,7 @@ export default function AdminOrdersReport() {
                       nameKey="status_label"
                     >
                       {statistics.by_status.map((entry) => (
-                        <Cell key={`cell-${entry.status}`} fill={getStatusColor(entry.status)} />
+                        <Cell key={`cell-${entry.status}`} fill={getStatusColor(entry)} />
                       ))}
                     </Pie>
                     <Tooltip />
@@ -555,7 +527,7 @@ export default function AdminOrdersReport() {
                     <Legend />
                     <Bar dataKey="revenue" name="Revenue" radius={[4, 4, 0, 0]}>
                       {statistics.by_status.map((entry) => (
-                        <Cell key={`cell-${entry.status}`} fill={getStatusColor(entry.status)} />
+                        <Cell key={`cell-${entry.status}`} fill={getStatusColor(entry)} />
                       ))}
                     </Bar>
                   </BarChart>

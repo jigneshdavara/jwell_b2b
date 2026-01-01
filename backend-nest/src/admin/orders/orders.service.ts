@@ -357,39 +357,75 @@ export class OrdersService {
         const averageOrderValue =
             totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
+        // Fetch all order statuses with colors from database
+        const orderStatuses = await this.prisma.order_statuses.findMany({
+            where: {
+                is_active: true,
+            },
+            select: {
+                code: true,
+                color: true,
+            },
+        });
+
+        // Create a map of status code to color
+        const statusColorMap = new Map<string, string>();
+        orderStatuses.forEach((status) => {
+            statusColorMap.set(status.code, status.color);
+        });
+
         // Group by status
-        const ordersByStatus = allOrders.reduce((acc, order) => {
-            const status = order.status;
-            if (!acc[status]) {
-                acc[status] = {
-                    status,
-                    status_label: this.formatStatusLabel(status),
-                    count: 0,
-                    revenue: 0,
-                };
-            }
-            acc[status].count += 1;
-            acc[status].revenue += Number(order.total_amount);
-            return acc;
-        }, {} as Record<string, { status: string; status_label: string; count: number; revenue: number }>);
+        const ordersByStatus = allOrders.reduce(
+            (acc, order) => {
+                const status = order.status;
+                if (!acc[status]) {
+                    acc[status] = {
+                        status,
+                        status_label: this.formatStatusLabel(status),
+                        color: statusColorMap.get(status) || '#6B7280', // Default gray if not found
+                        count: 0,
+                        revenue: 0,
+                    };
+                }
+                acc[status].count += 1;
+                acc[status].revenue += Number(order.total_amount);
+                return acc;
+            },
+            {} as Record<
+                string,
+                {
+                    status: string;
+                    status_label: string;
+                    color: string;
+                    count: number;
+                    revenue: number;
+                }
+            >,
+        );
 
         // Group by date (daily)
-        const ordersByDate = allOrders.reduce((acc, order) => {
-            if (!order.created_at) return acc;
-            const date = new Date(order.created_at)
-                .toISOString()
-                .split('T')[0];
-            if (!acc[date]) {
-                acc[date] = {
-                    date,
-                    count: 0,
-                    revenue: 0,
-                };
-            }
-            acc[date].count += 1;
-            acc[date].revenue += Number(order.total_amount);
-            return acc;
-        }, {} as Record<string, { date: string; count: number; revenue: number }>);
+        const ordersByDate = allOrders.reduce(
+            (acc, order) => {
+                if (!order.created_at) return acc;
+                const date = new Date(order.created_at)
+                    .toISOString()
+                    .split('T')[0];
+                if (!acc[date]) {
+                    acc[date] = {
+                        date,
+                        count: 0,
+                        revenue: 0,
+                    };
+                }
+                acc[date].count += 1;
+                acc[date].revenue += Number(order.total_amount);
+                return acc;
+            },
+            {} as Record<
+                string,
+                { date: string; count: number; revenue: number }
+            >,
+        );
 
         // Convert to arrays and sort
         const statusData = Object.values(ordersByStatus).sort((a, b) =>
@@ -437,9 +473,7 @@ export class OrdersService {
         return this.generateStatisticsPDF(statistics);
     }
 
-    private async generateStatisticsPDF(
-        statistics: any,
-    ): Promise<Buffer> {
+    private async generateStatisticsPDF(statistics: any): Promise<Buffer> {
         const PDFDocument = require('pdfkit');
         return new Promise((resolve, reject) => {
             try {
@@ -532,8 +566,14 @@ export class OrdersService {
                         .fontSize(11)
                         .font('Helvetica-Bold')
                         .text('Status', 60, y + 8, { width: 200 })
-                        .text('Count', 270, y + 8, { width: 100, align: 'right' })
-                        .text('Revenue', 380, y + 8, { width: 160, align: 'right' });
+                        .text('Count', 270, y + 8, {
+                            width: 100,
+                            align: 'right',
+                        })
+                        .text('Revenue', 380, y + 8, {
+                            width: 160,
+                            align: 'right',
+                        });
 
                     y += 30;
 
@@ -565,7 +605,9 @@ export class OrdersService {
                                     align: 'right',
                                 });
                             y += 30;
-                            doc.fontSize(10).font('Helvetica').fillColor(darkGray);
+                            doc.fontSize(10)
+                                .font('Helvetica')
+                                .fillColor(darkGray);
                         }
 
                         doc.text(item.status_label, 60, y, { width: 200 })
@@ -612,8 +654,14 @@ export class OrdersService {
                         .fontSize(11)
                         .font('Helvetica-Bold')
                         .text('Date', 60, y + 8, { width: 150 })
-                        .text('Count', 220, y + 8, { width: 100, align: 'right' })
-                        .text('Revenue', 330, y + 8, { width: 210, align: 'right' });
+                        .text('Count', 220, y + 8, {
+                            width: 100,
+                            align: 'right',
+                        })
+                        .text('Revenue', 330, y + 8, {
+                            width: 210,
+                            align: 'right',
+                        });
 
                     y += 30;
 
@@ -645,7 +693,9 @@ export class OrdersService {
                                     align: 'right',
                                 });
                             y += 30;
-                            doc.fontSize(10).font('Helvetica').fillColor(darkGray);
+                            doc.fontSize(10)
+                                .font('Helvetica')
+                                .fillColor(darkGray);
                         }
 
                         const dateStr = new Date(item.date).toLocaleDateString(
@@ -688,7 +738,11 @@ export class OrdersService {
                 y += 25;
 
                 doc.fontSize(10).font('Helvetica').fillColor(darkGray);
-                doc.text(`Total Orders: ${statistics.summary.total_orders}`, 50, y);
+                doc.text(
+                    `Total Orders: ${statistics.summary.total_orders}`,
+                    50,
+                    y,
+                );
                 y += 15;
                 doc.text(
                     `Total Revenue: ₹${parseFloat(statistics.summary.total_revenue).toLocaleString('en-IN')}`,
