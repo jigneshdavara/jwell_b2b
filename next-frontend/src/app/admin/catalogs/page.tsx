@@ -55,7 +55,16 @@ export default function AdminCatalogsIndex() {
     const [assignSelectedIds, setAssignSelectedIds] = useState<number[]>([]);
     const [assignSearchTerm, setAssignSearchTerm] = useState('');
     const [assignLoading, setAssignLoading] = useState(false);
+    const [assignPaginationLoading, setAssignPaginationLoading] = useState(false);
     const [assignProcessing, setAssignProcessing] = useState(false);
+    const [assignCurrentPage, setAssignCurrentPage] = useState(1);
+    const [assignPerPage, setAssignPerPage] = useState(5);
+    const [assignProductsMeta, setAssignProductsMeta] = useState<PaginationMeta>({
+        current_page: 1,
+        last_page: 1,
+        per_page: 5,
+        total: 0,
+    });
 
     useEffect(() => {
         loadCatalogs();
@@ -209,13 +218,51 @@ export default function AdminCatalogsIndex() {
     const openAssignModal = async (catalog: CatalogRow) => {
         setAssigningCatalog(catalog);
         setAssignSearchTerm('');
+        setAssignCurrentPage(1);
         setAssignLoading(true);
         setAssignModalOpen(true);
         try {
-            const response = await adminService.getAssignProducts(catalog.id);
+            const response = await adminService.getAssignProducts(catalog.id, 1, assignPerPage);
             const data = response.data;
             setAssignProducts(data.products || []);
             setAssignSelectedIds(data.selectedProductIds || []);
+            
+            // Handle pagination metadata
+            if (data.meta) {
+                const currentPage = data.meta.current_page || data.meta.page || 1;
+                const lastPage = data.meta.last_page || data.meta.lastPage || 1;
+                const perPage = data.meta.per_page || data.meta.perPage || assignPerPage;
+                const total = data.meta.total || 0;
+                
+                // Calculate from and to if not provided
+                const from = data.meta.from ?? (total > 0 ? 1 : 0);
+                const to = data.meta.to ?? Math.min(perPage, total);
+                
+                setAssignProductsMeta({
+                    current_page: currentPage,
+                    last_page: lastPage,
+                    per_page: perPage,
+                    total: total,
+                    from: from,
+                    to: to,
+                    links: data.meta.links || generatePaginationLinks(currentPage, lastPage),
+                });
+            } else {
+                // Fallback if no meta provided
+                const total = data.products?.length || 0;
+                const from = total > 0 ? 1 : 0;
+                const to = Math.min(assignPerPage, total);
+                
+                setAssignProductsMeta({
+                    current_page: 1,
+                    last_page: total > 0 ? Math.ceil(total / assignPerPage) : 1,
+                    per_page: assignPerPage,
+                    total: total,
+                    from: from,
+                    to: to,
+                    links: generatePaginationLinks(1, total > 0 ? Math.ceil(total / assignPerPage) : 1),
+                });
+            }
         } catch (error: any) {
             toastError(error.response?.data?.message || 'Failed to load products. Please try again.');
             setAssignModalOpen(false);
@@ -230,19 +277,19 @@ export default function AdminCatalogsIndex() {
         setAssignProducts([]);
         setAssignSelectedIds([]);
         setAssignSearchTerm('');
+        setAssignCurrentPage(1);
+        setAssignLoading(false);
+        setAssignPaginationLoading(false);
+        setAssignProductsMeta({
+            current_page: 1,
+            last_page: 1,
+            per_page: 5,
+            total: 0,
+        });
     };
 
-    const filteredAssignProducts = useMemo(() => {
-        if (!assignSearchTerm.trim()) {
-            return assignProducts;
-        }
-        const search = assignSearchTerm.toLowerCase();
-        return assignProducts.filter(
-            (product) =>
-                product.name.toLowerCase().includes(search) ||
-                product.sku.toLowerCase().includes(search)
-        );
-    }, [assignProducts, assignSearchTerm]);
+    // Use assignProducts directly (no client-side filtering when paginated)
+    const filteredAssignProducts = assignProducts;
 
     const visibleSelectedCount = useMemo(() => {
         return filteredAssignProducts.filter((p) => assignSelectedIds.includes(p.id)).length;
@@ -279,14 +326,73 @@ export default function AdminCatalogsIndex() {
         setAssignSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
     };
 
-    const handleAssignSearch = async () => {
+    // Load assign products with pagination
+    const loadAssignProducts = async (page: number, search?: string) => {
         if (!assigningCatalog) return;
-        setAssignLoading(true);
+        
+        // Only show full loading on initial load, use subtle loading for pagination
+        const isInitialLoad = page === 1 && !search && assignProducts.length === 0;
+        const isPagination = !isInitialLoad && assignProducts.length > 0;
+        
+        if (isInitialLoad) {
+            setAssignLoading(true);
+        } else if (isPagination) {
+            setAssignPaginationLoading(true);
+        }
+        
         try {
-            const response = await adminService.getAssignProducts(assigningCatalog.id, assignSearchTerm);
+            const response = await adminService.getAssignProducts(
+                assigningCatalog.id,
+                page,
+                assignPerPage,
+                search !== undefined ? search : (assignSearchTerm || undefined)
+            );
             const data = response.data;
+            
+            // Handle pagination metadata first
+            let meta: PaginationMeta;
+            if (data.meta) {
+                const currentPage = data.meta.current_page || data.meta.page || page;
+                const lastPage = data.meta.last_page || data.meta.lastPage || 1;
+                const perPage = data.meta.per_page || data.meta.perPage || assignPerPage;
+                const total = data.meta.total || 0;
+                
+                // Calculate from and to if not provided
+                const from = data.meta.from ?? (total > 0 ? (currentPage - 1) * perPage + 1 : 0);
+                const to = data.meta.to ?? Math.min(currentPage * perPage, total);
+                
+                meta = {
+                    current_page: currentPage,
+                    last_page: lastPage,
+                    per_page: perPage,
+                    total: total,
+                    from: from,
+                    to: to,
+                    links: data.meta.links || generatePaginationLinks(currentPage, lastPage),
+                };
+            } else {
+                // Fallback if no meta provided
+                const total = data.products?.length || 0;
+                const from = total > 0 ? (page - 1) * assignPerPage + 1 : 0;
+                const to = Math.min(page * assignPerPage, total);
+                
+                meta = {
+                    current_page: page,
+                    last_page: total > 0 ? Math.ceil(total / assignPerPage) : 1,
+                    per_page: assignPerPage,
+                    total: total,
+                    from: from,
+                    to: to,
+                    links: generatePaginationLinks(page, total > 0 ? Math.ceil(total / assignPerPage) : 1),
+                };
+            }
+            
+            // Update all state together to prevent multiple re-renders
+            setAssignCurrentPage(page);
+            setAssignProductsMeta(meta);
             setAssignProducts(data.products || []);
-            // Preserve selections
+            
+            // Preserve selections - merge with existing selected IDs
             setAssignSelectedIds((prev) => {
                 const newIds = [...prev];
                 data.selectedProductIds?.forEach((id: number) => {
@@ -296,11 +402,33 @@ export default function AdminCatalogsIndex() {
                 });
                 return newIds;
             });
+            
+            // Scroll table to top after state updates
+            setTimeout(() => {
+                const tableContainer = document.querySelector('[data-product-table-container]');
+                if (tableContainer) {
+                    tableContainer.scrollTop = 0;
+                }
+            }, 0);
         } catch (error: any) {
-            toastError(error.response?.data?.message || 'Failed to search products. Please try again.');
+            toastError(error.response?.data?.message || 'Failed to load products. Please try again.');
         } finally {
-            setAssignLoading(false);
+            if (isInitialLoad) {
+                setAssignLoading(false);
+            } else if (isPagination) {
+                setAssignPaginationLoading(false);
+            }
         }
+    };
+
+    const handleAssignSearch = async () => {
+        setAssignCurrentPage(1);
+        await loadAssignProducts(1, assignSearchTerm);
+    };
+
+    const handleAssignPageChange = (page: number) => {
+        if (page === assignCurrentPage || assignLoading || assignPaginationLoading) return;
+        loadAssignProducts(page, assignSearchTerm || undefined);
     };
 
     const handleAssignSubmit = async (e: React.FormEvent) => {
@@ -724,59 +852,78 @@ export default function AdminCatalogsIndex() {
                                         <div className="h-6 w-6 sm:h-8 sm:w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
                                     </div>
                                 ) : (
-                                    <div className="overflow-x-auto overflow-hidden rounded-xl sm:rounded-2xl border border-slate-200">
-                                        <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
-                                            <thead className="bg-slate-50 text-[10px] sm:text-xs text-slate-500">
-                                                <tr>
-                                                    <th className="px-2 py-2 sm:px-4 sm:py-3 text-left">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={allVisibleSelected}
-                                                            onChange={() => {
-                                                                if (allVisibleSelected) {
-                                                                    deselectAllVisible();
-                                                                } else {
-                                                                    selectAllVisible();
-                                                                }
-                                                            }}
-                                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                            aria-label="Select all visible products"
-                                                        />
-                                                    </th>
-                                                    <th className="px-2 py-2 sm:px-4 sm:py-3 text-left">Product</th>
-                                                    <th className="px-2 py-2 sm:px-4 sm:py-3 text-left">SKU</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100 bg-white">
-                                                {filteredAssignProducts.map((product) => {
-                                                    const isSelected = assignSelectedIds.includes(product.id);
-                                                    return (
-                                                        <tr key={product.id} className="hover:bg-slate-50">
-                                                            <td className="px-2 py-2 sm:px-4 sm:py-3">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={isSelected}
-                                                                    onChange={() => toggleAssignProduct(product.id)}
-                                                                    className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                                                    aria-label={`Select ${product.name}`}
-                                                                />
-                                                            </td>
-                                                            <td className="px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-slate-900">
-                                                                {product.name}
-                                                            </td>
-                                                            <td className="px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">{product.sku}</td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                                {filteredAssignProducts.length === 0 && (
+                                    <div className="relative overflow-hidden rounded-2xl border border-slate-200">
+                                        {/* Subtle loading overlay for pagination */}
+                                        {assignPaginationLoading && (
+                                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                                                <div className="h-6 w-6 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
+                                            </div>
+                                        )}
+                                        <div className="overflow-x-auto" data-product-table-container>
+                                            <table className="min-w-full divide-y divide-slate-200 text-xs sm:text-sm">
+                                                <thead className="bg-slate-50 text-[10px] sm:text-xs text-slate-500 sticky top-0 z-10">
                                                     <tr>
-                                                        <td colSpan={3} className="px-2 py-4 sm:px-4 sm:py-6 text-center text-xs sm:text-sm text-slate-500">
-                                                            No products found matching your search.
-                                                        </td>
+                                                        <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={allVisibleSelected}
+                                                                onChange={() => {
+                                                                    if (allVisibleSelected) {
+                                                                        deselectAllVisible();
+                                                                    } else {
+                                                                        selectAllVisible();
+                                                                    }
+                                                                }}
+                                                                disabled={assignPaginationLoading}
+                                                                className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                aria-label="Select all visible products"
+                                                            />
+                                                        </th>
+                                                        <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">Product</th>
+                                                        <th className="px-3 py-2 text-left bg-slate-50 sm:px-4 sm:py-3">SKU</th>
                                                     </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 bg-white">
+                                                    {filteredAssignProducts.map((product) => {
+                                                        const isSelected = assignSelectedIds.includes(product.id);
+                                                        return (
+                                                            <tr key={product.id} className="hover:bg-slate-50">
+                                                                <td className="px-3 py-2 sm:px-4 sm:py-3">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={isSelected}
+                                                                        onChange={() => toggleAssignProduct(product.id)}
+                                                                        disabled={assignPaginationLoading}
+                                                                        className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                        aria-label={`Select ${product.name}`}
+                                                                    />
+                                                                </td>
+                                                                <td className="px-3 py-2 font-medium text-slate-900 text-xs sm:text-sm sm:px-4 sm:py-3">
+                                                                    {product.name}
+                                                                </td>
+                                                                <td className="px-3 py-2 text-slate-600 text-xs sm:text-sm sm:px-4 sm:py-3">{product.sku}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                    {filteredAssignProducts.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan={3} className="px-3 py-3 text-center text-xs sm:text-sm text-slate-500 sm:px-4 sm:py-6">
+                                                                No products found matching your search.
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        {/* Pagination inside table container */}
+                                        {assignProductsMeta.last_page > 1 && (
+                                            <div className="border-t border-slate-200 bg-white px-3 py-2 sm:px-4 sm:py-3">
+                                                <Pagination
+                                                    meta={assignProductsMeta}
+                                                    onPageChange={handleAssignPageChange}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 

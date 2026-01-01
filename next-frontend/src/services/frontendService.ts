@@ -209,5 +209,22 @@ export const frontendService = {
   async getPublicSettings() {
     return await apiClient.get('/settings/public');
   },
+
+  // Invoices
+  async getInvoices(page: number = 1, perPage: number = 15) {
+    return await apiClient.get('/invoices', {
+      params: { page, per_page: perPage },
+    });
+  },
+
+  async getInvoice(id: string | number) {
+    return await apiClient.get(`/invoices/${id}`);
+  },
+
+  async downloadInvoicePdf(id: string | number) {
+    return await apiClient.get(`/invoices/${id}/pdf`, {
+      responseType: 'blob',
+    });
+  },
 };
 

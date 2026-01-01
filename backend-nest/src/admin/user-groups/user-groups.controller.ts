@@ -64,9 +64,16 @@ export class UserGroupsController {
     @Get(':id/assign-users')
     getUsersForAssignment(
         @Param('id', ParseIntPipe) id: number,
+        @Query('page') page: number = 1,
+        @Query('per_page') perPage: number = 10,
         @Query('search') search?: string,
     ) {
-        return this.userGroupsService.getUsersForAssignment(id, search);
+        return this.userGroupsService.getUsersForAssignment(
+            id,
+            page,
+            perPage,
+            search,
+        );
     }
 
     @Post(':id/assign-users')

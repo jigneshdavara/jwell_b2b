@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateMetalDto, UpdateMetalDto } from './dto/metal.dto';
 
@@ -39,6 +43,21 @@ export class MetalsService {
     }
 
     async create(dto: CreateMetalDto) {
+        const [existingByName, existingByCode] = await Promise.all([
+            this.prisma.metals.findUnique({
+                where: { name: dto.name },
+            }),
+            this.prisma.metals.findUnique({
+                where: { code: dto.code },
+            }),
+        ]);
+        if (existingByName) {
+            throw new ConflictException('Metal with this name already exists');
+        }
+        if (existingByCode) {
+            throw new ConflictException('Metal with this code already exists');
+        }
+
         await this.prisma.metals.create({
             data: {
                 code: dto.code,
@@ -55,7 +74,29 @@ export class MetalsService {
     }
 
     async update(id: number, dto: UpdateMetalDto) {
-        await this.findOne(id);
+        const existing = await this.findOne(id);
+
+        if (dto.name && dto.name !== existing.name) {
+            const existingByName = await this.prisma.metals.findUnique({
+                where: { name: dto.name },
+            });
+            if (existingByName) {
+                throw new ConflictException(
+                    'Metal with this name already exists',
+                );
+            }
+        }
+        if (dto.code && dto.code !== existing.code) {
+            const existingByCode = await this.prisma.metals.findUnique({
+                where: { code: dto.code },
+            });
+            if (existingByCode) {
+                throw new ConflictException(
+                    'Metal with this code already exists',
+                );
+            }
+        }
+
         await this.prisma.metals.update({
             where: { id: BigInt(id) },
             data: {

@@ -83,6 +83,7 @@ export const adminNavigation: NavItem[] = [
             { label: 'Order statuses', href: '/admin/orders/statuses', match: '/admin/orders/statuses*' },
         ],
     },
+    { label: 'Invoices', href: '/admin/invoices', match: '/admin/invoices*', icon: 'receipt' },
     {
         label: 'Offers',
         icon: 'tag',

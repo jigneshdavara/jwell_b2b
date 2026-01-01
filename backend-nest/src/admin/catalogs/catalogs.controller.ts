@@ -64,9 +64,16 @@ export class CatalogsController {
     @Get(':id/assign-products')
     getProductsForAssignment(
         @Param('id', ParseIntPipe) id: number,
+        @Query('page') page: number = 1,
+        @Query('per_page') perPage: number = 10,
         @Query('search') search?: string,
     ) {
-        return this.catalogsService.getProductsForAssignment(id, search);
+        return this.catalogsService.getProductsForAssignment(
+            id,
+            page,
+            perPage,
+            search,
+        );
     }
 
     @Post(':id/assign-products')

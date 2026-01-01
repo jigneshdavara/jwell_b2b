@@ -36,6 +36,7 @@ import { QuotationsModule } from './quotations/quotations.module';
 import { AdminQuotationsModule } from './admin/quotations/quotations.module';
 import { OrdersModule } from './admin/orders/orders.module';
 import { OrderStatusesModule } from './admin/orders/order-statuses/order-statuses.module';
+import { InvoicesModule } from './admin/invoices/invoices.module';
 import { CartModule } from './cart/cart.module';
 import { PricingModule } from './common/pricing/pricing.module';
 import { TaxModule } from './common/tax/tax.module';
@@ -47,6 +48,7 @@ import { FrontendCartModule } from './frontend/cart/cart.module';
 import { FrontendQuotationsModule } from './frontend/quotations/quotations.module';
 import { FrontendCheckoutModule } from './frontend/checkout/checkout.module';
 import { FrontendOrdersModule } from './frontend/orders/orders.module';
+import { FrontendInvoicesModule } from './frontend/invoices/invoices.module';
 import { HomeModule } from './frontend/home/home.module';
 import { ProfileModule } from './frontend/profile/profile.module';
 import { NavigationModule } from './frontend/navigation/navigation.module';
@@ -91,6 +93,7 @@ import { MailModule } from './common/mail/mail.module';
         AdminQuotationsModule,
         OrderStatusesModule, // Register before OrdersModule to avoid route conflicts
         OrdersModule,
+        InvoicesModule,
         CartModule,
         PricingModule,
         TaxModule,
@@ -102,6 +105,7 @@ import { MailModule } from './common/mail/mail.module';
         FrontendQuotationsModule,
         FrontendCheckoutModule,
         FrontendOrdersModule,
+        FrontendInvoicesModule,
         HomeModule,
         ProfileModule,
         NavigationModule,

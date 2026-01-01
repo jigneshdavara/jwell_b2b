@@ -162,7 +162,7 @@ function getTemplateDir(): string {
                         from: `"${process.env.MAIL_FROM_NAME || 'Elvee'}" <${process.env.MAIL_FROM_ADDRESS || 'hello@example.com'}>`,
                     },
                     template: {
-                        dir: join(__dirname, 'templates'),
+                        dir: getTemplateDir(),
                         adapter: new HandlebarsAdapter(),
                         options: {
                             strict: true,

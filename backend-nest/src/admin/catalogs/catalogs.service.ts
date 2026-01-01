@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCatalogDto, UpdateCatalogDto } from './dto/catalog.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CatalogsService {
@@ -179,24 +180,58 @@ export class CatalogsService {
         return { success: true, message: 'Catalogs removed successfully' };
     }
 
-    async getProductsForAssignment(id: number, search?: string) {
+    async getProductsForAssignment(
+        id: number,
+        page: number = 1,
+        perPage: number = 10,
+        search?: string,
+    ) {
         const catalog = await this.findOne(id);
-        const selectedProductIds = catalog.product_ids.map((id) =>
-            id.toString(),
+        const catalogId = BigInt(id);
+        const skip = (page - 1) * perPage;
+
+        // Get selected product IDs for this catalog
+        const catalogProducts = await this.prisma.catalog_products.findMany({
+            where: { catalog_id: catalogId },
+            select: { product_id: true },
+        });
+        const selectedProductIds = catalogProducts.map((cp) =>
+            cp.product_id.toString(),
         );
 
-        const products = await this.prisma.products.findMany({
-            where: search
-                ? {
-                      OR: [
-                          { name: { contains: search, mode: 'insensitive' } },
-                          { sku: { contains: search, mode: 'insensitive' } },
-                      ],
-                  }
-                : {},
-            select: { id: true, name: true, sku: true },
-            orderBy: { name: 'asc' },
-        });
+        // Build where clause
+        const whereClause: Prisma.productsWhereInput = search
+            ? {
+                  OR: [
+                      {
+                          name: {
+                              contains: search,
+                              mode: Prisma.QueryMode.insensitive,
+                          },
+                      },
+                      {
+                          sku: {
+                              contains: search,
+                              mode: Prisma.QueryMode.insensitive,
+                          },
+                      },
+                  ],
+              }
+            : {};
+
+        // Get paginated products
+        const [products, total] = await Promise.all([
+            this.prisma.products.findMany({
+                where: whereClause,
+                select: { id: true, name: true, sku: true },
+                orderBy: { name: 'asc' },
+                skip,
+                take: perPage,
+            }),
+            this.prisma.products.count({
+                where: whereClause,
+            }),
+        ]);
 
         return {
             catalog: {
@@ -209,7 +244,15 @@ export class CatalogsService {
                 sku: product.sku,
                 selected: selectedProductIds.includes(product.id.toString()),
             })),
-            selectedProductIds: catalog.product_ids.map((id) => Number(id)),
+            selectedProductIds: catalogProducts.map((cp) =>
+                Number(cp.product_id),
+            ),
+            meta: {
+                total,
+                page,
+                perPage,
+                lastPage: Math.ceil(total / perPage),
+            },
         };
     }
 

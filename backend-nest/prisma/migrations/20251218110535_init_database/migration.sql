@@ -895,7 +895,10 @@ CREATE INDEX "metal_tones_display_order_index" ON "metal_tones"("display_order")
 CREATE UNIQUE INDEX "metal_tones_metal_id_name_unique" ON "metal_tones"("metal_id", "name");
 
 -- CreateIndex
-CREATE INDEX "metals_code_index" ON "metals"("code");
+CREATE UNIQUE INDEX "metals_code_unique" ON "metals"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "metals_name_unique" ON "metals"("name");
 
 -- CreateIndex
 CREATE INDEX "metals_display_order_index" ON "metals"("display_order");
@@ -940,13 +943,19 @@ CREATE INDEX "quotations_quotation_group_id_index" ON "quotations"("quotation_gr
 CREATE UNIQUE INDEX "settings_key_unique" ON "settings"("key");
 
 -- CreateIndex
-CREATE INDEX "sizes_code_index" ON "sizes"("code");
+CREATE UNIQUE INDEX "sizes_name_unique" ON "sizes"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "sizes_code_unique" ON "sizes"("code");
 
 -- CreateIndex
 CREATE INDEX "sizes_display_order_index" ON "sizes"("display_order");
 
 -- CreateIndex
-CREATE INDEX "styles_code_index" ON "styles"("code");
+CREATE UNIQUE INDEX "styles_code_unique" ON "styles"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "styles_name_unique" ON "styles"("name");
 
 -- CreateIndex
 CREATE INDEX "styles_display_order_index" ON "styles"("display_order");

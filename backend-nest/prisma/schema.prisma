@@ -412,8 +412,8 @@ model metal_tones {
 
 model metals {
   id                     BigInt                   @id @default(autoincrement())
-  code                   String                   @db.VarChar(191)
-  name                   String                   @db.VarChar(191)
+  code                   String                   @unique(map: "metals_code_unique") @db.VarChar(191)
+  name                   String                   @unique(map: "metals_name_unique") @db.VarChar(191)
   description            String?
   display_order          Int                      @default(0)
   is_active              Boolean                  @default(true)
@@ -423,7 +423,6 @@ model metals {
   metal_tones            metal_tones[]
   product_variant_metals product_variant_metals[]
 
-  @@index([code], map: "metals_code_index")
   @@index([display_order], map: "metals_display_order_index")
 }
 
@@ -519,6 +518,7 @@ model orders {
   users                  User                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "orders_user_id_foreign")
   payments               payments[]
   quotations             quotations[]
+  invoices               invoices[]
 }
 
 model password_reset_tokens {
@@ -713,8 +713,8 @@ model settings {
 
 model sizes {
   id               BigInt             @id @default(autoincrement())
-  code             String?            @db.VarChar(191)
-  name             String             @db.VarChar(191)
+  code             String?            @unique(map: "sizes_code_unique") @db.VarChar(191)
+  name             String             @unique(map: "sizes_name_unique") @db.VarChar(191)
   description      String?
   display_order    Int                @default(0)
   is_active        Boolean            @default(true)
@@ -723,14 +723,13 @@ model sizes {
   category_sizes   category_sizes[]
   product_variants product_variants[]
 
-  @@index([code], map: "sizes_code_index")
   @@index([display_order], map: "sizes_display_order_index")
 }
 
 model styles {
   id              BigInt            @id @default(autoincrement())
-  code            String?           @db.VarChar(191)
-  name            String            @db.VarChar(191)
+  code            String?           @unique(map: "styles_code_unique") @db.VarChar(191)
+  name            String            @unique(map: "styles_name_unique") @db.VarChar(191)
   description     String?
   display_order   Int               @default(0)
   is_active       Boolean           @default(true)
@@ -738,7 +737,6 @@ model styles {
   updated_at      DateTime?         @updatedAt @db.Timestamptz(0)
   category_styles category_styles[]
 
-  @@index([code], map: "styles_code_index")
   @@index([display_order], map: "styles_display_order_index")
 }
 
@@ -831,4 +829,28 @@ model wishlists {
   updated_at     DateTime?        @updatedAt @db.Timestamptz(0)
   wishlist_items wishlist_items[]
   users          User             @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "wishlists_customer_id_foreign")
+}
+
+model invoices {
+  id              BigInt    @id @default(autoincrement())
+  order_id        BigInt
+  invoice_number  String    @unique(map: "invoices_invoice_number_unique") @db.VarChar(191)
+  status          String    @default("draft") @db.VarChar(191)
+  issue_date      DateTime? @db.Timestamptz(0)
+  due_date        DateTime? @db.Timestamptz(0)
+  subtotal_amount Decimal   @default(0) @db.Decimal(12, 2)
+  tax_amount      Decimal   @default(0) @db.Decimal(12, 2)
+  discount_amount Decimal   @default(0) @db.Decimal(12, 2)
+  total_amount    Decimal   @default(0) @db.Decimal(12, 2)
+  currency        String    @default("INR") @db.VarChar(191)
+  notes           String?   @db.Text
+  terms           String?   @db.Text
+  metadata        Json?
+  created_at      DateTime? @default(now()) @db.Timestamptz(0)
+  updated_at      DateTime? @updatedAt @db.Timestamptz(0)
+  orders          orders    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "invoices_order_id_foreign")
+
+  @@index([order_id], map: "invoices_order_id_index")
+  @@index([status], map: "invoices_status_index")
+  @@map("invoices")
 }
