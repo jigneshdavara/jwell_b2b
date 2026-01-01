@@ -280,20 +280,15 @@ export default function AdminOrdersReport() {
           .recharts-surface:focus-visible,
           .recharts-surface:focus *,
           .recharts-surface svg,
-          .recharts-wrapper svg,
-          .recharts-surface svg *,
-          .recharts-wrapper svg * {
+          .recharts-wrapper svg {
             outline: none !important;
             border: none !important;
             box-shadow: none !important;
-            stroke-width: 0 !important;
           }
           .recharts-legend-wrapper,
           .recharts-legend-wrapper *,
           .recharts-tooltip-wrapper,
           .recharts-tooltip-wrapper *,
-          .recharts-cartesian-axis,
-          .recharts-cartesian-axis *,
           .recharts-bar,
           .recharts-bar *,
           .recharts-pie,
@@ -307,6 +302,7 @@ export default function AdminOrdersReport() {
           .recharts-cartesian-grid line,
           .recharts-cartesian-axis-line {
             stroke: #e5e7eb !important;
+            stroke-width: 1 !important;
           }
         `
       }} />
@@ -474,7 +470,7 @@ export default function AdminOrdersReport() {
               {/* Orders by Status Pie Chart */}
               <div>
                 <h3 className="mb-4 text-sm font-semibold text-slate-700 sm:text-base">Orders by Status</h3>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={350}>
                   <PieChart>
                     <Pie
                       data={statistics.by_status}
@@ -492,7 +488,10 @@ export default function AdminOrdersReport() {
                       ))}
                     </Pie>
                     <Tooltip />
-                    <Legend formatter={(value, entry: any) => `${entry.payload.status_label} (${entry.payload.count})`} />
+                    <Legend 
+                      formatter={(value, entry: any) => `${entry.payload.status_label} (${entry.payload.count})`}
+                      wrapperStyle={{ paddingTop: '20px' }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -548,13 +547,40 @@ export default function AdminOrdersReport() {
                       height={100}
                       tick={{ fontSize: 12 }}
                     />
-                    <YAxis tick={{ fontSize: 12 }} />
+                    <YAxis 
+                      yAxisId="left"
+                      orientation="left"
+                      tick={{ fontSize: 12 }}
+                      label={{ value: 'Order Count', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+                      width={60}
+                    />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      tickFormatter={(value) =>
+                        new Intl.NumberFormat('en-IN', {
+                          style: 'currency',
+                          currency: 'INR',
+                          maximumFractionDigits: 0,
+                          notation: 'compact',
+                        }).format(value)
+                      }
+                      tick={{ fontSize: 12 }}
+                      label={{ value: 'Revenue', angle: 90, position: 'insideRight', style: { textAnchor: 'middle' } }}
+                      width={80}
+                    />
                     <Tooltip
                       labelFormatter={(value) => formatDate(value)}
+                      formatter={(value: number | undefined, name: string | undefined) => {
+                        if (name === 'Revenue') {
+                          return formatCurrency(value || 0);
+                        }
+                        return value || 0;
+                      }}
                     />
                     <Legend />
-                    <Bar dataKey="count" fill="#0E244D" name="Order Count" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="revenue" fill="#AE8135" name="Revenue" radius={[4, 4, 0, 0]} />
+                    <Bar yAxisId="left" dataKey="count" fill="#0E244D" name="Order Count" radius={[4, 4, 0, 0]} />
+                    <Bar yAxisId="right" dataKey="revenue" fill="#AE8135" name="Revenue" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

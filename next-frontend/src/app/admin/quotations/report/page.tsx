@@ -283,20 +283,15 @@ export default function AdminQuotationsReport() {
           .recharts-surface:focus-visible,
           .recharts-surface:focus *,
           .recharts-surface svg,
-          .recharts-wrapper svg,
-          .recharts-surface svg *,
-          .recharts-wrapper svg * {
+          .recharts-wrapper svg {
             outline: none !important;
             border: none !important;
             box-shadow: none !important;
-            stroke-width: 0 !important;
           }
           .recharts-legend-wrapper,
           .recharts-legend-wrapper *,
           .recharts-tooltip-wrapper,
           .recharts-tooltip-wrapper *,
-          .recharts-cartesian-axis,
-          .recharts-cartesian-axis *,
           .recharts-bar,
           .recharts-bar *,
           .recharts-pie,
@@ -310,6 +305,7 @@ export default function AdminQuotationsReport() {
           .recharts-cartesian-grid line,
           .recharts-cartesian-axis-line {
             stroke: #e5e7eb !important;
+            stroke-width: 1 !important;
           }
         `
       }} />
