@@ -62,17 +62,28 @@ export class OrdersController {
     async getStatistics(
         @Query('user_id', new ParseIntPipe({ optional: true }))
         userId?: number,
+        @Query('start_date')
+        startDate?: string,
+        @Query('end_date')
+        endDate?: string,
     ) {
-        return this.ordersService.getStatistics(userId);
+        return this.ordersService.getStatistics(userId, { startDate, endDate });
     }
 
     @Get('report/export/pdf')
     async exportPdf(
         @Query('user_id', new ParseIntPipe({ optional: true }))
         userId: number | undefined,
+        @Query('start_date')
+        startDate: string | undefined,
+        @Query('end_date')
+        endDate: string | undefined,
         @Res() res: Response,
     ) {
-        const pdfBuffer = await this.ordersService.exportStatisticsPDF(userId);
+        const pdfBuffer = await this.ordersService.exportStatisticsPDF(userId, {
+            startDate,
+            endDate,
+        });
         const dateStr = new Date().toISOString().split('T')[0];
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(

@@ -312,11 +312,31 @@ export class OrdersService {
         };
     }
 
-    async getStatistics(userId?: number) {
+    async getStatistics(
+        userId?: number,
+        dateFilter?: { startDate?: string; endDate?: string },
+    ) {
         // Build where clause
         const where: any = {};
         if (userId) {
             where.user_id = BigInt(userId);
+        }
+
+        // Add date filter if provided
+        if (dateFilter?.startDate || dateFilter?.endDate) {
+            where.created_at = {};
+            if (dateFilter.startDate) {
+                // Start of day
+                const startDate = new Date(dateFilter.startDate);
+                startDate.setHours(0, 0, 0, 0);
+                where.created_at.gte = startDate;
+            }
+            if (dateFilter.endDate) {
+                // End of day
+                const endDate = new Date(dateFilter.endDate);
+                endDate.setHours(23, 59, 59, 999);
+                where.created_at.lte = endDate;
+            }
         }
 
         // Get all orders with basic info
@@ -468,8 +488,11 @@ export class OrdersService {
         };
     }
 
-    async exportStatisticsPDF(userId?: number): Promise<Buffer> {
-        const statistics = await this.getStatistics(userId);
+    async exportStatisticsPDF(
+        userId?: number,
+        dateFilter?: { startDate?: string; endDate?: string },
+    ): Promise<Buffer> {
+        const statistics = await this.getStatistics(userId, dateFilter);
         return this.generateStatisticsPDF(statistics);
     }
 
