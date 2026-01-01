@@ -144,7 +144,7 @@ export default function AdminLayout({
               </div>
               <div className="hidden sm:block">
                 <p className="text-sm font-semibold text-slate-900 sm:text-base">Elvee Admin</p>
-                <p className="text-xs text-slate-400 sm:text-sm">Production & Retail Ops</p>
+                <p className="text-xs text-slate-400 sm:text-xs">Production & Retail Ops</p>
               </div>
             </div>
             <button
@@ -202,14 +202,14 @@ export default function AdminLayout({
                   <button
                     type="button"
                     onClick={toggleGroup}
-                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.15em] transition sm:rounded-xl sm:px-3 sm:text-xs sm:tracking-[0.18em] ${
-                      isOpen ? 'bg-slate-100 text-slate-700' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium uppercase tracking-[0.15em] transition sm:rounded-xl sm:px-3 sm:tracking-[0.18em] ${
+                      isOpen ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                     aria-expanded={isOpen}
                   >
                     <span className="flex items-center gap-2 sm:gap-2.5">
                       <span className="text-base sm:text-lg flex-shrink-0">{icon}</span>
-                      <span className={anyActive ? 'text-slate-600' : undefined}>{item.label}</span>
+                      <span>{item.label}</span>
                     </span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
