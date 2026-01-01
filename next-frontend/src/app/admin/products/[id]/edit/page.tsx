@@ -1452,6 +1452,14 @@ export default function AdminProductEdit() {
     // For string updates, use setDataField: setDataField('field', value)
     const setDataField = (field: string, value: any) => {
         setData((prev: FormData) => ({ ...prev, [field]: value }));
+        // Clear error for this field when user starts typing (Laravel-style validation)
+        if (errors[field]) {
+            setErrors((prev) => {
+                const newErrors = { ...prev };
+                delete newErrors[field];
+                return newErrors;
+            });
+        }
     };
 
     const [localDescription, setLocalDescription] = useState(data.description);
@@ -1476,13 +1484,21 @@ export default function AdminProductEdit() {
 
     const handleDescriptionChange = useCallback((value: string) => {
         setLocalDescription(value);
+        // Clear error when user starts typing
+        if (errors.description) {
+            setErrors((prev) => {
+                const newErrors = { ...prev };
+                delete newErrors.description;
+                return newErrors;
+            });
+        }
         if (descriptionTimeoutRef.current) {
             clearTimeout(descriptionTimeoutRef.current);
         }
         descriptionTimeoutRef.current = setTimeout(() => {
             setDataField('description', value);
         }, 300);
-    }, []);
+    }, [errors.description]);
 
     useEffect(() => {
         return () => {
@@ -2463,6 +2479,85 @@ export default function AdminProductEdit() {
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
+        // Client-side validation (Laravel-style) - validate before processing
+        const validationErrors: Record<string, string> = {};
+
+        // Required fields validation
+        if (!data.sku || data.sku.trim() === '') {
+            validationErrors.sku = 'The SKU field is required.';
+        }
+
+        if (!data.name || data.name.trim() === '') {
+            validationErrors.name = 'The product name field is required.';
+        }
+
+        if (!data.producttype || data.producttype.trim() === '') {
+            validationErrors.producttype = 'The product type field is required.';
+        }
+
+        if (!data.titleline || data.titleline.trim() === '') {
+            validationErrors.titleline = 'The title line field is required.';
+        }
+
+        if (!data.collection || data.collection.trim() === '') {
+            validationErrors.collection = 'The collection field is required.';
+        }
+
+        if (!data.gender || data.gender.trim() === '') {
+            validationErrors.gender = 'The gender field is required.';
+        }
+
+        // Brand validation
+        if (!data.brand_id || data.brand_id === '' || data.brand_id === null || data.brand_id === undefined) {
+            validationErrors.brand_id = 'The brand field is required.';
+        } else {
+            const brandIdNum = Number(data.brand_id);
+            if (isNaN(brandIdNum) || brandIdNum <= 0) {
+                validationErrors.brand_id = 'The brand field is required.';
+            }
+        }
+
+        // Category validation
+        if (!data.category_id || data.category_id === '' || data.category_id === null || data.category_id === undefined) {
+            validationErrors.category_id = 'The category field is required.';
+        } else {
+            const categoryIdNum = Number(data.category_id);
+            if (isNaN(categoryIdNum) || categoryIdNum <= 0) {
+                validationErrors.category_id = 'The category field is required.';
+            }
+        }
+
+        // Making charge validation
+        const makingChargeTypesForValidation = data.making_charge_types || [];
+        if (!Array.isArray(makingChargeTypesForValidation) || makingChargeTypesForValidation.length === 0) {
+            validationErrors.making_charge_types = 'Please select at least one making charge type (Fixed Amount or Percentage).';
+        } else {
+            if (makingChargeTypesForValidation.includes('fixed')) {
+                const makingChargeValue = data.making_charge_amount;
+                if (makingChargeValue === '' || makingChargeValue === null || makingChargeValue === undefined) {
+                    validationErrors.making_charge_amount = 'The making charge amount field is required when Fixed Amount is selected.';
+                } else {
+                    const numValue = Number(makingChargeValue);
+                    if (isNaN(numValue) || numValue < 0) {
+                        validationErrors.making_charge_amount = 'The making charge amount must be a valid number.';
+                    }
+                }
+            }
+
+            if (makingChargeTypesForValidation.includes('percentage')) {
+                const makingChargePercentageValue = data.making_charge_percentage;
+                if (makingChargePercentageValue === '' || makingChargePercentageValue === null || makingChargePercentageValue === undefined) {
+                    validationErrors.making_charge_percentage = 'The making charge percentage field is required when Percentage is selected.';
+                } else {
+                    const numValue = Number(makingChargePercentageValue);
+                    if (isNaN(numValue) || numValue < 0 || numValue > 100) {
+                        validationErrors.making_charge_percentage = 'The making charge percentage must be a valid number between 0 and 100.';
+                    }
+                }
+            }
+        }
+
+        // Variant validation
         const hasMediaUploads = (data.media_uploads?.length ?? 0) > 0;
         const formState = data as FormData;
         const payload: any = { ...formState };
@@ -2498,10 +2593,32 @@ export default function AdminProductEdit() {
 
             // Validate that at least one valid variant is required
             if (variantsToUse.length === 0) {
-                setErrors({ variants: 'At least one product variant is required. Please generate the variant matrix before saving.' });
-                setProcessing(false);
-                return;
+                validationErrors.variants = 'At least one product variant is required. Please generate the variant matrix before saving.';
             }
+
+        // If there are validation errors, display them and stop submission
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            setProcessing(false);
+            
+            // Scroll to first error field
+            const firstErrorField = Object.keys(validationErrors)[0];
+            if (firstErrorField) {
+                // Try to find the input field
+                const errorElement = document.querySelector(`input[name="${firstErrorField}"], select[name="${firstErrorField}"], textarea[name="${firstErrorField}"]`);
+                if (errorElement) {
+                    errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    (errorElement as HTMLElement).focus();
+                } else {
+                    // Fallback: scroll to first error message
+                    const errorMessage = document.querySelector('.text-rose-500');
+                    if (errorMessage) {
+                        errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
+            return;
+        }
 
             // Handle media: include existing media (excluding removed) + new uploads
             if (product?.id && product?.media) {
@@ -2536,48 +2653,24 @@ export default function AdminProductEdit() {
             payload.gender = formState.gender || null;
             payload.description = formState.description || '';
 
-            // Validate and set brand_id (required integer)
+            // Set brand_id (already validated above)
             const brandIdValue = formState.brand_id;
-            if (brandIdValue !== '' && brandIdValue !== null && brandIdValue !== undefined) {
-                const brandIdNum = Number(brandIdValue);
-                if (!isNaN(brandIdNum) && brandIdNum > 0) {
-                    payload.brand_id = brandIdNum;
-            } else {
-                    setErrors({ brand_id: 'Brand is required' });
-                    setProcessing(false);
-                    return;
-                }
-            } else {
-                setErrors({ brand_id: 'Brand is required' });
-                setProcessing(false);
-                return;
-            }
+            const brandIdNum = Number(brandIdValue);
+            payload.brand_id = brandIdNum;
 
-            // Validate and set category_id (required integer)
+            // Set category_id (already validated above)
             const categoryIdValue = formState.category_id;
-            if (categoryIdValue !== '' && categoryIdValue !== null && categoryIdValue !== undefined) {
-                const categoryIdNum = Number(categoryIdValue);
-                if (!isNaN(categoryIdNum) && categoryIdNum > 0) {
-                    payload.category_id = categoryIdNum;
-            } else {
-                    setErrors({ category_id: 'Category is required' });
-                    setProcessing(false);
-                    return;
-            }
-            } else {
-                setErrors({ category_id: 'Category is required' });
-                setProcessing(false);
-                return;
-            }
+            const categoryIdNum = Number(categoryIdValue);
+            payload.category_id = categoryIdNum;
 
             // Handle style_ids (multi-select) - must be array
             const styleIds = formState.style_ids || [];
             payload.style_ids = Array.isArray(styleIds) ? styleIds : [];
 
-            // Handle making_charge_types (must be array)
-            const selectedTypes = formState.making_charge_types || [];
+            // Handle making_charge_types (must be array) - already validated above
+            const makingChargeTypes = formState.making_charge_types || [];
 
-            if (selectedTypes.includes('fixed')) {
+            if (makingChargeTypes.includes('fixed')) {
                 const makingChargeValue = formState.making_charge_amount;
                 if (makingChargeValue === '' || makingChargeValue === null || makingChargeValue === undefined) {
                     payload.making_charge_amount = 0;
@@ -2589,7 +2682,7 @@ export default function AdminProductEdit() {
                 payload.making_charge_amount = 0;
             }
 
-            if (selectedTypes.includes('percentage')) {
+            if (makingChargeTypes.includes('percentage')) {
                 const makingChargePercentageValue = formState.making_charge_percentage;
                 if (makingChargePercentageValue === '' || makingChargePercentageValue === null || makingChargePercentageValue === undefined) {
                     payload.making_charge_percentage = null;
@@ -3123,7 +3216,26 @@ export default function AdminProductEdit() {
         } catch (error: any) {
             console.error('Failed to save product:', error);
             if (error.response?.data?.errors) {
-                setErrors(error.response.data.errors);
+                // Laravel validation errors can be arrays - convert to strings
+                const laravelErrors: Record<string, string> = {};
+                Object.entries(error.response.data.errors).forEach(([key, value]) => {
+                    // If error is an array, take the first message (Laravel style)
+                    if (Array.isArray(value)) {
+                        laravelErrors[key] = value[0] as string;
+                    } else if (typeof value === 'string') {
+                        laravelErrors[key] = value;
+                    }
+                });
+                setErrors(laravelErrors);
+                
+                // Scroll to first error field
+                const firstErrorField = Object.keys(laravelErrors)[0];
+                if (firstErrorField) {
+                    const errorElement = document.querySelector(`[name="${firstErrorField}"], input[data-field="${firstErrorField}"]`);
+                    if (errorElement) {
+                        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
             } else {
                 toastError(error.response?.data?.message || 'Failed to save product. Please try again.');
             }
@@ -3255,7 +3367,11 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.sku}
                                         onChange={(event) => setDataField('sku', event.target.value)}
-                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
+                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
+                                            errors.sku 
+                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
+                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                        }`}
                                         placeholder="Enter SKU"
                                     />
                                     {errors.sku && <span className="text-xs text-rose-500">{errors.sku}</span>}
@@ -3266,7 +3382,11 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.name}
                                         onChange={(event) => setDataField('name', event.target.value)}
-                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
+                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
+                                            errors.name 
+                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
+                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                        }`}
                                         placeholder="Enter product name"
                                     />
                                     {errors.name && <span className="text-xs text-rose-500">{errors.name}</span>}
@@ -3277,7 +3397,11 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.producttype}
                                         onChange={(event) => setDataField('producttype', event.target.value)}
-                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
+                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
+                                            errors.producttype 
+                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
+                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                        }`}
                                         placeholder="Enter product type"
                                     />
                                     {errors.producttype && <span className="text-xs text-rose-500">{errors.producttype}</span>}
@@ -3288,7 +3412,11 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.titleline}
                                         onChange={(event) => setDataField('titleline', event.target.value)}
-                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
+                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
+                                            errors.titleline 
+                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
+                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                        }`}
                                         placeholder="Enter product title line"
                                     />
                                     {errors.titleline && <span className="text-xs text-rose-500">{errors.titleline}</span>}
@@ -3299,7 +3427,11 @@ export default function AdminProductEdit() {
                                         type="text"
                                         value={data.collection}
                                         onChange={(event) => setDataField('collection', event.target.value)}
-                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
+                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
+                                            errors.collection 
+                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
+                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                        }`}
                                         placeholder="Enter collection name"
                                     />
                                     {errors.collection && <span className="text-xs text-rose-500">{errors.collection}</span>}
@@ -3310,7 +3442,11 @@ export default function AdminProductEdit() {
                                     <select
                                         value={data.gender}
                                         onChange={(event) => setDataField('gender', event.target.value)}
-                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
+                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
+                                            errors.gender 
+                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
+                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                        }`}
                                     >
                                         <option value="">Select gender</option>
                                         <option value="Men">Men</option>
@@ -3328,7 +3464,11 @@ export default function AdminProductEdit() {
                                     <select
                                         value={data.brand_id}
                                         onChange={(event) => setDataField('brand_id', event.target.value)}
-                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
+                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
+                                            errors.brand_id 
+                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
+                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                        }`}
                                     >
                                         <option value="">Select brand</option>
                                         {Object.entries(brands).map(([id, name]) => (
@@ -3351,7 +3491,11 @@ export default function AdminProductEdit() {
                                             setDataField('selected_sizes', []);
                                             setDataField('all_sizes_available', undefined);
                                         }}
-                                        className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
+                                        className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
+                                            errors.category_id 
+                                                ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
+                                                : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                        }`}
                                     >
                                         <option value="">Select category</option>
                                         {(parentCategories || []).map((category) => (
@@ -3366,8 +3510,18 @@ export default function AdminProductEdit() {
                                     subcategories={subcategories || []}
                                     selectedIds={Array.isArray(data.subcategory_ids) ? data.subcategory_ids : []}
                                     parentCategoryId={data.category_id === '' || data.category_id === null || data.category_id === undefined ? '' : (isNaN(Number(data.category_id)) ? '' : Number(data.category_id))}
-                                    onChange={(selectedIds) => setDataField('subcategory_ids', selectedIds)}
-                                    error={errors.subcategory_ids}
+                                    onChange={(selectedIds) => {
+                                        setDataField('subcategory_ids', selectedIds);
+                                        // Clear error when user selects
+                                        if (errors.subcategory_ids) {
+                                            setErrors((prev) => {
+                                                const newErrors = { ...prev };
+                                                delete newErrors.subcategory_ids;
+                                                return newErrors;
+                                            });
+                                        }
+                                    }}
+                                    error={Array.isArray(errors.subcategory_ids) ? errors.subcategory_ids[0] : errors.subcategory_ids}
                                 />
                                 
                                 {/* Style multi-select - appears after category selection */}
@@ -3397,8 +3551,18 @@ export default function AdminProductEdit() {
                                         <StyleMultiSelect
                                             styles={availableStyles}
                                             selectedIds={Array.isArray(data.style_ids) ? data.style_ids : []}
-                                            onChange={(selectedIds) => setDataField('style_ids', selectedIds)}
-                                            error={errors.style_ids}
+                                            onChange={(selectedIds) => {
+                                                setDataField('style_ids', selectedIds);
+                                                // Clear error when user selects
+                                                if (errors.style_ids) {
+                                                    setErrors((prev) => {
+                                                        const newErrors = { ...prev };
+                                                        delete newErrors.style_ids;
+                                                        return newErrors;
+                                                    });
+                                                }
+                                            }}
+                                            error={Array.isArray(errors.style_ids) ? errors.style_ids[0] : errors.style_ids}
                                         />
                                     );
                                 })()}
@@ -3406,8 +3570,18 @@ export default function AdminProductEdit() {
                                  <CatalogMultiSelect
                                     catalogs={catalogs}
                                     selectedIds={Array.isArray(data.catalog_ids) ? data.catalog_ids : []}
-                                    onChange={(selectedIds) => setDataField('catalog_ids', selectedIds)}
-                                    error={errors.catalog_ids}
+                                    onChange={(selectedIds) => {
+                                        setDataField('catalog_ids', selectedIds);
+                                        // Clear error when user selects
+                                        if (errors.catalog_ids) {
+                                            setErrors((prev) => {
+                                                const newErrors = { ...prev };
+                                                delete newErrors.catalog_ids;
+                                                return newErrors;
+                                            });
+                                        }
+                                    }}
+                                    error={Array.isArray(errors.catalog_ids) ? errors.catalog_ids[0] : errors.catalog_ids}
                                 />
 
                                 <div className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
@@ -3461,7 +3635,11 @@ export default function AdminProductEdit() {
                                             min="0"
                                             value={data.making_charge_amount}
                                             onChange={(event) => setDataField('making_charge_amount', event.target.value)}
-                                            className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
+                                            className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
+                                                errors.making_charge_amount 
+                                                    ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
+                                                    : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                            }`}
                                             placeholder="Enter fixed making charge"
                                         />
                                         {errors.making_charge_amount && <span className="text-xs text-rose-500">{errors.making_charge_amount}</span>}
@@ -3477,7 +3655,11 @@ export default function AdminProductEdit() {
                                             max="100"
                                             value={data.making_charge_percentage}
                                             onChange={(event) => setDataField('making_charge_percentage', event.target.value)}
-                                            className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
+                                            className={`rounded-lg sm:rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm ${
+                                                errors.making_charge_percentage 
+                                                    ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' 
+                                                    : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                            }`}
                                             placeholder="Enter percentage (e.g., 10 for 10%)"
                                         />
                                         <span className="text-xs text-slate-500">Percentage will be calculated on metal cost</span>
@@ -3508,7 +3690,9 @@ export default function AdminProductEdit() {
                         <RichTextEditor
                             value={localDescription}
                             onChange={handleDescriptionChange}
-                            className="overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200"
+                            className={`overflow-hidden rounded-2xl sm:rounded-3xl border ${
+                                errors.description ? 'border-rose-300' : 'border-slate-200'
+                            }`}
                             placeholder="Detail the design notes, materials, finish, and atelier craftsmanship."
                         />
                         {errors.description && <span className="mt-2 block text-xs text-rose-500">{errors.description}</span>}
