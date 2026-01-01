@@ -75,6 +75,8 @@ export default function AdminQuotationsReport() {
   // Local state for date inputs to prevent date picker from closing during typing
   const [localStartDate, setLocalStartDate] = useState<string>('');
   const [localEndDate, setLocalEndDate] = useState<string>('');
+  const [chartHeight, setChartHeight] = useState(300);
+  const [isMobile, setIsMobile] = useState(false);
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -111,6 +113,25 @@ export default function AdminQuotationsReport() {
 
   useEffect(() => {
     loadUsers();
+  }, []);
+
+  // Responsive chart height and mobile detection
+  useEffect(() => {
+    const updateChartHeight = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      if (width < 640) {
+        setChartHeight(300); // Increased for better mobile visibility
+      } else if (width < 768) {
+        setChartHeight(340);
+      } else {
+        setChartHeight(380);
+      }
+    };
+
+    updateChartHeight();
+    window.addEventListener('resize', updateChartHeight);
+    return () => window.removeEventListener('resize', updateChartHeight);
   }, []);
 
   // Initialize local date state from filter state on mount (only once)
@@ -344,18 +365,18 @@ export default function AdminQuotationsReport() {
         `
       }} />
 
-      <div className="space-y-4 px-2 py-4 sm:space-y-6 sm:px-6 sm:py-6 lg:space-y-8 lg:px-8">
-        <header className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
+      <div className="space-y-3 px-3 py-3 sm:space-y-4 sm:px-4 sm:py-4 md:space-y-6 md:px-6 md:py-6 lg:space-y-8 lg:px-8">
+        <header className="rounded-xl sm:rounded-2xl md:rounded-3xl bg-white p-3 sm:p-4 md:p-6 shadow-xl ring-1 ring-slate-200/70">
           <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-slate-900">Quotation Report</h1>
-              <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-500">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-slate-900">Quotation Report</h1>
+              <p className="mt-1 sm:mt-1.5 md:mt-2 text-xs sm:text-sm text-slate-500 break-words">
                 {selectedUserId
                   ? `Statistics for ${users.find((u) => u.id === selectedUserId)?.name || 'selected user'}`
                   : 'Total quotations statistics and analytics.'}
               </p>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
               <div className="flex gap-2">
                 <button
                   onClick={exportToPDF}
@@ -399,34 +420,34 @@ export default function AdminQuotationsReport() {
         </header>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-2xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
+        <div className="grid gap-3 grid-cols-1 sm:gap-4 sm:grid-cols-2 lg:gap-6 lg:grid-cols-3">
+          <div className="rounded-xl sm:rounded-2xl bg-white p-4 sm:p-5 md:p-6 shadow-xl ring-1 ring-slate-200/70">
             <div className="text-xs sm:text-sm font-medium text-slate-500">Total Quotations</div>
-            <div className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900">{statistics.summary.total_quotations}</div>
+            <div className="mt-1.5 sm:mt-2 text-xl sm:text-2xl md:text-3xl font-bold text-slate-900">{statistics.summary.total_quotations}</div>
           </div>
-          <div className="rounded-2xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
+          <div className="rounded-xl sm:rounded-2xl bg-white p-4 sm:p-5 md:p-6 shadow-xl ring-1 ring-slate-200/70">
             <div className="text-xs sm:text-sm font-medium text-slate-500">Total Quantity</div>
-            <div className="mt-2 text-2xl sm:text-3xl font-bold text-elvee-blue">
+            <div className="mt-1.5 sm:mt-2 text-xl sm:text-2xl md:text-3xl font-bold text-elvee-blue break-words">
               {parseFloat(statistics.summary.total_quantity).toLocaleString('en-IN')}
             </div>
           </div>
-          <div className="rounded-2xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
+          <div className="rounded-xl sm:rounded-2xl bg-white p-4 sm:p-5 md:p-6 shadow-xl ring-1 ring-slate-200/70">
             <div className="text-xs sm:text-sm font-medium text-slate-500">Average Quantity</div>
-            <div className="mt-2 text-2xl sm:text-3xl font-bold text-feather-gold">
+            <div className="mt-1.5 sm:mt-2 text-xl sm:text-2xl md:text-3xl font-bold text-feather-gold break-words">
               {parseFloat(statistics.summary.average_quantity).toFixed(1)}
             </div>
           </div>
         </div>
 
         {/* Report Section with Toggle */}
-        <section className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/70">
-          <div className="mb-4 flex flex-col gap-3">
+        <section className="rounded-xl sm:rounded-2xl md:rounded-3xl bg-white p-3 sm:p-4 md:p-6 shadow-xl ring-1 ring-slate-200/70">
+          <div className="mb-3 sm:mb-4 flex flex-col gap-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-base font-semibold text-slate-900 sm:text-lg">Quotation Statistics</h2>
+              <h2 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900">Quotation Statistics</h2>
               <div className="flex gap-2">
                 <button
                   onClick={() => setViewMode('graph')}
-                  className={`inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition ${
+                  className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition ${
                     viewMode === 'graph'
                       ? 'bg-elvee-blue text-white'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -450,7 +471,7 @@ export default function AdminQuotationsReport() {
                 </button>
                 <button
                   onClick={() => setViewMode('table')}
-                  className={`inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition ${
+                  className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition ${
                     viewMode === 'table'
                       ? 'bg-elvee-blue text-white'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -474,17 +495,17 @@ export default function AdminQuotationsReport() {
                 </button>
               </div>
             </div>
-            <div className="flex flex-col gap-3 sm:gap-4">
-              {/* User Filter */}
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <label htmlFor="user-filter" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap min-w-[100px]">
+            <div className="space-y-3">
+              {/* User Filter - Full width on all screens */}
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 w-full">
+                <label htmlFor="user-filter" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap shrink-0 sm:min-w-[110px]">
                   Filter by User:
                 </label>
                 <select
                   id="user-filter"
                   value={selectedUserId || ''}
                   onChange={(e) => setSelectedUserId(e.target.value ? Number(e.target.value) : undefined)}
-                  className="flex-1 sm:flex-initial rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm text-slate-900 bg-white focus:border-slate-300 focus:ring-0 outline-none transition min-w-0 sm:min-w-[200px]"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs sm:text-sm text-slate-900 bg-white focus:border-elvee-blue focus:ring-2 focus:ring-elvee-blue/20 outline-none transition sm:max-w-[300px]"
                   disabled={loadingUsers}
                 >
                   <option value="">All Users</option>
@@ -495,40 +516,50 @@ export default function AdminQuotationsReport() {
                   ))}
                 </select>
               </div>
-              {/* Date Filter */}
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
-                <label htmlFor="start-date" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap min-w-[80px] sm:min-w-[100px]">
-                  From Date:
-                </label>
-                <input
-                  id="start-date"
-                  type="date"
-                  value={localStartDate}
-                  onChange={(e) => setLocalStartDate(e.target.value)}
-                  className="flex-1 sm:flex-initial rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm text-slate-900 bg-white focus:border-elvee-blue focus:ring-2 focus:ring-elvee-blue/20 outline-none transition min-w-0 sm:min-w-[140px]"
-                />
-                <label htmlFor="end-date" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap min-w-[80px] sm:min-w-[100px] mt-2 sm:mt-0">
-                  To Date:
-                </label>
-                <input
-                  id="end-date"
-                  type="date"
-                  value={localEndDate}
-                  onChange={(e) => setLocalEndDate(e.target.value)}
-                  min={localStartDate || undefined}
-                  className="flex-1 sm:flex-initial rounded-lg border border-slate-300 px-3 py-1.5 text-xs sm:text-sm text-slate-900 bg-white focus:border-elvee-blue focus:ring-2 focus:ring-elvee-blue/20 outline-none transition min-w-0 sm:min-w-[140px]"
-                />
-                <div className="flex gap-2 mt-2 sm:mt-0">
+              
+              {/* Date Filters and Buttons */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-3 w-full">
+                {/* Date Inputs */}
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 flex-1">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <label htmlFor="start-date" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap shrink-0 sm:min-w-[75px]">
+                      From Date:
+                    </label>
+                    <input
+                      id="start-date"
+                      type="date"
+                      value={localStartDate}
+                      onChange={(e) => setLocalStartDate(e.target.value)}
+                      className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-xs sm:text-sm text-slate-900 bg-white focus:border-elvee-blue focus:ring-2 focus:ring-elvee-blue/20 outline-none transition min-w-0"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <label htmlFor="end-date" className="text-xs sm:text-sm font-medium text-slate-700 whitespace-nowrap shrink-0 sm:min-w-[75px]">
+                      To Date:
+                    </label>
+                    <input
+                      id="end-date"
+                      type="date"
+                      value={localEndDate}
+                      onChange={(e) => setLocalEndDate(e.target.value)}
+                      min={localStartDate || undefined}
+                      className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-xs sm:text-sm text-slate-900 bg-white focus:border-elvee-blue focus:ring-2 focus:ring-elvee-blue/20 outline-none transition min-w-0"
+                    />
+                  </div>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex gap-2 w-full sm:w-auto sm:flex-shrink-0">
                   <button
                     onClick={handleApplyDateFilter}
-                    className="flex-1 sm:flex-initial rounded-lg bg-elvee-blue px-4 py-1.5 text-xs sm:text-sm font-medium text-white hover:bg-navy transition whitespace-nowrap shadow-sm"
+                    className="flex-1 sm:flex-initial rounded-lg bg-elvee-blue px-4 py-2 text-xs sm:text-sm font-medium text-white hover:bg-navy transition whitespace-nowrap shadow-sm"
                   >
                     Apply Filter
                   </button>
                   {(localStartDate || localEndDate || startDate || endDate) && (
                     <button
                       onClick={handleClearDateFilter}
-                      className="flex-1 sm:flex-initial rounded-lg border border-slate-300 px-4 py-1.5 text-xs sm:text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 transition whitespace-nowrap"
+                      className="flex-1 sm:flex-initial rounded-lg border border-slate-300 px-4 py-2 text-xs sm:text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 transition whitespace-nowrap"
                     >
                       Clear
                     </button>
@@ -538,21 +569,21 @@ export default function AdminQuotationsReport() {
             </div>
           </div>
 
-          <div className="mt-8 sm:mt-10">
+          <div className="mt-6 sm:mt-8 md:mt-10">
             {viewMode === 'graph' ? (
-              <div className="space-y-10 sm:space-y-12">
+              <div className="space-y-8 sm:space-y-10 md:space-y-12">
                 {/* Quotations by Status Pie Chart */}
                 <div>
-                  <h3 className="mb-4 text-sm font-semibold text-slate-700 sm:text-base">Quotations by Status</h3>
-                  <ResponsiveContainer width="100%" height={300}>
+                  <h3 className="mb-2 sm:mb-3 md:mb-4 text-xs sm:text-sm md:text-base font-semibold text-slate-700">Quotations by Status</h3>
+                  <ResponsiveContainer width="100%" height={chartHeight}>
                     <PieChart>
                       <Pie
                         data={statistics.by_status}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={(entry: any) => `${entry.status_label}: ${entry.count}`}
-                        outerRadius={100}
+                        label={isMobile ? false : (entry: any) => `${entry.status_label}: ${entry.count}`}
+                        outerRadius={chartHeight < 280 ? 75 : chartHeight < 340 ? 85 : 95}
                         fill="#8884d8"
                         dataKey="count"
                         nameKey="status_label"
@@ -562,29 +593,37 @@ export default function AdminQuotationsReport() {
                         ))}
                       </Pie>
                       <Tooltip />
-                      <Legend formatter={(value, entry: any) => `${entry.payload.status_label} (${entry.payload.count})`} />
+                      <Legend 
+                        formatter={(value, entry: any) => `${entry.payload.status_label} (${entry.payload.count})`}
+                        wrapperStyle={{ paddingTop: '16px', fontSize: '11px' }}
+                        iconSize={10}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
 
                 {/* Quantity by Status Bar Chart */}
                 <div>
-                  <h3 className="mb-4 text-sm font-semibold text-slate-700 sm:text-base">Quantity by Status</h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={statistics.by_status}>
+                  <h3 className="mb-2 sm:mb-3 md:mb-4 text-xs sm:text-sm md:text-base font-semibold text-slate-700">Quantity by Status</h3>
+                  <ResponsiveContainer width="100%" height={chartHeight}>
+                    <BarChart data={statistics.by_status} margin={{ top: 5, right: 10, left: 5, bottom: 80 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis
                         dataKey="status_label"
                         angle={-45}
                         textAnchor="end"
                         height={100}
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 9 }}
+                        interval={0}
                       />
                       <YAxis
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 9 }}
+                        width={50}
                       />
-                      <Tooltip />
-                      <Legend />
+                      <Tooltip
+                        contentStyle={{ fontSize: '12px', padding: '8px' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} iconSize={10} />
                       <Bar dataKey="quantity" name="Quantity" radius={[4, 4, 0, 0]}>
                         {statistics.by_status.map((entry) => (
                           <Cell key={`cell-${entry.status}`} fill={getStatusColor(entry.status)} />
@@ -596,9 +635,9 @@ export default function AdminQuotationsReport() {
 
                 {/* Quotations Over Time */}
                 <div>
-                  <h3 className="mb-4 text-sm font-semibold text-slate-700 sm:text-base">Quotations Over Time (Last 30 Days)</h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={statistics.by_date}>
+                  <h3 className="mb-2 sm:mb-3 md:mb-4 text-xs sm:text-sm md:text-base font-semibold text-slate-700">Quotations Over Time (Last 30 Days)</h3>
+                  <ResponsiveContainer width="100%" height={chartHeight}>
+                    <BarChart data={statistics.by_date} margin={{ top: 5, right: 10, left: 5, bottom: 80 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis
                         dataKey="date"
@@ -606,13 +645,15 @@ export default function AdminQuotationsReport() {
                         angle={-45}
                         textAnchor="end"
                         height={100}
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 9 }}
+                        interval={3}
                       />
-                      <YAxis tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 9 }} width={50} />
                       <Tooltip
                         labelFormatter={(value) => formatDate(value)}
+                        contentStyle={{ fontSize: '12px', padding: '8px' }}
                       />
-                      <Legend />
+                      <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} iconSize={10} />
                       <Bar dataKey="count" fill="#0E244D" name="Quotation Count" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="quantity" fill="#AE8135" name="Quantity" radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -620,11 +661,11 @@ export default function AdminQuotationsReport() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-10 sm:space-y-12">
+              <div className="space-y-8 sm:space-y-10 md:space-y-12">
                 {/* Quotations by Status Table */}
                 <div>
-                  <h3 className="mb-4 text-sm font-semibold text-slate-700 sm:text-base">Quotations by Status</h3>
-                  <div className="overflow-x-auto">
+                  <h3 className="mb-3 sm:mb-4 text-xs sm:text-sm md:text-base font-semibold text-slate-700">Quotations by Status</h3>
+                  <div className="overflow-x-auto -mx-3 sm:mx-0">
                     <table className="w-full text-xs sm:text-sm">
                       <thead className="border-b-2 border-slate-200 bg-slate-50">
                         <tr>
@@ -665,8 +706,8 @@ export default function AdminQuotationsReport() {
 
                 {/* Quotations Over Time Table */}
                 <div>
-                  <h3 className="mb-4 text-sm font-semibold text-slate-700 sm:text-base">Quotations Over Time (Last 30 Days)</h3>
-                  <div className="overflow-x-auto">
+                  <h3 className="mb-3 sm:mb-4 text-xs sm:text-sm md:text-base font-semibold text-slate-700">Quotations Over Time (Last 30 Days)</h3>
+                  <div className="overflow-x-auto -mx-3 sm:mx-0">
                     <table className="w-full text-xs sm:text-sm">
                       <thead className="border-b-2 border-slate-200 bg-slate-50">
                         <tr>
