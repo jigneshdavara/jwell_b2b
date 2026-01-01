@@ -7,7 +7,6 @@ import PrimaryButton from '@/components/ui/PrimaryButton';
 import TextInput from '@/components/ui/TextInput';
 import GuestLayout from '@/components/shared/GuestLayout';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { FormEventHandler, ReactNode, useState } from 'react';
 import { route } from '@/utils/route';
 
@@ -16,7 +15,6 @@ type LoginMode = 'password' | 'otp';
 import { authService } from '@/services/authService';
 
 export default function Login() {
-    const router = useRouter();
     const [status, setStatus] = useState<string | undefined>(undefined);
     const canResetPassword = true;
 
@@ -60,13 +58,19 @@ export default function Login() {
             const user = response.data?.user;
             const userType = (user?.type || '').toLowerCase();
             
+            // Determine redirect URL
+            let redirectUrl: string;
             if (['admin', 'super-admin'].includes(userType)) {
-                router.push(route('admin.dashboard'));
+                redirectUrl = route('admin.dashboard');
             } else if (userType === 'production') {
-                router.push(route('production.dashboard'));
+                redirectUrl = route('production.dashboard');
             } else {
-                router.push(route('dashboard'));
+                redirectUrl = route('dashboard');
             }
+            
+            // Use window.location.href for full page reload to ensure auth state is properly refreshed
+            // This ensures middleware and auth checks run with the new token
+            window.location.href = redirectUrl;
         } catch (error: any) {
             if (error.response?.status === 401) {
                 setErrors({ email: 'Invalid credentials.' });
@@ -112,13 +116,19 @@ export default function Login() {
             const user = response.data?.user;
             const userType = (user?.type || '').toLowerCase();
             
+            // Determine redirect URL
+            let redirectUrl: string;
             if (['admin', 'super-admin'].includes(userType)) {
-                router.push(route('admin.dashboard'));
+                redirectUrl = route('admin.dashboard');
             } else if (userType === 'production') {
-                router.push(route('production.dashboard'));
+                redirectUrl = route('production.dashboard');
             } else {
-                router.push(route('dashboard'));
+                redirectUrl = route('dashboard');
             }
+            
+            // Use window.location.href for full page reload to ensure auth state is properly refreshed
+            // This ensures middleware and auth checks run with the new token
+            window.location.href = redirectUrl;
         } catch (error: any) {
             setErrors({ code: error.response?.data?.message || 'Invalid code.' });
         } finally {
