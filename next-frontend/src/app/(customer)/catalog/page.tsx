@@ -1819,149 +1819,210 @@ function PriceRangeFilter({
     applyPriceRange: (min: number, max: number) => void;
     resetPriceRange: () => void;
 }) {
+    const [minInput, setMinInput] = useState<string>(priceRange.min.toString());
+    const [maxInput, setMaxInput] = useState<string>(priceRange.max.toString());
+    const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+
     const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-    const [activeThumb, setActiveThumb] = useState<'min' | 'max' | null>(null);
-    const sliderRef = useRef<HTMLDivElement>(null);
 
-    const getPercentage = (value: number) => {
-        return ((value - DEFAULT_PRICE_MIN) / (DEFAULT_PRICE_MAX - DEFAULT_PRICE_MIN)) * 100;
-    };
+    // Predefined price ranges
+    const pricePresets = [
+        { label: '< ₹25,000', min: DEFAULT_PRICE_MIN, max: 25000 },
+        { label: '₹25,000 - ₹50,000', min: 25000, max: 50000 },
+        { label: '₹50,000 - ₹1,00,000', min: 50000, max: 100000 },
+        { label: '₹1,00,000+', min: 100000, max: DEFAULT_PRICE_MAX },
+    ];
 
-    const handleMinChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const value = Number(event.target.value);
-        if (Number.isNaN(value)) return;
-        setPriceRange((prev) => {
-            const nextMin = clamp(value, DEFAULT_PRICE_MIN, prev.max - PRICE_STEP);
-            return { ...prev, min: nextMin };
-        });
-    };
+    // Sync local state when priceRange changes externally (e.g., from URL params or reset)
+    useEffect(() => {
+        setMinInput(priceRange.min.toString());
+        setMaxInput(priceRange.max.toString());
+        
+        // Check if current values match any preset
+        const matchingPreset = pricePresets.findIndex(
+            (preset) => priceRange.min === preset.min && priceRange.max === preset.max
+        );
+        setSelectedPreset(matchingPreset >= 0 ? matchingPreset.toString() : null);
+    }, [priceRange.min, priceRange.max]);
 
-    const handleMaxChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const value = Number(event.target.value);
-        if (Number.isNaN(value)) return;
-        setPriceRange((prev) => {
-            const nextMax = clamp(value, prev.min + PRICE_STEP, DEFAULT_PRICE_MAX);
-            return { ...prev, max: nextMax };
-        });
+    const handlePresetClick = (preset: typeof pricePresets[0], index: number) => {
+        setPriceRange({ min: preset.min, max: preset.max });
+        setMinInput(preset.min.toString());
+        setMaxInput(preset.max.toString());
+        setSelectedPreset(index.toString());
+        // Apply filter immediately when preset is clicked
+        applyPriceRange(preset.min, preset.max);
     };
 
     const handleMinInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const value = event.target.value === '' ? DEFAULT_PRICE_MIN : Number(event.target.value);
-        if (Number.isNaN(value)) return;
-        setPriceRange((prev) => {
-            const nextMin = clamp(value, DEFAULT_PRICE_MIN, prev.max - PRICE_STEP);
-            return { ...prev, min: nextMin };
-        });
+        const value = event.target.value;
+        setMinInput(value);
+        setSelectedPreset(null); // Clear preset selection when manually typing
+        
+        // Allow empty input for better UX
+        if (value === '') {
+            return;
+        }
+        
+        const numValue = Number(value);
+        if (!Number.isNaN(numValue) && numValue >= 0) {
+            setPriceRange((prev) => {
+                const nextMin = clamp(numValue, DEFAULT_PRICE_MIN, prev.max - PRICE_STEP);
+                return { ...prev, min: nextMin };
+            });
+        }
     };
 
     const handleMaxInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-        const value = event.target.value === '' ? DEFAULT_PRICE_MAX : Number(event.target.value);
-        if (Number.isNaN(value)) return;
-        setPriceRange((prev) => {
-            const nextMax = clamp(value, prev.min + PRICE_STEP, DEFAULT_PRICE_MAX);
-            return { ...prev, max: nextMax };
-        });
+        const value = event.target.value;
+        setMaxInput(value);
+        setSelectedPreset(null); // Clear preset selection when manually typing
+        
+        // Allow empty input for better UX
+        if (value === '') {
+            return;
+        }
+        
+        const numValue = Number(value);
+        if (!Number.isNaN(numValue) && numValue >= 0) {
+            setPriceRange((prev) => {
+                const nextMax = clamp(numValue, prev.min + PRICE_STEP, DEFAULT_PRICE_MAX);
+                return { ...prev, max: nextMax };
+            });
+        }
     };
 
-    const apply = () => applyPriceRange(priceRange.min, priceRange.max);
-    const reset = () => resetPriceRange();
+    const handleMinBlur = () => {
+        const numValue = Number(minInput);
+        if (minInput === '' || Number.isNaN(numValue) || numValue < DEFAULT_PRICE_MIN) {
+            // Reset to current priceRange.min if invalid
+            setMinInput(priceRange.min.toString());
+        } else {
+            // Validate and clamp
+            setPriceRange((prev) => {
+                const nextMin = clamp(numValue, DEFAULT_PRICE_MIN, prev.max - PRICE_STEP);
+                setMinInput(nextMin.toString());
+                // Apply filter with updated values
+                applyPriceRange(nextMin, prev.max);
+                return { ...prev, min: nextMin };
+            });
+        }
+    };
 
-    const minPercent = getPercentage(priceRange.min);
-    const maxPercent = getPercentage(priceRange.max);
+    const handleMaxBlur = () => {
+        const numValue = Number(maxInput);
+        if (maxInput === '' || Number.isNaN(numValue) || numValue < DEFAULT_PRICE_MIN) {
+            // Reset to current priceRange.max if invalid
+            setMaxInput(priceRange.max.toString());
+        } else {
+            // Validate and clamp
+            setPriceRange((prev) => {
+                const nextMax = clamp(numValue, prev.min + PRICE_STEP, DEFAULT_PRICE_MAX);
+                setMaxInput(nextMax.toString());
+                // Apply filter with updated values
+                applyPriceRange(prev.min, nextMax);
+                return { ...prev, max: nextMax };
+            });
+        }
+    };
+
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            event.currentTarget.blur(); // Trigger blur which will apply the filter
+        }
+    };
+
+    const handleApply = () => {
+        applyPriceRange(priceRange.min, priceRange.max);
+    };
+
+    const handleReset = () => {
+        resetPriceRange();
+    };
 
     return (
-        <div className="mt-3 space-y-4">
-            <div className="flex items-center justify-between text-xs font-medium text-slate-500">
-                <span>{formatCurrency(priceRange.min)}</span>
-                <span>{formatCurrency(priceRange.max)}</span>
+        <div className="mt-3 space-y-3 sm:space-y-4">
+            {/* Predefined Price Range Buttons */}
+            <div className="flex flex-wrap gap-2">
+                {pricePresets.map((preset, index) => {
+                    const isSelected = selectedPreset === index.toString() || 
+                        (priceRange.min === preset.min && priceRange.max === preset.max && selectedPreset === null);
+                    return (
+                        <button
+                            key={index}
+                            type="button"
+                            onClick={() => handlePresetClick(preset, index)}
+                            className={`rounded-full px-3 py-1.5 text-[10px] font-medium transition sm:px-4 sm:py-2 sm:text-xs ${
+                                isSelected
+                                    ? 'bg-elvee-blue text-white shadow-sm'
+                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
+                        >
+                            {preset.label}
+                        </button>
+                    );
+                })}
             </div>
-            <div className="relative" ref={sliderRef}>
-                <div className="relative h-2 w-full rounded-full bg-slate-200">
-                    <div
-                        className="absolute h-2 rounded-full bg-feather-gold"
-                        style={{
-                            left: `${minPercent}%`,
-                            width: `${maxPercent - minPercent}%`,
-                        }}
-                    />
-                </div>
-                <input
-                    type="range"
-                    min={DEFAULT_PRICE_MIN}
-                    max={DEFAULT_PRICE_MAX}
-                    step={PRICE_STEP}
-                    value={priceRange.min}
-                    onChange={handleMinChange}
-                    onMouseDown={() => setActiveThumb('min')}
-                    onMouseUp={() => setActiveThumb(null)}
-                    onTouchStart={() => setActiveThumb('min')}
-                    onTouchEnd={() => setActiveThumb(null)}
-                    className="absolute top-0 h-2 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-feather-gold [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:hover:bg-warm-gold [&::-moz-range-thumb]:relative [&::-moz-range-thumb]:z-10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-feather-gold [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:hover:bg-warm-gold"
-                    style={{
-                        zIndex: activeThumb === 'min' ? 20 : 10,
-                    }}
-                />
-                <input
-                    type="range"
-                    min={DEFAULT_PRICE_MIN}
-                    max={DEFAULT_PRICE_MAX}
-                    step={PRICE_STEP}
-                    value={priceRange.max}
-                    onChange={handleMaxChange}
-                    onMouseDown={() => setActiveThumb('max')}
-                    onMouseUp={() => setActiveThumb(null)}
-                    onTouchStart={() => setActiveThumb('max')}
-                    onTouchEnd={() => setActiveThumb(null)}
-                    className="absolute top-0 h-2 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-feather-gold [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:hover:bg-warm-gold [&::-moz-range-thumb]:relative [&::-moz-range-thumb]:z-10 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-feather-gold [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:hover:scale-110 [&::-moz-range-thumb]:hover:bg-warm-gold"
-                    style={{
-                        zIndex: activeThumb === 'max' ? 20 : 10,
-                    }}
-                />
-            </div>
-            <div className="flex items-center gap-3">
+
+            {/* Instruction Text */}
+            <p className="text-[10px] text-slate-500 sm:text-xs">
+                For custom price range, use the input fields below
+            </p>
+
+            {/* Manual Price Range Input Fields */}
+            <div className="flex items-center gap-2 sm:gap-3">
                 <div className="flex-1">
-                    <label className="text-xs font-medium text-slate-500" htmlFor="price-min">
+                    <label className="text-[10px] font-medium text-slate-500 sm:text-xs" htmlFor="price-min">
                         Min
                     </label>
                     <input
                         id="price-min"
                         type="number"
-                        value={priceRange.min}
+                        value={minInput}
                         onChange={handleMinInputChange}
+                        onBlur={handleMinBlur}
+                        onKeyDown={handleKeyDown}
                         min={DEFAULT_PRICE_MIN}
                         max={priceRange.max}
                         step={PRICE_STEP}
-                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[10px] text-slate-700 placeholder:text-slate-400 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 sm:px-3 sm:py-2 sm:text-xs"
+                        placeholder="₹ Min"
                     />
                 </div>
+                <span className="mt-6 text-xs font-medium text-slate-500 sm:mt-7 sm:text-sm">TO</span>
                 <div className="flex-1">
-                    <label className="text-xs font-medium text-slate-500" htmlFor="price-max">
+                    <label className="text-[10px] font-medium text-slate-500 sm:text-xs" htmlFor="price-max">
                         Max
                     </label>
                     <input
                         id="price-max"
                         type="number"
-                        value={priceRange.max}
+                        value={maxInput}
                         onChange={handleMaxInputChange}
+                        onBlur={handleMaxBlur}
+                        onKeyDown={handleKeyDown}
                         min={priceRange.min}
                         max={DEFAULT_PRICE_MAX}
                         step={PRICE_STEP}
-                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20"
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-[10px] text-slate-700 placeholder:text-slate-400 focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 sm:px-3 sm:py-2 sm:text-xs"
+                        placeholder="₹ Max"
                     />
                 </div>
             </div>
+
+            {/* Action Buttons */}
             <div className="flex items-center gap-2">
                 <button
                     type="button"
-                    onClick={apply}
-                    className="flex-1 rounded-lg bg-elvee-blue px-4 py-2 text-sm font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy"
+                    onClick={handleApply}
+                    className="flex-1 rounded-lg bg-elvee-blue px-3 py-1.5 text-xs font-semibold text-white shadow-elvee-blue/30 transition hover:bg-navy sm:px-4 sm:py-2 sm:text-sm"
                 >
                     Apply
                 </button>
                 <button
                     type="button"
-                    onClick={reset}
-                    className="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                    onClick={handleReset}
+                    className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 sm:px-4 sm:py-2 sm:text-sm"
                 >
                     Reset
                 </button>
