@@ -201,11 +201,12 @@ export default function AdminMetalPuritiesIndex() {
         try {
             await adminService.bulkDeleteMetalPurities(selectedPurities);
             setSelectedPurities([]);
-            setBulkDeleteConfirm(false);
             await loadPurities();
         } catch (error: any) {
             console.error('Failed to delete metal purities:', error);
             toastError(error.response?.data?.message || 'Failed to delete metal purities. Please try again.');
+        } finally {
+            setBulkDeleteConfirm(false);
         }
     };
 
@@ -213,11 +214,12 @@ export default function AdminMetalPuritiesIndex() {
         if (deleteConfirm) {
             try {
                 await adminService.deleteMetalPurity(deleteConfirm.id);
-                setDeleteConfirm(null);
                 await loadPurities();
             } catch (error: any) {
                 console.error('Failed to delete metal purity:', error);
                 toastError(error.response?.data?.message || 'Failed to delete metal purity. Please try again.');
+            } finally {
+                setDeleteConfirm(null);
             }
         }
     };

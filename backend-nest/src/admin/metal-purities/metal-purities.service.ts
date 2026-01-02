@@ -190,6 +190,23 @@ export class MetalPuritiesService {
             }
         }
 
+        // Check if trying to pause/deactivate metal purity that is assigned to products
+        if (dto.is_active === false && existing.is_active === true) {
+            const purityId = BigInt(id);
+            const productsCount =
+                await this.prisma.product_variant_metals.count({
+                    where: {
+                        metal_purity_id: purityId,
+                    },
+                });
+
+            if (productsCount > 0) {
+                throw new BadRequestException(
+                    `Cannot pause this metal purity. It is currently assigned to ${productsCount} product(s). Please remove the metal purity from all products first, then pause the metal purity.`,
+                );
+            }
+        }
+
         const purity = await this.prisma.metal_purities.update({
             where: { id: BigInt(id) },
             data: {
@@ -220,16 +237,75 @@ export class MetalPuritiesService {
     }
 
     async remove(id: number) {
-        await this.findOne(id);
-        return await this.prisma.metal_purities.delete({
-            where: { id: BigInt(id) },
+        const purityId = BigInt(id);
+        const purity = await this.prisma.metal_purities.findUnique({
+            where: { id: purityId },
         });
+        if (!purity) throw new NotFoundException('Metal purity not found');
+
+        // Check if metal purity is assigned to products
+        const productsCount = await this.prisma.product_variant_metals.count({
+            where: {
+                metal_purity_id: purityId,
+            },
+        });
+
+        if (productsCount > 0) {
+            throw new BadRequestException(
+                `Cannot delete this metal purity. It is currently assigned to ${productsCount} product(s). Please remove the metal purity from all products first, then delete the metal purity.`,
+            );
+        }
+
+        await this.prisma.metal_purities.delete({
+            where: { id: purityId },
+        });
+        return {
+            success: true,
+            message: 'Metal purity deleted successfully',
+        };
     }
 
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.metal_purities.deleteMany({
+
+        // Check if any of the metal purities are assigned to products
+        const puritiesWithProducts =
+            await this.prisma.product_variant_metals.findMany({
+                where: {
+                    metal_purity_id: { in: bigIntIds },
+                },
+                select: {
+                    metal_purity_id: true,
+                },
+                distinct: ['metal_purity_id'],
+            });
+
+        if (puritiesWithProducts.length > 0) {
+            const purityIds = puritiesWithProducts
+                .map((p) => p.metal_purity_id)
+                .filter((id): id is bigint => id !== null);
+            const purityNames = await this.prisma.metal_purities.findMany({
+                where: {
+                    id: {
+                        in: purityIds,
+                    },
+                },
+                select: {
+                    name: true,
+                },
+            });
+            const purityNamesList = purityNames.map((p) => p.name).join(', ');
+            throw new BadRequestException(
+                `Cannot delete metal purity(ies): ${purityNamesList}. They are currently assigned to products. Please remove the metal purity(ies) from all products first, then delete the metal purity(ies).`,
+            );
+        }
+
+        await this.prisma.metal_purities.deleteMany({
             where: { id: { in: bigIntIds } },
         });
+        return {
+            success: true,
+            message: 'Metal purities deleted successfully',
+        };
     }
 }

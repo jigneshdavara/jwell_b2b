@@ -164,6 +164,37 @@ export class DiamondClaritiesService {
             }
         }
 
+        // Check if trying to pause/deactivate diamond clarity that is assigned to products
+        if (dto.is_active === false && existing.is_active === true) {
+            const clarityId = BigInt(id);
+            // Find all diamonds with this diamond_clarity_id
+            const diamonds = await this.prisma.diamonds.findMany({
+                where: {
+                    diamond_clarity_id: clarityId,
+                },
+                select: {
+                    id: true,
+                },
+            });
+
+            if (diamonds.length > 0) {
+                const diamondIds = diamonds.map((d) => d.id);
+                // Check if any of these diamonds are used in product variants
+                const productsCount =
+                    await this.prisma.product_variant_diamonds.count({
+                        where: {
+                            diamond_id: { in: diamondIds },
+                        },
+                    });
+
+                if (productsCount > 0) {
+                    throw new BadRequestException(
+                        `Cannot pause this diamond clarity. It is currently assigned to ${productsCount} product(s). Please remove the diamond clarity from all products first, then pause the diamond clarity.`,
+                    );
+                }
+            }
+        }
+
         await this.prisma.diamond_clarities.update({
             where: { id: BigInt(id) },
             data: {
@@ -186,22 +217,42 @@ export class DiamondClaritiesService {
     }
 
     async remove(id: number) {
-        await this.findOne(id);
+        const clarityId = BigInt(id);
+        const clarity = await this.prisma.diamond_clarities.findUnique({
+            where: { id: clarityId },
+        });
+        if (!clarity) throw new NotFoundException('Diamond clarity not found');
 
-        // Check if diamonds exist - if they do, prevent deletion
-        const diamondsCount = await this.prisma.diamonds.count({
-            where: { diamond_clarity_id: BigInt(id) },
+        // Find all diamonds with this diamond_clarity_id
+        const diamonds = await this.prisma.diamonds.findMany({
+            where: {
+                diamond_clarity_id: clarityId,
+            },
+            select: {
+                id: true,
+            },
         });
 
-        if (diamondsCount > 0) {
-            throw new BadRequestException(
-                'Cannot delete diamond clarity because it has associated diamonds. Please remove all diamonds first.',
-            );
+        if (diamonds.length > 0) {
+            const diamondIds = diamonds.map((d) => d.id);
+            // Check if any of these diamonds are used in product variants
+            const productsCount =
+                await this.prisma.product_variant_diamonds.count({
+                    where: {
+                        diamond_id: { in: diamondIds },
+                    },
+                });
+
+            if (productsCount > 0) {
+                throw new BadRequestException(
+                    `Cannot delete this diamond clarity. It is currently assigned to ${productsCount} product(s). Please remove the diamond clarity from all products first, then delete the diamond clarity.`,
+                );
+            }
         }
 
-        // If no diamonds exist, delete the clarity
+        // If no products use this clarity, delete it
         await this.prisma.diamond_clarities.delete({
-            where: { id: BigInt(id) },
+            where: { id: clarityId },
         });
         return {
             success: true,
@@ -210,61 +261,84 @@ export class DiamondClaritiesService {
     }
 
     async bulkRemove(ids: number[]) {
-        let deletedCount = 0;
-        let skippedCount = 0;
+        const claritiesWithProducts: bigint[] = [];
 
+        // Check all clarities for product assignments
         for (const id of ids) {
-            // Check if clarity exists
+            const clarityId = BigInt(id);
             const clarity = await this.prisma.diamond_clarities.findUnique({
-                where: { id: BigInt(id) },
+                where: { id: clarityId },
             });
 
             if (!clarity) {
                 continue;
             }
 
-            // Check if diamonds exist - if they do, skip deletion
-            const diamondsCount = await this.prisma.diamonds.count({
-                where: { diamond_clarity_id: BigInt(id) },
+            // Find all diamonds with this diamond_clarity_id
+            const diamonds = await this.prisma.diamonds.findMany({
+                where: {
+                    diamond_clarity_id: clarityId,
+                },
+                select: {
+                    id: true,
+                },
             });
 
-            if (diamondsCount > 0) {
-                skippedCount++;
+            if (diamonds.length > 0) {
+                const diamondIds = diamonds.map((d) => d.id);
+                // Check if any of these diamonds are used in product variants
+                const productsCount =
+                    await this.prisma.product_variant_diamonds.count({
+                        where: {
+                            diamond_id: { in: diamondIds },
+                        },
+                    });
+
+                if (productsCount > 0) {
+                    claritiesWithProducts.push(clarityId);
+                }
+            }
+        }
+
+        if (claritiesWithProducts.length > 0) {
+            const clarityNames = await this.prisma.diamond_clarities.findMany({
+                where: {
+                    id: { in: claritiesWithProducts },
+                },
+                select: {
+                    name: true,
+                },
+            });
+            const clarityNamesList = clarityNames.map((c) => c.name).join(', ');
+            throw new BadRequestException(
+                `Cannot delete diamond clarity(ies): ${clarityNamesList}. They are currently assigned to products. Please remove the diamond clarity(ies) from all products first, then delete the diamond clarity(ies).`,
+            );
+        }
+
+        let deletedCount = 0;
+
+        for (const id of ids) {
+            const clarityId = BigInt(id);
+            // Check if clarity exists
+            const clarity = await this.prisma.diamond_clarities.findUnique({
+                where: { id: clarityId },
+            });
+
+            if (!clarity) {
                 continue;
             }
 
-            // If no diamonds exist, delete the clarity
+            // If no products use this clarity, delete it
             await this.prisma.diamond_clarities.delete({
-                where: { id: BigInt(id) },
+                where: { id: clarityId },
             });
 
             deletedCount++;
         }
 
-        const messages: string[] = [];
-
-        if (deletedCount > 0) {
-            const plural = deletedCount === 1 ? 'y' : 'ies';
-            messages.push(
-                `${deletedCount} diamond clarit${plural} deleted successfully.`,
-            );
-        }
-
-        if (skippedCount > 0) {
-            const plural = skippedCount === 1 ? 'y' : 'ies';
-            const verb = skippedCount === 1 ? 'it has' : 'they have';
-            messages.push(
-                `${skippedCount} diamond clarit${plural} could not be deleted because ${verb} associated diamonds.`,
-            );
-        }
-
-        if (messages.length === 0) {
-            throw new BadRequestException('No diamond clarities were deleted.');
-        }
-
         return {
             success: true,
-            message: messages.join(' '),
+            message: `${deletedCount} diamond clarit${deletedCount === 1 ? 'y' : 'ies'} deleted successfully.`,
         };
     }
 }

@@ -234,11 +234,12 @@ export default function AdminBrandsPage() {
         if (deleteConfirm) {
             try {
                 await adminService.deleteBrand(deleteConfirm.id);
-                setDeleteConfirm(null);
                 await loadBrands();
             } catch (error: any) {
                 console.error('Failed to delete brand:', error);
                 toastError(error.response?.data?.message || 'Failed to delete brand. Please try again.');
+            } finally {
+                setDeleteConfirm(null);
             }
         }
     };
@@ -247,11 +248,12 @@ export default function AdminBrandsPage() {
         try {
             await adminService.bulkDeleteBrands(selectedBrands);
             setSelectedBrands([]);
-            setBulkDeleteConfirm(false);
             await loadBrands();
         } catch (error: any) {
             console.error('Failed to delete brands:', error);
             toastError(error.response?.data?.message || 'Failed to delete brands. Please try again.');
+        } finally {
+            setBulkDeleteConfirm(false);
         }
     };
 

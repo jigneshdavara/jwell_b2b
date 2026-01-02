@@ -172,11 +172,12 @@ export default function AdminStylesIndex() {
         try {
             await adminService.bulkDeleteStyles(selectedStyles);
             setSelectedStyles([]);
-            setBulkDeleteConfirm(false);
             await loadStyles();
         } catch (error: any) {
             console.error('Failed to delete styles:', error);
             toastError(error.response?.data?.message || 'Failed to delete styles. Please try again.');
+        } finally {
+            setBulkDeleteConfirm(false);
         }
     };
 
@@ -184,11 +185,12 @@ export default function AdminStylesIndex() {
         if (deleteConfirm) {
             try {
                 await adminService.deleteStyle(deleteConfirm.id);
-                setDeleteConfirm(null);
                 await loadStyles();
             } catch (error: any) {
                 console.error('Failed to delete style:', error);
                 toastError(error.response?.data?.message || 'Failed to delete style. Please try again.');
+            } finally {
+                setDeleteConfirm(null);
             }
         }
     };

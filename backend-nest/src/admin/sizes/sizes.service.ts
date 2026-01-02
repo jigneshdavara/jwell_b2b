@@ -82,6 +82,7 @@ export class SizesService {
 
     async update(id: number, dto: UpdateSizeDto) {
         const existing = await this.findOne(id);
+        const sizeId = BigInt(id);
 
         if (dto.name && dto.name !== existing.name) {
             const existingByName = await this.prisma.sizes.findUnique({
@@ -104,8 +105,23 @@ export class SizesService {
             }
         }
 
+        // Check if trying to pause/deactivate size that is assigned to products
+        if (dto.is_active === false && existing.is_active === true) {
+            const productsCount = await this.prisma.product_variants.count({
+                where: {
+                    size_id: sizeId,
+                },
+            });
+
+            if (productsCount > 0) {
+                throw new BadRequestException(
+                    `Cannot pause this size. It is currently assigned to ${productsCount} product(s). Please remove the size from all products first, then pause the size.`,
+                );
+            }
+        }
+
         await this.prisma.sizes.update({
-            where: { id: BigInt(id) },
+            where: { id: sizeId },
             data: {
                 code: dto.code,
                 name: dto.name,
@@ -121,26 +137,27 @@ export class SizesService {
     }
 
     async remove(id: number) {
-        const size = await this.findOne(id);
+        const sizeId = BigInt(id);
+        const size = await this.prisma.sizes.findUnique({
+            where: { id: sizeId },
+        });
+        if (!size) throw new NotFoundException('Size not found');
 
-        // Check if size is associated with any categories or products
-        const [categoryCount, variantCount] = await Promise.all([
-            this.prisma.category_sizes.count({
-                where: { size_id: size.id },
-            }),
-            this.prisma.product_variants.count({
-                where: { size_id: size.id },
-            }),
-        ]);
+        // Check if size is assigned to products
+        const productsCount = await this.prisma.product_variants.count({
+            where: {
+                size_id: sizeId,
+            },
+        });
 
-        if (categoryCount > 0 || variantCount > 0) {
+        if (productsCount > 0) {
             throw new BadRequestException(
-                'Cannot delete size because it is associated with categories or products.',
+                `Cannot delete this size. It is currently assigned to ${productsCount} product(s). Please remove the size from all products first, then delete the size.`,
             );
         }
 
         await this.prisma.sizes.delete({
-            where: { id: BigInt(id) },
+            where: { id: sizeId },
         });
         return {
             success: true,
@@ -151,26 +168,39 @@ export class SizesService {
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
 
-        const [associatedCategories, associatedVariants] = await Promise.all([
-            this.prisma.category_sizes.findMany({
-                where: { size_id: { in: bigIntIds } },
-                select: { size_id: true },
-            }),
-            this.prisma.product_variants.findMany({
-                where: { size_id: { in: bigIntIds } },
-                select: { size_id: true },
-            }),
-        ]);
+        // Check if any of the sizes are assigned to products
+        const sizesWithProducts = await this.prisma.product_variants.findMany({
+            where: {
+                size_id: { in: bigIntIds },
+            },
+            select: {
+                size_id: true,
+            },
+            distinct: ['size_id'],
+        });
 
-        const associatedIds = new Set([
-            ...associatedCategories.map((ac) => ac.size_id),
-            ...associatedVariants.map((av) => av.size_id),
-        ]);
-
-        const deletableIds = bigIntIds.filter((id) => !associatedIds.has(id));
+        if (sizesWithProducts.length > 0) {
+            const sizeIds = sizesWithProducts
+                .map((p) => p.size_id)
+                .filter((id): id is bigint => id !== null);
+            const sizeNames = await this.prisma.sizes.findMany({
+                where: {
+                    id: {
+                        in: sizeIds,
+                    },
+                },
+                select: {
+                    name: true,
+                },
+            });
+            const sizeNamesList = sizeNames.map((s) => s.name).join(', ');
+            throw new BadRequestException(
+                `Cannot delete size(s): ${sizeNamesList}. They are currently assigned to products. Please remove the size(s) from all products first, then delete the size(s).`,
+            );
+        }
 
         await this.prisma.sizes.deleteMany({
-            where: { id: { in: deletableIds } },
+            where: { id: { in: bigIntIds } },
         });
 
         return {

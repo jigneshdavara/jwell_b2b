@@ -168,6 +168,37 @@ export class DiamondColorsService {
             }
         }
 
+        // Check if trying to pause/deactivate diamond color that is assigned to products
+        if (dto.is_active === false && existing.is_active === true) {
+            const colorId = BigInt(id);
+            // Find all diamonds with this diamond_color_id
+            const diamonds = await this.prisma.diamonds.findMany({
+                where: {
+                    diamond_color_id: colorId,
+                },
+                select: {
+                    id: true,
+                },
+            });
+
+            if (diamonds.length > 0) {
+                const diamondIds = diamonds.map((d) => d.id);
+                // Check if any of these diamonds are used in product variants
+                const productsCount =
+                    await this.prisma.product_variant_diamonds.count({
+                        where: {
+                            diamond_id: { in: diamondIds },
+                        },
+                    });
+
+                if (productsCount > 0) {
+                    throw new BadRequestException(
+                        `Cannot pause this diamond color. It is currently assigned to ${productsCount} product(s). Please remove the diamond color from all products first, then pause the diamond color.`,
+                    );
+                }
+            }
+        }
+
         await this.prisma.diamond_colors.update({
             where: { id: BigInt(id) },
             data: {
@@ -188,22 +219,42 @@ export class DiamondColorsService {
     }
 
     async remove(id: number) {
-        await this.findOne(id);
+        const colorId = BigInt(id);
+        const color = await this.prisma.diamond_colors.findUnique({
+            where: { id: colorId },
+        });
+        if (!color) throw new NotFoundException('Diamond color not found');
 
-        // Check if diamonds exist - if they do, prevent deletion
-        const diamondsCount = await this.prisma.diamonds.count({
-            where: { diamond_color_id: BigInt(id) },
+        // Find all diamonds with this diamond_color_id
+        const diamonds = await this.prisma.diamonds.findMany({
+            where: {
+                diamond_color_id: colorId,
+            },
+            select: {
+                id: true,
+            },
         });
 
-        if (diamondsCount > 0) {
-            throw new BadRequestException(
-                'Cannot delete diamond color because it has associated diamonds. Please remove all diamonds first.',
-            );
+        if (diamonds.length > 0) {
+            const diamondIds = diamonds.map((d) => d.id);
+            // Check if any of these diamonds are used in product variants
+            const productsCount =
+                await this.prisma.product_variant_diamonds.count({
+                    where: {
+                        diamond_id: { in: diamondIds },
+                    },
+                });
+
+            if (productsCount > 0) {
+                throw new BadRequestException(
+                    `Cannot delete this diamond color. It is currently assigned to ${productsCount} product(s). Please remove the diamond color from all products first, then delete the diamond color.`,
+                );
+            }
         }
 
-        // If no diamonds exist, delete the color
+        // If no products use this color, delete it
         await this.prisma.diamond_colors.delete({
-            where: { id: BigInt(id) },
+            where: { id: colorId },
         });
         return {
             success: true,
@@ -212,61 +263,84 @@ export class DiamondColorsService {
     }
 
     async bulkRemove(ids: number[]) {
-        let deletedCount = 0;
-        let skippedCount = 0;
+        const colorsWithProducts: bigint[] = [];
 
+        // Check all colors for product assignments
         for (const id of ids) {
-            // Check if color exists
+            const colorId = BigInt(id);
             const color = await this.prisma.diamond_colors.findUnique({
-                where: { id: BigInt(id) },
+                where: { id: colorId },
             });
 
             if (!color) {
                 continue;
             }
 
-            // Check if diamonds exist - if they do, skip deletion
-            const diamondsCount = await this.prisma.diamonds.count({
-                where: { diamond_color_id: BigInt(id) },
+            // Find all diamonds with this diamond_color_id
+            const diamonds = await this.prisma.diamonds.findMany({
+                where: {
+                    diamond_color_id: colorId,
+                },
+                select: {
+                    id: true,
+                },
             });
 
-            if (diamondsCount > 0) {
-                skippedCount++;
+            if (diamonds.length > 0) {
+                const diamondIds = diamonds.map((d) => d.id);
+                // Check if any of these diamonds are used in product variants
+                const productsCount =
+                    await this.prisma.product_variant_diamonds.count({
+                        where: {
+                            diamond_id: { in: diamondIds },
+                        },
+                    });
+
+                if (productsCount > 0) {
+                    colorsWithProducts.push(colorId);
+                }
+            }
+        }
+
+        if (colorsWithProducts.length > 0) {
+            const colorNames = await this.prisma.diamond_colors.findMany({
+                where: {
+                    id: { in: colorsWithProducts },
+                },
+                select: {
+                    name: true,
+                },
+            });
+            const colorNamesList = colorNames.map((c) => c.name).join(', ');
+            throw new BadRequestException(
+                `Cannot delete diamond color(s): ${colorNamesList}. They are currently assigned to products. Please remove the diamond color(s) from all products first, then delete the diamond color(s).`,
+            );
+        }
+
+        let deletedCount = 0;
+
+        for (const id of ids) {
+            const colorId = BigInt(id);
+            // Check if color exists
+            const color = await this.prisma.diamond_colors.findUnique({
+                where: { id: colorId },
+            });
+
+            if (!color) {
                 continue;
             }
 
-            // If no diamonds exist, delete the color
+            // If no products use this color, delete it
             await this.prisma.diamond_colors.delete({
-                where: { id: BigInt(id) },
+                where: { id: colorId },
             });
 
             deletedCount++;
         }
 
-        const messages: string[] = [];
-
-        if (deletedCount > 0) {
-            const plural = deletedCount === 1 ? '' : 's';
-            messages.push(
-                `${deletedCount} diamond color${plural} deleted successfully.`,
-            );
-        }
-
-        if (skippedCount > 0) {
-            const plural = skippedCount === 1 ? '' : 's';
-            const verb = skippedCount === 1 ? 'it has' : 'they have';
-            messages.push(
-                `${skippedCount} diamond color${plural} could not be deleted because ${verb} associated diamonds.`,
-            );
-        }
-
-        if (messages.length === 0) {
-            throw new BadRequestException('No diamond colors were deleted.');
-        }
-
         return {
             success: true,
-            message: messages.join(' '),
+            message: `${deletedCount} diamond color${deletedCount === 1 ? '' : 's'} deleted successfully.`,
         };
     }
 }

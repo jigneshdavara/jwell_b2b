@@ -243,13 +243,13 @@ export default function AdminDiamondClaritiesIndex() {
         if (deleteConfirm) {
             try {
                 await adminService.deleteDiamondClarity(deleteConfirm.id);
-                setDeleteConfirm(null);
                 toastSuccess('Diamond clarity deleted successfully.');
                 await loadClarities();
             } catch (error: any) {
                 console.error('Failed to delete diamond clarity:', error);
-                setDeleteConfirm(null);
                 toastError(error.response?.data?.message || 'Failed to delete diamond clarity. Please try again.');
+            } finally {
+                setDeleteConfirm(null);
             }
         }
     };
@@ -265,14 +265,14 @@ export default function AdminDiamondClaritiesIndex() {
         try {
             const response = await adminService.bulkDeleteDiamondClarities(selectedClarities);
             setSelectedClarities([]);
-            setBulkDeleteConfirm(false);
             const message = response.data?.message || `${selectedClarities.length} diamond clarit${selectedClarities.length === 1 ? 'y' : 'ies'} deleted successfully.`;
             toastSuccess(message);
             await loadClarities();
         } catch (error: any) {
             console.error('Failed to bulk delete diamond clarities:', error);
-            setBulkDeleteConfirm(false);
             toastError(error.response?.data?.message || 'Failed to delete diamond clarities. Please try again.');
+        } finally {
+            setBulkDeleteConfirm(false);
         }
     };
 

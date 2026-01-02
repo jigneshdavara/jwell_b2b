@@ -187,6 +187,23 @@ export class MetalTonesService {
             }
         }
 
+        // Check if trying to pause/deactivate metal tone that is assigned to products
+        if (dto.is_active === false && existing.is_active === true) {
+            const toneId = BigInt(id);
+            const productsCount =
+                await this.prisma.product_variant_metals.count({
+                    where: {
+                        metal_tone_id: toneId,
+                    },
+                });
+
+            if (productsCount > 0) {
+                throw new BadRequestException(
+                    `Cannot pause this metal tone. It is currently assigned to ${productsCount} product(s). Please remove the metal tone from all products first, then pause the metal tone.`,
+                );
+            }
+        }
+
         await this.prisma.metal_tones.update({
             where: { id: BigInt(id) },
             data: {
@@ -210,16 +227,75 @@ export class MetalTonesService {
     }
 
     async remove(id: number) {
-        await this.findOne(id);
-        return await this.prisma.metal_tones.delete({
-            where: { id: BigInt(id) },
+        const toneId = BigInt(id);
+        const tone = await this.prisma.metal_tones.findUnique({
+            where: { id: toneId },
         });
+        if (!tone) throw new NotFoundException('Metal tone not found');
+
+        // Check if metal tone is assigned to products
+        const productsCount = await this.prisma.product_variant_metals.count({
+            where: {
+                metal_tone_id: toneId,
+            },
+        });
+
+        if (productsCount > 0) {
+            throw new BadRequestException(
+                `Cannot delete this metal tone. It is currently assigned to ${productsCount} product(s). Please remove the metal tone from all products first, then delete the metal tone.`,
+            );
+        }
+
+        await this.prisma.metal_tones.delete({
+            where: { id: toneId },
+        });
+        return {
+            success: true,
+            message: 'Metal tone deleted successfully',
+        };
     }
 
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.metal_tones.deleteMany({
+
+        // Check if any of the metal tones are assigned to products
+        const tonesWithProducts =
+            await this.prisma.product_variant_metals.findMany({
+                where: {
+                    metal_tone_id: { in: bigIntIds },
+                },
+                select: {
+                    metal_tone_id: true,
+                },
+                distinct: ['metal_tone_id'],
+            });
+
+        if (tonesWithProducts.length > 0) {
+            const toneIds = tonesWithProducts
+                .map((p) => p.metal_tone_id)
+                .filter((id): id is bigint => id !== null);
+            const toneNames = await this.prisma.metal_tones.findMany({
+                where: {
+                    id: {
+                        in: toneIds,
+                    },
+                },
+                select: {
+                    name: true,
+                },
+            });
+            const toneNamesList = toneNames.map((t) => t.name).join(', ');
+            throw new BadRequestException(
+                `Cannot delete metal tone(s): ${toneNamesList}. They are currently assigned to products. Please remove the metal tone(s) from all products first, then delete the metal tone(s).`,
+            );
+        }
+
+        await this.prisma.metal_tones.deleteMany({
             where: { id: { in: bigIntIds } },
         });
+        return {
+            success: true,
+            message: 'Metal tones deleted successfully',
+        };
     }
 }

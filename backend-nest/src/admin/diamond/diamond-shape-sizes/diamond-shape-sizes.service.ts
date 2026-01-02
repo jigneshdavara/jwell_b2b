@@ -117,22 +117,43 @@ export class DiamondShapeSizesService {
     }
 
     async remove(id: number) {
-        await this.findOne(id);
+        const shapeSizeId = BigInt(id);
+        const shapeSize = await this.prisma.diamond_shape_sizes.findUnique({
+            where: { id: shapeSizeId },
+        });
+        if (!shapeSize)
+            throw new NotFoundException('Diamond shape size not found');
 
-        // Check if diamonds exist - if they do, prevent deletion
-        const diamondsCount = await this.prisma.diamonds.count({
-            where: { diamond_shape_size_id: BigInt(id) },
+        // Find all diamonds with this diamond_shape_size_id
+        const diamonds = await this.prisma.diamonds.findMany({
+            where: {
+                diamond_shape_size_id: shapeSizeId,
+            },
+            select: {
+                id: true,
+            },
         });
 
-        if (diamondsCount > 0) {
-            throw new BadRequestException(
-                'Cannot delete diamond shape size because it has associated diamonds. Please remove all diamonds first.',
-            );
+        if (diamonds.length > 0) {
+            const diamondIds = diamonds.map((d) => d.id);
+            // Check if any of these diamonds are used in product variants
+            const productsCount =
+                await this.prisma.product_variant_diamonds.count({
+                    where: {
+                        diamond_id: { in: diamondIds },
+                    },
+                });
+
+            if (productsCount > 0) {
+                throw new BadRequestException(
+                    `Cannot delete this diamond shape size. It is currently assigned to ${productsCount} product(s). Please remove the diamond shape size from all products first, then delete the diamond shape size.`,
+                );
+            }
         }
 
-        // If no diamonds exist, delete the shape size
+        // If no products use this shape size, delete it
         await this.prisma.diamond_shape_sizes.delete({
-            where: { id: BigInt(id) },
+            where: { id: shapeSizeId },
         });
         return {
             success: true,
@@ -141,61 +162,87 @@ export class DiamondShapeSizesService {
     }
 
     async bulkRemove(ids: number[]) {
-        let deletedCount = 0;
-        let skippedCount = 0;
+        const shapeSizesWithProducts: bigint[] = [];
 
+        // Check all shape sizes for product assignments
         for (const id of ids) {
-            // Check if shape size exists
+            const shapeSizeId = BigInt(id);
             const shapeSize = await this.prisma.diamond_shape_sizes.findUnique({
-                where: { id: BigInt(id) },
+                where: { id: shapeSizeId },
             });
 
             if (!shapeSize) {
                 continue;
             }
 
-            // Check if diamonds exist - if they do, skip deletion
-            const diamondsCount = await this.prisma.diamonds.count({
-                where: { diamond_shape_size_id: BigInt(id) },
+            // Find all diamonds with this diamond_shape_size_id
+            const diamonds = await this.prisma.diamonds.findMany({
+                where: {
+                    diamond_shape_size_id: shapeSizeId,
+                },
+                select: {
+                    id: true,
+                },
             });
 
-            if (diamondsCount > 0) {
-                skippedCount++;
+            if (diamonds.length > 0) {
+                const diamondIds = diamonds.map((d) => d.id);
+                // Check if any of these diamonds are used in product variants
+                const productsCount =
+                    await this.prisma.product_variant_diamonds.count({
+                        where: {
+                            diamond_id: { in: diamondIds },
+                        },
+                    });
+
+                if (productsCount > 0) {
+                    shapeSizesWithProducts.push(shapeSizeId);
+                }
+            }
+        }
+
+        if (shapeSizesWithProducts.length > 0) {
+            const shapeSizeNames =
+                await this.prisma.diamond_shape_sizes.findMany({
+                    where: {
+                        id: { in: shapeSizesWithProducts },
+                    },
+                    select: {
+                        size: true,
+                    },
+                });
+            const shapeSizeNamesList = shapeSizeNames
+                .map((s) => s.size)
+                .join(', ');
+            throw new BadRequestException(
+                `Cannot delete diamond shape size(s): ${shapeSizeNamesList}. They are currently assigned to products. Please remove the diamond shape size(s) from all products first, then delete the diamond shape size(s).`,
+            );
+        }
+
+        let deletedCount = 0;
+
+        for (const id of ids) {
+            const shapeSizeId = BigInt(id);
+            // Check if shape size exists
+            const shapeSize = await this.prisma.diamond_shape_sizes.findUnique({
+                where: { id: shapeSizeId },
+            });
+
+            if (!shapeSize) {
                 continue;
             }
 
-            // If no diamonds exist, delete the shape size
+            // If no products use this shape size, delete it
             await this.prisma.diamond_shape_sizes.delete({
-                where: { id: BigInt(id) },
+                where: { id: shapeSizeId },
             });
 
             deletedCount++;
         }
 
-        const messages: string[] = [];
-
-        if (deletedCount > 0) {
-            const plural = deletedCount === 1 ? '' : 's';
-            messages.push(
-                `${deletedCount} diamond shape size${plural} deleted successfully.`,
-            );
-        }
-
-        if (skippedCount > 0) {
-            messages.push(
-                `${skippedCount} diamond shape size(s) could not be deleted because they have associated diamonds.`,
-            );
-        }
-
-        if (messages.length === 0) {
-            throw new BadRequestException(
-                'No diamond shape sizes were deleted.',
-            );
-        }
-
         return {
             success: true,
-            message: messages.join(' '),
+            message: `${deletedCount} diamond shape size${deletedCount === 1 ? '' : 's'} deleted successfully.`,
         };
     }
 }

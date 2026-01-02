@@ -201,11 +201,12 @@ export default function AdminMetalTonesIndex() {
         try {
             await adminService.bulkDeleteMetalTones(selectedTones);
             setSelectedTones([]);
-            setBulkDeleteConfirm(false);
             await loadTones();
         } catch (error: any) {
             console.error('Failed to delete metal tones:', error);
             toastError(error.response?.data?.message || 'Failed to delete metal tones. Please try again.');
+        } finally {
+            setBulkDeleteConfirm(false);
         }
     };
 
@@ -213,11 +214,12 @@ export default function AdminMetalTonesIndex() {
         if (deleteConfirm) {
             try {
                 await adminService.deleteMetalTone(deleteConfirm.id);
-                setDeleteConfirm(null);
                 await loadTones();
             } catch (error: any) {
                 console.error('Failed to delete metal tone:', error);
                 toastError(error.response?.data?.message || 'Failed to delete metal tone. Please try again.');
+            } finally {
+                setDeleteConfirm(null);
             }
         }
     };

@@ -176,11 +176,12 @@ export default function AdminMetalsPage() {
         if (deleteConfirm) {
             try {
                 await adminService.deleteMetal(deleteConfirm.id);
-                setDeleteConfirm(null);
                 await loadMetals();
             } catch (error: any) {
                 console.error('Failed to delete metal:', error);
                 toastError(error.response?.data?.message || 'Failed to delete metal. Please try again.');
+            } finally {
+                setDeleteConfirm(null);
             }
         }
     };
@@ -189,11 +190,12 @@ export default function AdminMetalsPage() {
         try {
             await adminService.bulkDeleteMetals(selectedMetals);
             setSelectedMetals([]);
-            setBulkDeleteConfirm(false);
             await loadMetals();
         } catch (error: any) {
             console.error('Failed to delete metals:', error);
             toastError(error.response?.data?.message || 'Failed to delete metals. Please try again.');
+        } finally {
+            setBulkDeleteConfirm(false);
         }
     };
 

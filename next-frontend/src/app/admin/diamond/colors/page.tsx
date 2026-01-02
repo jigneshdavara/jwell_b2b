@@ -243,13 +243,13 @@ export default function AdminDiamondColorsIndex() {
         if (deleteConfirm) {
             try {
                 await adminService.deleteDiamondColor(deleteConfirm.id);
-                setDeleteConfirm(null);
                 toastSuccess('Diamond color deleted successfully.');
                 await loadColors();
             } catch (error: any) {
                 console.error('Failed to delete diamond color:', error);
-                setDeleteConfirm(null);
                 toastError(error.response?.data?.message || 'Failed to delete diamond color. Please try again.');
+            } finally {
+                setDeleteConfirm(null);
             }
         }
     };
@@ -265,14 +265,14 @@ export default function AdminDiamondColorsIndex() {
         try {
             const response = await adminService.bulkDeleteDiamondColors(selectedColors);
             setSelectedColors([]);
-            setBulkDeleteConfirm(false);
             const message = response.data?.message || `${selectedColors.length} diamond color${selectedColors.length === 1 ? '' : 's'} deleted successfully.`;
             toastSuccess(message);
             await loadColors();
         } catch (error: any) {
             console.error('Failed to bulk delete diamond colors:', error);
-            setBulkDeleteConfirm(false);
             toastError(error.response?.data?.message || 'Failed to delete diamond colors. Please try again.');
+        } finally {
+            setBulkDeleteConfirm(false);
         }
     };
 
