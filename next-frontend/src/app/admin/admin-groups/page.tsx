@@ -450,7 +450,10 @@ export default function AdminAdminGroupsPage() {
             setAssignCurrentPage(page);
             setAssignAdminsMeta(meta);
             setAssignAdmins(newAdmins);
-            setAssignSelectedIds(selectedIds);
+            // Only update assignSelectedIds on initial load, preserve user selections during pagination
+            if (isInitialLoad) {
+                setAssignSelectedIds(selectedIds);
+            }
             
             // Scroll table to top after state updates
             setTimeout(() => {

@@ -392,16 +392,10 @@ export default function AdminCatalogsIndex() {
             setAssignProductsMeta(meta);
             setAssignProducts(data.products || []);
             
-            // Preserve selections - merge with existing selected IDs
-            setAssignSelectedIds((prev) => {
-                const newIds = [...prev];
-                data.selectedProductIds?.forEach((id: number) => {
-                    if (!newIds.includes(id)) {
-                        newIds.push(id);
-                    }
-                });
-                return newIds;
-            });
+            // Only update assignSelectedIds on initial load, preserve user selections during pagination
+            if (isInitialLoad) {
+                setAssignSelectedIds(data.selectedProductIds || []);
+            }
             
             // Scroll table to top after state updates
             setTimeout(() => {
