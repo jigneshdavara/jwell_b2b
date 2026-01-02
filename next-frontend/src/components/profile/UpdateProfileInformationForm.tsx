@@ -9,7 +9,7 @@ import { useState, FormEventHandler, useEffect } from 'react';
 import { frontendService } from '@/services/frontendService';
 import { authService } from '@/services/authService';
 import { useRouter } from 'next/navigation';
-import { toastSuccess, toastError } from '@/utils/toast';
+import { toastError } from '@/utils/toast';
 
 const languageOptions = [
     { value: 'en', label: 'English' },
@@ -69,7 +69,6 @@ export default function UpdateProfileInformationForm({
             });
 
             setRecentlySuccessful(true);
-            toastSuccess('Profile updated successfully.');
             setTimeout(() => setRecentlySuccessful(false), 2000);
             
             // Refresh the page to get updated user data

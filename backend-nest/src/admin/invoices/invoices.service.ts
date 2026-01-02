@@ -1,6 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateInvoiceDto, UpdateInvoiceDto, InvoiceFilterDto, InvoiceStatus } from './dto/invoice.dto';
+import {
+    CreateInvoiceDto,
+    UpdateInvoiceDto,
+    InvoiceFilterDto,
+    InvoiceStatus,
+} from './dto/invoice.dto';
 import { InvoiceGenerationService } from './invoice-generation.service';
 import { MailService } from '../../common/mail/mail.service';
 
@@ -80,14 +89,18 @@ export class InvoicesService {
         });
 
         if (existingInvoice) {
-            throw new BadRequestException('Invoice already exists for this order');
+            throw new BadRequestException(
+                'Invoice already exists for this order',
+            );
         }
 
         // Generate invoice number
         const invoiceNumber = await this.generateInvoiceNumber();
 
         // Set issue date to today if not provided
-        const issueDate = dto.issue_date ? new Date(dto.issue_date) : new Date();
+        const issueDate = dto.issue_date
+            ? new Date(dto.issue_date)
+            : new Date();
 
         // Set due date (default: 30 days from issue date)
         const dueDate = dto.due_date
@@ -311,7 +324,9 @@ export class InvoicesService {
         }
 
         const oldStatus = invoice.status;
-        const isBeingSent = dto.status === InvoiceStatus.SENT && oldStatus !== InvoiceStatus.SENT;
+        const isBeingSent =
+            dto.status === InvoiceStatus.SENT &&
+            oldStatus !== InvoiceStatus.SENT;
 
         const updateData: any = {};
 
@@ -402,9 +417,7 @@ export class InvoicesService {
 
         // Only allow deletion of draft invoices
         if (invoice.status !== InvoiceStatus.DRAFT) {
-            throw new BadRequestException(
-                'Only draft invoices can be deleted',
-            );
+            throw new BadRequestException('Only draft invoices can be deleted');
         }
 
         await this.prisma.invoices.delete({
@@ -590,9 +603,13 @@ export class InvoicesService {
         const formattedInvoice = {
             ...invoice,
             total_amount: this.formatCurrency(invoice.total_amount.toString()),
-            subtotal_amount: this.formatCurrency(invoice.subtotal_amount.toString()),
+            subtotal_amount: this.formatCurrency(
+                invoice.subtotal_amount.toString(),
+            ),
             tax_amount: this.formatCurrency(invoice.tax_amount.toString()),
-            discount_amount: this.formatCurrency(invoice.discount_amount.toString()),
+            discount_amount: this.formatCurrency(
+                invoice.discount_amount.toString(),
+            ),
             issue_date: invoice.issue_date
                 ? new Date(invoice.issue_date).toLocaleDateString('en-IN', {
                       year: 'numeric',
@@ -616,6 +633,15 @@ export class InvoicesService {
             })),
         };
 
+        // Generate PDF attachment
+        let pdfBuffer: Buffer | null = null;
+        try {
+            pdfBuffer = await this.generatePdf(BigInt(invoiceId));
+        } catch (error) {
+            console.error('Failed to generate PDF for invoice email:', error);
+            // Continue sending email without PDF attachment if generation fails
+        }
+
         await this.mailService.sendMail({
             to: invoice.orders.users.email,
             subject,
@@ -627,6 +653,15 @@ export class InvoicesService {
                 subject,
                 brandName,
             },
+            attachments: pdfBuffer
+                ? [
+                      {
+                          filename: `invoice-${invoice.invoice_number}.pdf`,
+                          content: pdfBuffer,
+                          contentType: 'application/pdf',
+                      },
+                  ]
+                : [],
         });
     }
 
@@ -644,4 +679,3 @@ export class InvoicesService {
         }).format(numAmount);
     }
 }
-
