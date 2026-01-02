@@ -95,6 +95,9 @@ apiClient.interceptors.request.use(
 
             if (!token && !isKycEndpoint(config.url || "") && !isOnHomePage) {
                 token = await tokenService.refreshToken();
+                // If refresh token returns null, token was removed due to error
+                // The request will proceed without token and fail with 401,
+                // which will be handled by the response interceptor
             }
 
             if (token) {
@@ -164,14 +167,17 @@ apiClient.interceptors.response.use(
             }
 
             // Check if this is a refresh-token request itself
-            // If refresh-token fails, we should redirect immediately (no retry loop)
+            // If refresh-token fails with ANY error, we should redirect immediately (no retry loop)
             const requestUrl = originalRequest?.url || "";
             const isRefreshTokenRequest =
                 requestUrl.includes("/auth/refresh-token") ||
                 requestUrl.includes("refresh-token");
 
-            // If this is a refresh-token request that failed, redirect immediately
+            // If this is a refresh-token request that failed with ANY error, redirect immediately
             if (isRefreshTokenRequest) {
+                // Ensure token is removed (tokenService.refreshToken() should have already removed it, but ensure it's removed)
+                tokenService.removeToken();
+
                 if (typeof window !== "undefined") {
                     const currentPath = window.location.pathname;
                     const publicPaths = [
@@ -188,7 +194,6 @@ apiClient.interceptors.response.use(
                             currentPath.startsWith(path)
                         )
                     ) {
-                        tokenService.removeToken();
                         // Use replace to prevent back button navigation
                         window.location.replace("/login");
                         // Return a promise that never resolves to prevent further processing
@@ -211,14 +216,20 @@ apiClient.interceptors.response.use(
                         originalRequest.headers.Authorization = `Bearer ${newToken}`;
                         return apiClient(originalRequest);
                     } else {
-                        // No token returned from refresh - redirect to login
-                        throw new Error("Token refresh returned no token");
+                        // No token returned from refresh - token was removed due to error
+                        // Redirect to login
+                        throw new Error(
+                            "Token refresh failed - no token returned"
+                        );
                     }
-                } catch (refreshError) {
-                    // Refresh failed - redirect to login ONLY if:
+                } catch (refreshError: any) {
+                    // Refresh failed - ensure token is removed and redirect to login
+                    // ONLY if:
                     // 1. Not on home page (/)
                     // 2. Not on other public paths
                     // This ensures home page is always accessible and never redirected to login
+                    tokenService.removeToken(); // Ensure token is removed
+
                     if (!isOnHomePage && typeof window !== "undefined") {
                         const currentPath = window.location.pathname;
                         const publicPaths = [
@@ -236,7 +247,6 @@ apiClient.interceptors.response.use(
                                 currentPath.startsWith(path)
                             )
                         ) {
-                            tokenService.removeToken();
                             // Use replace to prevent back button navigation
                             window.location.replace("/login");
                             // Return a promise that never resolves to prevent further processing

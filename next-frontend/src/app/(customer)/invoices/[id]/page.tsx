@@ -10,7 +10,7 @@ import { Invoice } from '@/types/invoice';
 import PrimaryButton from '@/components/ui/PrimaryButton';
 import { formatCurrency } from '@/utils/formatting';
 import { route } from '@/utils/route';
-import { getMediaUrlNullable } from '@/utils/mediaUrl';
+import { getMediaUrl } from '@/utils/mediaUrl';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
     style: 'currency',
