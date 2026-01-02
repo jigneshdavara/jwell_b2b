@@ -89,6 +89,10 @@ export default function AuthenticatedLayout({
                 if (typeof window !== 'undefined' && (window as any).__isLoggingOut === true) {
                     return;
                 }
+                // Don't redirect to login if we're on KYC onboarding page (user just registered)
+                if (pathname === '/onboarding/kyc' || pathname?.startsWith('/onboarding/kyc')) {
+                    return;
+                }
                 router.push('/login');
             });
         }

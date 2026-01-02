@@ -98,7 +98,9 @@ export default function RegisterPage() {
 
     try {
       await authService.register(data);
-      // Redirect to KYC onboarding after registration (matching Laravel behavior)
+      // Wait a bit to ensure token is stored before redirecting
+      await new Promise(resolve => setTimeout(resolve, 100));
+      // Redirect to KYC onboarding after registration
       router.push("/onboarding/kyc");
     } catch (error: any) {
       if (error.response?.data?.errors) {
@@ -596,7 +598,7 @@ export default function RegisterPage() {
               )}
 
               <PrimaryButton
-                className="w-full gap-2 sm:min-w-[200px]"
+                className="min-w-[200px] gap-2"
                 disabled={processing}
               >
                 <span>{processing ? "Submitting..." : nextLabel}</span>

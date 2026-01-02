@@ -65,7 +65,13 @@ export default function Login() {
             } else if (userType === 'production') {
                 redirectUrl = route('production.dashboard');
             } else {
-                redirectUrl = route('dashboard');
+                // For customer users, check KYC status
+                const kycStatus = user?.kyc_status || user?.kycStatus;
+                if (kycStatus === 'approved') {
+                    redirectUrl = route('dashboard');
+                } else {
+                    redirectUrl = '/onboarding/kyc';
+                }
             }
             
             // Use window.location.href for full page reload to ensure auth state is properly refreshed
@@ -123,7 +129,13 @@ export default function Login() {
             } else if (userType === 'production') {
                 redirectUrl = route('production.dashboard');
             } else {
-                redirectUrl = route('dashboard');
+                // For customer users, check KYC status
+                const kycStatus = user?.kyc_status || user?.kycStatus;
+                if (kycStatus === 'approved') {
+                    redirectUrl = route('dashboard');
+                } else {
+                    redirectUrl = '/onboarding/kyc';
+                }
             }
             
             // Use window.location.href for full page reload to ensure auth state is properly refreshed

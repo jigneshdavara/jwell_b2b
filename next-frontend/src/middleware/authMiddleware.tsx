@@ -3,11 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { tokenService } from '@/services/tokenService';
+import { authService } from '@/services/authService';
+import { route } from '@/utils/route';
 
 /**
  * Auth Middleware Component
  * Protects routes by checking token on mount and page changes
  * Redirects to login if token is invalid or missing
+ * For public paths (login, register, etc.), redirects to dashboard if already authenticated
  */
 export function AuthMiddleware({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -27,17 +30,72 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
     '/confirm-password',
   ];
 
+  // Special paths that require authentication but allow unapproved KYC users
+  const authenticatedPaths = [
+    '/onboarding/kyc',
+  ];
+
   const isPublicPath = publicPaths.some(path => pathname === path || (path !== '/' && pathname.startsWith(path)));
+  const isAuthenticatedPath = authenticatedPaths.some(path => pathname === path || pathname.startsWith(path));
 
   useEffect(() => {
     const checkAuth = async () => {
-      // Allow public paths
+      // For public paths, check if user is already authenticated and redirect if so
       if (isPublicPath) {
-        setIsAuthenticated(true);
-        setIsLoading(false);
+        try {
+          // Check if token exists
+          if (tokenService.hasToken()) {
+            // Try to refresh token and get user data
+            const token = await tokenService.refreshToken();
+            
+            if (token) {
+              // Token is valid, get user data to determine redirect
+              try {
+                const response = await authService.me();
+                const user = response.data;
+
+                if (user) {
+                  const userType = (user?.type || '').toLowerCase();
+                  
+                  // Determine redirect URL based on user type and KYC status
+                  let redirectUrl: string;
+                  if (['admin', 'super-admin'].includes(userType)) {
+                    redirectUrl = route('admin.dashboard');
+                  } else if (userType === 'production') {
+                    redirectUrl = route('production.dashboard');
+                  } else {
+                    // For customer users, check KYC status
+                    const kycStatus = user?.kyc_status || user?.kycStatus;
+                    if (kycStatus === 'approved') {
+                      redirectUrl = route('dashboard');
+                    } else {
+                      redirectUrl = '/onboarding/kyc';
+                    }
+                  }
+                  
+                  // Redirect to appropriate page
+                  router.replace(redirectUrl);
+                  return;
+                }
+              } catch (error) {
+                // User fetch failed, token might be invalid - allow access to auth page
+                console.error('Failed to fetch user:', error);
+              }
+            }
+          }
+          
+          // No token or invalid token - allow access to public path
+          setIsAuthenticated(true);
+          setIsLoading(false);
+        } catch (error) {
+          // Error checking auth - allow access to public path
+          setIsAuthenticated(true);
+          setIsLoading(false);
+        }
         return;
       }
 
+      // For protected paths (including authenticated paths like KYC onboarding), check authentication
       try {
         // Check if token exists
         if (!tokenService.hasToken()) {
@@ -46,7 +104,15 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Refresh token (this validates and gets a new token)
+        // For authenticated paths (like KYC onboarding), allow access if token exists
+        // Don't try to refresh token for newly registered users - just allow access
+        if (isAuthenticatedPath) {
+          setIsAuthenticated(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // For other protected paths, refresh token (this validates and gets a new token)
         const token = await tokenService.refreshToken();
         
         if (!token) {
@@ -59,6 +125,12 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
         setIsAuthenticated(true);
       } catch (error) {
         console.error('Auth check failed:', error);
+        // For authenticated paths (like KYC), allow access even if check fails (user just registered)
+        if (isAuthenticatedPath) {
+          setIsAuthenticated(true);
+          setIsLoading(false);
+          return;
+        }
         router.push('/login');
       } finally {
         setIsLoading(false);
@@ -66,7 +138,7 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
     };
 
     checkAuth();
-  }, [pathname, router, isPublicPath]);
+  }, [pathname, router, isPublicPath, isAuthenticatedPath]);
 
   // Show loading state while checking auth
   if (isLoading) {
@@ -78,7 +150,8 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
   }
 
   // Don't render children if not authenticated (will redirect)
-  if (!isAuthenticated && !isPublicPath) {
+  // Allow authenticated paths (like KYC) even if not fully authenticated (token exists but refresh might fail)
+  if (!isAuthenticated && !isPublicPath && !isAuthenticatedPath) {
     return null;
   }
 
