@@ -3,7 +3,7 @@
  */
 
 export type QuotationRow = {
-    id: number;
+    quotation_group_id: string;
     ids?: number[];
     status: string;
     approved_at?: string | null;

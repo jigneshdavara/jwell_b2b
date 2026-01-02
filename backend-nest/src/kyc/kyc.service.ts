@@ -67,11 +67,11 @@ export class KycService {
     }
 
     async updateProfile(userId: bigint, dto: UpdateKycProfileDto) {
-        const customer = await this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: userId },
         });
 
-        if (!customer) {
+        if (!user) {
             throw new NotFoundException('User not found');
         }
 
@@ -119,7 +119,7 @@ export class KycService {
         adminId?: bigint,
     ) {
         return await this.prisma.$transaction(async (tx) => {
-            // Update customer status
+            // Update user status
             await tx.user.update({
                 where: { id: userId },
                 data: { kyc_status: dto.status },
@@ -142,7 +142,7 @@ export class KycService {
                     data: {
                         user_id: userId,
                         admin_id: validAdminId, // Use valid admin ID or null
-                        sender_type: 'admin', // sender_type must be 'admin' or 'customer'
+                        sender_type: 'admin', // sender_type must be 'admin' or 'user'
                         message: `KYC Status updated to ${dto.status}. Remarks: ${dto.remarks || 'None'}`,
                     },
                 });
@@ -169,7 +169,7 @@ export class KycService {
             data: {
                 user_id: userId,
                 admin_id: adminId,
-                sender_type: adminId ? 'admin' : 'customer',
+                sender_type: adminId ? 'admin' : 'user',
                 message,
             },
         });
@@ -177,7 +177,7 @@ export class KycService {
 
     // Onboarding-specific methods
     async getOnboardingData(userId: bigint) {
-        const customer = await this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { id: userId },
             include: {
                 user_kyc_documents: {
@@ -197,37 +197,37 @@ export class KycService {
             },
         });
 
-        if (!customer) {
+        if (!user) {
             throw new NotFoundException('User not found');
         }
 
         return {
             user: {
-                id: customer.id.toString(),
-                name: customer.name,
-                email: customer.email,
-                phone: customer.phone,
-                type: customer.type,
-                kyc_status: customer.kyc_status,
-                kyc_notes: customer.kyc_notes,
-                kyc_comments_enabled: customer.kyc_comments_enabled,
+                id: user.id.toString(),
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                type: user.type,
+                kyc_status: user.kyc_status,
+                kyc_notes: user.kyc_notes,
+                kyc_comments_enabled: user.kyc_comments_enabled,
             },
             profile: {
-                business_name: customer.business_name,
-                business_website: customer.business_website,
-                gst_number: customer.gst_number,
-                pan_number: customer.pan_number,
-                registration_number: customer.registration_number,
-                address_line1: customer.address_line1,
-                address_line2: customer.address_line2,
-                city: customer.city,
-                state: customer.state,
-                postal_code: customer.postal_code,
-                country: customer.country,
-                contact_name: customer.contact_name,
-                contact_phone: customer.contact_phone,
+                business_name: user.business_name,
+                business_website: user.business_website,
+                gst_number: user.gst_number,
+                pan_number: user.pan_number,
+                registration_number: user.registration_number,
+                address_line1: user.address_line1,
+                address_line2: user.address_line2,
+                city: user.city,
+                state: user.state,
+                postal_code: user.postal_code,
+                country: user.country,
+                contact_name: user.contact_name,
+                contact_phone: user.contact_phone,
             },
-            documents: customer.user_kyc_documents.map((doc) => ({
+            documents: user.user_kyc_documents.map((doc) => ({
                 id: doc.id.toString(),
                 type: doc.type,
                 status: doc.status,
@@ -244,7 +244,7 @@ export class KycService {
                 'bank_statement',
                 'store_photos',
             ],
-            messages: customer.user_kyc_messages.map((msg) => ({
+            messages: user.user_kyc_messages.map((msg) => ({
                 id: msg.id.toString(),
                 sender_type: msg.sender_type,
                 message: msg.message,
@@ -256,7 +256,7 @@ export class KycService {
                       }
                     : null,
             })),
-            can_customer_reply: customer.kyc_comments_enabled,
+            can_user_reply: user.kyc_comments_enabled,
         };
     }
 
@@ -265,11 +265,11 @@ export class KycService {
         dto: UpdateOnboardingKycProfileDto,
     ) {
         return await this.prisma.$transaction(async (tx) => {
-            const customer = await tx.user.findUnique({
+            const user = await tx.user.findUnique({
                 where: { id: userId },
             });
 
-            if (!customer) {
+            if (!user) {
                 throw new NotFoundException('User not found');
             }
 
@@ -290,13 +290,11 @@ export class KycService {
                     contact_name: dto.contact_name,
                     contact_phone: dto.contact_phone,
                     kyc_status:
-                        customer.kyc_status !== 'approved'
+                        user.kyc_status !== 'approved'
                             ? 'pending'
-                            : customer.kyc_status,
+                            : user.kyc_status,
                     kyc_notes:
-                        customer.kyc_status !== 'approved'
-                            ? null
-                            : customer.kyc_notes,
+                        user.kyc_status !== 'approved' ? null : user.kyc_notes,
                 },
             });
 
@@ -320,11 +318,11 @@ export class KycService {
             });
 
             // Mark user as pending if not already approved
-            const customer = await tx.user.findUnique({
+            const user = await tx.user.findUnique({
                 where: { id: userId },
             });
 
-            if (customer && customer.kyc_status !== 'approved') {
+            if (user && user.kyc_status !== 'approved') {
                 await tx.user.update({
                     where: { id: userId },
                     data: {
@@ -362,11 +360,11 @@ export class KycService {
             });
 
             // Mark user as pending if not already approved
-            const customer = await tx.user.findUnique({
+            const user = await tx.user.findUnique({
                 where: { id: userId },
             });
 
-            if (customer && customer.kyc_status !== 'approved') {
+            if (user && user.kyc_status !== 'approved') {
                 await tx.user.update({
                     where: { id: userId },
                     data: {
@@ -382,15 +380,15 @@ export class KycService {
 
     async sendOnboardingMessage(userId: bigint, message: string) {
         return await this.prisma.$transaction(async (tx) => {
-            const customer = await tx.user.findUnique({
+            const user = await tx.user.findUnique({
                 where: { id: userId },
             });
 
-            if (!customer) {
+            if (!user) {
                 throw new NotFoundException('User not found');
             }
 
-            if (!customer.kyc_comments_enabled) {
+            if (!user.kyc_comments_enabled) {
                 throw new ForbiddenException(
                     'Comments are disabled for your account',
                 );
@@ -399,15 +397,15 @@ export class KycService {
             const kycMessage = await tx.user_kyc_messages.create({
                 data: {
                     user_id: userId,
-                    sender_type: 'customer',
+                    sender_type: 'user',
                     message: message.trim(),
                 },
             });
 
             // Update status to review if not already approved or in review
             if (
-                customer.kyc_status !== 'approved' &&
-                customer.kyc_status !== 'review'
+                user.kyc_status !== 'approved' &&
+                user.kyc_status !== 'review'
             ) {
                 await tx.user.update({
                     where: { id: userId },

@@ -42,10 +42,6 @@ export class FrontendQuotationsService {
                         },
                     },
                 },
-                quotation_messages: {
-                    include: { users: true },
-                    orderBy: { created_at: 'desc' },
-                },
             },
             orderBy: { created_at: 'desc' },
         });
@@ -53,25 +49,7 @@ export class FrontendQuotationsService {
         // Group quotations by quotation_group_id
         const grouped = new Map<string, typeof quotations>();
         quotations.forEach((quotation) => {
-            let groupKey: string;
-            if (quotation.quotation_group_id) {
-                groupKey = quotation.quotation_group_id;
-            } else {
-                // Fallback for old quotations: group by user and date+hour+minute (rounded to 5 minutes)
-                const createdAt = quotation.created_at;
-                if (createdAt) {
-                    const date = new Date(createdAt);
-                    const minute = Math.floor(date.getMinutes() / 5) * 5;
-                    groupKey =
-                        quotation.user_id.toString() +
-                        '_' +
-                        date.toISOString().slice(0, 16).replace('T', ' ') +
-                        ':' +
-                        minute.toString().padStart(2, '0');
-                } else {
-                    groupKey = quotation.user_id.toString() + '_' + Date.now();
-                }
-            }
+            const groupKey = quotation.quotation_group_id;
 
             if (!grouped.has(groupKey)) {
                 grouped.set(groupKey, []);
@@ -100,8 +78,13 @@ export class FrontendQuotationsService {
                 return media?.url || null;
             };
 
+            // Use actual quotation_group_id from database only (no generation)
+            const actualQuotationGroupId = first.quotation_group_id;
+
+            // Group by quotation_group_id
+
             return {
-                id: first.id.toString(),
+                quotation_group_id: actualQuotationGroupId,
                 ids: group.map((q) => q.id.toString()),
                 status,
                 quantity: totalQuantity,
@@ -125,26 +108,13 @@ export class FrontendQuotationsService {
         });
     }
 
-    async findOne(quotationId: bigint, userId: bigint) {
-        // First check if quotation exists and user has permission
-        const permissionCheck = await this.prisma.quotations.findUnique({
-            where: { id: quotationId },
-            select: { user_id: true },
-        });
-
-        if (!permissionCheck) {
-            throw new NotFoundException('Quotation not found');
-        }
-
-        if (permissionCheck.user_id !== userId) {
-            throw new ForbiddenException(
-                'You do not have permission to view this quotation',
-            );
-        }
-
-        // Now fetch the full quotation with all relations
-        const quotation: any = await this.prisma.quotations.findUnique({
-            where: { id: quotationId },
+    async findByGroupId(quotationGroupId: string, userId: bigint) {
+        // Find all quotations in the group
+        const quotations: any[] = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+                user_id: userId,
+            },
             include: {
                 users: true,
                 products: {
@@ -175,111 +145,23 @@ export class FrontendQuotationsService {
                         },
                     },
                 },
-                quotation_messages: {
-                    include: { users: true },
-                    orderBy: { created_at: 'asc' },
-                },
             },
+            orderBy: { created_at: 'asc' },
         });
 
-        if (!quotation) {
-            throw new NotFoundException('Quotation not found');
+        if (quotations.length === 0) {
+            throw new NotFoundException('Quotation group not found');
         }
 
-        if (quotation.user_id !== userId) {
-            throw new ForbiddenException(
-                'You do not have permission to view this quotation',
-            );
-        }
+        // Use the first quotation as the primary one
+        const quotation = quotations[0];
+        const relatedQuotations = quotations.slice(1);
 
-        // Find related quotations in the same group
-        let relatedQuotations: any[] = [];
-        if (quotation.quotation_group_id) {
-            relatedQuotations = await this.prisma.quotations.findMany({
-                where: {
-                    quotation_group_id: quotation.quotation_group_id,
-                    id: { not: quotation.id },
-                },
-                include: {
-                    products: {
-                        include: {
-                            product_medias: {
-                                orderBy: { display_order: 'asc' },
-                            },
-                            product_variants: true,
-                        },
-                    },
-                    product_variants: {
-                        include: {
-                            product_variant_metals: {
-                                include: {
-                                    metals: true,
-                                    metal_purities: true,
-                                    metal_tones: true,
-                                },
-                            },
-                            product_variant_diamonds: {
-                                include: { diamonds: true },
-                            },
-                            sizes: true,
-                        },
-                    },
-                },
-                orderBy: { created_at: 'asc' },
-            });
-        } else {
-            // Fallback for old quotations without group_id
-            const createdAt = quotation.created_at;
-            if (createdAt) {
-                const timeWindow = new Date(createdAt);
-                timeWindow.setMinutes(timeWindow.getMinutes() - 5);
-                const timeWindowEnd = new Date(createdAt);
-                timeWindowEnd.setMinutes(timeWindowEnd.getMinutes() + 5);
-
-                relatedQuotations = await this.prisma.quotations.findMany({
-                    where: {
-                        user_id: quotation.user_id,
-                        id: { not: quotation.id },
-                        created_at: {
-                            gte: timeWindow,
-                            lte: timeWindowEnd,
-                        },
-                    },
-                    include: {
-                        products: {
-                            include: {
-                                product_medias: {
-                                    orderBy: { display_order: 'asc' },
-                                },
-                                product_variants: true,
-                            },
-                        },
-                        product_variants: {
-                            include: {
-                                product_variant_metals: {
-                                    include: {
-                                        metals: true,
-                                        metal_purities: true,
-                                        metal_tones: true,
-                                    },
-                                },
-                                product_variant_diamonds: {
-                                    include: { diamonds: true },
-                                },
-                                sizes: true,
-                            },
-                        },
-                    },
-                    orderBy: { created_at: 'asc' },
-                });
-            }
-        }
-
-        const customer = quotation.users;
+        const user = quotation.users;
         const product = quotation.products;
         const variant = quotation.product_variants;
 
-        if (!customer) {
+        if (!user) {
             throw new NotFoundException('User not found for quotation');
         }
         if (!product) {
@@ -290,14 +172,14 @@ export class FrontendQuotationsService {
         const mainPriceBreakdown =
             await this.pricingService.calculateProductPrice(
                 product as any,
-                customer as any,
+                user as any,
                 {
                     variant_id: variant ? Number(variant.id) : null,
                     quantity: quotation.quantity,
-                    user_group_id: customer.user_group_id
-                        ? Number(customer.user_group_id)
+                    user_group_id: user.user_group_id
+                        ? Number(user.user_group_id)
                         : undefined,
-                    user_type: customer.type || undefined,
+                    user_type: user.type || undefined,
                 },
             );
 
@@ -309,21 +191,21 @@ export class FrontendQuotationsService {
                 }
                 const pricing = await this.pricingService.calculateProductPrice(
                     rq.products as any,
-                    customer as any,
+                    user as any,
                     {
                         variant_id: rq.product_variants
                             ? Number(rq.product_variants.id)
                             : null,
                         quantity: rq.quantity,
-                        user_group_id: customer.user_group_id
-                            ? Number(customer.user_group_id)
+                        user_group_id: user.user_group_id
+                            ? Number(user.user_group_id)
                             : undefined,
-                        user_type: customer.type || undefined,
+                        user_type: user.type || undefined,
                     },
                 );
 
                 return {
-                    id: rq.id.toString(),
+                    quotation_group_id: rq.quotation_group_id,
                     status: rq.status,
                     quantity: rq.quantity,
                     notes: rq.notes,
@@ -374,7 +256,7 @@ export class FrontendQuotationsService {
         const taxSummary = await this.calculateQuotationTaxSummary(
             quotation,
             relatedQuotations.filter((rq) => rq.products !== null),
-            customer as any,
+            user as any,
         );
 
         const getMedia = (product: any) => {
@@ -387,7 +269,7 @@ export class FrontendQuotationsService {
         };
 
         return {
-            id: quotation.id.toString(),
+            quotation_group_id: quotation.quotation_group_id,
             status: quotation.status,
             quantity: quotation.quantity,
             notes: quotation.notes,
@@ -421,8 +303,8 @@ export class FrontendQuotationsService {
                 : null,
             price_breakdown: mainPriceBreakdown,
             user: {
-                name: customer.name || null,
-                email: customer.email || null,
+                name: user.name || null,
+                email: user.email || null,
             },
             order: quotation.orders
                 ? {
@@ -442,7 +324,15 @@ export class FrontendQuotationsService {
                 : null,
             tax_rate: await this.taxService.getDefaultTaxRate(),
             tax_summary: taxSummary,
-            messages: quotation.quotation_messages.map((m) => ({
+            messages: (
+                await this.prisma.quotation_messages.findMany({
+                    where: {
+                        quotation_group_id: quotation.quotation_group_id,
+                    },
+                    include: { users: true },
+                    orderBy: { created_at: 'asc' },
+                })
+            ).map((m) => ({
                 id: m.id.toString(),
                 sender: m.sender,
                 message: m.message,
@@ -516,10 +406,10 @@ export class FrontendQuotationsService {
         // Send email notifications
         try {
             await this.mailService.sendQuotationSubmittedUser(
-                Number(quotation.id),
+                quotation.quotation_group_id,
             );
             await this.mailService.sendQuotationSubmittedAdmin(
-                Number(quotation.id),
+                quotation.quotation_group_id,
             );
         } catch (error) {
             console.error('Failed to send quotation emails:', error);
@@ -529,7 +419,7 @@ export class FrontendQuotationsService {
             message:
                 'Quotation submitted successfully. Our team will get back to you shortly.',
             quotation: {
-                id: quotation.id.toString(),
+                quotation_group_id: quotation.quotation_group_id,
             },
         };
     }
@@ -642,9 +532,9 @@ export class FrontendQuotationsService {
             if (notes) {
                 await this.prisma.quotation_messages.create({
                     data: {
-                        quotation_id: quotation.id,
+                        quotation_group_id: quotation.quotation_group_id,
                         user_id: userId,
-                        sender: 'customer',
+                        sender: 'user',
                         message: notes,
                         created_at: new Date(),
                         updated_at: new Date(),
@@ -662,10 +552,10 @@ export class FrontendQuotationsService {
         if (quotations.length > 0) {
             try {
                 await this.mailService.sendQuotationSubmittedUser(
-                    Number(quotations[0].id),
+                    quotations[0].quotation_group_id,
                 );
                 await this.mailService.sendQuotationSubmittedAdmin(
-                    Number(quotations[0].id),
+                    quotations[0].quotation_group_id,
                 );
             } catch (error) {
                 console.error('Failed to send quotation emails:', error);
@@ -675,39 +565,47 @@ export class FrontendQuotationsService {
         return {
             message: 'Quotation requests submitted successfully.',
             quotations: quotations.map((q) => ({
-                id: q.id.toString(),
+                quotation_group_id: q.quotation_group_id,
             })),
         };
     }
 
-    async remove(quotationId: bigint, userId: bigint) {
-        const quotation = await this.prisma.quotations.findUnique({
-            where: { id: quotationId },
+    async removeByGroupId(quotationGroupId: string, userId: bigint) {
+        const quotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+                user_id: userId,
+            },
         });
 
-        if (!quotation) {
-            throw new NotFoundException('Quotation not found');
+        if (quotations.length === 0) {
+            throw new NotFoundException('Quotation group not found');
         }
 
-        if (quotation.user_id !== userId) {
-            throw new ForbiddenException(
-                'You do not have permission to cancel this quotation',
-            );
-        }
-
-        if (quotation.status !== 'pending') {
+        // Check if all quotations are in pending status
+        const allPending = quotations.every((q) => q.status === 'pending');
+        if (!allPending) {
             throw new BadRequestException(
                 'Only pending quotations can be cancelled.',
             );
         }
 
-        await this.prisma.quotations.delete({
-            where: { id: quotationId },
-        });
+        return await this.prisma.$transaction(async (tx) => {
+            // Delete all messages related to these quotations first
+            const quotationGroupId = quotations[0].quotation_group_id;
+            await tx.quotation_messages.deleteMany({
+                where: {
+                    quotation_group_id: quotationGroupId,
+                },
+            });
 
-        return {
-            success: true,
-        };
+            // Then delete the quotations themselves
+            await tx.quotations.deleteMany({
+                where: { quotation_group_id: quotationGroupId },
+            });
+
+            return { message: 'Quotation group cancelled' };
+        });
     }
 
     async createMessage(
@@ -731,9 +629,9 @@ export class FrontendQuotationsService {
 
         await this.prisma.quotation_messages.create({
             data: {
-                quotation_id: quotationId,
+                quotation_group_id: quotation.quotation_group_id,
                 user_id: userId,
-                sender: 'customer',
+                sender: 'user',
                 message: dto.message,
                 created_at: new Date(),
                 updated_at: new Date(),
@@ -742,7 +640,7 @@ export class FrontendQuotationsService {
 
         // Explicitly return formatted response to avoid Prisma object serialization
         return {
-            message: 'Message sent.',
+            success: true,
         };
     }
 
@@ -762,34 +660,12 @@ export class FrontendQuotationsService {
         }
 
         // Find all related quotations in the same group
-        let relatedQuotations: any[] = [];
-        if (quotation.quotation_group_id) {
-            relatedQuotations = await this.prisma.quotations.findMany({
-                where: {
-                    quotation_group_id: quotation.quotation_group_id,
-                    user_id: userId,
-                },
-            });
-        } else {
-            // Fallback for old quotations without group_id
-            const createdAt = quotation.created_at;
-            if (createdAt) {
-                const timeWindow = new Date(createdAt);
-                timeWindow.setMinutes(timeWindow.getMinutes() - 5);
-                const timeWindowEnd = new Date(createdAt);
-                timeWindowEnd.setMinutes(timeWindowEnd.getMinutes() + 5);
-
-                relatedQuotations = await this.prisma.quotations.findMany({
-                    where: {
-                        user_id: userId,
-                        created_at: {
-                            gte: timeWindow,
-                            lte: timeWindowEnd,
-                        },
-                    },
-                });
-            }
-        }
+        const relatedQuotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotation.quotation_group_id,
+                user_id: userId,
+            },
+        });
 
         // Check if any quotation in the group (including the main one) requires confirmation
         const hasPendingConfirmation =
@@ -834,12 +710,12 @@ export class FrontendQuotationsService {
             }
         }
 
-        // Add message to the main quotation only
+        // Add message to the quotation group
         await this.prisma.quotation_messages.create({
             data: {
-                quotation_id: quotationId,
+                quotation_group_id: quotation.quotation_group_id,
                 user_id: userId,
-                sender: 'customer',
+                sender: 'user',
                 message: 'User approved the updated quotation.',
                 created_at: new Date(),
                 updated_at: new Date(),
@@ -867,34 +743,12 @@ export class FrontendQuotationsService {
         }
 
         // Find all related quotations in the same group
-        let relatedQuotations: any[] = [];
-        if (quotation.quotation_group_id) {
-            relatedQuotations = await this.prisma.quotations.findMany({
-                where: {
-                    quotation_group_id: quotation.quotation_group_id,
-                    user_id: userId,
-                },
-            });
-        } else {
-            // Fallback for old quotations without group_id
-            const createdAt = quotation.created_at;
-            if (createdAt) {
-                const timeWindow = new Date(createdAt);
-                timeWindow.setMinutes(timeWindow.getMinutes() - 5);
-                const timeWindowEnd = new Date(createdAt);
-                timeWindowEnd.setMinutes(timeWindowEnd.getMinutes() + 5);
-
-                relatedQuotations = await this.prisma.quotations.findMany({
-                    where: {
-                        user_id: userId,
-                        created_at: {
-                            gte: timeWindow,
-                            lte: timeWindowEnd,
-                        },
-                    },
-                });
-            }
-        }
+        const relatedQuotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotation.quotation_group_id,
+                user_id: userId,
+            },
+        });
 
         // Check if any quotation in the group (including the main one) requires confirmation
         const hasPendingConfirmation =
@@ -938,12 +792,12 @@ export class FrontendQuotationsService {
             }
         }
 
-        // Add message to the main quotation only
+        // Add message to the quotation group
         await this.prisma.quotation_messages.create({
             data: {
-                quotation_id: quotationId,
+                quotation_group_id: quotation.quotation_group_id,
                 user_id: userId,
-                sender: 'customer',
+                sender: 'user',
                 message: 'User declined the updated quotation.',
                 created_at: new Date(),
                 updated_at: new Date(),
@@ -952,6 +806,170 @@ export class FrontendQuotationsService {
 
         return {
             message: 'Quotation declined.',
+        };
+    }
+
+    async confirmByGroupId(quotationGroupId: string, userId: bigint) {
+        const quotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+                user_id: userId,
+            },
+        });
+
+        if (quotations.length === 0) {
+            throw new NotFoundException('Quotation group not found');
+        }
+
+        // Check if any quotation in the group requires confirmation
+        const hasPendingConfirmation = quotations.some(
+            (q) => q.status === 'pending_customer_confirmation',
+        );
+
+        if (!hasPendingConfirmation) {
+            throw new BadRequestException(
+                'No confirmation required for this quotation.',
+            );
+        }
+
+        // Check if already confirmed
+        const alreadyConfirmed = quotations.every(
+            (q) => q.status === 'customer_confirmed',
+        );
+
+        if (alreadyConfirmed) {
+            return {
+                message: 'Quotation already confirmed.',
+            };
+        }
+
+        // Update all quotations in the group to customer_confirmed
+        for (const q of quotations) {
+            if (q.status === 'pending_customer_confirmation') {
+                await this.prisma.quotations.update({
+                    where: { id: q.id },
+                    data: {
+                        status: 'customer_confirmed',
+                        updated_at: new Date(),
+                    },
+                });
+            }
+        }
+
+        // Add message to the first quotation
+        await this.prisma.quotation_messages.create({
+            data: {
+                quotation_group_id: quotations[0].quotation_group_id,
+                user_id: userId,
+                sender: 'user',
+                message: 'User approved the updated quotation.',
+                created_at: new Date(),
+                updated_at: new Date(),
+            },
+        });
+
+        return {
+            message: 'Quotation approved. Awaiting admin confirmation.',
+        };
+    }
+
+    async declineByGroupId(quotationGroupId: string, userId: bigint) {
+        const quotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+                user_id: userId,
+            },
+        });
+
+        if (quotations.length === 0) {
+            throw new NotFoundException('Quotation group not found');
+        }
+
+        // Check if any quotation in the group requires confirmation
+        const hasPendingConfirmation = quotations.some(
+            (q) => q.status === 'pending_customer_confirmation',
+        );
+
+        if (!hasPendingConfirmation) {
+            throw new BadRequestException(
+                'No confirmation required for this quotation.',
+            );
+        }
+
+        // Check if already declined
+        const alreadyDeclined = quotations.every(
+            (q) => q.status === 'customer_declined',
+        );
+
+        if (alreadyDeclined) {
+            return {
+                message: 'Quotation already declined.',
+            };
+        }
+
+        // Update all quotations in the group to customer_declined
+        for (const q of quotations) {
+            if (q.status === 'pending_customer_confirmation') {
+                await this.prisma.quotations.update({
+                    where: { id: q.id },
+                    data: {
+                        status: 'customer_declined',
+                        updated_at: new Date(),
+                    },
+                });
+            }
+        }
+
+        // Add message to the first quotation
+        await this.prisma.quotation_messages.create({
+            data: {
+                quotation_group_id: quotations[0].quotation_group_id,
+                user_id: userId,
+                sender: 'user',
+                message: 'User declined the updated quotation.',
+                created_at: new Date(),
+                updated_at: new Date(),
+            },
+        });
+
+        return {
+            message: 'Quotation declined.',
+        };
+    }
+
+    async createMessageByGroupId(
+        quotationGroupId: string,
+        dto: StoreQuotationMessageDto,
+        userId: bigint,
+    ) {
+        const quotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+                user_id: userId,
+            },
+            orderBy: { created_at: 'asc' },
+        });
+
+        if (quotations.length === 0) {
+            throw new NotFoundException('Quotation group not found');
+        }
+
+        // Use the first quotation in the group for the message
+        const quotation = quotations[0];
+
+        await this.prisma.quotation_messages.create({
+            data: {
+                quotation_group_id: quotation.quotation_group_id,
+                user_id: userId,
+                sender: 'user',
+                message: dto.message,
+                created_at: new Date(),
+                updated_at: new Date(),
+            },
+        });
+
+        return {
+            success: true,
         };
     }
 

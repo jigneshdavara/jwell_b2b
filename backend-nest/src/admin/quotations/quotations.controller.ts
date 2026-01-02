@@ -88,67 +88,67 @@ export class AdminQuotationsController {
         res.send(pdfBuffer);
     }
 
-    @Get(':id')
-    findOne(@Param('id', ParseIntPipe) id: number) {
-        return this.quotationsService.findOne(id);
+    @Get(':quotation_group_id')
+    findOne(@Param('quotation_group_id') quotationGroupId: string) {
+        return this.quotationsService.findByGroupId(quotationGroupId);
     }
 
-    @Post(':id/approve')
+    @Post(':quotation_group_id/approve')
     approve(
-        @Param('id', ParseIntPipe) id: number,
+        @Param('quotation_group_id') quotationGroupId: string,
         @Body() dto: ApproveQuotationDto,
     ) {
-        return this.quotationsService.approve(id, dto.admin_notes);
+        return this.quotationsService.approveByGroupId(quotationGroupId, dto.admin_notes);
     }
 
-    @Post(':id/reject')
+    @Post(':quotation_group_id/reject')
     reject(
-        @Param('id', ParseIntPipe) id: number,
+        @Param('quotation_group_id') quotationGroupId: string,
         @Body() dto: ApproveQuotationDto,
     ) {
-        return this.quotationsService.reject(id, dto.admin_notes);
+        return this.quotationsService.rejectByGroupId(quotationGroupId, dto.admin_notes);
     }
 
-    @Post(':id/messages')
+    @Post(':quotation_group_id/messages')
     message(
-        @Param('id', ParseIntPipe) id: number,
+        @Param('quotation_group_id') quotationGroupId: string,
         @Body() dto: StoreQuotationMessageDto,
         @Request() req: { user: { userId: string | number } },
     ) {
-        return this.quotationsService.addMessage(
-            id,
+        return this.quotationsService.addMessageByGroupId(
+            quotationGroupId,
             dto.message,
             BigInt(req.user?.userId || 0),
         );
     }
 
-    @Post(':id/request-confirmation')
+    @Post(':quotation_group_id/request-confirmation')
     requestConfirmation(
-        @Param('id', ParseIntPipe) id: number,
+        @Param('quotation_group_id') quotationGroupId: string,
         @Body() dto: RequestConfirmationDto,
     ) {
-        return this.quotationsService.requestConfirmation(id, dto);
+        return this.quotationsService.requestConfirmationByGroupId(quotationGroupId, dto);
     }
 
-    @Post(':id/add-item')
+    @Post(':quotation_group_id/add-item')
     addItem(
-        @Param('id', ParseIntPipe) id: number,
+        @Param('quotation_group_id') quotationGroupId: string,
         @Body() dto: AddQuotationItemDto,
     ) {
-        return this.quotationsService.addItem(id, dto);
+        return this.quotationsService.addItemByGroupId(quotationGroupId, dto);
     }
 
-    @Post(':id/update-product')
+    @Post(':quotation_group_id/update-product')
     updateProduct(
-        @Param('id', ParseIntPipe) id: number,
+        @Param('quotation_group_id') quotationGroupId: string,
         @Body() dto: UpdateQuotationProductDto,
     ) {
-        return this.quotationsService.updateProduct(id, dto);
+        return this.quotationsService.updateProductByGroupId(quotationGroupId, dto);
     }
 
-    @Delete(':id')
-    remove(@Param('id', ParseIntPipe) id: number) {
-        // This removes a single item from a group
-        return this.quotationsService.remove(id);
+    @Delete(':quotation_group_id')
+    remove(@Param('quotation_group_id') quotationGroupId: string) {
+        // This removes the entire quotation group
+        return this.quotationsService.removeByGroupId(quotationGroupId);
     }
 }

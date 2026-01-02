@@ -138,6 +138,7 @@ export default function OrderShowPage() {
           })),
           quotations: orderData.quotations ? (orderData.quotations || []).map((q: any) => ({
             id: Number(q.id),
+            quotation_group_id: q.quotation_group_id || '',
             status: q.status || '',
             quantity: Number(q.quantity) || 0,
             product: q.product ? {
@@ -653,10 +654,10 @@ export default function OrderShowPage() {
                     This order was created from the following quotations
                   </p>
                   <div className="mt-3 space-y-2 sm:mt-4 sm:space-y-3">
-                    {order.quotations.map((quotation) => (
+                    {order.quotations.map((quotation, index) => (
                       <Link
-                        key={quotation.id}
-                        href={route('frontend.quotations.show', { id: quotation.id })}
+                        key={`${quotation.quotation_group_id}-${quotation.product?.id || 'no-product'}-${index}`}
+                        href={route('frontend.quotations.show', { id: quotation.quotation_group_id })}
                         className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-elvee-blue/50 hover:bg-elvee-blue/5 sm:gap-3 sm:rounded-2xl sm:px-4 sm:py-3"
                       >
                         {quotation.product?.media?.[0] && (
@@ -671,7 +672,7 @@ export default function OrderShowPage() {
                         )}
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-semibold text-slate-900 sm:text-sm">
-                            Quotation #{quotation.id}
+                            Quotation #{quotation.quotation_group_id}
                           </p>
                           <p className="text-[10px] text-slate-500 sm:text-xs">
                             {quotation.product?.name ?? "Product"}

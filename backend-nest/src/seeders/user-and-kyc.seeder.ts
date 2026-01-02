@@ -47,8 +47,8 @@ export class UserAndKycSeeder extends BaseSeeder {
 
         this.log(`Seeded ${adminAccounts.length} admin accounts`);
 
-        // Create customer accounts
-        const customerAccounts = [
+        // Create user accounts
+        const userAccounts = [
             {
                 email: 'retailer@b2b.test',
                 name: 'Demo Retailer',
@@ -69,31 +69,31 @@ export class UserAndKycSeeder extends BaseSeeder {
             },
         ];
 
-        for (const customer of customerAccounts) {
+        for (const user of userAccounts) {
             await this.prisma.user.upsert({
-                where: { email: customer.email },
+                where: { email: user.email },
                 update: {
-                    name: customer.name,
-                    password: customer.password,
-                    type: customer.type,
-                    kyc_status: customer.kyc_status,
-                    phone: customer.phone,
-                    business_name: customer.business_name,
+                    name: user.name,
+                    password: user.password,
+                    type: user.type,
+                    kyc_status: user.kyc_status,
+                    phone: user.phone,
+                    business_name: user.business_name,
                 },
                 create: {
-                    email: customer.email,
-                    name: customer.name,
-                    password: customer.password,
-                    type: customer.type,
-                    kyc_status: customer.kyc_status,
-                    phone: customer.phone,
-                    business_name: customer.business_name,
+                    email: user.email,
+                    name: user.name,
+                    password: user.password,
+                    type: user.type,
+                    kyc_status: user.kyc_status,
+                    phone: user.phone,
+                    business_name: user.business_name,
                     country: 'India',
                 },
             });
         }
 
-        this.log(`Seeded ${customerAccounts.length} customer accounts`);
+        this.log(`Seeded ${userAccounts.length} user accounts`);
 
         // Create additional test users
         const retailerCount = await this.prisma.user.count({
@@ -186,4 +186,3 @@ export class UserAndKycSeeder extends BaseSeeder {
         }
     }
 }
-

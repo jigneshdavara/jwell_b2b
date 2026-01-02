@@ -9,7 +9,7 @@ import { getMediaUrl } from '@/utils/mediaUrl';
 import { frontendService } from '@/services/frontendService';
 
 type RelatedQuotation = {
-    id: number | string;
+    quotation_group_id: string;
     status: string;
     quantity: number;
     notes?: string | null;
@@ -42,7 +42,7 @@ type RelatedQuotation = {
 };
 
 type QuotationDetails = {
-    id: number | string;
+    quotation_group_id: string;
     status: string;
     quantity: number;
     notes?: string | null;
@@ -148,13 +148,13 @@ export default function QuotationDetailPage() {
 
     const fetchQuotation = useCallback(async () => {
         try {
-            const quotationId = typeof params.id === 'string' ? parseInt(params.id) : Number(params.id);
-            const response = await frontendService.getQuotation(quotationId);
+            const quotationGroupId = typeof params.id === 'string' ? params.id : String(params.id);
+            const response = await frontendService.getQuotation(quotationGroupId);
             const data = response.data.quotation || response.data;
             
             // Map the data to match our type
             const mappedQuotation: QuotationDetails = {
-                id: Number(data.id),
+                quotation_group_id: data.quotation_group_id,
                 status: data.status,
                 quantity: Number(data.quantity),
                 notes: data.notes || null,
@@ -163,7 +163,7 @@ export default function QuotationDetailPage() {
                 created_at: data.created_at || null,
                 updated_at: data.updated_at || null,
                 related_quotations: (data.related_quotations || []).map((rq: any) => ({
-                    id: Number(rq.id),
+                    quotation_group_id: rq.quotation_group_id,
                     status: rq.status,
                     quantity: Number(rq.quantity),
                     notes: rq.notes || null,
@@ -276,8 +276,8 @@ export default function QuotationDetailPage() {
 
         setSubmitting(true);
         try {
-            const quotationId = typeof params.id === 'string' ? parseInt(params.id) : Number(params.id);
-            await frontendService.sendQuotationMessage(quotationId, message);
+            const quotationGroupId = typeof params.id === 'string' ? params.id : String(params.id);
+            await frontendService.sendQuotationMessage(quotationGroupId, message);
             setMessage('');
             await fetchQuotation();
             // Toast handled by API interceptor if backend returns response.data.message
@@ -293,8 +293,8 @@ export default function QuotationDetailPage() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const quotationId = typeof params.id === 'string' ? parseInt(params.id) : Number(params.id);
-            await frontendService.confirmQuotation(quotationId);
+            const quotationGroupId = typeof params.id === 'string' ? params.id : String(params.id);
+            await frontendService.confirmQuotation(quotationGroupId);
             await fetchQuotation();
             // Toast handled by API interceptor if backend returns response.data.message
         } catch (error: any) {
@@ -309,8 +309,8 @@ export default function QuotationDetailPage() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const quotationId = typeof params.id === 'string' ? parseInt(params.id) : Number(params.id);
-            await frontendService.declineQuotation(quotationId);
+            const quotationGroupId = typeof params.id === 'string' ? params.id : String(params.id);
+            await frontendService.declineQuotation(quotationGroupId);
             await fetchQuotation();
             // Toast handled by API interceptor if backend returns response.data.message
             router.push(route('frontend.quotations.index'));
@@ -342,7 +342,7 @@ export default function QuotationDetailPage() {
                 <header className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/70 sm:rounded-3xl sm:p-6">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl lg:text-3xl">Quotation #{quotation.id}</h1>
+                            <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl lg:text-3xl">Quotation #{quotation.quotation_group_id}</h1>
                             <p className="mt-1 text-xs text-slate-500 sm:mt-2 sm:text-sm">
                                 View quotation details and manage your response
                             </p>
@@ -416,7 +416,7 @@ export default function QuotationDetailPage() {
                             {/* Quotation Details */}
                             <div className="text-left sm:text-right">
                                 <h3 className="text-[10px] font-semibold text-slate-400 sm:text-xs">Quotation Details</h3>
-                                <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">#{quotation.id}</p>
+                                <p className="mt-2 text-sm font-semibold text-slate-900 sm:mt-3 sm:text-base lg:text-lg">#{quotation.quotation_group_id}</p>
                                 <p className="mt-1 text-xs text-slate-500 sm:text-sm">
                                     Date: <span className="font-semibold text-slate-900">{formatDate(quotation.created_at)}</span>
                                 </p>
@@ -448,15 +448,17 @@ export default function QuotationDetailPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {allQuotations.map((item) => {
+                                    {allQuotations.map((item, index) => {
                                         const priceBreakdown = item.price_breakdown || {};
                                         const metalCost = Number(priceBreakdown.metal) || 0;
                                         const diamondCost = Number(priceBreakdown.diamond) || 0;
                                         const makingCharge = Number(priceBreakdown.making) || 0;
                                         const unitPrice = Number(priceBreakdown.total) || (metalCost + diamondCost + makingCharge);
                                         const lineTotal = unitPrice * (Number(item.quantity) || 0);
+                                        // Use composite key: quotation_group_id + product.id + variant.id (if exists) + index as fallback
+                                        const uniqueKey = `${item.quotation_group_id}-${item.product.id}-${item.variant?.id || 'no-variant'}-${index}`;
                                         return (
-                                            <tr key={item.id} className="hover:bg-slate-50/50 transition">
+                                            <tr key={uniqueKey} className="hover:bg-slate-50/50 transition">
                                                 <td className="px-2 py-3 sm:px-4 sm:py-4">
                                                     <div className="flex items-center gap-2 sm:gap-3">
                                                         {item.product.media?.[0] && (

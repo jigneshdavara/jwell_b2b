@@ -65,16 +65,7 @@ export class QuotationsService {
         // Grouping for admin is same as frontend
         const groups = new Map<string, any[]>();
         for (const item of items) {
-            let groupKey = item.quotation_group_id;
-            if (!groupKey) {
-                const date = item.created_at;
-                if (date) {
-                    const minute = Math.floor(date.getMinutes() / 5) * 5;
-                    groupKey = `${item.user_id}_${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}_${date.getHours()}:${minute}`;
-                } else {
-                    groupKey = `${item.user_id}_no_date`;
-                }
-            }
+            const groupKey = item.quotation_group_id;
             if (!groups.has(groupKey)) {
                 groups.set(groupKey, []);
             }
@@ -84,26 +75,31 @@ export class QuotationsService {
             }
         }
 
-        const allFormatted = Array.from(groups.values()).map((group) => {
-            const first = group[0];
-            return {
-                id: first.id.toString(),
-                ids: group.map((q) => q.id.toString()),
-                status: first.status,
-                quantity: group.reduce((sum, q) => sum + q.quantity, 0),
-                created_at: first.created_at,
-                product: {
-                    id: first.products.id.toString(),
-                    name: first.products.name,
-                },
-                products: group.map((q) => ({
-                    id: q.products.id.toString(),
-                    name: q.products.name,
-                })),
-                user: { name: first.users.name, email: first.users.email },
-                order_reference: first.orders?.reference || null,
-            };
-        });
+        const allFormatted = Array.from(groups.entries()).map(
+            ([groupKey, group]) => {
+                const first = group[0];
+                // Use actual quotation_group_id from database only (no generation)
+                const actualQuotationGroupId = first.quotation_group_id;
+
+                return {
+                    quotation_group_id: actualQuotationGroupId,
+                    ids: group.map((q) => q.id.toString()),
+                    status: first.status,
+                    quantity: group.reduce((sum, q) => sum + q.quantity, 0),
+                    created_at: first.created_at,
+                    product: {
+                        id: first.products.id.toString(),
+                        name: first.products.name,
+                    },
+                    products: group.map((q) => ({
+                        id: q.products.id.toString(),
+                        name: q.products.name,
+                    })),
+                    user: { name: first.users.name, email: first.users.email },
+                    order_reference: first.orders?.reference || null,
+                };
+            },
+        );
 
         const total = allFormatted.length;
         const paginated = allFormatted.slice(skip, skip + perPage);
@@ -119,9 +115,12 @@ export class QuotationsService {
         };
     }
 
-    async findOne(id: number) {
-        const quotation = await this.prisma.quotations.findUnique({
-            where: { id: BigInt(id) },
+    async findByGroupId(quotationGroupId: string) {
+        // Find all quotations in the group
+        const quotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+            },
             include: {
                 users: true,
                 products: {
@@ -152,44 +151,16 @@ export class QuotationsService {
                         },
                     },
                 },
-                quotation_messages: {
-                    include: { users: true },
-                    orderBy: { created_at: 'asc' },
-                },
             },
+            orderBy: { created_at: 'asc' },
         });
 
-        if (!quotation) throw new NotFoundException('Quotation not found');
+        if (quotations.length === 0)
+            throw new NotFoundException('Quotation group not found');
 
-        const related = await this.prisma.quotations.findMany({
-            where: {
-                id: { not: quotation.id },
-                quotation_group_id: quotation.quotation_group_id,
-            },
-            include: {
-                products: {
-                    include: {
-                        product_medias: { orderBy: { display_order: 'asc' } },
-                        product_variants: {
-                            include: {
-                                product_variant_metals: {
-                                    include: {
-                                        metals: true,
-                                        metal_purities: true,
-                                        metal_tones: true,
-                                    },
-                                },
-                                product_variant_diamonds: {
-                                    include: { diamonds: true },
-                                },
-                                sizes: true,
-                            },
-                        },
-                    },
-                },
-                product_variants: true,
-            },
-        });
+        // Use the first quotation as the primary one
+        const quotation = quotations[0];
+        const related = quotations.slice(1);
 
         const user = quotation.users;
         const priceBreakdown = await this.pricingService.calculateProductPrice(
@@ -216,7 +187,7 @@ export class QuotationsService {
                     },
                 );
                 return {
-                    id: q.id.toString(),
+                    quotation_group_id: q.quotation_group_id,
                     status: q.status,
                     quantity: q.quantity,
                     notes: q.notes,
@@ -238,7 +209,7 @@ export class QuotationsService {
         );
 
         return {
-            id: quotation.id.toString(),
+            quotation_group_id: quotation.quotation_group_id,
             status: quotation.status,
             quantity: quotation.quantity,
             notes: quotation.notes,
@@ -261,7 +232,15 @@ export class QuotationsService {
                 name: user.name,
                 email: user.email,
             },
-            messages: quotation.quotation_messages.map((m) => ({
+            messages: (
+                await this.prisma.quotation_messages.findMany({
+                    where: {
+                        quotation_group_id: quotation.quotation_group_id,
+                    },
+                    include: { users: true },
+                    orderBy: { created_at: 'asc' },
+                })
+            ).map((m) => ({
                 id: m.id.toString(),
                 sender: m.sender,
                 message: m.message,
@@ -298,7 +277,7 @@ export class QuotationsService {
             throw new BadRequestException('Already approved');
         if (!['pending', 'customer_confirmed'].includes(quotation.status)) {
             throw new BadRequestException(
-                'Quotation must be confirmed by customer before approval',
+                'Quotation must be confirmed by user before approval',
             );
         }
 
@@ -353,7 +332,7 @@ export class QuotationsService {
             if (related.length > 0) {
                 try {
                     await this.mailService.sendQuotationApproved(
-                        Number(related[0].id),
+                        related[0].quotation_group_id,
                     );
                 } catch (error) {
                     console.error(
@@ -370,16 +349,111 @@ export class QuotationsService {
         });
     }
 
-    async reject(id: number, adminNotes?: string) {
-        const quotation = await this.prisma.quotations.findUnique({
-            where: { id: BigInt(id) },
+    async approveByGroupId(quotationGroupId: string, adminNotes?: string) {
+        const quotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+            },
             include: { users: true },
         });
-        if (!quotation) throw new NotFoundException('Quotation not found');
+
+        if (quotations.length === 0)
+            throw new NotFoundException('Quotation group not found');
+
+        const firstQuotation = quotations[0];
+
+        if (firstQuotation.status === 'approved')
+            throw new BadRequestException('Already approved');
+        if (
+            !['pending', 'customer_confirmed'].includes(firstQuotation.status)
+        ) {
+            throw new BadRequestException(
+                'Quotation must be confirmed by user before approval',
+            );
+        }
+
+        const related = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+                status: { in: ['pending', 'customer_confirmed'] },
+            },
+            include: { products: true, users: true },
+        });
+
+        if (related.length === 0)
+            throw new BadRequestException('No quotations found to approve');
+
+        return await this.prisma.$transaction(async (tx) => {
+            // Create Order
+            const order = await this.createOrderFromQuotations(related, tx);
+
+            for (const q of related) {
+                await tx.quotations.update({
+                    where: { id: q.id },
+                    data: {
+                        status: 'approved',
+                        approved_at: new Date(),
+                        admin_notes: adminNotes,
+                        order_id: order.id,
+                        updated_at: new Date(),
+                    },
+                });
+
+                // Inventory update
+                if (q.product_variant_id) {
+                    const variant = await tx.product_variants.findUnique({
+                        where: { id: q.product_variant_id },
+                    });
+                    if (variant && variant.inventory_quantity !== null) {
+                        await tx.product_variants.update({
+                            where: { id: q.product_variant_id },
+                            data: {
+                                inventory_quantity: Math.max(
+                                    0,
+                                    (variant.inventory_quantity || 0) -
+                                        q.quantity,
+                                ),
+                            },
+                        });
+                    }
+                }
+            }
+
+            // Send approval email (send for first quotation in group)
+            if (related.length > 0) {
+                try {
+                    await this.mailService.sendQuotationApproved(
+                        related[0].quotation_group_id,
+                    );
+                } catch (error) {
+                    console.error(
+                        'Failed to send quotation approval email:',
+                        error,
+                    );
+                }
+            }
+
+            return {
+                order_id: order.id.toString(),
+                message: 'Quotations approved',
+            };
+        });
+    }
+
+    async rejectByGroupId(quotationGroupId: string, adminNotes?: string) {
+        const quotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+            },
+            include: { users: true },
+        });
+
+        if (quotations.length === 0)
+            throw new NotFoundException('Quotation group not found');
 
         await this.prisma.quotations.updateMany({
             where: {
-                quotation_group_id: quotation.quotation_group_id,
+                quotation_group_id: quotationGroupId,
                 status: { not: 'rejected' },
             },
             data: {
@@ -389,29 +463,45 @@ export class QuotationsService {
             },
         });
 
-        // Send rejection email
-        try {
-            await this.mailService.sendQuotationRejected(
-                Number(id),
-                adminNotes,
-            );
-        } catch (error) {
-            console.error('Failed to send quotation rejection email:', error);
+        // Send rejection email (use first quotation for email)
+        if (quotations.length > 0) {
+            try {
+                await this.mailService.sendQuotationRejected(
+                    quotations[0].quotation_group_id,
+                    adminNotes,
+                );
+            } catch (error) {
+                console.error(
+                    'Failed to send quotation rejection email:',
+                    error,
+                );
+            }
         }
 
         return { message: 'Quotations rejected' };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async addMessage(id: number, message: string, _userId: bigint) {
-        const quotation = await this.prisma.quotations.findUnique({
-            where: { id: BigInt(id) },
+    async addMessageByGroupId(
+        quotationGroupId: string,
+        message: string,
+        _userId: bigint,
+    ) {
+        const quotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+            },
+            orderBy: { created_at: 'asc' },
         });
-        if (!quotation) throw new NotFoundException('Quotation not found');
 
-        return await this.prisma.quotation_messages.create({
+        if (quotations.length === 0)
+            throw new NotFoundException('Quotation group not found');
+
+        // Use the first quotation in the group for the message
+        const quotation = quotations[0];
+
+        await this.prisma.quotation_messages.create({
             data: {
-                quotation_id: quotation.id,
+                quotation_group_id: quotation.quotation_group_id,
                 user_id: null, // Admin messages don't have user_id
                 sender: 'admin',
                 message,
@@ -419,78 +509,99 @@ export class QuotationsService {
                 updated_at: new Date(),
             },
         });
+
+        return { success: true };
     }
 
-    async requestConfirmation(id: number, dto: RequestConfirmationDto) {
-        const quotation = await this.prisma.quotations.findUnique({
-            where: { id: BigInt(id) },
-            include: { products: true },
-        });
-        if (!quotation) throw new NotFoundException('Quotation not found');
-
-        const related = await this.prisma.quotations.findMany({
+    async requestConfirmationByGroupId(
+        quotationGroupId: string,
+        dto: RequestConfirmationDto,
+    ) {
+        const quotations = await this.prisma.quotations.findMany({
             where: {
-                quotation_group_id: quotation.quotation_group_id,
+                quotation_group_id: quotationGroupId,
                 status: { in: ['pending', 'approved', 'rejected'] },
             },
+            include: { products: true },
+            orderBy: { created_at: 'asc' },
         });
 
-        return await this.prisma.$transaction(async (tx) => {
-            for (const q of related) {
-                const updateData: any = {
+        if (quotations.length === 0)
+            throw new NotFoundException('Quotation group not found');
+
+        await this.prisma.$transaction(async (tx) => {
+            // Update the first quotation with the new details
+            const firstQuotation = quotations[0];
+            const updateData: any = {
+                status: 'pending_customer_confirmation',
+                updated_at: new Date(),
+            };
+            if (dto.notes) updateData.admin_notes = dto.notes;
+            if (dto.quantity) updateData.quantity = dto.quantity;
+            if (dto.product_variant_id)
+                updateData.product_variant_id = BigInt(dto.product_variant_id);
+
+            await tx.quotations.update({
+                where: { id: firstQuotation.id },
+                data: updateData,
+            });
+
+            // Update other quotations in the group
+            for (const q of quotations.slice(1)) {
+                const relatedUpdateData: any = {
                     status: 'pending_customer_confirmation',
                     updated_at: new Date(),
                 };
-                if (dto.notes) updateData.admin_notes = dto.notes;
-
-                if (q.id === quotation.id) {
-                    updateData.quantity = dto.quantity;
-                    if (dto.product_variant_id)
-                        updateData.product_variant_id = BigInt(
-                            dto.product_variant_id,
-                        );
-                }
+                if (dto.notes) relatedUpdateData.admin_notes = dto.notes;
 
                 await tx.quotations.update({
                     where: { id: q.id },
-                    data: updateData,
-                });
-
-                await tx.quotation_messages.create({
-                    data: {
-                        quotation_id: q.id,
-                        sender: 'admin',
-                        message:
-                            dto.notes ||
-                            'Please review updated quotation details.',
-                        created_at: new Date(),
-                        updated_at: new Date(),
-                    },
+                    data: relatedUpdateData,
                 });
             }
 
-            // Send confirmation request email (send for main quotation)
-            try {
-                await this.mailService.sendQuotationConfirmationRequest(
-                    Number(id),
-                    dto.notes,
-                );
-            } catch (error) {
-                console.error(
-                    'Failed to send quotation confirmation request email:',
-                    error,
-                );
-            }
-
-            return { message: 'Confirmation requested' };
+            // Create messages for all quotations
+            const quotationGroupId = quotations[0].quotation_group_id;
+            await tx.quotation_messages.create({
+                data: {
+                    quotation_group_id: quotationGroupId,
+                    sender: 'admin',
+                    message:
+                        dto.notes || 'Please review updated quotation details.',
+                    created_at: new Date(),
+                    updated_at: new Date(),
+                },
+            });
         });
+
+        // Send confirmation request email (send for first quotation) - after transaction
+        try {
+            await this.mailService.sendQuotationConfirmationRequest(
+                quotations[0].quotation_group_id,
+                dto.notes,
+            );
+        } catch (error) {
+            console.error(
+                'Failed to send quotation confirmation request email:',
+                error,
+            );
+        }
+
+        return { message: 'Confirmation requested' };
     }
 
-    async addItem(id: number, dto: AddQuotationItemDto) {
-        const baseQuotation = await this.prisma.quotations.findUnique({
-            where: { id: BigInt(id) },
+    async addItemByGroupId(quotationGroupId: string, dto: AddQuotationItemDto) {
+        const quotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+            },
+            orderBy: { created_at: 'asc' },
         });
-        if (!baseQuotation) throw new NotFoundException('Quotation not found');
+
+        if (quotations.length === 0)
+            throw new NotFoundException('Quotation group not found');
+
+        const baseQuotation = quotations[0];
 
         const product = await this.prisma.products.findUnique({
             where: { id: BigInt(dto.product_id) },
@@ -514,8 +625,7 @@ export class QuotationsService {
             const newQ = await tx.quotations.create({
                 data: {
                     user_id: baseQuotation.user_id,
-                    quotation_group_id:
-                        baseQuotation.quotation_group_id || uuidv4(),
+                    quotation_group_id: quotationGroupId,
                     product_id: product.id,
                     product_variant_id: dto.product_variant_id
                         ? BigInt(dto.product_variant_id)
@@ -532,7 +642,7 @@ export class QuotationsService {
                 `Added new product '${product.name}' to quotation.`;
             await tx.quotation_messages.create({
                 data: {
-                    quotation_id: baseQuotation.id,
+                    quotation_group_id: baseQuotation.quotation_group_id,
                     sender: 'admin',
                     message,
                     created_at: new Date(),
@@ -543,7 +653,7 @@ export class QuotationsService {
             // Send confirmation request email after transaction
             try {
                 await this.mailService.sendQuotationConfirmationRequest(
-                    Number(baseQuotation.id),
+                    baseQuotation.quotation_group_id,
                     message,
                 );
             } catch (error) {
@@ -557,12 +667,22 @@ export class QuotationsService {
         });
     }
 
-    async updateProduct(id: number, dto: UpdateQuotationProductDto) {
-        const quotation = await this.prisma.quotations.findUnique({
-            where: { id: BigInt(id) },
+    async updateProductByGroupId(
+        quotationGroupId: string,
+        dto: UpdateQuotationProductDto,
+    ) {
+        const quotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+            },
             include: { products: true },
+            orderBy: { created_at: 'asc' },
         });
-        if (!quotation) throw new NotFoundException('Quotation not found');
+
+        if (quotations.length === 0)
+            throw new NotFoundException('Quotation group not found');
+
+        const firstQuotation = quotations[0];
 
         const product = await this.prisma.products.findUnique({
             where: { id: BigInt(dto.product_id) },
@@ -570,13 +690,14 @@ export class QuotationsService {
         if (!product) throw new NotFoundException('Product not found');
 
         return await this.prisma.$transaction(async (tx) => {
+            // Update the first quotation with new product details
             await tx.quotations.update({
-                where: { id: quotation.id },
+                where: { id: firstQuotation.id },
                 data: {
                     product_id: product.id,
                     product_variant_id: dto.product_variant_id
                         ? BigInt(dto.product_variant_id)
-                        : quotation.product_variant_id,
+                        : firstQuotation.product_variant_id,
                     quantity: dto.quantity,
                     status: 'pending_customer_confirmation',
                     admin_notes: dto.admin_notes,
@@ -584,36 +705,45 @@ export class QuotationsService {
                 },
             });
 
-            // Update related
-            await tx.quotations.updateMany({
-                where: {
-                    id: { not: quotation.id },
-                    quotation_group_id: quotation.quotation_group_id,
-                },
-                data: {
-                    status: 'pending_customer_confirmation',
-                    admin_notes: dto.admin_notes,
-                    updated_at: new Date(),
-                },
-            });
+            // Get quotation_group_id for use below
+            const quotationGroupId = quotations[0].quotation_group_id;
+
+            // Update other quotations in the group (status and notes only)
+            if (quotations.length > 1 && quotationGroupId) {
+                await tx.quotations.updateMany({
+                    where: {
+                        id: { not: firstQuotation.id },
+                        quotation_group_id: quotationGroupId,
+                    },
+                    data: {
+                        status: 'pending_customer_confirmation',
+                        admin_notes: dto.admin_notes,
+                        updated_at: new Date(),
+                    },
+                });
+            }
 
             const message =
                 dto.admin_notes ||
-                `Product changed from '${quotation.products.name}' to '${product.name}'.`;
-            await tx.quotation_messages.create({
-                data: {
-                    quotation_id: quotation.id,
-                    sender: 'admin',
-                    message,
-                    created_at: new Date(),
-                    updated_at: new Date(),
-                },
-            });
+                `Product changed from '${firstQuotation.products.name}' to '${product.name}'.`;
+
+            // Create message for the quotation group
+            if (quotationGroupId) {
+                await tx.quotation_messages.create({
+                    data: {
+                        quotation_group_id: quotationGroupId,
+                        sender: 'admin',
+                        message,
+                        created_at: new Date(),
+                        updated_at: new Date(),
+                    },
+                });
+            }
 
             // Send confirmation request email after transaction
             try {
                 await this.mailService.sendQuotationConfirmationRequest(
-                    Number(id),
+                    firstQuotation.quotation_group_id,
                     message,
                 );
             } catch (error) {
@@ -627,15 +757,22 @@ export class QuotationsService {
         });
     }
 
-    async remove(id: number) {
-        const quotation = await this.prisma.quotations.findUnique({
-            where: { id: BigInt(id) },
+    async removeByGroupId(quotationGroupId: string) {
+        const quotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+            },
         });
-        if (!quotation) {
-            throw new NotFoundException('Quotation not found');
+
+        if (quotations.length === 0) {
+            throw new NotFoundException('Quotation group not found');
         }
-        return await this.prisma.quotations.delete({
-            where: { id: BigInt(id) },
+
+        // Delete all quotations in the group
+        return await this.prisma.quotations.deleteMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+            },
         });
     }
 
@@ -683,11 +820,10 @@ export class QuotationsService {
         // Group by quotation_group_id to get unique quotation groups
         const quotationGroups = new Map<string, any>();
         for (const q of allQuotations) {
-            const groupKey =
-                q.quotation_group_id || `single_${q.id.toString()}`;
+            const groupKey = q.quotation_group_id;
             if (!quotationGroups.has(groupKey)) {
                 quotationGroups.set(groupKey, {
-                    id: q.id.toString(),
+                    quotation_group_id: q.quotation_group_id,
                     status: q.status,
                     quantity: q.quantity,
                     created_at: q.created_at,
@@ -808,9 +944,7 @@ export class QuotationsService {
         return this.generateStatisticsPDF(statistics);
     }
 
-    private async generateStatisticsPDF(
-        statistics: any,
-    ): Promise<Buffer> {
+    private async generateStatisticsPDF(statistics: any): Promise<Buffer> {
         const PDFDocument = require('pdfkit');
         return new Promise((resolve, reject) => {
             try {
@@ -903,8 +1037,14 @@ export class QuotationsService {
                         .fontSize(11)
                         .font('Helvetica-Bold')
                         .text('Status', 60, y + 8, { width: 200 })
-                        .text('Count', 270, y + 8, { width: 100, align: 'right' })
-                        .text('Quantity', 380, y + 8, { width: 160, align: 'right' });
+                        .text('Count', 270, y + 8, {
+                            width: 100,
+                            align: 'right',
+                        })
+                        .text('Quantity', 380, y + 8, {
+                            width: 160,
+                            align: 'right',
+                        });
 
                     y += 30;
 
@@ -936,7 +1076,9 @@ export class QuotationsService {
                                     align: 'right',
                                 });
                             y += 30;
-                            doc.fontSize(10).font('Helvetica').fillColor(darkGray);
+                            doc.fontSize(10)
+                                .font('Helvetica')
+                                .fillColor(darkGray);
                         }
 
                         doc.text(item.status_label, 60, y, { width: 200 })
@@ -945,7 +1087,9 @@ export class QuotationsService {
                                 align: 'right',
                             })
                             .text(
-                                parseFloat(item.quantity || 0).toLocaleString('en-IN'),
+                                parseFloat(item.quantity || 0).toLocaleString(
+                                    'en-IN',
+                                ),
                                 380,
                                 y,
                                 { width: 160, align: 'right' },
@@ -983,8 +1127,14 @@ export class QuotationsService {
                         .fontSize(11)
                         .font('Helvetica-Bold')
                         .text('Date', 60, y + 8, { width: 150 })
-                        .text('Count', 220, y + 8, { width: 100, align: 'right' })
-                        .text('Quantity', 330, y + 8, { width: 210, align: 'right' });
+                        .text('Count', 220, y + 8, {
+                            width: 100,
+                            align: 'right',
+                        })
+                        .text('Quantity', 330, y + 8, {
+                            width: 210,
+                            align: 'right',
+                        });
 
                     y += 30;
 
@@ -1016,7 +1166,9 @@ export class QuotationsService {
                                     align: 'right',
                                 });
                             y += 30;
-                            doc.fontSize(10).font('Helvetica').fillColor(darkGray);
+                            doc.fontSize(10)
+                                .font('Helvetica')
+                                .fillColor(darkGray);
                         }
 
                         const dateStr = new Date(item.date).toLocaleDateString(
@@ -1034,7 +1186,9 @@ export class QuotationsService {
                                 align: 'right',
                             })
                             .text(
-                                parseFloat(item.quantity || 0).toLocaleString('en-IN'),
+                                parseFloat(item.quantity || 0).toLocaleString(
+                                    'en-IN',
+                                ),
                                 330,
                                 y,
                                 { width: 210, align: 'right' },
@@ -1153,7 +1307,7 @@ export class QuotationsService {
                 line_subtotal: unitSubtotal * q.quantity,
                 line_discount: unitDiscount * q.quantity,
                 pricing: p,
-                quotation_id: q.id,
+                quotation_group_id: q.quotation_group_id,
             } as any);
         }
 
@@ -1178,7 +1332,7 @@ export class QuotationsService {
                 discount_amount: totalDiscount,
                 price_breakdown: {
                     items: orderItems.map((item) => ({
-                        quotation_id: item.quotation_id.toString(),
+                        quotation_group_id: item.quotation_group_id,
                         unit: item.pricing,
                         quantity: item.quantity,
                         line_subtotal:
@@ -1217,7 +1371,7 @@ export class QuotationsService {
                     unit_price: (item as any).unit_price,
                     total_price: (item as any).total_price,
                     metadata: {
-                        quotation_id: (item as any).quotation_id.toString(),
+                        quotation_group_id: (item as any).quotation_group_id,
                         variant: variantData,
                     },
                     created_at: new Date(),
@@ -1232,7 +1386,9 @@ export class QuotationsService {
                 status: 'in_production',
                 meta: {
                     source: 'quotation_approval',
-                    quotation_ids: quotations.map((q) => q.id.toString()),
+                    quotation_group_ids: quotations.map(
+                        (q) => q.quotation_group_id,
+                    ),
                 },
                 created_at: new Date(),
                 updated_at: new Date(),

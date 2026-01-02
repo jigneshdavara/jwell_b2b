@@ -11,7 +11,7 @@ import { toastError, toastWarning } from '@/utils/toast';
 import { getMediaUrl } from '@/utils/mediaUrl';
 
 type RelatedQuotation = {
-    id: string | number;
+    quotation_group_id: string;
     status: string;
     quantity: number;
     notes?: string | null;
@@ -53,7 +53,7 @@ type RelatedQuotation = {
 };
 
 type QuotationDetails = {
-    id: string | number;
+    quotation_group_id: string;
     status: string;
     quantity: number;
     notes?: string | null;
@@ -188,6 +188,7 @@ type ConfigurationOption = {
 
 export default function AdminQuotationShow({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
+    const quotationGroupId = resolvedParams.id; // Now treated as quotation_group_id (string)
     const router = useRouter();
     const [quotation, setQuotation] = useState<QuotationDetails | null>(null);
     const [loading, setLoading] = useState(true);
@@ -223,7 +224,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     const [changeProductNotes, setChangeProductNotes] = useState('');
     const [changeProductVariantId, setChangeProductVariantId] = useState<number | ''>('');
     const [changeProductProcessing, setChangeProductProcessing] = useState(false);
-    const changeProductInitializedRef = React.useRef<number | null>(null);
+    const changeProductInitializedRef = React.useRef<string | null>(null);
     const pendingInitializationRef = React.useRef<{
         metalId: number;
         purityId: number | null;
@@ -268,7 +269,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     const loadQuotation = async () => {
         try {
             setLoading(true);
-            const response = await adminService.getQuotation(Number(resolvedParams.id));
+            const response = await adminService.getQuotation(quotationGroupId);
             if (response.data) {
                 setQuotation(response.data);
                 // Update hasChanges based on status (like Laravel)
@@ -284,8 +285,9 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     // Combine main quotation with related quotations for display
     const allQuotations = React.useMemo(() => {
         if (!quotation) return [];
+        
         const main: RelatedQuotation = {
-            id: quotation.id,
+            quotation_group_id: quotation.quotation_group_id,
             status: quotation.status,
             quantity: quotation.quantity,
             notes: quotation.notes,
@@ -300,7 +302,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         if (!removeItemConfirm.itemId) return;
         try {
             setRemoveItemProcessing(true);
-            await adminService.deleteQuotation(Number(removeItemConfirm.itemId));
+            await adminService.deleteQuotation(quotationGroupId);
             setRemoveItemConfirm({ show: false, itemId: null });
             // Reload quotation to get updated data
             await loadQuotation();
@@ -321,11 +323,11 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         try {
             setActionProcessing(true);
             if (actionType === 'approve') {
-                await adminService.approveQuotation(Number(resolvedParams.id), actionNotes || undefined);
+                await adminService.approveQuotation(quotationGroupId, actionNotes || undefined);
             } else if (actionType === 'reject') {
-                await adminService.rejectQuotation(Number(resolvedParams.id), actionNotes || undefined);
+                await adminService.rejectQuotation(quotationGroupId, actionNotes || undefined);
             } else if (actionType === 'request_confirmation') {
-                await adminService.requestQuotationConfirmation(Number(resolvedParams.id), {
+                await adminService.requestQuotationConfirmation(quotationGroupId, {
                     notes: actionNotes || undefined,
                 });
                 // Reset hasChanges after requesting confirmation
@@ -348,7 +350,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         
         try {
             setMessageProcessing(true);
-            await adminService.sendQuotationMessage(Number(resolvedParams.id), messageText);
+            await adminService.sendQuotationMessage(quotationGroupId, messageText);
             setMessageText('');
             await loadQuotation();
         } catch (error: any) {
@@ -783,8 +785,8 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                 const selectedVariant = mappedVariants.find(v => v.id === Number(item.variant?.id));
                 if (selectedVariant?.metals && selectedVariant.metals.length > 0) {
                     const firstMetal = selectedVariant.metals[0];
-                    const quotationId = typeof item.id === 'string' ? Number(item.id) : item.id;
-                    changeProductInitializedRef.current = quotationId;
+                    const quotationGroupId = item.quotation_group_id;
+                    changeProductInitializedRef.current = quotationGroupId;
                     
                     // Store target values - useEffect will set them when configuration options are ready
                     pendingInitializationRef.current = {
@@ -817,8 +819,8 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                     const currentVariant = product.variants.find(v => v.id === Number(item.variant?.id));
                     if (currentVariant?.metals && currentVariant.metals.length > 0) {
                         const firstMetal = currentVariant.metals[0];
-                        const quotationId = typeof item.id === 'string' ? Number(item.id) : item.id;
-                        changeProductInitializedRef.current = quotationId;
+                        const quotationGroupId = item.quotation_group_id;
+                        changeProductInitializedRef.current = quotationGroupId;
                         
                         // Store target values - useEffect will set them when configuration options are ready
                         pendingInitializationRef.current = {
@@ -915,7 +917,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
         try {
             setChangeProductProcessing(true);
-            await adminService.updateQuotationProduct(Number(changeProductModalOpen.id), {
+            await adminService.updateQuotationProduct(quotationGroupId, {
                 product_id: selectedProduct.id,
                 product_variant_id: Number(changeProductVariantId),
                 quantity: changeProductQuantity,
@@ -987,7 +989,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
 
         try {
             setAddItemProcessing(true);
-            await adminService.addQuotationItem(Number(resolvedParams.id), {
+            await adminService.addQuotationItem(quotationGroupId, {
                 product_id: addItemSelectedProduct.id,
                 product_variant_id: Number(addItemVariantId),
                 quantity: addItemQuantity,
@@ -1006,7 +1008,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     if (loading) {
         return (
             <>
-                <Head title={`Quotation #${resolvedParams.id}`} />
+                <Head title={`Quotation ${quotationGroupId}`} />
                 <div className="flex items-center justify-center p-8">
                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent"></div>
                 </div>
@@ -1017,7 +1019,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     if (!quotation) {
         return (
             <>
-                <Head title={`Quotation #${resolvedParams.id}`} />
+                <Head title={`Quotation ${quotationGroupId}`} />
                 <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-200/80">
                     <p className="text-slate-600">Quotation not found.</p>
                     <Link href="/admin/quotations" className="mt-4 inline-block text-sm font-semibold text-elvee-blue hover:text-elvee-blue/80">
@@ -1039,7 +1041,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
             <div className="space-y-6 sm:space-y-8 px-1 py-4 sm:px-6 sm:py-6 lg:px-8">
                 <div className="rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl ring-1 ring-slate-200/80">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                        <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">Quotation #{resolvedParams.id}</h1>
+                        <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">Quotation {quotationGroupId}</h1>
                         <Link
                             href="/admin/quotations"
                             className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 sm:px-4 sm:py-2 sm:text-sm"
@@ -1103,7 +1105,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                             </div>
                             <div className="text-left sm:text-right">
                                 <h3 className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Quotation Details</h3>
-                                <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">#{resolvedParams.id}</p>
+                                <p className="mt-2 sm:mt-3 text-sm sm:text-base lg:text-lg font-semibold text-slate-900">{quotationGroupId}</p>
                                 <p className="mt-1 text-xs sm:text-sm text-slate-500">
                                     Date: <span className="font-semibold text-slate-900">{quotation.created_at && formatDate(quotation.created_at)}</span>
                                 </p>
@@ -1147,7 +1149,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {allQuotations.map((item) => {
+                                    {allQuotations.map((item, index) => {
                                         const priceBreakdown = item.price_breakdown || {};
                                         const metalCost = Number(priceBreakdown.metal) || 0;
                                         const diamondCost = Number(priceBreakdown.diamond) || 0;
@@ -1155,9 +1157,11 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                         const unitPrice = Number(priceBreakdown.total) || (metalCost + diamondCost + makingCharge);
                                         const lineTotal = unitPrice * (Number(item.quantity) || 0);
                                         const variantLabel = item.variant?.metadata?.auto_label as string || item.variant?.label || '';
+                                        // Use composite key: quotation_group_id + product.id + variant.id (if exists) + index as fallback
+                                        const uniqueKey = `${item.quotation_group_id}-${item.product.id}-${item.variant?.id || 'no-variant'}-${index}`;
                                         
                                         return (
-                                            <tr key={item.id} className="hover:bg-slate-50/50 transition">
+                                            <tr key={uniqueKey} className="hover:bg-slate-50/50 transition">
                                                 <td className="px-3 py-3 sm:px-4 sm:py-4">
                                                     <div className="flex items-center gap-2 sm:gap-3">
                                                         {item.product.media?.[0] && getMediaUrl(item.product.media[0].url) && (
@@ -1222,7 +1226,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                         <button
                                                             type="button"
                                                             onClick={() => {
-                                                                setRemoveItemConfirm({ show: true, itemId: item.id });
+                                                                setRemoveItemConfirm({ show: true, itemId: item.quotation_group_id });
                                                             }}
                                                             className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-rose-200 text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 sm:h-7 sm:w-7 md:h-8 md:w-8"
                                                             title="Remove item"

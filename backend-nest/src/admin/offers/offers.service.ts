@@ -210,7 +210,7 @@ export class OffersService {
             }
         }
 
-        // Check customer types
+        // Check user types
         if (
             constraints.customer_types &&
             Array.isArray(constraints.customer_types) &&
@@ -221,7 +221,7 @@ export class OffersService {
             }
         }
 
-        // Check customer group IDs
+        // Check user group IDs
         if (
             constraints.customer_group_ids &&
             Array.isArray(constraints.customer_group_ids) &&

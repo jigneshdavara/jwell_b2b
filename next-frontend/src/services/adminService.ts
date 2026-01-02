@@ -504,29 +504,29 @@ export const adminService = {
       responseType: 'blob',
     });
   },
-  async getQuotation(id: number) {
-    return await apiClient.get(`/admin/quotations/${id}`);
+  async getQuotation(quotationGroupId: string) {
+    return await apiClient.get(`/admin/quotations/${quotationGroupId}`);
   },
-  async approveQuotation(id: number, adminNotes?: string) {
-    return await apiClient.post(`/admin/quotations/${id}/approve`, { admin_notes: adminNotes || null });
+  async approveQuotation(quotationGroupId: string, adminNotes?: string) {
+    return await apiClient.post(`/admin/quotations/${quotationGroupId}/approve`, { admin_notes: adminNotes || null });
   },
-  async rejectQuotation(id: number, adminNotes?: string) {
-    return await apiClient.post(`/admin/quotations/${id}/reject`, { admin_notes: adminNotes || null });
+  async rejectQuotation(quotationGroupId: string, adminNotes?: string) {
+    return await apiClient.post(`/admin/quotations/${quotationGroupId}/reject`, { admin_notes: adminNotes || null });
   },
-  async sendQuotationMessage(id: number, message: string) {
-    return await apiClient.post(`/admin/quotations/${id}/messages`, { message });
+  async sendQuotationMessage(quotationGroupId: string, message: string) {
+    return await apiClient.post(`/admin/quotations/${quotationGroupId}/messages`, { message });
   },
-  async requestQuotationConfirmation(id: number, data: { quantity?: number; product_variant_id?: number; notes?: string }) {
-    return await apiClient.post(`/admin/quotations/${id}/request-confirmation`, data);
+  async requestQuotationConfirmation(quotationGroupId: string, data: { quantity?: number; product_variant_id?: number; notes?: string }) {
+    return await apiClient.post(`/admin/quotations/${quotationGroupId}/request-confirmation`, data);
   },
-  async addQuotationItem(id: number, data: { product_id: number; product_variant_id?: number; quantity: number; admin_notes?: string }) {
-    return await apiClient.post(`/admin/quotations/${id}/add-item`, data);
+  async addQuotationItem(quotationGroupId: string, data: { product_id: number; product_variant_id?: number; quantity: number; admin_notes?: string }) {
+    return await apiClient.post(`/admin/quotations/${quotationGroupId}/add-item`, data);
   },
-  async updateQuotationProduct(id: number, data: { product_id: number; product_variant_id?: number; quantity: number; admin_notes?: string }) {
-    return await apiClient.post(`/admin/quotations/${id}/update-product`, data);
+  async updateQuotationProduct(quotationGroupId: string, data: { product_id: number; product_variant_id?: number; quantity: number; admin_notes?: string }) {
+    return await apiClient.post(`/admin/quotations/${quotationGroupId}/update-product`, data);
   },
-  async deleteQuotation(id: number) {
-    return await apiClient.delete(`/admin/quotations/${id}`);
+  async deleteQuotation(quotationGroupId: string) {
+    return await apiClient.delete(`/admin/quotations/${quotationGroupId}`);
   },
 
   // Offers

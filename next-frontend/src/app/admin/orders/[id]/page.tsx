@@ -72,6 +72,7 @@ type Order = {
     }>;
     quotations?: Array<{
         id: number;
+        quotation_group_id: string;
         status: string;
         quantity: number;
         product?: {
@@ -256,7 +257,7 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
                     meta: entry.meta,
                 })),
                 quotations: (orderData.quotations || []).map((quotation: any) => ({
-                    id: Number(quotation.id),
+                    quotation_group_id: quotation.quotation_group_id,
                     status: quotation.status,
                     quantity: quotation.quantity,
                     product: quotation.product ? {
@@ -677,10 +678,10 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
                                     <h2 className="text-base sm:text-lg font-semibold text-slate-900">Source Quotations</h2>
                                     <p className="mt-1 text-[10px] sm:text-xs text-slate-500">This order was created from the following quotations</p>
                                     <div className="mt-3 sm:mt-4 space-y-2 sm:space-y-3">
-                                        {order.quotations.map((quotation) => (
+                                        {order.quotations.map((quotation, index) => (
                                             <Link
-                                                key={quotation.id}
-                                                href={`/admin/quotations/${quotation.id}`}
+                                                key={`${quotation.quotation_group_id}-${quotation.product?.id || 'no-product'}-${index}`}
+                                                href={`/admin/quotations/${quotation.quotation_group_id}`}
                                                 className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 sm:px-4 sm:py-3 transition hover:border-elvee-blue/50 hover:bg-elvee-blue/5"
                                             >
                                                 {quotation.product?.media?.[0] && getMediaUrlNullable(quotation.product.media[0].url) && (
@@ -691,7 +692,7 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
                                                     />
                                                 )}
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-xs sm:text-sm font-semibold text-slate-900">Quotation #{quotation.id}</p>
+                                                    <p className="text-xs sm:text-sm font-semibold text-slate-900">Quotation #{quotation.quotation_group_id}</p>
                                                     <p className="text-[10px] sm:text-xs text-slate-500 truncate">{quotation.product?.name ?? 'Product'}</p>
                                                 </div>
                                                 <div className="text-right flex-shrink-0">

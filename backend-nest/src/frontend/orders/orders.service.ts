@@ -243,7 +243,7 @@ export class FrontendOrdersService {
                 meta: (history.meta as Record<string, any>) || {},
             })),
             quotations: order.quotations.map((quotation) => ({
-                id: quotation.id.toString(),
+                quotation_group_id: quotation.quotation_group_id,
                 status: quotation.status,
                 quantity: quotation.quantity,
                 product: quotation.products
