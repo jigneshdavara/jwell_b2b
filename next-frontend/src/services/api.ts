@@ -132,7 +132,14 @@ apiClient.interceptors.response.use(
                 // Check if this is a silent request (no toast needed)
                 const isSilent =
                     response.config.headers?.["X-Silent-Request"] === "true";
-                if (!isSilent) {
+
+                // Don't show success toasts for customer panel routes
+                const isCustomerPanel =
+                    typeof window !== "undefined" &&
+                    !window.location.pathname.startsWith("/admin") &&
+                    !window.location.pathname.startsWith("/production");
+
+                if (!isSilent && !isCustomerPanel) {
                     toastSuccess(response.data.message);
                 }
             }

@@ -6,7 +6,7 @@ import { route } from '@/utils/route';
 import { frontendService } from '@/services/frontendService';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
-import { toastSuccess, toastError } from '@/utils/toast';
+import { toastError } from '@/utils/toast';
 import { getMediaUrl } from '@/utils/mediaUrl';
 import type { QuotationRow } from '@/types';
 

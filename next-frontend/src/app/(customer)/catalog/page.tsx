@@ -10,7 +10,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchWishlist, addProductId, removeProductId } from '@/store/slices/wishlistSlice';
 import { selectWishlistProductIds } from '@/store/selectors/wishlistSelectors';
 import { formatCurrency } from '@/utils/formatting';
-import { toastSuccess, toastError } from '@/utils/toast';
+import { toastError } from '@/utils/toast';
 import type { Product, CatalogFiltersInput, CatalogFilters, CatalogProps, PriceRange } from '@/types';
 
 const FILTER_LABELS: Record<string, string> = {
@@ -584,8 +584,8 @@ export default function CatalogPage() {
                     </form>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/70 sm:gap-3 sm:rounded-2xl sm:p-3">
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <div className="flex flex-col gap-3 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/70 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:rounded-2xl sm:p-3">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
                         <button
                             type="button"
                             onClick={() => setMobileFilterOpen(true)}
@@ -600,7 +600,7 @@ export default function CatalogPage() {
                         <button
                             type="button"
                             onClick={() => setViewMode('grid')}
-                            className={`inline-flex h-7 w-7 items-center justify-center rounded-full transition sm:h-9 sm:w-9 ${
+                            className={`inline-flex h-7 w-7 items-center justify-center rounded-full transition sm:h-9 sm:w-9 flex-shrink-0 ${
                                 viewMode === 'grid' ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                             }`}
                             aria-label="Grid view"
@@ -612,7 +612,7 @@ export default function CatalogPage() {
                         <button
                             type="button"
                             onClick={() => setViewMode('list')}
-                            className={`inline-flex h-7 w-7 items-center justify-center rounded-full transition sm:h-9 sm:w-9 ${
+                            className={`inline-flex h-7 w-7 items-center justify-center rounded-full transition sm:h-9 sm:w-9 flex-shrink-0 ${
                                 viewMode === 'list' ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                             }`}
                             aria-label="List view"
@@ -622,8 +622,8 @@ export default function CatalogPage() {
                             </svg>
                         </button>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm">
-                        <label htmlFor="catalog-sort" className="font-medium">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-600 sm:gap-2 sm:text-sm flex-shrink-0">
+                        <label htmlFor="catalog-sort" className="font-medium whitespace-nowrap">
                             Sort by
                         </label>
                         <select
@@ -632,7 +632,7 @@ export default function CatalogPage() {
                             onChange={(event) => {
                                 applyFilter('sort', event.target.value === 'newest' ? undefined : event.target.value);
                             }}
-                            className="rounded-xl border border-slate-200 px-2 py-1.5 text-xs focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 sm:rounded-2xl sm:px-3 sm:py-2 sm:text-sm"
+                            className="min-w-[140px] rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-xs focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 sm:min-w-[170px] sm:rounded-2xl sm:px-3 sm:py-2 sm:text-sm"
                         >
                             <option value="newest">Newest arrivals</option>
                             <option value="price_asc">Price: Low to high</option>

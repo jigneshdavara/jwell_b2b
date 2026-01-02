@@ -348,8 +348,8 @@ export default function AdminUsersIndex() {
                             </select>
                         </div>
                     </div>
-                    <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 border-t border-slate-200 pt-3 sm:pt-4">
-                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-semibold text-slate-600">
+                    <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-200 pt-3 sm:pt-4">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-semibold text-slate-600 flex-1 min-w-0">
                             <span>Status:</span>
                             {statusOptions.map((status) => {
                                 const active = (statusFilter || 'all') === status;
@@ -358,7 +358,7 @@ export default function AdminUsersIndex() {
                                         key={status}
                                         type="button"
                                         onClick={() => changeStatus(status)}
-                                        className={`rounded-full px-2 py-0.5 sm:px-3 sm:py-1 transition text-[10px] sm:text-xs ${
+                                        className={`rounded-full px-2 py-0.5 sm:px-3 sm:py-1 transition text-[10px] sm:text-xs flex-shrink-0 ${
                                             active
                                                 ? 'bg-slate-900 text-white shadow shadow-slate-900/20'
                                                 : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
@@ -369,12 +369,12 @@ export default function AdminUsersIndex() {
                                 );
                             })}
                         </div>
-                        <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-500">
-                            <span>Show</span>
+                        <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-500 flex-shrink-0">
+                            <span className="whitespace-nowrap">Show</span>
                             <select
                                 value={perPage}
                                 onChange={(event) => setPerPage(Number(event.target.value))}
-                                className="rounded-lg sm:rounded-xl border border-slate-300 px-2 py-1 sm:px-3 text-xs sm:text-sm"
+                                className="rounded-lg sm:rounded-xl border border-slate-300 px-2 py-1 sm:px-3 text-xs sm:text-sm min-w-[60px]"
                             >
                                 {perPageOptions.map((size) => (
                                     <option key={size} value={size}>
@@ -382,7 +382,7 @@ export default function AdminUsersIndex() {
                                     </option>
                                 ))}
                             </select>
-                            <span>entries</span>
+                            <span className="whitespace-nowrap">entries</span>
                         </div>
                     </div>
                     <div className="mt-3 sm:mt-4 flex flex-wrap gap-2 text-[10px] sm:text-xs text-slate-500">

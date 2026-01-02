@@ -4,11 +4,12 @@ import { useEffect, useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { kycService } from '@/services/kycService';
 import { route } from '@/utils/route';
+import { getMediaUrl } from '@/utils/mediaUrl';
 import InputError from '@/components/ui/InputError';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { checkKycStatus, fetchKycDocuments } from '@/store/slices/kycSlice';
-import { toastSuccess, toastError } from '@/utils/toast';
+import { toastError } from '@/utils/toast';
 import type { KycDocument, KycProfile, ConversationMessage, KycUser } from '@/types';
 
 const statusLabels: Record<string, { title: string; description: string; badge: string }> = {
@@ -141,7 +142,6 @@ export default function KycOnboardingPage() {
         setErrors({});
         try {
             await kycService.updateProfile(profileData);
-            toastSuccess('Profile updated successfully');
             await fetchData();
             // Refresh KYC state in RTK
             dispatch(checkKycStatus());
@@ -167,7 +167,6 @@ export default function KycOnboardingPage() {
             setDocumentFile(null);
             const input = document.getElementById('document_file') as HTMLInputElement;
             if (input) input.value = '';
-            toastSuccess('Document uploaded successfully');
             await fetchData();
             // Refresh KYC state in RTK
             dispatch(checkKycStatus());
@@ -190,7 +189,6 @@ export default function KycOnboardingPage() {
         try {
             await kycService.addMessage(newMessage);
             setNewMessage('');
-            toastSuccess('Message sent successfully');
             await fetchData();
             // Refresh KYC state in RTK
             dispatch(checkKycStatus());
@@ -210,7 +208,6 @@ export default function KycOnboardingPage() {
         if (!deleteDocumentId) return;
         try {
             await kycService.deleteDocument(Number(deleteDocumentId));
-            toastSuccess('Document deleted successfully');
             setDeleteDocumentId(null);
             await fetchData();
             // Refresh KYC state in RTK
