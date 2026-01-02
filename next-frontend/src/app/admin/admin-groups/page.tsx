@@ -597,16 +597,16 @@ export default function AdminAdminGroupsPage() {
 
             <div className="overflow-hidden rounded-2xl sm:rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 border-b border-slate-200 px-3 py-3 sm:px-5 sm:py-4 text-xs sm:text-sm">
-                    <div className="font-semibold text-slate-700">
+                    <div className="font-semibold text-slate-700 flex-1 min-w-0">
                         Groups ({groups.meta.total})
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-500">
-                        <span>{selectedGroups.length} selected</span>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-500 flex-shrink-0">
+                        <span className="whitespace-nowrap">{selectedGroups.length} selected</span>
                         <button
                             type="button"
                             onClick={() => setBulkDeleteConfirm(true)}
                             disabled={selectedGroups.length === 0}
-                            className="inline-flex items-center rounded-full border border-rose-200 px-2.5 py-1 sm:px-3 font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40 text-[10px] sm:text-xs"
+                            className="inline-flex items-center rounded-full border border-rose-200 px-2.5 py-1 sm:px-3 font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40 text-[10px] sm:text-xs flex-shrink-0"
                         >
                             Bulk delete
                         </button>
@@ -616,7 +616,7 @@ export default function AdminAdminGroupsPage() {
                                 setPerPage(Number(e.target.value));
                                 setCurrentPage(1);
                             }}
-                            className="rounded-full border border-slate-200 px-2.5 py-1 sm:px-3 text-[10px] sm:text-xs focus:ring-0"
+                            className="rounded-full border border-slate-200 px-2.5 py-1 sm:px-3 text-[10px] sm:text-xs focus:ring-0 min-w-[60px]"
                         >
                             <option value={10}>10</option>
                             <option value={25}>25</option>

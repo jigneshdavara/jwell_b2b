@@ -8,7 +8,7 @@ import { fetchWishlist as fetchWishlistThunk, removeProductId as removeProductId
 import { fetchCart as fetchCartThunk } from "@/store/slices/cartSlice";
 import { route } from "@/utils/route";
 import { getMediaUrlNullable } from "@/utils/mediaUrl";
-import { toastSuccess, toastError } from "@/utils/toast";
+import { toastError } from "@/utils/toast";
 import type { WishlistItem } from "@/types";
 
 export default function WishlistPage() {

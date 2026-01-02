@@ -482,15 +482,15 @@ export default function AdminCatalogsIndex() {
                             >
                                 Bulk delete
                             </button>
-                            <div className="flex items-center gap-1.5 sm:gap-2">
-                                <span>Per page:</span>
+                            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                                <span className="whitespace-nowrap">Per page:</span>
                                 <select
                                     value={perPage}
                                     onChange={(e) => {
                                         setPerPage(Number(e.target.value));
                                         setCurrentPage(1);
                                     }}
-                                    className="rounded-full border border-slate-200 px-2 py-1 sm:px-3 sm:py-1 text-[10px] sm:text-xs"
+                                    className="rounded-full border border-slate-200 px-2 py-1 sm:px-3 sm:py-1 text-[10px] sm:text-xs min-w-[60px]"
                                 >
                                     <option value={10}>10</option>
                                     <option value={25}>25</option>

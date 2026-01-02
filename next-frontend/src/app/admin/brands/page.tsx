@@ -278,14 +278,14 @@ export default function AdminBrandsPage() {
 
             <div className="overflow-hidden rounded-2xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80 sm:rounded-3xl">
                 <div className="flex flex-col gap-3 border-b border-slate-200 px-3 py-3 text-xs sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-4 sm:text-sm">
-                    <div className="font-semibold text-slate-700">Brands ({brands.meta.total})</div>
-                    <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500 sm:gap-3 sm:text-xs">
+                    <div className="font-semibold text-slate-700 flex-1 min-w-0">Brands ({brands.meta.total})</div>
+                    <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500 sm:gap-3 sm:text-xs flex-shrink-0">
                         <span className="whitespace-nowrap">{selectedBrands.length} selected</span>
                         <button
                             type="button"
                             onClick={() => setBulkDeleteConfirm(true)}
                             disabled={selectedBrands.length === 0}
-                            className="inline-flex items-center whitespace-nowrap rounded-full border border-rose-200 px-2.5 py-1 text-[10px] font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:text-xs"
+                            className="inline-flex items-center whitespace-nowrap rounded-full border border-rose-200 px-2.5 py-1 text-[10px] font-semibold text-rose-600 transition hover:border-rose-300 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 sm:text-xs flex-shrink-0"
                         >
                             Bulk delete
                         </button>
@@ -295,7 +295,7 @@ export default function AdminBrandsPage() {
                                 setPerPage(Number(e.target.value));
                                 setCurrentPage(1);
                             }}
-                            className="rounded-full border border-slate-200 px-2 py-1 text-[10px] focus:ring-0 sm:px-3 sm:text-xs"
+                            className="rounded-full border border-slate-200 px-2 py-1 text-[10px] focus:ring-0 sm:px-3 sm:text-xs min-w-[60px]"
                         >
                             <option value={10}>10</option>
                             <option value={25}>25</option>

@@ -216,15 +216,15 @@ export default function AdminTaxGroupsIndex() {
 
                 <div className="overflow-x-auto rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 border-b border-slate-200 px-3 py-2.5 text-xs sm:px-5 sm:py-4 sm:text-sm">
-                        <div className="font-semibold text-slate-700">
+                        <div className="font-semibold text-slate-700 flex-1 min-w-0">
                             Groups ({meta.total})
                         </div>
-                        <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-500">
-                            <span>Show</span>
+                        <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-500 flex-shrink-0">
+                            <span className="whitespace-nowrap">Show</span>
                             <select
                                 value={perPage}
                                 onChange={handlePerPageChange}
-                                className="rounded-full border border-slate-200 px-2 py-1 text-[10px] focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 sm:px-3 sm:text-xs"
+                                className="rounded-full border border-slate-200 px-2 py-1 text-[10px] focus:border-feather-gold focus:outline-none focus:ring-2 focus:ring-feather-gold/20 sm:px-3 sm:text-xs min-w-[60px]"
                             >
                                 <option value={10}>10</option>
                                 <option value={25}>25</option>
