@@ -146,6 +146,12 @@ export class AdminQuotationsController {
         return this.quotationsService.updateProductByGroupId(quotationGroupId, dto);
     }
 
+    @Delete('item/:quotation_id')
+    removeItem(@Param('quotation_id') quotationId: string) {
+        // This removes a single quotation item
+        return this.quotationsService.removeById(quotationId);
+    }
+
     @Delete(':quotation_group_id')
     remove(@Param('quotation_group_id') quotationGroupId: string) {
         // This removes the entire quotation group
