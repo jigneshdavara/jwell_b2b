@@ -166,6 +166,7 @@ export class DiamondsService {
 
         // For now, I'll return all shapes since the relation might be through another table.
         return this.prisma.diamond_shapes.findMany({
+            where: { diamond_type_id: BigInt(typeId) },
             orderBy: { display_order: 'asc' },
         });
     }
