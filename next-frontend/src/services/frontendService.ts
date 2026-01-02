@@ -150,8 +150,8 @@ export const frontendService = {
     return await apiClient.get('/quotations');
   },
 
-  async getQuotation(quotationId: number) {
-    return await apiClient.get(`/quotations/${quotationId}`);
+  async getQuotation(quotationGroupId: string) {
+    return await apiClient.get(`/quotations/${quotationGroupId}`);
   },
 
   async createQuotation(data: {
@@ -163,20 +163,20 @@ export const frontendService = {
     return await apiClient.post('/quotations', data);
   },
 
-  async deleteQuotation(quotationId: number) {
-    return await apiClient.delete(`/quotations/${quotationId}`);
+  async deleteQuotation(quotationGroupId: string) {
+    return await apiClient.delete(`/quotations/${quotationGroupId}`);
   },
 
-  async sendQuotationMessage(quotationId: number, message: string) {
-    return await apiClient.post(`/quotations/${quotationId}/messages`, { message });
+  async sendQuotationMessage(quotationGroupId: string, message: string) {
+    return await apiClient.post(`/quotations/${quotationGroupId}/messages`, { message });
   },
 
-  async confirmQuotation(quotationId: number) {
-    return await apiClient.post(`/quotations/${quotationId}/confirm`);
+  async confirmQuotation(quotationGroupId: string) {
+    return await apiClient.post(`/quotations/${quotationGroupId}/confirm`);
   },
 
-  async declineQuotation(quotationId: number) {
-    return await apiClient.post(`/quotations/${quotationId}/decline`);
+  async declineQuotation(quotationGroupId: string) {
+    return await apiClient.post(`/quotations/${quotationGroupId}/decline`);
   },
 
   // Profile

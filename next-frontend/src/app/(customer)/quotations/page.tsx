@@ -25,7 +25,7 @@ const statusLabels: Record<string, { label: string; style: string }> = {
 export default function QuotationsPage() {
     const [quotations, setQuotations] = useState<QuotationRow[]>([]);
     const [loading, setLoading] = useState(true);
-    const [cancelConfirm, setCancelConfirm] = useState<{ show: boolean; quotationId: number | null }>({ show: false, quotationId: null });
+    const [cancelConfirm, setCancelConfirm] = useState<{ show: boolean; quotationGroupId: string | null }>({ show: false, quotationGroupId: null });
     // Toast notifications are handled via RTK
 
     const fetchQuotations = async () => {
@@ -37,11 +37,8 @@ export default function QuotationsPage() {
             
             // Map backend response to frontend format (matching Laravel structure)
             const mappedQuotations: QuotationRow[] = quotationsData.map((q: any) => {
-                // Handle both string and number IDs
-                const quotationId = typeof q.id === 'string' ? Number(q.id) : q.id;
-                
                 return {
-                    id: quotationId,
+                    quotation_group_id: q.quotation_group_id,
                     ids: q.ids ? q.ids.map((id: any) => typeof id === 'string' ? Number(id) : id) : undefined,
                     status: q.status || 'pending',
                     approved_at: q.approved_at || null,
@@ -105,12 +102,12 @@ export default function QuotationsPage() {
             : 'N/A';
 
     const handleCancel = async () => {
-        if (!cancelConfirm.quotationId) return;
+        if (!cancelConfirm.quotationGroupId) return;
         
         try {
-            await frontendService.deleteQuotation(cancelConfirm.quotationId);
-            setQuotations(prev => prev.filter(q => q.id !== cancelConfirm.quotationId));
-            setCancelConfirm({ show: false, quotationId: null });
+            await frontendService.deleteQuotation(cancelConfirm.quotationGroupId);
+            setQuotations(prev => prev.filter(q => q.quotation_group_id !== cancelConfirm.quotationGroupId));
+            setCancelConfirm({ show: false, quotationGroupId: null });
         } catch (error: any) {
             console.error('Failed to cancel quotation:', error);
             toastError(error.response?.data?.message || 'Failed to cancel quotation');
@@ -183,13 +180,13 @@ export default function QuotationsPage() {
                                         };
 
                                         return (
-                                            <tr key={quotation.id} className="hover:bg-slate-50">
+                                            <tr key={quotation.quotation_group_id} className="hover:bg-slate-50">
                                                 <td className="px-2 py-3 sm:px-4 sm:py-4">
                                                     <Link
-                                                        href={route('frontend.quotations.show', { id: quotation.id })}
+                                                        href={route('frontend.quotations.show', { id: quotation.quotation_group_id })}
                                                         className="text-xs font-semibold text-elvee-blue hover:text-feather-gold transition sm:text-sm"
                                                     >
-                                                        #{quotation.id}
+                                                        #{quotation.quotation_group_id}
                                                     </Link>
                                                 </td>
                                                 <td className="px-2 py-3 sm:px-4 sm:py-4">
@@ -230,7 +227,7 @@ export default function QuotationsPage() {
                                                 <td className="px-2 py-3 sm:px-4 sm:py-4">
                                                     <div className="flex items-center justify-end gap-1.5 sm:gap-2">
                                                         <Link
-                                                            href={route('frontend.quotations.show', { id: quotation.id })}
+                                                            href={route('frontend.quotations.show', { id: quotation.quotation_group_id })}
                                                             className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 text-slate-600 transition hover:border-elvee-blue hover:bg-elvee-blue/5 hover:text-elvee-blue sm:h-8 sm:w-8"
                                                             title="View details"
                                                         >
@@ -242,7 +239,7 @@ export default function QuotationsPage() {
                                                         {(quotation.status === 'pending' || quotation.status === 'pending_customer_confirmation') && (
                                                             <button
                                                                 type="button"
-                                                                onClick={() => setCancelConfirm({ show: true, quotationId: quotation.id })}
+                                                                onClick={() => setCancelConfirm({ show: true, quotationGroupId: quotation.quotation_group_id })}
                                                                 className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-rose-300 text-rose-600 transition hover:border-rose-400 hover:bg-rose-50 sm:h-8 sm:w-8"
                                                                 title="Cancel quotation"
                                                             >
@@ -265,7 +262,7 @@ export default function QuotationsPage() {
 
             <ConfirmationModal
                 show={cancelConfirm.show}
-                onClose={() => setCancelConfirm({ show: false, quotationId: null })}
+                onClose={() => setCancelConfirm({ show: false, quotationGroupId: null })}
                 onConfirm={handleCancel}
                 title="Cancel quotation"
                 message="Are you sure you want to cancel this quotation request? This action cannot be undone."

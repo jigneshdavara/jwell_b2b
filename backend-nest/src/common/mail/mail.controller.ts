@@ -13,25 +13,25 @@ export class SendLoginOtpDto {
 }
 
 export class SendQuotationApprovedDto {
-    quotationId: number;
+    quotationGroupId: string;
 }
 
 export class SendQuotationRejectedDto {
-    quotationId: number;
+    quotationGroupId: string;
     reason?: string;
 }
 
 export class SendQuotationSubmittedDto {
-    quotationId: number;
+    quotationGroupId: string;
 }
 
 export class SendQuotationConfirmationRequestDto {
-    quotationId: number;
+    quotationGroupId: string;
     message?: string;
 }
 
 export class SendQuotationStatusUpdatedDto {
-    quotationId: number;
+    quotationGroupId: string;
 }
 
 @Controller('mail')
@@ -94,7 +94,7 @@ export class MailController {
     async sendQuotationApproved(
         @Body() dto: SendQuotationApprovedDto,
     ): Promise<{ success: boolean }> {
-        await this.mailService.sendQuotationApproved(dto.quotationId);
+        await this.mailService.sendQuotationApproved(dto.quotationGroupId);
         return { success: true };
     }
 
@@ -104,18 +104,18 @@ export class MailController {
         @Body() dto: SendQuotationRejectedDto,
     ): Promise<{ success: boolean }> {
         await this.mailService.sendQuotationRejected(
-            dto.quotationId,
+            dto.quotationGroupId,
             dto.reason,
         );
         return { success: true };
     }
 
-    @Post('quotation-submitted-customer')
+    @Post('quotation-submitted-user')
     @HttpCode(HttpStatus.OK)
     async sendQuotationSubmittedUser(
         @Body() dto: SendQuotationSubmittedDto,
     ): Promise<{ success: boolean }> {
-        await this.mailService.sendQuotationSubmittedUser(dto.quotationId);
+        await this.mailService.sendQuotationSubmittedUser(dto.quotationGroupId);
         return { success: true };
     }
 
@@ -124,7 +124,9 @@ export class MailController {
     async sendQuotationSubmittedAdmin(
         @Body() dto: SendQuotationSubmittedDto,
     ): Promise<{ success: boolean }> {
-        await this.mailService.sendQuotationSubmittedAdmin(dto.quotationId);
+        await this.mailService.sendQuotationSubmittedAdmin(
+            dto.quotationGroupId,
+        );
         return { success: true };
     }
 
@@ -134,7 +136,7 @@ export class MailController {
         @Body() dto: SendQuotationConfirmationRequestDto,
     ): Promise<{ success: boolean }> {
         await this.mailService.sendQuotationConfirmationRequest(
-            dto.quotationId,
+            dto.quotationGroupId,
             dto.message,
         );
         return { success: true };
@@ -145,7 +147,7 @@ export class MailController {
     async sendQuotationStatusUpdated(
         @Body() dto: SendQuotationStatusUpdatedDto,
     ): Promise<{ success: boolean }> {
-        await this.mailService.sendQuotationStatusUpdated(dto.quotationId);
+        await this.mailService.sendQuotationStatusUpdated(dto.quotationGroupId);
         return { success: true };
     }
 }

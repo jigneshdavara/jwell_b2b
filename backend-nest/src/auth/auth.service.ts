@@ -254,10 +254,10 @@ export class AuthService {
     }
 
     async requestOtp(email: string) {
-        const customer = await this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { email },
         });
-        if (!customer) {
+        if (!user) {
             throw new BadRequestException('Email not found');
         }
 
@@ -265,14 +265,14 @@ export class AuthService {
         const hashedCode = await bcrypt.hash(code, 10);
 
         await this.prisma.userLoginOtp.updateMany({
-            where: { user_id: customer.id, consumed_at: null },
+            where: { user_id: user.id, consumed_at: null },
             data: { consumed_at: new Date() },
         });
 
         await this.prisma.userLoginOtp.create({
             data: {
                 code: hashedCode,
-                user_id: customer.id,
+                user_id: user.id,
                 expires_at: new Date(Date.now() + 10 * 60000),
             },
         });
@@ -302,17 +302,17 @@ export class AuthService {
 
     async verifyOtp(verifyOtpDto: VerifyOtpDto) {
         const { email, code } = verifyOtpDto;
-        const customer = await this.prisma.user.findUnique({
+        const user = await this.prisma.user.findUnique({
             where: { email },
         });
 
-        if (!customer) {
+        if (!user) {
             throw new UnauthorizedException('Invalid credentials');
         }
 
         const otp = await this.prisma.userLoginOtp.findFirst({
             where: {
-                user_id: customer.id,
+                user_id: user.id,
                 consumed_at: null,
                 expires_at: { gte: new Date() },
             },
@@ -331,7 +331,7 @@ export class AuthService {
             data: { consumed_at: new Date() },
         });
 
-        return { ...customer, guard: 'user' };
+        return { ...user, guard: 'user' };
     }
 
     /**
@@ -340,7 +340,7 @@ export class AuthService {
     async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
         const { email } = forgotPasswordDto;
 
-        // Try customer first, then admin user
+        // Try user first, then admin user
         let user: any = await this.prisma.user.findUnique({
             where: { email },
         });
@@ -446,7 +446,7 @@ export class AuthService {
             throw new UnauthorizedException('Invalid reset token');
         }
 
-        // Find user (customer or admin)
+        // Find user (user or admin)
         let user: any = await this.prisma.user.findUnique({
             where: { email },
         });

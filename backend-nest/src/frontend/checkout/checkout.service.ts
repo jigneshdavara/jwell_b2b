@@ -287,7 +287,7 @@ export class FrontendCheckoutService {
                 source: 'payment_success',
             },
             userId,
-            'customer',
+            'user',
         );
 
         const updatedOrder = await this.prisma.orders.findUnique({

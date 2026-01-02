@@ -31,12 +31,14 @@ export class FrontendQuotationsController {
         return { quotations };
     }
 
-    @Get(':id')
-    async show(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
-        const quotationId = BigInt(id);
+    @Get(':quotation_group_id')
+    async show(
+        @Param('quotation_group_id') quotationGroupId: string,
+        @Request() req: any,
+    ) {
         const userId = BigInt(req.user.userId);
-        const quotation = await this.quotationsService.findOne(
-            quotationId,
+        const quotation = await this.quotationsService.findByGroupId(
+            quotationGroupId,
             userId,
         );
         return { quotation }; // Ensure explicit return format
@@ -56,44 +58,58 @@ export class FrontendQuotationsController {
         return await this.quotationsService.createFromCart(userId);
     }
 
-    @Delete(':id')
+    @Delete(':quotation_group_id')
     @HttpCode(HttpStatus.OK)
-    async destroy(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
-        const quotationId = BigInt(id);
+    async destroy(
+        @Param('quotation_group_id') quotationGroupId: string,
+        @Request() req: any,
+    ) {
         const userId = BigInt(req.user.userId);
-        return await this.quotationsService.remove(quotationId, userId);
+        return await this.quotationsService.removeByGroupId(
+            quotationGroupId,
+            userId,
+        );
     }
 
-    @Post(':id/messages')
+    @Post(':quotation_group_id/messages')
     @HttpCode(HttpStatus.CREATED)
     async message(
-        @Param('id', ParseIntPipe) id: number,
+        @Param('quotation_group_id') quotationGroupId: string,
         @Body() dto: StoreQuotationMessageDto,
         @Request() req: any,
     ) {
-        const quotationId = BigInt(id);
         const userId = BigInt(req.user.userId);
-        const result = await this.quotationsService.createMessage(
-            quotationId,
+        const result = await this.quotationsService.createMessageByGroupId(
+            quotationGroupId,
             dto,
             userId,
         );
         return result;
     }
 
-    @Post(':id/confirm')
+    @Post(':quotation_group_id/confirm')
     @HttpCode(HttpStatus.CREATED)
-    async confirm(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
-        const quotationId = BigInt(id);
+    async confirm(
+        @Param('quotation_group_id') quotationGroupId: string,
+        @Request() req: any,
+    ) {
         const userId = BigInt(req.user.userId);
-        return await this.quotationsService.confirm(quotationId, userId);
+        return await this.quotationsService.confirmByGroupId(
+            quotationGroupId,
+            userId,
+        );
     }
 
-    @Post(':id/decline')
+    @Post(':quotation_group_id/decline')
     @HttpCode(HttpStatus.CREATED)
-    async decline(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
-        const quotationId = BigInt(id);
+    async decline(
+        @Param('quotation_group_id') quotationGroupId: string,
+        @Request() req: any,
+    ) {
         const userId = BigInt(req.user.userId);
-        return await this.quotationsService.decline(quotationId, userId);
+        return await this.quotationsService.declineByGroupId(
+            quotationGroupId,
+            userId,
+        );
     }
 }

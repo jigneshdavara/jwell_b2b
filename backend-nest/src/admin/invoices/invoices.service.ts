@@ -570,7 +570,7 @@ export class InvoicesService {
     }
 
     /**
-     * Send invoice email to customer
+     * Send invoice email to user
      */
     async sendInvoiceEmail(invoiceId: number): Promise<void> {
         const invoice = await this.prisma.invoices.findUnique({

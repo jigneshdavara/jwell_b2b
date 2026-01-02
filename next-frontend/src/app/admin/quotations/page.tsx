@@ -9,6 +9,7 @@ import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type QuotationRow = {
     id: number;
+    quotation_group_id: string;
     ids?: number[];
     status: string;
     quantity: number;
@@ -73,7 +74,7 @@ export default function AdminQuotationsIndex() {
             const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: 20 };
 
             const formattedItems = items.map((item: any) => ({
-                id: Number(item.id),
+                quotation_group_id: item.quotation_group_id,
                 ids: item.ids ? item.ids.map((id: string) => Number(id)) : undefined,
                 status: item.status,
                 quantity: Number(item.quantity || 0),
@@ -252,9 +253,9 @@ export default function AdminQuotationsIndex() {
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
                                         {quotationsData.map((quotation) => (
-                                            <tr key={quotation.id} className="hover:bg-slate-50">
+                                            <tr key={quotation.quotation_group_id} className="hover:bg-slate-50">
                                                 <td className="px-3 py-2 sm:px-4 sm:py-3">
-                                                    <div className="font-semibold text-slate-900 text-xs sm:text-sm">#{quotation.id}</div>
+                                                    <div className="font-semibold text-slate-900 text-xs sm:text-sm">#{quotation.quotation_group_id}</div>
                                                     <div className="text-[10px] sm:text-xs font-medium text-slate-600">
                                                         {quotation.products && quotation.products.length > 1
                                                             ? `${quotation.products.length} products`
@@ -322,7 +323,7 @@ export default function AdminQuotationsIndex() {
                                                 <td className="px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600 hidden md:table-cell">{quotation.order_reference ?? '—'}</td>
                                                 <td className="px-3 py-2 sm:px-4 sm:py-3 text-right">
                                                     <Link
-                                                        href={`/admin/quotations/${quotation.id}`}
+                                                        href={`/admin/quotations/${quotation.quotation_group_id}`}
                                                         className="inline-flex items-center rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-slate-700 sm:px-3 sm:py-1.5 sm:text-xs md:px-4 md:py-2"
                                                     >
                                                         Manage

@@ -65,7 +65,7 @@ export class MailService {
     }
 
     /**
-     * Send order confirmation email to customer
+     * Send order confirmation email to user
      */
     async sendOrderConfirmation(
         orderId: number,
@@ -167,7 +167,7 @@ export class MailService {
     }
 
     /**
-     * Send welcome email to new customer
+     * Send welcome email to new user
      */
     async sendWelcomeEmail(userId: number): Promise<void> {
         // Convert number to BigInt for Prisma query
@@ -185,7 +185,7 @@ export class MailService {
         await this.sendMail({
             to: user.email,
             subject,
-            template: 'welcome-customer',
+            template: 'welcome-user',
             context: {
                 user,
                 subject,
@@ -302,9 +302,9 @@ export class MailService {
     /**
      * Send quotation approved email
      */
-    async sendQuotationApproved(quotationId: number): Promise<void> {
-        const quotation = await this.prisma.quotations.findUnique({
-            where: { id: BigInt(quotationId) },
+    async sendQuotationApproved(quotationGroupId: string): Promise<void> {
+        const quotation = await this.prisma.quotations.findFirst({
+            where: { quotation_group_id: quotationGroupId },
             include: {
                 users: true,
             },
@@ -315,8 +315,7 @@ export class MailService {
         }
 
         const brandName = process.env.BRAND_NAME || 'Elvee';
-        const quotationRef =
-            quotation.quotation_group_id || `#${quotation.id.toString()}`;
+        const quotationRef = quotation.quotation_group_id;
         const subject = `Quotation ${quotationRef} approved`;
 
         await this.sendMail({
@@ -339,11 +338,11 @@ export class MailService {
      * Send quotation rejected email
      */
     async sendQuotationRejected(
-        quotationId: number,
+        quotationGroupId: string,
         reason?: string,
     ): Promise<void> {
-        const quotation = await this.prisma.quotations.findUnique({
-            where: { id: BigInt(quotationId) },
+        const quotation = await this.prisma.quotations.findFirst({
+            where: { quotation_group_id: quotationGroupId },
             include: {
                 users: true,
             },
@@ -354,8 +353,7 @@ export class MailService {
         }
 
         const brandName = process.env.BRAND_NAME || 'Elvee';
-        const quotationRef =
-            quotation.quotation_group_id || `#${quotation.id.toString()}`;
+        const quotationRef = quotation.quotation_group_id;
         const subject = `Quotation ${quotationRef} update`;
 
         await this.sendMail({
@@ -376,11 +374,11 @@ export class MailService {
     }
 
     /**
-     * Send quotation submitted email to customer
+     * Send quotation submitted email to user
      */
-    async sendQuotationSubmittedUser(quotationId: number): Promise<void> {
-        const quotation = await this.prisma.quotations.findUnique({
-            where: { id: BigInt(quotationId) },
+    async sendQuotationSubmittedUser(quotationGroupId: string): Promise<void> {
+        const quotation = await this.prisma.quotations.findFirst({
+            where: { quotation_group_id: quotationGroupId },
             include: {
                 users: true,
             },
@@ -391,14 +389,13 @@ export class MailService {
         }
 
         const brandName = process.env.BRAND_NAME || 'Elvee';
-        const quotationRef =
-            quotation.quotation_group_id || `#${quotation.id.toString()}`;
+        const quotationRef = quotation.quotation_group_id;
         const subject = `Quotation ${quotationRef} submitted`;
 
         await this.sendMail({
             to: quotation.users.email,
             subject,
-            template: 'quotation-submitted-customer',
+            template: 'quotation-submitted-user',
             context: {
                 quotation: {
                     ...quotation,
@@ -414,15 +411,15 @@ export class MailService {
     /**
      * Send quotation submitted email to admin
      */
-    async sendQuotationSubmittedAdmin(quotationId: number): Promise<void> {
+    async sendQuotationSubmittedAdmin(quotationGroupId: string): Promise<void> {
         const adminEmail = process.env.ADMIN_EMAIL;
 
         if (!adminEmail) {
             return;
         }
 
-        const quotation = await this.prisma.quotations.findUnique({
-            where: { id: BigInt(quotationId) },
+        const quotation = await this.prisma.quotations.findFirst({
+            where: { quotation_group_id: quotationGroupId },
             include: {
                 users: true,
             },
@@ -433,8 +430,7 @@ export class MailService {
         }
 
         const brandName = process.env.BRAND_NAME || 'Elvee';
-        const quotationRef =
-            quotation.quotation_group_id || `#${quotation.id.toString()}`;
+        const quotationRef = quotation.quotation_group_id;
         const subject = `New quotation submitted: ${quotationRef}`;
 
         await this.sendMail({
@@ -456,11 +452,11 @@ export class MailService {
      * Send quotation confirmation request email
      */
     async sendQuotationConfirmationRequest(
-        quotationId: number,
+        quotationGroupId: string,
         message?: string,
     ): Promise<void> {
-        const quotation = await this.prisma.quotations.findUnique({
-            where: { id: BigInt(quotationId) },
+        const quotation = await this.prisma.quotations.findFirst({
+            where: { quotation_group_id: quotationGroupId },
             include: {
                 users: true,
             },
@@ -471,8 +467,7 @@ export class MailService {
         }
 
         const brandName = process.env.BRAND_NAME || 'Elvee';
-        const quotationRef =
-            quotation.quotation_group_id || `#${quotation.id.toString()}`;
+        const quotationRef = quotation.quotation_group_id;
         const subject = `Action required: Quotation ${quotationRef}`;
 
         await this.sendMail({
@@ -507,9 +502,9 @@ export class MailService {
     /**
      * Send quotation status updated email
      */
-    async sendQuotationStatusUpdated(quotationId: number): Promise<void> {
-        const quotation = await this.prisma.quotations.findUnique({
-            where: { id: BigInt(quotationId) },
+    async sendQuotationStatusUpdated(quotationGroupId: string): Promise<void> {
+        const quotation = await this.prisma.quotations.findFirst({
+            where: { quotation_group_id: quotationGroupId },
             include: {
                 users: true,
             },
@@ -520,8 +515,7 @@ export class MailService {
         }
 
         const brandName = process.env.BRAND_NAME || 'Elvee';
-        const quotationRef =
-            quotation.quotation_group_id || `#${quotation.id.toString()}`;
+        const quotationRef = quotation.quotation_group_id;
         const subject = `Quotation ${quotationRef} status updated`;
 
         await this.sendMail({

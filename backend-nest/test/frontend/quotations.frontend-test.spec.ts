@@ -449,7 +449,7 @@ describe('Frontend Quotations (e2e)', () => {
                 JSON.stringify(response.body, null, 2),
             );
             expect(response.body).toBeDefined();
-            expect(response.body.message).toBe('Message sent.');
+            expect(response.body.success).toBe(true);
         });
 
         it('should return 403 for other user quotation', async () => {

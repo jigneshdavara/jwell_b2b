@@ -47,17 +47,17 @@ export class KycApprovedGuard implements CanActivate {
         }
 
         const userId = BigInt(userIdStr);
-        const customer = (await this.prisma.user.findUnique({
+        const dbUser = (await this.prisma.user.findUnique({
             where: { id: userId },
             select: { kyc_status: true, type: true } as any,
         })) as { kyc_status: string; type: string } | null;
 
-        if (!customer) {
-            throw new ForbiddenException('Customer not found');
+        if (!dbUser) {
+            throw new ForbiddenException('User not found');
         }
 
         // Check KYC status from database
-        const kycStatus = customer.kyc_status;
+        const kycStatus = dbUser.kyc_status;
 
         if (kycStatus !== 'approved') {
             throw new ForbiddenException({

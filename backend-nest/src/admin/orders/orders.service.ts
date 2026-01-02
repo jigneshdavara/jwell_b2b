@@ -289,7 +289,7 @@ export class OrdersService {
                 created_at: payment.created_at,
             })),
             quotations: order.quotations.map((quotation) => ({
-                id: quotation.id.toString(),
+                quotation_group_id: quotation.quotation_group_id,
                 status: quotation.status,
                 quantity: quotation.quantity,
                 product: quotation.products
@@ -472,7 +472,7 @@ export class OrdersService {
         status: OrderStatus,
         meta: Record<string, any> = {},
         userId?: bigint,
-        actorGuard: 'customer' | 'admin' = 'admin',
+        actorGuard: 'user' | 'admin' = 'admin',
     ) {
         await this.orderWorkflowService.transitionOrder(
             id,

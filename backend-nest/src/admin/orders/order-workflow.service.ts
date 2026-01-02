@@ -11,7 +11,7 @@ export class OrderWorkflowService {
         status: OrderStatus,
         meta: Record<string, any> = {},
         userId?: bigint,
-        actorGuard: 'customer' | 'admin' = 'admin',
+        actorGuard: 'user' | 'admin' = 'admin',
     ) {
         return this.prisma.$transaction(async (tx) => {
             const order = await tx.orders.findUnique({
@@ -44,8 +44,7 @@ export class OrderWorkflowService {
             await tx.order_status_histories.create({
                 data: {
                     order_id: orderId,
-                    user_id:
-                        actorGuard === 'customer' ? (userId ?? null) : null,
+                    user_id: actorGuard === 'user' ? (userId ?? null) : null,
                     status: status,
                     meta: {
                         ...meta,

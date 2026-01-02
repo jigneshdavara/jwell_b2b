@@ -77,8 +77,8 @@ export class AuthController {
     @Post('otp/verify')
     @HttpCode(HttpStatus.OK)
     async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
-        const customer = await this.authService.verifyOtp(verifyOtpDto);
-        return this.authService.login(customer);
+        const user = await this.authService.verifyOtp(verifyOtpDto);
+        return this.authService.login(user);
     }
 
     @Post('forgot-password')

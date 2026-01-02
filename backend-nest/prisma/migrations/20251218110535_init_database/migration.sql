@@ -602,7 +602,7 @@ CREATE TABLE "products" (
 -- CreateTable
 CREATE TABLE "quotation_messages" (
     "id" BIGSERIAL NOT NULL,
-    "quotation_id" BIGINT NOT NULL,
+    "quotation_group_id" VARCHAR(191) NOT NULL,
     "user_id" BIGINT,
     "sender" VARCHAR(255) NOT NULL,
     "message" TEXT NOT NULL,
@@ -616,7 +616,7 @@ CREATE TABLE "quotation_messages" (
 CREATE TABLE "quotations" (
     "id" BIGSERIAL NOT NULL,
     "user_id" BIGINT NOT NULL,
-    "quotation_group_id" VARCHAR(191),
+    "quotation_group_id" VARCHAR(191) NOT NULL,
     "product_id" BIGINT NOT NULL,
     "product_variant_id" BIGINT,
     "status" VARCHAR(191) NOT NULL DEFAULT 'pending',
@@ -940,6 +940,9 @@ CREATE UNIQUE INDEX "products_sku_unique" ON "products"("sku");
 CREATE INDEX "quotations_quotation_group_id_index" ON "quotations"("quotation_group_id");
 
 -- CreateIndex
+CREATE INDEX "quotation_messages_quotation_group_id_index" ON "quotation_messages"("quotation_group_id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "settings_key_unique" ON "settings"("key");
 
 -- CreateIndex
@@ -1121,9 +1124,6 @@ ALTER TABLE "products" ADD CONSTRAINT "products_brand_id_foreign" FOREIGN KEY ("
 
 -- AddForeignKey
 ALTER TABLE "products" ADD CONSTRAINT "products_category_id_foreign" FOREIGN KEY ("category_id") REFERENCES "categories"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
-
--- AddForeignKey
-ALTER TABLE "quotation_messages" ADD CONSTRAINT "quotation_messages_quotation_id_foreign" FOREIGN KEY ("quotation_id") REFERENCES "quotations"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- AddForeignKey
 ALTER TABLE "quotation_messages" ADD CONSTRAINT "quotation_messages_user_id_foreign" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;

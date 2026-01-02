@@ -25,9 +25,15 @@ export class QuotationsController {
         return this.quotationsService.findAll(BigInt(req.user.userId));
     }
 
-    @Get(':id')
-    findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
-        return this.quotationsService.findOne(id, BigInt(req.user.userId));
+    @Get(':quotation_group_id')
+    findOne(
+        @Param('quotation_group_id') quotationGroupId: string,
+        @Request() req,
+    ) {
+        return this.quotationsService.findByGroupId(
+            quotationGroupId,
+            BigInt(req.user.userId),
+        );
     }
 
     @Post()
@@ -40,27 +46,39 @@ export class QuotationsController {
         return this.quotationsService.storeFromCart(BigInt(req.user.userId));
     }
 
-    @Post(':id/messages')
+    @Post(':quotation_group_id/messages')
     addMessage(
-        @Param('id', ParseIntPipe) id: number,
+        @Param('quotation_group_id') quotationGroupId: string,
         @Body() dto: StoreQuotationMessageDto,
         @Request() req,
     ) {
-        return this.quotationsService.addMessage(
-            id,
+        return this.quotationsService.addMessageByGroupId(
+            quotationGroupId,
             dto.message,
             BigInt(req.user.userId),
-            'customer',
+            'user',
         );
     }
 
-    @Post(':id/confirm')
-    confirm(@Param('id', ParseIntPipe) id: number, @Request() req) {
-        return this.quotationsService.confirm(id, BigInt(req.user.userId));
+    @Post(':quotation_group_id/confirm')
+    confirm(
+        @Param('quotation_group_id') quotationGroupId: string,
+        @Request() req,
+    ) {
+        return this.quotationsService.confirmByGroupId(
+            quotationGroupId,
+            BigInt(req.user.userId),
+        );
     }
 
-    @Post(':id/decline')
-    decline(@Param('id', ParseIntPipe) id: number, @Request() req) {
-        return this.quotationsService.decline(id, BigInt(req.user.userId));
+    @Post(':quotation_group_id/decline')
+    decline(
+        @Param('quotation_group_id') quotationGroupId: string,
+        @Request() req,
+    ) {
+        return this.quotationsService.declineByGroupId(
+            quotationGroupId,
+            BigInt(req.user.userId),
+        );
     }
 }

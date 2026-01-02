@@ -90,7 +90,7 @@ export type OrderDetails = {
         created_at?: string | null;
     }>;
     quotations?: Array<{
-        id: number;
+        quotation_group_id: string;
         status: string;
         quantity: number;
         product?: {
