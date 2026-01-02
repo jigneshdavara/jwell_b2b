@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { route } from '@/utils/route';
+import { getMediaUrlNullable } from '@/utils/mediaUrl';
 import { frontendService } from '@/services/frontendService';
 import { authService } from '@/services/authService';
 
@@ -135,23 +136,6 @@ export default function DashboardPage() {
     const featuredCatalogs = data?.featuredCatalogs ?? [];
     const statEntries = Object.entries(stats);
 
-    // Helper function to get media URL
-    const getMediaUrl = (url: string | null | undefined): string | null => {
-        if (!url) return null;
-        
-        // If already absolute, return as-is
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-            return url;
-        }
-        
-        // Convert relative URL to absolute
-        // Backend returns URLs like: /storage/products/filename.jpg
-        // Need to prepend API base URL (without /api prefix)
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-        const absoluteUrl = `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-        
-        return absoluteUrl;
-    };
 
     return (
         <div className="space-y-6 sm:space-y-8 lg:space-y-10">
@@ -238,7 +222,7 @@ export default function DashboardPage() {
                         <div className="mt-4 grid gap-3 sm:mt-6 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
                             {recentProducts.map((product) => {
                                 const productLink = route('frontend.catalog.show', { product: product.id });
-                                const thumbnailUrl = getMediaUrl(product.thumbnail);
+                                const thumbnailUrl = getMediaUrlNullable(product.thumbnail);
                                 return (
                                     <article
                                         key={product.id}

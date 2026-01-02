@@ -7,6 +7,7 @@ import { frontendService } from '@/services/frontendService';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { Head } from '@/components/Head';
 import { toastSuccess, toastError } from '@/utils/toast';
+import { getMediaUrl } from '@/utils/mediaUrl';
 import type { QuotationRow } from '@/types';
 
 const statusLabels: Record<string, { label: string; style: string }> = {
@@ -20,13 +21,6 @@ const statusLabels: Record<string, { label: string; style: string }> = {
     customer_declined: { label: 'You declined', style: 'bg-rose-100 text-rose-700' },
 };
 
-const getMediaUrl = (url: string): string => {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
-    }
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-};
 
 export default function QuotationsPage() {
     const [quotations, setQuotations] = useState<QuotationRow[]>([]);

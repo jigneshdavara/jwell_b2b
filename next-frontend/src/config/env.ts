@@ -21,6 +21,23 @@ export const env = {
     // If NEXT_PUBLIC_API_URL is set, it will be used; otherwise defaults to '/api' which uses the proxy
     apiUrl: getEnv("NEXT_PUBLIC_API_URL", "/api"),
 
+    // Backend Base URL (for static files like images)
+    // Derived from NEXT_PUBLIC_BACKEND_URL or NEXT_PUBLIC_API_URL (removing /api)
+    // Falls back to empty string (relative URLs) if not set
+    get backendBaseUrl(): string {
+        const backendUrl = getEnv("NEXT_PUBLIC_BACKEND_URL", "");
+        if (backendUrl) return backendUrl;
+
+        const apiUrl = getEnv("NEXT_PUBLIC_API_URL", "");
+        if (apiUrl && apiUrl.startsWith("http")) {
+            // Remove /api from the end if present
+            return apiUrl.replace(/\/api\/?$/, "");
+        }
+
+        // Default to empty string (relative URLs) for proxy setup
+        return "";
+    },
+
     // Stripe Configuration
     stripePublishableKey: getEnv("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", ""),
 

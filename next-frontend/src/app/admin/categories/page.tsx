@@ -9,6 +9,7 @@ import React from "react";
 import { adminService } from "@/services/adminService";
 import { PaginationMeta, generatePaginationLinks } from "@/utils/pagination";
 import { toastError } from "@/utils/toast";
+import { getMediaUrlNullable } from "@/utils/mediaUrl";
 
 type CategoryRow = {
     id: number;
@@ -79,12 +80,6 @@ export default function AdminCategoriesPage() {
     const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const getImageUrl = (imagePath: string | null | undefined): string | null => {
-        if (!imagePath) return null;
-        if (imagePath.startsWith('http')) return imagePath;
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-        return `${baseUrl}/${imagePath}`.replace(/(?<!:)\/{2,}/g, '/');
-    };
 
     useEffect(() => {
         loadCategories();
@@ -142,7 +137,7 @@ export default function AdminCategoriesPage() {
                     description: item.description,
                     is_active: item.is_active,
                     display_order: item.display_order || 0,
-                    cover_image_url: item.cover_image_url ? getImageUrl(item.cover_image_url) : null,
+                    cover_image_url: item.cover_image_url ? getMediaUrlNullable(item.cover_image_url) : null,
                 })),
                 meta: {
                     current_page: responseMeta.current_page || responseMeta.page || currentPage,
@@ -402,7 +397,7 @@ export default function AdminCategoriesPage() {
                 ...category,
                 styles: fullCategory.styles || [],
                 sizes: fullCategory.sizes || [],
-                cover_image_url: fullCategory.cover_image_url ? getImageUrl(fullCategory.cover_image_url) : null,
+                cover_image_url: fullCategory.cover_image_url ? getMediaUrlNullable(fullCategory.cover_image_url) : null,
             });
             setFormState({
                 parent_id: fullCategory.parent_id ? String(fullCategory.parent_id) : '',
@@ -414,7 +409,7 @@ export default function AdminCategoriesPage() {
                 style_ids: fullCategory.styles?.map((s: any) => Number(s.id)) ?? [],
                 size_ids: fullCategory.sizes?.map((s: any) => Number(s.id)) ?? [],
             });
-            setCoverPreview(fullCategory.cover_image_url ? getImageUrl(fullCategory.cover_image_url) : null);
+            setCoverPreview(fullCategory.cover_image_url ? getMediaUrlNullable(fullCategory.cover_image_url) : null);
             setRemoveCoverImage(false);
             if (coverObjectUrl) {
                 URL.revokeObjectURL(coverObjectUrl);
@@ -438,7 +433,7 @@ export default function AdminCategoriesPage() {
                 style_ids: [],
                 size_ids: [],
             });
-            setCoverPreview(category.cover_image_url ? getImageUrl(category.cover_image_url) : null);
+            setCoverPreview(category.cover_image_url ? getMediaUrlNullable(category.cover_image_url) : null);
             setRemoveCoverImage(false);
             if (coverObjectUrl) {
                 URL.revokeObjectURL(coverObjectUrl);
@@ -462,7 +457,7 @@ export default function AdminCategoriesPage() {
             setCoverPreview(objectUrl);
             setCoverObjectUrl(objectUrl);
         } else {
-            setCoverPreview(editingCategory?.cover_image_url ? getImageUrl(editingCategory.cover_image_url) : null);
+            setCoverPreview(editingCategory?.cover_image_url ? getMediaUrlNullable(editingCategory.cover_image_url) : null);
         }
     };
 

@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import ApplicationLogo from '@/components/shared/ApplicationLogo';
 import CustomerFooter from '@/components/shared/CustomerFooter';
 import { route } from '@/utils/route';
+import { getMediaUrlNullable } from '@/utils/mediaUrl';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchNavigationData } from '@/store/slices/navigationSlice';
 import { fetchUser, logout } from '@/store/slices/authSlice';
@@ -194,15 +195,6 @@ export default function AuthenticatedLayout({
 
     const navigation = [...customerNav, ...adminNav, ...productionNav];
 
-    // Helper to get media URL
-    const getMediaUrl = (url: string | null | undefined): string | null => {
-        if (!url) return null;
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-            return url;
-        }
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-        return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-    };
 
     const categoriesLinks = useMemo(
         () =>
@@ -212,7 +204,7 @@ export default function AuthenticatedLayout({
                 id: category.id,
                 name: category.name,
                     href: `${route('frontend.catalog.index')}?category=${encodeURIComponent(category.id)}`,
-                    image: category.cover_image_url ? getMediaUrl(category.cover_image_url) : null,
+                    image: category.cover_image_url ? getMediaUrlNullable(category.cover_image_url) : null,
                 };
                 }),
         [navigationData.categories],

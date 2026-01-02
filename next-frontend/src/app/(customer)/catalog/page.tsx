@@ -4,6 +4,7 @@ import { ChangeEvent, Dispatch, FormEvent, SetStateAction, useEffect, useMemo, u
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { route } from '@/utils/route';
+import { getMediaUrlNullable } from '@/utils/mediaUrl';
 import { frontendService } from '@/services/frontendService';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchWishlist, addProductId, removeProductId } from '@/store/slices/wishlistSlice';
@@ -66,14 +67,6 @@ export default function CatalogPage() {
     const loaderRef = useRef<HTMLDivElement | null>(null);
 
     // Helper function to get media URL
-    const getMediaUrl = (url: string | null | undefined): string | null => {
-        if (!url) return null;
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-            return url;
-        }
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-        return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-    };
 
     // Initial data fetch
     useEffect(() => {
@@ -122,10 +115,10 @@ export default function CatalogPage() {
                         id: Number(product.id),
                         price_total: Number(product.price_total || 0),
                         making_charge_amount: Number(product.making_charge_amount || 0),
-                        thumbnail: product.thumbnail ? getMediaUrl(product.thumbnail) : null,
+                        thumbnail: product.thumbnail ? getMediaUrlNullable(product.thumbnail) : null,
                         media: (product.media || []).map((m: any) => ({
                             ...m,
-                            url: getMediaUrl(m.url) || m.url,
+                            url: getMediaUrlNullable(m.url) || m.url,
                         })),
                         variants: (product.variants || []).map((v: any) => ({
                             ...v,

@@ -7,6 +7,7 @@ import { useMemo, useState, use, useEffect } from 'react';
 import { adminService } from '@/services/adminService';
 import { useRouter } from 'next/navigation';
 import { toastError, toastSuccess } from '@/utils/toast';
+import { getMediaUrlNullable } from '@/utils/mediaUrl';
 import PrimaryButton from '@/components/ui/PrimaryButton';
 import SecondaryButton from '@/components/ui/SecondaryButton';
 
@@ -121,14 +122,6 @@ const formatDate = (input?: string | null) =>
           })
         : 'N/A';
 
-const getMediaUrl = (url: string | null | undefined): string | null => {
-    if (!url) return null;
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
-    }
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-};
 
 export default function AdminOrdersShow({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
@@ -471,9 +464,9 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
                                         <tr key={item.id} className="hover:bg-slate-50/50 transition">
                                             <td className="px-3 py-3 sm:px-4 sm:py-4">
                                                 <div className="flex items-center gap-2 sm:gap-3">
-                                                    {item.product?.media?.[0] && getMediaUrl(item.product.media[0].url) && (
+                                                    {item.product?.media?.[0] && getMediaUrlNullable(item.product.media[0].url) && (
                                                         <img
-                                                            src={getMediaUrl(item.product.media[0].url)!}
+                                                            src={getMediaUrlNullable(item.product.media[0].url)!}
                                                             alt={item.product.media[0].alt || item.name}
                                                             className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg object-cover shadow-sm"
                                                         />
@@ -690,9 +683,9 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
                                                 href={`/admin/quotations/${quotation.id}`}
                                                 className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 sm:px-4 sm:py-3 transition hover:border-elvee-blue/50 hover:bg-elvee-blue/5"
                                             >
-                                                {quotation.product?.media?.[0] && getMediaUrl(quotation.product.media[0].url) && (
+                                                {quotation.product?.media?.[0] && getMediaUrlNullable(quotation.product.media[0].url) && (
                                                     <img
-                                                        src={getMediaUrl(quotation.product.media[0].url)!}
+                                                        src={getMediaUrlNullable(quotation.product.media[0].url)!}
                                                         alt={quotation.product.media[0].alt || quotation.product.name || 'Product'}
                                                         className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg object-cover"
                                                     />
@@ -746,9 +739,9 @@ export default function AdminOrdersShow({ params }: { params: Promise<{ id: stri
                             <div className="space-y-4 sm:space-y-6">
                                 {/* Product Image and Basic Info */}
                                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
-                                    {productDetailsModalOpen.product?.media?.[0] && getMediaUrl(productDetailsModalOpen.product.media[0].url) && (
+                                    {productDetailsModalOpen.product?.media?.[0] && getMediaUrlNullable(productDetailsModalOpen.product.media[0].url) && (
                                         <img
-                                            src={getMediaUrl(productDetailsModalOpen.product.media[0].url)!}
+                                            src={getMediaUrlNullable(productDetailsModalOpen.product.media[0].url)!}
                                             alt={productDetailsModalOpen.product.media[0].alt || productDetailsModalOpen.name}
                                             className="h-24 w-24 sm:h-32 sm:w-32 rounded-lg object-cover shadow-lg mx-auto sm:mx-0"
                                         />

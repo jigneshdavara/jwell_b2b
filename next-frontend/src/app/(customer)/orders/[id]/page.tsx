@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { frontendService } from '@/services/frontendService';
 import { kycService } from '@/services/kycService';
 import { route } from '@/utils/route';
+import { getMediaUrl } from '@/utils/mediaUrl';
 import { formatCurrency } from '@/utils/formatting';
 import type { OrderShowItem, OrderPayment, OrderDetails } from '@/types';
 
@@ -192,13 +193,6 @@ export default function OrderShowPage() {
     }
   };
 
-  const getMediaUrl = (url: string): string => {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-  };
 
   if (loading) {
     return (
