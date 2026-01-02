@@ -4243,11 +4243,20 @@ export default function AdminProductEdit() {
                                                             className="w-full rounded-lg sm:rounded-xl border border-slate-200 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200"
                                                         >
                                                             <option value="">Select diamond</option>
-                                                            {diamonds.map((diamond) => (
-                                                                <option key={diamond.id} value={diamond.id}>
-                                                                    {diamond.name}
-                                                                </option>
-                                                            ))}
+                                                            {diamonds
+                                                                .filter((diamond) => {
+                                                                    // Get all selected diamond IDs except the current selection
+                                                                    const otherSelectedIds = (data.diamond_selections || [])
+                                                                        .map((sel, idx) => idx !== index && sel.diamond_id ? Number(sel.diamond_id) : null)
+                                                                        .filter((id): id is number => id !== null);
+                                                                    // Include this diamond if it's not selected elsewhere, or if it's the current selection
+                                                                    return !otherSelectedIds.includes(diamond.id) || selection.diamond_id === diamond.id;
+                                                                })
+                                                                .map((diamond) => (
+                                                                    <option key={diamond.id} value={diamond.id}>
+                                                                        {diamond.name}
+                                                                    </option>
+                                                                ))}
                                                         </select>
                                                     </div>
                                                     <div className="w-10 sm:w-24 flex-shrink-0">
