@@ -1,4 +1,5 @@
 import {
+    BadRequestException,
     ConflictException,
     Injectable,
     NotFoundException,
@@ -199,6 +200,47 @@ export class CategoriesService {
         });
         if (!category) throw new NotFoundException('Category not found');
 
+        // Check if trying to pause/deactivate category that is assigned to products
+        if (dto.is_active === false && category.is_active === true) {
+            // Check if category is used as main category
+            const productsAsMainCategory = await this.prisma.products.count({
+                where: {
+                    category_id: categoryId,
+                },
+            });
+
+            // Check if category is used as subcategory (in JSON array)
+            // Get all products and filter those with subcategory_ids containing this category
+            const allProducts = await this.prisma.products.findMany({
+                select: {
+                    id: true,
+                    subcategory_ids: true,
+                },
+            });
+
+            // Filter products where this category ID is in the subcategory_ids array
+            const categoryIdNumber = Number(id);
+            const matchingSubcategoryProducts = allProducts.filter(
+                (product) => {
+                    if (!product.subcategory_ids) return false;
+                    const subcategoryIds = product.subcategory_ids as number[];
+                    return (
+                        Array.isArray(subcategoryIds) &&
+                        subcategoryIds.includes(categoryIdNumber)
+                    );
+                },
+            );
+
+            const totalProductsCount =
+                productsAsMainCategory + matchingSubcategoryProducts.length;
+
+            if (totalProductsCount > 0) {
+                throw new BadRequestException(
+                    `Cannot pause this category. It is currently assigned to ${totalProductsCount} product(s) ${productsAsMainCategory > 0 && matchingSubcategoryProducts.length > 0 ? '(as main category and/or subcategory)' : productsAsMainCategory > 0 ? '(as main category)' : '(as subcategory)'}. Please remove the category from all products first, then pause the category.`,
+                );
+            }
+        }
+
         // Determine the parent_id that will be used (either from dto or existing)
         const newParentId =
             dto.parent_id !== undefined
@@ -332,6 +374,49 @@ export class CategoriesService {
         });
         if (!category) throw new NotFoundException('Category not found');
 
+        // Check if category is used as main category
+        const productsAsMainCategory = await this.prisma.products.count({
+            where: {
+                category_id: categoryId,
+            },
+        });
+
+        // Check if category is used as subcategory (in JSON array)
+        // Get all products and filter those with subcategory_ids containing this category
+        const allProducts = await this.prisma.products.findMany({
+            select: {
+                id: true,
+                subcategory_ids: true,
+            },
+        });
+
+        // Filter products where this category ID is in the subcategory_ids array
+        const categoryIdNumber = Number(id);
+        const matchingSubcategoryProducts = allProducts.filter((product) => {
+            if (!product.subcategory_ids) return false;
+            const subcategoryIds = product.subcategory_ids as number[];
+            return (
+                Array.isArray(subcategoryIds) &&
+                subcategoryIds.includes(categoryIdNumber)
+            );
+        });
+
+        const totalProductsCount =
+            productsAsMainCategory + matchingSubcategoryProducts.length;
+
+        if (totalProductsCount > 0) {
+            const usageDescription =
+                productsAsMainCategory > 0 &&
+                matchingSubcategoryProducts.length > 0
+                    ? '(as main category and/or subcategory)'
+                    : productsAsMainCategory > 0
+                      ? '(as main category)'
+                      : '(as subcategory)';
+            throw new BadRequestException(
+                `Cannot delete this category. It is currently assigned to ${totalProductsCount} product(s) ${usageDescription}. Please remove the category from all products first, then delete the category.`,
+            );
+        }
+
         if (category.cover_image) {
             this.deleteImage(category.cover_image);
         }
@@ -344,6 +429,71 @@ export class CategoriesService {
 
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
+
+        // Check if any of the categories are assigned to products as main category
+        const categoriesWithProducts = await this.prisma.products.findMany({
+            where: {
+                category_id: { in: bigIntIds },
+            },
+            select: {
+                category_id: true,
+            },
+            distinct: ['category_id'],
+        });
+
+        // Check if any categories are used as subcategories
+        // Get all products and filter those with subcategory_ids
+        const allProducts = await this.prisma.products.findMany({
+            select: {
+                id: true,
+                subcategory_ids: true,
+            },
+        });
+
+        // Find which category IDs from the delete list are in subcategory_ids
+        const categoryIdsAsNumbers = ids.map((id) => Number(id));
+        const categoriesUsedAsSubcategory = new Set<number>();
+
+        allProducts.forEach((product) => {
+            if (!product.subcategory_ids) return;
+            const subcategoryIds = product.subcategory_ids as number[];
+            if (Array.isArray(subcategoryIds)) {
+                subcategoryIds.forEach((subId) => {
+                    if (categoryIdsAsNumbers.includes(subId)) {
+                        categoriesUsedAsSubcategory.add(subId);
+                    }
+                });
+            }
+        });
+
+        // Combine categories used as main category and subcategory
+        const allUsedCategoryIds = new Set<bigint>();
+        categoriesWithProducts.forEach((p) => {
+            allUsedCategoryIds.add(p.category_id);
+        });
+        Array.from(categoriesUsedAsSubcategory).forEach((catId) => {
+            allUsedCategoryIds.add(BigInt(catId));
+        });
+
+        if (allUsedCategoryIds.size > 0) {
+            const categoryNames = await this.prisma.categories.findMany({
+                where: {
+                    id: {
+                        in: Array.from(allUsedCategoryIds),
+                    },
+                },
+                select: {
+                    name: true,
+                },
+            });
+            const categoryNamesList = categoryNames
+                .map((c) => c.name)
+                .join(', ');
+            throw new BadRequestException(
+                `Cannot delete category(ies): ${categoryNamesList}. They are currently assigned to products. Please remove the category(ies) from all products first, then delete the category(ies).`,
+            );
+        }
+
         const categories = await this.prisma.categories.findMany({
             where: { id: { in: bigIntIds } },
             select: { cover_image: true },

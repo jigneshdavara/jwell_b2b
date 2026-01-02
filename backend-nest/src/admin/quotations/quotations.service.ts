@@ -816,7 +816,7 @@ export class QuotationsService {
             });
         }
 
-        return { 
+        return {
             message: 'Quotation removed successfully',
             isLastQuotation,
             quotation_group_id: quotationGroupId,

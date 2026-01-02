@@ -1,4 +1,5 @@
 import {
+    BadRequestException,
     ConflictException,
     Injectable,
     NotFoundException,
@@ -75,6 +76,21 @@ export class BrandsService {
     async update(id: number, dto: UpdateBrandDto, coverImage?: string) {
         const brand = await this.findOne(id);
 
+        // Check if trying to pause/deactivate brand that is assigned to products
+        if (dto.is_active === false && brand.is_active === true) {
+            const productsCount = await this.prisma.products.count({
+                where: {
+                    brand_id: BigInt(id),
+                },
+            });
+
+            if (productsCount > 0) {
+                throw new BadRequestException(
+                    `Cannot pause this brand. It is currently assigned to ${productsCount} product(s). Please remove the brand from all products first, then pause the brand.`,
+                );
+            }
+        }
+
         if (dto.name && dto.name !== brand.name) {
             const existing = await this.prisma.brands.findUnique({
                 where: { name: dto.name },
@@ -130,6 +146,20 @@ export class BrandsService {
 
     async remove(id: number) {
         const brand = await this.findOne(id);
+
+        // Check if brand is assigned to products
+        const productsCount = await this.prisma.products.count({
+            where: {
+                brand_id: BigInt(id),
+            },
+        });
+
+        if (productsCount > 0) {
+            throw new BadRequestException(
+                `Cannot delete this brand. It is currently assigned to ${productsCount} product(s). Please remove the brand from all products first, then delete the brand.`,
+            );
+        }
+
         if (brand.cover_image) {
             this.deleteImage(brand.cover_image);
         }
@@ -141,6 +171,33 @@ export class BrandsService {
 
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
+
+        // Check if any of the brands are assigned to products
+        const brandsWithProducts = await this.prisma.products.findMany({
+            where: {
+                brand_id: { in: bigIntIds },
+            },
+            select: {
+                brand_id: true,
+            },
+            distinct: ['brand_id'],
+        });
+
+        if (brandsWithProducts.length > 0) {
+            const brandNames = await this.prisma.brands.findMany({
+                where: {
+                    id: { in: brandsWithProducts.map((p) => p.brand_id) },
+                },
+                select: {
+                    name: true,
+                },
+            });
+            const brandNamesList = brandNames.map((b) => b.name).join(', ');
+            throw new BadRequestException(
+                `Cannot delete brand(s): ${brandNamesList}. They are currently assigned to products. Please remove the brand(s) from all products first, then delete the brand(s).`,
+            );
+        }
+
         const brands = await this.prisma.brands.findMany({
             where: { id: { in: bigIntIds } },
             select: { cover_image: true },

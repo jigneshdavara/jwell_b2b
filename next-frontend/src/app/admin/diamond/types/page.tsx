@@ -199,13 +199,13 @@ export default function AdminDiamondTypesIndex() {
         if (deleteConfirm) {
             try {
                 await adminService.deleteDiamondType(deleteConfirm.id);
-                setDeleteConfirm(null);
                 toastSuccess('Diamond type deleted successfully.');
                 await loadTypes();
             } catch (error: any) {
                 console.error('Failed to delete diamond type:', error);
-                setDeleteConfirm(null);
                 toastError(error.response?.data?.message || 'Failed to delete diamond type. Please try again.');
+            } finally {
+                setDeleteConfirm(null);
             }
         }
     };
@@ -221,14 +221,14 @@ export default function AdminDiamondTypesIndex() {
         try {
             const response = await adminService.bulkDeleteDiamondTypes(selectedTypes);
             setSelectedTypes([]);
-            setBulkDeleteConfirm(false);
             const message = response.data?.message || `${selectedTypes.length} diamond type(s) deleted successfully.`;
             toastSuccess(message);
             await loadTypes();
         } catch (error: any) {
             console.error('Failed to bulk delete diamond types:', error);
-            setBulkDeleteConfirm(false);
             toastError(error.response?.data?.message || 'Failed to delete diamond types. Please try again.');
+        } finally {
+            setBulkDeleteConfirm(false);
         }
     };
 

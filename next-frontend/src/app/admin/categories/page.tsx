@@ -539,10 +539,11 @@ export default function AdminCategoriesPage() {
         if (deleteConfirm) {
             try {
                 await adminService.deleteCategory(deleteConfirm.id);
-                setDeleteConfirm(null);
                 await loadCategories();
             } catch (error: any) {
                 toastError(error.response?.data?.message || 'Failed to delete category. Please try again.');
+            } finally {
+                setDeleteConfirm(null);
             }
         }
     };
@@ -1145,10 +1146,11 @@ export default function AdminCategoriesPage() {
                 try {
                     await adminService.bulkDeleteCategories(selectedCategories);
                     setSelectedCategories([]);
-                    setBulkDeleteConfirm(false);
                     await loadCategories();
                 } catch (error: any) {
                     toastError(error.response?.data?.message || 'Failed to delete categories. Please try again.');
+                } finally {
+                    setBulkDeleteConfirm(false);
                 }
             }} title="Delete Categories" message={`Are you sure you want to delete ${selectedCategories.length} selected category(s)?`} confirmText="Delete" variant="danger" />
         </div>

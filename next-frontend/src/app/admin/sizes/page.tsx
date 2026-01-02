@@ -172,11 +172,12 @@ export default function AdminSizesIndex() {
         try {
             await adminService.bulkDeleteSizes(selectedSizes);
             setSelectedSizes([]);
-            setBulkDeleteConfirm(false);
             await loadSizes();
         } catch (error: any) {
             console.error('Failed to delete sizes:', error);
             toastError(error.response?.data?.message || 'Failed to delete sizes. Please try again.');
+        } finally {
+            setBulkDeleteConfirm(false);
         }
     };
 
@@ -184,11 +185,12 @@ export default function AdminSizesIndex() {
         if (deleteConfirm) {
             try {
                 await adminService.deleteSize(deleteConfirm.id);
-                setDeleteConfirm(null);
                 await loadSizes();
             } catch (error: any) {
                 console.error('Failed to delete size:', error);
                 toastError(error.response?.data?.message || 'Failed to delete size. Please try again.');
+            } finally {
+                setDeleteConfirm(null);
             }
         }
     };

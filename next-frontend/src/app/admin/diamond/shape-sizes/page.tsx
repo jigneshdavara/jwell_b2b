@@ -263,13 +263,13 @@ export default function AdminDiamondShapeSizesIndex() {
         if (deleteConfirm) {
             try {
                 await adminService.deleteDiamondShapeSize(deleteConfirm.id);
-                setDeleteConfirm(null);
                 toastSuccess('Diamond shape size deleted successfully.');
                 await loadSizes();
             } catch (error: any) {
                 console.error('Failed to delete diamond shape size:', error);
-                setDeleteConfirm(null);
                 toastError(error.response?.data?.message || 'Failed to delete diamond shape size. Please try again.');
+            } finally {
+                setDeleteConfirm(null);
             }
         }
     };
@@ -285,14 +285,14 @@ export default function AdminDiamondShapeSizesIndex() {
         try {
             const response = await adminService.bulkDeleteDiamondShapeSizes(selectedSizes);
             setSelectedSizes([]);
-            setBulkDeleteConfirm(false);
             const message = response.data?.message || `${selectedSizes.length} diamond shape size(s) deleted successfully.`;
             toastSuccess(message);
             await loadSizes();
         } catch (error: any) {
             console.error('Failed to bulk delete diamond shape sizes:', error);
-            setBulkDeleteConfirm(false);
             toastError(error.response?.data?.message || 'Failed to delete diamond shape sizes. Please try again.');
+        } finally {
+            setBulkDeleteConfirm(false);
         }
     };
 
