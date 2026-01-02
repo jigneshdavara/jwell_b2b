@@ -7,7 +7,7 @@ import TextInput from '@/components/ui/TextInput';
 import { Transition } from '@headlessui/react';
 import { useState, FormEventHandler, useRef } from 'react';
 import { frontendService } from '@/services/frontendService';
-import { toastSuccess, toastError } from '@/utils/toast';
+import { toastError } from '@/utils/toast';
 
 export default function UpdatePasswordForm({
     className = '',
@@ -48,7 +48,6 @@ export default function UpdatePasswordForm({
             });
 
             setRecentlySuccessful(true);
-            toastSuccess('Password updated successfully.');
             setData({
                 current_password: '',
                 password: '',

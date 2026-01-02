@@ -7,6 +7,11 @@ export interface SendMailOptions {
     subject: string;
     template: string;
     context: Record<string, any>;
+    attachments?: Array<{
+        filename: string;
+        content: Buffer | string;
+        contentType?: string;
+    }>;
 }
 
 @Injectable()
@@ -33,6 +38,7 @@ export class MailService {
                 subject: options.subject,
                 template: options.template,
                 context,
+                attachments: options.attachments || [],
             });
         } catch (error) {
             console.error('Failed to send email:', error);
