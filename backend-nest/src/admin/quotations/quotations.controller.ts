@@ -51,18 +51,21 @@ export class AdminQuotationsController {
         if (endDate && endDate.trim() !== '') {
             dateFilter.endDate = endDate;
         }
-        return this.quotationsService.getStatistics(userId, Object.keys(dateFilter).length > 0 ? dateFilter : undefined);
+        return this.quotationsService.getStatistics(
+            userId,
+            Object.keys(dateFilter).length > 0 ? dateFilter : undefined,
+        );
     }
 
     @Get('report/export/pdf')
     async exportPdf(
+        @Res() res: Response,
         @Query('user_id', new ParseIntPipe({ optional: true }))
-        userId: number | undefined,
+        userId?: number,
         @Query('start_date')
         startDate?: string,
         @Query('end_date')
         endDate?: string,
-        @Res() res: Response,
     ) {
         // Filter out empty strings
         const dateFilter: { startDate?: string; endDate?: string } = {};
