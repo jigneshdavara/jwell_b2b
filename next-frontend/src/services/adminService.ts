@@ -528,6 +528,9 @@ export const adminService = {
   async deleteQuotation(quotationGroupId: string) {
     return await apiClient.delete(`/admin/quotations/${quotationGroupId}`);
   },
+  async deleteQuotationItem(quotationId: string) {
+    return await apiClient.delete(`/admin/quotations/item/${quotationId}`);
+  },
 
   // Offers
   async getOffers(page = 1, perPage = 20) {

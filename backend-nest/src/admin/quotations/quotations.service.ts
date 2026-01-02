@@ -187,6 +187,7 @@ export class QuotationsService {
                     },
                 );
                 return {
+                    id: q.id.toString(),
                     quotation_group_id: q.quotation_group_id,
                     status: q.status,
                     quantity: q.quantity,
@@ -209,6 +210,7 @@ export class QuotationsService {
         );
 
         return {
+            id: quotation.id.toString(),
             quotation_group_id: quotation.quotation_group_id,
             status: quotation.status,
             quantity: quotation.quantity,
@@ -774,6 +776,51 @@ export class QuotationsService {
                 quotation_group_id: quotationGroupId,
             },
         });
+    }
+
+    async removeById(quotationId: string) {
+        const quotation = await this.prisma.quotations.findUnique({
+            where: {
+                id: BigInt(quotationId),
+            },
+        });
+
+        if (!quotation) {
+            throw new NotFoundException('Quotation not found');
+        }
+
+        const quotationGroupId = quotation.quotation_group_id;
+
+        // Check if this is the last quotation in the group
+        const remainingQuotations = await this.prisma.quotations.findMany({
+            where: {
+                quotation_group_id: quotationGroupId,
+            },
+        });
+
+        const isLastQuotation = remainingQuotations.length === 1;
+
+        // Delete the single quotation
+        await this.prisma.quotations.delete({
+            where: {
+                id: BigInt(quotationId),
+            },
+        });
+
+        // If this was the last quotation in the group, also delete related messages
+        if (isLastQuotation) {
+            await this.prisma.quotation_messages.deleteMany({
+                where: {
+                    quotation_group_id: quotationGroupId,
+                },
+            });
+        }
+
+        return { 
+            message: 'Quotation removed successfully',
+            isLastQuotation,
+            quotation_group_id: quotationGroupId,
+        };
     }
 
     async getStatistics(

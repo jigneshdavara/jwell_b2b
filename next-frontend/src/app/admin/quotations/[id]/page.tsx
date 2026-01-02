@@ -11,6 +11,7 @@ import { toastError, toastWarning } from '@/utils/toast';
 import { getMediaUrl } from '@/utils/mediaUrl';
 
 type RelatedQuotation = {
+    id?: string;
     quotation_group_id: string;
     status: string;
     quantity: number;
@@ -53,6 +54,7 @@ type RelatedQuotation = {
 };
 
 type QuotationDetails = {
+    id?: string;
     quotation_group_id: string;
     status: string;
     quantity: number;
@@ -193,7 +195,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     const [quotation, setQuotation] = useState<QuotationDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [productDetailsModalOpen, setProductDetailsModalOpen] = useState<RelatedQuotation | null>(null);
-    const [removeItemConfirm, setRemoveItemConfirm] = useState<{ show: boolean; itemId: string | number | null }>({
+    const [removeItemConfirm, setRemoveItemConfirm] = useState<{ show: boolean; itemId: string | null }>({
         show: false,
         itemId: null,
     });
@@ -287,6 +289,7 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         if (!quotation) return [];
         
         const main: RelatedQuotation = {
+            id: quotation.id,
             quotation_group_id: quotation.quotation_group_id,
             status: quotation.status,
             quantity: quotation.quantity,
@@ -302,10 +305,17 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         if (!removeItemConfirm.itemId) return;
         try {
             setRemoveItemProcessing(true);
-            await adminService.deleteQuotation(quotationGroupId);
+            const response = await adminService.deleteQuotationItem(removeItemConfirm.itemId);
             setRemoveItemConfirm({ show: false, itemId: null });
-            // Reload quotation to get updated data
-            await loadQuotation();
+            
+            // Check if this was the last quotation in the group
+            if (response.data?.isLastQuotation) {
+                // Redirect to quotation list page
+                router.push('/admin/quotations');
+            } else {
+                // Reload quotation to get updated data
+                await loadQuotation();
+            }
         } catch (error: any) {
             console.error('Failed to remove item:', error);
             const errorMessage = error.response?.data?.message || error.message || 'Failed to remove item';
@@ -1226,7 +1236,11 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                                         <button
                                                             type="button"
                                                             onClick={() => {
-                                                                setRemoveItemConfirm({ show: true, itemId: item.quotation_group_id });
+                                                                if (!item.id) {
+                                                                    toastError('Item ID not available');
+                                                                    return;
+                                                                }
+                                                                setRemoveItemConfirm({ show: true, itemId: item.id });
                                                             }}
                                                             className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-rose-200 text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 sm:h-7 sm:w-7 md:h-8 md:w-8"
                                                             title="Remove item"
