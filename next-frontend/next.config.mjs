@@ -34,6 +34,20 @@ const nextConfig = {
             },
         ];
     },
+    async rewrites() {
+        // Get backend API URL from environment variable
+        // Default to http://localhost:3001 if not set
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL
+            ? process.env.NEXT_PUBLIC_API_URL.replace("/api", "")
+            : "http://localhost:3001";
+
+        return [
+            {
+                source: "/api/:path*",
+                destination: `${backendUrl}/api/:path*`,
+            },
+        ];
+    },
     reactStrictMode: false,
 };
 
