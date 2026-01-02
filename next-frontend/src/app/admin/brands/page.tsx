@@ -7,6 +7,7 @@ import Pagination from "@/components/ui/Pagination";
 import { adminService } from "@/services/adminService";
 import { PaginationMeta, PaginationLink, generatePaginationLinks } from "@/utils/pagination";
 import { toastError } from "@/utils/toast";
+import { getMediaUrlNullable } from "@/utils/mediaUrl";
 
 type BrandRow = {
     id: number;
@@ -50,12 +51,6 @@ export default function AdminBrandsPage() {
         loadBrands();
     }, [currentPage, perPage]);
 
-    const getImageUrl = (imagePath: string | null | undefined): string | null => {
-        if (!imagePath) return null;
-        if (imagePath.startsWith('http')) return imagePath;
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-        return `${baseUrl}/${imagePath}`.replace(/(?<!:)\/{2,}/g, '/');
-    };
 
     const loadBrands = async () => {
         setLoading(true);
@@ -145,7 +140,7 @@ export default function AdminBrandsPage() {
             is_active: brand.is_active,
             display_order: brand.display_order,
         });
-        setCoverPreview(getImageUrl(brand.cover_image));
+        setCoverPreview(getMediaUrlNullable(brand.cover_image));
         setRemoveCoverImage(false);
         if (coverObjectUrl) {
             URL.revokeObjectURL(coverObjectUrl);
@@ -169,7 +164,7 @@ export default function AdminBrandsPage() {
             setCoverPreview(objectUrl);
             setCoverObjectUrl(objectUrl);
         } else {
-            setCoverPreview(editingBrand ? getImageUrl(editingBrand.cover_image) : null);
+            setCoverPreview(editingBrand ? getMediaUrlNullable(editingBrand.cover_image) : null);
         }
     };
 

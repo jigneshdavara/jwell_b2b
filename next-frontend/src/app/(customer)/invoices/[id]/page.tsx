@@ -10,6 +10,7 @@ import { Invoice } from '@/types/invoice';
 import PrimaryButton from '@/components/ui/PrimaryButton';
 import { formatCurrency } from '@/utils/formatting';
 import { route } from '@/utils/route';
+import { getMediaUrlNullable } from '@/utils/mediaUrl';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -36,14 +37,6 @@ const formatDate = (input?: string | null) =>
           })
         : 'N/A';
 
-const getMediaUrl = (url: string | null | undefined): string | null => {
-    if (!url) return null;
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
-    }
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-};
 
 export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);

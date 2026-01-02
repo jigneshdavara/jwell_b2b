@@ -94,17 +94,16 @@ export default function KycOnboardingPage() {
                 contact_phone: profileData.contact_phone || userData.phone || '',
             });
             
-            // Map documents - use correct API URL
+            // Map documents - use utility function for URLs
             const docs = data.documents || [];
-            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
             setDocuments(docs.map((doc: any) => ({
                 id: doc.id,
                 type: doc.type,
                 status: doc.status || 'pending',
                 remarks: doc.remarks || null,
                 file_path: doc.file_path || null,
-                url: doc.url ? `${apiBaseUrl}${doc.url}` : null,
-                download_url: doc.download_url ? `${apiBaseUrl}${doc.download_url}` : null,
+                url: doc.url ? getMediaUrl(doc.url) : null,
+                download_url: doc.download_url ? getMediaUrl(doc.download_url) : null,
                 created_at: doc.created_at || null,
                 uploaded_at: doc.uploaded_at || doc.created_at || null,
             })));

@@ -210,9 +210,8 @@ export default function AdminKycReviewPage() {
     }
 
     const getFileUrl = (filePath: string) => {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-        // Remove /api prefix if present, then add /uploads
-        const cleanBase = baseUrl.replace(/\/api$/, '');
+        const { env } = require('@/config/env');
+        const cleanBase = env.backendBaseUrl || '';
         return `${cleanBase}/uploads/${filePath}`;
     };
 

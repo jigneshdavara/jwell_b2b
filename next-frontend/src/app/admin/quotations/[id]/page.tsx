@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { toastError, toastWarning } from '@/utils/toast';
+import { getMediaUrl } from '@/utils/mediaUrl';
 
 type RelatedQuotation = {
     id: string | number;
@@ -146,17 +147,6 @@ const formatDate = (input?: string | null) =>
           })
         : 'N/A';
 
-// Helper function to get media URL
-const getMediaUrl = (url: string): string => {
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
-    }
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-    // Remove double slashes
-    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-    return `${baseUrl}${cleanUrl}`.replace(/(?<!:)\/{2,}/g, '/');
-};
 
 type ProductVariant = {
     id: number;

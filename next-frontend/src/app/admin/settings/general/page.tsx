@@ -3,6 +3,7 @@
 import { Head } from '@/components/Head';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { adminService } from '@/services/adminService';
+import { getMediaUrlNullable } from '@/utils/mediaUrl';
 
 const timezones = [
     'Asia/Kolkata',
@@ -62,13 +63,6 @@ export default function AdminGeneralSettingsIndex() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
 
-    const getImageUrl = useCallback((imagePath: string | null | undefined): string | null => {
-        if (!imagePath) return null;
-        if (imagePath.startsWith('http')) return imagePath;
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-        const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
-        return `${baseUrl}/${cleanPath}`.replace(/(?<!:)\/{2,}/g, '/');
-    }, []);
 
     const loadSettings = useCallback(async () => {
         try {
@@ -89,8 +83,8 @@ export default function AdminGeneralSettingsIndex() {
                 app_timezone: data.app_timezone || '',
                 app_currency: data.app_currency || '',
             });
-            setLogoPreview(getImageUrl(data.logo_url));
-            setFaviconPreview(getImageUrl(data.favicon_url));
+            setLogoPreview(getMediaUrlNullable(data.logo_url));
+            setFaviconPreview(getMediaUrlNullable(data.favicon_url));
         } catch (error: any) {
             console.error('Failed to load settings:', error);
         } finally {
@@ -128,7 +122,7 @@ export default function AdminGeneralSettingsIndex() {
             setLogoPreview(objectUrl);
             setLogoObjectUrl(objectUrl);
         } else {
-            setLogoPreview(settings.logo_url ? getImageUrl(settings.logo_url) : null);
+            setLogoPreview(settings.logo_url ? getMediaUrlNullable(settings.logo_url) : null);
         }
     };
 
@@ -146,7 +140,7 @@ export default function AdminGeneralSettingsIndex() {
             setFaviconPreview(objectUrl);
             setFaviconObjectUrl(objectUrl);
         } else {
-            setFaviconPreview(settings.favicon_url ? getImageUrl(settings.favicon_url) : null);
+            setFaviconPreview(settings.favicon_url ? getMediaUrlNullable(settings.favicon_url) : null);
         }
     };
 

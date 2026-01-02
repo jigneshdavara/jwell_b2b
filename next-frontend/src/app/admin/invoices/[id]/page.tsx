@@ -9,6 +9,7 @@ import { toastError } from '@/utils/toast';
 import { Invoice, InvoiceStatus } from '@/types/invoice';
 import PrimaryButton from '@/components/ui/PrimaryButton';
 import SecondaryButton from '@/components/ui/SecondaryButton';
+import { getMediaUrlNullable } from '@/utils/mediaUrl';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -35,14 +36,6 @@ const formatDate = (input?: string | null) =>
           })
         : 'N/A';
 
-const getMediaUrl = (url: string | null | undefined): string | null => {
-    if (!url) return null;
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
-    }
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-};
 
 export default function AdminInvoiceDetail({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
@@ -324,9 +317,9 @@ export default function AdminInvoiceDetail({ params }: { params: Promise<{ id: s
                                                 <tr key={item.id} className="hover:bg-slate-50/50 transition">
                                                     <td className="px-2 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-4">
                                                         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
-                                                            {item.product?.media?.[0] && getMediaUrl(item.product.media[0].url) && (
+                                                            {item.product?.media?.[0] && getMediaUrlNullable(item.product.media[0].url) && (
                                                                 <img
-                                                                    src={getMediaUrl(item.product.media[0].url)!}
+                                                                    src={getMediaUrlNullable(item.product.media[0].url)!}
                                                                     alt={(item.product.media[0] as any)?.alt || item.name}
                                                                     className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 flex-shrink-0 rounded-lg object-cover shadow-sm"
                                                                 />

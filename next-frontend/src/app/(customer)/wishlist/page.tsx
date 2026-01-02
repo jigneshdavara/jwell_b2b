@@ -7,6 +7,7 @@ import { useAppDispatch } from "@/store/hooks";
 import { fetchWishlist as fetchWishlistThunk, removeProductId as removeProductIdAction } from "@/store/slices/wishlistSlice";
 import { fetchCart as fetchCartThunk } from "@/store/slices/cartSlice";
 import { route } from "@/utils/route";
+import { getMediaUrlNullable } from "@/utils/mediaUrl";
 import { toastSuccess, toastError } from "@/utils/toast";
 import type { WishlistItem } from "@/types";
 
@@ -20,27 +21,6 @@ export default function WishlistPage() {
   const [busyItems, setBusyItems] = useState<Set<string | number>>(new Set());
   // Toast notifications are handled via RTK
 
-  // Helper function to get media URL (matching catalog page implementation)
-  const getMediaUrl = useCallback((url: string | null | undefined): string | null => {
-    if (!url) return null;
-    
-    // Normalize double slashes (except after http:// or https://)
-    // This handles cases where URL might be /storage//storage/path
-    let cleanUrl = String(url).replace(/(?<!:)\/{2,}/g, '/');
-    
-    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
-      return cleanUrl;
-    }
-    
-    // Backend serves static files at root level, so /storage/ paths are accessible directly
-    // The backend returns URLs like /storage/path/to/file.jpg
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-    // Ensure URL starts with / for proper path construction
-    if (!cleanUrl.startsWith('/')) {
-      cleanUrl = `/${cleanUrl}`;
-    }
-    return `${baseUrl}${cleanUrl}`;
-  }, []);
 
   const loadWishlistData = async () => {
     try {
@@ -56,8 +36,7 @@ export default function WishlistPage() {
           let thumbnailUrl: string | null = null;
           if (item.thumbnail) {
             // Backend returns URLs like /storage/path/to/file.jpg
-            // Convert to full URL: http://localhost:3001/storage/path/to/file.jpg
-            thumbnailUrl = getMediaUrl(item.thumbnail);
+            thumbnailUrl = getMediaUrlNullable(item.thumbnail);
           }
           
           return {

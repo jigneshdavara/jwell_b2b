@@ -10,6 +10,7 @@ import { frontendService } from '@/services/frontendService';
 import { useAppDispatch } from '@/store/hooks';
 import { fetchCart } from '@/store/slices/cartSlice';
 import { route } from '@/utils/route';
+import { getMediaUrl } from '@/utils/mediaUrl';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -19,13 +20,6 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
 
 import type { ProductDetail, ProductVariant, ConfigurationOption, ConfigMetal, ConfigDiamond } from '@/types';
 
-const getMediaUrl = (url: string): string => {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
-    }
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-};
 
 export default function CatalogShowPage() {
     const router = useRouter();

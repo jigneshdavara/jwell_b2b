@@ -7,6 +7,7 @@ import React from 'react';
 import Modal from '@/components/ui/Modal';
 import Pagination from '@/components/ui/Pagination';
 import { route } from '@/utils/route';
+import { getMediaUrlNullable } from '@/utils/mediaUrl';
 import { frontendService } from '@/services/frontendService';
 import { useAppDispatch } from '@/store/hooks';
 import { fetchCart as fetchCartThunk } from '@/store/slices/cartSlice';
@@ -21,14 +22,6 @@ const currencyFormatter = (currency: string) =>
     });
 
 // Helper to get media URL
-const getMediaUrl = (url: string | null | undefined): string | null => {
-    if (!url) return null;
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
-    }
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-};
 
 export default function CartPage() {
     const router = useRouter();
@@ -69,7 +62,7 @@ export default function CartPage() {
                     line_subtotal: Number(item.line_subtotal) || Number(item.line_total) || 0,
                     line_discount: Number(item.line_discount) || 0,
                     price_breakdown: item.price_breakdown || {},
-                    thumbnail: getMediaUrl(item.thumbnail),
+                    thumbnail: getMediaUrlNullable(item.thumbnail),
                     variant_label: item.variant_label || null,
                     configuration: item.configuration || {},
                 }));

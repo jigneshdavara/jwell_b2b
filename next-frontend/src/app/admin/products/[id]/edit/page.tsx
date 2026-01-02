@@ -7,6 +7,7 @@ import { generateVariantMatrix as generateVariantMatrixUtil } from '@/utils/vari
 import { useParams, useRouter } from 'next/navigation';
 import { adminService } from '@/services/adminService';
 import { toastSuccess, toastError } from '@/utils/toast';
+import { getMediaUrl } from '@/utils/mediaUrl';
 
 type VariantMetalForm = {
     id?: number;
@@ -3260,29 +3261,6 @@ export default function AdminProductEdit() {
         return [...product.media].sort((a, b) => a.display_order - b.display_order);
     }, [product?.media]);
 
-    // Helper function to convert relative media URLs to absolute URLs
-    const getMediaUrl = useCallback((url: string): string => {
-        // If URL is already absolute, return as-is
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-            return url;
-        }
-        
-        // Get base URL from environment
-        let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        
-        // Remove '/api' from base URL since storage files are served from root
-        // Handle both '/api' and '/api/' endings
-        baseUrl = baseUrl.replace(/\/api\/?$/, ''); // Remove trailing /api or /api/
-        
-        // Remove trailing slash from baseUrl if present
-        baseUrl = baseUrl.replace(/\/$/, '');
-        
-        // Ensure url starts with a slash (backend returns URLs like /storage/products/...)
-        const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-        
-        // Construct full URL: http://localhost:3001/storage/products/...
-        return `${baseUrl}${cleanUrl}`;
-    }, []);
 
     const toggleRemoveMedia = (id: number) => {
         const current = data.removed_media_ids ?? [];

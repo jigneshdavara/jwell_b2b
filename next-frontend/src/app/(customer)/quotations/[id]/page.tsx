@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import Modal from '@/components/ui/Modal';
 import { route } from '@/utils/route';
+import { getMediaUrl } from '@/utils/mediaUrl';
 import { frontendService } from '@/services/frontendService';
 
 type RelatedQuotation = {
@@ -132,13 +133,6 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
     maximumFractionDigits: 2,
 });
 
-const getMediaUrl = (url: string): string => {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
-    }
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
-};
 
 export default function QuotationDetailPage() {
     const params = useParams();
