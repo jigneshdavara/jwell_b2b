@@ -135,9 +135,20 @@ export class DiamondsService {
         });
     }
 
-    async getShapeSizes(shapeId: number) {
+    async getShapeSizes(shapeId: number, typeId?: number) {
+        const where: {
+            diamond_shape_id: bigint;
+            diamond_type_id?: bigint;
+        } = {
+            diamond_shape_id: BigInt(shapeId),
+        };
+
+        if (typeId !== undefined) {
+            where.diamond_type_id = BigInt(typeId);
+        }
+
         return this.prisma.diamond_shape_sizes.findMany({
-            where: { diamond_shape_id: BigInt(shapeId) },
+            where,
             orderBy: { display_order: 'asc' },
         });
     }

@@ -33,8 +33,14 @@ export class DiamondsController {
     }
 
     @Get('shape-sizes/:shapeId')
-    getShapeSizes(@Param('shapeId', ParseIntPipe) shapeId: number) {
-        return this.diamondsService.getShapeSizes(shapeId);
+    getShapeSizes(
+        @Param('shapeId', ParseIntPipe) shapeId: number,
+        @Query('type_id') typeId?: string,
+    ) {
+        return this.diamondsService.getShapeSizes(
+            shapeId,
+            typeId ? +typeId : undefined,
+        );
     }
 
     @Get('clarities-by-type/:typeId')
