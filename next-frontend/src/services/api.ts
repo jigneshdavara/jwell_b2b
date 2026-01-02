@@ -167,14 +167,17 @@ apiClient.interceptors.response.use(
             }
 
             // Check if this is a refresh-token request itself
-            // If refresh-token fails, we should redirect immediately (no retry loop)
+            // If refresh-token fails with ANY error, we should redirect immediately (no retry loop)
             const requestUrl = originalRequest?.url || "";
             const isRefreshTokenRequest =
                 requestUrl.includes("/auth/refresh-token") ||
                 requestUrl.includes("refresh-token");
 
-            // If this is a refresh-token request that failed, redirect immediately
+            // If this is a refresh-token request that failed with ANY error, redirect immediately
             if (isRefreshTokenRequest) {
+                // Ensure token is removed (tokenService.refreshToken() should have already removed it, but ensure it's removed)
+                tokenService.removeToken();
+
                 if (typeof window !== "undefined") {
                     const currentPath = window.location.pathname;
                     const publicPaths = [
@@ -191,7 +194,6 @@ apiClient.interceptors.response.use(
                             currentPath.startsWith(path)
                         )
                     ) {
-                        tokenService.removeToken();
                         // Use replace to prevent back button navigation
                         window.location.replace("/login");
                         // Return a promise that never resolves to prevent further processing
