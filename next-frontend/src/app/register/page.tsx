@@ -9,6 +9,8 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { authService } from "@/services/authService";
 import { useRouter } from "next/navigation";
+import { useAppDispatch } from "@/store/hooks";
+import { register } from "@/store/slices/authSlice";
 
 const ArrowRightIcon = () => (
   <svg
@@ -57,6 +59,7 @@ const documentChecklist = [
 
 export default function RegisterPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [data, setData] = useState({
     name: "",
     email: "",
@@ -97,14 +100,18 @@ export default function RegisterPage() {
     setErrors({});
 
     try {
-      await authService.register(data);
-      // Wait a bit to ensure token is stored before redirecting
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Use Redux register thunk to store token in Redux
+      await dispatch(register(data)).unwrap();
       // Redirect to KYC onboarding after registration
-      router.push("/onboarding/kyc");
+      // Use router.replace() to prevent back button navigation to register page
+      router.replace("/onboarding/kyc");
     } catch (error: any) {
       if (error.response?.data?.errors) {
         setErrors(error.response.data.errors);
+      } else if (typeof error === 'string') {
+        setErrors({ email: error });
+      } else if (error?.message) {
+        setErrors({ email: error.message });
       } else {
         setErrors({ email: error.response?.data?.message || "Registration failed. Please check your data." });
       }

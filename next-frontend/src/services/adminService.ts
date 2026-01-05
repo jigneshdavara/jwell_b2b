@@ -169,8 +169,8 @@ export const adminService = {
   },
 
   // Metals
-  async getMetals(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/metals', { params: { page, per_page: perPage } });
+  async getMetals(page = 1, perPage = 20, activeOnly = false) {
+    return await apiClient.get('/admin/metals', { params: { page, per_page: perPage, active_only: activeOnly ? 'true' : undefined } });
   },
   async getMetal(id: number) {
     return await apiClient.get(`/admin/metals/${id}`);
@@ -262,8 +262,12 @@ export const adminService = {
   },
 
   // Diamond Types
-  async getDiamondTypes(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/diamond/types', { params: { page, per_page: perPage } });
+  async getDiamondTypes(page = 1, perPage = 20, activeOnly?: boolean) {
+    const params: any = { page, per_page: perPage };
+    if (activeOnly) {
+      params.active_only = 'true';
+    }
+    return await apiClient.get('/admin/diamond/types', { params });
   },
   async getDiamondType(id: number) {
     return await apiClient.get(`/admin/diamond/types/${id}`);
@@ -366,8 +370,8 @@ export const adminService = {
   },
 
   // Sizes
-  async getSizes(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/sizes', { params: { page, per_page: perPage } });
+  async getSizes(page = 1, perPage = 20, activeOnly = false) {
+    return await apiClient.get('/admin/sizes', { params: { page, per_page: perPage, active_only: activeOnly ? 'true' : undefined } });
   },
   async getSize(id: number) {
     return await apiClient.get(`/admin/sizes/${id}`);
@@ -386,8 +390,8 @@ export const adminService = {
   },
 
   // Styles
-  async getStyles(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/styles', { params: { page, per_page: perPage } });
+  async getStyles(page = 1, perPage = 20, activeOnly = false) {
+    return await apiClient.get('/admin/styles', { params: { page, per_page: perPage, active_only: activeOnly ? 'true' : undefined } });
   },
   async getStyle(id: number) {
     return await apiClient.get(`/admin/styles/${id}`);

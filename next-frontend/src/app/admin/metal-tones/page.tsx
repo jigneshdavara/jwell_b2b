@@ -58,7 +58,7 @@ export default function AdminMetalTonesIndex() {
 
     const loadMetals = async () => {
         try {
-            const response = await adminService.getMetals(1, 1000);
+            const response = await adminService.getMetals(1, 1000, true); // Only active metals
             const items = response.data.items || response.data.data || [];
             setMetals(items.map((item: any) => ({
                 id: Number(item.id),

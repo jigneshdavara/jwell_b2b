@@ -202,25 +202,29 @@ export default function AuthenticatedLayout({
 
     const categoriesLinks = useMemo(
         () =>
-            (navigationData.categories ?? []).map((category: any) => {
-                // Use category ID as the filter value (categories don't have slugs in DB)
-                return {
-                id: category.id,
-                name: category.name,
-                    href: `${route('frontend.catalog.index')}?category=${encodeURIComponent(category.id)}`,
-                    image: category.cover_image_url ? getMediaUrlNullable(category.cover_image_url) : null,
-                };
+            (navigationData.categories ?? [])
+                .filter((category: any) => category.is_active !== false) // Filter out paused categories
+                .map((category: any) => {
+                    // Use category ID as the filter value (categories don't have slugs in DB)
+                    return {
+                        id: category.id,
+                        name: category.name,
+                        href: `${route('frontend.catalog.index')}?category=${encodeURIComponent(category.id)}`,
+                        image: category.cover_image_url ? getMediaUrlNullable(category.cover_image_url) : null,
+                    };
                 }),
         [navigationData.categories],
     );
 
     const catalogLinks = useMemo(
         () =>
-            (navigationData.catalogs ?? []).map((catalog: any) => ({
-                id: catalog.id,
-                name: catalog.name,
-                href: `${route('frontend.catalog.index')}?catalog=${encodeURIComponent(catalog.id)}`,
-            })),
+            (navigationData.catalogs ?? [])
+                .filter((catalog: any) => catalog.is_active !== false) // Filter out paused catalogs
+                .map((catalog: any) => ({
+                    id: catalog.id,
+                    name: catalog.name,
+                    href: `${route('frontend.catalog.index')}?catalog=${encodeURIComponent(catalog.id)}`,
+                })),
         [navigationData.catalogs],
     );
 

@@ -16,8 +16,15 @@ export class MetalPuritiesService {
 
     async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
+        const whereClause = {
+            // Show all purities (active and inactive) but only from active metals
+            metals: {
+                is_active: true,
+            },
+        };
         const [items, total] = await Promise.all([
             this.prisma.metal_purities.findMany({
+                where: whereClause,
                 skip,
                 take: perPage,
                 include: {
@@ -27,7 +34,7 @@ export class MetalPuritiesService {
                 },
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
-            this.prisma.metal_purities.count(),
+            this.prisma.metal_purities.count({ where: whereClause }),
         ]);
 
         return {

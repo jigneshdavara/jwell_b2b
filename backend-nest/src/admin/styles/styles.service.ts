@@ -11,15 +11,17 @@ import { CreateStyleDto, UpdateStyleDto } from './dto/style.dto';
 export class StylesService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number, perPage: number) {
+    async findAll(page: number, perPage: number, activeOnly: boolean = false) {
         const skip = (page - 1) * perPage;
+        const whereClause = activeOnly ? { is_active: true } : {};
         const [items, total] = await Promise.all([
             this.prisma.styles.findMany({
+                where: whereClause,
                 skip,
                 take: perPage,
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
-            this.prisma.styles.count(),
+            this.prisma.styles.count({ where: whereClause }),
         ]);
 
         return {

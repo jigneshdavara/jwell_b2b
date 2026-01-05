@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import * as path from 'path';
 
 @Injectable()
 export class NavigationService {
@@ -76,14 +75,17 @@ export class NavigationService {
                 id: Number(category.id),
                 name: category.name,
                 cover_image_url: resolveImageUrl(category.cover_image),
+                is_active: true, // Already filtered by is_active: true in query, but include for frontend filtering
             })),
             brands: brands.map((brand) => ({
                 id: Number(brand.id),
                 name: brand.name,
+                is_active: true, // Already filtered by is_active: true in query, but include for frontend filtering
             })),
             catalogs: catalogs.map((catalog) => ({
                 id: Number(catalog.id),
                 name: catalog.name,
+                is_active: true, // Already filtered by is_active: true in query, but include for frontend filtering
             })),
         };
     }

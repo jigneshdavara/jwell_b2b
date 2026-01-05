@@ -16,18 +16,25 @@ export class DiamondClaritiesService {
 
     async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
+        const whereClause = {
+            // Only show clarities from active diamond types
+            diamond_types: {
+                is_active: true,
+            },
+        };
         const [items, total] = await Promise.all([
             this.prisma.diamond_clarities.findMany({
+                where: whereClause,
                 skip,
                 take: perPage,
                 include: {
                     diamond_types: {
-                        select: { id: true, name: true },
+                        select: { id: true, name: true, is_active: true },
                     },
                 },
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
-            this.prisma.diamond_clarities.count(),
+            this.prisma.diamond_clarities.count({ where: whereClause }),
         ]);
 
         return {

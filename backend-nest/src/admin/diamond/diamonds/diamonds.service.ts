@@ -6,14 +6,31 @@ import { CreateDiamondDto, UpdateDiamondDto } from './dto/diamond.dto';
 export class DiamondsService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(
+        page: number = 1,
+        perPage: number = 10,
+        activeOnly: boolean = false,
+    ) {
         const skip = (page - 1) * perPage;
+        const whereClause: any = {
+            // Only show diamonds from active diamond types
+            diamond_types: {
+                is_active: true,
+            },
+        };
+        // Add diamond active filter if requested
+        if (activeOnly) {
+            whereClause.is_active = true;
+        }
         const [items, total] = await Promise.all([
             this.prisma.diamonds.findMany({
+                where: whereClause,
                 skip,
                 take: perPage,
                 include: {
-                    diamond_types: { select: { id: true, name: true } },
+                    diamond_types: {
+                        select: { id: true, name: true, is_active: true },
+                    },
                     diamond_shapes: { select: { id: true, name: true } },
                     diamond_clarities: { select: { id: true, name: true } },
                     diamond_colors: { select: { id: true, name: true } },
@@ -21,7 +38,7 @@ export class DiamondsService {
                 },
                 orderBy: [{ name: 'asc' }],
             }),
-            this.prisma.diamonds.count(),
+            this.prisma.diamonds.count({ where: whereClause }),
         ]);
 
         return {
@@ -139,8 +156,10 @@ export class DiamondsService {
         const where: {
             diamond_shape_id: bigint;
             diamond_type_id?: bigint;
+            is_active: boolean;
         } = {
             diamond_shape_id: BigInt(shapeId),
+            is_active: true,
         };
 
         if (typeId !== undefined) {
@@ -154,30 +173,64 @@ export class DiamondsService {
     }
 
     async getClaritiesByType(typeId: number) {
+        // Check if type is active first
+        const type = await this.prisma.diamond_types.findUnique({
+            where: { id: BigInt(typeId) },
+            select: { is_active: true },
+        });
+
+        // If type is not active, return empty array
+        if (!type || !type.is_active) {
+            return [];
+        }
+
         return this.prisma.diamond_clarities.findMany({
-            where: { diamond_type_id: BigInt(typeId) },
+            where: {
+                diamond_type_id: BigInt(typeId),
+                is_active: true,
+            },
             orderBy: { display_order: 'asc' },
         });
     }
 
     async getColorsByType(typeId: number) {
+        // Check if type is active first
+        const type = await this.prisma.diamond_types.findUnique({
+            where: { id: BigInt(typeId) },
+            select: { is_active: true },
+        });
+
+        // If type is not active, return empty array
+        if (!type || !type.is_active) {
+            return [];
+        }
+
         return this.prisma.diamond_colors.findMany({
-            where: { diamond_type_id: BigInt(typeId) },
+            where: {
+                diamond_type_id: BigInt(typeId),
+                is_active: true,
+            },
             orderBy: { display_order: 'asc' },
         });
     }
 
     async getShapesByType(typeId: number) {
-        // Assuming shapes are linked to types through shape sizes or directly if possible.
-        // Based on the Laravel controller, it seems to filter by type.
-        // However, looking at the schema, diamond_shapes doesn't have diamond_type_id.
-        // Let's re-examine the diamond_shapes model or how Laravel handles it.
+        // Check if type is active first
+        const type = await this.prisma.diamond_types.findUnique({
+            where: { id: BigInt(typeId) },
+            select: { is_active: true },
+        });
 
-        // In Laravel routes: Route::get('diamonds/shapes-by-type/{typeId}', [DiamondController::class, 'getShapesByType'])
+        // If type is not active, return empty array
+        if (!type || !type.is_active) {
+            return [];
+        }
 
-        // For now, I'll return all shapes since the relation might be through another table.
         return this.prisma.diamond_shapes.findMany({
-            where: { diamond_type_id: BigInt(typeId) },
+            where: {
+                diamond_type_id: BigInt(typeId),
+                is_active: true,
+            },
             orderBy: { display_order: 'asc' },
         });
     }

@@ -15,16 +15,29 @@ export class DiamondShapeSizesService {
 
     async findAll(page: number, perPage: number, shapeId?: number) {
         const skip = (page - 1) * perPage;
+        const whereClause: any = {
+            // Only show shape sizes from active diamond types
+            diamond_types: {
+                is_active: true,
+            },
+        };
+        // Add shape filter if provided
+        if (shapeId) {
+            whereClause.diamond_shape_id = BigInt(shapeId);
+        }
         const [items, total] = await Promise.all([
             this.prisma.diamond_shape_sizes.findMany({
+                where: whereClause,
                 skip,
                 take: perPage,
-                where: shapeId
-                    ? { diamond_shape_id: BigInt(shapeId) }
-                    : undefined,
                 include: {
                     diamond_types: {
-                        select: { id: true, name: true, code: true },
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            is_active: true,
+                        },
                     },
                     diamond_shapes: {
                         select: { id: true, name: true, code: true },
@@ -32,11 +45,7 @@ export class DiamondShapeSizesService {
                 },
                 orderBy: [{ display_order: 'asc' }, { size: 'asc' }],
             }),
-            this.prisma.diamond_shape_sizes.count({
-                where: shapeId
-                    ? { diamond_shape_id: BigInt(shapeId) }
-                    : undefined,
-            }),
+            this.prisma.diamond_shape_sizes.count({ where: whereClause }),
         ]);
 
         // Map items to match frontend expectations (diamond_types -> type, diamond_shapes -> shape)

@@ -89,7 +89,8 @@ export default function AdminCategoriesPage() {
 
     const loadStyles = async () => {
         try {
-            const response = await adminService.getStyles(1, 1000); // Load all styles
+            // Pass active_only=true to filter out paused styles for category form
+            const response = await adminService.getStyles(1, 1000, true); // Load all active styles only
             const items = response.data.items || response.data.data || [];
             setStyles(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
         } catch (error: any) {
@@ -98,7 +99,8 @@ export default function AdminCategoriesPage() {
 
     const loadSizes = async () => {
         try {
-            const response = await adminService.getSizes(1, 1000); // Load all sizes
+            // Pass active_only=true to filter out paused sizes for category form
+            const response = await adminService.getSizes(1, 1000, true); // Load all active sizes only
             const items = response.data.items || response.data.data || [];
             setSizes(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
         } catch (error: any) {
