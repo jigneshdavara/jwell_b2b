@@ -366,8 +366,8 @@ export const adminService = {
   },
 
   // Sizes
-  async getSizes(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/sizes', { params: { page, per_page: perPage } });
+  async getSizes(page = 1, perPage = 20, activeOnly = false) {
+    return await apiClient.get('/admin/sizes', { params: { page, per_page: perPage, active_only: activeOnly ? 'true' : undefined } });
   },
   async getSize(id: number) {
     return await apiClient.get(`/admin/sizes/${id}`);
@@ -386,8 +386,8 @@ export const adminService = {
   },
 
   // Styles
-  async getStyles(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/styles', { params: { page, per_page: perPage } });
+  async getStyles(page = 1, perPage = 20, activeOnly = false) {
+    return await apiClient.get('/admin/styles', { params: { page, per_page: perPage, active_only: activeOnly ? 'true' : undefined } });
   },
   async getStyle(id: number) {
     return await apiClient.get(`/admin/styles/${id}`);

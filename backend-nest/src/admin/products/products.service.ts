@@ -66,6 +66,7 @@ export class ProductsService {
             metalPurities,
             metalTones,
             diamonds,
+            catalogs,
         ] = await Promise.all([
             this.prisma.brands.findMany({
                 where: { is_active: true },
@@ -120,6 +121,11 @@ export class ProductsService {
                 },
                 orderBy: { name: 'asc' },
             }),
+            this.prisma.catalogs.findMany({
+                where: { is_active: true },
+                select: { id: true, name: true, code: true },
+                orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
+            }),
         ]);
 
         return {
@@ -172,6 +178,11 @@ export class ProductsService {
                 diamond_shape_id: d.diamond_shape_id
                     ? Number(d.diamond_shape_id)
                     : null,
+            })),
+            catalogs: catalogs.map((c) => ({
+                id: Number(c.id),
+                name: c.name,
+                code: c.code,
             })),
         };
     }

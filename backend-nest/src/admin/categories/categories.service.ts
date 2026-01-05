@@ -30,12 +30,24 @@ export class CategoriesService {
                     categories: { select: { id: true, name: true } }, // Parent
                     category_styles: {
                         include: {
-                            styles: { select: { id: true, name: true } },
+                            styles: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    is_active: true,
+                                },
+                            },
                         },
                     },
                     category_sizes: {
                         include: {
-                            sizes: { select: { id: true, name: true } },
+                            sizes: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    is_active: true,
+                                },
+                            },
                         },
                     },
                 },
@@ -48,8 +60,12 @@ export class CategoriesService {
         const formattedItems = items.map((item) => ({
             ...item,
             parent: item.categories,
-            styles: item.category_styles.map((cs) => cs.styles),
-            sizes: item.category_sizes.map((cs) => cs.sizes),
+            styles: item.category_styles
+                .map((cs) => cs.styles)
+                .filter((style) => style.is_active === true),
+            sizes: item.category_sizes
+                .map((cs) => cs.sizes)
+                .filter((size) => size.is_active === true),
             cover_image_url: item.cover_image
                 ? item.cover_image.startsWith('storage/')
                     ? `/${item.cover_image}`
@@ -106,10 +122,18 @@ export class CategoriesService {
             include: {
                 categories: { select: { id: true, name: true } },
                 category_styles: {
-                    include: { styles: { select: { id: true, name: true } } },
+                    include: {
+                        styles: {
+                            select: { id: true, name: true, is_active: true },
+                        },
+                    },
                 },
                 category_sizes: {
-                    include: { sizes: { select: { id: true, name: true } } },
+                    include: {
+                        sizes: {
+                            select: { id: true, name: true, is_active: true },
+                        },
+                    },
                 },
             },
         });
@@ -121,8 +145,12 @@ export class CategoriesService {
         return {
             ...category,
             parent: category.categories,
-            styles: category.category_styles.map((cs) => cs.styles),
-            sizes: category.category_sizes.map((cs) => cs.sizes),
+            styles: category.category_styles
+                .map((cs) => cs.styles)
+                .filter((style) => style.is_active === true),
+            sizes: category.category_sizes
+                .map((cs) => cs.sizes)
+                .filter((size) => size.is_active === true),
             cover_image_url: category.cover_image
                 ? category.cover_image.startsWith('storage/')
                     ? `/${category.cover_image}`
