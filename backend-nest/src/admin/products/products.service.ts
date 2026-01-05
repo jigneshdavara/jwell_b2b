@@ -89,7 +89,12 @@ export class ProductsService {
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
             this.prisma.metal_purities.findMany({
-                where: { is_active: true },
+                where: {
+                    is_active: true,
+                    metals: {
+                        is_active: true,
+                    },
+                },
                 select: {
                     id: true,
                     name: true,
@@ -99,7 +104,12 @@ export class ProductsService {
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
             this.prisma.metal_tones.findMany({
-                where: { is_active: true },
+                where: {
+                    is_active: true,
+                    metals: {
+                        is_active: true,
+                    },
+                },
                 select: {
                     id: true,
                     name: true,

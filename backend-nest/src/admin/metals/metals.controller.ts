@@ -28,8 +28,10 @@ export class MetalsController {
     findAll(
         @Query('page') page: number = 1,
         @Query('per_page') perPage: number = 10,
+        @Query('active_only') activeOnly?: string,
     ) {
-        return this.metalsService.findAll(page, perPage);
+        const activeOnlyBool = activeOnly === 'true' || activeOnly === '1';
+        return this.metalsService.findAll(page, perPage, activeOnlyBool);
     }
 
     @Get(':id')

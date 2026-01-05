@@ -13,8 +13,15 @@ export class MetalTonesService {
 
     async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
+        const whereClause = {
+            // Show all tones (active and inactive) but only from active metals
+            metals: {
+                is_active: true,
+            },
+        };
         const [items, total] = await Promise.all([
             this.prisma.metal_tones.findMany({
+                where: whereClause,
                 skip,
                 take: perPage,
                 include: {
@@ -24,7 +31,7 @@ export class MetalTonesService {
                 },
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
-            this.prisma.metal_tones.count(),
+            this.prisma.metal_tones.count({ where: whereClause }),
         ]);
 
         return {

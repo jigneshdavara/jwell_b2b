@@ -169,8 +169,8 @@ export const adminService = {
   },
 
   // Metals
-  async getMetals(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/metals', { params: { page, per_page: perPage } });
+  async getMetals(page = 1, perPage = 20, activeOnly = false) {
+    return await apiClient.get('/admin/metals', { params: { page, per_page: perPage, active_only: activeOnly ? 'true' : undefined } });
   },
   async getMetal(id: number) {
     return await apiClient.get(`/admin/metals/${id}`);
