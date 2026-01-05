@@ -33,7 +33,12 @@ export class DiamondShapesService {
                 take: perPage,
                 include: {
                     diamond_types: {
-                        select: { id: true, name: true, code: true, is_active: true },
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            is_active: true,
+                        },
                     },
                 },
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
@@ -180,9 +185,23 @@ export class DiamondShapesService {
             }
         }
 
-        // Check if trying to pause/deactivate diamond shape that is assigned to products
+        // Check if trying to pause/deactivate diamond shape that is assigned to shape sizes or products
         if (dto.is_active === false && existing.is_active === true) {
             const shapeId = BigInt(id);
+
+            // Check if shape sizes exist - if they do, prevent pausing
+            const shapeSizesCount = await this.prisma.diamond_shape_sizes.count(
+                {
+                    where: { diamond_shape_id: shapeId },
+                },
+            );
+
+            if (shapeSizesCount > 0) {
+                throw new BadRequestException(
+                    `Cannot pause this diamond shape. It has ${shapeSizesCount} associated shape size(s). Please remove all shape sizes first, then pause the diamond shape.`,
+                );
+            }
+
             // Find all diamonds with this diamond_shape_id
             const diamonds = await this.prisma.diamonds.findMany({
                 where: {
@@ -237,6 +256,17 @@ export class DiamondShapesService {
         });
         if (!shape) throw new NotFoundException('Diamond shape not found');
 
+        // Check if shape sizes exist - if they do, prevent deletion
+        const shapeSizesCount = await this.prisma.diamond_shape_sizes.count({
+            where: { diamond_shape_id: shapeId },
+        });
+
+        if (shapeSizesCount > 0) {
+            throw new BadRequestException(
+                `Cannot delete this diamond shape. It has ${shapeSizesCount} associated shape size(s). Please remove all shape sizes first, then delete the diamond shape.`,
+            );
+        }
+
         // Find all diamonds with this diamond_shape_id
         const diamonds = await this.prisma.diamonds.findMany({
             where: {
@@ -264,17 +294,6 @@ export class DiamondShapesService {
             }
         }
 
-        // Check if shape sizes exist - if they do, prevent deletion
-        const shapeSizesCount = await this.prisma.diamond_shape_sizes.count({
-            where: { diamond_shape_id: shapeId },
-        });
-
-        if (shapeSizesCount > 0) {
-            throw new BadRequestException(
-                'Cannot delete diamond shape because it has associated shape sizes. Please remove all shape sizes first.',
-            );
-        }
-
         // If no products or shape sizes use this shape, delete it
         await this.prisma.diamond_shapes.delete({
             where: { id: shapeId },
@@ -286,9 +305,10 @@ export class DiamondShapesService {
     }
 
     async bulkRemove(ids: number[]) {
+        const shapesWithShapeSizes: bigint[] = [];
         const shapesWithProducts: bigint[] = [];
 
-        // Check all shapes for product assignments
+        // Check all shapes for shape sizes and product assignments
         for (const id of ids) {
             const shapeId = BigInt(id);
             const shape = await this.prisma.diamond_shapes.findUnique({
@@ -297,6 +317,18 @@ export class DiamondShapesService {
 
             if (!shape) {
                 continue;
+            }
+
+            // Check if shape sizes exist - if they do, prevent deletion
+            const shapeSizesCount = await this.prisma.diamond_shape_sizes.count(
+                {
+                    where: { diamond_shape_id: shapeId },
+                },
+            );
+
+            if (shapeSizesCount > 0) {
+                shapesWithShapeSizes.push(shapeId);
+                continue; // Skip product check if shape sizes exist
             }
 
             // Find all diamonds with this diamond_shape_id
@@ -323,6 +355,22 @@ export class DiamondShapesService {
                     shapesWithProducts.push(shapeId);
                 }
             }
+        }
+
+        // Check shape sizes first (higher priority error)
+        if (shapesWithShapeSizes.length > 0) {
+            const shapeNames = await this.prisma.diamond_shapes.findMany({
+                where: {
+                    id: { in: shapesWithShapeSizes },
+                },
+                select: {
+                    name: true,
+                },
+            });
+            const shapeNamesList = shapeNames.map((s) => s.name).join(', ');
+            throw new BadRequestException(
+                `Cannot delete diamond shape(s): ${shapeNamesList}. They have associated shape sizes. Please remove all shape sizes first, then delete the diamond shape(s).`,
+            );
         }
 
         if (shapesWithProducts.length > 0) {
@@ -353,7 +401,7 @@ export class DiamondShapesService {
                 continue;
             }
 
-            // Check if shape sizes exist - if they do, skip deletion
+            // Check if shape sizes exist - if they do, skip deletion (already validated above)
             const shapeSizesCount = await this.prisma.diamond_shape_sizes.count(
                 {
                     where: { diamond_shape_id: shapeId },
