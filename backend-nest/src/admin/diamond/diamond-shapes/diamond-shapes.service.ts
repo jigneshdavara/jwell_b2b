@@ -16,7 +16,16 @@ export class DiamondShapesService {
 
     async findAll(page: number, perPage: number, activeOnly: boolean = false) {
         const skip = (page - 1) * perPage;
-        const whereClause = activeOnly ? { is_active: true } : {};
+        const whereClause: any = {
+            // Only show shapes from active diamond types
+            diamond_types: {
+                is_active: true,
+            },
+        };
+        // Add shape active filter if requested
+        if (activeOnly) {
+            whereClause.is_active = true;
+        }
         const [items, total] = await Promise.all([
             this.prisma.diamond_shapes.findMany({
                 where: whereClause,
@@ -24,7 +33,7 @@ export class DiamondShapesService {
                 take: perPage,
                 include: {
                     diamond_types: {
-                        select: { id: true, name: true, code: true },
+                        select: { id: true, name: true, code: true, is_active: true },
                     },
                 },
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],

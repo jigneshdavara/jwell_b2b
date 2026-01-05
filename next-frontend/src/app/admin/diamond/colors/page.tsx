@@ -74,13 +74,16 @@ export default function AdminDiamondColorsIndex() {
 
     const loadTypes = async () => {
         try {
-            const response = await adminService.getDiamondTypes(1, 100); // Load all active types
+            const response = await adminService.getDiamondTypes(1, 100);
             const items = response.data.items || response.data.data || [];
-            setTypes(items.map((item: any) => ({
-                id: Number(item.id),
-                name: item.name || '',
-                code: item.code || null,
-            })).filter((type: DiamondType) => type.name)); // Filter active types if needed
+            // Filter only active types for dropdown
+            setTypes(items
+                .filter((item: any) => item.is_active === true)
+                .map((item: any) => ({
+                    id: Number(item.id),
+                    name: item.name || '',
+                    code: item.code || null,
+                })));
         } catch (error: any) {
             console.error('Failed to load diamond types:', error);
         }
@@ -94,23 +97,29 @@ export default function AdminDiamondColorsIndex() {
             const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
 
             setColors({
-                data: items.map((item: any) => {
-                    const type = item.diamond_types || item.type;
-                    return {
-                        id: Number(item.id),
-                        diamond_type_id: Number(item.diamond_type_id || 0),
-                        type: type ? {
-                            id: Number(type.id),
-                            name: type.name || '',
-                            code: type.code || null,
-                        } : null,
-                        code: item.code || '',
-                        name: item.name || '',
-                        description: item.description || null,
-                        display_order: Number(item.display_order || 0),
-                        is_active: item.is_active ?? true,
-                    };
-                }),
+                data: items
+                    .filter((item: any) => {
+                        const type = item.diamond_types || item.type;
+                        // Only show colors from active types
+                        return type?.is_active !== false;
+                    })
+                    .map((item: any) => {
+                        const type = item.diamond_types || item.type;
+                        return {
+                            id: Number(item.id),
+                            diamond_type_id: Number(item.diamond_type_id || 0),
+                            type: type ? {
+                                id: Number(type.id),
+                                name: type.name || '',
+                                code: type.code || null,
+                            } : null,
+                            code: item.code || '',
+                            name: item.name || '',
+                            description: item.description || null,
+                            display_order: Number(item.display_order || 0),
+                            is_active: item.is_active ?? true,
+                        };
+                    }),
                 meta: {
                     current_page: responseMeta.current_page || responseMeta.page || currentPage,
                     last_page: responseMeta.last_page || responseMeta.lastPage || 1,

@@ -16,18 +16,25 @@ export class DiamondColorsService {
 
     async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
+        const whereClause = {
+            // Only show colors from active diamond types
+            diamond_types: {
+                is_active: true,
+            },
+        };
         const [items, total] = await Promise.all([
             this.prisma.diamond_colors.findMany({
+                where: whereClause,
                 skip,
                 take: perPage,
                 include: {
                     diamond_types: {
-                        select: { id: true, name: true, code: true },
+                        select: { id: true, name: true, code: true, is_active: true },
                     },
                 },
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
-            this.prisma.diamond_colors.count(),
+            this.prisma.diamond_colors.count({ where: whereClause }),
         ]);
 
         const mappedItems = items.map((item) => {

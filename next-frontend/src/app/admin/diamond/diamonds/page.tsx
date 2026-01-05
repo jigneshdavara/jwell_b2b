@@ -93,22 +93,29 @@ export default function AdminDiamondsPage() {
             const items = responseData.items || responseData.data || [];
             const meta = responseData.meta || {};
             setDiamonds({
-                data: items.map((item: any) => {
-                    // NestJS uses different relationship names: diamond_types, diamond_shapes, etc.
-                    const type = item.diamond_types || item.type;
-                    const clarity = item.diamond_clarities || item.clarity;
-                    const color = item.diamond_colors || item.color;
-                    const shape = item.diamond_shapes || item.shape;
-                    const shapeSize = item.diamond_shape_sizes || item.shape_size;
-                    
-                    return {
-                        id: Number(item.id),
-                        name: item.name || item.code || '', 
-                        type: type ? { 
-                            id: Number(type.id), 
-                            name: type.name, 
-                            code: type.code || null 
-                        } : null,
+                data: items
+                    .filter((item: any) => {
+                        const type = item.diamond_types || item.type;
+                        // Only show diamonds from active types
+                        return type?.is_active !== false;
+                    })
+                    .map((item: any) => {
+                        // NestJS uses different relationship names: diamond_types, diamond_shapes, etc.
+                        const type = item.diamond_types || item.type;
+                        const clarity = item.diamond_clarities || item.clarity;
+                        const color = item.diamond_colors || item.color;
+                        const shape = item.diamond_shapes || item.shape;
+                        const shapeSize = item.diamond_shape_sizes || item.shape_size;
+                        
+                        return {
+                            id: Number(item.id),
+                            name: item.name || item.code || '', 
+                            type: type ? { 
+                                id: Number(type.id), 
+                                name: type.name, 
+                                code: type.code || null,
+                                is_active: type.is_active !== false
+                            } : null,
                         clarity: clarity ? { 
                             id: Number(clarity.id), 
                             name: clarity.name, 

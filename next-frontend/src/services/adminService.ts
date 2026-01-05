@@ -262,8 +262,12 @@ export const adminService = {
   },
 
   // Diamond Types
-  async getDiamondTypes(page = 1, perPage = 20) {
-    return await apiClient.get('/admin/diamond/types', { params: { page, per_page: perPage } });
+  async getDiamondTypes(page = 1, perPage = 20, activeOnly?: boolean) {
+    const params: any = { page, per_page: perPage };
+    if (activeOnly) {
+      params.active_only = 'true';
+    }
+    return await apiClient.get('/admin/diamond/types', { params });
   },
   async getDiamondType(id: number) {
     return await apiClient.get(`/admin/diamond/types/${id}`);

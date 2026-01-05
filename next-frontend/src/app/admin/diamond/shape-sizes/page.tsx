@@ -43,8 +43,10 @@ export default function AdminDiamondShapeSizesIndex() {
         meta: { current_page: 1, last_page: 1, total: 0, per_page: 10, from: undefined, to: undefined }
     });
     const [shapes, setShapes] = useState<DiamondShape[]>([]);
+    const [filteredShapes, setFilteredShapes] = useState<DiamondShape[]>([]);
     const [types, setTypes] = useState<DiamondType[]>([]);
     const [selectedShapeId, setSelectedShapeId] = useState<number | null>(null);
+    const [loadingShapes, setLoadingShapes] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingSize, setEditingSize] = useState<DiamondShapeSizeRow | null>(null);
     const [selectedSizes, setSelectedSizes] = useState<number[]>([]);
@@ -87,13 +89,16 @@ export default function AdminDiamondShapeSizesIndex() {
 
     const loadTypes = async () => {
         try {
-            const response = await adminService.getDiamondTypes(1, 100, true); // Only active types for dropdown
+            const response = await adminService.getDiamondTypes(1, 100);
             const items = response.data.items || response.data.data || [];
-            setTypes(items.map((item: any) => ({
-                id: Number(item.id),
-                name: item.name || '',
-                code: item.code || null,
-            })));
+            // Filter only active types for dropdown
+            setTypes(items
+                .filter((item: any) => item.is_active === true)
+                .map((item: any) => ({
+                    id: Number(item.id),
+                    name: item.name || '',
+                    code: item.code || null,
+                })));
         } catch (error: any) {
             console.error('Failed to load diamond types:', error);
         }
@@ -101,16 +106,47 @@ export default function AdminDiamondShapeSizesIndex() {
 
     const loadShapes = async () => {
         try {
-            const response = await adminService.getDiamondShapes(1, 100, true); // Only active shapes for dropdown
+            const response = await adminService.getDiamondShapes(1, 100);
             const items = response.data.items || response.data.data || [];
-            setShapes(items.map((item: any) => ({
+            // Filter only active shapes for dropdown
+            const activeShapes = items
+                .filter((item: any) => item.is_active !== false)
+                .map((item: any) => ({
+                    id: Number(item.id),
+                    name: item.name || '',
+                    code: item.code || null,
+                    is_active: item.is_active ?? true,
+                }));
+            setShapes(activeShapes);
+            // Initially show all active shapes
+            setFilteredShapes(activeShapes);
+        } catch (error: any) {
+            console.error('Failed to load diamond shapes:', error);
+        }
+    };
+
+    const loadShapesByType = async (typeId: number | string | null) => {
+        if (!typeId || typeId === '') {
+            // If no type selected, show all shapes
+            setFilteredShapes(shapes);
+            return;
+        }
+
+        setLoadingShapes(true);
+        try {
+            const response = await adminService.getDiamondShapesByType(Number(typeId));
+            const items = response.data || [];
+            setFilteredShapes(items.map((item: any) => ({
                 id: Number(item.id),
                 name: item.name || '',
                 code: item.code || null,
                 is_active: item.is_active ?? true,
             })));
         } catch (error: any) {
-            console.error('Failed to load diamond shapes:', error);
+            console.error('Failed to load diamond shapes by type:', error);
+            setFilteredShapes([]);
+        } finally {
+            setLoadingShapes(false);
         }
     };
 
@@ -122,30 +158,36 @@ export default function AdminDiamondShapeSizesIndex() {
             const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
 
             setSizes({
-                data: items.map((item: any) => {
-                    const type = item.diamond_types || item.type;
-                    const shape = item.diamond_shapes || item.shape;
-                    return {
-                        id: Number(item.id),
-                        diamond_type_id: Number(item.diamond_type_id || 0),
-                        type: type ? {
-                            id: Number(type.id),
-                            name: type.name || '',
-                            code: type.code || null,
-                        } : null,
-                        diamond_shape_id: Number(item.diamond_shape_id || 0),
-                        shape: shape ? {
-                            id: Number(shape.id),
-                            name: shape.name || '',
-                            code: shape.code || null,
-                        } : null,
-                        size: item.size || '',
-                        secondary_size: item.secondary_size || null,
-                        description: item.description || null,
-                        display_order: Number(item.display_order || 0),
-                        ctw: Number(item.ctw || 0),
-                    };
-                }),
+                data: items
+                    .filter((item: any) => {
+                        const type = item.diamond_types || item.type;
+                        // Only show shape sizes from active types
+                        return type?.is_active !== false;
+                    })
+                    .map((item: any) => {
+                        const type = item.diamond_types || item.type;
+                        const shape = item.diamond_shapes || item.shape;
+                        return {
+                            id: Number(item.id),
+                            diamond_type_id: Number(item.diamond_type_id || 0),
+                            type: type ? {
+                                id: Number(type.id),
+                                name: type.name || '',
+                                code: type.code || null,
+                            } : null,
+                            diamond_shape_id: Number(item.diamond_shape_id || 0),
+                            shape: shape ? {
+                                id: Number(shape.id),
+                                name: shape.name || '',
+                                code: shape.code || null,
+                            } : null,
+                            size: item.size || '',
+                            secondary_size: item.secondary_size || null,
+                            description: item.description || null,
+                            display_order: Number(item.display_order || 0),
+                            ctw: Number(item.ctw || 0),
+                        };
+                    }),
                 meta: {
                     current_page: responseMeta.current_page || responseMeta.page || currentPage,
                     last_page: responseMeta.last_page || responseMeta.lastPage || 1,
@@ -189,13 +231,15 @@ export default function AdminDiamondShapeSizesIndex() {
         setFormErrors({});
         setFormData({
             diamond_type_id: '',
-            diamond_shape_id: selectedShapeId ? selectedShapeId : (shapes.length > 0 ? shapes[0].id : ''),
+            diamond_shape_id: '',
             size: '',
             secondary_size: '',
             description: '',
             display_order: 0,
             ctw: '',
         });
+        // Reset filtered shapes to show all when form is reset
+        setFilteredShapes(shapes);
     };
 
     const openCreateModal = () => {
@@ -203,7 +247,7 @@ export default function AdminDiamondShapeSizesIndex() {
         setModalOpen(true);
     };
 
-    const openEditModal = (size: DiamondShapeSizeRow) => {
+    const openEditModal = async (size: DiamondShapeSizeRow) => {
         setEditingSize(size);
         setFormErrors({});
         setFormData({
@@ -215,6 +259,8 @@ export default function AdminDiamondShapeSizesIndex() {
             display_order: size.display_order,
             ctw: size.ctw,
         });
+        // Load shapes for the selected type when editing
+        await loadShapesByType(size.diamond_type_id);
         setModalOpen(true);
     };
 
@@ -511,7 +557,16 @@ export default function AdminDiamondShapeSizesIndex() {
                                             <span>Type <span className="text-rose-500">*</span></span>
                                             <select
                                                 value={formData.diamond_type_id === '' ? '' : String(formData.diamond_type_id)}
-                                                onChange={(event) => setFormData({ ...formData, diamond_type_id: event.target.value === '' ? '' : Number(event.target.value) })}
+                                                onChange={async (event) => {
+                                                    const typeId = event.target.value === '' ? '' : Number(event.target.value);
+                                                    setFormData({ 
+                                                        ...formData, 
+                                                        diamond_type_id: typeId,
+                                                        diamond_shape_id: '', // Reset shape when type changes
+                                                    });
+                                                    // Load shapes for selected type
+                                                    await loadShapesByType(typeId);
+                                                }}
                                                 className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                                 required
                                             >
@@ -529,11 +584,18 @@ export default function AdminDiamondShapeSizesIndex() {
                                             <select
                                                 value={formData.diamond_shape_id === '' ? '' : String(formData.diamond_shape_id)}
                                                 onChange={(event) => setFormData({ ...formData, diamond_shape_id: event.target.value === '' ? '' : Number(event.target.value) })}
+                                                disabled={loadingShapes || !formData.diamond_type_id || formData.diamond_type_id === ''}
                                                 className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
                                                 required
                                             >
-                                                <option value="">Select a shape</option>
-                                                {shapes.map((shape) => (
+                                                <option value="">
+                                                    {loadingShapes 
+                                                        ? 'Loading shapes...' 
+                                                        : !formData.diamond_type_id || formData.diamond_type_id === ''
+                                                        ? 'Select type first'
+                                                        : 'Select a shape'}
+                                                </option>
+                                                {filteredShapes.map((shape) => (
                                                     <option key={shape.id} value={shape.id}>
                                                         {shape.name}
                                                     </option>
