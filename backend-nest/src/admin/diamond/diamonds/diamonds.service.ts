@@ -156,10 +156,8 @@ export class DiamondsService {
         const where: {
             diamond_shape_id: bigint;
             diamond_type_id?: bigint;
-            is_active: boolean;
         } = {
             diamond_shape_id: BigInt(shapeId),
-            is_active: true,
         };
 
         if (typeId !== undefined) {
