@@ -141,10 +141,18 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
 
       // For protected paths (including authenticated paths like KYC onboarding), check authentication
       try {
-        // Check if token exists
+        // First check Redux state (synchronous, faster)
+        // If Redux shows user is authenticated, allow access immediately
+        if (authState.isAuthenticated && authState.user && authState.token) {
+          setIsAuthenticated(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // Fallback: Check if token exists in localStorage
         if (!tokenService.hasToken()) {
-          // No token, redirect to login
-          router.push('/login');
+          // No token in Redux or localStorage, redirect to login
+          router.replace('/login');
           return;
         }
 
@@ -157,15 +165,18 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
         }
 
         // For other protected paths, refresh token (this validates and gets a new token)
-        const token = await tokenService.refreshToken();
-        
-        if (!token) {
-          // Token invalid or refresh failed, redirect to login
-          router.push('/login');
-          return;
+        // Only do this if Redux state is not available
+        if (!authState.isAuthenticated || !authState.token) {
+          const token = await tokenService.refreshToken();
+          
+          if (!token) {
+            // Token invalid or refresh failed, redirect to login
+            router.replace('/login');
+            return;
+          }
         }
 
-        // Token is valid
+        // Token is valid (either from Redux or refreshed)
         setIsAuthenticated(true);
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -175,7 +186,15 @@ export function AuthMiddleware({ children }: { children: React.ReactNode }) {
           setIsLoading(false);
           return;
         }
-        router.push('/login');
+        
+        // Only redirect to login if Redux state also shows user is not authenticated
+        // This prevents redirect loops when token refresh fails but user is still authenticated in Redux
+        if (!authState.isAuthenticated || !authState.token) {
+          router.replace('/login');
+        } else {
+          // User is authenticated in Redux, allow access even if token refresh failed
+          setIsAuthenticated(true);
+        }
       } finally {
         setIsLoading(false);
       }
