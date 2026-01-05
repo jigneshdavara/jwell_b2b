@@ -9,12 +9,18 @@ import GuestLayout from '@/components/shared/GuestLayout';
 import Link from 'next/link';
 import { FormEventHandler, ReactNode, useState } from 'react';
 import { route } from '@/utils/route';
+import { useRouter } from 'next/navigation';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '@/store';
+import { login, verifyOtp } from '@/store/slices/authSlice';
 
 type LoginMode = 'password' | 'otp';
 
 import { authService } from '@/services/authService';
 
 export default function Login() {
+    const router = useRouter();
+    const dispatch = useDispatch<AppDispatch>();
     const [status, setStatus] = useState<string | undefined>(undefined);
     const canResetPassword = true;
 
@@ -48,14 +54,11 @@ export default function Login() {
         setErrors({});
 
         try {
-            const response = await authService.login(passwordData);
+            // Use Redux login thunk to store token in Redux and localStorage
+            const result = await dispatch(login(passwordData)).unwrap();
             
-            // Token is now stored in tokenService, refresh it to ensure it's valid
-            const { tokenService } = await import('@/services/tokenService');
-            await tokenService.refreshToken();
-            
-            // Get user data from response to determine redirect
-            const user = response.data?.user;
+            // Get user data from Redux result to determine redirect
+            const user = result.user;
             const userType = (user?.type || '').toLowerCase();
             
             // Determine redirect URL
@@ -74,11 +77,15 @@ export default function Login() {
                 }
             }
             
-            // Use window.location.href for full page reload to ensure auth state is properly refreshed
-            // This ensures middleware and auth checks run with the new token
-            window.location.href = redirectUrl;
+            // Use router.replace() to navigate without page reload and prevent back button to login
+            router.replace(redirectUrl);
         } catch (error: any) {
-            if (error.response?.status === 401) {
+            // Handle Redux thunk errors
+            if (typeof error === 'string') {
+                setErrors({ email: error });
+            } else if (error?.message) {
+                setErrors({ email: error.message });
+            } else if (error.response?.status === 401) {
                 setErrors({ email: 'Invalid credentials.' });
             } else if (error.response?.data?.message) {
                 setErrors({ email: error.response.data.message });
@@ -112,14 +119,11 @@ export default function Login() {
         setErrors({});
         
         try {
-            const response = await authService.verifyOtp({ email: sharedEmail, code: otpVerifyData.code });
+            // Use Redux verifyOtp thunk to store token in Redux and localStorage
+            const result = await dispatch(verifyOtp({ email: sharedEmail, code: otpVerifyData.code })).unwrap();
             
-            // Token is now stored in tokenService, refresh it to ensure it's valid
-            const { tokenService } = await import('@/services/tokenService');
-            await tokenService.refreshToken();
-            
-            // Get user data from response to determine redirect
-            const user = response.data?.user;
+            // Get user data from Redux result to determine redirect
+            const user = result.user;
             const userType = (user?.type || '').toLowerCase();
             
             // Determine redirect URL
@@ -138,11 +142,19 @@ export default function Login() {
                 }
             }
             
-            // Use window.location.href for full page reload to ensure auth state is properly refreshed
-            // This ensures middleware and auth checks run with the new token
-            window.location.href = redirectUrl;
+            // Use router.replace() to navigate without page reload and prevent back button to login
+            router.replace(redirectUrl);
         } catch (error: any) {
-            setErrors({ code: error.response?.data?.message || 'Invalid code.' });
+            // Handle Redux thunk errors
+            if (typeof error === 'string') {
+                setErrors({ code: error });
+            } else if (error?.message) {
+                setErrors({ code: error.message });
+            } else if (error.response?.data?.message) {
+                setErrors({ code: error.response.data.message });
+            } else {
+                setErrors({ code: 'Invalid code.' });
+            }
         } finally {
             setProcessing(false);
         }
