@@ -28,8 +28,10 @@ export class DiamondsController {
     findAll(
         @Query('page') page: string = '1',
         @Query('per_page') perPage: string = '10',
+        @Query('active_only') activeOnly?: string,
     ) {
-        return this.diamondsService.findAll(+page, +perPage);
+        const activeOnlyBool = activeOnly === 'true' || activeOnly === '1';
+        return this.diamondsService.findAll(+page, +perPage, activeOnlyBool);
     }
 
     @Get('shape-sizes/:shapeId')

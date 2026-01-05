@@ -6,10 +6,16 @@ import { CreateDiamondDto, UpdateDiamondDto } from './dto/diamond.dto';
 export class DiamondsService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number = 1, perPage: number = 10) {
+    async findAll(
+        page: number = 1,
+        perPage: number = 10,
+        activeOnly: boolean = false,
+    ) {
         const skip = (page - 1) * perPage;
+        const whereClause = activeOnly ? { is_active: true } : {};
         const [items, total] = await Promise.all([
             this.prisma.diamonds.findMany({
+                where: whereClause,
                 skip,
                 take: perPage,
                 include: {
@@ -21,7 +27,7 @@ export class DiamondsService {
                 },
                 orderBy: [{ name: 'asc' }],
             }),
-            this.prisma.diamonds.count(),
+            this.prisma.diamonds.count({ where: whereClause }),
         ]);
 
         return {
@@ -139,8 +145,10 @@ export class DiamondsService {
         const where: {
             diamond_shape_id: bigint;
             diamond_type_id?: bigint;
+            is_active: boolean;
         } = {
             diamond_shape_id: BigInt(shapeId),
+            is_active: true,
         };
 
         if (typeId !== undefined) {
@@ -155,14 +163,20 @@ export class DiamondsService {
 
     async getClaritiesByType(typeId: number) {
         return this.prisma.diamond_clarities.findMany({
-            where: { diamond_type_id: BigInt(typeId) },
+            where: {
+                diamond_type_id: BigInt(typeId),
+                is_active: true,
+            },
             orderBy: { display_order: 'asc' },
         });
     }
 
     async getColorsByType(typeId: number) {
         return this.prisma.diamond_colors.findMany({
-            where: { diamond_type_id: BigInt(typeId) },
+            where: {
+                diamond_type_id: BigInt(typeId),
+                is_active: true,
+            },
             orderBy: { display_order: 'asc' },
         });
     }
@@ -177,7 +191,10 @@ export class DiamondsService {
 
         // For now, I'll return all shapes since the relation might be through another table.
         return this.prisma.diamond_shapes.findMany({
-            where: { diamond_type_id: BigInt(typeId) },
+            where: {
+                diamond_type_id: BigInt(typeId),
+                is_active: true,
+            },
             orderBy: { display_order: 'asc' },
         });
     }

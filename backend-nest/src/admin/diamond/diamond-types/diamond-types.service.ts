@@ -14,15 +14,17 @@ import {
 export class DiamondTypesService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number, perPage: number) {
+    async findAll(page: number, perPage: number, activeOnly: boolean = false) {
         const skip = (page - 1) * perPage;
+        const whereClause = activeOnly ? { is_active: true } : {};
         const [items, total] = await Promise.all([
             this.prisma.diamond_types.findMany({
+                where: whereClause,
                 skip,
                 take: perPage,
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
-            this.prisma.diamond_types.count(),
+            this.prisma.diamond_types.count({ where: whereClause }),
         ]);
 
         return {

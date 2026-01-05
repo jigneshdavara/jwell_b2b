@@ -14,10 +14,12 @@ import {
 export class DiamondShapesService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number, perPage: number) {
+    async findAll(page: number, perPage: number, activeOnly: boolean = false) {
         const skip = (page - 1) * perPage;
+        const whereClause = activeOnly ? { is_active: true } : {};
         const [items, total] = await Promise.all([
             this.prisma.diamond_shapes.findMany({
+                where: whereClause,
                 skip,
                 take: perPage,
                 include: {
@@ -27,7 +29,7 @@ export class DiamondShapesService {
                 },
                 orderBy: [{ display_order: 'asc' }, { name: 'asc' }],
             }),
-            this.prisma.diamond_shapes.count(),
+            this.prisma.diamond_shapes.count({ where: whereClause }),
         ]);
 
         // Map items to match frontend expectations (diamond_types -> type)

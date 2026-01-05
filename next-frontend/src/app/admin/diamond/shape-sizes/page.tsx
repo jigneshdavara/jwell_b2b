@@ -87,13 +87,13 @@ export default function AdminDiamondShapeSizesIndex() {
 
     const loadTypes = async () => {
         try {
-            const response = await adminService.getDiamondTypes(1, 100); // Load all active types
+            const response = await adminService.getDiamondTypes(1, 100, true); // Only active types for dropdown
             const items = response.data.items || response.data.data || [];
             setTypes(items.map((item: any) => ({
                 id: Number(item.id),
                 name: item.name || '',
                 code: item.code || null,
-            })).filter((type: DiamondType) => type.name)); // Filter active types if needed
+            })));
         } catch (error: any) {
             console.error('Failed to load diamond types:', error);
         }
@@ -101,14 +101,14 @@ export default function AdminDiamondShapeSizesIndex() {
 
     const loadShapes = async () => {
         try {
-            const response = await adminService.getDiamondShapes(1, 100); // Load all active shapes
+            const response = await adminService.getDiamondShapes(1, 100, true); // Only active shapes for dropdown
             const items = response.data.items || response.data.data || [];
             setShapes(items.map((item: any) => ({
                 id: Number(item.id),
                 name: item.name || '',
                 code: item.code || null,
                 is_active: item.is_active ?? true,
-            })).filter((shape: DiamondShape) => shape.name && shape.is_active !== false)); // Filter active shapes
+            })));
         } catch (error: any) {
             console.error('Failed to load diamond shapes:', error);
         }

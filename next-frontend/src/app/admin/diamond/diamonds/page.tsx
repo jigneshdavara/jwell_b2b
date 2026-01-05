@@ -156,7 +156,7 @@ export default function AdminDiamondsPage() {
 
     const loadTypes = async () => {
         try {
-            const response = await adminService.getDiamondTypes(1, 100);
+            const response = await adminService.getDiamondTypes(1, 100, true); // Only active types for dropdown
             const items = response.data.items || response.data.data || [];
             setTypes(items.map((item: any) => ({ id: Number(item.id), name: item.name, code: item.code })));
         } catch (error: any) {
