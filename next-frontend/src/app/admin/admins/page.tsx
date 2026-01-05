@@ -35,7 +35,7 @@ export default function AdminAdminsIndex() {
         data: [],
         meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 }
     });
-    const [adminGroups, setAdminGroups] = useState<Array<{ id: number; name: string }>>([]);
+    const [adminGroups, setAdminGroups] = useState<Array<{ id: number; name: string; is_active: boolean }>>([]);
     const [newUser, setNewUser] = useState({
         name: '',
         email: '',
@@ -96,7 +96,16 @@ export default function AdminAdminsIndex() {
         try {
             const response = await adminService.getAdminGroups(1, 100);
             const items = response.data.items || response.data.data || [];
-            setAdminGroups(items.map((item: any) => ({ id: Number(item.id), name: item.name })));
+            // Filter out paused groups (is_active === false) - only show active groups
+            setAdminGroups(
+                items
+                    .filter((item: any) => item.is_active === true)
+                    .map((item: any) => ({ 
+                        id: Number(item.id), 
+                        name: item.name,
+                        is_active: item.is_active === true 
+                    }))
+            );
         } catch (error: any) {
             // Silently handle error - don't log to console to avoid Next.js error overlay
         }
