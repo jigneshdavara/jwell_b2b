@@ -38,9 +38,8 @@ export const authService = {
         if (response.data.access_token) {
             // Store token only, no user data
             tokenService.setToken(response.data.access_token);
-
-            // Refresh token to ensure it's valid
-            await tokenService.refreshToken();
+            // Don't call refreshToken() here - the token from registration is already valid
+            // Calling refreshToken() might fail and remove the token, causing redirect to login
         }
         return response;
     },
