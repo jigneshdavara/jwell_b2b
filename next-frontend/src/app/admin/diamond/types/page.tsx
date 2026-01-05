@@ -3,6 +3,7 @@
 import { Head } from '@/components/Head';
 import { useEffect, useMemo, useState } from 'react';
 import { adminService } from '@/services/adminService';
+import apiClient from '@/services/api';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
@@ -176,12 +177,16 @@ export default function AdminDiamondTypesIndex() {
 
     const toggleType = async (type: DiamondTypeRow) => {
         try {
-            await adminService.updateDiamondType(type.id, {
+            await apiClient.patch(`/admin/diamond/types/${type.id}`, {
                 code: type.code,
                 name: type.name,
                 description: type.description,
                 is_active: !type.is_active,
                 display_order: type.display_order,
+            }, {
+                headers: {
+                    'X-Silent-Request': 'true', // Prevent interceptor from showing toast
+                },
             });
             await loadTypes();
             toastSuccess(`Diamond type ${!type.is_active ? 'activated' : 'deactivated'} successfully.`);

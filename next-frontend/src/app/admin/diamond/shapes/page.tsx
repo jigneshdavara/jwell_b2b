@@ -3,6 +3,7 @@
 import { Head } from '@/components/Head';
 import { useEffect, useMemo, useState } from 'react';
 import { adminService } from '@/services/adminService';
+import apiClient from '@/services/api';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
@@ -228,13 +229,17 @@ export default function AdminDiamondShapesIndex() {
 
     const toggleShape = async (shape: DiamondShapeRow) => {
         try {
-            await adminService.updateDiamondShape(shape.id, {
+            await apiClient.patch(`/admin/diamond/shapes/${shape.id}`, {
                 diamond_type_id: shape.diamond_type_id,
                 code: shape.code,
                 name: shape.name,
                 description: shape.description,
                 is_active: !shape.is_active,
                 display_order: shape.display_order,
+            }, {
+                headers: {
+                    'X-Silent-Request': 'true', // Prevent interceptor from showing toast
+                },
             });
             await loadShapes();
             toastSuccess(`Diamond shape ${!shape.is_active ? 'activated' : 'deactivated'} successfully.`);

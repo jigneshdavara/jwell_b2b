@@ -3,6 +3,7 @@
 import { Head } from '@/components/Head';
 import { useEffect, useMemo, useState } from 'react';
 import { adminService } from '@/services/adminService';
+import apiClient from '@/services/api';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
@@ -228,13 +229,17 @@ export default function AdminDiamondClaritiesIndex() {
 
     const toggleClarity = async (clarity: DiamondClarityRow) => {
         try {
-            await adminService.updateDiamondClarity(clarity.id, {
+            await apiClient.patch(`/admin/diamond/clarities/${clarity.id}`, {
                 diamond_type_id: clarity.diamond_type_id,
                 code: clarity.code,
                 name: clarity.name,
                 description: clarity.description,
                 is_active: !clarity.is_active,
                 display_order: clarity.display_order,
+            }, {
+                headers: {
+                    'X-Silent-Request': 'true', // Prevent interceptor from showing toast
+                },
             });
             await loadClarities();
             toastSuccess(`Diamond clarity ${!clarity.is_active ? 'activated' : 'deactivated'} successfully.`);

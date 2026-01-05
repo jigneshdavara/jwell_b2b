@@ -3,6 +3,7 @@
 import { Head } from '@/components/Head';
 import { useEffect, useMemo, useState } from 'react';
 import { adminService } from '@/services/adminService';
+import apiClient from '@/services/api';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
@@ -228,13 +229,17 @@ export default function AdminDiamondColorsIndex() {
 
     const toggleColor = async (color: DiamondColorRow) => {
         try {
-            await adminService.updateDiamondColor(color.id, {
+            await apiClient.patch(`/admin/diamond/colors/${color.id}`, {
                 diamond_type_id: color.diamond_type_id,
                 code: color.code,
                 name: color.name,
                 description: color.description,
                 is_active: !color.is_active,
                 display_order: color.display_order,
+            }, {
+                headers: {
+                    'X-Silent-Request': 'true', // Prevent interceptor from showing toast
+                },
             });
             await loadColors();
             toastSuccess(`Diamond color ${!color.is_active ? 'activated' : 'deactivated'} successfully.`);
