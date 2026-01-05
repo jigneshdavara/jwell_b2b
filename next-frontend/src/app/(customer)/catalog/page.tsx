@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, Dispatch, FormEvent, SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, Dispatch, FormEvent, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { route } from '@/utils/route';
@@ -49,6 +49,8 @@ export default function CatalogPage() {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [catalogItems, setCatalogItems] = useState<Product[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [hasMorePages, setHasMorePages] = useState(false);
     
     const [collapsedFilters, setCollapsedFilters] = useState<Record<string, boolean>>({
         categories: false,
@@ -75,8 +77,10 @@ export default function CatalogPage() {
             setLoading(true);
                 
                 // Build filters from search params
+                // For infinite scroll, always start from page 1 on initial load
+                // Don't use page parameter from URL - infinite scroll will handle pagination
                 const filters: any = {
-                    page: parseInt(searchParams.get('page') || '1'),
+                    page: 1,
                 };
                 
                 // Extract array params
@@ -127,32 +131,32 @@ export default function CatalogPage() {
                     }));
                     
                     // Build pagination links
-                    const currentPage = apiData.products?.current_page || 1;
-                    const lastPage = apiData.products?.last_page || 1;
+                    const apiCurrentPage = apiData.products?.current_page || 1;
+                    const apiLastPage = apiData.products?.last_page || 1;
                     const links: Array<{ url: string | null; label: string; active: boolean }> = [];
                     
                     // Add previous link
-                    if (currentPage > 1) {
+                    if (apiCurrentPage > 1) {
                         const prevParams = new URLSearchParams(searchParams.toString());
-                        prevParams.set('page', String(currentPage - 1));
+                        prevParams.set('page', String(apiCurrentPage - 1));
                         links.push({ url: `?${prevParams.toString()}`, label: 'Previous', active: false });
                     }
                     
                     // Add page number links
-                    for (let i = 1; i <= lastPage; i++) {
+                    for (let i = 1; i <= apiLastPage; i++) {
                         const pageParams = new URLSearchParams(searchParams.toString());
                         pageParams.set('page', String(i));
                         links.push({ 
                             url: `?${pageParams.toString()}`, 
                             label: String(i), 
-                            active: i === currentPage 
+                            active: i === apiCurrentPage 
                         });
                     }
                     
                     // Add next link
-                    if (currentPage < lastPage) {
+                    if (apiCurrentPage < apiLastPage) {
                         const nextParams = new URLSearchParams(searchParams.toString());
-                        nextParams.set('page', String(currentPage + 1));
+                        nextParams.set('page', String(apiCurrentPage + 1));
                         links.push({ url: `?${nextParams.toString()}`, label: 'Next', active: false });
                     }
                     
@@ -161,8 +165,8 @@ export default function CatalogPage() {
                 products: {
                             data: products,
                             links,
-                            next_page_url: currentPage < lastPage ? `?${new URLSearchParams({ ...Object.fromEntries(searchParams), page: String(currentPage + 1) }).toString()}` : null,
-                            prev_page_url: currentPage > 1 ? `?${new URLSearchParams({ ...Object.fromEntries(searchParams), page: String(currentPage - 1) }).toString()}` : null,
+                            next_page_url: apiCurrentPage < apiLastPage ? `?${new URLSearchParams({ ...Object.fromEntries(searchParams), page: String(apiCurrentPage + 1) }).toString()}` : null,
+                            prev_page_url: apiCurrentPage > 1 ? `?${new URLSearchParams({ ...Object.fromEntries(searchParams), page: String(apiCurrentPage - 1) }).toString()}` : null,
                 },
                 facets: {
                             ...apiData.facets,
@@ -218,7 +222,16 @@ export default function CatalogPage() {
             };
             
                     setData(mappedData);
+                    
+                    // Always replace products on initial load/refresh/filter change
+                    // Only append when explicitly loading more via loadMoreProducts function
+                    // On refresh, catalogItems will be empty, so we always replace
                     setCatalogItems(products);
+                    setCurrentPage(apiCurrentPage);
+                    
+                    // Update hasMorePages based on pagination - always set this correctly
+                    // This ensures the "Load More" button shows/hides correctly on refresh
+                    setHasMorePages(apiCurrentPage < apiLastPage);
                     
                     // Refresh wishlist count (context will handle it)
                     refreshWishlist();
@@ -240,12 +253,143 @@ export default function CatalogPage() {
                     },
                 });
                 setCatalogItems([]);
+                setCurrentPage(1);
+                setHasMorePages(false);
             } finally {
             setLoading(false);
             }
         };
         fetchData();
     }, [searchParams]);
+
+    const wishlistLookup = useMemo(() => new Set(wishlistProductIds), [wishlistProductIds]);
+
+    const updateQueryParams = (newFilters: Record<string, any>) => {
+        const params = new URLSearchParams(searchParams.toString());
+        Object.entries(newFilters).forEach(([key, value]) => {
+            if (value === undefined || value === null) {
+                params.delete(key);
+            } else if (Array.isArray(value)) {
+                params.delete(key);
+                value.forEach(v => params.append(key, v));
+            } else {
+                params.set(key, value);
+            }
+        });
+        // Remove page parameter - infinite scroll handles pagination internally
+        params.delete('page');
+        setCurrentPage(1); // Reset to page 1 when filters change
+        setCatalogItems([]); // Clear products when filters change
+        router.push(`${window.location.pathname}?${params.toString()}`);
+    };
+
+    const loadMoreProducts = useCallback(async () => {
+        if (isLoadingMore || !hasMorePages) return;
+        
+        setIsLoadingMore(true);
+        try {
+            const nextPage = currentPage + 1;
+            
+            // Build filters from current search params
+            const filters: any = {
+                page: nextPage,
+            };
+            
+            // Extract array params
+            ['brand', 'metal', 'metal_purity', 'metal_tone', 'diamond', 'category', 'catalog'].forEach(key => {
+                const values = searchParams.getAll(key);
+                if (values.length > 0) {
+                    filters[key] = values.length === 1 ? values[0] : values;
+                }
+            });
+            
+            // Extract single params
+            ['search', 'sort', 'ready_made'].forEach(key => {
+                const value = searchParams.get(key);
+                if (value) filters[key] = value;
+            });
+            
+            // Extract price range
+            const priceMin = searchParams.get('price_min');
+            const priceMax = searchParams.get('price_max');
+            if (priceMin) filters.price_min = parseInt(priceMin);
+            if (priceMax) filters.price_max = parseInt(priceMax);
+            
+            // Call API for next page
+            const response = await frontendService.getCatalog(filters);
+            
+            if (response.data) {
+                const apiData = response.data;
+                
+                // Convert products - ensure BigInt IDs are numbers
+                const products = (apiData.products?.data || []).map((product: any) => ({
+                    ...product,
+                    id: Number(product.id),
+                    price_total: Number(product.price_total || 0),
+                    making_charge_amount: Number(product.making_charge_amount || 0),
+                    thumbnail: product.thumbnail ? getMediaUrlNullable(product.thumbnail) : null,
+                    media: (product.media || []).map((m: any) => ({
+                        ...m,
+                        url: getMediaUrlNullable(m.url) || m.url,
+                    })),
+                    variants: (product.variants || []).map((v: any) => ({
+                        ...v,
+                        id: Number(v.id),
+                    })),
+                }));
+                
+                // Append new products to existing list, filtering out duplicates
+                setCatalogItems(prev => {
+                    const existingIds = new Set(prev.map((p: Product) => p.id));
+                    const newProducts = products.filter((p: Product) => !existingIds.has(p.id));
+                    return [...prev, ...newProducts];
+                });
+                
+                // Update pagination state
+                const apiCurrentPage = apiData.products?.current_page || nextPage;
+                const apiLastPage = apiData.products?.last_page || 1;
+                setCurrentPage(apiCurrentPage);
+                setHasMorePages(apiCurrentPage < apiLastPage);
+                
+                // Don't update URL for infinite scroll - keep it on the same page without page parameter
+            }
+        } catch (error: any) {
+            console.error('Failed to load more products:', error);
+            toastError('Failed to load more products. Please try again.');
+        } finally {
+            setIsLoadingMore(false);
+        }
+    }, [isLoadingMore, hasMorePages, currentPage, searchParams, router]);
+
+    // Infinite scroll: Load more products when user scrolls to bottom
+    useEffect(() => {
+        const currentLoader = loaderRef.current;
+        if (!currentLoader) {
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const target = entries[0];
+                // When the loader element becomes visible, check if we should load more
+                if (target.isIntersecting && hasMorePages && !isLoadingMore && !loading) {
+                    loadMoreProducts();
+                }
+            },
+            {
+                root: null, // Use viewport as root
+                rootMargin: '200px', // Start loading 200px before reaching the bottom
+                threshold: 0.1, // Trigger when 10% of the element is visible
+            }
+        );
+
+        observer.observe(currentLoader);
+
+        // Cleanup observer on unmount
+        return () => {
+            observer.unobserve(currentLoader);
+        };
+    }, [hasMorePages, isLoadingMore, loading, loadMoreProducts]); // Re-run when these change
 
     const facets = data?.facets ?? {
         brands: [],
@@ -320,24 +464,6 @@ export default function CatalogPage() {
             prevPriceMaxRef.current = filters.price_max;
         }
     }, [filters.search, filters.price_min, filters.price_max]);
-
-    const wishlistLookup = useMemo(() => new Set(wishlistProductIds), [wishlistProductIds]);
-
-    const updateQueryParams = (newFilters: Record<string, any>) => {
-        const params = new URLSearchParams(searchParams.toString());
-        Object.entries(newFilters).forEach(([key, value]) => {
-            if (value === undefined || value === null) {
-                params.delete(key);
-            } else if (Array.isArray(value)) {
-                params.delete(key);
-                value.forEach(v => params.append(key, v));
-            } else {
-                params.set(key, value);
-            }
-        });
-        params.delete('page'); // Reset pagination on filter change
-        router.push(`${window.location.pathname}?${params.toString()}`);
-    };
 
     const applyFilter = (key: keyof CatalogProps['filters'], value?: string | string[]) => {
         updateQueryParams({ [key]: value });
@@ -1201,7 +1327,7 @@ export default function CatalogPage() {
                             </div>
                         ) : (
                             <div className={viewMode === 'grid' ? 'grid gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3' : 'flex flex-col gap-2 sm:gap-3'}>
-                                {catalogItems.map((product) => {
+                                {catalogItems.map((product, index) => {
                                     const productLink = route('frontend.catalog.show', { product: product.id });
                                     const thumbnailUrl = product.thumbnail || null;
                                     const imageUrl = thumbnailUrl ?? product.media?.[0]?.url ?? null;
@@ -1210,7 +1336,7 @@ export default function CatalogPage() {
 
                                     return (
                                         <ProductCard
-                                            key={product.id}
+                                            key={`product-${product.id}-${index}`}
                                             product={product}
                                             productLink={productLink}
                                             imageUrl={imageUrl}
@@ -1225,10 +1351,23 @@ export default function CatalogPage() {
                             </div>
                         )}
 
-                        <div ref={loaderRef} className="mt-6 flex justify-center sm:mt-10">
+                        {/* Infinite scroll trigger - element that triggers load when scrolled into view */}
+                        <div ref={loaderRef} className="mt-6 flex flex-col items-center justify-center gap-3 py-6 sm:mt-10 sm:py-8">
                             {isLoadingMore && (
-                                <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 sm:px-4 sm:py-2 sm:text-sm">
-                                    Loading more products…
+                                <>
+                                    {/* Spinner loader */}
+                                    <div className="flex items-center justify-center">
+                                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-elvee-blue border-t-transparent sm:h-10 sm:w-10"></div>
+                                    </div>
+                                    {/* Loading text */}
+                                    <span className="text-sm font-medium text-slate-600 sm:text-base">
+                                        Loading more products…
+                                    </span>
+                                </>
+                            )}
+                            {!hasMorePages && catalogItems.length > 0 && (
+                                <span className="text-sm text-slate-500 sm:text-base">
+                                    No more products to load
                                 </span>
                             )}
                         </div>
