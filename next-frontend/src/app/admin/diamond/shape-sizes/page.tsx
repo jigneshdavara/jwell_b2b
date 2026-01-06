@@ -45,6 +45,7 @@ export default function AdminDiamondShapeSizesIndex() {
     const [shapes, setShapes] = useState<DiamondShape[]>([]);
     const [filteredShapes, setFilteredShapes] = useState<DiamondShape[]>([]);
     const [types, setTypes] = useState<DiamondType[]>([]);
+    const [selectedTypeId, setSelectedTypeId] = useState<number | null>(null);
     const [selectedShapeId, setSelectedShapeId] = useState<number | null>(null);
     const [loadingShapes, setLoadingShapes] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
@@ -71,8 +72,23 @@ export default function AdminDiamondShapeSizesIndex() {
     useEffect(() => {
         loadTypes();
         loadShapes();
+    }, []);
+
+    useEffect(() => {
         loadSizes();
-    }, [currentPage, perPage, selectedShapeId]);
+    }, [currentPage, perPage, selectedTypeId, selectedShapeId]);
+
+    // Filter shapes when type changes
+    useEffect(() => {
+        if (selectedTypeId) {
+            loadShapesByType(selectedTypeId);
+        } else {
+            // If no type selected, show all active shapes
+            if (shapes.length > 0) {
+                setFilteredShapes(shapes.filter(s => s.is_active !== false));
+            }
+        }
+    }, [selectedTypeId, shapes]);
 
     useEffect(() => {
         const existingIds = new Set(sizes.data.map((size) => size.id));
@@ -153,7 +169,12 @@ export default function AdminDiamondShapeSizesIndex() {
     const loadSizes = async () => {
         setLoading(true);
         try {
-            const response = await adminService.getDiamondShapeSizes(currentPage, perPage, selectedShapeId || undefined);
+            const response = await adminService.getDiamondShapeSizes(
+                currentPage, 
+                perPage, 
+                selectedShapeId || undefined,
+                selectedTypeId || undefined
+            );
             const items = response.data.items || response.data.data || [];
             const responseMeta = response.data.meta || { current_page: 1, last_page: 1, total: 0, per_page: perPage };
 
@@ -349,6 +370,14 @@ export default function AdminDiamondShapeSizesIndex() {
         setCurrentPage(1);
     };
 
+    const handleTypeFilter = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        const typeId = event.target.value ? Number(event.target.value) : null;
+        setSelectedTypeId(typeId);
+        // Reset shape selection when type changes
+        setSelectedShapeId(null);
+        setCurrentPage(1);
+    };
+
     const handleShapeFilter = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const shapeId = event.target.value ? Number(event.target.value) : null;
         setSelectedShapeId(shapeId);
@@ -378,22 +407,37 @@ export default function AdminDiamondShapeSizesIndex() {
 
                 <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 px-3 py-3 sm:px-5 sm:py-4 text-xs sm:text-sm">
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                            <div className="font-semibold text-slate-700">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                            <div className="font-semibold text-slate-700 whitespace-nowrap">
                                 Sizes ({sizes.meta.total})
                             </div>
-                            <select
-                                value={selectedShapeId || ''}
-                                onChange={handleShapeFilter}
-                                className="rounded-full border border-slate-200 px-2.5 py-1 text-xs focus:ring-0 sm:px-3"
-                            >
-                                <option value="">All shapes</option>
-                                {shapes.map((shape) => (
-                                    <option key={shape.id} value={shape.id}>
-                                        {shape.name}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={selectedTypeId || ''}
+                                    onChange={handleTypeFilter}
+                                    className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs focus:ring-2 focus:ring-slate-400 focus:border-slate-400 sm:px-3 min-w-[120px]"
+                                >
+                                    <option value="">All types</option>
+                                    {types.map((type) => (
+                                        <option key={type.id} value={type.id}>
+                                            {type.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <select
+                                    value={selectedShapeId || ''}
+                                    onChange={handleShapeFilter}
+                                    disabled={!selectedTypeId}
+                                    className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs focus:ring-2 focus:ring-slate-400 focus:border-slate-400 sm:px-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50 min-w-[120px]"
+                                >
+                                    <option value="">All shapes</option>
+                                    {filteredShapes.map((shape) => (
+                                        <option key={shape.id} value={shape.id}>
+                                            {shape.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500">
                             <span>{selectedSizes.length} selected</span>

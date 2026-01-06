@@ -306,8 +306,11 @@ export const adminService = {
   },
 
   // Diamond Shape Sizes
-  async getDiamondShapeSizes(page = 1, perPage = 20, shapeId?: number) {
+  async getDiamondShapeSizes(page = 1, perPage = 20, shapeId?: number, typeId?: number) {
     const params: any = { page, per_page: perPage };
+    if (typeId) {
+      params.type_id = typeId;
+    }
     if (shapeId) {
       params.shape_id = shapeId;
     }

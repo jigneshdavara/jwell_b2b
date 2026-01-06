@@ -31,8 +31,14 @@ export class DiamondShapeSizesController {
         @Query('page') page: number = 1,
         @Query('per_page') perPage: number = 10,
         @Query('shape_id') shapeId?: number,
+        @Query('type_id') typeId?: number,
     ) {
-        return this.diamondShapeSizesService.findAll(page, perPage, shapeId);
+        return this.diamondShapeSizesService.findAll(
+            page,
+            perPage,
+            shapeId,
+            typeId,
+        );
     }
 
     @Get(':id')
