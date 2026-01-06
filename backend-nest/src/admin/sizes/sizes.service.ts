@@ -107,17 +107,36 @@ export class SizesService {
             }
         }
 
-        // Check if trying to pause/deactivate size that is assigned to products
+        // Check if trying to pause/deactivate size that is assigned to categories or products
         if (dto.is_active === false && existing.is_active === true) {
-            const productsCount = await this.prisma.product_variants.count({
-                where: {
-                    size_id: sizeId,
-                },
-            });
+            const [categoriesCount, productsCount] = await Promise.all([
+                this.prisma.category_sizes.count({
+                    where: {
+                        size_id: sizeId,
+                    },
+                }),
+                this.prisma.product_variants.count({
+                    where: {
+                        size_id: sizeId,
+                    },
+                }),
+            ]);
+
+            if (categoriesCount > 0 && productsCount > 0) {
+                throw new BadRequestException(
+                    `Cannot pause this size. It is currently assigned to ${categoriesCount} categor(ies) and ${productsCount} product variant(s). Please remove the size from all categories and products first, then pause the size.`,
+                );
+            }
+
+            if (categoriesCount > 0) {
+                throw new BadRequestException(
+                    `Cannot pause this size. It is currently assigned to ${categoriesCount} categor(ies). Please remove the size from all categories first, then pause the size.`,
+                );
+            }
 
             if (productsCount > 0) {
                 throw new BadRequestException(
-                    `Cannot pause this size. It is currently assigned to ${productsCount} product(s). Please remove the size from all products first, then pause the size.`,
+                    `Cannot pause this size. It is currently assigned to ${productsCount} product variant(s). Please remove the size from all products first, then pause the size.`,
                 );
             }
         }
@@ -145,16 +164,35 @@ export class SizesService {
         });
         if (!size) throw new NotFoundException('Size not found');
 
-        // Check if size is assigned to products
-        const productsCount = await this.prisma.product_variants.count({
-            where: {
-                size_id: sizeId,
-            },
-        });
+        // Check if size is assigned to categories or products
+        const [categoriesCount, productsCount] = await Promise.all([
+            this.prisma.category_sizes.count({
+                where: {
+                    size_id: sizeId,
+                },
+            }),
+            this.prisma.product_variants.count({
+                where: {
+                    size_id: sizeId,
+                },
+            }),
+        ]);
+
+        if (categoriesCount > 0 && productsCount > 0) {
+            throw new BadRequestException(
+                `Cannot delete this size. It is currently assigned to ${categoriesCount} categor(ies) and ${productsCount} product variant(s). Please remove the size from all categories and products first, then delete the size.`,
+            );
+        }
+
+        if (categoriesCount > 0) {
+            throw new BadRequestException(
+                `Cannot delete this size. It is currently assigned to ${categoriesCount} categor(ies). Please remove the size from all categories first, then delete the size.`,
+            );
+        }
 
         if (productsCount > 0) {
             throw new BadRequestException(
-                `Cannot delete this size. It is currently assigned to ${productsCount} product(s). Please remove the size from all products first, then delete the size.`,
+                `Cannot delete this size. It is currently assigned to ${productsCount} product variant(s). Please remove the size from all products first, then delete the size.`,
             );
         }
 
@@ -170,34 +208,88 @@ export class SizesService {
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
 
-        // Check if any of the sizes are assigned to products
-        const sizesWithProducts = await this.prisma.product_variants.findMany({
-            where: {
-                size_id: { in: bigIntIds },
-            },
-            select: {
-                size_id: true,
-            },
-            distinct: ['size_id'],
-        });
-
-        if (sizesWithProducts.length > 0) {
-            const sizeIds = sizesWithProducts
-                .map((p) => p.size_id)
-                .filter((id): id is bigint => id !== null);
-            const sizeNames = await this.prisma.sizes.findMany({
+        // Check if any of the sizes are assigned to categories or products
+        const [sizesWithCategories, sizesWithProducts] = await Promise.all([
+            this.prisma.category_sizes.findMany({
                 where: {
-                    id: {
-                        in: sizeIds,
-                    },
+                    size_id: { in: bigIntIds },
                 },
                 select: {
-                    name: true,
+                    size_id: true,
                 },
+                distinct: ['size_id'],
+            }),
+            this.prisma.product_variants.findMany({
+                where: {
+                    size_id: { in: bigIntIds },
+                },
+                select: {
+                    size_id: true,
+                },
+                distinct: ['size_id'],
+            }),
+        ]);
+
+        const categorySizeIds = sizesWithCategories
+            .map((c) => c.size_id)
+            .filter((id): id is bigint => id !== null);
+        const productSizeIds = sizesWithProducts
+            .map((p) => p.size_id)
+            .filter((id): id is bigint => id !== null);
+
+        const allConflictingSizeIds = [
+            ...new Set([...categorySizeIds, ...productSizeIds]),
+        ];
+
+        if (allConflictingSizeIds.length > 0) {
+            // Get size details with counts
+            const sizeDetails = await Promise.all(
+                allConflictingSizeIds.map(async (sizeId) => {
+                    const size = await this.prisma.sizes.findUnique({
+                        where: { id: sizeId },
+                        select: { name: true },
+                    });
+
+                    const categoriesCount = categorySizeIds.includes(sizeId)
+                        ? await this.prisma.category_sizes.count({
+                              where: { size_id: sizeId },
+                          })
+                        : 0;
+
+                    const productsCount = productSizeIds.includes(sizeId)
+                        ? await this.prisma.product_variants.count({
+                              where: { size_id: sizeId },
+                          })
+                        : 0;
+
+                    return {
+                        id: sizeId,
+                        name: size?.name || 'Unknown',
+                        categoriesCount,
+                        productsCount,
+                    };
+                }),
+            );
+
+            const conflicts: string[] = [];
+            sizeDetails.forEach((detail) => {
+                if (detail.categoriesCount > 0 && detail.productsCount > 0) {
+                    conflicts.push(
+                        `${detail.name} (assigned to ${detail.categoriesCount} categor(ies) and ${detail.productsCount} product variant(s))`,
+                    );
+                } else if (detail.categoriesCount > 0) {
+                    conflicts.push(
+                        `${detail.name} (assigned to ${detail.categoriesCount} categor(ies))`,
+                    );
+                } else if (detail.productsCount > 0) {
+                    conflicts.push(
+                        `${detail.name} (assigned to ${detail.productsCount} product variant(s))`,
+                    );
+                }
             });
-            const sizeNamesList = sizeNames.map((s) => s.name).join(', ');
+
             throw new BadRequestException(
-                `Cannot delete size(s): ${sizeNamesList}. They are currently assigned to products. Please remove the size(s) from all products first, then delete the size(s).`,
+                `Cannot delete size(s): ${conflicts.join(', ')}. Please remove the size(s) from all categories and products first, then delete the size(s).`,
             );
         }
 
