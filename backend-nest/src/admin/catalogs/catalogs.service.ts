@@ -165,18 +165,41 @@ export class CatalogsService {
     }
 
     async remove(id: number) {
+        const catalogId = BigInt(id);
         await this.findOne(id);
-        await this.prisma.catalogs.delete({
-            where: { id: BigInt(id) },
+
+        // Explicitly remove catalog_products relationships before deleting catalog
+        await this.prisma.$transaction(async (tx) => {
+            // Delete all catalog_products relationships for this catalog
+            await tx.catalog_products.deleteMany({
+                where: { catalog_id: catalogId },
+            });
+
+            // Delete the catalog
+            await tx.catalogs.delete({
+                where: { id: catalogId },
+            });
         });
+
         return { success: true, message: 'Catalog removed successfully' };
     }
 
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
-        await this.prisma.catalogs.deleteMany({
-            where: { id: { in: bigIntIds } },
+
+        // Explicitly remove catalog_products relationships before deleting catalogs
+        await this.prisma.$transaction(async (tx) => {
+            // Delete all catalog_products relationships for these catalogs
+            await tx.catalog_products.deleteMany({
+                where: { catalog_id: { in: bigIntIds } },
+            });
+
+            // Delete the catalogs
+            await tx.catalogs.deleteMany({
+                where: { id: { in: bigIntIds } },
+            });
         });
+
         return { success: true, message: 'Catalogs removed successfully' };
     }
 
