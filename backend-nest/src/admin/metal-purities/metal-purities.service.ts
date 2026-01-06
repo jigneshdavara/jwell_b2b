@@ -17,10 +17,7 @@ export class MetalPuritiesService {
     async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const whereClause = {
-            // Show all purities (active and inactive) but only from active metals
-            metals: {
-                is_active: true,
-            },
+            // Show all purities (active and inactive) from all metals (active and inactive)
         };
         const [items, total] = await Promise.all([
             this.prisma.metal_purities.findMany({
@@ -209,7 +206,7 @@ export class MetalPuritiesService {
 
             if (productsCount > 0) {
                 throw new BadRequestException(
-                    `Cannot pause this metal purity. It is currently assigned to ${productsCount} product(s). Please remove the metal purity from all products first, then pause the metal purity.`,
+                    `Cannot pause this metal purity. It is currently assigned to ${productsCount} product variant(s). Please remove the metal purity from all product variants first, then pause the metal purity.`,
                 );
             }
         }
@@ -259,7 +256,7 @@ export class MetalPuritiesService {
 
         if (productsCount > 0) {
             throw new BadRequestException(
-                `Cannot delete this metal purity. It is currently assigned to ${productsCount} product(s). Please remove the metal purity from all products first, then delete the metal purity.`,
+                `Cannot delete this metal purity. It is currently assigned to ${productsCount} product variant(s). Please remove the metal purity from all product variants first, then delete the metal purity.`,
             );
         }
 
@@ -291,19 +288,36 @@ export class MetalPuritiesService {
             const purityIds = puritiesWithProducts
                 .map((p) => p.metal_purity_id)
                 .filter((id): id is bigint => id !== null);
-            const purityNames = await this.prisma.metal_purities.findMany({
-                where: {
-                    id: {
-                        in: purityIds,
-                    },
-                },
-                select: {
-                    name: true,
-                },
-            });
-            const purityNamesList = purityNames.map((p) => p.name).join(', ');
+
+            // Get detailed information for each conflicting purity
+            const purityDetails = await Promise.all(
+                purityIds.map(async (purityId) => {
+                    const purityData =
+                        await this.prisma.metal_purities.findUnique({
+                            where: { id: purityId },
+                            select: { name: true },
+                        });
+
+                    const productsCount =
+                        await this.prisma.product_variant_metals.count({
+                            where: { metal_purity_id: purityId },
+                        });
+
+                    return {
+                        id: purityId,
+                        name: purityData?.name || 'Unknown',
+                        productsCount,
+                    };
+                }),
+            );
+
+            const conflicts = purityDetails.map(
+                (detail) =>
+                    `${detail.name} (assigned to ${detail.productsCount} product variant${detail.productsCount === 1 ? '' : 's'})`,
+            );
+
             throw new BadRequestException(
-                `Cannot delete metal purity(ies): ${purityNamesList}. They are currently assigned to products. Please remove the metal purity(ies) from all products first, then delete the metal purity(ies).`,
+                `Cannot delete metal purity(ies): ${conflicts.join(', ')}. Please remove the metal purity(ies) from all product variants first, then delete the metal purity(ies).`,
             );
         }
 

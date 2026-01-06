@@ -14,10 +14,7 @@ export class MetalTonesService {
     async findAll(page: number, perPage: number) {
         const skip = (page - 1) * perPage;
         const whereClause = {
-            // Show all tones (active and inactive) but only from active metals
-            metals: {
-                is_active: true,
-            },
+            // Show all tones (active and inactive) from all metals (active and inactive)
         };
         const [items, total] = await Promise.all([
             this.prisma.metal_tones.findMany({
@@ -206,7 +203,7 @@ export class MetalTonesService {
 
             if (productsCount > 0) {
                 throw new BadRequestException(
-                    `Cannot pause this metal tone. It is currently assigned to ${productsCount} product(s). Please remove the metal tone from all products first, then pause the metal tone.`,
+                    `Cannot pause this metal tone. It is currently assigned to ${productsCount} product variant(s). Please remove the metal tone from all product variants first, then pause the metal tone.`,
                 );
             }
         }
@@ -249,7 +246,7 @@ export class MetalTonesService {
 
         if (productsCount > 0) {
             throw new BadRequestException(
-                `Cannot delete this metal tone. It is currently assigned to ${productsCount} product(s). Please remove the metal tone from all products first, then delete the metal tone.`,
+                `Cannot delete this metal tone. It is currently assigned to ${productsCount} product variant(s). Please remove the metal tone from all product variants first, then delete the metal tone.`,
             );
         }
 
@@ -281,19 +278,35 @@ export class MetalTonesService {
             const toneIds = tonesWithProducts
                 .map((p) => p.metal_tone_id)
                 .filter((id): id is bigint => id !== null);
-            const toneNames = await this.prisma.metal_tones.findMany({
-                where: {
-                    id: {
-                        in: toneIds,
-                    },
-                },
-                select: {
-                    name: true,
-                },
-            });
-            const toneNamesList = toneNames.map((t) => t.name).join(', ');
+
+            // Get detailed information for each conflicting tone
+            const toneDetails = await Promise.all(
+                toneIds.map(async (toneId) => {
+                    const toneData = await this.prisma.metal_tones.findUnique({
+                        where: { id: toneId },
+                        select: { name: true },
+                    });
+
+                    const productsCount =
+                        await this.prisma.product_variant_metals.count({
+                            where: { metal_tone_id: toneId },
+                        });
+
+                    return {
+                        id: toneId,
+                        name: toneData?.name || 'Unknown',
+                        productsCount,
+                    };
+                }),
+            );
+
+            const conflicts = toneDetails.map(
+                (detail) =>
+                    `${detail.name} (assigned to ${detail.productsCount} product variant${detail.productsCount === 1 ? '' : 's'})`,
+            );
+
             throw new BadRequestException(
-                `Cannot delete metal tone(s): ${toneNamesList}. They are currently assigned to products. Please remove the metal tone(s) from all products first, then delete the metal tone(s).`,
+                `Cannot delete metal tone(s): ${conflicts.join(', ')}. Please remove the metal tone(s) from all product variants first, then delete the metal tone(s).`,
             );
         }
 

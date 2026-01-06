@@ -101,18 +101,47 @@ export class MetalsService {
             }
         }
 
-        // Check if trying to pause/deactivate metal that is assigned to products
+        // Check if trying to pause/deactivate metal that is assigned to purities, tones, or products
         if (dto.is_active === false && existing.is_active === true) {
-            const productsCount =
-                await this.prisma.product_variant_metals.count({
-                    where: {
-                        metal_id: metalId,
-                    },
-                });
+            const [puritiesCount, tonesCount, productsCount] =
+                await Promise.all([
+                    this.prisma.metal_purities.count({
+                        where: {
+                            metal_id: metalId,
+                        },
+                    }),
+                    this.prisma.metal_tones.count({
+                        where: {
+                            metal_id: metalId,
+                        },
+                    }),
+                    this.prisma.product_variant_metals.count({
+                        where: {
+                            metal_id: metalId,
+                        },
+                    }),
+                ]);
 
+            const conflicts: string[] = [];
+            if (puritiesCount > 0) {
+                conflicts.push(
+                    `${puritiesCount} metal purit${puritiesCount === 1 ? 'y' : 'ies'}`,
+                );
+            }
+            if (tonesCount > 0) {
+                conflicts.push(
+                    `${tonesCount} metal tone${tonesCount === 1 ? '' : 's'}`,
+                );
+            }
             if (productsCount > 0) {
+                conflicts.push(
+                    `${productsCount} product variant${productsCount === 1 ? '' : 's'}`,
+                );
+            }
+
+            if (conflicts.length > 0) {
                 throw new BadRequestException(
-                    `Cannot pause this metal. It is currently assigned to ${productsCount} product(s). Please remove the metal from all products first, then pause the metal.`,
+                    `Cannot pause this metal. It is currently assigned to: ${conflicts.join(', ')}. Please remove the metal from all related entities first, then pause the metal.`,
                 );
             }
         }
@@ -140,16 +169,45 @@ export class MetalsService {
         });
         if (!metal) throw new NotFoundException('Metal not found');
 
-        // Check if metal is assigned to products
-        const productsCount = await this.prisma.product_variant_metals.count({
-            where: {
-                metal_id: metalId,
-            },
-        });
+        // Check if metal is assigned to purities, tones, or products
+        const [puritiesCount, tonesCount, productsCount] = await Promise.all([
+            this.prisma.metal_purities.count({
+                where: {
+                    metal_id: metalId,
+                },
+            }),
+            this.prisma.metal_tones.count({
+                where: {
+                    metal_id: metalId,
+                },
+            }),
+            this.prisma.product_variant_metals.count({
+                where: {
+                    metal_id: metalId,
+                },
+            }),
+        ]);
 
+        const conflicts: string[] = [];
+        if (puritiesCount > 0) {
+            conflicts.push(
+                `${puritiesCount} metal purit${puritiesCount === 1 ? 'y' : 'ies'}`,
+            );
+        }
+        if (tonesCount > 0) {
+            conflicts.push(
+                `${tonesCount} metal tone${tonesCount === 1 ? '' : 's'}`,
+            );
+        }
         if (productsCount > 0) {
+            conflicts.push(
+                `${productsCount} product variant${productsCount === 1 ? '' : 's'}`,
+            );
+        }
+
+        if (conflicts.length > 0) {
             throw new BadRequestException(
-                `Cannot delete this metal. It is currently assigned to ${productsCount} product(s). Please remove the metal from all products first, then delete the metal.`,
+                `Cannot delete this metal. It is currently assigned to: ${conflicts.join(', ')}. Please remove the metal from all related entities first, then delete the metal.`,
             );
         }
 
@@ -165,32 +223,121 @@ export class MetalsService {
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
 
-        // Check if any of the metals are assigned to products
-        const metalsWithProducts =
-            await this.prisma.product_variant_metals.findMany({
-                where: {
-                    metal_id: { in: bigIntIds },
-                },
-                select: {
-                    metal_id: true,
-                },
-                distinct: ['metal_id'],
+        // Check if any of the metals are assigned to purities, tones, or products
+        const [metalsWithPurities, metalsWithTones, metalsWithProducts] =
+            await Promise.all([
+                this.prisma.metal_purities.findMany({
+                    where: {
+                        metal_id: { in: bigIntIds },
+                    },
+                    select: {
+                        metal_id: true,
+                    },
+                    distinct: ['metal_id'],
+                }),
+                this.prisma.metal_tones.findMany({
+                    where: {
+                        metal_id: { in: bigIntIds },
+                    },
+                    select: {
+                        metal_id: true,
+                    },
+                    distinct: ['metal_id'],
+                }),
+                this.prisma.product_variant_metals.findMany({
+                    where: {
+                        metal_id: { in: bigIntIds },
+                    },
+                    select: {
+                        metal_id: true,
+                    },
+                    distinct: ['metal_id'],
+                }),
+            ]);
+
+        const purityMetalIds = metalsWithPurities
+            .map((p) => p.metal_id)
+            .filter((id): id is bigint => id !== null);
+        const toneMetalIds = metalsWithTones
+            .map((t) => t.metal_id)
+            .filter((id): id is bigint => id !== null);
+        const productMetalIds = metalsWithProducts
+            .map((p) => p.metal_id)
+            .filter((id): id is bigint => id !== null);
+
+        const allConflictingMetalIds = [
+            ...new Set([
+                ...purityMetalIds,
+                ...toneMetalIds,
+                ...productMetalIds,
+            ]),
+        ];
+
+        if (allConflictingMetalIds.length > 0) {
+            // Get metal details with counts
+            const metalDetails = await Promise.all(
+                allConflictingMetalIds.map(async (metalId) => {
+                    const metal = await this.prisma.metals.findUnique({
+                        where: { id: metalId },
+                        select: { name: true },
+                    });
+
+                    const puritiesCount = purityMetalIds.includes(metalId)
+                        ? await this.prisma.metal_purities.count({
+                              where: { metal_id: metalId },
+                          })
+                        : 0;
+
+                    const tonesCount = toneMetalIds.includes(metalId)
+                        ? await this.prisma.metal_tones.count({
+                              where: { metal_id: metalId },
+                          })
+                        : 0;
+
+                    const productsCount = productMetalIds.includes(metalId)
+                        ? await this.prisma.product_variant_metals.count({
+                              where: { metal_id: metalId },
+                          })
+                        : 0;
+
+                    return {
+                        id: metalId,
+                        name: metal?.name || 'Unknown',
+                        puritiesCount,
+                        tonesCount,
+                        productsCount,
+                    };
+                }),
+            );
+
+            const conflicts: string[] = [];
+            metalDetails.forEach((detail) => {
+                const detailConflicts: string[] = [];
+                if (detail.puritiesCount > 0) {
+                    detailConflicts.push(
+                        `${detail.puritiesCount} purit${detail.puritiesCount === 1 ? 'y' : 'ies'}`,
+                    );
+                }
+                if (detail.tonesCount > 0) {
+                    detailConflicts.push(
+                        `${detail.tonesCount} tone${detail.tonesCount === 1 ? '' : 's'}`,
+                    );
+                }
+                if (detail.productsCount > 0) {
+                    detailConflicts.push(
+                        `${detail.productsCount} product variant${detail.productsCount === 1 ? '' : 's'}`,
+                    );
+                }
+
+                if (detailConflicts.length > 0) {
+                    conflicts.push(
+                        `${detail.name} (assigned to ${detailConflicts.join(', ')})`,
+                    );
+                }
             });
 
-        if (metalsWithProducts.length > 0) {
-            const metalNames = await this.prisma.metals.findMany({
-                where: {
-                    id: {
-                        in: metalsWithProducts.map((p) => p.metal_id),
-                    },
-                },
-                select: {
-                    name: true,
-                },
-            });
-            const metalNamesList = metalNames.map((m) => m.name).join(', ');
             throw new BadRequestException(
-                `Cannot delete metal(s): ${metalNamesList}. They are currently assigned to products. Please remove the metal(s) from all products first, then delete the metal(s).`,
+                `Cannot delete metal(s): ${conflicts.join(', ')}. Please remove the metal(s) from all related entities first, then delete the metal(s).`,
             );
         }
 
