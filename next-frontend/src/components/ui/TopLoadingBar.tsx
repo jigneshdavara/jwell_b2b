@@ -95,7 +95,7 @@ export default function TopLoadingBar() {
     if (!loading) return null;
 
     return (
-        <div className="fixed top-0 left-0 right-0 z-[9999] h-1 bg-transparent pointer-events-none">
+        <div className="fixed top-0 left-0 right-0 z-[10000] h-1 bg-transparent pointer-events-none">
             <div
                 className="h-full bg-gradient-to-r from-elvee-blue via-feather-gold to-elvee-blue transition-all duration-200 ease-out shadow-lg shadow-elvee-blue/50"
                 style={{
