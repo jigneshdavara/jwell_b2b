@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useCallback } from 'react';
 import { Head } from '@/components/Head';
 import Link from 'next/link';
 import { adminService } from '@/services/adminService';
 import { useRouter } from 'next/navigation';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
-import { toastError, toastWarning } from '@/utils/toast';
+import { toastError, toastWarning, toastSuccess } from '@/utils/toast';
 import { getMediaUrl } from '@/utils/mediaUrl';
 
 type RelatedQuotation = {
@@ -250,9 +250,81 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
     const [addItemVariantId, setAddItemVariantId] = useState<number | ''>('');
     const [addItemProcessing, setAddItemProcessing] = useState(false);
 
+    const loadQuotation = useCallback(async (showLoading: boolean = true) => {
+        try {
+            if (showLoading) {
+                setLoading(true);
+            }
+            const response = await adminService.getQuotation(quotationGroupId);
+            if (response.data) {
+                setQuotation((prevQuotation) => {
+                    // Check if any quotation in the group was pending and is now confirmed
+                    const prevHasPending = 
+                        prevQuotation?.status === 'pending_customer_confirmation' ||
+                        (prevQuotation?.related_quotations || []).some(
+                            (q: RelatedQuotation) => q.status === 'pending_customer_confirmation'
+                        );
+                    const nowHasPending = 
+                        response.data.status === 'pending_customer_confirmation' ||
+                        (response.data.related_quotations || []).some(
+                            (q: RelatedQuotation) => q.status === 'pending_customer_confirmation'
+                        );
+                    const nowAllConfirmed = 
+                        response.data.status === 'customer_confirmed' &&
+                        (response.data.related_quotations || []).every(
+                            (q: RelatedQuotation) => q.status === 'customer_confirmed' || q.status === 'pending'
+                        );
+                    
+                    // Show success toast when customer confirms (was pending, now all confirmed)
+                    if (prevHasPending && !nowHasPending && nowAllConfirmed) {
+                        toastSuccess('Customer has confirmed the quotation!');
+                    }
+                    return response.data;
+                });
+                // Update hasChanges based on status - check if ANY quotation is pending
+                const hasPendingConfirmation = 
+                    response.data.status === 'pending_customer_confirmation' ||
+                    (response.data.related_quotations || []).some(
+                        (q: RelatedQuotation) => q.status === 'pending_customer_confirmation'
+                    );
+                setHasChanges(hasPendingConfirmation);
+            }
+        } catch (error: any) {
+            console.error('Failed to load quotation:', error);
+        } finally {
+            if (showLoading) {
+                setLoading(false);
+            }
+        }
+    }, [quotationGroupId]);
+
     useEffect(() => {
         loadQuotation();
-    }, [resolvedParams.id]);
+    }, [resolvedParams.id, loadQuotation]);
+
+    // Poll for status updates when quotation is pending customer confirmation
+    useEffect(() => {
+        if (!quotation) return;
+
+        // Check if ANY quotation in the group (main or related) has pending_customer_confirmation status
+        const hasPendingConfirmation = 
+            quotation.status === 'pending_customer_confirmation' ||
+            (quotation.related_quotations || []).some(
+                (q: RelatedQuotation) => q.status === 'pending_customer_confirmation'
+            );
+        
+        if (!hasPendingConfirmation) return;
+
+        // Poll every 5 seconds to check for customer confirmation
+        // Use silent refresh (no loading spinner) to avoid UI flicker
+        const intervalId = setInterval(() => {
+            loadQuotation(false); // Silent refresh
+        }, 5000); // Check every 5 seconds
+
+        return () => {
+            clearInterval(intervalId);
+        };
+    }, [quotation?.status, quotation?.related_quotations, loadQuotation]);
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -267,22 +339,6 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         };
         fetchSettings();
     }, []);
-
-    const loadQuotation = async () => {
-        try {
-            setLoading(true);
-            const response = await adminService.getQuotation(quotationGroupId);
-            if (response.data) {
-                setQuotation(response.data);
-                // Update hasChanges based on status (like Laravel)
-                setHasChanges(response.data.status === 'pending_customer_confirmation');
-            }
-        } catch (error: any) {
-            console.error('Failed to load quotation:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     // Combine main quotation with related quotations for display
     const allQuotations = React.useMemo(() => {
@@ -299,6 +355,34 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
             price_breakdown: quotation.price_breakdown,
         };
         return [main, ...(quotation.related_quotations || [])];
+    }, [quotation]);
+
+    // Compute group status - considers all quotations in the group
+    const groupStatus = React.useMemo(() => {
+        if (!quotation) return '';
+        
+        const allStatuses = [
+            quotation.status,
+            ...(quotation.related_quotations || []).map((q: RelatedQuotation) => q.status)
+        ];
+        
+        // If any quotation is pending customer confirmation, show that
+        if (allStatuses.some(s => s === 'pending_customer_confirmation')) {
+            return 'pending_customer_confirmation';
+        }
+        
+        // If all are customer_confirmed, show that
+        if (allStatuses.every(s => s === 'customer_confirmed')) {
+            return 'customer_confirmed';
+        }
+        
+        // If all are approved, show that
+        if (allStatuses.every(s => s === 'approved')) {
+            return 'approved';
+        }
+        
+        // Otherwise, return the main quotation status
+        return quotation.status;
     }, [quotation]);
 
     const handleRemoveItem = async () => {
@@ -455,14 +539,21 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         }
 
         return addItemSelectedProduct.variants.map((variant) => {
-            const metals = (variant.metals || []).map((metal) => ({
-                metalId: metal.metal_id,
-                metalPurityId: metal.metal_purity_id,
-                metalToneId: metal.metal_tone_id,
-                metalName: metal.metal?.name || 'Metal',
-                purityName: metal.metal_purity?.name || 'Purity',
-                toneName: metal.metal_tone?.name || 'Tone',
-            }));
+            const metals = (variant.metals || []).map((metal) => {
+                // Get metal name - prefer from relationship, fallback to 'Metal'
+                const metalName = metal.metal?.name || 'Metal';
+                const purityName = metal.metal_purity?.name || 'Purity';
+                const toneName = metal.metal_tone?.name || 'Tone';
+                
+                return {
+                    metalId: metal.metal_id,
+                    metalPurityId: metal.metal_purity_id,
+                    metalToneId: metal.metal_tone_id,
+                    metalName,
+                    purityName,
+                    toneName,
+                };
+            });
 
             return {
                 variant_id: variant.id,
@@ -540,12 +631,26 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
         addItemConfigurationOptions.forEach((c) =>
             c.metals.forEach((m) => {
                 if (!map.has(m.metalId)) {
-                    map.set(m.metalId, m.metalName);
+                    // Use the metal name from configuration options
+                    // If it's still 'Metal', try to get it from the selected product data as fallback
+                    let label = m.metalName;
+                    if (label === 'Metal' && addItemSelectedProduct) {
+                        // Fallback: Try to find the metal name from variant data
+                        for (const variant of addItemSelectedProduct.variants) {
+                            const metalData = variant.metals?.find(metal => metal.metal_id === m.metalId);
+                            if (metalData?.metal?.name) {
+                                label = metalData.metal.name;
+                                break;
+                            }
+                        }
+                    }
+                    map.set(m.metalId, label);
                 }
             })
         );
-        return [...map.entries()];
-    }, [addItemConfigurationOptions]);
+        // Sort alphabetically for better UX
+        return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+    }, [addItemConfigurationOptions, addItemSelectedProduct]);
 
     const addItemAvailablePurities = React.useMemo(() => {
         if (!addItemMetalId) return [];
@@ -1122,10 +1227,10 @@ export default function AdminQuotationShow({ params }: { params: Promise<{ id: s
                                 <div className="mt-2 sm:mt-3 flex sm:justify-end gap-2">
                                     <span
                                         className={`inline-flex items-center rounded-full px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold ${
-                                            statusBadge[quotation.status] ?? 'bg-slate-200 text-slate-700'
+                                            statusBadge[groupStatus] ?? 'bg-slate-200 text-slate-700'
                                         }`}
                                     >
-                                        {quotation.status.replace(/_/g, ' ')}
+                                        {groupStatus.replace(/_/g, ' ')}
                                     </span>
                                 </div>
                             </div>

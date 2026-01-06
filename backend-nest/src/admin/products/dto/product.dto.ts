@@ -731,6 +731,9 @@ export class ProductDetailResponseDto {
             metal_tone_id: number | null;
             metal_weight: number;
             metadata: Record<string, unknown>;
+            metal: { id: number; name: string } | null;
+            metal_purity: { id: number; name: string } | null;
+            metal_tone: { id: number; name: string } | null;
         }>;
         diamonds: Array<{
             id: number;
