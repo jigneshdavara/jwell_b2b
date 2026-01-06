@@ -1063,6 +1063,18 @@ export class ProductsService {
                         : null,
                     metal_weight: Number(metal.metal_weight),
                     metadata: (metal.metadata as Record<string, unknown>) || {},
+                    metal: metal.metals ? {
+                        id: Number(metal.metals.id),
+                        name: metal.metals.name,
+                    } : null,
+                    metal_purity: metal.metal_purities ? {
+                        id: Number(metal.metal_purities.id),
+                        name: metal.metal_purities.name,
+                    } : null,
+                    metal_tone: metal.metal_tones ? {
+                        id: Number(metal.metal_tones.id),
+                        name: metal.metal_tones.name,
+                    } : null,
                 })),
                 diamonds: variant.product_variant_diamonds.map((diamond) => ({
                     id: Number(diamond.id),

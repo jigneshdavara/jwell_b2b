@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, FormEvent, useCallback } from 'react';
+import { useEffect, useState, FormEvent, useCallback, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import Modal from '@/components/ui/Modal';
@@ -254,6 +254,33 @@ export default function QuotationDetailPage() {
         }
     }, [params.id, fetchQuotation]);
 
+    // Poll for status updates when quotation is pending customer confirmation or when admin makes changes
+    useEffect(() => {
+        if (!quotation) return;
+
+        // Check if ANY quotation in the group (main or related) has pending_customer_confirmation status
+        const hasPendingConfirmation = 
+            quotation.status === 'pending_customer_confirmation' ||
+            (quotation.related_quotations || []).some(
+                (q: RelatedQuotation) => q.status === 'pending_customer_confirmation'
+            );
+        
+        // Also poll if status is pending (admin might be reviewing)
+        const shouldPoll = hasPendingConfirmation || quotation.status === 'pending';
+        
+        if (!shouldPoll) return;
+
+        // Poll every 5 seconds to check for status updates
+        // Use silent refresh (no loading spinner) to avoid UI flicker
+        const intervalId = setInterval(() => {
+            fetchQuotation();
+        }, 5000); // Check every 5 seconds
+
+        return () => {
+            clearInterval(intervalId);
+        };
+    }, [quotation?.status, quotation?.related_quotations, fetchQuotation]);
+
     useEffect(() => {
         const fetchSettings = async () => {
             try {
@@ -322,6 +349,43 @@ export default function QuotationDetailPage() {
         }
     };
 
+    // Compute group status - considers all quotations in the group
+    // Must be called before any early returns to follow Rules of Hooks
+    const groupStatus = useMemo(() => {
+        if (!quotation) return '';
+        
+        const allStatuses = [
+            quotation.status,
+            ...(quotation.related_quotations || []).map((q: RelatedQuotation) => q.status)
+        ];
+        
+        // If any quotation is pending customer confirmation, show that
+        if (allStatuses.some(s => s === 'pending_customer_confirmation')) {
+            return 'pending_customer_confirmation';
+        }
+        
+        // If all are customer_confirmed, show that
+        if (allStatuses.every(s => s === 'customer_confirmed')) {
+            return 'customer_confirmed';
+        }
+        
+        // If all are approved, show that
+        if (allStatuses.every(s => s === 'approved')) {
+            return 'approved';
+        }
+        
+        // Otherwise, return the main quotation status
+        return quotation.status;
+    }, [quotation]);
+
+    // Get all quotations to display (including the main one)
+    const allQuotations = useMemo(() => {
+        if (!quotation) return [];
+        return quotation.related_quotations && quotation.related_quotations.length > 0
+            ? [quotation, ...quotation.related_quotations]
+            : [quotation];
+    }, [quotation]);
+
     if (loading || !quotation) {
         return (
             <div className="flex justify-center py-20">
@@ -329,11 +393,6 @@ export default function QuotationDetailPage() {
             </div>
         );
     }
-
-    // Get all quotations to display (including the main one)
-    const allQuotations = quotation.related_quotations && quotation.related_quotations.length > 0
-        ? [quotation, ...quotation.related_quotations]
-        : [quotation];
 
     return (
         <>
@@ -423,10 +482,10 @@ export default function QuotationDetailPage() {
                                 <div className="mt-2 flex justify-start gap-2 sm:mt-3 sm:justify-end">
                                     <span
                                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold sm:px-3 sm:py-1 sm:text-xs ${
-                                            statusBadge[quotation.status] ?? 'bg-slate-200 text-slate-700'
+                                            statusBadge[groupStatus] ?? 'bg-slate-200 text-slate-700'
                                         }`}
                                     >
-                                        {quotation.status.replace(/_/g, ' ')}
+                                        {groupStatus.replace(/_/g, ' ')}
                                     </span>
                                 </div>
                             </div>
@@ -575,7 +634,7 @@ export default function QuotationDetailPage() {
                     </div>
 
                     {/* Customer Confirmation Section */}
-                    {quotation.status === 'pending_customer_confirmation' && (
+                    {groupStatus === 'pending_customer_confirmation' && (
                         <div className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-4 shadow-xl sm:rounded-3xl sm:p-6">
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
