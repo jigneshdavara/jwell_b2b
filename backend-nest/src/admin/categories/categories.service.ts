@@ -458,7 +458,7 @@ export class CategoriesService {
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
 
-        // Check if any of the categories are assigned to products as main category
+        // Check which categories are assigned to products as main category
         const categoriesWithProducts = await this.prisma.products.findMany({
             where: {
                 category_id: { in: bigIntIds },
@@ -503,40 +503,106 @@ export class CategoriesService {
             allUsedCategoryIds.add(BigInt(catId));
         });
 
-        if (allUsedCategoryIds.size > 0) {
-            const categoryNames = await this.prisma.categories.findMany({
-                where: {
-                    id: {
-                        in: Array.from(allUsedCategoryIds),
-                    },
-                },
-                select: {
-                    name: true,
-                },
+        // Find IDs that can be deleted (not in conflicts)
+        const conflictingCategoryIds = Array.from(allUsedCategoryIds);
+        const deletableIds = bigIntIds.filter(
+            (id) => !conflictingCategoryIds.includes(id),
+        );
+
+        // Delete only the items without conflicts (and delete their cover images)
+        let deletedCount = 0;
+        if (deletableIds.length > 0) {
+            // Delete cover images for deletable categories
+            const deletableCategories = await this.prisma.categories.findMany({
+                where: { id: { in: deletableIds } },
+                select: { cover_image: true },
             });
-            const categoryNamesList = categoryNames
-                .map((c) => c.name)
-                .join(', ');
+
+            for (const category of deletableCategories) {
+                if (category.cover_image) {
+                    this.deleteImage(category.cover_image);
+                }
+            }
+
+            const result = await this.prisma.categories.deleteMany({
+                where: { id: { in: deletableIds } },
+            });
+            deletedCount = result.count;
+        }
+
+        // Build response message
+        if (conflictingCategoryIds.length === 0) {
+            // All items deleted successfully
+            return {
+                success: true,
+                message: `${deletedCount} categor${deletedCount === 1 ? 'y' : 'ies'} removed successfully`,
+            };
+        }
+
+        // Get detailed information for conflicting categories
+        const categoryDetails = await Promise.all(
+            conflictingCategoryIds.map(async (categoryId) => {
+                const categoryData = await this.prisma.categories.findUnique({
+                    where: { id: categoryId },
+                    select: { name: true },
+                });
+
+                // Count products as main category
+                const productsAsMainCategory = await this.prisma.products.count(
+                    {
+                        where: { category_id: categoryId },
+                    },
+                );
+
+                // Count products as subcategory
+                const categoryIdNumber = Number(categoryId);
+                const productsAsSubcategory = allProducts.filter((product) => {
+                    if (!product.subcategory_ids) return false;
+                    const subcategoryIds = product.subcategory_ids as number[];
+                    return (
+                        Array.isArray(subcategoryIds) &&
+                        subcategoryIds.includes(categoryIdNumber)
+                    );
+                }).length;
+
+                const totalProductsCount =
+                    productsAsMainCategory + productsAsSubcategory;
+
+                let usageDescription = '';
+                if (productsAsMainCategory > 0 && productsAsSubcategory > 0) {
+                    usageDescription = `(as main category and/or subcategory)`;
+                } else if (productsAsMainCategory > 0) {
+                    usageDescription = `(as main category)`;
+                } else {
+                    usageDescription = `(as subcategory)`;
+                }
+
+                return {
+                    id: categoryId,
+                    name: categoryData?.name || 'Unknown',
+                    productsCount: totalProductsCount,
+                    usageDescription,
+                };
+            }),
+        );
+
+        const conflicts = categoryDetails.map(
+            (detail) =>
+                `${detail.name} (assigned to ${detail.productsCount} product${detail.productsCount === 1 ? '' : 's'} ${detail.usageDescription})`,
+        );
+
+        if (deletedCount > 0) {
+            // Partial success
+            return {
+                success: true,
+                message: `${deletedCount} categor${deletedCount === 1 ? 'y' : 'ies'} removed successfully. Cannot delete: ${conflicts.join(', ')}. Please remove them from all products first.`,
+            };
+        } else {
+            // All failed
             throw new BadRequestException(
-                `Cannot delete category(ies): ${categoryNamesList}. They are currently assigned to products. Please remove the category(ies) from all products first, then delete the category(ies).`,
+                `Cannot delete category(ies): ${conflicts.join(', ')}. They are currently assigned to products. Please remove the category(ies) from all products first, then delete the category(ies).`,
             );
         }
-
-        const categories = await this.prisma.categories.findMany({
-            where: { id: { in: bigIntIds } },
-            select: { cover_image: true },
-        });
-
-        for (const category of categories) {
-            if (category.cover_image) {
-                this.deleteImage(category.cover_image);
-            }
-        }
-
-        await this.prisma.categories.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
-        return { success: true, message: 'Categories removed successfully' };
     }
 
     private buildTree(

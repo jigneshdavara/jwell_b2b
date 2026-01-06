@@ -172,7 +172,7 @@ export class BrandsService {
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
 
-        // Check if any of the brands are assigned to products
+        // Check which brands are assigned to products
         const brandsWithProducts = await this.prisma.products.findMany({
             where: {
                 brand_id: { in: bigIntIds },
@@ -183,36 +183,82 @@ export class BrandsService {
             distinct: ['brand_id'],
         });
 
-        if (brandsWithProducts.length > 0) {
-            const brandNames = await this.prisma.brands.findMany({
-                where: {
-                    id: { in: brandsWithProducts.map((p) => p.brand_id) },
-                },
-                select: {
-                    name: true,
-                },
+        const conflictingBrandIds = brandsWithProducts
+            .map((p) => p.brand_id)
+            .filter((id): id is bigint => id !== null);
+
+        // Find IDs that can be deleted (not in conflicts)
+        const deletableIds = bigIntIds.filter(
+            (id) => !conflictingBrandIds.includes(id),
+        );
+
+        // Delete only the items without conflicts (and delete their cover images)
+        let deletedCount = 0;
+        if (deletableIds.length > 0) {
+            // Delete cover images for deletable brands
+            const deletableBrands = await this.prisma.brands.findMany({
+                where: { id: { in: deletableIds } },
+                select: { cover_image: true },
             });
-            const brandNamesList = brandNames.map((b) => b.name).join(', ');
+
+            for (const brand of deletableBrands) {
+                if (brand.cover_image) {
+                    this.deleteImage(brand.cover_image);
+                }
+            }
+
+            const result = await this.prisma.brands.deleteMany({
+                where: { id: { in: deletableIds } },
+            });
+            deletedCount = result.count;
+        }
+
+        // Build response message
+        if (conflictingBrandIds.length === 0) {
+            // All items deleted successfully
+            return {
+                success: true,
+                message: `${deletedCount} brand${deletedCount === 1 ? '' : 's'} deleted successfully`,
+            };
+        }
+
+        // Get detailed information for conflicting brands
+        const brandDetails = await Promise.all(
+            conflictingBrandIds.map(async (brandId) => {
+                const brandData = await this.prisma.brands.findUnique({
+                    where: { id: brandId },
+                    select: { name: true },
+                });
+
+                const productsCount = await this.prisma.products.count({
+                    where: { brand_id: brandId },
+                });
+
+                return {
+                    id: brandId,
+                    name: brandData?.name || 'Unknown',
+                    productsCount,
+                };
+            }),
+        );
+
+        const conflicts = brandDetails.map(
+            (detail) =>
+                `${detail.name} (assigned to ${detail.productsCount} product${detail.productsCount === 1 ? '' : 's'})`,
+        );
+
+        if (deletedCount > 0) {
+            // Partial success
+            return {
+                success: true,
+                message: `${deletedCount} brand${deletedCount === 1 ? '' : 's'} deleted successfully. Cannot delete: ${conflicts.join(', ')}. Please remove them from all products first.`,
+            };
+        } else {
+            // All failed
             throw new BadRequestException(
-                `Cannot delete brand(s): ${brandNamesList}. They are currently assigned to products. Please remove the brand(s) from all products first, then delete the brand(s).`,
+                `Cannot delete brand(s): ${conflicts.join(', ')}. They are currently assigned to products. Please remove the brand(s) from all products first, then delete the brand(s).`,
             );
         }
-
-        const brands = await this.prisma.brands.findMany({
-            where: { id: { in: bigIntIds } },
-            select: { cover_image: true },
-        });
-
-        for (const brand of brands) {
-            if (brand.cover_image) {
-                this.deleteImage(brand.cover_image);
-            }
-        }
-
-        await this.prisma.brands.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
-        return { success: true, message: 'Brands deleted successfully' };
     }
 
     private deleteImage(imagePath: string) {
