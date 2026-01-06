@@ -90,7 +90,7 @@ export default function AdminGeneralSettingsIndex() {
         } finally {
             setLoading(false);
         }
-    }, [getImageUrl]);
+    }, []);
 
     useEffect(() => {
         loadSettings();

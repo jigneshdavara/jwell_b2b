@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Head } from '@/components/Head';
 import Modal from '@/components/ui/Modal';
 import { toastError, toastWarning } from '@/utils/toast';
+import { getMediaUrl } from '@/utils/mediaUrl';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-slate-100 text-slate-700',
@@ -209,10 +210,16 @@ export default function AdminKycReviewPage() {
         );
     }
 
-    const getFileUrl = (filePath: string) => {
-        const { env } = require('@/config/env');
-        const cleanBase = env.backendBaseUrl || '';
-        return `${cleanBase}/uploads/${filePath}`;
+    const getFileUrl = (filePath: string | null | undefined, fileUrl?: string | null) => {
+        // If backend provides file_url, use it
+        if (fileUrl) {
+            return getMediaUrl(fileUrl);
+        }
+        // Otherwise, construct from file_path
+        if (!filePath) return '';
+        // file_path is stored as "storage/kyc/{userId}/{filename}" or similar
+        // Use getMediaUrl to properly construct the URL
+        return getMediaUrl(filePath);
     };
 
     return (
@@ -382,9 +389,9 @@ export default function AdminKycReviewPage() {
                                             </div>
                                         </td>
                                         <td className="px-3 py-3 sm:px-4 sm:py-4">
-                                            {document.file_path ? (
+                                            {document.file_path || document.file_url ? (
                                                 <a
-                                                    href={getFileUrl(document.file_path)}
+                                                    href={getFileUrl(document.file_path, document.file_url)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-medium text-elvee-blue hover:text-feather-gold"
@@ -587,9 +594,9 @@ export default function AdminKycReviewPage() {
                                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
                                     <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Document</p>
                                     <p className="mt-1.5 text-xs sm:text-sm font-semibold text-slate-900">{selectedDocument.type}</p>
-                                    {selectedDocument.file_path && (
+                                    {(selectedDocument.file_path || selectedDocument.file_url) && (
                                         <a
-                                            href={getFileUrl(selectedDocument.file_path)}
+                                            href={getFileUrl(selectedDocument.file_path, selectedDocument.file_url)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="mt-2 inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-elvee-blue hover:text-feather-gold"

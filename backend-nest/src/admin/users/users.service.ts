@@ -250,6 +250,11 @@ export class UsersService {
                 id: Number(doc.id),
                 type: doc.type,
                 file_path: doc.file_path,
+                file_url: doc.file_path
+                    ? doc.file_path.startsWith('/')
+                        ? doc.file_path
+                        : `/${doc.file_path}`
+                    : null,
                 file_name: doc.file_path
                     ? doc.file_path.split('/').pop() || doc.file_path
                     : null,
