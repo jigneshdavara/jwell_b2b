@@ -104,6 +104,7 @@ type MetalPurityOption = {
     metal_id: number;
     name: string;
     metal: { id: number; name: string } | null;
+    is_active?: boolean;
 };
 
 type MetalToneOption = {
@@ -111,6 +112,7 @@ type MetalToneOption = {
     metal_id: number;
     name: string;
     metal: { id: number; name: string } | null;
+    is_active?: boolean;
 };
 
 type CatalogOption = {
@@ -1104,6 +1106,7 @@ export default function AdminProductEdit() {
                     metal_id: Number(mp.metal_id || mp.metalId),
                     name: mp.name,
                     metal: mp.metals ? { id: Number(mp.metals.id), name: mp.metals.name } : null,
+                    is_active: mp.is_active ?? mp.isActive ?? true,
                 })));
                 // Handle both snake_case (metal_tones) and camelCase (metalTones) from API
                 const metalTonesData = options.metal_tones || options.metalTones || [];
@@ -1112,6 +1115,7 @@ export default function AdminProductEdit() {
                     metal_id: Number(mt.metal_id || mt.metalId),
                     name: mt.name,
                     metal: mt.metals ? { id: Number(mt.metals.id), name: mt.metals.name } : null,
+                    is_active: mt.is_active ?? mt.isActive ?? true,
                 })));
                 // Load sizes - need to fetch category-sizes relationships separately
                 const sizesData = options.sizes || [];
@@ -2432,32 +2436,65 @@ export default function AdminProductEdit() {
             if (!metal) return;
             
             const config = metalConfigurations[metalId] || { purities: [], tones: [] };
-            const availablePurities = metalPurities.filter(p => p.metal_id === metalId);
-            const availableTones = metalTones.filter(t => t.metal_id === metalId);
+            // Filter to only active purities and tones
+            const availablePurities = metalPurities.filter(p => p.metal_id === metalId && (p.is_active !== false));
+            const availableTones = metalTones.filter(t => t.metal_id === metalId && (t.is_active !== false));
             
-            // Check if purities are required and selected
-            const hasPurities = availablePurities.length === 0 || (config.purities && config.purities.length > 0);
-            // Check if tones are required and selected
-            const hasTones = availableTones.length === 0 || (config.tones && config.tones.length > 0);
+            // Check if there are any active purities/tones available
+            if (availablePurities.length === 0 && availableTones.length === 0) {
+                missingConfigurations.push(`${metal.name} (no active purities and tones available)`);
+                return;
+            }
             
-            if (!hasPurities || !hasTones) {
-                const missingParts: string[] = [];
-                if (availablePurities.length > 0 && (!config.purities || config.purities.length === 0)) {
-                    missingParts.push('purity');
-                }
-                if (availableTones.length > 0 && (!config.tones || config.tones.length === 0)) {
-                    missingParts.push('tone');
-                }
-                if (missingParts.length > 0) {
-                    missingConfigurations.push(`${metal.name} (${missingParts.join(' and ')})`);
-                }
+            // If no active purities available, add to missing configurations
+            if (availablePurities.length === 0) {
+                missingConfigurations.push(`${metal.name} (no active purities available)`);
+                return;
+            }
+            
+            // If no active tones available, add to missing configurations
+            if (availableTones.length === 0) {
+                missingConfigurations.push(`${metal.name} (no active tones available)`);
+                return;
+            }
+            
+            // Both purities and tones are available - require at least one of each to be selected
+            const selectedPurities = config.purities || [];
+            const selectedTones = config.tones || [];
+            
+            const missingParts: string[] = [];
+            if (selectedPurities.length === 0) {
+                missingParts.push('purity');
+            }
+            if (selectedTones.length === 0) {
+                missingParts.push('tone');
+            }
+            
+            // If either purity or tone is not selected, add to missing configurations
+            if (missingParts.length > 0) {
+                missingConfigurations.push(`${metal.name} (${missingParts.join(' and ')} not selected)`);
             }
         });
         
         if (missingConfigurations.length > 0) {
             const metalList = missingConfigurations.slice(0, 3).join(', ');
             const moreCount = missingConfigurations.length > 3 ? ` and ${missingConfigurations.length - 3} more` : '';
-            setMetalSelectionError(`Please select at least one purity and one tone for the following metal${missingConfigurations.length > 1 ? 's' : ''}: ${metalList}${moreCount}.`);
+            
+            // Check if any metals have no active purities/tones available
+            const hasNoActiveOptions = missingConfigurations.some(m => 
+                m.includes('no active purities and tones available') || 
+                m.includes('no active purities available') || 
+                m.includes('no active tones available')
+            );
+            
+            let errorMessage = '';
+            if (hasNoActiveOptions) {
+                errorMessage = `Cannot create variants. The following metal${missingConfigurations.length > 1 ? 's' : ''} ${missingConfigurations.length > 1 ? 'do' : 'does'} not have active purities and/or tones available: ${metalList}${moreCount}. Please activate at least one purity and one tone for each metal in the Metals section, or deselect the metal${missingConfigurations.length > 1 ? 's' : ''} to create variants for other metals.`;
+            } else {
+                errorMessage = `Cannot create variants. The following metal${missingConfigurations.length > 1 ? 's' : ''} ${missingConfigurations.length > 1 ? 'do' : 'does'} not have at least one purity and one tone selected: ${metalList}${moreCount}. Please select at least one purity and one tone for each metal, or deselect the metal${missingConfigurations.length > 1 ? 's' : ''} to create variants for other metals.`;
+            }
+            
+            setMetalSelectionError(errorMessage);
             return;
         }
         
@@ -4050,8 +4087,9 @@ export default function AdminProductEdit() {
                                         if (!isSelected) return null;
 
                                         const metalConfig = (data.metal_configurations || {})[metal.id] || { purities: [], tones: [] };
-                                        const availablePurities = metalPurities.filter(p => p.metal_id === metal.id);
-                                        const availableTones = metalTones.filter(t => t.metal_id === metal.id);
+                                        // Filter to only show active purities and tones
+                                        const availablePurities = metalPurities.filter(p => p.metal_id === metal.id && (p.is_active !== false));
+                                        const availableTones = metalTones.filter(t => t.metal_id === metal.id && (t.is_active !== false));
 
                                         const puritiesCount = metalConfig.purities.length > 0 ? metalConfig.purities.length : (availablePurities.length > 0 ? availablePurities.length : 1);
                                         const tonesCount = metalConfig.tones.length > 0 ? metalConfig.tones.length : (availableTones.length > 0 ? availableTones.length : 1);
@@ -4072,8 +4110,13 @@ export default function AdminProductEdit() {
                                                     <p className="mb-3 text-xs text-slate-600">
                                                         Choose all purities in which this design is available for {metal.name}.
                                                     </p>
-                                                    <div className="flex flex-wrap gap-2 sm:gap-3">
-                                                        {availablePurities.map((purity) => {
+                                                    {availablePurities.length === 0 ? (
+                                                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                                            No active purities available for {metal.name}. Please activate at least one purity for this metal.
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-wrap gap-2 sm:gap-3">
+                                                            {availablePurities.map((purity) => {
                                                             const isPuritySelected = metalConfig.purities.includes(purity.id);
                                                             return (
                                                                 <label
@@ -4121,15 +4164,21 @@ export default function AdminProductEdit() {
                                                                 </label>
                                                             );
                                                         })}
-                                                    </div>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div>
                                                     <p className="mb-3 text-xs text-slate-600">
                                                         Choose all tones in which this design is available for {metal.name}.
                                                     </p>
-                                                    <div className="flex flex-wrap gap-2 sm:gap-3">
-                                                        {availableTones.map((tone) => {
+                                                    {availableTones.length === 0 ? (
+                                                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                                            No active tones available for {metal.name}. Please activate at least one tone for this metal.
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-wrap gap-2 sm:gap-3">
+                                                            {availableTones.map((tone) => {
                                                             const isToneSelected = metalConfig.tones.includes(tone.id);
                                                             return (
                                                                 <label
@@ -4177,7 +4226,8 @@ export default function AdminProductEdit() {
                                                                 </label>
                                                             );
                                                         })}
-                                                    </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
