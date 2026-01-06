@@ -171,7 +171,7 @@ export class DiamondClaritiesService {
             }
         }
 
-        // Check if trying to pause/deactivate diamond clarity that is assigned to products
+        // Check if trying to pause/deactivate diamond clarity that is assigned to diamonds
         if (dto.is_active === false && existing.is_active === true) {
             const clarityId = BigInt(id);
             // Find all diamonds with this diamond_clarity_id
@@ -196,9 +196,14 @@ export class DiamondClaritiesService {
 
                 if (productsCount > 0) {
                     throw new BadRequestException(
-                        `Cannot pause this diamond clarity. It is currently assigned to ${productsCount} product(s). Please remove the diamond clarity from all products first, then pause the diamond clarity.`,
+                        `Cannot deactivate this diamond clarity. It is currently assigned to ${diamonds.length} diamond(s), and ${productsCount} of them are used in product variant(s). Please remove the diamond clarity from all products first, then deactivate the diamond clarity.`,
                     );
                 }
+
+                // Also prevent deactivation if clarity is assigned to any diamonds (even if not in products)
+                throw new BadRequestException(
+                    `Cannot deactivate this diamond clarity. It is currently assigned to ${diamonds.length} diamond(s). Please remove or update the diamond clarity from all diamonds first, then deactivate the diamond clarity.`,
+                );
             }
         }
 
@@ -252,12 +257,17 @@ export class DiamondClaritiesService {
 
             if (productsCount > 0) {
                 throw new BadRequestException(
-                    `Cannot delete this diamond clarity. It is currently assigned to ${productsCount} product(s). Please remove the diamond clarity from all products first, then delete the diamond clarity.`,
+                    `Cannot delete this diamond clarity. It is currently assigned to ${diamonds.length} diamond(s), and ${productsCount} of them are used in product variant(s). Please remove the diamond clarity from all products first, then delete the diamond clarity.`,
                 );
             }
+
+            // Also prevent deletion if clarity is assigned to any diamonds (even if not in products)
+            throw new BadRequestException(
+                `Cannot delete this diamond clarity. It is currently assigned to ${diamonds.length} diamond(s). Please remove or update the diamond clarity from all diamonds first, then delete the diamond clarity.`,
+            );
         }
 
-        // If no products use this clarity, delete it
+        // If no diamonds use this clarity, delete it
         await this.prisma.diamond_clarities.delete({
             where: { id: clarityId },
         });
@@ -268,9 +278,14 @@ export class DiamondClaritiesService {
     }
 
     async bulkRemove(ids: number[]) {
-        const claritiesWithProducts: bigint[] = [];
+        const claritiesWithDiamonds: Array<{
+            id: bigint;
+            name: string;
+            diamondCount: number;
+            productCount: number;
+        }> = [];
 
-        // Check all clarities for product assignments
+        // Check all clarities for diamond and product assignments
         for (const id of ids) {
             const clarityId = BigInt(id);
             const clarity = await this.prisma.diamond_clarities.findUnique({
@@ -301,24 +316,26 @@ export class DiamondClaritiesService {
                         },
                     });
 
-                if (productsCount > 0) {
-                    claritiesWithProducts.push(clarityId);
-                }
+                // Prevent deletion if clarity is assigned to any diamonds (even if not in products)
+                claritiesWithDiamonds.push({
+                    id: clarityId,
+                    name: clarity.name,
+                    diamondCount: diamonds.length,
+                    productCount: productsCount,
+                });
             }
         }
 
-        if (claritiesWithProducts.length > 0) {
-            const clarityNames = await this.prisma.diamond_clarities.findMany({
-                where: {
-                    id: { in: claritiesWithProducts },
-                },
-                select: {
-                    name: true,
-                },
+        if (claritiesWithDiamonds.length > 0) {
+            const clarityMessages = claritiesWithDiamonds.map((c) => {
+                if (c.productCount > 0) {
+                    return `${c.name} (${c.diamondCount} diamond(s), ${c.productCount} in products)`;
+                }
+                return `${c.name} (${c.diamondCount} diamond(s))`;
             });
-            const clarityNamesList = clarityNames.map((c) => c.name).join(', ');
+            const clarityNamesList = clarityMessages.join(', ');
             throw new BadRequestException(
-                `Cannot delete diamond clarity(ies): ${clarityNamesList}. They are currently assigned to products. Please remove the diamond clarity(ies) from all products first, then delete the diamond clarity(ies).`,
+                `Cannot delete diamond clarity(ies): ${clarityNamesList}. They are currently assigned to diamonds. Please remove or update the diamond clarity(ies) from all diamonds first, then delete the diamond clarity(ies).`,
             );
         }
 

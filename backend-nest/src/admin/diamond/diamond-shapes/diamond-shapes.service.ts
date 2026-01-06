@@ -224,9 +224,14 @@ export class DiamondShapesService {
 
                 if (productsCount > 0) {
                     throw new BadRequestException(
-                        `Cannot pause this diamond shape. It is currently assigned to ${productsCount} product(s). Please remove the diamond shape from all products first, then pause the diamond shape.`,
+                        `Cannot deactivate this diamond shape. It is currently assigned to ${diamonds.length} diamond(s), and ${productsCount} of them are used in product variant(s). Please remove the diamond shape from all products first, then deactivate the diamond shape.`,
                     );
                 }
+
+                // Also prevent deactivation if shape is assigned to any diamonds (even if not in products)
+                throw new BadRequestException(
+                    `Cannot deactivate this diamond shape. It is currently assigned to ${diamonds.length} diamond(s). Please remove or update the diamond shape from all diamonds first, then deactivate the diamond shape.`,
+                );
             }
         }
 
@@ -289,12 +294,17 @@ export class DiamondShapesService {
 
             if (productsCount > 0) {
                 throw new BadRequestException(
-                    `Cannot delete this diamond shape. It is currently assigned to ${productsCount} product(s). Please remove the diamond shape from all products first, then delete the diamond shape.`,
+                    `Cannot delete this diamond shape. It is currently assigned to ${diamonds.length} diamond(s), and ${productsCount} of them are used in product variant(s). Please remove the diamond shape from all products first, then delete the diamond shape.`,
                 );
             }
+
+            // Also prevent deletion if shape is assigned to any diamonds (even if not in products)
+            throw new BadRequestException(
+                `Cannot delete this diamond shape. It is currently assigned to ${diamonds.length} diamond(s). Please remove or update the diamond shape from all diamonds first, then delete the diamond shape.`,
+            );
         }
 
-        // If no products or shape sizes use this shape, delete it
+        // If no diamonds or shape sizes use this shape, delete it
         await this.prisma.diamond_shapes.delete({
             where: { id: shapeId },
         });
@@ -305,10 +315,19 @@ export class DiamondShapesService {
     }
 
     async bulkRemove(ids: number[]) {
-        const shapesWithShapeSizes: bigint[] = [];
-        const shapesWithProducts: bigint[] = [];
+        const shapesWithShapeSizes: Array<{
+            id: bigint;
+            name: string;
+            count: number;
+        }> = [];
+        const shapesWithDiamonds: Array<{
+            id: bigint;
+            name: string;
+            diamondCount: number;
+            productCount: number;
+        }> = [];
 
-        // Check all shapes for shape sizes and product assignments
+        // Check all shapes for shape sizes and diamond/product assignments
         for (const id of ids) {
             const shapeId = BigInt(id);
             const shape = await this.prisma.diamond_shapes.findUnique({
@@ -327,8 +346,12 @@ export class DiamondShapesService {
             );
 
             if (shapeSizesCount > 0) {
-                shapesWithShapeSizes.push(shapeId);
-                continue; // Skip product check if shape sizes exist
+                shapesWithShapeSizes.push({
+                    id: shapeId,
+                    name: shape.name,
+                    count: shapeSizesCount,
+                });
+                continue; // Skip diamond check if shape sizes exist
             }
 
             // Find all diamonds with this diamond_shape_id
@@ -351,40 +374,37 @@ export class DiamondShapesService {
                         },
                     });
 
-                if (productsCount > 0) {
-                    shapesWithProducts.push(shapeId);
-                }
+                // Prevent deletion if shape is assigned to any diamonds (even if not in products)
+                shapesWithDiamonds.push({
+                    id: shapeId,
+                    name: shape.name,
+                    diamondCount: diamonds.length,
+                    productCount: productsCount,
+                });
             }
         }
 
         // Check shape sizes first (higher priority error)
         if (shapesWithShapeSizes.length > 0) {
-            const shapeNames = await this.prisma.diamond_shapes.findMany({
-                where: {
-                    id: { in: shapesWithShapeSizes },
-                },
-                select: {
-                    name: true,
-                },
-            });
-            const shapeNamesList = shapeNames.map((s) => s.name).join(', ');
+            const shapeMessages = shapesWithShapeSizes.map(
+                (s) => `${s.name} (${s.count} shape size(s))`,
+            );
+            const shapeNamesList = shapeMessages.join(', ');
             throw new BadRequestException(
                 `Cannot delete diamond shape(s): ${shapeNamesList}. They have associated shape sizes. Please remove all shape sizes first, then delete the diamond shape(s).`,
             );
         }
 
-        if (shapesWithProducts.length > 0) {
-            const shapeNames = await this.prisma.diamond_shapes.findMany({
-                where: {
-                    id: { in: shapesWithProducts },
-                },
-                select: {
-                    name: true,
-                },
+        if (shapesWithDiamonds.length > 0) {
+            const shapeMessages = shapesWithDiamonds.map((s) => {
+                if (s.productCount > 0) {
+                    return `${s.name} (${s.diamondCount} diamond(s), ${s.productCount} in products)`;
+                }
+                return `${s.name} (${s.diamondCount} diamond(s))`;
             });
-            const shapeNamesList = shapeNames.map((s) => s.name).join(', ');
+            const shapeNamesList = shapeMessages.join(', ');
             throw new BadRequestException(
-                `Cannot delete diamond shape(s): ${shapeNamesList}. They are currently assigned to products. Please remove the diamond shape(s) from all products first, then delete the diamond shape(s).`,
+                `Cannot delete diamond shape(s): ${shapeNamesList}. They are currently assigned to diamonds. Please remove or update the diamond shape(s) from all diamonds first, then delete the diamond shape(s).`,
             );
         }
 
