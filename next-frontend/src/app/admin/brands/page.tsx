@@ -260,7 +260,7 @@ export default function AdminBrandsPage() {
     if (loading && !brands.data.length) return null;
 
     return (
-        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+        <div className="space-y-4 sm:space-y-6 lg:space-y-8 px-1">
             <div className="flex flex-col gap-3 rounded-2xl bg-white p-3 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80 sm:flex-row sm:items-center sm:justify-between sm:rounded-3xl sm:p-6">
                 <div>
                     <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Brands</h1>
