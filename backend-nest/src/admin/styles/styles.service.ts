@@ -107,18 +107,25 @@ export class StylesService {
             }
         }
 
-        // Check if trying to pause/deactivate style that is assigned to products
+        // Check if trying to pause/deactivate style that is assigned to categories or products
         if (dto.is_active === false && existing.is_active === true) {
-            // Get all products and filter those with style_ids containing this style
-            const allProducts = await this.prisma.products.findMany({
-                select: {
-                    id: true,
-                    style_ids: true,
-                },
-            });
+            const styleIdNumber = Number(id);
+
+            const [categoriesCount, allProducts] = await Promise.all([
+                this.prisma.category_styles.count({
+                    where: {
+                        style_id: styleId,
+                    },
+                }),
+                this.prisma.products.findMany({
+                    select: {
+                        id: true,
+                        style_ids: true,
+                    },
+                }),
+            ]);
 
             // Filter products where this style ID is in the style_ids array
-            const styleIdNumber = Number(id);
             const matchingProducts = allProducts.filter((product) => {
                 if (!product.style_ids) return false;
                 const styleIds = product.style_ids as number[];
@@ -126,6 +133,18 @@ export class StylesService {
                     Array.isArray(styleIds) && styleIds.includes(styleIdNumber)
                 );
             });
+
+            if (categoriesCount > 0 && matchingProducts.length > 0) {
+                throw new BadRequestException(
+                    `Cannot pause this style. It is currently assigned to ${categoriesCount} categor(ies) and ${matchingProducts.length} product(s). Please remove the style from all categories and products first, then pause the style.`,
+                );
+            }
+
+            if (categoriesCount > 0) {
+                throw new BadRequestException(
+                    `Cannot pause this style. It is currently assigned to ${categoriesCount} categor(ies). Please remove the style from all categories first, then pause the style.`,
+                );
+            }
 
             if (matchingProducts.length > 0) {
                 throw new BadRequestException(
@@ -157,22 +176,41 @@ export class StylesService {
         });
         if (!style) throw new NotFoundException('Style not found');
 
-        // Check if style is assigned to products (in style_ids JSON array)
-        // Get all products and filter those with style_ids containing this style
-        const allProducts = await this.prisma.products.findMany({
-            select: {
-                id: true,
-                style_ids: true,
-            },
-        });
+        // Check if style is assigned to categories or products
+        const styleIdNumber = Number(id);
+
+        const [categoriesCount, allProducts] = await Promise.all([
+            this.prisma.category_styles.count({
+                where: {
+                    style_id: styleId,
+                },
+            }),
+            this.prisma.products.findMany({
+                select: {
+                    id: true,
+                    style_ids: true,
+                },
+            }),
+        ]);
 
         // Filter products where this style ID is in the style_ids array
-        const styleIdNumber = Number(id);
         const matchingProducts = allProducts.filter((product) => {
             if (!product.style_ids) return false;
             const styleIds = product.style_ids as number[];
             return Array.isArray(styleIds) && styleIds.includes(styleIdNumber);
         });
+
+        if (categoriesCount > 0 && matchingProducts.length > 0) {
+            throw new BadRequestException(
+                `Cannot delete this style. It is currently assigned to ${categoriesCount} categor(ies) and ${matchingProducts.length} product(s). Please remove the style from all categories and products first, then delete the style.`,
+            );
+        }
+
+        if (categoriesCount > 0) {
+            throw new BadRequestException(
+                `Cannot delete this style. It is currently assigned to ${categoriesCount} categor(ies). Please remove the style from all categories first, then delete the style.`,
+            );
+        }
 
         if (matchingProducts.length > 0) {
             throw new BadRequestException(
@@ -191,18 +229,28 @@ export class StylesService {
 
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
+        const styleIdsAsNumbers = ids.map((id) => Number(id));
 
-        // Check if any of the styles are assigned to products (in style_ids JSON array)
-        // Get all products and filter those with style_ids containing any of the selected styles
-        const allProducts = await this.prisma.products.findMany({
-            select: {
-                id: true,
-                style_ids: true,
-            },
-        });
+        // Check if any of the styles are assigned to categories or products
+        const [stylesWithCategories, allProducts] = await Promise.all([
+            this.prisma.category_styles.findMany({
+                where: {
+                    style_id: { in: bigIntIds },
+                },
+                select: {
+                    style_id: true,
+                },
+                distinct: ['style_id'],
+            }),
+            this.prisma.products.findMany({
+                select: {
+                    id: true,
+                    style_ids: true,
+                },
+            }),
+        ]);
 
         // Find which style IDs from the delete list are in style_ids
-        const styleIdsAsNumbers = ids.map((id) => Number(id));
         const stylesUsedInProducts = new Set<number>();
 
         allProducts.forEach((product) => {
@@ -217,22 +265,72 @@ export class StylesService {
             }
         });
 
-        if (stylesUsedInProducts.size > 0) {
-            const styleNames = await this.prisma.styles.findMany({
-                where: {
-                    id: {
-                        in: Array.from(stylesUsedInProducts).map((id) =>
-                            BigInt(id),
-                        ),
-                    },
-                },
-                select: {
-                    name: true,
-                },
+        const categoryStyleIds = stylesWithCategories
+            .map((c) => c.style_id)
+            .filter((id): id is bigint => id !== null)
+            .map((id) => Number(id));
+
+        const allConflictingStyleIds = [
+            ...new Set([
+                ...categoryStyleIds,
+                ...Array.from(stylesUsedInProducts),
+            ]),
+        ];
+
+        if (allConflictingStyleIds.length > 0) {
+            // Get style details with counts
+            const styleDetails = await Promise.all(
+                allConflictingStyleIds.map(async (styleId) => {
+                    const style = await this.prisma.styles.findUnique({
+                        where: { id: BigInt(styleId) },
+                        select: { name: true },
+                    });
+
+                    const categoriesCount = categoryStyleIds.includes(styleId)
+                        ? await this.prisma.category_styles.count({
+                              where: { style_id: BigInt(styleId) },
+                          })
+                        : 0;
+
+                    const productsCount = stylesUsedInProducts.has(styleId)
+                        ? allProducts.filter((product) => {
+                              if (!product.style_ids) return false;
+                              const styleIds = product.style_ids as number[];
+                              return (
+                                  Array.isArray(styleIds) &&
+                                  styleIds.includes(styleId)
+                              );
+                          }).length
+                        : 0;
+
+                    return {
+                        id: styleId,
+                        name: style?.name || 'Unknown',
+                        categoriesCount,
+                        productsCount,
+                    };
+                }),
+            );
+
+            const conflicts: string[] = [];
+            styleDetails.forEach((detail) => {
+                if (detail.categoriesCount > 0 && detail.productsCount > 0) {
+                    conflicts.push(
+                        `${detail.name} (assigned to ${detail.categoriesCount} categor(ies) and ${detail.productsCount} product(s))`,
+                    );
+                } else if (detail.categoriesCount > 0) {
+                    conflicts.push(
+                        `${detail.name} (assigned to ${detail.categoriesCount} categor(ies))`,
+                    );
+                } else if (detail.productsCount > 0) {
+                    conflicts.push(
+                        `${detail.name} (assigned to ${detail.productsCount} product(s))`,
+                    );
+                }
             });
-            const styleNamesList = styleNames.map((s) => s.name).join(', ');
+
             throw new BadRequestException(
-                `Cannot delete style(s): ${styleNamesList}. They are currently assigned to products. Please remove the style(s) from all products first, then delete the style(s).`,
+                `Cannot delete style(s): ${conflicts.join(', ')}. Please remove the style(s) from all categories and products first, then delete the style(s).`,
             );
         }
 
