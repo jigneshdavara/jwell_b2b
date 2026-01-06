@@ -201,24 +201,49 @@ export class DiamondsService {
             }
         }
 
-        if (diamondsWithProducts.length > 0) {
-            const diamondMessages = diamondsWithProducts.map(
-                (d) => `${d.name} (${d.productCount} product variant(s))`,
-            );
-            const diamondNamesList = diamondMessages.join(', ');
+        // Find IDs that can be deleted (not in conflicts)
+        const conflictingIds = diamondsWithProducts.map((d) => d.id);
+        const deletableIds = bigIntIds.filter(
+            (id) => !conflictingIds.includes(id),
+        );
+
+        // Delete only the items without conflicts
+        let deletedCount = 0;
+        if (deletableIds.length > 0) {
+            const result = await this.prisma.diamonds.deleteMany({
+                where: { id: { in: deletableIds } },
+            });
+            deletedCount = result.count;
+        }
+
+        // Build response message
+        if (diamondsWithProducts.length === 0) {
+            // All items deleted successfully
+            return {
+                success: true,
+                count: deletedCount,
+                message: `${deletedCount} diamond${deletedCount === 1 ? '' : 's'} deleted successfully`,
+            };
+        }
+
+        const diamondMessages = diamondsWithProducts.map(
+            (d) => `${d.name} (${d.productCount} product variant(s))`,
+        );
+        const diamondNamesList = diamondMessages.join(', ');
+
+        if (deletedCount > 0) {
+            // Partial success
+            return {
+                success: true,
+                count: deletedCount,
+                message: `${deletedCount} diamond${deletedCount === 1 ? '' : 's'} deleted successfully. Cannot delete: ${diamondNamesList}. They are currently assigned to product variants. Please remove them from all products first.`,
+            };
+        } else {
+            // All failed
             throw new BadRequestException(
                 `Cannot delete diamond(s): ${diamondNamesList}. They are currently assigned to product variants. Please remove the diamond(s) from all products first, then delete the diamond(s).`,
             );
         }
-
-        const result = await this.prisma.diamonds.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
-
-        return {
-            ...result,
-            message: `${result.count} diamond${result.count === 1 ? '' : 's'} deleted successfully.`,
-        };
     }
 
     async getShapeSizes(shapeId: number, typeId?: number) {

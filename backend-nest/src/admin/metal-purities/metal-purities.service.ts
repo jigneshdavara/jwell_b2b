@@ -272,7 +272,7 @@ export class MetalPuritiesService {
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
 
-        // Check if any of the metal purities are assigned to products
+        // Check which metal purities are assigned to products
         const puritiesWithProducts =
             await this.prisma.product_variant_metals.findMany({
                 where: {
@@ -284,49 +284,70 @@ export class MetalPuritiesService {
                 distinct: ['metal_purity_id'],
             });
 
-        if (puritiesWithProducts.length > 0) {
-            const purityIds = puritiesWithProducts
-                .map((p) => p.metal_purity_id)
-                .filter((id): id is bigint => id !== null);
+        const conflictingPurityIds = puritiesWithProducts
+            .map((p) => p.metal_purity_id)
+            .filter((id): id is bigint => id !== null);
 
-            // Get detailed information for each conflicting purity
-            const purityDetails = await Promise.all(
-                purityIds.map(async (purityId) => {
-                    const purityData =
-                        await this.prisma.metal_purities.findUnique({
-                            where: { id: purityId },
-                            select: { name: true },
-                        });
+        // Find IDs that can be deleted (not in conflicts)
+        const deletableIds = bigIntIds.filter(
+            (id) => !conflictingPurityIds.includes(id),
+        );
 
-                    const productsCount =
-                        await this.prisma.product_variant_metals.count({
-                            where: { metal_purity_id: purityId },
-                        });
+        // Delete only the items without conflicts
+        let deletedCount = 0;
+        if (deletableIds.length > 0) {
+            const result = await this.prisma.metal_purities.deleteMany({
+                where: { id: { in: deletableIds } },
+            });
+            deletedCount = result.count;
+        }
 
-                    return {
-                        id: purityId,
-                        name: purityData?.name || 'Unknown',
-                        productsCount,
-                    };
-                }),
-            );
+        // Build response message
+        if (conflictingPurityIds.length === 0) {
+            // All items deleted successfully
+            return {
+                success: true,
+                message: `${deletedCount} metal purit${deletedCount === 1 ? 'y' : 'ies'} deleted successfully`,
+            };
+        }
 
-            const conflicts = purityDetails.map(
-                (detail) =>
-                    `${detail.name} (assigned to ${detail.productsCount} product variant${detail.productsCount === 1 ? '' : 's'})`,
-            );
+        // Get detailed information for conflicting purities
+        const purityDetails = await Promise.all(
+            conflictingPurityIds.map(async (purityId) => {
+                const purityData = await this.prisma.metal_purities.findUnique({
+                    where: { id: purityId },
+                    select: { name: true },
+                });
 
+                const productsCount =
+                    await this.prisma.product_variant_metals.count({
+                        where: { metal_purity_id: purityId },
+                    });
+
+                return {
+                    id: purityId,
+                    name: purityData?.name || 'Unknown',
+                    productsCount,
+                };
+            }),
+        );
+
+        const conflicts = purityDetails.map(
+            (detail) =>
+                `${detail.name} (assigned to ${detail.productsCount} product variant${detail.productsCount === 1 ? '' : 's'})`,
+        );
+
+        if (deletedCount > 0) {
+            // Partial success
+            return {
+                success: true,
+                message: `${deletedCount} metal purit${deletedCount === 1 ? 'y' : 'ies'} deleted successfully. Cannot delete: ${conflicts.join(', ')}. Please remove them from all product variants first.`,
+            };
+        } else {
+            // All failed
             throw new BadRequestException(
                 `Cannot delete metal purity(ies): ${conflicts.join(', ')}. Please remove the metal purity(ies) from all product variants first, then delete the metal purity(ies).`,
             );
         }
-
-        await this.prisma.metal_purities.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
-        return {
-            success: true,
-            message: 'Metal purities deleted successfully',
-        };
     }
 }

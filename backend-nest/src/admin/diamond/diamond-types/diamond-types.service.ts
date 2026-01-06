@@ -382,56 +382,66 @@ export class DiamondTypesService {
             }
         }
 
-        if (typesWithConflicts.length > 0) {
-            const typeMessages = typesWithConflicts.map((t) => {
-                const conflictsStr = t.conflicts.join(', ');
-                if (t.productCount > 0) {
-                    return `${t.name} (${conflictsStr}, ${t.productCount} in products)`;
-                }
-                return `${t.name} (${conflictsStr})`;
+        // Find IDs that can be deleted (not in conflicts)
+        const bigIntIds = ids.map((id) => BigInt(id));
+        const conflictingIds = typesWithConflicts.map((t) => t.id);
+        const deletableIds = bigIntIds.filter(
+            (id) => !conflictingIds.includes(id),
+        );
+
+        // Delete only the items without conflicts (with cascade)
+        let deletedCount = 0;
+        if (deletableIds.length > 0) {
+            // Cascade delete all related data for deletable types
+            for (const typeId of deletableIds) {
+                await this.prisma.diamond_shape_sizes.deleteMany({
+                    where: { diamond_type_id: typeId },
+                });
+                await this.prisma.diamond_shapes.deleteMany({
+                    where: { diamond_type_id: typeId },
+                });
+                await this.prisma.diamond_clarities.deleteMany({
+                    where: { diamond_type_id: typeId },
+                });
+                await this.prisma.diamond_colors.deleteMany({
+                    where: { diamond_type_id: typeId },
+                });
+            }
+            const result = await this.prisma.diamond_types.deleteMany({
+                where: { id: { in: deletableIds } },
             });
-            const typeNamesList = typeMessages.join(', ');
+            deletedCount = result.count;
+        }
+
+        // Build response message
+        if (typesWithConflicts.length === 0) {
+            // All items deleted successfully
+            return {
+                success: true,
+                message: `${deletedCount} diamond type(s) and all related data deleted successfully`,
+            };
+        }
+
+        const typeMessages = typesWithConflicts.map((t) => {
+            const conflictsStr = t.conflicts.join(', ');
+            if (t.productCount > 0) {
+                return `${t.name} (${conflictsStr}, ${t.productCount} in products)`;
+            }
+            return `${t.name} (${conflictsStr})`;
+        });
+        const typeNamesList = typeMessages.join(', ');
+
+        if (deletedCount > 0) {
+            // Partial success
+            return {
+                success: true,
+                message: `${deletedCount} diamond type(s) and all related data deleted successfully. Cannot delete: ${typeNamesList}. They are currently assigned to related records. Please remove or update them from all related records first.`,
+            };
+        } else {
+            // All failed
             throw new BadRequestException(
                 `Cannot delete diamond type(s): ${typeNamesList}. They are currently assigned to related records. Please remove or update the diamond type(s) from all related records first, then delete the diamond type(s).`,
             );
         }
-
-        let deletedCount = 0;
-
-        for (const id of ids) {
-            const typeId = BigInt(id);
-            // Check if type exists
-            const type = await this.prisma.diamond_types.findUnique({
-                where: { id: typeId },
-            });
-
-            if (!type) {
-                continue;
-            }
-
-            // If no products use this type, cascade delete all related data
-            await this.prisma.diamond_shape_sizes.deleteMany({
-                where: { diamond_type_id: typeId },
-            });
-            await this.prisma.diamond_shapes.deleteMany({
-                where: { diamond_type_id: typeId },
-            });
-            await this.prisma.diamond_clarities.deleteMany({
-                where: { diamond_type_id: typeId },
-            });
-            await this.prisma.diamond_colors.deleteMany({
-                where: { diamond_type_id: typeId },
-            });
-            await this.prisma.diamond_types.delete({
-                where: { id: typeId },
-            });
-
-            deletedCount++;
-        }
-
-        return {
-            success: true,
-            message: `${deletedCount} diamond type(s) and all related data deleted successfully.`,
-        };
     }
 }

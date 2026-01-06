@@ -384,17 +384,55 @@ export class DiamondShapesService {
             }
         }
 
+        // Find IDs that can be deleted (not in conflicts)
+        const bigIntIds = ids.map((id) => BigInt(id));
+        const conflictingShapeSizeIds = shapesWithShapeSizes.map((s) => s.id);
+        const conflictingDiamondIds = shapesWithDiamonds.map((s) => s.id);
+        const allConflictingIds = [
+            ...new Set([...conflictingShapeSizeIds, ...conflictingDiamondIds]),
+        ];
+        const deletableIds = bigIntIds.filter(
+            (id) => !allConflictingIds.includes(id),
+        );
+
+        // Delete only the items without conflicts
+        let deletedCount = 0;
+        if (deletableIds.length > 0) {
+            const result = await this.prisma.diamond_shapes.deleteMany({
+                where: { id: { in: deletableIds } },
+            });
+            deletedCount = result.count;
+        }
+
+        // Build response message - prioritize shape sizes errors
+        if (allConflictingIds.length === 0) {
+            // All items deleted successfully
+            return {
+                success: true,
+                message: `${deletedCount} diamond shape${deletedCount === 1 ? '' : 's'} deleted successfully`,
+            };
+        }
+
         // Check shape sizes first (higher priority error)
         if (shapesWithShapeSizes.length > 0) {
             const shapeMessages = shapesWithShapeSizes.map(
                 (s) => `${s.name} (${s.count} shape size(s))`,
             );
             const shapeNamesList = shapeMessages.join(', ');
-            throw new BadRequestException(
-                `Cannot delete diamond shape(s): ${shapeNamesList}. They have associated shape sizes. Please remove all shape sizes first, then delete the diamond shape(s).`,
-            );
+
+            if (deletedCount > 0) {
+                return {
+                    success: true,
+                    message: `${deletedCount} diamond shape${deletedCount === 1 ? '' : 's'} deleted successfully. Cannot delete: ${shapeNamesList}. They have associated shape sizes. Please remove all shape sizes first.`,
+                };
+            } else {
+                throw new BadRequestException(
+                    `Cannot delete diamond shape(s): ${shapeNamesList}. They have associated shape sizes. Please remove all shape sizes first, then delete the diamond shape(s).`,
+                );
+            }
         }
 
+        // Handle diamond conflicts
         if (shapesWithDiamonds.length > 0) {
             const shapeMessages = shapesWithDiamonds.map((s) => {
                 if (s.productCount > 0) {
@@ -403,46 +441,17 @@ export class DiamondShapesService {
                 return `${s.name} (${s.diamondCount} diamond(s))`;
             });
             const shapeNamesList = shapeMessages.join(', ');
-            throw new BadRequestException(
-                `Cannot delete diamond shape(s): ${shapeNamesList}. They are currently assigned to diamonds. Please remove or update the diamond shape(s) from all diamonds first, then delete the diamond shape(s).`,
-            );
-        }
 
-        let deletedCount = 0;
-
-        for (const id of ids) {
-            const shapeId = BigInt(id);
-            // Check if shape exists
-            const shape = await this.prisma.diamond_shapes.findUnique({
-                where: { id: shapeId },
-            });
-
-            if (!shape) {
-                continue;
+            if (deletedCount > 0) {
+                return {
+                    success: true,
+                    message: `${deletedCount} diamond shape${deletedCount === 1 ? '' : 's'} deleted successfully. Cannot delete: ${shapeNamesList}. They are currently assigned to diamonds. Please remove or update them from all diamonds first.`,
+                };
+            } else {
+                throw new BadRequestException(
+                    `Cannot delete diamond shape(s): ${shapeNamesList}. They are currently assigned to diamonds. Please remove or update the diamond shape(s) from all diamonds first, then delete the diamond shape(s).`,
+                );
             }
-
-            // Check if shape sizes exist - if they do, skip deletion (already validated above)
-            const shapeSizesCount = await this.prisma.diamond_shape_sizes.count(
-                {
-                    where: { diamond_shape_id: shapeId },
-                },
-            );
-
-            if (shapeSizesCount > 0) {
-                continue;
-            }
-
-            // If no products or shape sizes use this shape, delete it
-            await this.prisma.diamond_shapes.delete({
-                where: { id: shapeId },
-            });
-
-            deletedCount++;
         }
-
-        return {
-            success: true,
-            message: `${deletedCount} diamond shape${deletedCount === 1 ? '' : 's'} deleted successfully.`,
-        };
     }
 }

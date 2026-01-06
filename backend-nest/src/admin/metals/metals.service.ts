@@ -273,80 +273,102 @@ export class MetalsService {
             ]),
         ];
 
-        if (allConflictingMetalIds.length > 0) {
-            // Get metal details with counts
-            const metalDetails = await Promise.all(
-                allConflictingMetalIds.map(async (metalId) => {
-                    const metal = await this.prisma.metals.findUnique({
-                        where: { id: metalId },
-                        select: { name: true },
-                    });
+        // Find IDs that can be deleted (not in conflicts)
+        const deletableIds = bigIntIds.filter(
+            (id) => !allConflictingMetalIds.includes(id),
+        );
 
-                    const puritiesCount = purityMetalIds.includes(metalId)
-                        ? await this.prisma.metal_purities.count({
-                              where: { metal_id: metalId },
-                          })
-                        : 0;
-
-                    const tonesCount = toneMetalIds.includes(metalId)
-                        ? await this.prisma.metal_tones.count({
-                              where: { metal_id: metalId },
-                          })
-                        : 0;
-
-                    const productsCount = productMetalIds.includes(metalId)
-                        ? await this.prisma.product_variant_metals.count({
-                              where: { metal_id: metalId },
-                          })
-                        : 0;
-
-                    return {
-                        id: metalId,
-                        name: metal?.name || 'Unknown',
-                        puritiesCount,
-                        tonesCount,
-                        productsCount,
-                    };
-                }),
-            );
-
-            const conflicts: string[] = [];
-            metalDetails.forEach((detail) => {
-                const detailConflicts: string[] = [];
-                if (detail.puritiesCount > 0) {
-                    detailConflicts.push(
-                        `${detail.puritiesCount} purit${detail.puritiesCount === 1 ? 'y' : 'ies'}`,
-                    );
-                }
-                if (detail.tonesCount > 0) {
-                    detailConflicts.push(
-                        `${detail.tonesCount} tone${detail.tonesCount === 1 ? '' : 's'}`,
-                    );
-                }
-                if (detail.productsCount > 0) {
-                    detailConflicts.push(
-                        `${detail.productsCount} product variant${detail.productsCount === 1 ? '' : 's'}`,
-                    );
-                }
-
-                if (detailConflicts.length > 0) {
-                    conflicts.push(
-                        `${detail.name} (assigned to ${detailConflicts.join(', ')})`,
-                    );
-                }
+        // Delete only the items without conflicts
+        let deletedCount = 0;
+        if (deletableIds.length > 0) {
+            const result = await this.prisma.metals.deleteMany({
+                where: { id: { in: deletableIds } },
             });
+            deletedCount = result.count;
+        }
 
+        // Build response message
+        if (allConflictingMetalIds.length === 0) {
+            // All items deleted successfully
+            return {
+                success: true,
+                message: `${deletedCount} metal${deletedCount === 1 ? '' : 's'} deleted successfully`,
+            };
+        }
+
+        // Get metal details with counts for conflicts
+        const metalDetails = await Promise.all(
+            allConflictingMetalIds.map(async (metalId) => {
+                const metal = await this.prisma.metals.findUnique({
+                    where: { id: metalId },
+                    select: { name: true },
+                });
+
+                const puritiesCount = purityMetalIds.includes(metalId)
+                    ? await this.prisma.metal_purities.count({
+                          where: { metal_id: metalId },
+                      })
+                    : 0;
+
+                const tonesCount = toneMetalIds.includes(metalId)
+                    ? await this.prisma.metal_tones.count({
+                          where: { metal_id: metalId },
+                      })
+                    : 0;
+
+                const productsCount = productMetalIds.includes(metalId)
+                    ? await this.prisma.product_variant_metals.count({
+                          where: { metal_id: metalId },
+                      })
+                    : 0;
+
+                return {
+                    id: metalId,
+                    name: metal?.name || 'Unknown',
+                    puritiesCount,
+                    tonesCount,
+                    productsCount,
+                };
+            }),
+        );
+
+        const conflicts: string[] = [];
+        metalDetails.forEach((detail) => {
+            const detailConflicts: string[] = [];
+            if (detail.puritiesCount > 0) {
+                detailConflicts.push(
+                    `${detail.puritiesCount} purit${detail.puritiesCount === 1 ? 'y' : 'ies'}`,
+                );
+            }
+            if (detail.tonesCount > 0) {
+                detailConflicts.push(
+                    `${detail.tonesCount} tone${detail.tonesCount === 1 ? '' : 's'}`,
+                );
+            }
+            if (detail.productsCount > 0) {
+                detailConflicts.push(
+                    `${detail.productsCount} product variant${detail.productsCount === 1 ? '' : 's'}`,
+                );
+            }
+
+            if (detailConflicts.length > 0) {
+                conflicts.push(
+                    `${detail.name} (assigned to ${detailConflicts.join(', ')})`,
+                );
+            }
+        });
+
+        if (deletedCount > 0) {
+            // Partial success
+            return {
+                success: true,
+                message: `${deletedCount} metal${deletedCount === 1 ? '' : 's'} deleted successfully. Cannot delete: ${conflicts.join(', ')}. Please remove them from all related entities first.`,
+            };
+        } else {
+            // All failed
             throw new BadRequestException(
                 `Cannot delete metal(s): ${conflicts.join(', ')}. Please remove the metal(s) from all related entities first, then delete the metal(s).`,
             );
         }
-
-        await this.prisma.metals.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
-        return {
-            success: true,
-            message: 'Metals deleted successfully',
-        };
     }
 }
