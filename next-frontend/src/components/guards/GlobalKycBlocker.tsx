@@ -61,6 +61,19 @@ export default function GlobalKycBlocker() {
         return;
       }
 
+      // Allow KYC document view/download links (storage URLs and download endpoints)
+      // Users should be able to view/download their own KYC documents even if not approved
+      if (href.includes('/storage/kyc/') || 
+          href.includes('/onboarding/kyc/documents/') ||
+          href.includes('/api/onboarding/kyc/documents/')) {
+        return;
+      }
+
+      // If user is on KYC onboarding page, allow all links (they're managing their KYC)
+      if (pathname === '/onboarding/kyc' || pathname.startsWith('/onboarding/kyc')) {
+        return;
+      }
+
       // Check KYC status
       if (!isKycApproved()) {
         // COMPLETELY BLOCK navigation
