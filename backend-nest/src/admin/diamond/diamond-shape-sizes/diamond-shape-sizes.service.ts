@@ -13,7 +13,12 @@ import {
 export class DiamondShapeSizesService {
     constructor(private prisma: PrismaService) {}
 
-    async findAll(page: number, perPage: number, shapeId?: number) {
+    async findAll(
+        page: number,
+        perPage: number,
+        shapeId?: number,
+        typeId?: number,
+    ) {
         const skip = (page - 1) * perPage;
         const whereClause: any = {
             // Only show shape sizes from active diamond types
@@ -21,6 +26,10 @@ export class DiamondShapeSizesService {
                 is_active: true,
             },
         };
+        // Add type filter if provided
+        if (typeId) {
+            whereClause.diamond_type_id = BigInt(typeId);
+        }
         // Add shape filter if provided
         if (shapeId) {
             whereClause.diamond_shape_id = BigInt(shapeId);
