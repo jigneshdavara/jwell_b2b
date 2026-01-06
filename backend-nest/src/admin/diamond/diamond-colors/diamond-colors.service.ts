@@ -328,43 +328,50 @@ export class DiamondColorsService {
             }
         }
 
-        if (colorsWithDiamonds.length > 0) {
-            const colorMessages = colorsWithDiamonds.map((c) => {
-                if (c.productCount > 0) {
-                    return `${c.name} (${c.diamondCount} diamond(s), ${c.productCount} in products)`;
-                }
-                return `${c.name} (${c.diamondCount} diamond(s))`;
+        // Find IDs that can be deleted (not in conflicts)
+        const bigIntIds = ids.map((id) => BigInt(id));
+        const conflictingIds = colorsWithDiamonds.map((c) => c.id);
+        const deletableIds = bigIntIds.filter(
+            (id) => !conflictingIds.includes(id),
+        );
+
+        // Delete only the items without conflicts
+        let deletedCount = 0;
+        if (deletableIds.length > 0) {
+            const result = await this.prisma.diamond_colors.deleteMany({
+                where: { id: { in: deletableIds } },
             });
-            const colorNamesList = colorMessages.join(', ');
+            deletedCount = result.count;
+        }
+
+        // Build response message
+        if (colorsWithDiamonds.length === 0) {
+            // All items deleted successfully
+            return {
+                success: true,
+                message: `${deletedCount} diamond color${deletedCount === 1 ? '' : 's'} deleted successfully`,
+            };
+        }
+
+        const colorMessages = colorsWithDiamonds.map((c) => {
+            if (c.productCount > 0) {
+                return `${c.name} (${c.diamondCount} diamond(s), ${c.productCount} in products)`;
+            }
+            return `${c.name} (${c.diamondCount} diamond(s))`;
+        });
+        const colorNamesList = colorMessages.join(', ');
+
+        if (deletedCount > 0) {
+            // Partial success
+            return {
+                success: true,
+                message: `${deletedCount} diamond color${deletedCount === 1 ? '' : 's'} deleted successfully. Cannot delete: ${colorNamesList}. They are currently assigned to diamonds. Please remove or update them from all diamonds first.`,
+            };
+        } else {
+            // All failed
             throw new BadRequestException(
                 `Cannot delete diamond color(s): ${colorNamesList}. They are currently assigned to diamonds. Please remove or update the diamond color(s) from all diamonds first, then delete the diamond color(s).`,
             );
         }
-
-        let deletedCount = 0;
-
-        for (const id of ids) {
-            const colorId = BigInt(id);
-            // Check if color exists
-            const color = await this.prisma.diamond_colors.findUnique({
-                where: { id: colorId },
-            });
-
-            if (!color) {
-                continue;
-            }
-
-            // If no products use this color, delete it
-            await this.prisma.diamond_colors.delete({
-                where: { id: colorId },
-            });
-
-            deletedCount++;
-        }
-
-        return {
-            success: true,
-            message: `${deletedCount} diamond color${deletedCount === 1 ? '' : 's'} deleted successfully.`,
-        };
     }
 }

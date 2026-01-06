@@ -277,70 +277,96 @@ export class StylesService {
             ]),
         ];
 
-        if (allConflictingStyleIds.length > 0) {
-            // Get style details with counts
-            const styleDetails = await Promise.all(
-                allConflictingStyleIds.map(async (styleId) => {
-                    const style = await this.prisma.styles.findUnique({
-                        where: { id: BigInt(styleId) },
-                        select: { name: true },
-                    });
+        // Convert conflicting style IDs to BigInt for comparison
+        const conflictingStyleBigIntIds = allConflictingStyleIds.map((id) =>
+            BigInt(id),
+        );
 
-                    const categoriesCount = categoryStyleIds.includes(styleId)
-                        ? await this.prisma.category_styles.count({
-                              where: { style_id: BigInt(styleId) },
-                          })
-                        : 0;
+        // Find IDs that can be deleted (not in conflicts)
+        const deletableIds = bigIntIds.filter(
+            (id) => !conflictingStyleBigIntIds.includes(id),
+        );
 
-                    const productsCount = stylesUsedInProducts.has(styleId)
-                        ? allProducts.filter((product) => {
-                              if (!product.style_ids) return false;
-                              const styleIds = product.style_ids as number[];
-                              return (
-                                  Array.isArray(styleIds) &&
-                                  styleIds.includes(styleId)
-                              );
-                          }).length
-                        : 0;
-
-                    return {
-                        id: styleId,
-                        name: style?.name || 'Unknown',
-                        categoriesCount,
-                        productsCount,
-                    };
-                }),
-            );
-
-            const conflicts: string[] = [];
-            styleDetails.forEach((detail) => {
-                if (detail.categoriesCount > 0 && detail.productsCount > 0) {
-                    conflicts.push(
-                        `${detail.name} (assigned to ${detail.categoriesCount} categor(ies) and ${detail.productsCount} product(s))`,
-                    );
-                } else if (detail.categoriesCount > 0) {
-                    conflicts.push(
-                        `${detail.name} (assigned to ${detail.categoriesCount} categor(ies))`,
-                    );
-                } else if (detail.productsCount > 0) {
-                    conflicts.push(
-                        `${detail.name} (assigned to ${detail.productsCount} product(s))`,
-                    );
-                }
+        // Delete only the items without conflicts
+        let deletedCount = 0;
+        if (deletableIds.length > 0) {
+            const result = await this.prisma.styles.deleteMany({
+                where: { id: { in: deletableIds } },
             });
+            deletedCount = result.count;
+        }
 
+        // Build response message
+        if (allConflictingStyleIds.length === 0) {
+            // All items deleted successfully
+            return {
+                success: true,
+                message: `${deletedCount} style${deletedCount === 1 ? '' : 's'} deleted successfully`,
+            };
+        }
+
+        // Get style details with counts for conflicts
+        const styleDetails = await Promise.all(
+            allConflictingStyleIds.map(async (styleId) => {
+                const style = await this.prisma.styles.findUnique({
+                    where: { id: BigInt(styleId) },
+                    select: { name: true },
+                });
+
+                const categoriesCount = categoryStyleIds.includes(styleId)
+                    ? await this.prisma.category_styles.count({
+                          where: { style_id: BigInt(styleId) },
+                      })
+                    : 0;
+
+                const productsCount = stylesUsedInProducts.has(styleId)
+                    ? allProducts.filter((product) => {
+                          if (!product.style_ids) return false;
+                          const styleIds = product.style_ids as number[];
+                          return (
+                              Array.isArray(styleIds) &&
+                              styleIds.includes(styleId)
+                          );
+                      }).length
+                    : 0;
+
+                return {
+                    id: styleId,
+                    name: style?.name || 'Unknown',
+                    categoriesCount,
+                    productsCount,
+                };
+            }),
+        );
+
+        const conflicts: string[] = [];
+        styleDetails.forEach((detail) => {
+            if (detail.categoriesCount > 0 && detail.productsCount > 0) {
+                conflicts.push(
+                    `${detail.name} (assigned to ${detail.categoriesCount} categor(ies) and ${detail.productsCount} product(s))`,
+                );
+            } else if (detail.categoriesCount > 0) {
+                conflicts.push(
+                    `${detail.name} (assigned to ${detail.categoriesCount} categor(ies))`,
+                );
+            } else if (detail.productsCount > 0) {
+                conflicts.push(
+                    `${detail.name} (assigned to ${detail.productsCount} product(s))`,
+                );
+            }
+        });
+
+        if (deletedCount > 0) {
+            // Partial success
+            return {
+                success: true,
+                message: `${deletedCount} style${deletedCount === 1 ? '' : 's'} deleted successfully. Cannot delete: ${conflicts.join(', ')}. Please remove them from all categories and products first.`,
+            };
+        } else {
+            // All failed
             throw new BadRequestException(
                 `Cannot delete style(s): ${conflicts.join(', ')}. Please remove the style(s) from all categories and products first, then delete the style(s).`,
             );
         }
-
-        await this.prisma.styles.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
-
-        return {
-            success: true,
-            message: 'Styles deleted successfully',
-        };
     }
 }

@@ -262,7 +262,7 @@ export class MetalTonesService {
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
 
-        // Check if any of the metal tones are assigned to products
+        // Check which metal tones are assigned to products
         const tonesWithProducts =
             await this.prisma.product_variant_metals.findMany({
                 where: {
@@ -274,48 +274,70 @@ export class MetalTonesService {
                 distinct: ['metal_tone_id'],
             });
 
-        if (tonesWithProducts.length > 0) {
-            const toneIds = tonesWithProducts
-                .map((p) => p.metal_tone_id)
-                .filter((id): id is bigint => id !== null);
+        const conflictingToneIds = tonesWithProducts
+            .map((p) => p.metal_tone_id)
+            .filter((id): id is bigint => id !== null);
 
-            // Get detailed information for each conflicting tone
-            const toneDetails = await Promise.all(
-                toneIds.map(async (toneId) => {
-                    const toneData = await this.prisma.metal_tones.findUnique({
-                        where: { id: toneId },
-                        select: { name: true },
+        // Find IDs that can be deleted (not in conflicts)
+        const deletableIds = bigIntIds.filter(
+            (id) => !conflictingToneIds.includes(id),
+        );
+
+        // Delete only the items without conflicts
+        let deletedCount = 0;
+        if (deletableIds.length > 0) {
+            const result = await this.prisma.metal_tones.deleteMany({
+                where: { id: { in: deletableIds } },
+            });
+            deletedCount = result.count;
+        }
+
+        // Build response message
+        if (conflictingToneIds.length === 0) {
+            // All items deleted successfully
+            return {
+                success: true,
+                message: `${deletedCount} metal tone${deletedCount === 1 ? '' : 's'} deleted successfully`,
+            };
+        }
+
+        // Get detailed information for conflicting tones
+        const toneDetails = await Promise.all(
+            conflictingToneIds.map(async (toneId) => {
+                const toneData = await this.prisma.metal_tones.findUnique({
+                    where: { id: toneId },
+                    select: { name: true },
+                });
+
+                const productsCount =
+                    await this.prisma.product_variant_metals.count({
+                        where: { metal_tone_id: toneId },
                     });
 
-                    const productsCount =
-                        await this.prisma.product_variant_metals.count({
-                            where: { metal_tone_id: toneId },
-                        });
+                return {
+                    id: toneId,
+                    name: toneData?.name || 'Unknown',
+                    productsCount,
+                };
+            }),
+        );
 
-                    return {
-                        id: toneId,
-                        name: toneData?.name || 'Unknown',
-                        productsCount,
-                    };
-                }),
-            );
+        const conflicts = toneDetails.map(
+            (detail) =>
+                `${detail.name} (assigned to ${detail.productsCount} product variant${detail.productsCount === 1 ? '' : 's'})`,
+        );
 
-            const conflicts = toneDetails.map(
-                (detail) =>
-                    `${detail.name} (assigned to ${detail.productsCount} product variant${detail.productsCount === 1 ? '' : 's'})`,
-            );
-
+        if (deletedCount > 0) {
+            // Partial success
+            return {
+                success: true,
+                message: `${deletedCount} metal tone${deletedCount === 1 ? '' : 's'} deleted successfully. Cannot delete: ${conflicts.join(', ')}. Please remove them from all product variants first.`,
+            };
+        } else {
+            // All failed
             throw new BadRequestException(
                 `Cannot delete metal tone(s): ${conflicts.join(', ')}. Please remove the metal tone(s) from all product variants first, then delete the metal tone(s).`,
             );
         }
-
-        await this.prisma.metal_tones.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
-        return {
-            success: true,
-            message: 'Metal tones deleted successfully',
-        };
     }
 }

@@ -278,6 +278,7 @@ export class DiamondClaritiesService {
     }
 
     async bulkRemove(ids: number[]) {
+        const bigIntIds = ids.map((id) => BigInt(id));
         const claritiesWithDiamonds: Array<{
             id: bigint;
             name: string;
@@ -316,7 +317,7 @@ export class DiamondClaritiesService {
                         },
                     });
 
-                // Prevent deletion if clarity is assigned to any diamonds (even if not in products)
+                // Track clarity if it's assigned to any diamonds (even if not in products)
                 claritiesWithDiamonds.push({
                     id: clarityId,
                     name: clarity.name,
@@ -326,43 +327,49 @@ export class DiamondClaritiesService {
             }
         }
 
-        if (claritiesWithDiamonds.length > 0) {
-            const clarityMessages = claritiesWithDiamonds.map((c) => {
-                if (c.productCount > 0) {
-                    return `${c.name} (${c.diamondCount} diamond(s), ${c.productCount} in products)`;
-                }
-                return `${c.name} (${c.diamondCount} diamond(s))`;
+        // Find IDs that can be deleted (not in conflicts)
+        const conflictingIds = claritiesWithDiamonds.map((c) => c.id);
+        const deletableIds = bigIntIds.filter(
+            (id) => !conflictingIds.includes(id),
+        );
+
+        // Delete only the items without conflicts
+        let deletedCount = 0;
+        if (deletableIds.length > 0) {
+            const result = await this.prisma.diamond_clarities.deleteMany({
+                where: { id: { in: deletableIds } },
             });
-            const clarityNamesList = clarityMessages.join(', ');
+            deletedCount = result.count;
+        }
+
+        // Build response message
+        if (claritiesWithDiamonds.length === 0) {
+            // All items deleted successfully
+            return {
+                success: true,
+                message: `${deletedCount} diamond clarit${deletedCount === 1 ? 'y' : 'ies'} deleted successfully`,
+            };
+        }
+
+        const clarityMessages = claritiesWithDiamonds.map((c) => {
+            if (c.productCount > 0) {
+                return `${c.name} (${c.diamondCount} diamond(s), ${c.productCount} in products)`;
+            }
+            return `${c.name} (${c.diamondCount} diamond(s))`;
+        });
+        const clarityNamesList = clarityMessages.join(', ');
+
+        if (deletedCount > 0) {
+            // Partial success
+            return {
+                success: true,
+                message: `${deletedCount} diamond clarit${deletedCount === 1 ? 'y' : 'ies'} deleted successfully. Cannot delete: ${clarityNamesList}. They are currently assigned to diamonds. Please remove or update them from all diamonds first.`,
+            };
+        } else {
+            // All failed
             throw new BadRequestException(
                 `Cannot delete diamond clarity(ies): ${clarityNamesList}. They are currently assigned to diamonds. Please remove or update the diamond clarity(ies) from all diamonds first, then delete the diamond clarity(ies).`,
             );
         }
-
-        let deletedCount = 0;
-
-        for (const id of ids) {
-            const clarityId = BigInt(id);
-            // Check if clarity exists
-            const clarity = await this.prisma.diamond_clarities.findUnique({
-                where: { id: clarityId },
-            });
-
-            if (!clarity) {
-                continue;
-            }
-
-            // If no products use this clarity, delete it
-            await this.prisma.diamond_clarities.delete({
-                where: { id: clarityId },
-            });
-
-            deletedCount++;
-        }
-
-        return {
-            success: true,
-            message: `${deletedCount} diamond clarit${deletedCount === 1 ? 'y' : 'ies'} deleted successfully.`,
-        };
     }
 }

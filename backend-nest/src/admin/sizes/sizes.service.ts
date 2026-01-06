@@ -241,65 +241,86 @@ export class SizesService {
             ...new Set([...categorySizeIds, ...productSizeIds]),
         ];
 
-        if (allConflictingSizeIds.length > 0) {
-            // Get size details with counts
-            const sizeDetails = await Promise.all(
-                allConflictingSizeIds.map(async (sizeId) => {
-                    const size = await this.prisma.sizes.findUnique({
-                        where: { id: sizeId },
-                        select: { name: true },
-                    });
+        // Find IDs that can be deleted (not in conflicts)
+        const deletableIds = bigIntIds.filter(
+            (id) => !allConflictingSizeIds.includes(id),
+        );
 
-                    const categoriesCount = categorySizeIds.includes(sizeId)
-                        ? await this.prisma.category_sizes.count({
-                              where: { size_id: sizeId },
-                          })
-                        : 0;
-
-                    const productsCount = productSizeIds.includes(sizeId)
-                        ? await this.prisma.product_variants.count({
-                              where: { size_id: sizeId },
-                          })
-                        : 0;
-
-                    return {
-                        id: sizeId,
-                        name: size?.name || 'Unknown',
-                        categoriesCount,
-                        productsCount,
-                    };
-                }),
-            );
-
-            const conflicts: string[] = [];
-            sizeDetails.forEach((detail) => {
-                if (detail.categoriesCount > 0 && detail.productsCount > 0) {
-                    conflicts.push(
-                        `${detail.name} (assigned to ${detail.categoriesCount} categor(ies) and ${detail.productsCount} product variant(s))`,
-                    );
-                } else if (detail.categoriesCount > 0) {
-                    conflicts.push(
-                        `${detail.name} (assigned to ${detail.categoriesCount} categor(ies))`,
-                    );
-                } else if (detail.productsCount > 0) {
-                    conflicts.push(
-                        `${detail.name} (assigned to ${detail.productsCount} product variant(s))`,
-                    );
-                }
+        // Delete only the items without conflicts
+        let deletedCount = 0;
+        if (deletableIds.length > 0) {
+            const result = await this.prisma.sizes.deleteMany({
+                where: { id: { in: deletableIds } },
             });
+            deletedCount = result.count;
+        }
 
+        // Build response message
+        if (allConflictingSizeIds.length === 0) {
+            // All items deleted successfully
+            return {
+                success: true,
+                message: `${deletedCount} size${deletedCount === 1 ? '' : 's'} deleted successfully`,
+            };
+        }
+
+        // Get size details with counts for conflicts
+        const sizeDetails = await Promise.all(
+            allConflictingSizeIds.map(async (sizeId) => {
+                const size = await this.prisma.sizes.findUnique({
+                    where: { id: sizeId },
+                    select: { name: true },
+                });
+
+                const categoriesCount = categorySizeIds.includes(sizeId)
+                    ? await this.prisma.category_sizes.count({
+                          where: { size_id: sizeId },
+                      })
+                    : 0;
+
+                const productsCount = productSizeIds.includes(sizeId)
+                    ? await this.prisma.product_variants.count({
+                          where: { size_id: sizeId },
+                      })
+                    : 0;
+
+                return {
+                    id: sizeId,
+                    name: size?.name || 'Unknown',
+                    categoriesCount,
+                    productsCount,
+                };
+            }),
+        );
+
+        const conflicts: string[] = [];
+        sizeDetails.forEach((detail) => {
+            if (detail.categoriesCount > 0 && detail.productsCount > 0) {
+                conflicts.push(
+                    `${detail.name} (assigned to ${detail.categoriesCount} categor(ies) and ${detail.productsCount} product variant(s))`,
+                );
+            } else if (detail.categoriesCount > 0) {
+                conflicts.push(
+                    `${detail.name} (assigned to ${detail.categoriesCount} categor(ies))`,
+                );
+            } else if (detail.productsCount > 0) {
+                conflicts.push(
+                    `${detail.name} (assigned to ${detail.productsCount} product variant(s))`,
+                );
+            }
+        });
+
+        if (deletedCount > 0) {
+            // Partial success
+            return {
+                success: true,
+                message: `${deletedCount} size${deletedCount === 1 ? '' : 's'} deleted successfully. Cannot delete: ${conflicts.join(', ')}. Please remove them from all categories and products first.`,
+            };
+        } else {
+            // All failed
             throw new BadRequestException(
                 `Cannot delete size(s): ${conflicts.join(', ')}. Please remove the size(s) from all categories and products first, then delete the size(s).`,
             );
         }
-
-        await this.prisma.sizes.deleteMany({
-            where: { id: { in: bigIntIds } },
-        });
-
-        return {
-            success: true,
-            message: 'Sizes deleted successfully',
-        };
     }
 }

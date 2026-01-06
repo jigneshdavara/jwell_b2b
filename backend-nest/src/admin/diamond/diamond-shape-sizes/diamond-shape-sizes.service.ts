@@ -233,43 +233,50 @@ export class DiamondShapeSizesService {
             }
         }
 
-        if (shapeSizesWithDiamonds.length > 0) {
-            const shapeSizeMessages = shapeSizesWithDiamonds.map((s) => {
-                if (s.productCount > 0) {
-                    return `${s.size} (${s.diamondCount} diamond(s), ${s.productCount} in products)`;
-                }
-                return `${s.size} (${s.diamondCount} diamond(s))`;
+        // Find IDs that can be deleted (not in conflicts)
+        const bigIntIds = ids.map((id) => BigInt(id));
+        const conflictingIds = shapeSizesWithDiamonds.map((s) => s.id);
+        const deletableIds = bigIntIds.filter(
+            (id) => !conflictingIds.includes(id),
+        );
+
+        // Delete only the items without conflicts
+        let deletedCount = 0;
+        if (deletableIds.length > 0) {
+            const result = await this.prisma.diamond_shape_sizes.deleteMany({
+                where: { id: { in: deletableIds } },
             });
-            const shapeSizeNamesList = shapeSizeMessages.join(', ');
+            deletedCount = result.count;
+        }
+
+        // Build response message
+        if (shapeSizesWithDiamonds.length === 0) {
+            // All items deleted successfully
+            return {
+                success: true,
+                message: `${deletedCount} diamond shape size${deletedCount === 1 ? '' : 's'} deleted successfully`,
+            };
+        }
+
+        const shapeSizeMessages = shapeSizesWithDiamonds.map((s) => {
+            if (s.productCount > 0) {
+                return `${s.size} (${s.diamondCount} diamond(s), ${s.productCount} in products)`;
+            }
+            return `${s.size} (${s.diamondCount} diamond(s))`;
+        });
+        const shapeSizeNamesList = shapeSizeMessages.join(', ');
+
+        if (deletedCount > 0) {
+            // Partial success
+            return {
+                success: true,
+                message: `${deletedCount} diamond shape size${deletedCount === 1 ? '' : 's'} deleted successfully. Cannot delete: ${shapeSizeNamesList}. They are currently assigned to diamonds. Please remove or update them from all diamonds first.`,
+            };
+        } else {
+            // All failed
             throw new BadRequestException(
                 `Cannot delete diamond shape size(s): ${shapeSizeNamesList}. They are currently assigned to diamonds. Please remove or update the diamond shape size(s) from all diamonds first, then delete the diamond shape size(s).`,
             );
         }
-
-        let deletedCount = 0;
-
-        for (const id of ids) {
-            const shapeSizeId = BigInt(id);
-            // Check if shape size exists
-            const shapeSize = await this.prisma.diamond_shape_sizes.findUnique({
-                where: { id: shapeSizeId },
-            });
-
-            if (!shapeSize) {
-                continue;
-            }
-
-            // If no diamonds use this shape size, delete it
-            await this.prisma.diamond_shape_sizes.delete({
-                where: { id: shapeSizeId },
-            });
-
-            deletedCount++;
-        }
-
-        return {
-            success: true,
-            message: `${deletedCount} diamond shape size${deletedCount === 1 ? '' : 's'} deleted successfully.`,
-        };
     }
 }
