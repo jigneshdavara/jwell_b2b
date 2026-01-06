@@ -175,7 +175,7 @@ export class DiamondColorsService {
             }
         }
 
-        // Check if trying to pause/deactivate diamond color that is assigned to products
+        // Check if trying to pause/deactivate diamond color that is assigned to diamonds
         if (dto.is_active === false && existing.is_active === true) {
             const colorId = BigInt(id);
             // Find all diamonds with this diamond_color_id
@@ -200,9 +200,14 @@ export class DiamondColorsService {
 
                 if (productsCount > 0) {
                     throw new BadRequestException(
-                        `Cannot pause this diamond color. It is currently assigned to ${productsCount} product(s). Please remove the diamond color from all products first, then pause the diamond color.`,
+                        `Cannot deactivate this diamond color. It is currently assigned to ${diamonds.length} diamond(s), and ${productsCount} of them are used in product variant(s). Please remove the diamond color from all products first, then deactivate the diamond color.`,
                     );
                 }
+
+                // Also prevent deactivation if color is assigned to any diamonds (even if not in products)
+                throw new BadRequestException(
+                    `Cannot deactivate this diamond color. It is currently assigned to ${diamonds.length} diamond(s). Please remove or update the diamond color from all diamonds first, then deactivate the diamond color.`,
+                );
             }
         }
 
@@ -254,12 +259,17 @@ export class DiamondColorsService {
 
             if (productsCount > 0) {
                 throw new BadRequestException(
-                    `Cannot delete this diamond color. It is currently assigned to ${productsCount} product(s). Please remove the diamond color from all products first, then delete the diamond color.`,
+                    `Cannot delete this diamond color. It is currently assigned to ${diamonds.length} diamond(s), and ${productsCount} of them are used in product variant(s). Please remove the diamond color from all products first, then delete the diamond color.`,
                 );
             }
+
+            // Also prevent deletion if color is assigned to any diamonds (even if not in products)
+            throw new BadRequestException(
+                `Cannot delete this diamond color. It is currently assigned to ${diamonds.length} diamond(s). Please remove or update the diamond color from all diamonds first, then delete the diamond color.`,
+            );
         }
 
-        // If no products use this color, delete it
+        // If no diamonds use this color, delete it
         await this.prisma.diamond_colors.delete({
             where: { id: colorId },
         });
@@ -270,9 +280,14 @@ export class DiamondColorsService {
     }
 
     async bulkRemove(ids: number[]) {
-        const colorsWithProducts: bigint[] = [];
+        const colorsWithDiamonds: Array<{
+            id: bigint;
+            name: string;
+            diamondCount: number;
+            productCount: number;
+        }> = [];
 
-        // Check all colors for product assignments
+        // Check all colors for diamond and product assignments
         for (const id of ids) {
             const colorId = BigInt(id);
             const color = await this.prisma.diamond_colors.findUnique({
@@ -303,24 +318,26 @@ export class DiamondColorsService {
                         },
                     });
 
-                if (productsCount > 0) {
-                    colorsWithProducts.push(colorId);
-                }
+                // Prevent deletion if color is assigned to any diamonds (even if not in products)
+                colorsWithDiamonds.push({
+                    id: colorId,
+                    name: color.name,
+                    diamondCount: diamonds.length,
+                    productCount: productsCount,
+                });
             }
         }
 
-        if (colorsWithProducts.length > 0) {
-            const colorNames = await this.prisma.diamond_colors.findMany({
-                where: {
-                    id: { in: colorsWithProducts },
-                },
-                select: {
-                    name: true,
-                },
+        if (colorsWithDiamonds.length > 0) {
+            const colorMessages = colorsWithDiamonds.map((c) => {
+                if (c.productCount > 0) {
+                    return `${c.name} (${c.diamondCount} diamond(s), ${c.productCount} in products)`;
+                }
+                return `${c.name} (${c.diamondCount} diamond(s))`;
             });
-            const colorNamesList = colorNames.map((c) => c.name).join(', ');
+            const colorNamesList = colorMessages.join(', ');
             throw new BadRequestException(
-                `Cannot delete diamond color(s): ${colorNamesList}. They are currently assigned to products. Please remove the diamond color(s) from all products first, then delete the diamond color(s).`,
+                `Cannot delete diamond color(s): ${colorNamesList}. They are currently assigned to diamonds. Please remove or update the diamond color(s) from all diamonds first, then delete the diamond color(s).`,
             );
         }
 

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateDiamondDto, UpdateDiamondDto } from './dto/diamond.dto';
 
@@ -139,17 +143,82 @@ export class DiamondsService {
     }
 
     async remove(id: number) {
+        const diamondId = BigInt(id);
         await this.findOne(id);
+
+        // Check if diamond is used in product variants
+        const productsCount = await this.prisma.product_variant_diamonds.count({
+            where: {
+                diamond_id: diamondId,
+            },
+        });
+
+        if (productsCount > 0) {
+            throw new BadRequestException(
+                `Cannot delete this diamond. It is currently assigned to ${productsCount} product variant(s). Please remove the diamond from all products first, then delete the diamond.`,
+            );
+        }
+
         return await this.prisma.diamonds.delete({
-            where: { id: BigInt(id) },
+            where: { id: diamondId },
         });
     }
 
     async bulkRemove(ids: number[]) {
         const bigIntIds = ids.map((id) => BigInt(id));
-        return await this.prisma.diamonds.deleteMany({
+        const diamondsWithProducts: Array<{
+            id: bigint;
+            name: string;
+            productCount: number;
+        }> = [];
+
+        // Check all diamonds for product assignments
+        for (const id of ids) {
+            const diamondId = BigInt(id);
+            const diamond = await this.prisma.diamonds.findUnique({
+                where: { id: diamondId },
+                select: { id: true, name: true },
+            });
+
+            if (!diamond) {
+                continue;
+            }
+
+            // Check if diamond is used in product variants
+            const productsCount =
+                await this.prisma.product_variant_diamonds.count({
+                    where: {
+                        diamond_id: diamondId,
+                    },
+                });
+
+            if (productsCount > 0) {
+                diamondsWithProducts.push({
+                    id: diamondId,
+                    name: diamond.name,
+                    productCount: productsCount,
+                });
+            }
+        }
+
+        if (diamondsWithProducts.length > 0) {
+            const diamondMessages = diamondsWithProducts.map(
+                (d) => `${d.name} (${d.productCount} product variant(s))`,
+            );
+            const diamondNamesList = diamondMessages.join(', ');
+            throw new BadRequestException(
+                `Cannot delete diamond(s): ${diamondNamesList}. They are currently assigned to product variants. Please remove the diamond(s) from all products first, then delete the diamond(s).`,
+            );
+        }
+
+        const result = await this.prisma.diamonds.deleteMany({
             where: { id: { in: bigIntIds } },
         });
+
+        return {
+            ...result,
+            message: `${result.count} diamond${result.count === 1 ? '' : 's'} deleted successfully.`,
+        };
     }
 
     async getShapeSizes(shapeId: number, typeId?: number) {
