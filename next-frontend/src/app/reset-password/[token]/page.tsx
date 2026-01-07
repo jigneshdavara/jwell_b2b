@@ -2,112 +2,141 @@
 
 import InputError from "@/components/ui/InputError";
 import InputLabel from "@/components/ui/InputLabel";
-import PrimaryButton from "@/components/ui/PrimaryButton";
 import TextInput from "@/components/ui/TextInput";
+import PrimaryButton from "@/components/ui/PrimaryButton";
 import GuestLayout from "@/components/shared/GuestLayout";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 import { authService } from "@/services/authService";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+    resetPasswordSchema,
+    ResetPasswordFormData,
+} from "@/lib/validation/auth.schema";
 
 export default function ResetPasswordPage() {
   const { token } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
   const email = searchParams.get("email") || "";
+  const [loading, setLoading] = useState(false);
 
-  const [data, setData] = useState({
-    token: token as string,
-    email: email,
-    password: "",
-    password_confirmation: "",
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    setError,
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+    mode: "onBlur",
+    reValidateMode: "onChange",
+    defaultValues: {
+      token: token as string,
+      email: email,
+      password: "",
+      password_confirmation: "",
+    },
   });
 
-  const [processing, setProcessing] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setProcessing(true);
-    setErrors({});
-
+  const onSubmit = async (data: ResetPasswordFormData) => {
     try {
+      setLoading(true);
       await authService.resetPassword(data);
       router.push("/login?status=password-reset");
     } catch (error: any) {
-      if (error.response?.data?.message) {
-        setErrors({ email: error.response.data.message });
-      } else if (error.response?.data?.errors) {
-        setErrors(error.response.data.errors);
-      } else {
-        setErrors({
-          password: "Failed to reset password. Please try again.",
-        });
-      }
+      const errorMessage = error?.response?.data?.error?.[0]?.message || 
+                           error?.response?.data?.message || 
+                           error?.message || 
+                           "Failed to reset password. Please try again.";
+      setError("root", {
+        type: "server",
+        message: errorMessage,
+      });
     } finally {
-      setProcessing(false);
+      setLoading(false);
     }
   };
 
   return (
     <GuestLayout>
-      <form onSubmit={handleSubmit} className="mx-auto max-w-md space-y-4 rounded-3xl bg-white p-4 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 sm:space-y-6 sm:p-6 lg:p-8">
-        <div>
-          <InputLabel htmlFor="email" value="Email" />
-          <TextInput
-            id="email"
-            type="email"
-            name="email"
-            value={data.email}
-            className="mt-1 block w-full"
-            autoComplete="username"
-            onChange={(e) => setData({ ...data, email: e.target.value })}
-          />
-          <InputError message={errors.email} className="mt-2" />
-        </div>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="mx-auto max-w-md space-y-4 rounded-3xl bg-white p-4 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 sm:space-y-6 sm:p-6 lg:p-8"
+      >
+        {errors.root && (
+          <div className="rounded-2xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600 sm:px-4 sm:py-3 sm:text-sm">
+            {errors.root.message}
+          </div>
+        )}
 
-        <div>
-          <InputLabel htmlFor="password" value="Password" />
-          <TextInput
-            id="password"
-            type="password"
-            name="password"
-            value={data.password}
-            className="mt-1 block w-full"
-            autoComplete="new-password"
-            isFocused={true}
-            onChange={(e) => setData({ ...data, password: e.target.value })}
-          />
-          <InputError message={errors.password} className="mt-2" />
-        </div>
+        <Controller
+          name="email"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="email" value="Email" />
+              <TextInput
+                id="email"
+                type="email"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                autoComplete="username"
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
 
-        <div>
-          <InputLabel
-            htmlFor="password_confirmation"
-            value="Confirm Password"
-          />
-          <TextInput
-            type="password"
-            name="password_confirmation"
-            value={data.password_confirmation}
-            className="mt-1 block w-full"
-            autoComplete="new-password"
-            onChange={(e) =>
-              setData({ ...data, password_confirmation: e.target.value })
-            }
-          />
-          <InputError
-            message={errors.password_confirmation}
-            className="mt-2"
-          />
-        </div>
+        <Controller
+          name="password"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="password" value="Password" />
+              <TextInput
+                id="password"
+                type="password"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                autoComplete="new-password"
+                autoFocus
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+
+        <Controller
+          name="password_confirmation"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel
+                htmlFor="password_confirmation"
+                value="Confirm Password"
+              />
+              <TextInput
+                id="password_confirmation"
+                type="password"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                autoComplete="new-password"
+              />
+              <InputError
+                message={fieldState.error?.message}
+                className="mt-2"
+              />
+            </div>
+          )}
+        />
 
         <div className="flex items-center justify-end">
-          <PrimaryButton className="w-full" disabled={processing}>
-            {processing ? "Resetting..." : "Reset Password"}
+          <PrimaryButton className="w-full" disabled={loading}>
+            {loading ? "Resetting..." : "Reset Password"}
           </PrimaryButton>
         </div>
       </form>
     </GuestLayout>
   );
 }
-

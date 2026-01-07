@@ -60,16 +60,28 @@ export const login = createAsyncThunk(
         try {
             const response = await authService.login(credentials);
             const token = response.data.access_token;
-            if (token) {
-                tokenService.setToken(token);
+            
+            // If login failed (no token), throw error to be caught below
+            if (!token) {
+                throw new Error("No access token received from login");
             }
+            
+            tokenService.setToken(token);
+            
             // Fetch user after login
             const userResponse = await authService.me();
             return { token, user: userResponse.data };
         } catch (error: any) {
-            return rejectWithValue(
-                error.response?.data?.message || "Login failed"
-            );
+            // Extract error message from backend response
+            // Backend may return: { message: "...", error: "...", statusCode: 401 }
+            // Priority: response.data.message > response.data.error > error.message > fallback
+            const errorMessage = 
+                error?.response?.data?.message || 
+                error?.response?.data?.error || 
+                error?.message || 
+                "Login failed";
+            
+            return rejectWithValue(errorMessage);
         }
     }
 );

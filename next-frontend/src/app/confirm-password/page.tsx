@@ -2,39 +2,53 @@
 
 import InputError from "@/components/ui/InputError";
 import InputLabel from "@/components/ui/InputLabel";
-import PrimaryButton from "@/components/ui/PrimaryButton";
 import TextInput from "@/components/ui/TextInput";
+import PrimaryButton from "@/components/ui/PrimaryButton";
 import GuestLayout from "@/components/shared/GuestLayout";
-import { FormEvent, useState } from "react";
 import { authService } from "@/services/authService";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+    confirmPasswordSchema,
+    ConfirmPasswordFormData,
+} from "@/lib/validation/auth.schema";
 
 export default function ConfirmPasswordPage() {
   const router = useRouter();
-  const [data, setData] = useState({
-    password: "",
+  const [loading, setLoading] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    setError,
+  } = useForm<ConfirmPasswordFormData>({
+    resolver: zodResolver(confirmPasswordSchema),
+    mode: "onBlur",
+    reValidateMode: "onChange",
+    defaultValues: {
+      password: "",
+    },
   });
-  const [processing, setProcessing] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setProcessing(true);
-    setErrors({});
-
+  const onSubmit = async (data: ConfirmPasswordFormData) => {
     try {
+      setLoading(true);
       await authService.confirmPassword(data.password);
       router.back();
     } catch (error: any) {
-      if (error.response?.data?.message) {
-        setErrors({ password: error.response.data.message });
-      } else {
-        setErrors({
-          password: "Invalid password. Please try again.",
-        });
-      }
+      const errorMessage = error?.response?.data?.error?.[0]?.message || 
+                           error?.response?.data?.message || 
+                           error?.message || 
+                           "Invalid password. Please try again.";
+      setError("root", {
+        type: "server",
+        message: errorMessage,
+      });
     } finally {
-      setProcessing(false);
+      setLoading(false);
     }
   };
 
@@ -46,26 +60,35 @@ export default function ConfirmPasswordPage() {
           before continuing.
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div>
-            <InputLabel htmlFor="password" value="Password" />
-
-            <TextInput
-              id="password"
-              type="password"
-              name="password"
-              value={data.password}
-              className="mt-1 block w-full"
-              isFocused={true}
-              onChange={(e) => setData({ ...data, password: e.target.value })}
-            />
-
-            <InputError message={errors.password} className="mt-2" />
+        {errors.root && (
+          <div className="rounded-2xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600 sm:px-4 sm:py-3 sm:text-sm">
+            {errors.root.message}
           </div>
+        )}
+
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Controller
+            name="password"
+            control={control}
+            render={({ field, fieldState }) => (
+              <div>
+                <InputLabel htmlFor="password" value="Password" />
+                <TextInput
+                  id="password"
+                  type="password"
+                  {...field}
+                  value={field.value || ""}
+                  className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                  autoFocus
+                />
+                <InputError message={fieldState.error?.message} className="mt-2" />
+              </div>
+            )}
+          />
 
           <div className="mt-4 flex items-center justify-end">
-            <PrimaryButton className="w-full sm:w-auto" disabled={processing}>
-              {processing ? "Confirming..." : "Confirm"}
+            <PrimaryButton className="w-full sm:w-auto" disabled={loading}>
+              {loading ? "Confirming..." : "Confirm"}
             </PrimaryButton>
           </div>
         </form>
@@ -73,4 +96,3 @@ export default function ConfirmPasswordPage() {
     </GuestLayout>
   );
 }
-

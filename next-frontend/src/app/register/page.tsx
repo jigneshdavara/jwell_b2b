@@ -2,15 +2,20 @@
 
 import InputError from "@/components/ui/InputError";
 import InputLabel from "@/components/ui/InputLabel";
-import PrimaryButton from "@/components/ui/PrimaryButton";
 import TextInput from "@/components/ui/TextInput";
+import PrimaryButton from "@/components/ui/PrimaryButton";
 import GuestLayout from "@/components/shared/GuestLayout";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
-import { authService } from "@/services/authService";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/store/hooks";
-import { register } from "@/store/slices/authSlice";
+import { register as registerAction } from "@/store/slices/authSlice";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+    registerSchema,
+    RegisterFormData,
+} from "@/lib/validation/auth.schema";
 
 const ArrowRightIcon = () => (
   <svg
@@ -38,15 +43,18 @@ const steps = [
   {
     title: "Account setup",
     description: "Who is signing up and how they will log in.",
+    fields: ["name", "email", "phone", "password", "password_confirmation", "account_type"] as const,
   },
   {
     title: "Business verification",
     description:
       "Share credentials so we can validate your jewellery practice.",
+    fields: ["business_name", "gst_number", "pan_number", "registration_number", "website", "contact_name", "contact_phone"] as const,
   },
   {
     title: "Registered address",
     description: "Tell us where to ship and how to contact your team.",
+    fields: ["address_line1", "address_line2", "city", "state", "postal_code", "country"] as const,
   },
 ];
 
@@ -60,63 +68,102 @@ const documentChecklist = [
 export default function RegisterPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const [data, setData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-    password_confirmation: "",
-    account_type: "retailer",
-    business_name: "",
-    gst_number: "",
-    pan_number: "",
-    registration_number: "",
-    address_line1: "",
-    address_line2: "",
-    city: "",
-    state: "",
-    postal_code: "",
-    country: "India",
-    website: "",
-    contact_name: "",
-    contact_phone: "",
+  const [currentStep, setCurrentStep] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    trigger,
+    setError,
+    watch,
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    mode: "onBlur",
+    reValidateMode: "onChange",
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      password: "",
+      password_confirmation: "",
+      account_type: "retailer",
+      business_name: "",
+      gst_number: "",
+      pan_number: "",
+      registration_number: "",
+      address_line1: "",
+      address_line2: "",
+      city: "",
+      state: "",
+      postal_code: "",
+      country: "India",
+      website: "",
+      contact_name: "",
+      contact_phone: "",
+    },
   });
 
-  const [currentStep, setCurrentStep] = useState(0);
-  const [processing, setProcessing] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
+  const accountType = watch("account_type");
   const isLastStep = currentStep === steps.length - 1;
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-
-    if (!isLastStep) {
+  // Validate current step before proceeding
+  const handleContinue = async () => {
+    const currentStepFields = steps[currentStep].fields;
+    const isValid = await trigger(currentStepFields as any);
+    
+    if (isValid) {
       setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
-      return;
     }
+  };
 
-    setProcessing(true);
-    setErrors({});
-
+  // Final submission - handleSubmit already validates all fields
+  const onSubmit = async (data: RegisterFormData) => {
     try {
-      // Use Redux register thunk to store token in Redux
-      await dispatch(register(data)).unwrap();
-      // Redirect to KYC onboarding after registration
-      // Use router.replace() to prevent back button navigation to register page
+      setLoading(true);
+      
+      // All validations passed (handleSubmit ensures this), proceed with registration
+      await dispatch(registerAction(data)).unwrap();
       router.replace("/onboarding/kyc");
     } catch (error: any) {
-      if (error.response?.data?.errors) {
-        setErrors(error.response.data.errors);
-      } else if (typeof error === 'string') {
-        setErrors({ email: error });
-      } else if (error?.message) {
-        setErrors({ email: error.message });
+      // Handle field-level validation errors (400)
+      if (error?.response?.data?.errors && typeof error.response.data.errors === 'object') {
+        Object.keys(error.response.data.errors).forEach((field) => {
+          const fieldErrors = error.response.data.errors[field];
+          const message = Array.isArray(fieldErrors) ? fieldErrors[0] : fieldErrors;
+          if (message) {
+            setError(field as keyof RegisterFormData, {
+              type: 'server',
+              message: typeof message === 'string' ? message : String(message),
+            });
+          }
+        });
+        
+        // Find which step has the error and navigate to it
+        for (let i = 0; i < steps.length; i++) {
+          const stepFields = steps[i].fields;
+          const hasError = stepFields.some(field => 
+            error?.response?.data?.errors?.[field] || errors[field as keyof RegisterFormData]
+          );
+          if (hasError) {
+            setCurrentStep(i);
+            break;
+          }
+        }
       } else {
-        setErrors({ email: error.response?.data?.message || "Registration failed. Please check your data." });
+        // Handle single error message
+        const errorMessage = error?.response?.data?.error?.[0]?.message || 
+                             error?.response?.data?.message || 
+                             error?.message || 
+                             "Registration failed. Please check your data.";
+        setError("root", {
+          type: "server",
+          message: errorMessage,
+        });
       }
     } finally {
-      setProcessing(false);
+      setLoading(false);
     }
   };
 
@@ -127,111 +174,120 @@ export default function RegisterPage() {
   const renderAccountStep = () => (
     <div className="space-y-4 sm:space-y-6">
       <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-        <div>
-          <InputLabel htmlFor="name" value="Full name" />
-          <TextInput
-            id="name"
-            name="name"
-            value={data.name}
-            className="mt-1 block w-full"
-            autoComplete="name"
-            isFocused={true}
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, name: event.target.value }))
-            }
-            required
-          />
-          <InputError message={errors.name} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel htmlFor="phone" value="Phone" />
-          <TextInput
-            id="phone"
-            name="phone"
-            value={data.phone}
-            className="mt-1 block w-full"
-            autoComplete="tel"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, phone: event.target.value }))
-            }
-            required
-          />
-          <InputError message={errors.phone} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel htmlFor="email" value="Work email" />
-          <TextInput
-            id="email"
-            type="email"
-            name="email"
-            value={data.email}
-            className="mt-1 block w-full"
-            autoComplete="username"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, email: event.target.value }))
-            }
-            required
-          />
-          <InputError message={errors.email} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel value="Partner type" />
-          <div className="mt-2 flex gap-3">
-            {accountTypes.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() =>
-                  setData((prev) => ({ ...prev, account_type: option.value }))
-                }
-                className={`w-full rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
-                  data.account_type === option.value
-                    ? "border-elvee-blue bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30"
-                    : "border-elvee-blue/20 bg-ivory text-elvee-blue hover:border-feather-gold/60 hover:text-feather-gold"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <Controller
+          name="name"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="name" value="Full name" />
+              <TextInput
+                id="name"
+                type="text"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                autoComplete="name"
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="phone"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="phone" value="Phone" />
+              <TextInput
+                id="phone"
+                type="tel"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                autoComplete="tel"
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="email"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="email" value="Work email" />
+              <TextInput
+                id="email"
+                type="email"
+                {...field}
+                value={field.value || ""}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                autoComplete="username"
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="account_type"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel value="Partner type" />
+              <div className="mt-2 flex gap-3">
+                {accountTypes.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => field.onChange(option.value as "retailer" | "wholesaler")}
+                    className={`w-full rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
+                      field.value === option.value
+                        ? "border-elvee-blue bg-elvee-blue text-white shadow-lg shadow-elvee-blue/30"
+                        : "border-elvee-blue/20 bg-ivory text-elvee-blue hover:border-feather-gold/60 hover:text-feather-gold"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
       </div>
       <div className="grid gap-5 md:grid-cols-2">
-        <div>
-          <InputLabel htmlFor="password" value="Password" />
-          <TextInput
-            id="password"
-            type="password"
-            name="password"
-            value={data.password}
-            className="mt-1 block w-full"
-            autoComplete="new-password"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, password: event.target.value }))
-            }
-            required
-          />
-          <InputError message={errors.password} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel htmlFor="password_confirmation" value="Confirm password" />
-          <TextInput
-            id="password_confirmation"
-            type="password"
-            name="password_confirmation"
-            value={data.password_confirmation}
-            className="mt-1 block w-full"
-            autoComplete="new-password"
-            onChange={(event) =>
-              setData((prev) => ({
-                ...prev,
-                password_confirmation: event.target.value,
-              }))
-            }
-            required
-          />
-          <InputError message={errors.password_confirmation} className="mt-2" />
-        </div>
+        <Controller
+          name="password"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="password" value="Password" />
+              <TextInput
+                id="password"
+                type="password"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                autoComplete="new-password"
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="password_confirmation"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="password_confirmation" value="Confirm password" />
+              <TextInput
+                id="password_confirmation"
+                type="password"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                autoComplete="new-password"
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
       </div>
     </div>
   );
@@ -239,107 +295,127 @@ export default function RegisterPage() {
   const renderBusinessStep = () => (
     <div className="space-y-4 sm:space-y-6">
       <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-        <div>
-          <InputLabel htmlFor="business_name" value="Business / store name" />
-          <TextInput
-            id="business_name"
-            name="business_name"
-            value={data.business_name}
-            className="mt-1 block w-full"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, business_name: event.target.value }))
-            }
-          />
-          <InputError message={errors.business_name} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel htmlFor="website" value="Website / Instagram" />
-          <TextInput
-            id="website"
-            name="website"
-            value={data.website}
-            className="mt-1 block w-full"
-            placeholder="@yourbrand or www.example.com"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, website: event.target.value }))
-            }
-          />
-          <InputError message={errors.website} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel htmlFor="gst_number" value="GST number" />
-          <TextInput
-            id="gst_number"
-            name="gst_number"
-            value={data.gst_number}
-            className="mt-1 block w-full uppercase tracking-[0.2em]"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, gst_number: event.target.value }))
-            }
-          />
-          <InputError message={errors.gst_number} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel htmlFor="pan_number" value="PAN number" />
-          <TextInput
-            id="pan_number"
-            name="pan_number"
-            value={data.pan_number}
-            className="mt-1 block w-full uppercase tracking-[0.2em]"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, pan_number: event.target.value }))
-            }
-          />
-          <InputError message={errors.pan_number} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel
-            htmlFor="registration_number"
-            value="Business registration number"
-          />
-          <TextInput
-            id="registration_number"
-            name="registration_number"
-            value={data.registration_number}
-            className="mt-1 block w-full"
-            placeholder="MSME / CIN / etc"
-            onChange={(event) =>
-              setData((prev) => ({
-                ...prev,
-                registration_number: event.target.value,
-              }))
-            }
-          />
-          <InputError message={errors.registration_number} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel htmlFor="contact_name" value="Primary contact" />
-          <TextInput
-            id="contact_name"
-            name="contact_name"
-            value={data.contact_name}
-            className="mt-1 block w-full"
-            placeholder="Owner / authorised signatory"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, contact_name: event.target.value }))
-            }
-          />
-          <InputError message={errors.contact_name} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel htmlFor="contact_phone" value="Contact phone" />
-          <TextInput
-            id="contact_phone"
-            name="contact_phone"
-            value={data.contact_phone}
-            className="mt-1 block w-full"
-            placeholder="Optional"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, contact_phone: event.target.value }))
-            }
-          />
-          <InputError message={errors.contact_phone} className="mt-2" />
-        </div>
+        <Controller
+          name="business_name"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="business_name" value="Business / store name" />
+              <TextInput
+                id="business_name"
+                type="text"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="website"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="website" value="Website / Instagram" />
+              <TextInput
+                id="website"
+                type="text"
+                {...field}
+                value={field.value || ""}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                placeholder="@yourbrand or www.example.com"
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="gst_number"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="gst_number" value="GST number" />
+              <TextInput
+                id="gst_number"
+                type="text"
+                {...field}
+                className={`mt-1 uppercase tracking-[0.2em] ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="pan_number"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="pan_number" value="PAN number" />
+              <TextInput
+                id="pan_number"
+                type="text"
+                {...field}
+                className={`mt-1 uppercase tracking-[0.2em] ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="registration_number"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel
+                htmlFor="registration_number"
+                value="Business registration number"
+              />
+              <TextInput
+                id="registration_number"
+                type="text"
+                {...field}
+                value={field.value || ""}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                placeholder="MSME / CIN / etc"
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="contact_name"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="contact_name" value="Primary contact" />
+              <TextInput
+                id="contact_name"
+                type="text"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                placeholder="Owner / authorised signatory"
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="contact_phone"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="contact_phone" value="Contact phone" />
+              <TextInput
+                id="contact_phone"
+                type="tel"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                placeholder="Optional"
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
       </div>
       <p className="text-xs text-ink/70 sm:text-sm">
         Tip: Upload these documents after registration to accelerate compliance
@@ -351,84 +427,103 @@ export default function RegisterPage() {
   const renderAddressStep = () => (
     <div className="space-y-4 sm:space-y-6">
       <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-        <div className="md:col-span-2">
-          <InputLabel htmlFor="address_line1" value="Address line 1" />
-          <TextInput
-            id="address_line1"
-            name="address_line1"
-            value={data.address_line1}
-            className="mt-1 block w-full"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, address_line1: event.target.value }))
-            }
-          />
-          <InputError message={errors.address_line1} className="mt-2" />
-        </div>
-        <div className="md:col-span-2">
-          <InputLabel htmlFor="address_line2" value="Address line 2" />
-          <TextInput
-            id="address_line2"
-            name="address_line2"
-            value={data.address_line2}
-            className="mt-1 block w-full"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, address_line2: event.target.value }))
-            }
-          />
-          <InputError message={errors.address_line2} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel htmlFor="city" value="City" />
-          <TextInput
-            id="city"
-            name="city"
-            value={data.city}
-            className="mt-1 block w-full"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, city: event.target.value }))
-            }
-          />
-          <InputError message={errors.city} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel htmlFor="state" value="State" />
-          <TextInput
-            id="state"
-            name="state"
-            value={data.state}
-            className="mt-1 block w-full"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, state: event.target.value }))
-            }
-          />
-          <InputError message={errors.state} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel htmlFor="postal_code" value="Postal code" />
-          <TextInput
-            id="postal_code"
-            name="postal_code"
-            value={data.postal_code}
-            className="mt-1 block w-full tracking-[0.3em]"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, postal_code: event.target.value }))
-            }
-          />
-          <InputError message={errors.postal_code} className="mt-2" />
-        </div>
-        <div>
-          <InputLabel htmlFor="country" value="Country" />
-          <TextInput
-            id="country"
-            name="country"
-            value={data.country}
-            className="mt-1 block w-full"
-            onChange={(event) =>
-              setData((prev) => ({ ...prev, country: event.target.value }))
-            }
-          />
-          <InputError message={errors.country} className="mt-2" />
-        </div>
+        <Controller
+          name="address_line1"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div className="md:col-span-2">
+              <InputLabel htmlFor="address_line1" value="Address line 1" />
+              <TextInput
+                id="address_line1"
+                type="text"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="address_line2"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div className="md:col-span-2">
+              <InputLabel htmlFor="address_line2" value="Address line 2" />
+              <TextInput
+                id="address_line2"
+                type="text"
+                {...field}
+                value={field.value || ""}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="city"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="city" value="City" />
+              <TextInput
+                id="city"
+                type="text"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="state"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="state" value="State" />
+              <TextInput
+                id="state"
+                type="text"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="postal_code"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="postal_code" value="Postal code" />
+              <TextInput
+                id="postal_code"
+                type="text"
+                {...field}
+                className={`mt-1 tracking-[0.3em] ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
+        <Controller
+          name="country"
+          control={control}
+          render={({ field, fieldState }) => (
+            <div>
+              <InputLabel htmlFor="country" value="Country" />
+              <TextInput
+                id="country"
+                type="text"
+                {...field}
+                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+              />
+              <InputError message={fieldState.error?.message} className="mt-2" />
+            </div>
+          )}
+        />
       </div>
       <p className="text-xs text-ink/70 sm:text-sm">
         Dispatch-ready partners receive pick-up coordination, insured
@@ -438,13 +533,21 @@ export default function RegisterPage() {
   );
 
   const renderStepContent = () => {
-    if (currentStep === 0) {
-      return renderAccountStep();
-    }
-    if (currentStep === 1) {
-      return renderBusinessStep();
-    }
-    return renderAddressStep();
+    // Always render all steps but hide the ones not active
+    // This ensures React Hook Form maintains state for all fields
+    return (
+      <>
+        <div style={{ display: currentStep === 0 ? 'block' : 'none' }}>
+          {renderAccountStep()}
+        </div>
+        <div style={{ display: currentStep === 1 ? 'block' : 'none' }}>
+          {renderBusinessStep()}
+        </div>
+        <div style={{ display: currentStep === 2 ? 'block' : 'none' }}>
+          {renderAddressStep()}
+        </div>
+      </>
+    );
   };
 
   const nextLabel = isLastStep ? "Submit registration" : "Continue";
@@ -528,8 +631,39 @@ export default function RegisterPage() {
             </Link>
           </div>
 
+          {errors.root && (
+            <div className="rounded-2xl border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-600 sm:px-4 sm:py-3 sm:text-sm">
+              {errors.root.message}
+            </div>
+          )}
+
           <form
-            onSubmit={handleSubmit}
+            onSubmit={isLastStep ? handleSubmit(
+              async (data) => {
+                await onSubmit(data);
+              },
+              (errors) => {
+                // Find first step with errors and navigate there
+                for (let i = 0; i < steps.length; i++) {
+                  const stepFields = steps[i].fields;
+                  const hasError = stepFields.some(field => 
+                    errors[field as keyof RegisterFormData] !== undefined
+                  );
+                  
+                  if (hasError) {
+                    setCurrentStep(i);
+                    setError("root", {
+                      type: "validation",
+                      message: "Please fix the errors in the form before submitting.",
+                    });
+                    break;
+                  }
+                }
+              }
+            ) : (e) => {
+              e.preventDefault();
+              handleContinue();
+            }}
             className="space-y-4 rounded-3xl bg-white p-4 shadow-2xl shadow-elvee-blue/5 ring-1 ring-elvee-blue/10 sm:space-y-6 sm:p-6 lg:p-8"
           >
             <header className="space-y-3 border-b border-elvee-blue/10 pb-4 sm:space-y-4 sm:pb-6">
@@ -606,10 +740,10 @@ export default function RegisterPage() {
 
               <PrimaryButton
                 className="min-w-[200px] gap-2"
-                disabled={processing}
+                disabled={loading}
               >
-                <span>{processing ? "Submitting..." : nextLabel}</span>
-                {!processing && <ArrowRightIcon />}
+                <span>{loading ? "Submitting..." : nextLabel}</span>
+                {!loading && <ArrowRightIcon />}
               </PrimaryButton>
             </div>
           </form>
@@ -618,4 +752,3 @@ export default function RegisterPage() {
     </GuestLayout>
   );
 }
-
