@@ -29,8 +29,9 @@ export default function ResetPasswordPage() {
     setError,
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
-    mode: "onBlur",
-    reValidateMode: "onChange",
+    mode: "onSubmit",
+    reValidateMode: "onBlur",
+    shouldFocusError: true,
     defaultValues: {
       token: token as string,
       email: email,
@@ -45,8 +46,10 @@ export default function ResetPasswordPage() {
       await authService.resetPassword(data);
       router.push("/login?status=password-reset");
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.error?.[0]?.message || 
-                           error?.response?.data?.message || 
+      // Prioritize message field from API response
+      const errorMessage = error?.response?.data?.message || 
+                           error?.response?.data?.error?.[0]?.message || 
+                           (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
                            error?.message || 
                            "Failed to reset password. Please try again.";
       setError("root", {
@@ -80,7 +83,7 @@ export default function ResetPasswordPage() {
                 id="email"
                 type="email"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                 autoComplete="username"
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
@@ -98,7 +101,7 @@ export default function ResetPasswordPage() {
                 id="password"
                 type="password"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                 autoComplete="new-password"
                 autoFocus
               />
@@ -120,7 +123,7 @@ export default function ResetPasswordPage() {
                 id="password_confirmation"
                 type="password"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                 autoComplete="new-password"
               />
               <InputError

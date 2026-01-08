@@ -34,8 +34,9 @@ export default function Login() {
     // Password login form with real-time validation
     const passwordForm = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
-        mode: 'onBlur', // Validate when field loses focus
-        reValidateMode: 'onChange', // Re-validate on change after first validation
+        mode: 'onSubmit', // Validate all fields on submit
+        reValidateMode: 'onBlur', // Re-validate on blur after first validation
+        shouldFocusError: true, // Automatically focus first error field on submit
         defaultValues: {
             email: '',
             password: '',
@@ -46,8 +47,9 @@ export default function Login() {
     // OTP request form (email only)
     const otpRequestForm = useForm<{ email: string }>({
         resolver: zodResolver(otpLoginSchema.pick({ email: true })),
-        mode: 'onBlur',
-        reValidateMode: 'onChange',
+        mode: 'onSubmit', // Validate all fields on submit
+        reValidateMode: 'onBlur', // Re-validate on blur after first validation
+        shouldFocusError: true, // Automatically focus first error field on submit
         defaultValues: {
             email: '',
         },
@@ -56,8 +58,9 @@ export default function Login() {
     // OTP verify form
     const otpVerifyForm = useForm<OtpLoginFormData>({
         resolver: zodResolver(otpLoginSchema),
-        mode: 'onBlur',
-        reValidateMode: 'onChange',
+        mode: 'onSubmit', // Validate all fields on submit
+        reValidateMode: 'onBlur', // Re-validate on blur after first validation
+        shouldFocusError: true, // Automatically focus first error field on submit
         defaultValues: {
             email: '',
             code: '',
@@ -97,8 +100,19 @@ export default function Login() {
             
             router.replace(redirectUrl);
         } catch (error: any) {
-            // Handle field-level validation errors (400)
-            if (error?.response?.data?.errors && typeof error.response.data.errors === 'object') {
+            // When using .unwrap(), Redux Toolkit passes the rejectWithValue payload directly
+            // If authSlice uses rejectWithValue(errorMessage), error is the string message
+            // If it's the full error object, extract from response.data.message
+            
+            let errorMessage: string;
+            
+            // Check if error is already a string (from rejectWithValue)
+            if (typeof error === 'string') {
+                errorMessage = error;
+            } 
+            // Check if it's the full error object with response.data
+            else if (error?.response?.data?.errors && typeof error.response.data.errors === 'object') {
+                // Handle field-level validation errors (400)
                 Object.keys(error.response.data.errors).forEach((field) => {
                     const fieldErrors = error.response.data.errors[field];
                     const message = Array.isArray(fieldErrors) ? fieldErrors[0] : fieldErrors;
@@ -109,17 +123,21 @@ export default function Login() {
                         });
                     }
                 });
-            } else {
-                // Handle single error message (401, network, etc.)
-                const errorMessage = error?.response?.data?.error?.[0]?.message || 
-                                     error?.response?.data?.message || 
-                                     error?.message || 
-                                     'The user name or password is incorrect';
-                passwordForm.setError('root', {
-                    type: 'server',
-                    message: errorMessage,
-                });
+                return; // Exit early, field errors handled
+            } 
+            // Extract from error object
+            else {
+                errorMessage = error?.response?.data?.message || 
+                               (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
+                               error?.response?.data?.error?.[0]?.message || 
+                               error?.message || 
+                               'The user name or password is incorrect';
             }
+            
+            passwordForm.setError('root', {
+                type: 'server',
+                message: errorMessage,
+            });
         } finally {
             setLoading(false);
         }
@@ -134,20 +152,26 @@ export default function Login() {
             setStatus('A one-time code has been emailed.');
             otpVerifyForm.setValue('email', data.email);
         } catch (error: any) {
-            // Handle field-level validation errors (400)
+            // authService returns full error object (not Redux)
+            // Prioritize message field from API response
+            let errorMessage: string;
+            
             if (error?.response?.data?.errors?.email) {
+                // Handle field-level validation errors (400)
                 const emailErrors = error.response.data.errors.email;
                 const message = Array.isArray(emailErrors) ? emailErrors[0] : emailErrors;
                 otpRequestForm.setError('email', {
                     type: 'server',
                     message: typeof message === 'string' ? message : String(message),
                 });
+                return; // Exit early, field error handled
             } else {
-                // Handle single error message
-                const errorMessage = error?.response?.data?.error?.[0]?.message || 
-                                     error?.response?.data?.message || 
-                                     error?.message || 
-                                     'Failed to send code. Please try again.';
+                // Extract error message - prioritize message field
+                errorMessage = error?.response?.data?.message || 
+                               (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
+                               error?.response?.data?.error?.[0]?.message || 
+                               error?.message || 
+                               'Failed to send code. Please try again.';
                 otpRequestForm.setError('email', {
                     type: 'server',
                     message: errorMessage,
@@ -182,8 +206,19 @@ export default function Login() {
             
             router.replace(redirectUrl);
         } catch (error: any) {
-            // Handle field-level validation errors (400)
-            if (error?.response?.data?.errors) {
+            // When using .unwrap(), Redux Toolkit passes the rejectWithValue payload directly
+            // If authSlice uses rejectWithValue(errorMessage), error is the string message
+            // If it's the full error object, extract from response.data.message
+            
+            let errorMessage: string;
+            
+            // Check if error is already a string (from rejectWithValue)
+            if (typeof error === 'string') {
+                errorMessage = error;
+            } 
+            // Check if it's the full error object with response.data
+            else if (error?.response?.data?.errors) {
+                // Handle field-level validation errors (400)
                 if (error.response.data.errors.code) {
                     const codeErrors = error.response.data.errors.code;
                     const message = Array.isArray(codeErrors) ? codeErrors[0] : codeErrors;
@@ -191,6 +226,7 @@ export default function Login() {
                         type: 'server',
                         message: typeof message === 'string' ? message : String(message),
                     });
+                    return; // Exit early, field error handled
                 } else if (error.response.data.errors.email) {
                     const emailErrors = error.response.data.errors.email;
                     const message = Array.isArray(emailErrors) ? emailErrors[0] : emailErrors;
@@ -198,18 +234,28 @@ export default function Login() {
                         type: 'server',
                         message: typeof message === 'string' ? message : String(message),
                     });
+                    return; // Exit early, field error handled
                 }
-            } else {
-                // Handle single error message
-                const errorMessage = error?.response?.data?.error?.[0]?.message || 
-                                     error?.response?.data?.message || 
-                                     error?.message || 
-                                     'Invalid code.';
-                otpVerifyForm.setError('code', {
-                    type: 'server',
-                    message: errorMessage,
-                });
+                // Fall through to extract general error
+                errorMessage = error?.response?.data?.message || 
+                               (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
+                               error?.response?.data?.error?.[0]?.message || 
+                               error?.message || 
+                               'Invalid code.';
+            } 
+            // Extract from error object
+            else {
+                errorMessage = error?.response?.data?.message || 
+                               (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
+                               error?.response?.data?.error?.[0]?.message || 
+                               error?.message || 
+                               'Invalid code.';
             }
+            
+            otpVerifyForm.setError('code', {
+                type: 'server',
+                message: errorMessage,
+            });
         } finally {
             setOtpVerifyLoading(false);
         }
@@ -376,7 +422,7 @@ export default function Login() {
                                                     field.onChange(e);
                                                     syncEmail(e.target.value);
                                                 }}
-                                                className={`mt-1 ${fieldState.error ? 'border-red-300 focus:border-red-400' : ''}`}
+                                                className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
                                                 autoComplete="username"
                                                 autoFocus
                                             />
@@ -395,7 +441,7 @@ export default function Login() {
                                                 id="password"
                                                 type="password"
                                                 {...field}
-                                                className={`mt-1 ${fieldState.error ? 'border-red-300 focus:border-red-400' : ''}`}
+                                                className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
                                                 autoComplete="current-password"
                                             />
                                             <InputError message={fieldState.error?.message} className="mt-2" />
@@ -461,7 +507,7 @@ export default function Login() {
                                                         field.onChange(e);
                                                         syncEmail(e.target.value);
                                                     }}
-                                                    className={`mt-1 ${fieldState.error ? 'border-red-300 focus:border-red-400' : ''}`}
+                                                    className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
                                                     autoComplete="username"
                                                     autoFocus
                                                 />
@@ -496,7 +542,7 @@ export default function Login() {
                                                         const value = e.target.value.replace(/\D/g, '').slice(0, 6);
                                                         field.onChange(value);
                                                     }}
-                                                    className={`mt-1 tracking-[0.5em] ${fieldState.error ? 'border-red-300 focus:border-red-400' : ''}`}
+                                                    className={`mt-1 tracking-[0.5em] ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
                                                     placeholder="------"
                                                 />
                                                 <InputError message={fieldState.error?.message} className="mt-2" />

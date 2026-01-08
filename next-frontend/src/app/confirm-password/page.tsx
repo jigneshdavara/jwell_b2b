@@ -26,8 +26,9 @@ export default function ConfirmPasswordPage() {
     setError,
   } = useForm<ConfirmPasswordFormData>({
     resolver: zodResolver(confirmPasswordSchema),
-    mode: "onBlur",
-    reValidateMode: "onChange",
+    mode: "onSubmit",
+    reValidateMode: "onBlur",
+    shouldFocusError: true,
     defaultValues: {
       password: "",
     },
@@ -39,8 +40,10 @@ export default function ConfirmPasswordPage() {
       await authService.confirmPassword(data.password);
       router.back();
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.error?.[0]?.message || 
-                           error?.response?.data?.message || 
+      // Prioritize message field from API response
+      const errorMessage = error?.response?.data?.message || 
+                           error?.response?.data?.error?.[0]?.message || 
+                           (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
                            error?.message || 
                            "Invalid password. Please try again.";
       setError("root", {
@@ -78,7 +81,7 @@ export default function ConfirmPasswordPage() {
                   type="password"
                   {...field}
                   value={field.value || ""}
-                  className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                  className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                   autoFocus
                 />
                 <InputError message={fieldState.error?.message} className="mt-2" />

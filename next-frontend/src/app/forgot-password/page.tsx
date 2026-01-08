@@ -117,8 +117,9 @@ export default function ForgotPasswordPage() {
     setError,
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
-    mode: "onBlur",
-    reValidateMode: "onChange",
+    mode: "onSubmit",
+    reValidateMode: "onBlur",
+    shouldFocusError: true,
     defaultValues: {
       email: "",
     },
@@ -134,8 +135,10 @@ export default function ForgotPasswordPage() {
           "If that email address exists, we will send a password reset link."
       );
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.error?.[0]?.message || 
-                           error?.response?.data?.message || 
+      // Prioritize message field from API response
+      const errorMessage = error?.response?.data?.message || 
+                           error?.response?.data?.error?.[0]?.message || 
+                           (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
                            error?.message || 
                            "Failed to send reset link. Please try again.";
       setError("root", {
@@ -232,7 +235,7 @@ export default function ForgotPasswordPage() {
                       type="email"
                       {...field}
                       value={field.value || ""}
-                      className={`mt-2 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                      className={`mt-2 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                       autoFocus
                     />
                     <InputError message={fieldState.error?.message} className="mt-2" />

@@ -80,8 +80,9 @@ export default function RegisterPage() {
     watch,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
-    mode: "onBlur",
-    reValidateMode: "onChange",
+    mode: "onSubmit",
+    reValidateMode: "onBlur",
+    shouldFocusError: true,
     defaultValues: {
       name: "",
       email: "",
@@ -127,8 +128,23 @@ export default function RegisterPage() {
       await dispatch(registerAction(data)).unwrap();
       router.replace("/onboarding/kyc");
     } catch (error: any) {
-      // Handle field-level validation errors (400)
-      if (error?.response?.data?.errors && typeof error.response.data.errors === 'object') {
+      // When using .unwrap(), Redux Toolkit passes the rejectWithValue payload directly
+      // If authSlice uses rejectWithValue(errorMessage), error is the string message
+      // If it's the full error object, extract from response.data.message
+      
+      let errorMessage: string;
+      
+      // Check if error is already a string (from rejectWithValue)
+      if (typeof error === 'string') {
+        errorMessage = error;
+        setError("root", {
+          type: "server",
+          message: errorMessage,
+        });
+      } 
+      // Check if it's the full error object with response.data
+      else if (error?.response?.data?.errors && typeof error.response.data.errors === 'object') {
+        // Handle field-level validation errors (400)
         Object.keys(error.response.data.errors).forEach((field) => {
           const fieldErrors = error.response.data.errors[field];
           const message = Array.isArray(fieldErrors) ? fieldErrors[0] : fieldErrors;
@@ -151,12 +167,14 @@ export default function RegisterPage() {
             break;
           }
         }
-      } else {
-        // Handle single error message
-        const errorMessage = error?.response?.data?.error?.[0]?.message || 
-                             error?.response?.data?.message || 
-                             error?.message || 
-                             "Registration failed. Please check your data.";
+      } 
+      // Extract from error object
+      else {
+        errorMessage = error?.response?.data?.message || 
+                       (typeof error?.response?.data?.error === 'string' ? error.response.data.error : null) ||
+                       error?.response?.data?.error?.[0]?.message || 
+                       error?.message || 
+                       "Registration failed. Please check your data.";
         setError("root", {
           type: "server",
           message: errorMessage,
@@ -184,7 +202,7 @@ export default function RegisterPage() {
                 id="name"
                 type="text"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                 autoComplete="name"
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
@@ -201,7 +219,7 @@ export default function RegisterPage() {
                 id="phone"
                 type="tel"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                 autoComplete="tel"
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
@@ -219,7 +237,7 @@ export default function RegisterPage() {
                 type="email"
                 {...field}
                 value={field.value || ""}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                 autoComplete="username"
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
@@ -264,7 +282,7 @@ export default function RegisterPage() {
                 id="password"
                 type="password"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                 autoComplete="new-password"
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
@@ -281,7 +299,7 @@ export default function RegisterPage() {
                 id="password_confirmation"
                 type="password"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                 autoComplete="new-password"
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
@@ -305,7 +323,7 @@ export default function RegisterPage() {
                 id="business_name"
                 type="text"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
             </div>
@@ -322,7 +340,7 @@ export default function RegisterPage() {
                 type="text"
                 {...field}
                 value={field.value || ""}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                 placeholder="@yourbrand or www.example.com"
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
@@ -375,7 +393,7 @@ export default function RegisterPage() {
                 type="text"
                 {...field}
                 value={field.value || ""}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                 placeholder="MSME / CIN / etc"
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
@@ -392,7 +410,7 @@ export default function RegisterPage() {
                 id="contact_name"
                 type="text"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                 placeholder="Owner / authorised signatory"
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
@@ -409,7 +427,7 @@ export default function RegisterPage() {
                 id="contact_phone"
                 type="tel"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
                 placeholder="Optional"
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
@@ -437,7 +455,7 @@ export default function RegisterPage() {
                 id="address_line1"
                 type="text"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
             </div>
@@ -454,7 +472,7 @@ export default function RegisterPage() {
                 type="text"
                 {...field}
                 value={field.value || ""}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
             </div>
@@ -470,7 +488,7 @@ export default function RegisterPage() {
                 id="city"
                 type="text"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
             </div>
@@ -486,7 +504,7 @@ export default function RegisterPage() {
                 id="state"
                 type="text"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
             </div>
@@ -518,7 +536,7 @@ export default function RegisterPage() {
                 id="country"
                 type="text"
                 {...field}
-                className={`mt-1 ${fieldState.error ? "border-rose-300 focus:border-rose-400" : ""}`}
+                className={`mt-1 ${fieldState.error ? "!border-red-300 focus:!border-red-400 focus:!ring-red-300" : ""}`}
               />
               <InputError message={fieldState.error?.message} className="mt-2" />
             </div>

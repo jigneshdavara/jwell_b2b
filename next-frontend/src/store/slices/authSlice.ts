@@ -43,9 +43,18 @@ export const fetchUser = createAsyncThunk(
             const response = await authService.me();
             return response.data;
         } catch (error: any) {
-            return rejectWithValue(
-                error.response?.data?.message || "Failed to fetch user"
-            );
+            // Extract error message from backend response
+            // Backend may return: { message: "...", error: "...", statusCode: 401 }
+            // Priority: response.data.message > response.data.error (string) > error.message > fallback
+            const errorMessage =
+                error?.response?.data?.message ||
+                (typeof error?.response?.data?.error === "string"
+                    ? error.response.data.error
+                    : null) ||
+                error?.response?.data?.error?.[0]?.message ||
+                error?.message ||
+                "Failed to fetch user";
+            return rejectWithValue(errorMessage);
         }
     }
 );
@@ -60,27 +69,30 @@ export const login = createAsyncThunk(
         try {
             const response = await authService.login(credentials);
             const token = response.data.access_token;
-            
+
             // If login failed (no token), throw error to be caught below
             if (!token) {
                 throw new Error("No access token received from login");
             }
-            
+
             tokenService.setToken(token);
-            
+
             // Fetch user after login
             const userResponse = await authService.me();
             return { token, user: userResponse.data };
         } catch (error: any) {
             // Extract error message from backend response
-            // Backend may return: { message: "...", error: "...", statusCode: 401 }
-            // Priority: response.data.message > response.data.error > error.message > fallback
-            const errorMessage = 
-                error?.response?.data?.message || 
-                error?.response?.data?.error || 
-                error?.message || 
+            // Backend may return: { message: "Invalid credentials", error: "Unauthorized", statusCode: 401 }
+            // Priority: response.data.message > response.data.error (string) > error.message > fallback
+            const errorMessage =
+                error?.response?.data?.message ||
+                (typeof error?.response?.data?.error === "string"
+                    ? error.response.data.error
+                    : null) ||
+                error?.response?.data?.error?.[0]?.message ||
+                error?.message ||
                 "Login failed";
-            
+
             return rejectWithValue(errorMessage);
         }
     }
@@ -100,9 +112,18 @@ export const register = createAsyncThunk(
             const userResponse = await authService.me();
             return { token, user: userResponse.data };
         } catch (error: any) {
-            return rejectWithValue(
-                error.response?.data?.message || "Registration failed"
-            );
+            // Extract error message from backend response
+            // Backend may return: { message: "Email already registered", error: "Conflict", statusCode: 409 }
+            // Priority: response.data.message > response.data.error (string) > error.message > fallback
+            const errorMessage =
+                error?.response?.data?.message ||
+                (typeof error?.response?.data?.error === "string"
+                    ? error.response.data.error
+                    : null) ||
+                error?.response?.data?.error?.[0]?.message ||
+                error?.message ||
+                "Registration failed";
+            return rejectWithValue(errorMessage);
         }
     }
 );
@@ -121,9 +142,18 @@ export const verifyOtp = createAsyncThunk(
             const userResponse = await authService.me();
             return { token, user: userResponse.data };
         } catch (error: any) {
-            return rejectWithValue(
-                error.response?.data?.message || "OTP verification failed"
-            );
+            // Extract error message from backend response
+            // Backend may return: { message: "...", error: "...", statusCode: 401 }
+            // Priority: response.data.message > response.data.error (string) > error.message > fallback
+            const errorMessage =
+                error?.response?.data?.message ||
+                (typeof error?.response?.data?.error === "string"
+                    ? error.response.data.error
+                    : null) ||
+                error?.response?.data?.error?.[0]?.message ||
+                error?.message ||
+                "OTP verification failed";
+            return rejectWithValue(errorMessage);
         }
     }
 );
