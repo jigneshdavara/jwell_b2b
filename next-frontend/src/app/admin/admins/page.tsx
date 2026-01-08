@@ -1,12 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useState, FormEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Head } from '@/components/Head';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Pagination from '@/components/ui/Pagination';
+import TextInput from '@/components/ui/TextInput';
+import InputLabel from '@/components/ui/InputLabel';
+import InputError from '@/components/ui/InputError';
+import Select from '@/components/ui/Select';
 import { toastSuccess, toastError } from '@/utils/toast';
 import { adminService } from '@/services/adminService';
 import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { createAdminUserSchema, editAdminUserSchema, CreateAdminUserFormData, EditAdminUserFormData } from '@/lib/validation/admin.schema';
 
 type AdminUser = {
     id: number;
@@ -36,21 +43,44 @@ export default function AdminAdminsIndex() {
         meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 }
     });
     const [adminGroups, setAdminGroups] = useState<Array<{ id: number; name: string; is_active: boolean }>>([]);
-    const [newUser, setNewUser] = useState({
-        name: '',
-        email: '',
-        password: '',
-        password_confirmation: '',
-        admin_group_id: '',
-        type: 'admin',
-    });
     const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [deleteConfirm, setDeleteConfirm] = useState<AdminUser | null>(null);
     const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [processing, setProcessing] = useState(false);
-    const [errors, setErrors] = useState<Record<string, string>>({});
     const [currentPage, setCurrentPage] = useState(1);
+
+    // React Hook Form setup - dynamically switch schema based on edit mode
+    const resolver = useMemo(
+        () => zodResolver(editingUser ? editAdminUserSchema : createAdminUserSchema),
+        [editingUser]
+    );
+
+    const {
+        control,
+        handleSubmit: handleFormSubmit,
+        formState: { errors },
+        reset,
+        setError,
+        trigger,
+        watch,
+    } = useForm<CreateAdminUserFormData | EditAdminUserFormData>({
+        resolver,
+        mode: "onSubmit",
+        reValidateMode: "onBlur",
+        shouldFocusError: true,
+        defaultValues: {
+            name: '',
+            email: '',
+            password: '',
+            password_confirmation: '',
+            admin_group_id: '',
+            type: 'admin',
+        },
+    });
+
+    // Watch password field for conditional validation
+    const passwordValue = watch('password');
     // Toast notifications are handled via RTK
 
     useEffect(() => {
@@ -152,46 +182,31 @@ export default function AdminAdminsIndex() {
         }
     };
 
-    const submitNewUser = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const onSubmit = async (data: CreateAdminUserFormData | EditAdminUserFormData) => {
         setProcessing(true);
-        setErrors({});
         
         try {
-            // Validate password confirmation on frontend
-            if (!editingUser && newUser.password !== newUser.password_confirmation) {
-                setErrors({ password_confirmation: 'Passwords do not match' });
-                setProcessing(false);
-                return;
-            }
-            
-            if (editingUser && newUser.password && newUser.password !== newUser.password_confirmation) {
-                setErrors({ password_confirmation: 'Passwords do not match' });
-                setProcessing(false);
-                return;
-            }
-
             const payload: any = {
-                name: newUser.name,
-                email: newUser.email,
-                type: newUser.type,
-                admin_group_id: newUser.admin_group_id ? Number(newUser.admin_group_id) : null,
+                name: data.name,
+                email: data.email,
+                type: data.type,
+                admin_group_id: data.admin_group_id ? Number(data.admin_group_id) : null,
             };
 
             if (editingUser) {
-                if (newUser.password) {
-                    payload.password = newUser.password;
-                    payload.password_confirmation = newUser.password_confirmation;
+                if (data.password && data.password.length > 0) {
+                    payload.password = data.password;
+                    payload.password_confirmation = data.password_confirmation;
                 }
                 await adminService.updateAdmin(editingUser.id, payload);
             } else {
-                payload.password = newUser.password;
-                payload.password_confirmation = newUser.password_confirmation;
+                payload.password = data.password;
+                payload.password_confirmation = data.password_confirmation;
                 await adminService.createAdmin(payload);
             }
 
             // Reset form
-            setNewUser({
+            reset({
                 name: '',
                 email: '',
                 password: '',
@@ -203,23 +218,27 @@ export default function AdminAdminsIndex() {
             toastSuccess(editingUser ? 'Admin updated successfully.' : 'Admin created successfully.');
             await loadUsers();
         } catch (error: any) {
-            // Prevent error from propagating to avoid Next.js error overlay
-            // Handle the error gracefully and show FlashMessage only
-            
+            // Handle field-level errors
             if (error.response?.data?.errors) {
-                setErrors(error.response.data.errors);
+                const fieldErrors = error.response.data.errors;
+                Object.keys(fieldErrors).forEach((key) => {
+                    const errorMessage = Array.isArray(fieldErrors[key]) 
+                        ? fieldErrors[key][0] 
+                        : fieldErrors[key];
+                    setError(key as keyof (CreateAdminUserFormData | EditAdminUserFormData), {
+                        type: 'server',
+                        message: errorMessage,
+                    });
+                });
             }
             
-            // Show error message in FlashMessage
+            // Show error message in FlashMessage (prioritize message field)
             const errorMessage = error.response?.data?.message 
                 ? (Array.isArray(error.response.data.message) 
                     ? error.response.data.message.join(', ') 
                     : error.response.data.message)
                 : 'Failed to save admin. Please try again.';
             toastError(errorMessage);
-            
-            // Silently handle error - don't log to console to avoid Next.js overlay
-            // Errors are already displayed to user via FlashMessage
         } finally {
             setProcessing(false);
         }
@@ -227,19 +246,19 @@ export default function AdminAdminsIndex() {
 
     const editUser = (user: AdminUser) => {
         setEditingUser(user);
-        setNewUser({
+        reset({
             name: user.name,
             email: user.email,
             password: '',
             password_confirmation: '',
             admin_group_id: user.admin_group?.id ? String(user.admin_group.id) : '',
-            type: user.type,
+            type: user.type as 'admin' | 'super-admin' | 'production' | 'sales',
         });
     };
 
     const cancelEdit = () => {
         setEditingUser(null);
-        setNewUser({
+        reset({
             name: '',
             email: '',
             password: '',
@@ -247,7 +266,6 @@ export default function AdminAdminsIndex() {
             admin_group_id: '',
             type: 'admin',
         });
-        setErrors({});
     };
 
     const deleteUser = (user: AdminUser) => {
@@ -345,106 +363,253 @@ export default function AdminAdminsIndex() {
                         New admin accounts default to admin-level access and can be restricted by assigning an admin group.
                     </p>
 
-                    <form onSubmit={submitNewUser} className="mt-4 sm:mt-6 grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Name</span>
-                            <input
-                                type="text"
-                                value={newUser.name}
-                                onChange={(event) => setNewUser((prev) => ({ ...prev, name: event.target.value }))}
-                                required
-                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
+                    <form onSubmit={handleFormSubmit(onSubmit)} className="mt-4 sm:mt-6 grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
+                        {/* Name */}
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="name">Name</InputLabel>
+                            <Controller
+                                name="name"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <TextInput
+                                            id="name"
+                                            type="text"
+                                            value={field.value || ''}
+                                            onChange={(e) => {
+                                                field.onChange(e);
+                                                trigger('name');
+                                            }}
+                                            onBlur={async () => {
+                                                field.onBlur();
+                                                await trigger('name');
+                                            }}
+                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                        />
+                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                    </>
+                                )}
                             />
-                            {errors?.name && <span className="text-[10px] sm:text-xs text-rose-500">{errors.name}</span>}
-                        </label>
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Email</span>
-                            <input
-                                type="email"
-                                value={newUser.email}
-                                onChange={(event) => setNewUser((prev) => ({ ...prev, email: event.target.value }))}
-                                required
-                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
+                        </div>
+
+                        {/* Email */}
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="email">Email</InputLabel>
+                            <Controller
+                                name="email"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <TextInput
+                                            id="email"
+                                            type="email"
+                                            value={field.value || ''}
+                                            onChange={(e) => {
+                                                field.onChange(e);
+                                                trigger('email');
+                                            }}
+                                            onBlur={async () => {
+                                                field.onBlur();
+                                                await trigger('email');
+                                            }}
+                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                        />
+                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                    </>
+                                )}
                             />
-                            {errors?.email && <span className="text-[10px] sm:text-xs text-rose-500">{errors.email}</span>}
-                        </label>
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Password</span>
-                            <input
-                                type="password"
-                                value={newUser.password}
-                                onChange={(event) => setNewUser((prev) => ({ ...prev, password: event.target.value }))}
-                                required={!editingUser}
-                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                minLength={8}
+                        </div>
+
+                        {/* Password */}
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="password">Password</InputLabel>
+                            <Controller
+                                name="password"
+                                control={control}
+                                render={({ field, fieldState }) => {
+                                    const confirmationValue = watch('password_confirmation');
+                                    const isCreateMode = !editingUser;
+                                    return (
+                                        <>
+                                            <TextInput
+                                                id="password"
+                                                type="password"
+                                                value={field.value || ''}
+                                                onChange={(e) => {
+                                                    field.onChange(e);
+                                                    // In create mode, validate on change if field has value
+                                                    // In edit mode, only validate if field has value
+                                                    if (e.target.value) {
+                                                        trigger('password');
+                                                        // Only trigger confirmation validation if BOTH fields have values
+                                                        if (confirmationValue) {
+                                                            trigger('password_confirmation');
+                                                        }
+                                                    } else if (!isCreateMode) {
+                                                        // In edit mode, clear errors if field is cleared
+                                                        trigger('password');
+                                                        trigger('password_confirmation');
+                                                    }
+                                                }}
+                                                onBlur={async () => {
+                                                    field.onBlur();
+                                                    // Only validate on blur if field has value OR it's create mode and field was touched
+                                                    const hasValue = field.value && field.value.length > 0;
+                                                    if (hasValue || (isCreateMode && fieldState.isTouched)) {
+                                                        await trigger('password');
+                                                        // Only trigger confirmation validation if BOTH fields have values
+                                                        const currentPassword = watch('password');
+                                                        const currentConfirmation = watch('password_confirmation');
+                                                        if (currentPassword && currentConfirmation) {
+                                                            await trigger('password_confirmation');
+                                                        }
+                                                    }
+                                                }}
+                                                className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                            />
+                                            {fieldState.error && <InputError message={fieldState.error.message} />}
+                                            {editingUser && (
+                                                <span className="text-[10px] sm:text-xs text-slate-400">Leave blank to keep the existing password.</span>
+                                            )}
+                                        </>
+                                    );
+                                }}
                             />
-                            {errors?.password && <span className="text-[10px] sm:text-xs text-rose-500">{errors.password}</span>}
-                            {editingUser && (
-                                <span className="text-[10px] sm:text-xs text-slate-400">Leave blank to keep the existing password.</span>
-                            )}
-                            {errors?.password_confirmation && (
-                                <span className="text-[10px] sm:text-xs text-rose-500">{errors.password_confirmation}</span>
-                            )}
-                        </label>
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Confirm password</span>
-                            <input
-                                type="password"
-                                value={newUser.password_confirmation}
-                                onChange={(event) =>
-                                    setNewUser((prev) => ({ ...prev, password_confirmation: event.target.value }))
-                                }
-                                required={!editingUser}
-                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                minLength={8}
+                        </div>
+
+                        {/* Confirm Password */}
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="password_confirmation">Confirm password</InputLabel>
+                            <Controller
+                                name="password_confirmation"
+                                control={control}
+                                render={({ field, fieldState }) => {
+                                    const passwordValue = watch('password');
+                                    const isCreateMode = !editingUser;
+                                    return (
+                                        <>
+                                            <TextInput
+                                                id="password_confirmation"
+                                                type="password"
+                                                value={field.value || ''}
+                                                onChange={(e) => {
+                                                    field.onChange(e);
+                                                    // Only trigger validation if BOTH fields have values
+                                                    if (passwordValue && e.target.value) {
+                                                        trigger('password_confirmation');
+                                                        trigger('password');
+                                                    } else if (!isCreateMode && !e.target.value) {
+                                                        // In edit mode, clear errors if field is cleared
+                                                        trigger('password_confirmation');
+                                                    }
+                                                }}
+                                                onBlur={async () => {
+                                                    field.onBlur();
+                                                    // Only trigger validation if BOTH fields have values OR it's create mode and field was touched
+                                                    const currentPassword = watch('password');
+                                                    const currentConfirmation = watch('password_confirmation');
+                                                    const hasBothValues = currentPassword && currentConfirmation;
+                                                    const shouldValidate = hasBothValues || (isCreateMode && fieldState.isTouched);
+                                                    
+                                                    if (shouldValidate) {
+                                                        if (hasBothValues) {
+                                                            await trigger('password_confirmation');
+                                                            await trigger('password');
+                                                        } else if (isCreateMode) {
+                                                            // In create mode, validate required field
+                                                            await trigger('password_confirmation');
+                                                        }
+                                                    }
+                                                }}
+                                                className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                            />
+                                            {fieldState.error && <InputError message={fieldState.error.message} />}
+                                        </>
+                                    );
+                                }}
                             />
-                        </label>
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>User role</span>
-                            <select
-                                value={newUser.type}
-                                onChange={(event) =>
-                                    setNewUser((prev) => ({
-                                        ...prev,
-                                        type: event.target.value,
-                                        admin_group_id: event.target.value === 'super-admin' ? '' : prev.admin_group_id,
-                                    }))
-                                }
-                                className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                disabled={editingUser?.type === 'super-admin'}
-                            >
-                                {availableTypes.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors?.type && <span className="text-[10px] sm:text-xs text-rose-500">{errors.type}</span>}
-                        </label>
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600 md:col-span-2 md:max-w-xs">
-                            <span>Admin group (optional)</span>
-                            {newUser.type === 'super-admin' || editingUser?.type === 'super-admin' ? (
-                                <div className="rounded-xl sm:rounded-2xl border border-dashed border-slate-200 px-3 py-2 sm:px-4 text-xs sm:text-sm text-slate-400">
-                                    Super administrators bypass group restrictions.
-                                </div>
-                            ) : (
-                                <select
-                                    value={newUser.admin_group_id}
-                                    onChange={(event) =>
-                                        setNewUser((prev) => ({ ...prev, admin_group_id: event.target.value }))
-                                    }
-                                    className="rounded-lg sm:rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 sm:px-4 text-xs sm:text-sm"
-                                >
-                                    <option value="">Admin (no restrictions)</option>
-                                    {adminGroups.map((group) => (
-                                        <option key={group.id} value={group.id}>
-                                            {group.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
-                            {errors?.admin_group_id && <span className="text-[10px] sm:text-xs text-rose-500">{errors.admin_group_id}</span>}
-                        </label>
+                        </div>
+
+                        {/* User Role */}
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="type">User role</InputLabel>
+                            <Controller
+                                name="type"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <Select
+                                            id="type"
+                                            value={field.value}
+                                            onChange={(e) => {
+                                                const newType = e.target.value as 'admin' | 'super-admin' | 'production' | 'sales';
+                                                field.onChange(newType);
+                                                if (newType === 'super-admin') {
+                                                    reset({ ...watch(), admin_group_id: '' });
+                                                }
+                                                trigger('type');
+                                            }}
+                                            onBlur={async () => {
+                                                field.onBlur();
+                                                await trigger('type');
+                                            }}
+                                            disabled={editingUser?.type === 'super-admin'}
+                                            className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                        >
+                                            {availableTypes.map((option) => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </Select>
+                                        {fieldState.error && <InputError message={fieldState.error.message} />}
+                                    </>
+                                )}
+                            />
+                        </div>
+
+                        {/* Admin Group */}
+                        <div className="flex flex-col gap-1.5 sm:gap-2 md:col-span-2 md:max-w-xs">
+                            <InputLabel htmlFor="admin_group_id">Admin group (optional)</InputLabel>
+                            <Controller
+                                name="admin_group_id"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        {watch('type') === 'super-admin' || editingUser?.type === 'super-admin' ? (
+                                            <div className="rounded-xl sm:rounded-2xl border border-dashed border-slate-200 px-3 py-2 sm:px-4 text-xs sm:text-sm text-slate-400 mt-1">
+                                                Super administrators bypass group restrictions.
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <Select
+                                                    id="admin_group_id"
+                                                    value={field.value || ''}
+                                                    onChange={(e) => {
+                                                        field.onChange(e.target.value);
+                                                        trigger('admin_group_id');
+                                                    }}
+                                                    onBlur={async () => {
+                                                        field.onBlur();
+                                                        await trigger('admin_group_id');
+                                                    }}
+                                                    className={`mt-1 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                                >
+                                                    <option value="">Admin (no restrictions)</option>
+                                                    {adminGroups.map((group) => (
+                                                        <option key={group.id} value={group.id}>
+                                                            {group.name}
+                                                        </option>
+                                                    ))}
+                                                </Select>
+                                                {fieldState.error && <InputError message={fieldState.error.message} />}
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                            />
+                        </div>
+
                         <div className="md:col-span-2">
                             <button
                                 type="submit"
