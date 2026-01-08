@@ -205,20 +205,9 @@ export default function AdminAdminGroupsPage() {
         setLoading(true);
 
         try {
-            // Auto-generate code from name if empty (for new groups)
-            const generateCode = (name: string) => {
-                return name
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, '_')
-                    .replace(/^_+|_+$/g, '')
-                    .toUpperCase();
-            };
-
-            const code = data.code || generateCode(data.name);
-
             const payload = {
                 name: data.name,
-                code: code,
+                code: data.code,
                 description: data.description || null,
                 is_active: data.is_active,
                 display_order: data.display_order,
