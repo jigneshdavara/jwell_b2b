@@ -694,3 +694,108 @@ export const catalogSchema = z.object({
 });
 
 export type CatalogFormData = z.infer<typeof catalogSchema>;
+
+// Tax Group Schema
+export const taxGroupSchema = z.object({
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(191, "The name may not be greater than 191 characters."),
+    description: z.string().optional().or(z.literal("")),
+    is_active: z.boolean().default(true),
+});
+
+export type TaxGroupFormData = z.infer<typeof taxGroupSchema>;
+
+// Tax Schema
+export const taxSchema = z.object({
+    tax_group_id: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                ) {
+                    return false;
+                }
+                return true;
+            },
+            {
+                message: "The tax group field is required.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? Number(val) : val)),
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(191, "The name may not be greater than 191 characters."),
+    code: z
+        .string()
+        .min(1, "The code field is required.")
+        .max(191, "The code may not be greater than 191 characters.")
+        .transform((val) => val.toUpperCase()),
+    rate: z
+        .union([z.string(), z.number()])
+        .transform((val) => (typeof val === "string" ? Number(val) : val))
+        .refine((val) => !isNaN(val) && val >= 0 && val <= 100, {
+            message: "The rate must be between 0 and 100.",
+        }),
+    description: z.string().optional().or(z.literal("")),
+    is_active: z.boolean().default(true),
+});
+
+export type TaxFormData = z.infer<typeof taxSchema>;
+
+// Payment Settings Schema
+export const paymentSettingsSchema = z.object({
+    publishable_key: z
+        .string()
+        .min(1, "The publishable key field is required.")
+        .max(
+            500,
+            "The publishable key may not be greater than 500 characters."
+        ),
+    secret_key: z
+        .string()
+        .min(1, "The secret key field is required.")
+        .max(500, "The secret key may not be greater than 500 characters."),
+    webhook_secret: z.string().optional().or(z.literal("")),
+    is_active: z.boolean().default(true),
+});
+
+export type PaymentSettingsFormData = z.infer<typeof paymentSettingsSchema>;
+
+// Order Status Schema
+export const orderStatusSchema = z.object({
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(191, "The name may not be greater than 191 characters."),
+    code: z
+        .string()
+        .min(1, "The code field is required.")
+        .max(191, "The code may not be greater than 191 characters."),
+    color: z
+        .string()
+        .min(1, "The color field is required.")
+        .regex(
+            /^#[0-9A-Fa-f]{6}$/,
+            "The color must be a valid hex color code (e.g., #64748b)."
+        ),
+    is_default: z.boolean().default(false),
+    is_active: z.boolean().default(true),
+    display_order: z
+        .union([z.string(), z.number(), z.null()])
+        .transform((val) => {
+            if (val === "" || val === null || val === undefined) return null;
+            const num = typeof val === "string" ? Number(val) : val;
+            return isNaN(num) ? null : num;
+        })
+        .nullable()
+        .optional(),
+});
+
+export type OrderStatusFormData = z.infer<typeof orderStatusSchema>;

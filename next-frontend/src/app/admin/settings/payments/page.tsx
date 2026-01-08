@@ -3,17 +3,36 @@
 import { Head } from '@/components/Head';
 import { useEffect, useState } from 'react';
 import { adminService } from '@/services/adminService';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { paymentSettingsSchema, type PaymentSettingsFormData } from '@/lib/validation/admin.schema';
+import TextInput from '@/components/ui/TextInput';
+import InputLabel from '@/components/ui/InputLabel';
+import InputError from '@/components/ui/InputError';
+import Checkbox from '@/components/ui/Checkbox';
 
 export default function AdminPaymentSettings() {
     const [loading, setLoading] = useState(true);
-    const [formData, setFormData] = useState({
-        publishable_key: '',
-        secret_key: '',
-        webhook_secret: '',
-        is_active: true,
+    const {
+        control,
+        handleSubmit: handleFormSubmit,
+        formState: { errors },
+        reset,
+        setError,
+        trigger,
+    } = useForm<PaymentSettingsFormData>({
+        resolver: zodResolver(paymentSettingsSchema),
+        mode: 'onSubmit',
+        reValidateMode: 'onBlur',
+        shouldFocusError: true,
+        defaultValues: {
+            publishable_key: '',
+            secret_key: '',
+            webhook_secret: '',
+            is_active: true,
+        },
     });
     const [processing, setProcessing] = useState(false);
-    const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         loadSettings();
@@ -25,7 +44,7 @@ export default function AdminPaymentSettings() {
             const response = await adminService.getPaymentSettings();
             if (response.data?.gateway) {
                 const gateway = response.data.gateway;
-                setFormData({
+                reset({
                     publishable_key: gateway.config?.publishable_key || '',
                     secret_key: gateway.config?.secret_key || '',
                     webhook_secret: gateway.config?.webhook_secret || '',
@@ -39,22 +58,31 @@ export default function AdminPaymentSettings() {
         }
     };
 
-    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const onSubmit = async (data: PaymentSettingsFormData) => {
         setProcessing(true);
-        setErrors({});
         
         try {
-            await adminService.updatePaymentSettings(formData);
+            await adminService.updatePaymentSettings(data);
             // Show success message
             const flashEvent = new CustomEvent('flash-message', { detail: { success: 'Payment settings saved successfully.' } });
             window.dispatchEvent(flashEvent);
         } catch (error: any) {
             console.error('Failed to save payment settings:', error);
-            if (error.response?.data?.errors) {
-                setErrors(error.response.data.errors);
+            const errorMessage = error?.response?.data?.message || 'Failed to save payment settings. Please try again.';
+            
+            // Set form errors if validation errors exist
+            if (error?.response?.data?.errors) {
+                const serverErrors = error.response.data.errors;
+                Object.keys(serverErrors).forEach((key) => {
+                    setError(key as keyof PaymentSettingsFormData, {
+                        type: 'server',
+                        message: serverErrors[key][0],
+                    });
+                });
             } else {
-                setErrors({ general: 'Failed to save payment settings. Please try again.' });
+                // Show general error via toast or flash message
+                const flashEvent = new CustomEvent('flash-message', { detail: { error: errorMessage } });
+                window.dispatchEvent(flashEvent);
             }
         } finally {
             setProcessing(false);
@@ -86,55 +114,105 @@ export default function AdminPaymentSettings() {
                 </div>
 
                 <form
-                    onSubmit={submit}
+                    onSubmit={handleFormSubmit(onSubmit)}
                     className="max-w-3xl space-y-4 sm:space-y-6 rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80"
                 >
                     <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
-                        <label className="flex flex-col gap-1.5 text-xs sm:text-sm text-slate-600">
-                            <span className="font-semibold text-slate-800">Stripe publishable key</span>
-                            <input
-                                type="text"
-                                value={formData.publishable_key}
-                                onChange={(event) => setFormData({ ...formData, publishable_key: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                                placeholder="pk_test_..."
-                                required
+                        <div>
+                            <InputLabel htmlFor="publishable_key">Stripe publishable key</InputLabel>
+                            <Controller
+                                name="publishable_key"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <TextInput
+                                            id="publishable_key"
+                                            type="text"
+                                            value={field.value || ''}
+                                            onChange={(e) => {
+                                                field.onChange(e);
+                                                trigger('publishable_key');
+                                            }}
+                                            onBlur={async () => {
+                                                field.onBlur();
+                                                await trigger('publishable_key');
+                                            }}
+                                            className={`mt-1.5 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                            placeholder="pk_test_..."
+                                        />
+                                        <InputError message={errors.publishable_key?.message} />
+                                    </>
+                                )}
                             />
-                            {errors.publishable_key && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.publishable_key}</p>}
-                        </label>
-                        <label className="flex flex-col gap-1.5 text-xs sm:text-sm text-slate-600">
-                            <span className="font-semibold text-slate-800">Stripe secret key</span>
-                            <input
-                                type="password"
-                                value={formData.secret_key}
-                                onChange={(event) => setFormData({ ...formData, secret_key: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                                placeholder="sk_test_..."
-                                required
+                        </div>
+                        <div>
+                            <InputLabel htmlFor="secret_key">Stripe secret key</InputLabel>
+                            <Controller
+                                name="secret_key"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <TextInput
+                                            id="secret_key"
+                                            type="password"
+                                            value={field.value || ''}
+                                            onChange={(e) => {
+                                                field.onChange(e);
+                                                trigger('secret_key');
+                                            }}
+                                            onBlur={async () => {
+                                                field.onBlur();
+                                                await trigger('secret_key');
+                                            }}
+                                            className={`mt-1.5 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                            placeholder="sk_test_..."
+                                        />
+                                        <InputError message={errors.secret_key?.message} />
+                                    </>
+                                )}
                             />
-                            {errors.secret_key && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.secret_key}</p>}
-                        </label>
+                        </div>
                     </div>
-                    <label className="flex flex-col gap-1.5 text-xs sm:text-sm text-slate-600">
-                        <span className="font-semibold text-slate-800">Webhook signing secret</span>
-                        <input
-                            type="text"
-                            value={formData.webhook_secret}
-                            onChange={(event) => setFormData({ ...formData, webhook_secret: event.target.value })}
-                            className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                            placeholder="whsec_... optional"
+                    <div>
+                        <InputLabel htmlFor="webhook_secret">Webhook signing secret</InputLabel>
+                        <Controller
+                            name="webhook_secret"
+                            control={control}
+                            render={({ field, fieldState }) => (
+                                <>
+                                    <TextInput
+                                        id="webhook_secret"
+                                        type="text"
+                                        value={field.value || ''}
+                                        onChange={(e) => {
+                                            field.onChange(e);
+                                            trigger('webhook_secret');
+                                        }}
+                                        onBlur={async () => {
+                                            field.onBlur();
+                                            await trigger('webhook_secret');
+                                        }}
+                                        className={`mt-1.5 ${fieldState.error ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                        placeholder="whsec_... optional"
+                                    />
+                                    <InputError message={errors.webhook_secret?.message} />
+                                </>
+                            )}
                         />
-                        {errors.webhook_secret && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.webhook_secret}</p>}
-                    </label>
-                    <label className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-slate-200 px-3 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm text-slate-600">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_active}
-                            onChange={(event) => setFormData({ ...formData, is_active: event.target.checked })}
-                            className="h-3.5 w-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500 sm:h-4 sm:w-4"
-                        />
-                        <span>Enable this gateway for checkout</span>
-                    </label>
+                    </div>
+                    <Controller
+                        name="is_active"
+                        control={control}
+                        render={({ field }) => (
+                            <label className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-slate-200 px-3 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm text-slate-600">
+                                <Checkbox
+                                    checked={field.value}
+                                    onChange={(e) => field.onChange(e.target.checked)}
+                                />
+                                <span>Enable this gateway for checkout</span>
+                            </label>
+                        )}
+                    />
                     <div className="flex justify-end">
                         <button
                             type="submit"
