@@ -223,3 +223,104 @@ export const styleSchema = z.object({
 });
 
 export type StyleFormData = z.infer<typeof styleSchema>;
+
+// Metal Schema
+export const metalSchema = z.object({
+    code: z
+        .string()
+        .min(1, "The code field is required.")
+        .max(191, "The code may not be greater than 191 characters."),
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(191, "The name may not be greater than 191 characters."),
+    description: z.string().optional().or(z.literal("")),
+    is_active: z.boolean().default(true),
+    display_order: z
+        .number()
+        .int()
+        .min(0, "The display order must be at least 0.")
+        .default(0),
+});
+
+export type MetalFormData = z.infer<typeof metalSchema>;
+
+// Metal Purity Schema
+export const metalPuritySchema = z.object({
+    metal_id: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                ) {
+                    return false;
+                }
+                return true;
+            },
+            {
+                message: "The metal field is required.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? Number(val) : val)),
+    code: z
+        .string()
+        .min(1, "The code field is required.")
+        .max(191, "The code may not be greater than 191 characters."),
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(191, "The name may not be greater than 191 characters."),
+    description: z.string().optional().or(z.literal("")),
+    is_active: z.boolean().default(true),
+    display_order: z
+        .number()
+        .int()
+        .min(0, "The display order must be at least 0.")
+        .default(0),
+});
+
+export type MetalPurityFormData = z.infer<typeof metalPuritySchema>;
+
+// Metal Tone Schema (same structure as Metal Purity)
+export const metalToneSchema = z.object({
+    metal_id: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                ) {
+                    return false;
+                }
+                return true;
+            },
+            {
+                message: "The metal field is required.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? Number(val) : val)),
+    code: z
+        .string()
+        .min(1, "The code field is required.")
+        .max(191, "The code may not be greater than 191 characters."),
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(191, "The name may not be greater than 191 characters."),
+    description: z.string().optional().or(z.literal("")),
+    is_active: z.boolean().default(true),
+    display_order: z
+        .number()
+        .int()
+        .min(0, "The display order must be at least 0.")
+        .default(0),
+});
+
+export type MetalToneFormData = z.infer<typeof metalToneSchema>;
