@@ -4,6 +4,12 @@ import { Head } from '@/components/Head';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { adminService } from '@/services/adminService';
 import { getMediaUrlNullable } from '@/utils/mediaUrl';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { generalSettingsSchema, GeneralSettingsFormData } from '@/lib/validation/admin.schema';
+import TextInput from '@/components/ui/TextInput';
+import InputLabel from '@/components/ui/InputLabel';
+import InputError from '@/components/ui/InputError';
 
 const timezones = [
     'Asia/Kolkata',
@@ -45,22 +51,34 @@ export default function AdminGeneralSettingsIndex() {
     const logoInputRef = useRef<HTMLInputElement>(null);
     const faviconInputRef = useRef<HTMLInputElement>(null);
 
-    const [formData, setFormData] = useState({
-        admin_email: '',
-        company_name: '',
-        company_address: '',
-        company_city: '',
-        company_state: '',
-        company_pincode: '',
-        company_phone: '',
-        company_email: '',
-        company_gstin: '',
-        app_name: '',
-        app_timezone: '',
-        app_currency: '',
+    // React Hook Form setup
+    const {
+        control,
+        handleSubmit: handleFormSubmit,
+        formState: { errors },
+        reset,
+        setError,
+    } = useForm<GeneralSettingsFormData>({
+        resolver: zodResolver(generalSettingsSchema),
+        mode: 'onSubmit',
+        reValidateMode: 'onBlur',
+        shouldFocusError: true,
+        defaultValues: {
+            admin_email: '',
+            company_name: '',
+            company_address: '',
+            company_city: '',
+            company_state: '',
+            company_pincode: '',
+            company_phone: '',
+            company_email: '',
+            company_gstin: '',
+            app_name: '',
+            app_timezone: timezones[0] || '',
+            app_currency: currencies[0] || '',
+        },
     });
 
-    const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
 
 
@@ -69,7 +87,7 @@ export default function AdminGeneralSettingsIndex() {
             const response = await adminService.getGeneralSettings();
             const data = response.data;
             setSettings(data);
-            setFormData({
+            reset({
                 admin_email: data.admin_email || '',
                 company_name: data.company_name || '',
                 company_address: data.company_address || '',
@@ -80,8 +98,8 @@ export default function AdminGeneralSettingsIndex() {
                 company_email: data.company_email || '',
                 company_gstin: data.company_gstin || '',
                 app_name: data.app_name || '',
-                app_timezone: data.app_timezone || '',
-                app_currency: data.app_currency || '',
+                app_timezone: data.app_timezone || timezones[0] || '',
+                app_currency: data.app_currency || currencies[0] || '',
             });
             setLogoPreview(getMediaUrlNullable(data.logo_url));
             setFaviconPreview(getMediaUrlNullable(data.favicon_url));
@@ -168,36 +186,13 @@ export default function AdminGeneralSettingsIndex() {
         }
     };
 
-    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const submit = async (formData: GeneralSettingsFormData) => {
         setProcessing(true);
-        setErrors({});
-
-        const trimmedAdminEmail = formData.admin_email?.trim() || '';
-        const trimmedCompanyName = formData.company_name?.trim() || '';
-        const trimmedAppName = formData.app_name?.trim() || '';
-
-        // Frontend validation
-        if (!trimmedAdminEmail) {
-            setErrors({ admin_email: 'The admin email field is required.' });
-            setProcessing(false);
-            return;
-        }
-        if (!trimmedCompanyName) {
-            setErrors({ company_name: 'The company name field is required.' });
-            setProcessing(false);
-            return;
-        }
-        if (!trimmedAppName) {
-            setErrors({ app_name: 'The app name field is required.' });
-            setProcessing(false);
-            return;
-        }
 
         try {
             const formDataToSend = new FormData();
-            formDataToSend.append('admin_email', trimmedAdminEmail);
-            formDataToSend.append('company_name', trimmedCompanyName);
+            formDataToSend.append('admin_email', formData.admin_email.trim());
+            formDataToSend.append('company_name', formData.company_name.trim());
             formDataToSend.append('company_address', formData.company_address?.trim() || '');
             formDataToSend.append('company_city', formData.company_city?.trim() || '');
             formDataToSend.append('company_state', formData.company_state?.trim() || '');
@@ -205,7 +200,7 @@ export default function AdminGeneralSettingsIndex() {
             formDataToSend.append('company_phone', formData.company_phone?.trim() || '');
             formDataToSend.append('company_email', formData.company_email?.trim() || '');
             formDataToSend.append('company_gstin', formData.company_gstin?.trim() || '');
-            formDataToSend.append('app_name', trimmedAppName);
+            formDataToSend.append('app_name', formData.app_name.trim());
             formDataToSend.append('app_timezone', formData.app_timezone);
             formDataToSend.append('app_currency', formData.app_currency);
 
@@ -244,9 +239,18 @@ export default function AdminGeneralSettingsIndex() {
         } catch (error: any) {
             console.error('Failed to save settings:', error);
             if (error.response?.data?.errors) {
-                setErrors(error.response.data.errors);
+                // Set backend validation errors
+                Object.keys(error.response.data.errors).forEach((key) => {
+                    setError(key as keyof GeneralSettingsFormData, {
+                        type: 'server',
+                        message: error.response.data.errors[key][0] || 'Validation error',
+                    });
+                });
             } else {
-                setErrors({ general: error.response?.data?.message || 'Failed to save settings. Please try again.' });
+                setError('root', {
+                    type: 'server',
+                    message: error.response?.data?.message || 'Failed to save settings. Please try again.',
+                });
             }
         } finally {
             setProcessing(false);
@@ -276,100 +280,169 @@ export default function AdminGeneralSettingsIndex() {
                     <p className="mt-1.5 text-xs sm:text-sm text-slate-500">Manage your application's general settings and branding.</p>
                 </div>
 
-                <form onSubmit={submit} className="space-y-4 sm:space-y-6">
+                <form onSubmit={handleFormSubmit(submit)} className="space-y-4 sm:space-y-6">
                     {/* Company Information */}
                     <div className="rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80">
                         <h2 className="mb-4 sm:mb-6 text-base sm:text-lg font-semibold text-slate-900">Company Information</h2>
                         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                             <div>
-                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Admin Email <span className="text-rose-500">*</span></label>
-                                <input
-                                    type="email"
-                                    value={formData.admin_email}
-                                    onChange={(e) => setFormData({ ...formData, admin_email: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
+                                <InputLabel htmlFor="admin_email" className="text-xs sm:text-sm font-semibold text-slate-700">
+                                    Admin Email <span className="text-rose-500">*</span>
+                                </InputLabel>
+                                <Controller
+                                    name="admin_email"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <>
+                                            <TextInput
+                                                {...field}
+                                                id="admin_email"
+                                                type="email"
+                                                className={fieldState.error || errors.admin_email ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                            />
+                                            <InputError message={errors.admin_email?.message} />
+                                        </>
+                                    )}
                                 />
-                                {errors.admin_email && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.admin_email}</p>}
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Company Name <span className="text-rose-500">*</span></label>
-                                <input
-                                    type="text"
-                                    value={formData.company_name}
-                                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
+                                <InputLabel htmlFor="company_name" className="text-xs sm:text-sm font-semibold text-slate-700">
+                                    Company Name <span className="text-rose-500">*</span>
+                                </InputLabel>
+                                <Controller
+                                    name="company_name"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <>
+                                            <TextInput
+                                                {...field}
+                                                id="company_name"
+                                                className={fieldState.error || errors.company_name ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                            />
+                                            <InputError message={errors.company_name?.message} />
+                                        </>
+                                    )}
                                 />
-                                {errors.company_name && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_name}</p>}
                             </div>
                             <div className="lg:col-span-2">
-                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Company Address</label>
-                                <input
-                                    type="text"
-                                    value={formData.company_address}
-                                    onChange={(e) => setFormData({ ...formData, company_address: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
+                                <InputLabel htmlFor="company_address" className="text-xs sm:text-sm font-semibold text-slate-700">Company Address</InputLabel>
+                                <Controller
+                                    name="company_address"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <>
+                                            <TextInput
+                                                {...field}
+                                                id="company_address"
+                                                className={fieldState.error || errors.company_address ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                            />
+                                            <InputError message={errors.company_address?.message} />
+                                        </>
+                                    )}
                                 />
-                                {errors.company_address && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_address}</p>}
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">City</label>
-                                <input
-                                    type="text"
-                                    value={formData.company_city}
-                                    onChange={(e) => setFormData({ ...formData, company_city: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
+                                <InputLabel htmlFor="company_city" className="text-xs sm:text-sm font-semibold text-slate-700">City</InputLabel>
+                                <Controller
+                                    name="company_city"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <>
+                                            <TextInput
+                                                {...field}
+                                                id="company_city"
+                                                className={fieldState.error || errors.company_city ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                            />
+                                            <InputError message={errors.company_city?.message} />
+                                        </>
+                                    )}
                                 />
-                                {errors.company_city && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_city}</p>}
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">State</label>
-                                <input
-                                    type="text"
-                                    value={formData.company_state}
-                                    onChange={(e) => setFormData({ ...formData, company_state: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
+                                <InputLabel htmlFor="company_state" className="text-xs sm:text-sm font-semibold text-slate-700">State</InputLabel>
+                                <Controller
+                                    name="company_state"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <>
+                                            <TextInput
+                                                {...field}
+                                                id="company_state"
+                                                className={fieldState.error || errors.company_state ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                            />
+                                            <InputError message={errors.company_state?.message} />
+                                        </>
+                                    )}
                                 />
-                                {errors.company_state && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_state}</p>}
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Pincode</label>
-                                <input
-                                    type="text"
-                                    value={formData.company_pincode}
-                                    onChange={(e) => setFormData({ ...formData, company_pincode: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
+                                <InputLabel htmlFor="company_pincode" className="text-xs sm:text-sm font-semibold text-slate-700">Pincode</InputLabel>
+                                <Controller
+                                    name="company_pincode"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <>
+                                            <TextInput
+                                                {...field}
+                                                id="company_pincode"
+                                                className={fieldState.error || errors.company_pincode ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                            />
+                                            <InputError message={errors.company_pincode?.message} />
+                                        </>
+                                    )}
                                 />
-                                {errors.company_pincode && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_pincode}</p>}
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Phone</label>
-                                <input
-                                    type="text"
-                                    value={formData.company_phone}
-                                    onChange={(e) => setFormData({ ...formData, company_phone: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
+                                <InputLabel htmlFor="company_phone" className="text-xs sm:text-sm font-semibold text-slate-700">Phone</InputLabel>
+                                <Controller
+                                    name="company_phone"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <>
+                                            <TextInput
+                                                {...field}
+                                                id="company_phone"
+                                                className={fieldState.error || errors.company_phone ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                            />
+                                            <InputError message={errors.company_phone?.message} />
+                                        </>
+                                    )}
                                 />
-                                {errors.company_phone && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_phone}</p>}
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Email</label>
-                                <input
-                                    type="email"
-                                    value={formData.company_email}
-                                    onChange={(e) => setFormData({ ...formData, company_email: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
+                                <InputLabel htmlFor="company_email" className="text-xs sm:text-sm font-semibold text-slate-700">Email</InputLabel>
+                                <Controller
+                                    name="company_email"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <>
+                                            <TextInput
+                                                {...field}
+                                                id="company_email"
+                                                type="email"
+                                                className={fieldState.error || errors.company_email ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                            />
+                                            <InputError message={errors.company_email?.message} />
+                                        </>
+                                    )}
                                 />
-                                {errors.company_email && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_email}</p>}
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">GSTIN</label>
-                                <input
-                                    type="text"
-                                    value={formData.company_gstin}
-                                    onChange={(e) => setFormData({ ...formData, company_gstin: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
+                                <InputLabel htmlFor="company_gstin" className="text-xs sm:text-sm font-semibold text-slate-700">GSTIN</InputLabel>
+                                <Controller
+                                    name="company_gstin"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <>
+                                            <TextInput
+                                                {...field}
+                                                id="company_gstin"
+                                                className={fieldState.error || errors.company_gstin ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                            />
+                                            <InputError message={errors.company_gstin?.message} />
+                                        </>
+                                    )}
                                 />
-                                {errors.company_gstin && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.company_gstin}</p>}
                             </div>
                         </div>
                     </div>
@@ -459,51 +532,84 @@ export default function AdminGeneralSettingsIndex() {
                         <h2 className="mb-4 sm:mb-6 text-base sm:text-lg font-semibold text-slate-900">Application Settings</h2>
                         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
                             <div>
-                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">App Name <span className="text-rose-500">*</span></label>
-                                <input
-                                    type="text"
-                                    value={formData.app_name}
-                                    onChange={(e) => setFormData({ ...formData, app_name: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
+                                <InputLabel htmlFor="app_name" className="text-xs sm:text-sm font-semibold text-slate-700">
+                                    App Name <span className="text-rose-500">*</span>
+                                </InputLabel>
+                                <Controller
+                                    name="app_name"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <>
+                                            <TextInput
+                                                {...field}
+                                                id="app_name"
+                                                className={fieldState.error || errors.app_name ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                            />
+                                            <InputError message={errors.app_name?.message} />
+                                        </>
+                                    )}
                                 />
-                                {errors.app_name && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.app_name}</p>}
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Timezone <span className="text-rose-500">*</span></label>
-                                <select
-                                    value={formData.app_timezone}
-                                    onChange={(e) => setFormData({ ...formData, app_timezone: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
-                                >
-                                    {timezones.map((tz) => (
-                                        <option key={tz} value={tz}>
-                                            {tz}
-                                        </option>
-                                    ))}
-                                </select>
-                                {errors.app_timezone && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.app_timezone}</p>}
+                                <InputLabel htmlFor="app_timezone" className="text-xs sm:text-sm font-semibold text-slate-700">
+                                    Timezone <span className="text-rose-500">*</span>
+                                </InputLabel>
+                                <Controller
+                                    name="app_timezone"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <>
+                                            <select
+                                                {...field}
+                                                id="app_timezone"
+                                                className={`w-full rounded-xl border bg-white text-slate-900 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm ${
+                                                    fieldState.error || errors.app_timezone ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                                }`}
+                                            >
+                                                {timezones.map((tz) => (
+                                                    <option key={tz} value={tz}>
+                                                        {tz}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <InputError message={errors.app_timezone?.message} />
+                                        </>
+                                    )}
+                                />
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Currency <span className="text-rose-500">*</span></label>
-                                <select
-                                    value={formData.app_currency}
-                                    onChange={(e) => setFormData({ ...formData, app_currency: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-1.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
-                                >
-                                    {currencies.map((curr) => (
-                                        <option key={curr} value={curr}>
-                                            {curr}
-                                        </option>
-                                    ))}
-                                </select>
-                                {errors.app_currency && <p className="mt-1 text-[10px] sm:text-xs text-rose-500">{errors.app_currency}</p>}
+                                <InputLabel htmlFor="app_currency" className="text-xs sm:text-sm font-semibold text-slate-700">
+                                    Currency <span className="text-rose-500">*</span>
+                                </InputLabel>
+                                <Controller
+                                    name="app_currency"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <>
+                                            <select
+                                                {...field}
+                                                id="app_currency"
+                                                className={`w-full rounded-xl border bg-white text-slate-900 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm ${
+                                                    fieldState.error || errors.app_currency ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                                }`}
+                                            >
+                                                {currencies.map((curr) => (
+                                                    <option key={curr} value={curr}>
+                                                        {curr}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <InputError message={errors.app_currency?.message} />
+                                        </>
+                                    )}
+                                />
                             </div>
                         </div>
                     </div>
 
-                    {errors.general && (
+                    {errors.root && (
                         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 sm:p-4 text-xs sm:text-sm text-rose-900">
-                            {errors.general}
+                            {errors.root.message}
                         </div>
                     )}
 

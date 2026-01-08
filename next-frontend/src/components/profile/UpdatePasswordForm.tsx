@@ -5,7 +5,10 @@ import InputLabel from '@/components/ui/InputLabel';
 import PrimaryButton from '@/components/ui/PrimaryButton';
 import TextInput from '@/components/ui/TextInput';
 import { Transition } from '@headlessui/react';
-import { useState, FormEventHandler, useRef } from 'react';
+import { useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { updatePasswordSchema, type UpdatePasswordFormData } from '@/lib/validation/auth.schema';
 import { frontendService } from '@/services/frontendService';
 import { toastError } from '@/utils/toast';
 
@@ -14,69 +17,55 @@ export default function UpdatePasswordForm({
 }: {
     className?: string;
 }) {
-    const passwordInput = useRef<HTMLInputElement>(null);
-    const currentPasswordInput = useRef<HTMLInputElement>(null);
+    const [recentlySuccessful, setRecentlySuccessful] = useState(false);
 
-    const [data, setData] = useState({
-        current_password: '',
-        password: '',
-        password_confirmation: '',
+    // React Hook Form setup
+    const {
+        control,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+        reset,
+        setError,
+    } = useForm<UpdatePasswordFormData>({
+        resolver: zodResolver(updatePasswordSchema),
+        mode: 'onSubmit',
+        reValidateMode: 'onBlur',
+        shouldFocusError: true,
+        defaultValues: {
+            current_password: '',
+            password: '',
+            password_confirmation: '',
+        },
     });
 
-    const [errors, setErrors] = useState<Record<string, string>>({});
-    const [processing, setProcessing] = useState(false);
-    const [recentlySuccessful, setRecentlySuccessful] = useState(false);
-    // Toast notifications are handled via RTK
-
-    const updatePassword: FormEventHandler = async (e) => {
-        e.preventDefault();
-        setProcessing(true);
-        setErrors({});
-
-        // Validate password confirmation
-        if (data.password !== data.password_confirmation) {
-            setErrors({ password_confirmation: 'Passwords do not match' });
-            setProcessing(false);
-            return;
-        }
-
+    const updatePassword = async (formData: UpdatePasswordFormData) => {
         try {
             await frontendService.updatePassword({
-                current_password: data.current_password,
-                password: data.password,
-                password_confirmation: data.password_confirmation,
+                current_password: formData.current_password,
+                password: formData.password,
+                password_confirmation: formData.password_confirmation,
             });
 
             setRecentlySuccessful(true);
-            setData({
-                current_password: '',
-                password: '',
-                password_confirmation: '',
-            });
+            reset();
             setTimeout(() => setRecentlySuccessful(false), 2000);
         } catch (error: any) {
-            if (error.response?.data?.message) {
+            if (error.response?.data?.errors) {
+                // Set errors using React Hook Form's setError
+                for (const key in error.response.data.errors) {
+                    setError(key as keyof UpdatePasswordFormData, {
+                        type: 'server',
+                        message: error.response.data.errors[key][0],
+                    });
+                }
+            } else if (error.response?.data?.message) {
                 const errorMessage = error.response.data.message;
                 if (typeof errorMessage === 'string') {
                     toastError(errorMessage);
-                } else if (typeof errorMessage === 'object') {
-                    setErrors(errorMessage);
                 }
-            } else if (error.response?.data) {
-                setErrors(error.response.data);
             } else {
                 toastError('Failed to update password. Please try again.');
             }
-
-            // Focus on the appropriate input based on error
-            if (errors.password) {
-                passwordInput.current?.focus();
-            }
-            if (errors.current_password) {
-                currentPasswordInput.current?.focus();
-            }
-        } finally {
-            setProcessing(false);
         }
     };
 
@@ -94,45 +83,57 @@ export default function UpdatePasswordForm({
             </header>
 
 
-            <form onSubmit={updatePassword} className="mt-4 space-y-4 sm:mt-6 sm:space-y-6">
+            <form onSubmit={handleSubmit(updatePassword)} className="mt-4 space-y-4 sm:mt-6 sm:space-y-6">
                 <div>
                     <InputLabel
                         htmlFor="current_password"
                         value="Current Password"
                     />
 
-                    <TextInput
-                        id="current_password"
-                        ref={currentPasswordInput}
-                        value={data.current_password}
-                        onChange={(e) =>
-                            setData({ ...data, current_password: e.target.value })
-                        }
-                        type="password"
-                        className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base"
-                        autoComplete="current-password"
-                    />
-
-                    <InputError
-                        message={errors.current_password}
-                        className="mt-1.5 sm:mt-2"
+                    <Controller
+                        name="current_password"
+                        control={control}
+                        render={({ field, fieldState }) => (
+                            <>
+                                <TextInput
+                                    {...field}
+                                    id="current_password"
+                                    type="password"
+                                    className={`mt-1.5 block w-full rounded-xl border bg-white px-3 py-2 text-sm sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base ${
+                                        fieldState.error || errors.current_password ? 'border-red-300 focus:border-red-400 focus:ring-red-300' : 'border-slate-200 focus:border-sky-400 focus:ring-sky-200'
+                                    }`}
+                                    autoComplete="current-password"
+                                />
+                                <InputError
+                                    message={errors.current_password?.message}
+                                    className="mt-1.5 sm:mt-2"
+                                />
+                            </>
+                        )}
                     />
                 </div>
 
                 <div>
                     <InputLabel htmlFor="password" value="New Password" />
 
-                    <TextInput
-                        id="password"
-                        ref={passwordInput}
-                        value={data.password}
-                        onChange={(e) => setData({ ...data, password: e.target.value })}
-                        type="password"
-                        className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base"
-                        autoComplete="new-password"
+                    <Controller
+                        name="password"
+                        control={control}
+                        render={({ field, fieldState }) => (
+                            <>
+                                <TextInput
+                                    {...field}
+                                    id="password"
+                                    type="password"
+                                    className={`mt-1.5 block w-full rounded-xl border bg-white px-3 py-2 text-sm sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base ${
+                                        fieldState.error || errors.password ? 'border-red-300 focus:border-red-400 focus:ring-red-300' : 'border-slate-200 focus:border-sky-400 focus:ring-sky-200'
+                                    }`}
+                                    autoComplete="new-password"
+                                />
+                                <InputError message={errors.password?.message} className="mt-1.5 sm:mt-2" />
+                            </>
+                        )}
                     />
-
-                    <InputError message={errors.password} className="mt-1.5 sm:mt-2" />
                 </div>
 
                 <div>
@@ -141,25 +142,31 @@ export default function UpdatePasswordForm({
                         value="Confirm Password"
                     />
 
-                    <TextInput
-                        id="password_confirmation"
-                        value={data.password_confirmation}
-                        onChange={(e) =>
-                            setData({ ...data, password_confirmation: e.target.value })
-                        }
-                        type="password"
-                        className="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base"
-                        autoComplete="new-password"
-                    />
-
-                    <InputError
-                        message={errors.password_confirmation}
-                        className="mt-1.5 sm:mt-2"
+                    <Controller
+                        name="password_confirmation"
+                        control={control}
+                        render={({ field, fieldState }) => (
+                            <>
+                                <TextInput
+                                    {...field}
+                                    id="password_confirmation"
+                                    type="password"
+                                    className={`mt-1.5 block w-full rounded-xl border bg-white px-3 py-2 text-sm sm:mt-2 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-base ${
+                                        fieldState.error || errors.password_confirmation ? 'border-red-300 focus:border-red-400 focus:ring-red-300' : 'border-slate-200 focus:border-sky-400 focus:ring-sky-200'
+                                    }`}
+                                    autoComplete="new-password"
+                                />
+                                <InputError
+                                    message={errors.password_confirmation?.message}
+                                    className="mt-1.5 sm:mt-2"
+                                />
+                            </>
+                        )}
                     />
                 </div>
 
                 <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
-                    <PrimaryButton disabled={processing} className="w-full sm:w-auto">Save</PrimaryButton>
+                    <PrimaryButton disabled={isSubmitting} className="w-full sm:w-auto">Save</PrimaryButton>
 
                     <Transition
                         show={recentlySuccessful}

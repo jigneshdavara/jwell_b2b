@@ -799,3 +799,388 @@ export const orderStatusSchema = z.object({
 });
 
 export type OrderStatusFormData = z.infer<typeof orderStatusSchema>;
+
+// Product Variant Metal Schema
+const variantMetalSchema = z.object({
+    id: z.number().optional(),
+    metal_id: z.union([z.number(), z.string()]).transform((val) => {
+        if (val === "" || val === null || val === undefined) return "";
+        return typeof val === "string" ? Number(val) : val;
+    }),
+    metal_purity_id: z.union([z.number(), z.string()]).transform((val) => {
+        if (val === "" || val === null || val === undefined) return "";
+        return typeof val === "string" ? Number(val) : val;
+    }),
+    metal_tone_id: z.union([z.number(), z.string()]).transform((val) => {
+        if (val === "" || val === null || val === undefined) return "";
+        return typeof val === "string" ? Number(val) : val;
+    }),
+    metal_weight: z.string(),
+});
+
+// Product Variant Diamond Schema
+const variantDiamondSchema = z.object({
+    id: z.number().optional(),
+    diamond_id: z.union([z.number(), z.string(), z.literal("")]).optional(),
+    diamonds_count: z.string().optional(),
+});
+
+// Product Variant Schema
+const variantSchema = z.object({
+    id: z.number().optional(),
+    sku: z.string(),
+    label: z.string(),
+    metal_id: z.union([z.number(), z.string(), z.literal("")]),
+    metal_purity_id: z.union([z.number(), z.string(), z.literal("")]),
+    diamond_option_key: z.string().nullable().optional(),
+    size_id: z.number().nullable().optional(),
+    is_default: z.boolean().default(false),
+    inventory_quantity: z.union([z.number(), z.string()]).optional(),
+    metadata: z.record(z.any()).optional(),
+    metals: z.array(variantMetalSchema).default([]),
+    diamonds: z.array(variantDiamondSchema).default([]),
+});
+
+// Product Schema
+export const productSchema = z
+    .object({
+        sku: z
+            .string()
+            .min(1, "The SKU field is required.")
+            .max(191, "The SKU may not be greater than 191 characters."),
+        name: z
+            .string()
+            .min(1, "The product name field is required.")
+            .max(
+                191,
+                "The product name may not be greater than 191 characters."
+            ),
+        titleline: z
+            .string()
+            .min(1, "The title line field is required.")
+            .max(191, "The title line may not be greater than 191 characters."),
+        description: z.string().optional().or(z.literal("")),
+        brand_id: z
+            .union([z.string(), z.number(), z.literal("")])
+            .refine(
+                (val) => {
+                    if (
+                        val === "" ||
+                        val === null ||
+                        val === undefined ||
+                        val === 0
+                    )
+                        return false;
+                    const num = typeof val === "string" ? Number(val) : val;
+                    return !isNaN(num) && num > 0;
+                },
+                { message: "The brand field is required." }
+            )
+            .transform((val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                )
+                    return "";
+                return typeof val === "string" ? val : String(val);
+            }),
+        category_id: z
+            .union([z.string(), z.number(), z.literal("")])
+            .refine(
+                (val) => {
+                    if (
+                        val === "" ||
+                        val === null ||
+                        val === undefined ||
+                        val === 0
+                    )
+                        return false;
+                    const num = typeof val === "string" ? Number(val) : val;
+                    return !isNaN(num) && num > 0;
+                },
+                { message: "The category field is required." }
+            )
+            .transform((val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                )
+                    return "";
+                return typeof val === "string" ? val : String(val);
+            }),
+        style_ids: z.array(z.number()).default([]),
+        collection: z
+            .string()
+            .min(1, "The collection field is required.")
+            .max(191, "The collection may not be greater than 191 characters."),
+        producttype: z
+            .string()
+            .min(1, "The product type field is required.")
+            .max(
+                191,
+                "The product type may not be greater than 191 characters."
+            ),
+        gender: z.enum(["Men", "Women", "Unisex", "Kids"], {
+            errorMap: () => ({ message: "The gender field is required." }),
+        }),
+        making_charge_amount: z.string().optional().or(z.literal("")),
+        making_charge_types: z
+            .array(z.enum(["fixed", "percentage"]))
+            .min(
+                1,
+                "Please select at least one making charge type (Fixed Amount or Percentage)."
+            ),
+        making_charge_percentage: z.string().optional().or(z.literal("")),
+        is_active: z.boolean().default(true),
+        catalog_ids: z.array(z.number()).default([]),
+        subcategory_ids: z.array(z.number()).default([]),
+        variants: z.array(variantSchema).optional().default([]),
+        // Optional fields for variant generation
+        uses_diamond: z.boolean().optional(),
+        diamond_selections: z
+            .array(
+                z.object({
+                    diamond_id: z.union([
+                        z.number(),
+                        z.string(),
+                        z.literal(""),
+                    ]),
+                    count: z.string(),
+                })
+            )
+            .optional(),
+        metal_selections: z
+            .array(
+                z.object({
+                    metal_id: z.union([z.number(), z.string(), z.literal("")]),
+                    metal_purity_id: z.union([
+                        z.number(),
+                        z.string(),
+                        z.literal(""),
+                    ]),
+                    metal_tone_id: z.union([
+                        z.number(),
+                        z.string(),
+                        z.literal(""),
+                    ]),
+                    weight: z.string(),
+                })
+            )
+            .optional(),
+        selected_metals: z.array(z.number()).optional(),
+        metal_configurations: z
+            .record(
+                z.object({
+                    purities: z.array(z.number()),
+                    tones: z.array(z.number()),
+                })
+            )
+            .optional(),
+        selected_sizes: z.array(z.number()).optional(),
+        all_sizes_available: z.boolean().optional(),
+        show_all_variants_by_size: z.boolean().optional(),
+        media_uploads: z.array(z.instanceof(File)).optional(),
+        removed_media_ids: z.array(z.number()).optional(),
+    })
+    .superRefine((data, ctx) => {
+        // Making charge validation
+        if (data.making_charge_types.includes("fixed")) {
+            if (
+                !data.making_charge_amount ||
+                data.making_charge_amount === ""
+            ) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        "The making charge amount field is required when Fixed Amount is selected.",
+                    path: ["making_charge_amount"],
+                });
+            } else {
+                const numValue = Number(data.making_charge_amount);
+                if (isNaN(numValue) || numValue < 0) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message:
+                            "The making charge amount must be a valid number.",
+                        path: ["making_charge_amount"],
+                    });
+                }
+            }
+        }
+
+        if (data.making_charge_types.includes("percentage")) {
+            if (
+                !data.making_charge_percentage ||
+                data.making_charge_percentage === ""
+            ) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        "The making charge percentage field is required when Percentage is selected.",
+                    path: ["making_charge_percentage"],
+                });
+            } else {
+                const numValue = Number(data.making_charge_percentage);
+                if (isNaN(numValue) || numValue < 0 || numValue > 100) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message:
+                            "The making charge percentage must be a valid number between 0 and 100.",
+                        path: ["making_charge_percentage"],
+                    });
+                }
+            }
+        }
+    });
+
+export type ProductFormData = z.infer<typeof productSchema>;
+
+// Offer Schema
+export const offerSchema = z.object({
+    code: z
+        .string()
+        .min(1, "The code field is required.")
+        .max(191, "The code may not be greater than 191 characters."),
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(191, "The name may not be greater than 191 characters."),
+    description: z.string().optional().or(z.literal("")),
+    type: z.enum(["percentage", "fixed", "free_shipping", "buy_x_get_y"], {
+        errorMap: () => ({ message: "Please select a valid offer type." }),
+    }),
+    value: z
+        .union([z.string(), z.number()])
+        .transform((val) => (typeof val === "string" ? Number(val) : val))
+        .refine((val) => !isNaN(val) && val > 0, {
+            message: "The value field is required and must be greater than 0.",
+        }),
+    min_order_total: z
+        .union([z.string(), z.number(), z.literal(""), z.null(), z.undefined()])
+        .optional()
+        .transform((val) => {
+            if (val === "" || val === null || val === undefined) return null;
+            const num = typeof val === "string" ? Number(val) : val;
+            return isNaN(num) ? null : num;
+        })
+        .nullable()
+        .refine(
+            (val) => val === null || (typeof val === "number" && val >= 0),
+            {
+                message:
+                    "The minimum order total must be a valid number greater than or equal to 0.",
+            }
+        ),
+    user_types: z.array(z.string()).default([]),
+    user_group_ids: z.array(z.union([z.string(), z.number()])).default([]),
+    starts_at: z.string().optional().or(z.literal("")),
+    ends_at: z.string().optional().or(z.literal("")),
+    is_active: z.boolean().default(true),
+});
+
+export type OfferFormData = z.infer<typeof offerSchema>;
+
+// Making Charge Discount Schema
+export const makingChargeDiscountSchema = z.object({
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(191, "The name may not be greater than 191 characters."),
+    description: z.string().optional().or(z.literal("")),
+    discount_type: z.enum(["percentage", "fixed"], {
+        errorMap: () => ({ message: "Please select a valid discount type." }),
+    }),
+    value: z
+        .union([z.string(), z.number()])
+        .transform((val) => (typeof val === "string" ? Number(val) : val))
+        .refine((val) => !isNaN(val) && val > 0, {
+            message: "The value must be a valid number greater than 0.",
+        }),
+    brand_id: z
+        .union([z.string(), z.number(), z.literal(""), z.null(), z.undefined()])
+        .optional()
+        .transform((val) => {
+            if (val === "" || val === null || val === undefined) return null;
+            const num = typeof val === "string" ? Number(val) : val;
+            return isNaN(num) ? null : num;
+        })
+        .nullable(),
+    category_id: z
+        .union([z.string(), z.number(), z.literal(""), z.null(), z.undefined()])
+        .optional()
+        .transform((val) => {
+            if (val === "" || val === null || val === undefined) return null;
+            const num = typeof val === "string" ? Number(val) : val;
+            return isNaN(num) ? null : num;
+        })
+        .nullable(),
+    user_group_id: z
+        .union([z.string(), z.number(), z.literal(""), z.null(), z.undefined()])
+        .optional()
+        .transform((val) => {
+            if (val === "" || val === null || val === undefined) return null;
+            const num = typeof val === "string" ? Number(val) : val;
+            return isNaN(num) ? null : num;
+        })
+        .nullable(),
+    user_types: z.array(z.string()).default([]),
+    min_cart_total: z
+        .union([z.string(), z.number(), z.literal(""), z.null(), z.undefined()])
+        .optional()
+        .transform((val) => {
+            if (val === "" || val === null || val === undefined) return null;
+            const num = typeof val === "string" ? Number(val) : val;
+            return isNaN(num) ? null : num;
+        })
+        .nullable()
+        .refine(
+            (val) => val === null || (typeof val === "number" && val >= 0),
+            {
+                message:
+                    "The minimum cart total must be a valid number greater than or equal to 0.",
+            }
+        ),
+    is_auto: z.boolean().default(true),
+    is_active: z.boolean().default(true),
+    starts_at: z.string().optional().or(z.literal("")),
+    ends_at: z.string().optional().or(z.literal("")),
+});
+
+export type MakingChargeDiscountFormData = z.infer<
+    typeof makingChargeDiscountSchema
+>;
+
+// General Settings Schema
+export const generalSettingsSchema = z.object({
+    admin_email: z
+        .string()
+        .min(1, "The admin email field is required.")
+        .email("The admin email must be a valid email address."),
+    company_name: z
+        .string()
+        .min(1, "The company name field is required.")
+        .max(191, "The company name may not be greater than 191 characters."),
+    company_address: z.string().optional().or(z.literal("")),
+    company_city: z.string().optional().or(z.literal("")),
+    company_state: z.string().optional().or(z.literal("")),
+    company_pincode: z.string().optional().or(z.literal("")),
+    company_phone: z.string().optional().or(z.literal("")),
+    company_email: z
+        .string()
+        .email("The company email must be a valid email address.")
+        .optional()
+        .or(z.literal("")),
+    company_gstin: z.string().optional().or(z.literal("")),
+    app_name: z
+        .string()
+        .min(1, "The app name field is required.")
+        .max(191, "The app name may not be greater than 191 characters."),
+    app_timezone: z.string().min(1, "The timezone field is required."),
+    app_currency: z.string().min(1, "The currency field is required."),
+});
+
+export type GeneralSettingsFormData = z.infer<typeof generalSettingsSchema>;

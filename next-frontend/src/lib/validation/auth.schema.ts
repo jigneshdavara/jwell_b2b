@@ -202,3 +202,59 @@ export const confirmPasswordSchema = z.object({
 });
 
 export type ConfirmPasswordFormData = z.infer<typeof confirmPasswordSchema>;
+
+// Profile Update Schema
+export const profileUpdateSchema = z.object({
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(255, "The name must not exceed 255 characters."),
+
+    email: z
+        .string()
+        .min(1, "The email field is required.")
+        .email("The email must be a valid email address.")
+        .max(255, "The email must not exceed 255 characters."),
+
+    phone: z
+        .string()
+        .max(20, "The phone must not exceed 20 characters.")
+        .optional()
+        .nullable(),
+
+    preferred_language: z
+        .enum(["en", "hi", "gu"], {
+            errorMap: () => ({ message: "Please select a valid language." }),
+        })
+        .optional()
+        .default("en"),
+});
+
+export type ProfileUpdateFormData = z.infer<typeof profileUpdateSchema>;
+
+// Update Password Schema (for profile page)
+export const updatePasswordSchema = z
+    .object({
+        current_password: z
+            .string()
+            .min(1, "The current password field is required."),
+
+        password: z
+            .string()
+            .min(1, "The password field is required.")
+            .min(8, "The password must be at least 8 characters."),
+
+        password_confirmation: z
+            .string()
+            .min(1, "The password confirmation field is required."),
+    })
+    .refine(
+        (data: { password: string; password_confirmation: string }) =>
+            data.password === data.password_confirmation,
+        {
+            message: "The password confirmation does not match.",
+            path: ["password_confirmation"],
+        }
+    );
+
+export type UpdatePasswordFormData = z.infer<typeof updatePasswordSchema>;

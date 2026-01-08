@@ -5,6 +5,13 @@ import { Head } from '@/components/Head';
 import { useEffect, useMemo, useState } from 'react';
 import { adminService } from '@/services/adminService';
 import { toastError } from '@/utils/toast';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { offerSchema, OfferFormData } from '@/lib/validation/admin.schema';
+import TextInput from '@/components/ui/TextInput';
+import InputLabel from '@/components/ui/InputLabel';
+import InputError from '@/components/ui/InputError';
+import Checkbox from '@/components/ui/Checkbox';
 
 type OfferConstraints = {
     min_order_total?: number | null;
@@ -71,19 +78,34 @@ export default function AdminOffersIndex() {
         [userGroups],
     );
 
-    const [formData, setFormData] = useState({
-        code: '',
-        name: '',
-        description: '',
-        type: defaultType,
-        value: '',
-        starts_at: '',
-        ends_at: '',
-        is_active: true,
-        min_order_total: '',
-        user_types: [] as string[],
-        user_group_ids: [] as string[],
+    // React Hook Form setup
+    const {
+        control,
+        handleSubmit: handleFormSubmit,
+        formState: { errors },
+        reset,
+        setValue,
+        watch,
+    } = useForm<OfferFormData>({
+        resolver: zodResolver(offerSchema),
+        mode: 'onSubmit',
+        reValidateMode: 'onBlur',
+        shouldFocusError: true,
+        defaultValues: {
+            code: '',
+            name: '',
+            description: '',
+            type: defaultType as 'percentage' | 'fixed' | 'free_shipping' | 'buy_x_get_y',
+            value: 0,
+            starts_at: '',
+            ends_at: '',
+            is_active: true,
+            min_order_total: null,
+            user_types: [],
+            user_group_ids: [],
+        },
     });
+
     const [processing, setProcessing] = useState(false);
 
     useEffect(() => {
@@ -136,16 +158,16 @@ export default function AdminOffersIndex() {
     };
 
     const resetForm = () => {
-        setFormData({
+        reset({
             code: '',
             name: '',
             description: '',
-            type: defaultType,
-            value: '',
+            type: defaultType as 'percentage' | 'fixed' | 'free_shipping' | 'buy_x_get_y',
+            value: 0,
             starts_at: '',
             ends_at: '',
             is_active: true,
-            min_order_total: '',
+            min_order_total: null,
             user_types: [],
             user_group_ids: [],
         });
@@ -154,26 +176,22 @@ export default function AdminOffersIndex() {
 
     const populateForm = (offer: OfferRow) => {
         setEditingOffer(offer);
-        setFormData({
+        reset({
             code: offer.code,
             name: offer.name,
             description: offer.description ?? '',
-            type: offer.type,
-            value: String(offer.value),
+            type: offer.type as 'percentage' | 'fixed' | 'free_shipping' | 'buy_x_get_y',
+            value: offer.value,
             starts_at: offer.starts_at ? offer.starts_at.split('T')[0] : '',
             ends_at: offer.ends_at ? offer.ends_at.split('T')[0] : '',
             is_active: offer.is_active,
-            min_order_total: offer.constraints?.min_order_total != null ? String(offer.constraints.min_order_total) : '',
+            min_order_total: offer.constraints?.min_order_total ?? null,
             user_types: offer.constraints?.user_types?.filter(Boolean) ?? [],
-            user_group_ids:
-                offer.constraints?.user_group_ids
-                    ?.filter((groupId): groupId is number => typeof groupId === 'number')
-                    .map((groupId) => String(groupId)) ?? [],
+            user_group_ids: offer.constraints?.user_group_ids?.map((id) => String(id)) ?? [],
         });
     };
 
-    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const submit = async (formData: OfferFormData) => {
         setProcessing(true);
         try {
             const normalizedUserTypes = Array.from(
@@ -192,9 +210,9 @@ export default function AdminOffersIndex() {
                 name: formData.name,
                 description: formData.description || null,
                 type: formData.type,
-                value: Number(formData.value || 0),
+                value: formData.value,
                 constraints: {
-                    min_order_total: formData.min_order_total ? Number(formData.min_order_total) : null,
+                    min_order_total: formData.min_order_total ?? null,
                     user_types: normalizedUserTypes.length ? normalizedUserTypes : null,
                     user_group_ids: userGroupIds.length ? userGroupIds : null,
                 },
@@ -266,7 +284,7 @@ export default function AdminOffersIndex() {
                 </div>
 
                 <form
-                    onSubmit={submit}
+                    onSubmit={handleFormSubmit(submit)}
                     className="space-y-4 sm:space-y-6 rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-xl shadow-slate-900/10 ring-1 ring-slate-200/80"
                 >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -285,173 +303,277 @@ export default function AdminOffersIndex() {
                     </div>
 
                     <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Offer code</span>
-                            <input
-                                type="text"
-                                value={formData.code}
-                                onChange={(event) => setFormData({ ...formData, code: event.target.value.toUpperCase() })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm uppercase"
-                                placeholder="SUMMER25"
-                                required
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="code" className="text-xs sm:text-sm text-slate-600 font-normal">Offer code</InputLabel>
+                            <Controller
+                                name="code"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <TextInput
+                                            {...field}
+                                            id="code"
+                                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                                            className={`uppercase ${fieldState.error || errors.code ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}`}
+                                            placeholder="SUMMER25"
+                                        />
+                                        {errors.code && (
+                                            <InputError message={errors.code.message} />
+                                        )}
+                                    </>
+                                )}
                             />
-                        </label>
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Name</span>
-                            <input
-                                type="text"
-                                value={formData.name}
-                                onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                                required
+                        </div>
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="name" className="text-xs sm:text-sm text-slate-600 font-normal">Name</InputLabel>
+                            <Controller
+                                name="name"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <TextInput
+                                            {...field}
+                                            id="name"
+                                            className={fieldState.error || errors.name ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                        />
+                                        {errors.name && (
+                                            <InputError message={errors.name.message} />
+                                        )}
+                                    </>
+                                )}
                             />
-                        </label>
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Type</span>
-                            <select
-                                value={formData.type}
-                                onChange={(event) => setFormData({ ...formData, type: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                            >
-                                {offerTypes.map((type) => (
-                                    <option key={type} value={type}>
-                                        {type.replace(/_/g, ' ')}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Value</span>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={formData.value}
-                                onChange={(event) => setFormData({ ...formData, value: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                                required
+                        </div>
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="type" className="text-xs sm:text-sm text-slate-600 font-normal">Type</InputLabel>
+                            <Controller
+                                name="type"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <select
+                                            {...field}
+                                            id="type"
+                                            className={`rounded-xl border bg-white text-slate-900 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm ${
+                                                fieldState.error || errors.type ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                            }`}
+                                        >
+                                            {offerTypes.map((type) => (
+                                                <option key={type} value={type}>
+                                                    {type.replace(/_/g, ' ')}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.type && (
+                                            <InputError message={errors.type.message} />
+                                        )}
+                                    </>
+                                )}
                             />
-                        </label>
+                        </div>
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="value" className="text-xs sm:text-sm text-slate-600 font-normal">Value</InputLabel>
+                            <Controller
+                                name="value"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <TextInput
+                                            {...field}
+                                            id="value"
+                                            type="number"
+                                            step="0.01"
+                                            value={field.value === 0 ? '' : String(field.value)}
+                                            onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                                            className={fieldState.error || errors.value ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                        />
+                                        {errors.value && (
+                                            <InputError message={errors.value.message} />
+                                        )}
+                                    </>
+                                )}
+                            />
+                        </div>
                     </div>
 
                     <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
                         <span>Description</span>
-                        <textarea
-                            value={formData.description}
-                            onChange={(event) => setFormData({ ...formData, description: event.target.value })}
-                            className="min-h-[80px] sm:min-h-[100px] rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                            placeholder="Optional copy for team reference"
+                        <Controller
+                            name="description"
+                            control={control}
+                            render={({ field, fieldState }) => (
+                                <>
+                                    <textarea
+                                        {...field}
+                                        className={`min-h-[80px] sm:min-h-[100px] rounded-xl border bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm ${
+                                            fieldState.error || errors.description ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                        }`}
+                                        placeholder="Optional copy for team reference"
+                                    />
+                                    {errors.description && (
+                                        <InputError message={errors.description.message} />
+                                    )}
+                                </>
+                            )}
                         />
                     </label>
 
                     <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Booking window</span>
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="booking_window" className="text-xs sm:text-sm text-slate-600 font-normal">Booking window</InputLabel>
                             <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2">
-                                <input
-                                    type="date"
-                                    value={formData.starts_at}
-                                    onChange={(event) => setFormData({ ...formData, starts_at: event.target.value })}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
+                                <Controller
+                                    name="starts_at"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <input
+                                            {...field}
+                                            type="date"
+                                            className={`rounded-xl border bg-white text-slate-900 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm ${
+                                                fieldState.error || errors.starts_at ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                            }`}
+                                        />
+                                    )}
                                 />
-                                <input
-                                    type="date"
-                                    value={formData.ends_at}
-                                    onChange={(event) => setFormData({ ...formData, ends_at: event.target.value })}
-                                    className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
+                                <Controller
+                                    name="ends_at"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <input
+                                            {...field}
+                                            type="date"
+                                            className={`rounded-xl border bg-white text-slate-900 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2.5 text-xs sm:px-4 sm:py-2.5 sm:text-sm ${
+                                                fieldState.error || errors.ends_at ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                            }`}
+                                        />
+                                    )}
                                 />
                             </div>
-                        </label>
-                        <label className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm text-slate-600">
-                            <span>Minimum order total (₹)</span>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={formData.min_order_total}
-                                onChange={(event) => setFormData({ ...formData, min_order_total: event.target.value })}
-                                className="rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm"
-                                placeholder="Optional"
+                            {(errors.starts_at || errors.ends_at) && (
+                                <InputError message={errors.starts_at?.message || errors.ends_at?.message} />
+                            )}
+                        </div>
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                            <InputLabel htmlFor="min_order_total" className="text-xs sm:text-sm text-slate-600 font-normal">Minimum order total (₹)</InputLabel>
+                            <Controller
+                                name="min_order_total"
+                                control={control}
+                                render={({ field, fieldState }) => (
+                                    <>
+                                        <TextInput
+                                            {...field}
+                                            id="min_order_total"
+                                            type="number"
+                                            step="0.01"
+                                            value={field.value === null ? '' : String(field.value)}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                field.onChange(val === '' ? null : (isNaN(Number(val)) ? null : Number(val)));
+                                            }}
+                                            className={fieldState.error || errors.min_order_total ? '!border-red-300 focus:!border-red-400 focus:!ring-red-300' : ''}
+                                            placeholder="Optional"
+                                        />
+                                        {errors.min_order_total && (
+                                            <InputError message={errors.min_order_total.message} />
+                                        )}
+                                    </>
+                                )}
                             />
-                        </label>
+                        </div>
                     </div>
 
                     <fieldset className="rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3">
                         <legend className="px-2 text-[10px] sm:text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">
                             Eligible customer types
                         </legend>
-                        <div className="mt-2 sm:mt-3 flex flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm text-slate-600">
-                            {userTypes.map((type) => {
-                                const checked = formData.user_types.includes(type.value);
-                                return (
-                                    <label key={type.value} className="inline-flex items-center gap-1.5 sm:gap-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={(event) => {
-                                                if (event.target.checked) {
-                                                    setFormData({ ...formData, user_types: [...formData.user_types, type.value] });
-                                                } else {
-                                                    setFormData({
-                                                        ...formData,
-                                                        user_types: formData.user_types.filter((value) => value !== type.value),
-                                                    });
-                                                }
-                                            }}
-                                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                        />
-                                        <span className="uppercase tracking-wide text-xs sm:text-sm">{type.label}</span>
-                                    </label>
-                                );
-                            })}
-                        </div>
+                        <Controller
+                            name="user_types"
+                            control={control}
+                            render={({ field }) => (
+                                <div className="mt-2 sm:mt-3 flex flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm text-slate-600">
+                                    {userTypes.map((type) => {
+                                        const checked = field.value.includes(type.value);
+                                        return (
+                                            <label key={type.value} className="inline-flex items-center gap-1.5 sm:gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={(event) => {
+                                                        if (event.target.checked) {
+                                                            field.onChange([...field.value, type.value]);
+                                                        } else {
+                                                            field.onChange(field.value.filter((value) => value !== type.value));
+                                                        }
+                                                    }}
+                                                    className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                />
+                                                <span className="uppercase tracking-wide text-xs sm:text-sm">{type.label}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        />
+                        <InputError message={errors.user_types?.message} />
                     </fieldset>
 
                     <fieldset className="rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3">
                         <legend className="px-2 text-[10px] sm:text-xs font-semibold uppercase tracking-[0.35em] text-slate-400">
                             Eligible customer groups
                         </legend>
-                        <div className="mt-2 sm:mt-3 flex flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm text-slate-600">
-                            {userGroups.length === 0 ? (
-                                <p className="text-[10px] sm:text-xs uppercase tracking-widest text-slate-400">
-                                    No customer groups configured. All groups will be eligible.
-                                </p>
-                            ) : (
-                                userGroups.map((group) => {
-                                    const value = String(group.id);
-                                    const checked = formData.user_group_ids.includes(value);
-                                    return (
-                                        <label key={group.id} className="inline-flex items-center gap-1.5 sm:gap-2">
-                                            <input
-                                                type="checkbox"
-                                                checked={checked}
-                                                onChange={(event) => {
-                                                    if (event.target.checked) {
-                                                        setFormData({ ...formData, user_group_ids: [...formData.user_group_ids, value] });
-                                                    } else {
-                                                        setFormData({
-                                                            ...formData,
-                                                            user_group_ids: formData.user_group_ids.filter((id) => id !== value),
-                                                        });
-                                                    }
-                                                }}
-                                                className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-                                            />
-                                            <span className="tracking-wide text-slate-500 text-xs sm:text-sm">{group.name}</span>
-                                        </label>
-                                    );
-                                })
+                        <Controller
+                            name="user_group_ids"
+                            control={control}
+                            render={({ field }) => (
+                                <div className="mt-2 sm:mt-3 flex flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm text-slate-600">
+                                    {userGroups.length === 0 ? (
+                                        <p className="text-[10px] sm:text-xs uppercase tracking-widest text-slate-400">
+                                            No customer groups configured. All groups will be eligible.
+                                        </p>
+                                    ) : (
+                                        userGroups.map((group) => {
+                                            const value = String(group.id);
+                                            const checked = field.value.includes(value);
+                                            return (
+                                                <label key={group.id} className="inline-flex items-center gap-1.5 sm:gap-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={checked}
+                                                        onChange={(event) => {
+                                                            if (event.target.checked) {
+                                                                field.onChange([...field.value, value]);
+                                                            } else {
+                                                                field.onChange(field.value.filter((id) => id !== value));
+                                                            }
+                                                        }}
+                                                        className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                                    />
+                                                    <span className="tracking-wide text-slate-500 text-xs sm:text-sm">{group.name}</span>
+                                                </label>
+                                            );
+                                        })
+                                    )}
+                                </div>
                             )}
-                        </div>
+                        />
+                        <InputError message={errors.user_group_ids?.message} />
                     </fieldset>
 
-                    <label className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
-                        <input
-                            type="checkbox"
-                            checked={formData.is_active}
-                            onChange={(event) => setFormData({ ...formData, is_active: event.target.checked })}
-                            className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                    <div>
+                        <Controller
+                            name="is_active"
+                            control={control}
+                            render={({ field }) => (
+                                <label className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-slate-600">
+                                    <Checkbox
+                                        checked={field.value}
+                                        onChange={field.onChange}
+                                    />
+                                    Active for checkout & jobwork
+                                </label>
+                            )}
                         />
-                        Active for checkout & jobwork
-                    </label>
+                        <InputError message={errors.is_active?.message} />
+                    </div>
 
                     <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
                         {editingOffer && (
