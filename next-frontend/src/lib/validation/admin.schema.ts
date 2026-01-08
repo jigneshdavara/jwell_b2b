@@ -324,3 +324,331 @@ export const metalToneSchema = z.object({
 });
 
 export type MetalToneFormData = z.infer<typeof metalToneSchema>;
+
+// Diamond Schema
+export const diamondSchema = z.object({
+    code: z
+        .string()
+        .min(1, "The code field is required.")
+        .max(191, "The code may not be greater than 191 characters."),
+    diamond_type_id: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                ) {
+                    return false;
+                }
+                return true;
+            },
+            {
+                message: "The diamond type field is required.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? Number(val) : val)),
+    diamond_clarity_id: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                ) {
+                    return false;
+                }
+                return true;
+            },
+            {
+                message: "The clarity field is required.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? Number(val) : val)),
+    diamond_color_id: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                ) {
+                    return false;
+                }
+                return true;
+            },
+            {
+                message: "The color field is required.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? Number(val) : val)),
+    diamond_shape_id: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                ) {
+                    return false;
+                }
+                return true;
+            },
+            {
+                message: "The shape field is required.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? Number(val) : val)),
+    diamond_shape_size_id: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                ) {
+                    return false;
+                }
+                return true;
+            },
+            {
+                message: "The shape size field is required.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? Number(val) : val)),
+    price: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                const num = typeof val === "string" ? parseFloat(val) : val;
+                return !isNaN(num) && num > 0;
+            },
+            {
+                message: "The price must be a valid number greater than 0.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? parseFloat(val) : val)),
+    weight: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                const num = typeof val === "string" ? parseFloat(val) : val;
+                return !isNaN(num) && num > 0;
+            },
+            {
+                message: "The weight must be a valid number greater than 0.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? parseFloat(val) : val)),
+    description: z.string().optional().or(z.literal("")),
+    is_active: z.boolean().default(true),
+});
+
+export type DiamondFormData = z.infer<typeof diamondSchema>;
+
+// Diamond Type Schema
+export const diamondTypeSchema = z.object({
+    code: z
+        .string()
+        .min(1, "The code field is required.")
+        .max(191, "The code may not be greater than 191 characters."),
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(191, "The name may not be greater than 191 characters."),
+    description: z.string().optional().or(z.literal("")),
+    display_order: z
+        .number()
+        .int()
+        .min(0, "The display order must be at least 0.")
+        .default(0),
+    is_active: z.boolean().default(true),
+});
+
+export type DiamondTypeFormData = z.infer<typeof diamondTypeSchema>;
+
+// Diamond Clarity Schema
+export const diamondClaritySchema = z.object({
+    diamond_type_id: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                ) {
+                    return false;
+                }
+                return true;
+            },
+            {
+                message: "The diamond type field is required.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? Number(val) : val)),
+    code: z
+        .string()
+        .min(1, "The code field is required.")
+        .max(191, "The code may not be greater than 191 characters."),
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(191, "The name may not be greater than 191 characters."),
+    description: z.string().optional().or(z.literal("")),
+    display_order: z
+        .number()
+        .int()
+        .min(0, "The display order must be at least 0.")
+        .default(0),
+    is_active: z.boolean().default(true),
+});
+
+export type DiamondClarityFormData = z.infer<typeof diamondClaritySchema>;
+
+// Diamond Color Schema
+export const diamondColorSchema = z.object({
+    diamond_type_id: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                ) {
+                    return false;
+                }
+                return true;
+            },
+            {
+                message: "The diamond type field is required.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? Number(val) : val)),
+    code: z
+        .string()
+        .min(1, "The code field is required.")
+        .max(191, "The code may not be greater than 191 characters."),
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(191, "The name may not be greater than 191 characters."),
+    description: z.string().optional().or(z.literal("")),
+    display_order: z
+        .number()
+        .int()
+        .min(0, "The display order must be at least 0.")
+        .default(0),
+    is_active: z.boolean().default(true),
+});
+
+export type DiamondColorFormData = z.infer<typeof diamondColorSchema>;
+
+// Diamond Shape Schema
+export const diamondShapeSchema = z.object({
+    diamond_type_id: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                ) {
+                    return false;
+                }
+                return true;
+            },
+            {
+                message: "The diamond type field is required.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? Number(val) : val)),
+    code: z
+        .string()
+        .min(1, "The code field is required.")
+        .max(191, "The code may not be greater than 191 characters."),
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(191, "The name may not be greater than 191 characters."),
+    description: z.string().optional().or(z.literal("")),
+    display_order: z
+        .number()
+        .int()
+        .min(0, "The display order must be at least 0.")
+        .default(0),
+    is_active: z.boolean().default(true),
+});
+
+export type DiamondShapeFormData = z.infer<typeof diamondShapeSchema>;
+
+// Diamond Shape Size Schema
+export const diamondShapeSizeSchema = z.object({
+    diamond_type_id: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                ) {
+                    return false;
+                }
+                return true;
+            },
+            {
+                message: "The diamond type field is required.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? Number(val) : val)),
+    diamond_shape_id: z
+        .union([z.string(), z.number()])
+        .refine(
+            (val) => {
+                if (
+                    val === "" ||
+                    val === null ||
+                    val === undefined ||
+                    val === 0
+                ) {
+                    return false;
+                }
+                return true;
+            },
+            {
+                message: "The diamond shape field is required.",
+            }
+        )
+        .transform((val) => (typeof val === "string" ? Number(val) : val)),
+    size: z
+        .string()
+        .min(1, "The size field is required.")
+        .max(191, "The size may not be greater than 191 characters."),
+    secondary_size: z.string().optional().or(z.literal("")),
+    description: z.string().optional().or(z.literal("")),
+    display_order: z
+        .number()
+        .int()
+        .min(0, "The display order must be at least 0.")
+        .default(0),
+    ctw: z.number().min(0, "The CTW must be at least 0.").default(0),
+});
+
+export type DiamondShapeSizeFormData = z.infer<typeof diamondShapeSizeSchema>;
