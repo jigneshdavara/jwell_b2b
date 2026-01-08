@@ -154,3 +154,32 @@ export const adminGroupSchema = z.object({
 });
 
 export type AdminGroupFormData = z.infer<typeof adminGroupSchema>;
+
+// Category Schema
+export const categorySchema = z.object({
+    parent_id: z
+        .union([z.string(), z.number()])
+        .optional()
+        .or(z.literal(""))
+        .nullable(),
+    code: z
+        .string()
+        .max(191, "The code may not be greater than 191 characters.")
+        .optional()
+        .or(z.literal("")),
+    name: z
+        .string()
+        .min(1, "The name field is required.")
+        .max(191, "The name may not be greater than 191 characters."),
+    description: z.string().optional().or(z.literal("")),
+    is_active: z.boolean().default(true),
+    display_order: z
+        .number()
+        .int()
+        .min(0, "The display order must be at least 0.")
+        .default(0),
+    style_ids: z.array(z.number()).default([]),
+    size_ids: z.array(z.number()).default([]),
+});
+
+export type CategoryFormData = z.infer<typeof categorySchema>;
