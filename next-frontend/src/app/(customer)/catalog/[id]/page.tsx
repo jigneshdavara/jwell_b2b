@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback, FormEvent } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { catalogQuotationSchema, type CatalogQuotationFormData } from '@/lib/validation/customer.schema';
 import { Head } from '@/components/Head';
 import CustomizationSection from '@/components/ui/customization/CustomizationSection';
 import ProductDetailsPanel from '@/components/ui/customization/ProductDetailsPanel';
+import InputError from '@/components/ui/InputError';
 import { frontendService } from '@/services/frontendService';
 import { useAppDispatch } from '@/store/hooks';
 import { fetchCart } from '@/store/slices/cartSlice';
@@ -31,14 +35,11 @@ export default function CatalogShowPage() {
     const [product, setProduct] = useState<ProductDetail | null>(null);
     const [configurationOptions, setConfigurationOptions] = useState<ConfigurationOption[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setPageError] = useState<string | null>(null);
     const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [processing, setProcessing] = useState(false);
-    const [quantityInput, setQuantityInput] = useState<string>('1');
-    const [quantity, setQuantity] = useState(1);
-    const [notes, setNotes] = useState('');
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const [selectionState, setSelectionState] = useState<{
         metalId: number | '';
@@ -52,11 +53,32 @@ export default function CatalogShowPage() {
         purity?: string;
         tone?: string;
         size?: string;
-        quantity?: string;
-        notes?: string;
     }>({});
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxZoom, setLightboxZoom] = useState(1.5);
+
+    // React Hook Form setup
+    const {
+        control,
+        handleSubmit,
+        formState: { errors: formErrors, isSubmitting },
+        watch,
+        setValue,
+        setError: setFormError,
+        clearErrors: clearFormErrors,
+    } = useForm<CatalogQuotationFormData>({
+        resolver: zodResolver(catalogQuotationSchema),
+        mode: 'onSubmit',
+        reValidateMode: 'onBlur',
+        shouldFocusError: true,
+        defaultValues: {
+            quantity: 1,
+            notes: '',
+        },
+    });
+
+    const quantity = watch('quantity');
+    const notes = watch('notes');
 
 
     const selectedConfig = useMemo(
@@ -72,7 +94,7 @@ export default function CatalogShowPage() {
 
     useEffect(() => {
         if (!productId || isNaN(productId)) {
-            setError('Invalid product ID');
+            setPageError('Invalid product ID');
             setLoading(false);
             return;
         }
@@ -80,7 +102,7 @@ export default function CatalogShowPage() {
         const fetchProduct = async () => {
             try {
                 setLoading(true);
-                setError(null);
+                setPageError(null);
                 const response = await frontendService.getProduct(productId);
                 const data = response.data;
                 
@@ -186,7 +208,7 @@ export default function CatalogShowPage() {
                 }
             } catch (err: any) {
                 console.error('Failed to fetch product:', err);
-                setError(err.response?.data?.message || 'Failed to load product');
+                setPageError(err.response?.data?.message || 'Failed to load product');
             } finally {
                 setLoading(false);
             }
@@ -207,10 +229,12 @@ export default function CatalogShowPage() {
         }
     }, [activeImageIndex, mediaCount]);
 
-    // Sync quantityInput with quantity when variant changes
+    // Reset quantity to 1 when variant changes
     useEffect(() => {
-        setQuantityInput(String(quantity));
-    }, [selectedVariantId, quantity]);
+        if (selectedVariantId) {
+            setValue('quantity', 1);
+        }
+    }, [selectedVariantId, setValue]);
 
     const estimatedTotal = useMemo(() => {
         if (!selectedConfig) return 0;
@@ -221,9 +245,26 @@ export default function CatalogShowPage() {
 
     const maxQuantity = selectedConfig?.inventory_quantity ?? null;
     const isOutOfStock = maxQuantity !== null && maxQuantity === 0;
-    const currentQuantity = parseInt(quantityInput, 10) || 1;
+    const currentQuantity = quantity || 1;
     const quantityExceedsInventory = maxQuantity !== null && maxQuantity > 0 && currentQuantity > maxQuantity;
     const inventoryUnavailable = isOutOfStock || quantityExceedsInventory;
+
+    // Validate quantity against inventory
+    useEffect(() => {
+        if (maxQuantity !== null && maxQuantity > 0 && quantity > maxQuantity) {
+            setFormError('quantity', {
+                type: 'manual',
+                message: `Only ${maxQuantity} ${maxQuantity === 1 ? 'item is' : 'items are'} available. Maximum ${maxQuantity} ${maxQuantity === 1 ? 'item' : 'items'} allowed for request.`,
+            });
+        } else if (quantity < 1) {
+            setFormError('quantity', {
+                type: 'manual',
+                message: 'Quantity must be at least 1.',
+            });
+        } else {
+            clearFormErrors('quantity');
+        }
+    }, [quantity, maxQuantity, setFormError, clearFormErrors]);
 
     const validateSelections = () => {
         const errors: { metal?: string; purity?: string; tone?: string; size?: string } = {};
@@ -251,14 +292,12 @@ export default function CatalogShowPage() {
         return errors;
     };
 
-    const submit = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
+    const submit = async (formData: CatalogQuotationFormData) => {
         if (processing || invalidCombination) {
             return;
         }
 
-        // Validate selections
+        // Validate selections (metal, purity, tone, size)
         const errors = validateSelections();
         if (Object.keys(errors).length > 0) {
             setValidationErrors(errors);
@@ -269,23 +308,35 @@ export default function CatalogShowPage() {
             return;
         }
 
-        // Clear errors if validation passes
+        // Clear selection errors if validation passes
         setValidationErrors({});
 
         // Directly add to cart without modal
         setProcessing(true);
-        frontendService.addToCart(
-            product!.id,
-            selectedVariantId,
-            quantity,
-            { notes }
-        ).then(async () => {
+        try {
+            await frontendService.addToCart(
+                product!.id,
+                selectedVariantId,
+                formData.quantity,
+                { notes: formData.notes || undefined }
+            );
             await refreshCart();
-            setProcessing(false);
-        }).catch((err: any) => {
+        } catch (err: any) {
             console.error('Failed to add to cart:', err);
+            if (err.response?.data?.errors) {
+                // Set errors using React Hook Form's setError
+                for (const key in err.response.data.errors) {
+                    if (key === 'quantity' || key === 'notes') {
+                        setFormError(key as keyof CatalogQuotationFormData, {
+                            type: 'server',
+                            message: err.response.data.errors[key][0],
+                        });
+                    }
+                }
+            }
+        } finally {
             setProcessing(false);
-        });
+        }
     };
 
     const confirmSubmit = async () => {
@@ -317,13 +368,14 @@ export default function CatalogShowPage() {
     };
 
     const addToQuotationList = async () => {
+        const formData = watch();
         setProcessing(true);
         try {
             await frontendService.addToCart(
                 product!.id,
                 selectedVariantId!,
-                quantity,
-                { notes }
+                formData.quantity,
+                { notes: formData.notes || undefined }
             );
             await refreshCart();
             setConfirmOpen(false);
@@ -475,7 +527,7 @@ export default function CatalogShowPage() {
 
                     <div className="w-full space-y-4 sm:space-y-6">
                         <form
-                            onSubmit={submit}
+                            onSubmit={handleSubmit(submit)}
                             className="w-full space-y-4 rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-200/80 sm:rounded-3xl sm:space-y-5 sm:p-6"
                         >
                             <div>
@@ -503,84 +555,98 @@ export default function CatalogShowPage() {
                                 </>
                             )}
 
-                            <label className="block w-full space-y-1">
+                            <div className="block w-full space-y-1">
                                 <span className="text-xs font-semibold text-slate-600 sm:text-sm">
                                     Quantity
                                     {maxQuantity !== null && maxQuantity > 0 && !quantityExceedsInventory && (
                                         <span className="ml-1 font-normal text-slate-500">(Available: {maxQuantity})</span>
                                     )}
                                 </span>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    max={maxQuantity !== null && maxQuantity > 0 ? maxQuantity : undefined}
-                                    value={quantityInput}
-                                    onChange={(e) => {
-                                        // Allow completely free typing
-                                        const inputValue = e.target.value;
-                                        setQuantityInput(inputValue);
-
-                                        // Update quantity if it's a valid number
-                                        const numValue = parseInt(inputValue, 10);
-                                        if (!isNaN(numValue) && numValue >= 1) {
-                                            setQuantity(numValue);
-                                        }
+                                <Controller
+                                    name="quantity"
+                                    control={control}
+                                    render={({ field, fieldState }) => {
+                                        const hasError = fieldState.error || formErrors.quantity || (quantityExceedsInventory && !isOutOfStock);
+                                        return (
+                                            <>
+                                                <input
+                                                    {...field}
+                                                    type="number"
+                                                    min="1"
+                                                    max={maxQuantity !== null && maxQuantity > 0 ? maxQuantity : undefined}
+                                                    value={field.value || ''}
+                                                    onChange={(e) => {
+                                                        const inputValue = e.target.value;
+                                                        const numValue = parseInt(inputValue, 10);
+                                                        if (inputValue === '' || (!isNaN(numValue) && numValue >= 1)) {
+                                                            field.onChange(inputValue === '' ? 1 : numValue);
+                                                        }
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        field.onBlur();
+                                                        const numValue = parseInt(e.target.value, 10);
+                                                        if (isNaN(numValue) || numValue < 1) {
+                                                            field.onChange(1);
+                                                        } else if (maxQuantity !== null && maxQuantity > 0 && numValue > maxQuantity) {
+                                                            field.onChange(maxQuantity);
+                                                        }
+                                                    }}
+                                                    className={`w-full rounded-xl border px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 sm:rounded-2xl sm:px-4 sm:py-2.5 ${
+                                                        hasError
+                                                            ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-rose-400/20'
+                                                            : 'border-slate-200 bg-white focus:border-feather-gold focus:ring-feather-gold/20'
+                                                    }`}
+                                                />
+                                                {(fieldState.error || formErrors.quantity) && (
+                                                    <InputError className="text-xs" message={fieldState.error?.message || formErrors.quantity?.message} />
+                                                )}
+                                                {quantityExceedsInventory &&
+                                                    !isOutOfStock &&
+                                                    !fieldState.error &&
+                                                    !formErrors.quantity &&
+                                                    maxQuantity !== null && (
+                                                        <span className="text-xs text-rose-500">
+                                                            Only {maxQuantity}{" "}
+                                                            {maxQuantity === 1
+                                                                ? "item is"
+                                                                : "items are"}{" "}
+                                                            available. Maximum {maxQuantity}{" "}
+                                                            {maxQuantity === 1
+                                                                ? "item"
+                                                                : "items"}{" "}
+                                                            allowed for request.
+                                                        </span>
+                                                    )}
+                                            </>
+                                        );
                                     }}
-                                    onBlur={(e) => {
-                                        // On blur, validate and set proper value
-                                        const numValue = parseInt(quantityInput, 10);
-                                        if (isNaN(numValue) || numValue < 1) {
-                                            setQuantityInput('1');
-                                            setQuantity(1);
-                                        } else {
-                                            setQuantityInput(String(numValue));
-                                            setQuantity(numValue);
-                                        }
-                                    }}
-                                    className={`w-full rounded-xl border px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 sm:rounded-2xl sm:px-4 sm:py-2.5 ${
-                                        quantityExceedsInventory && !isOutOfStock
-                                            ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-rose-400/20'
-                                            : 'border-slate-200 bg-white focus:border-feather-gold focus:ring-feather-gold/20'
-                                    }`}
                                 />
-                                {validationErrors.quantity && (
-                                    <span className="text-xs text-rose-500">
-                                        {validationErrors.quantity}
-                                    </span>
-                                )}
-                                {quantityExceedsInventory &&
-                                    !isOutOfStock &&
-                                    !validationErrors.quantity &&
-                                    maxQuantity !== null && (
-                                        <span className="text-xs text-rose-500">
-                                            Only {maxQuantity}{" "}
-                                            {maxQuantity === 1
-                                                ? "item is"
-                                                : "items are"}{" "}
-                                            available. Maximum {maxQuantity}{" "}
-                                            {maxQuantity === 1
-                                                ? "item"
-                                                : "items"}{" "}
-                                            allowed for request.
-                                        </span>
-                                    )}
-                            </label>
+                            </div>
 
-                            <label className="block w-full space-y-1">
+                            <div className="block w-full space-y-1">
                                 <span className="text-xs font-semibold text-slate-600 sm:text-sm">Notes (optional)</span>
-                                <textarea
-                                    rows={3}
-                                    value={notes}
-                                    onChange={(e) => setNotes(e.target.value)}
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4 sm:py-2.5 sm:rows-4"
-                                    placeholder="List required scope: hallmarking, hallmark packaging, diamond certification, delivery deadlines…"
+                                <Controller
+                                    name="notes"
+                                    control={control}
+                                    render={({ field, fieldState }) => (
+                                        <>
+                                            <textarea
+                                                {...field}
+                                                rows={3}
+                                                value={field.value || ''}
+                                                onChange={(e) => field.onChange(e.target.value || null)}
+                                                className={`w-full rounded-xl border bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:px-4 sm:py-2.5 sm:rows-4 ${
+                                                    fieldState.error || formErrors.notes
+                                                        ? 'border-red-300 focus:border-red-400 focus:ring-red-300'
+                                                        : 'border-slate-300 focus:border-slate-900 focus:ring-slate-900/20'
+                                                }`}
+                                                placeholder="List required scope: hallmarking, hallmark packaging, diamond certification, delivery deadlines…"
+                                            />
+                                            <InputError className="text-xs" message={fieldState.error?.message || formErrors.notes?.message} />
+                                        </>
+                                    )}
                                 />
-                                {validationErrors.notes && (
-                                    <span className="text-xs text-rose-500">
-                                        {validationErrors.notes}
-                                    </span>
-                                )}
-                            </label>
+                            </div>
 
                             <div className="w-full rounded-xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-sm">
                                 <p className="font-semibold text-slate-700">Estimated total</p>
@@ -652,10 +718,10 @@ export default function CatalogShowPage() {
 
                             <button
                                 type="submit"
-                                disabled={processing || invalidCombination || inventoryUnavailable}
+                                disabled={isSubmitting || processing || invalidCombination || inventoryUnavailable}
                                 className="w-full rounded-full bg-elvee-blue px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-elvee-blue/30 transition hover:bg-navy active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
                             >
-                                {processing
+                                {processing || isSubmitting
                                     ? "Submitting…"
                                     : "Request quotation"}
                             </button>
