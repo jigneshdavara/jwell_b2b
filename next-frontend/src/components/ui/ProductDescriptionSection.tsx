@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import RichTextEditor from '@/components/RichTextEditor';
 
 type ProductDescriptionSectionProps = {

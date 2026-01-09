@@ -1,7 +1,7 @@
 'use client';
 
 import { Head } from '@/components/Head';
-import React, { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { generateVariantMatrix as generateVariantMatrixUtil } from '@/utils/variantMatrixGenerator';
 import { useParams, useRouter } from 'next/navigation';
 import { adminService } from '@/services/adminService';
@@ -28,12 +28,6 @@ import type {
     SubcategoryOption,
     AdminProductMedia as ProductMedia,
 } from '@/types/product';
-
-
-// Using ProductFormData from Zod schema instead of local FormData type
-// This avoids conflict with browser's FormData type
-
-// ProductMedia type is imported from './types'
 
 const emptyVariant = (isDefault = false): VariantForm => ({
     sku: '',
@@ -96,8 +90,6 @@ export default function AdminProductEdit() {
                 const parentCats = options.parentCategories || (options.categories || []).filter((cat: any) => !cat.parent_id);
                 
                 // Debug: Log to verify backend data
-                console.log('Backend parentCategories:', options.parentCategories);
-                console.log('Filtered parentCats:', parentCats);
                 
                 const mappedParentCategories = parentCats.map((cat: any) => {
                     // Backend might return sizes/styles in different formats
@@ -147,13 +139,6 @@ export default function AdminProductEdit() {
                         }))
                         : [];
                     
-                    // Debug: Log each category with sizes
-                    console.log(`Category "${cat.name}" (ID: ${Number(cat.id)}) - Sizes: ${sizes.length}, Styles: ${styles.length}`, { 
-                        sizes, 
-                        styles,
-                        rawCategory: cat 
-                    });
-                    
                     return {
                         id: Number(cat.id),
                         name: cat.name,
@@ -161,8 +146,6 @@ export default function AdminProductEdit() {
                         styles,
                     };
                 });
-                
-                console.log('Mapped parentCategories:', mappedParentCategories);
                 setParentCategories(mappedParentCategories);
                 
                 // Subcategories
@@ -277,7 +260,6 @@ export default function AdminProductEdit() {
                         });
                         
                         setParentCategories(updatedParentCategories);
-                        console.log('Updated parentCategories with sizes and styles from single getCategories API call:', updatedParentCategories);
                     } catch (error) {
                         console.error('Failed to fetch category sizes/styles:', error);
                         // Continue with categories without sizes if fetch fails

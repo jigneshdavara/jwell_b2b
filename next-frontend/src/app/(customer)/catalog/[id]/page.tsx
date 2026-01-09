@@ -22,7 +22,7 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
     maximumFractionDigits: 0,
 });
 
-import type { ProductDetail, ProductVariant, ConfigurationOption, ConfigMetal, ConfigDiamond } from '@/types';
+import type { ProductDetail, ConfigurationOption, ConfigMetal, ConfigDiamond } from '@/types';
 
 
 export default function CatalogShowPage() {

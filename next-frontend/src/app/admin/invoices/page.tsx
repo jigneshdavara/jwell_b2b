@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Pagination from '@/components/ui/Pagination';
 import { useEffect, useState } from 'react';
 import { adminService } from '@/services/adminService';
-import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
+import { PaginationMeta } from '@/utils/pagination';
 import { InvoiceListItem, InvoiceStatus } from '@/types/invoice';
 import PrimaryButton from '@/components/ui/PrimaryButton';
 

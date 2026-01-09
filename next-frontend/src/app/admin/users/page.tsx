@@ -8,7 +8,7 @@ import { adminService } from '@/services/adminService';
 import Link from 'next/link';
 import { route } from '@/utils/route';
 import { toastError } from '@/utils/toast';
-import { generatePaginationLinks } from '@/utils/pagination';
+import { PaginationMeta, generatePaginationLinks } from '@/utils/pagination';
 
 type AdminUserRow = {
     id: number;
@@ -29,20 +29,6 @@ type AdminUserRow = {
         city?: string | null;
         state?: string | null;
     } | null;
-};
-
-type PaginationMeta = {
-    current_page: number;
-    last_page: number;
-    total: number;
-    per_page: number;
-    from?: number;
-    to?: number;
-    links?: Array<{
-        url: string | null;
-        label: string;
-        active: boolean;
-    }>;
 };
 
 type Option = {

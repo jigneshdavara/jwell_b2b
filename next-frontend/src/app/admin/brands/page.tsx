@@ -9,7 +9,7 @@ import InputLabel from "@/components/ui/InputLabel";
 import InputError from "@/components/ui/InputError";
 import Checkbox from "@/components/ui/Checkbox";
 import { adminService } from "@/services/adminService";
-import { PaginationMeta, PaginationLink, generatePaginationLinks } from "@/utils/pagination";
+import { PaginationMeta, generatePaginationLinks } from "@/utils/pagination";
 import { toastError } from "@/utils/toast";
 import { getMediaUrlNullable } from "@/utils/mediaUrl";
 import { useForm, Controller } from "react-hook-form";

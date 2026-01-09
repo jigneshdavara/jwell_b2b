@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Control, Controller } from 'react-hook-form';
 import TextInput from '@/components/ui/TextInput';
 import InputLabel from '@/components/ui/InputLabel';
