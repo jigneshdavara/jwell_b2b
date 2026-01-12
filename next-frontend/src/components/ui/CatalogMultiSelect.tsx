@@ -60,6 +60,9 @@ export default function CatalogMultiSelect({ catalogs, selectedIds, onChange, er
             .filter(Boolean) as Array<{ id: number; name: string }>;
     }, [selectedIds, catalogs]);
 
+    // Only count active catalogs (paused catalogs are not in catalogs array)
+    const activeSelectedCount = selectedCatalogs.length;
+
     const removeCatalog = (catalogId: number) => {
         onChange(selectedIds.filter(id => id !== catalogId));
     };
@@ -68,9 +71,9 @@ export default function CatalogMultiSelect({ catalogs, selectedIds, onChange, er
         <label className="flex flex-col gap-2 text-xs sm:text-sm text-slate-600">
             <div className="flex items-center justify-between">
                 <span>Catalogs</span>
-                {selectedIds.length > 0 && (
+                {activeSelectedCount > 0 && (
                     <span className="text-[10px] sm:text-xs font-medium text-sky-600">
-                        {selectedIds.length} selected
+                        {activeSelectedCount} selected
                     </span>
                 )}
             </div>
@@ -86,7 +89,7 @@ export default function CatalogMultiSelect({ catalogs, selectedIds, onChange, er
                 >
                     <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-h-[20px] flex flex-wrap gap-1.5">
-                            {selectedIds.length === 0 ? (
+                            {activeSelectedCount === 0 ? (
                                 <span className="text-xs sm:text-sm text-slate-400">Select catalogs...</span>
                             ) : (
                                 selectedCatalogs.map((catalog) => (
