@@ -101,6 +101,8 @@ export default function AdminCategoriesPage() {
     const [styleSearchQuery, setStyleSearchQuery] = useState('');
     const [sizeSearchQuery, setSizeSearchQuery] = useState('');
     const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
+    const [stylesAssignedToProducts, setStylesAssignedToProducts] = useState<Set<number>>(new Set());
+    const [sizesAssignedToProducts, setSizesAssignedToProducts] = useState<Set<number>>(new Set());
     const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -358,6 +360,8 @@ export default function AdminCategoriesPage() {
         setEditingCategory(null);
         setModalOpen(false);
         setExpandedNodes(new Set());
+        setStylesAssignedToProducts(new Set());
+        setSizesAssignedToProducts(new Set());
         reset({
             parent_id: '',
             code: '',
@@ -421,6 +425,14 @@ export default function AdminCategoriesPage() {
             const response = await adminService.getCategory(category.id);
             const fullCategory = response.data;
             
+            // Store styles assigned to products
+            const assignedStyleIds = fullCategory.styles_assigned_to_products || [];
+            setStylesAssignedToProducts(new Set(assignedStyleIds.map((id: any) => Number(id))));
+            
+            // Store sizes assigned to products
+            const assignedSizeIds = fullCategory.sizes_assigned_to_products || [];
+            setSizesAssignedToProducts(new Set(assignedSizeIds.map((id: any) => Number(id))));
+            
             setEditingCategory({
                 ...category,
                 styles: fullCategory.styles || [],
@@ -450,6 +462,8 @@ export default function AdminCategoriesPage() {
             }
         } catch (error: any) {
             // Fallback to basic category data
+            setStylesAssignedToProducts(new Set());
+            setSizesAssignedToProducts(new Set());
             setEditingCategory(category);
             reset({
                 parent_id: category.parent_id ? String(category.parent_id) : '',
@@ -994,10 +1008,14 @@ export default function AdminCategoriesPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        setValue('style_ids', []);
+                                                        // Keep only styles that are assigned to products (locked styles)
+                                                        const currentStyleIds = watch('style_ids') || [];
+                                                        const stylesToKeep = currentStyleIds.filter((id) => stylesAssignedToProducts.has(id));
+                                                        setValue('style_ids', stylesToKeep);
                                                         trigger('style_ids');
                                                     }}
                                                     className="text-xs font-medium text-rose-600 hover:text-rose-700"
+                                                    title={stylesAssignedToProducts.size > 0 ? 'Only removable styles will be removed. Styles assigned to products will remain.' : ''}
                                                 >
                                                     Remove all
                                                 </button>
@@ -1023,33 +1041,41 @@ export default function AdminCategoriesPage() {
                                                                     styleIds.map((styleId) => {
                                                                         const style = styles.find((s) => s.id === styleId);
                                                                         if (!style) return null;
+                                                                        const isAssignedToProducts = stylesAssignedToProducts.has(styleId);
                                                                         return (
                                                                             <span
                                                                                 key={styleId}
-                                                                                className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-xs font-medium text-sky-700"
+                                                                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-xs font-medium ${
+                                                                                    isAssignedToProducts
+                                                                                        ? 'bg-amber-100 text-amber-700'
+                                                                                        : 'bg-sky-100 text-sky-700'
+                                                                                }`}
+                                                                                title={isAssignedToProducts ? 'This style is assigned to products and cannot be removed' : ''}
                                                                             >
                                                                                 {style.name}
-                                                                                <span
-                                                                                    role="button"
-                                                                                    tabIndex={0}
-                                                                                    onMouseDown={(e) => {
-                                                                                        e.preventDefault();
-                                                                                        e.stopPropagation();
-                                                                                        field.onChange(styleIds.filter((id) => id !== styleId));
-                                                                                    }}
-                                                                                    onKeyDown={(e) => {
-                                                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                                                {!isAssignedToProducts && (
+                                                                                    <span
+                                                                                        role="button"
+                                                                                        tabIndex={0}
+                                                                                        onMouseDown={(e) => {
                                                                                             e.preventDefault();
                                                                                             e.stopPropagation();
                                                                                             field.onChange(styleIds.filter((id) => id !== styleId));
-                                                                                        }
-                                                                                    }}
-                                                                                    className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
-                                                                                >
-                                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                                                    </svg>
-                                                                                </span>
+                                                                                        }}
+                                                                                        onKeyDown={(e) => {
+                                                                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                                                                e.preventDefault();
+                                                                                                e.stopPropagation();
+                                                                                                field.onChange(styleIds.filter((id) => id !== styleId));
+                                                                                            }
+                                                                                        }}
+                                                                                        className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+                                                                                    >
+                                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                                                        </svg>
+                                                                                    </span>
+                                                                                )}
                                                                             </span>
                                                                         );
                                                                     })
@@ -1087,17 +1113,24 @@ export default function AdminCategoriesPage() {
                                                                         )
                                                                         .map((style) => {
                                                                             const isChecked = styleIds.includes(style.id);
+                                                                            const isAssignedToProducts = stylesAssignedToProducts.has(style.id);
                                                                             return (
                                                                                 <Menu.Item key={style.id}>
                                                                                     {({ active }) => (
                                                                                         <div
-                                                                                            className={`flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 cursor-pointer ${
-                                                                                                active ? 'bg-slate-50' : ''
-                                                                                            }`}
+                                                                                            className={`flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 ${
+                                                                                                isAssignedToProducts && isChecked
+                                                                                                    ? 'cursor-not-allowed opacity-75'
+                                                                                                    : 'cursor-pointer'
+                                                                                            } ${active && !(isAssignedToProducts && isChecked) ? 'bg-slate-50' : ''}`}
                                                                                             onClick={(e) => {
                                                                                                 if ((e.target as HTMLElement).tagName !== 'INPUT') {
                                                                                                     e.stopPropagation();
                                                                                                     e.preventDefault();
+                                                                                                    // Prevent unchecking if style is assigned to products
+                                                                                                    if (isChecked && isAssignedToProducts) {
+                                                                                                        return;
+                                                                                                    }
                                                                                                     if (isChecked) {
                                                                                                         field.onChange(styleIds.filter((id) => id !== style.id));
                                                                                                     } else {
@@ -1105,20 +1138,30 @@ export default function AdminCategoriesPage() {
                                                                                                     }
                                                                                                 }
                                                                                             }}
+                                                                                            title={isAssignedToProducts && isChecked ? 'This style is assigned to products and cannot be removed' : ''}
                                                                                         >
                                                                                             <Checkbox
                                                                                                 checked={isChecked}
+                                                                                                disabled={isAssignedToProducts && isChecked}
                                                                                                 onChange={(e) => {
                                                                                                     e.stopPropagation();
+                                                                                                    // Prevent unchecking if style is assigned to products
                                                                                                     if (e.target.checked) {
                                                                                                         field.onChange([...styleIds, style.id]);
                                                                                                     } else {
-                                                                                                        field.onChange(styleIds.filter((id) => id !== style.id));
+                                                                                                        if (!isAssignedToProducts) {
+                                                                                                            field.onChange(styleIds.filter((id) => id !== style.id));
+                                                                                                        }
                                                                                                     }
                                                                                                 }}
                                                                                                 onClick={(e) => e.stopPropagation()}
                                                                                             />
-                                                                                            <span className="text-xs sm:text-sm text-slate-700">{style.name}</span>
+                                                                                            <span className={`text-xs sm:text-sm ${isAssignedToProducts && isChecked ? 'text-amber-700' : 'text-slate-700'}`}>
+                                                                                                {style.name}
+                                                                                                {isAssignedToProducts && isChecked && (
+                                                                                                    <span className="ml-1 text-[10px] text-amber-600">(in use)</span>
+                                                                                                )}
+                                                                                            </span>
                                                                                         </div>
                                                                                     )}
                                                                                 </Menu.Item>
@@ -1146,10 +1189,14 @@ export default function AdminCategoriesPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        setValue('size_ids', []);
+                                                        // Keep only sizes that are assigned to products (locked sizes)
+                                                        const currentSizeIds = watch('size_ids') || [];
+                                                        const sizesToKeep = currentSizeIds.filter((id) => sizesAssignedToProducts.has(id));
+                                                        setValue('size_ids', sizesToKeep);
                                                         trigger('size_ids');
                                                     }}
                                                     className="text-xs font-medium text-rose-600 hover:text-rose-700"
+                                                    title={sizesAssignedToProducts.size > 0 ? 'Only removable sizes will be removed. Sizes assigned to products will remain.' : ''}
                                                 >
                                                     Remove all
                                                 </button>
@@ -1175,33 +1222,41 @@ export default function AdminCategoriesPage() {
                                                                     sizeIds.map((sizeId) => {
                                                                         const size = sizes.find((s) => s.id === sizeId);
                                                                         if (!size) return null;
+                                                                        const isAssignedToProducts = sizesAssignedToProducts.has(sizeId);
                                                                         return (
                                                                             <span
                                                                                 key={sizeId}
-                                                                                className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-xs font-medium text-sky-700"
+                                                                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] sm:px-2.5 sm:py-1 sm:text-xs font-medium ${
+                                                                                    isAssignedToProducts
+                                                                                        ? 'bg-amber-100 text-amber-700'
+                                                                                        : 'bg-sky-100 text-sky-700'
+                                                                                }`}
+                                                                                title={isAssignedToProducts ? 'This size is assigned to products and cannot be removed' : ''}
                                                                             >
                                                                                 {size.name}
-                                                                                <span
-                                                                                    role="button"
-                                                                                    tabIndex={0}
-                                                                                    onMouseDown={(e) => {
-                                                                                        e.preventDefault();
-                                                                                        e.stopPropagation();
-                                                                                        field.onChange(sizeIds.filter((id) => id !== sizeId));
-                                                                                    }}
-                                                                                    onKeyDown={(e) => {
-                                                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                                                {!isAssignedToProducts && (
+                                                                                    <span
+                                                                                        role="button"
+                                                                                        tabIndex={0}
+                                                                                        onMouseDown={(e) => {
                                                                                             e.preventDefault();
                                                                                             e.stopPropagation();
                                                                                             field.onChange(sizeIds.filter((id) => id !== sizeId));
-                                                                                        }
-                                                                                    }}
-                                                                                    className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
-                                                                                >
-                                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                                                    </svg>
-                                                                                </span>
+                                                                                        }}
+                                                                                        onKeyDown={(e) => {
+                                                                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                                                                e.preventDefault();
+                                                                                                e.stopPropagation();
+                                                                                                field.onChange(sizeIds.filter((id) => id !== sizeId));
+                                                                                            }
+                                                                                        }}
+                                                                                        className="rounded-full hover:bg-sky-200 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+                                                                                    >
+                                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-3.5 sm:w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                                                        </svg>
+                                                                                    </span>
+                                                                                )}
                                                                             </span>
                                                                         );
                                                                     })
@@ -1239,17 +1294,24 @@ export default function AdminCategoriesPage() {
                                                                         )
                                                                         .map((size) => {
                                                                             const isChecked = sizeIds.includes(size.id);
+                                                                            const isAssignedToProducts = sizesAssignedToProducts.has(size.id);
                                                                             return (
                                                                                 <Menu.Item key={size.id}>
                                                                                     {({ active }) => (
                                                                                         <div
-                                                                                            className={`flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 cursor-pointer ${
-                                                                                                active ? 'bg-slate-50' : ''
-                                                                                            }`}
+                                                                                            className={`flex items-center gap-2 sm:gap-3 rounded-lg sm:rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 ${
+                                                                                                isAssignedToProducts && isChecked
+                                                                                                    ? 'cursor-not-allowed opacity-75'
+                                                                                                    : 'cursor-pointer'
+                                                                                            } ${active && !(isAssignedToProducts && isChecked) ? 'bg-slate-50' : ''}`}
                                                                                             onClick={(e) => {
                                                                                                 if ((e.target as HTMLElement).tagName !== 'INPUT') {
                                                                                                     e.stopPropagation();
                                                                                                     e.preventDefault();
+                                                                                                    // Prevent unchecking if size is assigned to products
+                                                                                                    if (isChecked && isAssignedToProducts) {
+                                                                                                        return;
+                                                                                                    }
                                                                                                     if (isChecked) {
                                                                                                         field.onChange(sizeIds.filter((id) => id !== size.id));
                                                                                                     } else {
@@ -1257,20 +1319,30 @@ export default function AdminCategoriesPage() {
                                                                                                     }
                                                                                                 }
                                                                                             }}
+                                                                                            title={isAssignedToProducts && isChecked ? 'This size is assigned to products and cannot be removed' : ''}
                                                                                         >
                                                                                             <Checkbox
                                                                                                 checked={isChecked}
+                                                                                                disabled={isAssignedToProducts && isChecked}
                                                                                                 onChange={(e) => {
                                                                                                     e.stopPropagation();
+                                                                                                    // Prevent unchecking if size is assigned to products
                                                                                                     if (e.target.checked) {
                                                                                                         field.onChange([...sizeIds, size.id]);
                                                                                                     } else {
-                                                                                                        field.onChange(sizeIds.filter((id) => id !== size.id));
+                                                                                                        if (!isAssignedToProducts) {
+                                                                                                            field.onChange(sizeIds.filter((id) => id !== size.id));
+                                                                                                        }
                                                                                                     }
                                                                                                 }}
                                                                                                 onClick={(e) => e.stopPropagation()}
                                                                                             />
-                                                                                            <span className="text-xs sm:text-sm text-slate-700">{size.name}</span>
+                                                                                            <span className={`text-xs sm:text-sm ${isAssignedToProducts && isChecked ? 'text-amber-700' : 'text-slate-700'}`}>
+                                                                                                {size.name}
+                                                                                                {isAssignedToProducts && isChecked && (
+                                                                                                    <span className="ml-1 text-[10px] text-amber-600">(in use)</span>
+                                                                                                )}
+                                                                                            </span>
                                                                                         </div>
                                                                                     )}
                                                                                 </Menu.Item>

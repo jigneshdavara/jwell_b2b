@@ -142,15 +142,74 @@ export class CategoriesService {
             throw new NotFoundException('Category not found');
         }
 
+        // Get all active styles assigned to this category
+        const activeStyles = category.category_styles
+            .map((cs) => cs.styles)
+            .filter((style) => style.is_active === true);
+
+        // Check which styles are assigned to products in THIS category only
+        const styleIds = activeStyles.map((style) => Number(style.id));
+        const categoryId = BigInt(id);
+        const productsInCategory = await this.prisma.products.findMany({
+            where: {
+                category_id: categoryId,
+                is_active: true,
+            },
+            select: {
+                style_ids: true,
+            },
+        });
+
+        // Find style IDs that are assigned to products in THIS category
+        const stylesAssignedToProducts = new Set<number>();
+        productsInCategory.forEach((product) => {
+            if (product.style_ids && Array.isArray(product.style_ids)) {
+                const productStyleIds = product.style_ids as number[];
+                styleIds.forEach((styleId) => {
+                    if (productStyleIds.includes(styleId)) {
+                        stylesAssignedToProducts.add(styleId);
+                    }
+                });
+            }
+        });
+
+        // Get all active sizes assigned to this category
+        const activeSizes = category.category_sizes
+            .map((cs) => cs.sizes)
+            .filter((size) => size.is_active === true);
+
+        // Check which sizes are assigned to products in THIS category only (via product_variants)
+        const sizeIds = activeSizes.map((size) => Number(size.id));
+        const productVariants = await this.prisma.product_variants.findMany({
+            where: {
+                size_id: {
+                    in: sizeIds.map((id) => BigInt(id)),
+                },
+                products: {
+                    category_id: categoryId,
+                    is_active: true,
+                },
+            },
+            select: {
+                size_id: true,
+            },
+        });
+
+        // Find size IDs that are assigned to products in THIS category
+        const sizesAssignedToProducts = new Set<number>();
+        productVariants.forEach((variant) => {
+            if (variant.size_id) {
+                sizesAssignedToProducts.add(Number(variant.size_id));
+            }
+        });
+
         return {
             ...category,
             parent: category.categories,
-            styles: category.category_styles
-                .map((cs) => cs.styles)
-                .filter((style) => style.is_active === true),
-            sizes: category.category_sizes
-                .map((cs) => cs.sizes)
-                .filter((size) => size.is_active === true),
+            styles: activeStyles,
+            styles_assigned_to_products: Array.from(stylesAssignedToProducts),
+            sizes: activeSizes,
+            sizes_assigned_to_products: Array.from(sizesAssignedToProducts),
             cover_image_url: category.cover_image
                 ? category.cover_image.startsWith('storage/')
                     ? `/${category.cover_image}`
