@@ -687,6 +687,45 @@ export class BulkDestroyDto {
     ids: number[];
 }
 
+// Bulk Status Update DTO
+export class BulkStatusDto {
+    @IsArray()
+    @IsInt({ each: true })
+    @Transform(({ value }) => {
+        if (!value) return [];
+        if (Array.isArray(value)) {
+            return value
+                .map((v) => parseInt(String(v), 10))
+                .filter((v) => !isNaN(v));
+        }
+        if (typeof value === 'string') {
+            try {
+                const parsed = JSON.parse(value) as unknown;
+                if (Array.isArray(parsed)) {
+                    return (parsed as unknown[])
+                        .map((v) => parseInt(String(v), 10))
+                        .filter((v) => !isNaN(v));
+                }
+            } catch {
+                // If JSON parse fails, try single value
+                const parsed = parseInt(value, 10);
+                return isNaN(parsed) ? [] : [parsed];
+            }
+        }
+        return [];
+    })
+    ids: number[];
+
+    @IsBoolean()
+    @IsNotEmpty()
+    @Transform(({ value }) => {
+        if (value === 'true' || value === true) return true;
+        if (value === 'false' || value === false) return false;
+        return Boolean(value);
+    })
+    is_active: boolean;
+}
+
 // Product Detail Response DTO (matches the structure you provided)
 export class ProductDetailResponseDto {
     id: number;
