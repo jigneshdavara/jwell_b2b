@@ -238,8 +238,12 @@ export default function CatalogShowPage() {
 
     const estimatedTotal = useMemo(() => {
         if (!selectedConfig) return 0;
-        return selectedConfig.price_total;
-    }, [selectedConfig]);
+        // Calculate total from breakdown components to ensure accuracy
+        const subtotal = selectedConfig.price_breakup.metal + 
+                        selectedConfig.price_breakup.diamond + 
+                        selectedConfig.price_breakup.making;
+        return subtotal * (quantity || 1);
+    }, [selectedConfig, quantity]);
 
     const invalidCombination = configurationOptions.length > 0 && !selectedConfig;
 

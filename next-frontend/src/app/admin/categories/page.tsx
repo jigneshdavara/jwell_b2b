@@ -1051,12 +1051,19 @@ export default function AdminCategoriesPage() {
                                                                                         : 'bg-sky-100 text-sky-700'
                                                                                 }`}
                                                                                 title={isAssignedToProducts ? 'This style is assigned to products and cannot be removed' : ''}
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                onMouseDown={(e) => e.stopPropagation()}
                                                                             >
                                                                                 {style.name}
                                                                                 {!isAssignedToProducts && (
                                                                                     <span
                                                                                         role="button"
                                                                                         tabIndex={0}
+                                                                                        onClick={(e) => {
+                                                                                            e.preventDefault();
+                                                                                            e.stopPropagation();
+                                                                                            field.onChange(styleIds.filter((id) => id !== styleId));
+                                                                                        }}
                                                                                         onMouseDown={(e) => {
                                                                                             e.preventDefault();
                                                                                             e.stopPropagation();
@@ -1232,12 +1239,19 @@ export default function AdminCategoriesPage() {
                                                                                         : 'bg-sky-100 text-sky-700'
                                                                                 }`}
                                                                                 title={isAssignedToProducts ? 'This size is assigned to products and cannot be removed' : ''}
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                onMouseDown={(e) => e.stopPropagation()}
                                                                             >
                                                                                 {size.name}
                                                                                 {!isAssignedToProducts && (
                                                                                     <span
                                                                                         role="button"
                                                                                         tabIndex={0}
+                                                                                        onClick={(e) => {
+                                                                                            e.preventDefault();
+                                                                                            e.stopPropagation();
+                                                                                            field.onChange(sizeIds.filter((id) => id !== sizeId));
+                                                                                        }}
                                                                                         onMouseDown={(e) => {
                                                                                             e.preventDefault();
                                                                                             e.stopPropagation();
