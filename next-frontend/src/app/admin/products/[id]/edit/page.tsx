@@ -660,41 +660,6 @@ export default function AdminProductEdit() {
         }
     }, [product?.id, product?.variants]);
 
-    // Auto-filter variants when sizes are deselected
-    const prevSelectedSizesRef = useRef<number[]>([]);
-    useEffect(() => {
-        const selectedSizes = data?.selected_sizes || [];
-        const prevSelectedSizes = prevSelectedSizesRef.current;
-        
-        // Only filter if sizes were removed (not added)
-        if (generatedMatrixVariants.length > 0 && prevSelectedSizes.length > selectedSizes.length) {
-            // Find which sizes were removed
-            const removedSizes = prevSelectedSizes.filter(sizeId => !selectedSizes.includes(sizeId));
-            
-            if (removedSizes.length > 0) {
-                const filteredVariants = generatedMatrixVariants.filter((variant: any) => {
-                    const variantSizeId = variant.size_id;
-                    // Keep variant if it has no size_id (null/undefined/empty)
-                    if (variantSizeId === null || variantSizeId === undefined || variantSizeId === '') {
-                        return true;
-                    }
-                    // Convert to number for comparison
-                    const variantSizeIdNum = typeof variantSizeId === 'number' ? variantSizeId : Number(variantSizeId);
-                    // Keep variant only if its size_id is NOT in the removed sizes
-                    return !removedSizes.includes(variantSizeIdNum);
-                });
-                
-                // Update variants if any were filtered out
-                if (filteredVariants.length !== generatedMatrixVariants.length) {
-                    setGeneratedMatrixVariants(filteredVariants);
-                }
-            }
-        }
-        
-        // Update ref for next comparison
-        prevSelectedSizesRef.current = selectedSizes;
-    }, [data?.selected_sizes]);
-
     const formatDecimal = (value: number): string => {
         if (!Number.isFinite(value)) {
             return '';
