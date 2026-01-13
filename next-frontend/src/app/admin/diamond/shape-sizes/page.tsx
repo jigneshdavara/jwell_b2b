@@ -310,13 +310,18 @@ export default function AdminDiamondShapeSizesIndex() {
         await loadShapesByType(size.diamond_type_id);
         reset({
             diamond_type_id: size.diamond_type_id,
-            diamond_shape_id: size.diamond_shape_id,
+            diamond_shape_id: 0, // Set to 0 initially, will be set after shapes load
             size: size.size,
             secondary_size: size.secondary_size ?? '',
             description: size.description ?? '',
             display_order: size.display_order,
             ctw: size.ctw,
         });
+        // Set the shape_id after reset to ensure it's not overridden by useEffect
+        // Use setTimeout to ensure it runs after the useEffect that watches watchedTypeId
+        setTimeout(() => {
+            setValue('diamond_shape_id', size.diamond_shape_id);
+        }, 0);
         setModalOpen(true);
     };
 
