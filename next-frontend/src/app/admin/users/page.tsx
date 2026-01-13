@@ -406,15 +406,15 @@ export default function AdminUsersIndex() {
                             Delete selected
                         </button>
                         <select
-                            className="rounded-full border border-white/30 bg-white/10 px-2.5 py-1.5 sm:px-3 text-[10px] sm:text-xs font-semibold text-white focus:border-white focus:outline-none"
+                            className="rounded-full border border-white/30 bg-white/10 px-2.5 py-1.5 sm:px-3 text-[10px] sm:text-xs font-semibold text-white focus:border-white focus:outline-none [&>option]:text-slate-900"
                             value=""
                             onChange={(event) => {
                                 bulkAssignGroup(event.target.value);
                             }}
                         >
-                            <option value="">Assign to group…</option>
+                            <option value="" style={{ color: '#0f172a' }}>Assign to group…</option>
                             {customerGroups.map((group) => (
-                                <option key={group.id} value={group.id}>
+                                <option key={group.id} value={group.id} style={{ color: '#0f172a' }}>
                                     {group.name}
                                 </option>
                             ))}

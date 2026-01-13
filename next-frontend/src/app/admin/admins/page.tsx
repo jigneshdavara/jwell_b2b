@@ -441,8 +441,9 @@ export default function AdminAdminsIndex() {
                                                     // In edit mode, only validate if field has value
                                                     if (e.target.value) {
                                                         trigger('password');
-                                                        // Only trigger confirmation validation if BOTH fields have values
-                                                        if (confirmationValue) {
+                                                        // In edit mode, trigger confirmation validation when password is entered
+                                                        // In create mode, only trigger if confirmation also has value
+                                                        if (!isCreateMode || confirmationValue) {
                                                             trigger('password_confirmation');
                                                         }
                                                     } else if (!isCreateMode) {
@@ -457,10 +458,9 @@ export default function AdminAdminsIndex() {
                                                     const hasValue = field.value && field.value.length > 0;
                                                     if (hasValue || (isCreateMode && fieldState.isTouched)) {
                                                         await trigger('password');
-                                                        // Only trigger confirmation validation if BOTH fields have values
-                                                        const currentPassword = watch('password');
-                                                        const currentConfirmation = watch('password_confirmation');
-                                                        if (currentPassword && currentConfirmation) {
+                                                        // In edit mode, trigger confirmation validation when password is entered
+                                                        // In create mode, only trigger if confirmation also has value
+                                                        if (!isCreateMode || (watch('password_confirmation') && watch('password_confirmation').length > 0)) {
                                                             await trigger('password_confirmation');
                                                         }
                                                     }
@@ -505,19 +505,19 @@ export default function AdminAdminsIndex() {
                                                 }}
                                                 onBlur={async () => {
                                                     field.onBlur();
-                                                    // Only trigger validation if BOTH fields have values OR it's create mode and field was touched
                                                     const currentPassword = watch('password');
                                                     const currentConfirmation = watch('password_confirmation');
-                                                    const hasBothValues = currentPassword && currentConfirmation;
-                                                    const shouldValidate = hasBothValues || (isCreateMode && fieldState.isTouched);
+                                                    const hasPassword = currentPassword && currentPassword.length > 0;
+                                                    const hasConfirmation = currentConfirmation && currentConfirmation.length > 0;
+                                                    
+                                                    // In edit mode: validate if password is present (confirmation is required)
+                                                    // In create mode: validate if field was touched (always required)
+                                                    const shouldValidate = (isCreateMode && fieldState.isTouched) || (hasPassword && !isCreateMode);
                                                     
                                                     if (shouldValidate) {
-                                                        if (hasBothValues) {
-                                                            await trigger('password_confirmation');
+                                                        await trigger('password_confirmation');
+                                                        if (hasPassword && hasConfirmation) {
                                                             await trigger('password');
-                                                        } else if (isCreateMode) {
-                                                            // In create mode, validate required field
-                                                            await trigger('password_confirmation');
                                                         }
                                                     }
                                                 }}

@@ -103,8 +103,27 @@ export const editAdminUserSchema = baseAdminUserSchema
     )
     .refine(
         (data) => {
+            // If password is provided, password_confirmation is required
+            const hasPassword = data.password && data.password.length > 0;
+            const hasConfirmation =
+                data.password_confirmation &&
+                data.password_confirmation.length > 0;
+
+            // If password is provided, confirmation is required
+            if (hasPassword && !hasConfirmation) {
+                return false;
+            }
+
+            return true;
+        },
+        {
+            message: "The password confirmation field is required when password is present.",
+            path: ["password_confirmation"],
+        }
+    )
+    .refine(
+        (data) => {
             // Only validate password matching if BOTH fields have values
-            // If user is typing password but hasn't entered confirmation yet, don't show error
             const hasPassword = data.password && data.password.length > 0;
             const hasConfirmation =
                 data.password_confirmation &&
@@ -115,8 +134,6 @@ export const editAdminUserSchema = baseAdminUserSchema
                 return data.password === data.password_confirmation;
             }
 
-            // If password exists but confirmation is empty, that's okay (user is still typing)
-            // If both are empty, that's okay (user doesn't want to change password)
             return true;
         },
         {
