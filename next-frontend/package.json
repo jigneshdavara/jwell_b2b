@@ -11,6 +11,7 @@
         "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\""
     },
     "dependencies": {
+        "@headlessui/react": "^2.2.0",
         "@reduxjs/toolkit": "^2.11.2",
         "@stripe/react-stripe-js": "^3.1.1",
         "@stripe/stripe-js": "^5.2.0",
