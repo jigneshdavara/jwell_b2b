@@ -42,6 +42,11 @@ lerna-debug.log*
 .env.production.local
 .env.local
 
+# Public / upload storage (user uploads, KYC, etc.)
+/public
+/public/storage
+/uploads
+
 # temp directory
 .temp
 .tmp
